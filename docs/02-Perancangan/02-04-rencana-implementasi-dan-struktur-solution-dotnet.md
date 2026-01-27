@@ -300,7 +300,7 @@ Output:
    - idempotensi `(session_id, event_id)`,
    - urutan `sequence_number`,
    - kecocokan `ruleset_version_id` terhadap sesi aktif.
-3. Simpan event ke tabel `events`.
+3. Simpan event ke tabel `events` dengan `event_pk` sebagai PK internal, sementara `event_id` tetap dipakai untuk idempotensi.
 4. Simpan kegagalan ke `validation_logs` (jika kamu pakai).
 
 Output:
@@ -310,7 +310,8 @@ Output:
 1. Buat translator event → `event_cashflow_projections`.
 2. Tulis proyeksi hanya untuk event yang memengaruhi uang:
    - `transaction.recorded`, `day.friday.donation`, `ingredient.purchased`, `order.claimed`.
-3. Uji query tabel proyeksi.
+3. Saat menyimpan proyeksi, simpan referensi `event_pk` (FK ke `events.event_pk`) agar integritas terjaga.
+4. Uji query tabel proyeksi.
 
 Output:
 - proyeksi transaksi terbentuk otomatis.

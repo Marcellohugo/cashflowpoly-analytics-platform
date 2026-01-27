@@ -101,6 +101,15 @@ where session_id = '<SESSION_ID>' and player_id is null
 order by computed_at desc;
 ```
 
+Contoh validasi integritas referensi event (FK berbasis `event_pk`):
+```sql
+select count(*) as orphan_projections
+from event_cashflow_projections ecp
+left join events e on e.event_pk = ecp.event_pk
+where e.event_pk is null;
+```
+Ekspektasi: `orphan_projections = 0`.
+
 ---
 
 ## 8. Rekap Temuan (*Bug*) dan Perbaikan
@@ -192,3 +201,4 @@ Daftar lampiran:
 - SS-UI-01.png: detail sesi
 - DB-01.sql: query metric_snapshots
 - (isi sesuai bukti nyata)
+

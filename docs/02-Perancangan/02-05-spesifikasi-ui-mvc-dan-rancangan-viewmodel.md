@@ -397,4 +397,3 @@ UI siap uji jika:
 3. UI menampilkan *loading* atau minimal *empty state*,
 4. UI menampilkan error terstruktur,
 5. nilai UI sama dengan data API.
-

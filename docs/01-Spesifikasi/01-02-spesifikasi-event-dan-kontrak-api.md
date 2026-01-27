@@ -27,6 +27,11 @@ Sistem memproses event sesuai urutan `sequence_number` per sesi. Sistem menolak 
 ### 2.4 Jejak ruleset
 Setiap event wajib menyertakan `ruleset_version_id` agar analisis tetap konsisten walau ruleset berubah.
 
+### 2.5 Catatan implementasi server (tanpa mengubah kontrak payload)
+- API menyimpan event dengan `event_pk` sebagai primary key internal.
+- API menerapkan idempotensi berdasarkan kombinasi `session_id + event_id`.
+- API menolak `sequence_number` duplikat dalam satu sesi.
+
 ---
 
 ## 3. Model Event Umum

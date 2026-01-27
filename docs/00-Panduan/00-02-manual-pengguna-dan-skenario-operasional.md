@@ -119,8 +119,13 @@ Sistem menerima event dari klien IDN/simulator atau pengujian manual via Postman
 1. Sistem menerima event valid dengan status berhasil.
 2. Sistem menolak event yang:
    - urutan `sequence_number` loncat,
+   - `sequence_number` duplikat dalam satu sesi,
    - `ruleset_version_id` tidak sesuai sesi,
    - tipe data payload salah.
+
+Catatan server:
+- Sistem menyimpan event dengan `event_pk` sebagai PK internal.
+- Sistem menerapkan idempotensi pada kombinasi `session_id + event_id`.
 
 ### Bukti yang bisa instruktur simpan
 Instruktur menyimpan:
@@ -222,6 +227,7 @@ Instruktur menyiapkan bukti uji dan bukti tampilan untuk laporan.
    - `metric_snapshots`
    - `event_cashflow_projections`
    - `events`
+   - integritas referensi event (`event_pk`) pada proyeksi/log
 
 ### Format penyimpanan bukti
 Instruktur menyimpan bukti pada folder:
@@ -245,8 +251,9 @@ Instruktur melakukan:
 Instruktur melakukan:
 1. cek event tersimpan pada tabel `events`,
 2. cek proyeksi transaksi pada `event_cashflow_projections`,
-3. cek snapshot pada `metric_snapshots`,
-4. jalankan “recompute” jika endpoint tersedia.
+3. pastikan proyeksi punya referensi event yang valid via `event_pk`,
+4. cek snapshot pada `metric_snapshots`,
+5. jalankan “recompute” jika endpoint tersedia.
 
 ### 14.3 Event ditolak terus
 Instruktur melakukan:

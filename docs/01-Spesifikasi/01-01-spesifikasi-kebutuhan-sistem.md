@@ -93,6 +93,12 @@ Bagian ini merinci kebutuhan yang dapat diuji.
 - FR-API-06 Sistem menyimpan event yang valid ke basis data.
 - FR-API-07 Sistem menyediakan endpoint untuk mengambil daftar event per sesi dalam urutan yang konsisten.
 
+Aturan server (ringkas, tanpa mengubah kontrak payload):
+- Sistem menyimpan event dengan `event_pk` sebagai primary key internal.
+- Sistem menerapkan idempotensi pada kombinasi `session_id + event_id`.
+- Sistem menolak `sequence_number` duplikat dalam satu sesi.
+- Sistem mengizinkan `events.player_id = null` untuk event sistem.
+
 Kriteria uji minimum:
 1. Sistem mengembalikan kode status konsisten untuk sukses dan gagal.
 2. Sistem mengembalikan pesan error yang menunjuk field atau aturan yang dilanggar.
@@ -134,7 +140,7 @@ Sistem menyimpan data minimum berikut:
 - Session: `session_id`, waktu mulai, waktu selesai, status, mode, ruleset aktif
 - Ruleset: `ruleset_id`, nama, deskripsi, status, konfigurasi
 - RulesetVersion: `ruleset_version_id`, ruleset_id, nomor versi, konfigurasi, waktu dibuat, pembuat
-- EventLog: `event_id`, session_id, player_id, timestamp, turn_number, action_type, payload, ruleset_version_id, sequence_number
+- EventLog: `event_pk` (PK internal), `event_id` (idempotensi dari klien), session_id, player_id (boleh null untuk event sistem), timestamp, turn_number, action_type, payload, ruleset_version_id, sequence_number
 - MetricSnapshot: `metric_id`, session_id, player_id (opsional), timestamp, nama metrik, nilai metrik
 
 ### 8.2 Integritas data

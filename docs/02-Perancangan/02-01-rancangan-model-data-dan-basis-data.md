@@ -246,7 +246,7 @@ Kolom utama:
 - `event_pk` UUID (PK internal)
 - `event_id` UUID (ID event dari klien)
 - `session_id`
-- `player_id` (opsional)
+- `player_id` (opsional; boleh null untuk event sistem)
 - `actor_type` (`PLAYER`, `SYSTEM`)
 - `timestamp` waktu event
 - `day_index`, `weekday`, `turn_number`
@@ -300,7 +300,8 @@ Kolom utama:
 - `projection_id` UUID
 - `session_id`
 - `player_id`
-- `event_id` UUID (referensi log)
+- `event_pk` UUID (FK ke `events.event_pk`)
+- `event_id` UUID (atribut audit/idempotensi dari klien)
 - `timestamp`
 - `direction` (`IN`, `OUT`)
 - `amount` int
@@ -315,6 +316,7 @@ create table if not exists event_cashflow_projections (
   projection_id uuid primary key,
   session_id uuid not null references sessions(session_id) on delete cascade,
   player_id uuid not null references players(player_id) on delete restrict,
+  event_pk uuid not null references events(event_pk) on delete restrict,
   event_id uuid not null,
   timestamp timestamptz not null,
   direction varchar(3) not null check (direction in ('IN','OUT')),
@@ -333,7 +335,8 @@ create index if not exists ix_ecp_category on event_cashflow_projections(categor
 
 Aturan proyeksi:
 - Sistem menulis baris proyeksi saat sistem menerima event valid.
-- Sistem menjaga idempotensi proyeksi dengan `unique(session_id, event_id)`.
+- Sistem menjaga keterlacakan proyeksi ke log event melalui FK `event_pk -> events(event_pk)`.
+- Sistem menjaga idempotensi proyeksi berbasis `event_id` klien melalui `unique(session_id, event_id)`.
 
 ---
 
@@ -343,7 +346,7 @@ Sistem menyimpan hasil agregasi metrik agar dasbor menampilkan data cepat dan ko
 Kolom utama:
 - `metric_snapshot_id` UUID
 - `session_id`
-- `player_id` (opsional: null untuk agregat sesi)
+- `player_id` (opsional: null untuk snapshot/agregat level sesi)
 - `computed_at` waktu hitung
 - `metric_name` nama metrik
 - `metric_value_numeric` nilai numerik
@@ -365,6 +368,7 @@ create table if not exists metric_snapshots (
 
 create index if not exists ix_metrics_session_name_time on metric_snapshots(session_id, metric_name, computed_at desc);
 create index if not exists ix_metrics_session_player_name_time on metric_snapshots(session_id, player_id, metric_name, computed_at desc);
+create index if not exists ix_metrics_session_player_time on metric_snapshots(session_id, player_id, computed_at desc);
 create index if not exists ix_metrics_ruleset_version on metric_snapshots(ruleset_version_id);
 ```
 
@@ -380,7 +384,8 @@ Sistem menyimpan hasil validasi event agar instruktur dapat melacak kegagalan va
 Kolom utama:
 - `validation_log_id` UUID
 - `session_id`
-- `event_id`
+- `event_pk` (FK ke `events.event_pk`, opsional sesuai kebutuhan log)
+- `event_id` (atribut audit/idempotensi dari klien)
 - `is_valid`
 - `error_code`
 - `error_message`
@@ -392,6 +397,7 @@ SQL:
 create table if not exists validation_logs (
   validation_log_id uuid primary key,
   session_id uuid not null references sessions(session_id) on delete cascade,
+  event_pk uuid null references events(event_pk) on delete restrict,
   event_id uuid not null,
   is_valid boolean not null,
   error_code varchar(40) null,
@@ -409,11 +415,17 @@ create index if not exists ix_validation_valid on validation_logs(is_valid);
 
 ## 7. Aturan Integritas Data
 Sistem menerapkan aturan integritas berikut:
-1. Sistem menjaga keunikan event dalam sesi melalui `unique(session_id, event_id)`.
-2. Sistem menjaga urutan event dalam sesi melalui `unique(session_id, sequence_number)`.
-3. Sistem melarang *orphan record* dengan foreign key pada sesi, pemain, dan versi *ruleset*.
-4. Sistem melarang penghapusan `ruleset_versions` yang sudah dipakai event melalui `on delete restrict`.
-5. Sistem menghapus data turunan sesi saat sistem menghapus sesi melalui `on delete cascade` pada tabel proyeksi dan metrik.
+1. Sistem menjaga urutan event dalam sesi melalui `unique(session_id, sequence_number)` pada `events`.
+2. Sistem menjaga idempotensi ingest event melalui `unique(session_id, event_id)` pada `events`.
+3. Sistem menjaga keunikan pemain dalam sesi melalui `unique(session_id, player_id)` pada `session_players`.
+4. Sistem menjaga keunikan versi *ruleset* melalui `unique(ruleset_id, version)` pada `ruleset_versions`.
+5. Sistem melarang *orphan record* dengan foreign key pada sesi, pemain, versi *ruleset*, dan referensi event (`event_pk`).
+6. Sistem melarang penghapusan `ruleset_versions` yang sudah dipakai event melalui `on delete restrict`.
+7. Sistem menghapus data turunan sesi saat sistem menghapus sesi melalui `on delete cascade` pada tabel proyeksi dan metrik.
+
+### 7.1 Aturan nullable yang disengaja
+- `events.player_id` boleh `null` untuk event sistem (`actor_type='SYSTEM'`).
+- `metric_snapshots.player_id` boleh `null` untuk snapshot/agregat level sesi.
 
 ---
 

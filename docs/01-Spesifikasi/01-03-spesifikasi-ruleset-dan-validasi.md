@@ -188,6 +188,7 @@ Sistem menerapkan aturan berikut:
 1. Klien mengirim `ruleset_version_id` pada setiap event.
 2. Sistem memeriksa kecocokan `ruleset_version_id` dengan ruleset aktif sesi.
 3. Sistem menolak event jika `ruleset_version_id` tidak cocok.
+4. Jika sistem mencatat log validasi ke `validation_logs`, sistem sebaiknya menyimpan referensi `event_pk` bila event sudah tersimpan, dan memakai `event_id` sebagai atribut audit/idempotensi.
 
 Sistem memetakan aturan *ruleset* ke validasi event:
 - `actions_per_turn` memvalidasi `turn.action.used`.
@@ -195,6 +196,10 @@ Sistem memetakan aturan *ruleset* ke validasi event:
 - batas kartu bahan memvalidasi `ingredient.purchased`.
 - aturan kebutuhan primer memvalidasi `need.*.purchased`.
 - fitur mode mahir memvalidasi event `loan.*` dan `insurance.*`.
+
+Catatan implementasi logging:
+- Untuk event yang ditolak sebelum disimpan ke `events`, `validation_logs.event_pk` dapat bernilai `null`.
+- Untuk event yang valid dan tersimpan, `validation_logs.event_pk` sebaiknya mengacu ke `events.event_pk` agar keterlacakan dan integritas referensi terjaga.
 
 ---
 
@@ -285,3 +290,4 @@ Sistem siap masuk tahap implementasi modul manajemen *ruleset* jika:
 3. Sistem menyimpan versi baru saat instruktur mengubah konfigurasi.
 4. Sistem mengunci versi aktif pada sesi.
 5. Sistem menolak event dengan `ruleset_version_id` yang tidak cocok.
+

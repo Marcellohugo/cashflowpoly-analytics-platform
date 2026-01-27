@@ -319,4 +319,3 @@ Setup selesai jika:
 3. Swagger UI bisa kamu akses,
 4. endpoint sample bisa kamu panggil,
 5. MVC bisa jalan dan menampilkan halaman.
-

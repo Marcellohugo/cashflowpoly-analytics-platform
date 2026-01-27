@@ -272,6 +272,9 @@ Sistem menyimpan hasil pada tabel `metric_snapshots` dengan:
 - `metric_value_numeric` atau `metric_value_json`,
 - `ruleset_version_id`.
 
+Catatan implementasi:
+- Snapshot agregat level sesi menyimpan `player_id = null`.
+
 ### 8.2 Strategi “latest only”
 Untuk dasbor real-time, sistem boleh menyimpan snapshot “terbaru saja” per metrik:
 - sistem ambil snapshot terbaru per `metric_name` berdasarkan `computed_at`.

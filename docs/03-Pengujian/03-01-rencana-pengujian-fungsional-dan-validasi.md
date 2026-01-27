@@ -299,6 +299,16 @@ Sistem menjalankan uji integrasi memakai rangkaian event yang menyerupai permain
 - `event_cashflow_projections` berisi transaksi hasil proyeksi.
 - `metric_snapshots` berisi metrik minimum.
 - Sistem tidak menghasilkan nilai negatif untuk kepemilikan (bahan/emas).
+- Setiap baris proyeksi memiliki referensi event yang valid melalui `event_pk`.
+
+Validasi DB integritas referensi event:
+```sql
+select count(*) as orphan_projections
+from event_cashflow_projections ecp
+left join events e on e.event_pk = ecp.event_pk
+where e.event_pk is null;
+```
+Ekspektasi: `orphan_projections = 0`.
 
 ### 8.2 Skenario integrasi pelanggaran aturan (IT-02)
 **Tujuan:** sistem menolak event yang melanggar aturan ruleset.
@@ -312,6 +322,15 @@ Sistem menjalankan uji integrasi memakai rangkaian event yang menyerupai permain
 - Sistem mengembalikan `422`.
 - Sistem tidak menyimpan event pada `events`.
 - Sistem mencatat kegagalan pada `validation_logs` jika modul ini aktif.
+
+Jika `validation_logs` menyimpan `event_pk`, validasi integritas referensi:
+```sql
+select count(*) as orphan_validation_logs
+from validation_logs vl
+left join events e on e.event_pk = vl.event_pk
+where vl.event_pk is not null and e.event_pk is null;
+```
+Ekspektasi: `orphan_validation_logs = 0`.
 
 ### 8.3 Skenario integrasi perubahan ruleset (IT-03)
 **Tujuan:** sistem menempelkan event ke versi ruleset yang benar.
