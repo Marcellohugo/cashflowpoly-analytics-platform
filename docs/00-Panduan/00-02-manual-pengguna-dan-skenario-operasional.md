@@ -247,7 +247,7 @@ docs/evidence/
 ### 14.1 Web menampilkan error “API tidak dapat diakses”
 Instruktur melakukan:
 1. cek API berjalan pada URL yang benar,
-2. cek `ApiBaseUrl` pada `Cashflowpoly.Web/appsettings.Development.json`,
+2. cek `ApiBaseUrl` pada `Cashflowpoly.Ui/appsettings.Development.json`,
 3. cek sertifikat https jika memakai https.
 
 ### 14.2 Analitika kosong padahal event sudah terkirim

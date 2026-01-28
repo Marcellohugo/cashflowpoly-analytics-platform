@@ -86,44 +86,20 @@ cd cashflowpoly-dashboard
 git init
 ```
 
-### 5.3 Buat solution dan proyek
-Contoh struktur (sesuaikan dengan dokumen 08):
-```bash
-mkdir src tests docs
-cd src
-
-dotnet new sln -n Cashflowpoly
-
-dotnet new classlib -n Cashflowpoly.Domain
-dotnet new classlib -n Cashflowpoly.Application
-dotnet new classlib -n Cashflowpoly.Infrastructure
-dotnet new classlib -n Cashflowpoly.Contracts
-
-dotnet new webapi -n Cashflowpoly.Api
-dotnet new mvc -n Cashflowpoly.Web
-
-dotnet sln Cashflowpoly.sln add Cashflowpoly.Domain/Cashflowpoly.Domain.csproj
-dotnet sln Cashflowpoly.sln add Cashflowpoly.Application/Cashflowpoly.Application.csproj
-dotnet sln Cashflowpoly.sln add Cashflowpoly.Infrastructure/Cashflowpoly.Infrastructure.csproj
-dotnet sln Cashflowpoly.sln add Cashflowpoly.Contracts/Cashflowpoly.Contracts.csproj
-dotnet sln Cashflowpoly.sln add Cashflowpoly.Api/Cashflowpoly.Api.csproj
-dotnet sln Cashflowpoly.sln add Cashflowpoly.Web/Cashflowpoly.Web.csproj
+### 5.3 Struktur solution dan proyek
+Struktur proyek yang dipakai:
 ```
-
-### 5.4 Tambah project reference
-Sistem menjalankan:
-```bash
-dotnet add Cashflowpoly.Application/Cashflowpoly.Application.csproj reference Cashflowpoly.Domain/Cashflowpoly.Domain.csproj
-dotnet add Cashflowpoly.Infrastructure/Cashflowpoly.Infrastructure.csproj reference Cashflowpoly.Application/Cashflowpoly.Application.csproj
-dotnet add Cashflowpoly.Infrastructure/Cashflowpoly.Infrastructure.csproj reference Cashflowpoly.Domain/Cashflowpoly.Domain.csproj
-
-dotnet add Cashflowpoly.Api/Cashflowpoly.Api.csproj reference Cashflowpoly.Application/Cashflowpoly.Application.csproj
-dotnet add Cashflowpoly.Api/Cashflowpoly.Api.csproj reference Cashflowpoly.Contracts/Cashflowpoly.Contracts.csproj
-dotnet add Cashflowpoly.Web/Cashflowpoly.Web.csproj reference Cashflowpoly.Contracts/Cashflowpoly.Contracts.csproj
+cashflowpoly-dashboard/
+  Cashflowpoly.slnx
+  docs/
+  database/
+  src/
+    Cashflowpoly.Api/
+    Cashflowpoly.Ui/
 ```
 
 Catatan:
-- UI MVC memanggil API via `HttpClient`. UI tidak mereferensikan Infrastructure.
+- UI MVC (`Cashflowpoly.Ui`) memanggil API via `HttpClient`. UI tidak mengakses DB langsung.
 
 ---
 
@@ -200,11 +176,11 @@ Sistem menyelesaikan dengan:
 ### 10.1 Jalankan Web
 Dari folder `src`:
 ```bash
-dotnet run --project Cashflowpoly.Web
+dotnet run --project Cashflowpoly.Ui
 ```
 
 ### 10.2 Atur base URL API
-Sistem menaruh base URL API di `Cashflowpoly.Web/appsettings.Development.json`:
+Sistem menaruh base URL API di `Cashflowpoly.Ui/appsettings.Development.json`:
 ```json
 {
   "ApiBaseUrl": "https://localhost:7001"
@@ -227,7 +203,7 @@ dotnet run --project src/Cashflowpoly.Api
 ```
 2. Terminal 2:
 ```bash
-dotnet run --project src/Cashflowpoly.Web
+dotnet run --project src/Cashflowpoly.Ui
 ```
 
 ### 11.2 Cara *debug* dengan `launch.json`

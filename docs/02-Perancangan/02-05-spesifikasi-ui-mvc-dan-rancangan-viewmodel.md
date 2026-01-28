@@ -60,7 +60,7 @@ Catatan:
 Sistem mengikuti struktur berikut pada proyek MVC.
 
 ```
-Cashflowpoly.Web/
+Cashflowpoly.Ui/
   Controllers/
     SessionsController.cs
     PlayersController.cs

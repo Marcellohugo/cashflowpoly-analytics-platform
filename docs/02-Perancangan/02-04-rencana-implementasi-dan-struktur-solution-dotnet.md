@@ -23,16 +23,9 @@ Dokumen ini menargetkan lingkungan:
 
 ## 2. Prinsip Arsitektur yang Dipakai
 ### 2.1 Target arsitektur
-Sistem memakai pola berlapis (*layered architecture*) yang memisahkan:
-1. API (HTTP boundary),
-2. aplikasi (*use case*),
-3. domain (aturan bisnis),
-4. infrastruktur (akses database PostgreSQL, logging).
-
-Pola ini memenuhi karakter “*clean architecture*” pada level praktis jika:
-- domain tidak bergantung pada akses database,
-- aplikasi tidak bergantung pada ASP.NET MVC,
-- infrastruktur bergantung ke domain dan aplikasi, bukan sebaliknya.
+Sistem memakai dua aplikasi dalam satu *solution*:
+1. REST API untuk penerimaan event dan analitika,
+2. UI MVC (Razor Views) untuk dasbor analitika dan manajemen *ruleset*.
 
 ### 2.2 Integrasi UI
 UI MVC bertindak sebagai *client* internal yang memanggil REST API melalui `HttpClient`. UI tidak mengakses DB langsung. UI memetakan DTO API ke ViewModel.
@@ -61,17 +54,10 @@ cashflowpoly-dashboard/
     06-rancangan-dashboard-analitika-mvc.md
     07-rencana-pengujian-fungsional-dan-validasi.md
     08-rencana-implementasi-dan-struktur-solution-dotnet.md
+  Cashflowpoly.slnx
   src/
-    Cashflowpoly.sln
     Cashflowpoly.Api/
-    Cashflowpoly.Web/
-    Cashflowpoly.Application/
-    Cashflowpoly.Domain/
-    Cashflowpoly.Infrastructure/
-    Cashflowpoly.Contracts/
-  tests/
-    Cashflowpoly.Tests.Unit/
-    Cashflowpoly.Tests.Integration/
+    Cashflowpoly.Ui/
 ```
 
 Catatan:
@@ -81,57 +67,7 @@ Catatan:
 ---
 
 ## 4. Struktur *Solution* dan Tanggung Jawab Proyek
-### 4.1 `Cashflowpoly.Domain`
-**Tanggung jawab:**
-- entitas domain inti: Session, Ruleset, Event, Projection, Metric
-- *value object* dan enum
-- aturan validasi domain tingkat tinggi (batasan urutan, batasan kepemilikan) sebagai fungsi murni bila memungkinkan
-
-**Larangan:**
-- tidak boleh referensi akses database, ASP.NET, `HttpContext`, atau JSON serializer khusus.
-
-### 4.2 `Cashflowpoly.Application`
-**Tanggung jawab:**
-- *use case* / layanan aplikasi:
-  - CreateSession, StartSession, EndSession
-  - CreateRuleset, UpdateRuleset, ActivateRuleset
-  - IngestEvent (validasi + persist + trigger proyeksi)
-  - ComputeMetrics / Recompute
-  - QueryAnalyticsSummary, QueryTransactions
-- interface port:
-  - `ISessionRepository`
-  - `IRulesetRepository`
-  - `IEventRepository`
-  - `IAnalyticsQuery`
-  - `IUnitOfWork`
-  - `IClock`, `IIdGenerator`, `IHashingService`
-
-**Output:**
-- DTO internal untuk kebutuhan API (bukan ViewModel).
-
-### 4.3 `Cashflowpoly.Infrastructure`
-**Tanggung jawab:**
-- akses database berbasis SQL (tanpa ORM)
-- implementasi repository
-- skrip dan perubahan skema database
-- implementasi hashing, time, id generator (bila perlu)
-- implementasi query analitika berbasis SQL
-- implementasi proyeksi arus kas
-
-**Dependensi:**
-- bergantung pada Application dan Domain.
-
-### 4.4 `Cashflowpoly.Contracts`
-**Tanggung jawab:**
-- DTO publik untuk kontrak API
-- request/response model
-- enum untuk kontrak API
-
-Tujuan proyek ini:
-- API dan Web dapat berbagi kontrak tanpa saling bergantung.
-- Pengujian *contract* lebih mudah.
-
-### 4.5 `Cashflowpoly.Api`
+### 4.1 `Cashflowpoly.Api`
 **Tanggung jawab:**
 - ASP.NET Core Web API
 - Controller:
@@ -143,10 +79,7 @@ Tujuan proyek ini:
 - Swagger dan versi API
 - Middleware error handling dan tracing
 
-**Dependensi:**
-- bergantung pada Application dan Contracts.
-
-### 4.6 `Cashflowpoly.Web`
+### 4.2 `Cashflowpoly.Ui`
 **Tanggung jawab:**
 - ASP.NET Core MVC + Razor Views
 - Controller UI:
@@ -157,51 +90,12 @@ Tujuan proyek ini:
 - Tailwind setup dan komponen view
 
 **Dependensi:**
-- bergantung pada Contracts (untuk DTO) atau *client DTO* sendiri.
 - bergantung pada `HttpClient` untuk memanggil API.
 
 ---
 
 ## 5. Konvensi Folder per Proyek
-
-### 5.1 Domain
-```
-Cashflowpoly.Domain/
-  Sessions/
-  Rulesets/
-  Events/
-  Metrics/
-  Common/
-```
-
-### 5.2 Application
-```
-Cashflowpoly.Application/
-  Abstractions/
-    Persistence/
-    Services/
-  UseCases/
-    Sessions/
-    Rulesets/
-    Events/
-    Analytics/
-    Metrics/
-  Dtos/
-  Validation/
-```
-
-### 5.3 Infrastructure
-```
-Cashflowpoly.Infrastructure/
-  Persistence/
-    Sql/
-  Repositories/
-  Analytics/
-  Projections/
-  Observability/
-```
-
-### 5.4 API
+### 5.1 API
 ```
 Cashflowpoly.Api/
   Controllers/
@@ -210,9 +104,9 @@ Cashflowpoly.Api/
   Swagger/
 ```
 
-### 5.5 Web (MVC)
+### 5.2 UI (MVC)
 ```
-Cashflowpoly.Web/
+Cashflowpoly.Ui/
   Controllers/
   ViewModels/
   Views/
@@ -222,16 +116,14 @@ Cashflowpoly.Web/
 
 ---
 
-## 6. Dependensi Paket yang 
+## 6. Dependensi Paket
 ### 6.1 API
 - `Swashbuckle.AspNetCore` (Swagger UI)
 - `Microsoft.AspNetCore.OpenApi` (opsional)
 - `FluentValidation.AspNetCore` (opsional, kalau kamu mau validasi yang rapi)
+- paket akses PostgreSQL sesuai implementasi (mis. `Npgsql`)
 
-### 6.2 Infrastructure
-- Paket akses PostgreSQL sesuai implementasi (mis. `Npgsql`)
-
-### 6.3 Web (MVC)
+### 6.2 UI (MVC)
 - `Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation` (opsional, membantu saat dev)
 
 Catatan: kamu bisa mulai tanpa FluentValidation agar implementasi cepat, lalu tambah kalau butuh.
@@ -240,11 +132,11 @@ Catatan: kamu bisa mulai tanpa FluentValidation agar implementasi cepat, lalu ta
 
 ## 7. Konfigurasi *Solution* di VS Code
 ### 7.1 Struktur run
-Sistem menjalankan API dan Web secara paralel:
+Sistem menjalankan API dan UI secara paralel:
 - API: `https://localhost:7xxx` atau `http://localhost:5xxx`
-- Web: `https://localhost:8xxx` atau `http://localhost:6xxx`
+- UI: `https://localhost:8xxx` atau `http://localhost:6xxx`
 
-Sistem mengatur base URL API untuk Web melalui `Cashflowpoly.Web/appsettings.json`:
+Sistem mengatur base URL API untuk UI melalui `Cashflowpoly.Ui/appsettings.json`:
 ```json
 {
   "ApiBaseUrl": "https://localhost:7001"
@@ -256,18 +148,17 @@ Sistem mengunci port agar dokumentasi dan Postman stabil. Kamu bisa set port via
 
 ---
 
-## 8. Urutan Implementasi yang 
+## 8. Urutan Implementasi
 Sistem menerapkan urutan berikut agar setiap langkah langsung bisa diuji.
 
 ### Tahap A — *Bootstrap* proyek
 1. Buat repo dan *solution*.
-2. Buat proyek Domain, Application, Infrastructure, Contracts, Api, Web.
-3. Tambah referensi proyek sesuai dependensi.
+2. Buat proyek Api dan Ui.
 
 Output:
 - solusi bisa *build* tanpa error,
 - swagger API bisa terbuka,
-- halaman Web bisa terbuka.
+- halaman UI bisa terbuka.
 
 ### Tahap B — Database dan skema SQL
 1. Jalankan skrip `database/00_create_schema.sql` pada PostgreSQL (mis. lewat DBeaver).
@@ -345,8 +236,8 @@ Kalimat “membuat semuanya dalam 1 file dengan *solution* yang berbeda” biasa
 
 Struktur yang benar pada .NET:
 - satu repositori,
-- satu file `.sln`,
-- beberapa proyek (`.csproj`) untuk API dan Web.
+- satu file `.slnx`,
+- beberapa proyek (`.csproj`) untuk API dan UI.
 
 Sistem tidak menaruh semua kode pada satu file `.cs` karena itu menghambat pengujian dan pemeliharaan.
 
@@ -354,9 +245,9 @@ Sistem tidak menaruh semua kode pada satu file `.cs` karena itu menghambat pengu
 
 ## 10. Checklist Kesiapan Mulai Coding
 Sistem siap kamu mulai implementasikan jika:
-1. kamu sudah membuat struktur `src/` dan `tests/`,
+1. kamu sudah membuat struktur `src/`,
 2. API sudah jalan dengan Swagger,
-3. Web MVC sudah jalan dan bisa memanggil API (meski endpoint masih dummy),
+3. UI MVC sudah jalan dan bisa memanggil API (meski endpoint masih dummy),
 4. PostgreSQL siap dan koneksi sudah benar.
 
 ---
