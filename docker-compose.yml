@@ -24,10 +24,10 @@ services:
     container_name: cashflowpoly-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: http://+:${API_HTTP_PORT}
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     ports:
-      - "${API_HTTP_PORT}:8080"
+      - "${API_HTTP_PORT}:${API_HTTP_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -39,10 +39,10 @@ services:
     container_name: cashflowpoly-ui
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
-      ApiBaseUrl: http://api:8080
+      ASPNETCORE_URLS: http://+:${UI_HTTP_PORT}
+      ApiBaseUrl: http://api:${API_HTTP_PORT}
     ports:
-      - "${UI_HTTP_PORT}:8080"
+      - "${UI_HTTP_PORT}:${UI_HTTP_PORT}"
     depends_on:
       - api
 
