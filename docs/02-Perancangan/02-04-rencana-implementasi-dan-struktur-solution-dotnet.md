@@ -222,7 +222,7 @@ Cashflowpoly.Web/
 
 ---
 
-## 6. Dependensi Paket yang Disarankan
+## 6. Dependensi Paket yang 
 ### 6.1 API
 - `Swashbuckle.AspNetCore` (Swagger UI)
 - `Microsoft.AspNetCore.OpenApi` (opsional)
@@ -256,7 +256,7 @@ Sistem mengunci port agar dokumentasi dan Postman stabil. Kamu bisa set port via
 
 ---
 
-## 8. Urutan Implementasi yang Disarankan
+## 8. Urutan Implementasi yang 
 Sistem menerapkan urutan berikut agar setiap langkah langsung bisa diuji.
 
 ### Tahap A — *Bootstrap* proyek

@@ -76,7 +76,7 @@ Sistem menyiapkan `Views/Shared/_Layout.cshtml` dengan komponen:
 2. konten utama,
 3. *footer* sederhana.
 
-Sistem menautkan Tailwind CSS dari proses *build* (disarankan) atau dari CDN (sementara).
+Sistem menautkan Tailwind CSS dari proses *build* () atau dari CDN (sementara).
 
 ### 5.2 Komponen yang dipakai ulang
 Sistem membuat *partial view* agar UI konsisten.

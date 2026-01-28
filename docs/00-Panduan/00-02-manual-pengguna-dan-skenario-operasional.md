@@ -214,7 +214,7 @@ Jika sistem menyediakan endpoint “recompute”, instruktur menjalankan fitur i
 ## 13. Skenario 9 — Pengambilan Bukti untuk Laporan Tugas Akhir
 Instruktur menyiapkan bukti uji dan bukti tampilan untuk laporan.
 
-### Bukti yang disarankan
+### Bukti yang 
 1. Screenshot Swagger untuk uji endpoint utama:
    - create session,
    - activate ruleset,

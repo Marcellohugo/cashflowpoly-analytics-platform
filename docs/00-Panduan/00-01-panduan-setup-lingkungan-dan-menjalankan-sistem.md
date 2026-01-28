@@ -247,7 +247,7 @@ Tambahkan pada `_Layout.cshtml`:
 <script src="https://cdn.tailwindcss.com"></script>
 ```
 
-### 12.2 Opsi B (disarankan): build Tailwind
+### 12.2 Opsi B (): build Tailwind
 Sistem memasang Node.js dan menjalankan Tailwind CLI. Jika kampus tidak menuntut build pipeline, opsi A sudah cukup untuk tahap awal.
 
 ---
