@@ -67,24 +67,28 @@ UI tidak mengakses database secara langsung. UI membaca data dari REST API agar 
 +- database/
 ¦  +- 00_create_schema.sql
 +- docs/
-¦  +- 00-01-panduan-setup-lingkungan-dan-menjalankan-sistem.md
-¦  +- 00-02-manual-pengguna-dan-skenario-operasional.md
-¦  +- 01-01-spesifikasi-kebutuhan-sistem.md
-¦  +- 01-02-spesifikasi-event-dan-kontrak-api.md
-¦  +- 01-03-spesifikasi-ruleset-dan-validasi.md
-¦  +- 02-01-rancangan-model-data-dan-basis-data.md
-¦  +- 02-02-definisi-metrik-dan-agregasi.md
-¦  +- 02-03-rancangan-dashboard-analitika-mvc.md
-¦  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
-¦  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
-¦  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
-¦  +- 03-02-laporan-hasil-pengujian.md
+¦  +- 00-Panduan/
+¦  ¦  +- 00-01-panduan-setup-lingkungan-dan-menjalankan-sistem.md
+¦  ¦  +- 00-02-manual-pengguna-dan-skenario-operasional.md
+¦  +- 01-Spesifikasi/
+¦  ¦  +- 01-01-spesifikasi-kebutuhan-sistem.md
+¦  ¦  +- 01-02-spesifikasi-event-dan-kontrak-api.md
+¦  ¦  +- 01-03-spesifikasi-ruleset-dan-validasi.md
+¦  +- 02-Perancangan/
+¦  ¦  +- 02-01-rancangan-model-data-dan-basis-data.md
+¦  ¦  +- 02-02-definisi-metrik-dan-agregasi.md
+¦  ¦  +- 02-03-rancangan-dashboard-analitika-mvc.md
+¦  ¦  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
+¦  ¦  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
+¦  +- 03-Pengujian/
+¦  ¦  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
+¦  ¦  +- 03-02-laporan-hasil-pengujian.md
 +- src/
    +- Cashflowpoly.Api/
    +- Cashflowpoly.Ui/
 ```
 
-## Menjalankan dengan Docker ()
+## Menjalankan dengan Docker (Docker Compose)
 ### 1) Jalankan semua layanan
 Jalankan perintah berikut dari root repositori:
 
@@ -92,7 +96,7 @@ Jalankan perintah berikut dari root repositori:
 docker compose up -d --build
 ```
 
-Akses:
+Akses (sesuai `.env`):
 - API + Swagger: `http://localhost:5041/swagger`
 - UI MVC: `http://localhost:5203`
 
@@ -124,9 +128,9 @@ Buat database dan user, lalu jalankan skrip DDL dari `database/00_create_schema.
 API memakai koneksi database dari `ConnectionStrings:Default`.
 UI memakai base URL API dari `ApiBaseUrl`.
 
-Contoh lokal:
-- API: `http://localhost:5041`
-- UI: `http://localhost:5203`
+Contoh lokal (sesuai `.env` dan launch settings):
+- API: `http://localhost:5041` atau `https://localhost:7041`
+- UI: `http://localhost:5203` atau `https://localhost:7203`
 
 ### 3) Jalankan API
 ```bash
@@ -147,14 +151,14 @@ dotnet run --project src/Cashflowpoly.Ui
 Simpan seluruh dokumen TA pada folder `docs/` agar repositori memuat artefak desain dan artefak implementasi pada satu tempat.
 
 Dokumen kunci:
-- Spesifikasi kebutuhan sistem (SRS): `docs/01-01-spesifikasi-kebutuhan-sistem.md`
-- Kontrak API: `docs/01-02-spesifikasi-event-dan-kontrak-api.md`
-- Spesifikasi *ruleset*: `docs/01-03-spesifikasi-ruleset-dan-validasi.md`
-- Model data dan basis data: `docs/02-01-rancangan-model-data-dan-basis-data.md`
-- Definisi metrik dan agregasi: `docs/02-02-definisi-metrik-dan-agregasi.md`
-- Rancangan dasbor MVC: `docs/02-03-rancangan-dashboard-analitika-mvc.md`
-- Rencana implementasi dan struktur solusi: `docs/02-04-rencana-implementasi-dan-struktur-solution-dotnet.md`
-- Spesifikasi UI dan ViewModel: `docs/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
+- Spesifikasi kebutuhan sistem (SRS): `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
+- Kontrak API: `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
+- Spesifikasi *ruleset*: `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
+- Model data dan basis data: `docs/02-Perancangan/02-01-rancangan-model-data-dan-basis-data.md`
+- Definisi metrik dan agregasi: `docs/02-Perancangan/02-02-definisi-metrik-dan-agregasi.md`
+- Rancangan dasbor MVC: `docs/02-Perancangan/02-03-rancangan-dashboard-analitika-mvc.md`
+- Rencana implementasi dan struktur solusi: `docs/02-Perancangan/02-04-rencana-implementasi-dan-struktur-solution-dotnet.md`
+- Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.

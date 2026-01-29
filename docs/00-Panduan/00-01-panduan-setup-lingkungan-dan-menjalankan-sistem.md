@@ -64,11 +64,11 @@ create database cashflowpoly owner cashflowpoly;
 ### 4.2 Aktifkan extension UUID
 Sistem memakai UUID sebagai PK. Sistem mengaktifkan extension:
 ```sql
-create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 ```
 
 Catatan:
-- Extension membantu jika kamu memakai `uuid_generate_v4()` pada DB.
+- Extension membantu jika kamu memakai `gen_random_uuid()` pada DB.
 
 ---
 
@@ -146,7 +146,7 @@ Sistem tidak memakai EF Core. Skema dibuat dengan skrip SQL yang disediakan.
 3. Pastikan tabel dan indeks terbentuk tanpa error.
 
 Catatan:
-- Jika extension `uuid-ossp` belum aktif, jalankan perintah pada bagian 4.2 sebelum menjalankan script.
+- Jika extension `pgcrypto` belum aktif, jalankan perintah pada bagian 4.2 sebelum menjalankan script.
 
 ---
 
@@ -219,16 +219,25 @@ Catatan:
 ---
 
 ## 12. Setup Tailwind CSS (MVC)
-Sistem punya dua opsi.
+Sistem memakai Tailwind CLI (bukan CDN).
 
-### 12.1 Opsi A (sementara, cepat): CDN
-Tambahkan pada `_Layout.cshtml`:
-```html
-<script src="https://cdn.tailwindcss.com"></script>
+### 12.1 Instal dependensi
+Masuk ke proyek UI:
+```bash
+cd src/Cashflowpoly.Ui
+npm install
 ```
 
-### 12.2 Opsi B (): build Tailwind
-Sistem memasang Node.js dan menjalankan Tailwind CLI. Jika kampus tidak menuntut build pipeline, opsi A sudah cukup untuk tahap awal.
+### 12.2 Build CSS Tailwind
+```bash
+npm run tailwind:build
+```
+
+### 12.3 Mode watch (opsional)
+Gunakan saat development agar CSS otomatis ter-update:
+```bash
+npm run tailwind:watch
+```
 
 ---
 

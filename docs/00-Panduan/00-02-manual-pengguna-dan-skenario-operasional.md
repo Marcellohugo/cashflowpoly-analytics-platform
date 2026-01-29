@@ -38,6 +38,7 @@ Instruktur menguji API melalui Swagger:
 
 Catatan:
 - URL dapat berbeda tergantung konfigurasi `launchSettings.json`.
+- UI menggunakan Tailwind CSS. Jika baru setup atau ada perubahan tampilan, jalankan build CSS Tailwind sesuai panduan setup.
 
 ---
 
