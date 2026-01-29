@@ -1,5 +1,4 @@
--- Opsional: aktifkan pgcrypto jika kamu ingin default UUID dari DB.
--- create extension if not exists pgcrypto;
+create extension if not exists pgcrypto;
 
 create table if not exists players (
   player_id uuid primary key,
