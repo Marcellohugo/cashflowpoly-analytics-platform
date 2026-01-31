@@ -1,0 +1,54 @@
+@model Cashflowpoly.Ui.Models.RulesetListViewModel
+
+@{
+    ViewData["Title"] = "Rulesets";
+}
+
+<section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">Manajemen Ruleset</p>
+            <h1 class="mt-2 text-2xl font-semibold text-slate-900">Daftar Ruleset</h1>
+        </div>
+        <a class="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+           asp-controller="Rulesets" asp-action="Create">Buat Ruleset</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="mt-6 overflow-hidden rounded-xl border border-slate-200">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                    <th class="px-4 py-3">Nama</th>
+                    <th class="px-4 py-3">Ruleset ID</th>
+                    <th class="px-4 py-3 text-right">Versi Terbaru</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr>
+                    <td class="px-4 py-4 text-slate-500" colspan="3">Belum ada ruleset.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var item in Model.Items)
+                {
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-medium text-slate-900">@item.Name</td>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.RulesetId</td>
+                        <td class="px-4 py-3 text-right text-slate-700">@item.LatestVersion</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

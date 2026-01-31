@@ -1,0 +1,111 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Cashflowpoly.Ui.Models;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Cashflowpoly.Ui.Controllers;
+
+public sealed class RulesetsController : Controller
+{
+    private readonly IHttpClientFactory _clientFactory;
+
+    public RulesetsController(IHttpClientFactory clientFactory)
+    {
+        _clientFactory = clientFactory;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Index(CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync("api/rulesets", ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return View(new RulesetListViewModel
+            {
+                ErrorMessage = $"Gagal mengambil ruleset. Status: {(int)response.StatusCode}"
+            });
+        }
+
+        var data = await response.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
+        return View(new RulesetListViewModel
+        {
+            Items = data?.Items ?? new List<RulesetListItemDto>()
+        });
+    }
+
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(new CreateRulesetViewModel
+        {
+            ConfigJson = """
+            {
+              "mode": "PEMULA",
+              "actions_per_turn": 2,
+              "starting_cash": 20,
+              "weekday_rules": {
+                "friday": { "feature": "DONATION", "enabled": true },
+                "saturday": { "feature": "GOLD_TRADE", "enabled": true },
+                "sunday": { "feature": "REST", "enabled": true }
+              },
+              "constraints": {
+                "cash_min": 0,
+                "max_ingredient_total": 6,
+                "max_same_ingredient": 3,
+                "primary_need_max_per_day": 1,
+                "require_primary_before_others": true
+              },
+              "donation": { "min_amount": 1, "max_amount": 999999 },
+              "gold_trade": { "allow_buy": true, "allow_sell": true },
+              "advanced": {
+                "loan": { "enabled": false },
+                "insurance": { "enabled": false },
+                "saving_goal": { "enabled": false }
+              }
+            }
+            """
+        });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            model.ErrorMessage = "Nama ruleset wajib diisi.";
+            return View(model);
+        }
+
+        JsonNode? configNode;
+        try
+        {
+            configNode = JsonNode.Parse(model.ConfigJson);
+        }
+        catch (JsonException)
+        {
+            model.ErrorMessage = "Config JSON tidak valid.";
+            return View(model);
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var payload = new
+        {
+            name = model.Name,
+            description = model.Description,
+            config = configNode
+        };
+
+        var response = await client.PostAsJsonAsync("api/rulesets", payload, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            model.ErrorMessage = error?.Message ?? $"Gagal membuat ruleset. Status: {(int)response.StatusCode}";
+            return View(model);
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+}

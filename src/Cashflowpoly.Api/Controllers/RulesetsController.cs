@@ -1,5 +1,6 @@
+using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
-using Cashflowpoly.Api.Storage;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
@@ -8,46 +9,37 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/rulesets")]
 public sealed class RulesetsController : ControllerBase
 {
+    private readonly RulesetRepository _rulesets;
+
+    public RulesetsController(RulesetRepository rulesets)
+    {
+        _rulesets = rulesets;
+    }
+
     [HttpPost]
-    public IActionResult CreateRuleset([FromBody] CreateRulesetRequest request)
+    public async Task<IActionResult> CreateRuleset([FromBody] CreateRulesetRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
                 new ErrorDetail("name", "REQUIRED")));
         }
+        if (!RulesetConfigParser.TryParse(request.Config, out _, out var configErrors))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", configErrors.ToArray()));
+        }
 
-        var rulesetId = Guid.NewGuid();
-        var createdAt = DateTimeOffset.UtcNow;
+        var configJson = request.Config.GetRawText();
+        var created = await _rulesets.CreateRulesetAsync(request.Name, request.Description, configJson, null, ct);
 
-        var ruleset = new RulesetRecord(
-            rulesetId,
-            request.Name,
-            request.Description,
-            false,
-            createdAt,
-            null);
-
-        var rulesetVersionId = Guid.NewGuid();
-        var version = new RulesetVersionRecord(
-            rulesetVersionId,
-            rulesetId,
-            1,
-            "ACTIVE",
-            request.Config.GetRawText(),
-            createdAt,
-            null);
-
-        InMemoryStore.Rulesets[rulesetId] = ruleset;
-        InMemoryStore.RulesetVersions[rulesetVersionId] = version;
-
-        return Created($"/api/rulesets/{rulesetId}", new CreateRulesetResponse(rulesetId, 1));
+        return Created($"/api/rulesets/{created.RulesetId}", new CreateRulesetResponse(created.RulesetId, created.Version));
     }
 
     [HttpPut("{rulesetId:guid}")]
-    public IActionResult UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request)
+    public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
-        if (!InMemoryStore.Rulesets.TryGetValue(rulesetId, out var ruleset))
+        var existing = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (existing is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
@@ -57,53 +49,21 @@ public sealed class RulesetsController : ControllerBase
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Config wajib ada",
                 new ErrorDetail("config", "REQUIRED")));
         }
-
-        var latestVersion = InMemoryStore.RulesetVersions.Values
-            .Where(v => v.RulesetId == rulesetId)
-            .OrderByDescending(v => v.Version)
-            .FirstOrDefault();
-
-        var nextVersion = (latestVersion?.Version ?? 0) + 1;
-        var createdAt = DateTimeOffset.UtcNow;
-
-        var updatedRuleset = ruleset with
+        if (!RulesetConfigParser.TryParse(request.Config.Value, out _, out var configErrors))
         {
-            Name = request.Name ?? ruleset.Name,
-            Description = request.Description ?? ruleset.Description
-        };
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", configErrors.ToArray()));
+        }
 
-        var rulesetVersionId = Guid.NewGuid();
-        var version = new RulesetVersionRecord(
-            rulesetVersionId,
-            rulesetId,
-            nextVersion,
-            "ACTIVE",
-            request.Config.Value.GetRawText(),
-            createdAt,
-            null);
-
-        InMemoryStore.Rulesets[rulesetId] = updatedRuleset;
-        InMemoryStore.RulesetVersions[rulesetVersionId] = version;
+        var configJson = request.Config.Value.GetRawText();
+        var nextVersion = await _rulesets.CreateRulesetVersionAsync(rulesetId, request.Name, request.Description, configJson, null, ct);
 
         return Ok(new CreateRulesetResponse(rulesetId, nextVersion));
     }
 
     [HttpGet]
-    public IActionResult ListRulesets()
+    public async Task<IActionResult> ListRulesets(CancellationToken ct)
     {
-        var items = InMemoryStore.Rulesets.Values
-            .OrderByDescending(r => r.CreatedAt)
-            .Select(r =>
-            {
-                var latestVersion = InMemoryStore.RulesetVersions.Values
-                    .Where(v => v.RulesetId == r.RulesetId)
-                    .OrderByDescending(v => v.Version)
-                    .FirstOrDefault();
-
-                return new RulesetListItem(r.RulesetId, r.Name, latestVersion?.Version ?? 0);
-            })
-            .ToList();
-
+        var items = await _rulesets.ListRulesetsAsync(ct);
         return Ok(new RulesetListResponse(items));
     }
 }

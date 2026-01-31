@@ -1,0 +1,82 @@
+@model Cashflowpoly.Ui.Models.AnalyticsSearchViewModel
+
+@{
+    ViewData["Title"] = "Analitika";
+}
+
+<section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div>
+        <p class="text-sm font-semibold uppercase tracking-widest text-slate-500">Dashboard Analitika</p>
+        <h1 class="mt-2 text-2xl font-semibold text-slate-900">Cari Analitika Sesi</h1>
+    </div>
+
+    <form class="mt-6 flex flex-col gap-3 md:flex-row md:items-end" method="post">
+        <div class="flex-1">
+            <label class="text-sm font-medium text-slate-700">Session ID</label>
+            <input class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                   asp-for="SessionId" placeholder="UUID sesi" />
+        </div>
+        <button class="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                type="submit">Lihat Analitika</button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    @if (Model.Result is not null)
+    {
+        <div class="mt-8 grid gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-xs uppercase text-slate-500">Total Event</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.EventCount</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-xs uppercase text-slate-500">Cash In</p>
+                <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Result.Summary.CashInTotal</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-xs uppercase text-slate-500">Cash Out</p>
+                <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Result.Summary.CashOutTotal</p>
+            </div>
+        </div>
+
+        <div class="mt-8 overflow-hidden rounded-xl border border-slate-200">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">Player ID</th>
+                        <th class="px-4 py-3 text-right">Cash In</th>
+                        <th class="px-4 py-3 text-right">Cash Out</th>
+                        <th class="px-4 py-3 text-right">Donation</th>
+                        <th class="px-4 py-3 text-right">Gold Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Result.ByPlayer.Count == 0)
+                {
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500" colspan="5">Belum ada data pemain.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Result.ByPlayer)
+                    {
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
+                            <td class="px-4 py-3 text-right">@item.CashInTotal</td>
+                            <td class="px-4 py-3 text-right">@item.CashOutTotal</td>
+                            <td class="px-4 py-3 text-right">@item.DonationTotal</td>
+                            <td class="px-4 py-3 text-right">@item.GoldQty</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

@@ -101,6 +101,10 @@ Akses (sesuai `.env`):
 - API + Swagger: `http://localhost:5041/swagger`
 - UI MVC: `http://localhost:5203`
 
+Rute UI utama:
+- Analitika sesi: `/Analytics`
+- Manajemen ruleset: `/Rulesets`
+
 ### 2) Sambungkan DBeaver ke PostgreSQL
 Gunakan konfigurasi berikut:
 - Host: `localhost`
@@ -165,6 +169,7 @@ Dokumen kunci:
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
+- Smoke test cepat (butuh API berjalan): `powershell -File scripts/smoke.ps1`.
 
 ## Lisensi
 Tentukan lisensi yang kamu pakai untuk repositori ini.

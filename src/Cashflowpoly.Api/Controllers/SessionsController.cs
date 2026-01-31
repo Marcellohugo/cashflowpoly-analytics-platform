@@ -1,5 +1,6 @@
+using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
-using Cashflowpoly.Api.Storage;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
@@ -8,8 +9,17 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/sessions")]
 public sealed class SessionsController : ControllerBase
 {
+    private readonly RulesetRepository _rulesets;
+    private readonly SessionRepository _sessions;
+
+    public SessionsController(RulesetRepository rulesets, SessionRepository sessions)
+    {
+        _rulesets = rulesets;
+        _sessions = sessions;
+    }
+
     [HttpPost]
-    public IActionResult CreateSession([FromBody] CreateSessionRequest request)
+    public async Task<IActionResult> CreateSession([FromBody] CreateSessionRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.SessionName))
         {
@@ -24,41 +34,33 @@ public sealed class SessionsController : ControllerBase
                 new ErrorDetail("mode", "INVALID_ENUM")));
         }
 
-        if (!InMemoryStore.Rulesets.ContainsKey(request.RulesetId))
+        var ruleset = await _rulesets.GetRulesetAsync(request.RulesetId, ct);
+        if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        var latestVersion = InMemoryStore.RulesetVersions.Values
-            .Where(v => v.RulesetId == request.RulesetId)
-            .OrderByDescending(v => v.Version)
-            .FirstOrDefault();
-
+        var latestVersion = await _rulesets.GetLatestVersionAsync(request.RulesetId, ct);
         if (latestVersion is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset belum memiliki versi"));
         }
 
-        var sessionId = Guid.NewGuid();
-        var session = new SessionRecord(
-            sessionId,
+        var sessionId = await _sessions.CreateSessionAsync(
             request.SessionName,
             request.Mode.ToUpperInvariant(),
-            "CREATED",
             latestVersion.RulesetVersionId,
-            DateTimeOffset.UtcNow,
             null,
-            null);
-
-        InMemoryStore.Sessions[sessionId] = session;
+            ct);
 
         return Created($"/api/sessions/{sessionId}", new CreateSessionResponse(sessionId));
     }
 
     [HttpPost("{sessionId:guid}/start")]
-    public IActionResult StartSession(Guid sessionId)
+    public async Task<IActionResult> StartSession(Guid sessionId, CancellationToken ct)
     {
-        if (!InMemoryStore.Sessions.TryGetValue(sessionId, out var session))
+        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
@@ -68,16 +70,17 @@ public sealed class SessionsController : ControllerBase
             return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Status sesi tidak valid"));
         }
 
-        var updated = session with { Status = "STARTED", StartedAt = DateTimeOffset.UtcNow };
-        InMemoryStore.Sessions[sessionId] = updated;
+        var startedAt = DateTimeOffset.UtcNow;
+        await _sessions.UpdateStatusAsync(sessionId, "STARTED", startedAt, session.EndedAt, ct);
 
-        return Ok(new SessionStatusResponse(updated.Status));
+        return Ok(new SessionStatusResponse("STARTED"));
     }
 
     [HttpPost("{sessionId:guid}/end")]
-    public IActionResult EndSession(Guid sessionId)
+    public async Task<IActionResult> EndSession(Guid sessionId, CancellationToken ct)
     {
-        if (!InMemoryStore.Sessions.TryGetValue(sessionId, out var session))
+        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
@@ -87,30 +90,33 @@ public sealed class SessionsController : ControllerBase
             return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Status sesi tidak valid"));
         }
 
-        var updated = session with { Status = "ENDED", EndedAt = DateTimeOffset.UtcNow };
-        InMemoryStore.Sessions[sessionId] = updated;
+        var endedAt = DateTimeOffset.UtcNow;
+        await _sessions.UpdateStatusAsync(sessionId, "ENDED", session.StartedAt, endedAt, ct);
 
-        return Ok(new SessionStatusResponse(updated.Status));
+        return Ok(new SessionStatusResponse("ENDED"));
     }
 
     [HttpPost("{sessionId:guid}/ruleset/activate")]
-    public IActionResult ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request)
+    public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
     {
-        if (!InMemoryStore.Sessions.TryGetValue(sessionId, out var session))
+        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        var rulesetVersion = InMemoryStore.RulesetVersions.Values.FirstOrDefault(v =>
-            v.RulesetId == request.RulesetId && v.Version == request.Version);
-
+        var rulesetVersion = await _rulesets.GetRulesetVersionAsync(request.RulesetId, request.Version, ct);
         if (rulesetVersion is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
         }
 
-        var updated = session with { ActiveRulesetVersionId = rulesetVersion.RulesetVersionId };
-        InMemoryStore.Sessions[sessionId] = updated;
+        if (!RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out _, out var errors))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", errors.ToArray()));
+        }
+
+        await _sessions.ActivateRulesetAsync(sessionId, rulesetVersion.RulesetVersionId, null, ct);
 
         return Ok(new ActivateRulesetResponse(sessionId, rulesetVersion.RulesetVersionId));
     }
