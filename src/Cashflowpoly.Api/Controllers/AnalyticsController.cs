@@ -334,6 +334,13 @@ public sealed class AnalyticsController : ControllerBase
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
         var playerEvents = events.Where(e => e.PlayerId == playerId).ToList();
         var playerProjections = projections.Where(p => p.PlayerId == playerId).ToList();
+        RulesetConfig? config = null;
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
+        if (rulesetVersion is not null &&
+            RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+        {
+            config = parsed;
+        }
 
         var cashIn = playerProjections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOut = playerProjections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
@@ -392,6 +399,10 @@ public sealed class AnalyticsController : ControllerBase
         metrics["happiness.mission.penalty"] = (resolvedHappiness.MissionPenaltyPoints, null);
         metrics["happiness.loan.penalty"] = (resolvedHappiness.LoanPenaltyPoints, null);
         metrics["loan.unpaid.flag"] = (resolvedHappiness.HasUnpaidLoan ? 1 : 0, null);
+
+        var gameplaySnapshots = BuildGameplaySnapshots(playerEvents, playerProjections, events, config, resolvedHappiness);
+        metrics["gameplay.raw.variables"] = (null, gameplaySnapshots.RawJson);
+        metrics["gameplay.derived.metrics"] = (null, gameplaySnapshots.DerivedJson);
 
         return metrics;
     }
@@ -918,6 +929,642 @@ public sealed class AnalyticsController : ControllerBase
         internal Dictionary<string, int> ByCardId { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
+    private sealed record GameplaySnapshot(string RawJson, string DerivedJson);
+
+    private static GameplaySnapshot BuildGameplaySnapshots(
+        List<EventDb> playerEvents,
+        List<CashflowProjectionDb> playerProjections,
+        List<EventDb> allEvents,
+        RulesetConfig? config,
+        HappinessBreakdown happiness)
+    {
+        var notesRaw = new List<string>();
+        var notesDerived = new List<string>();
+
+        var startingCoins = config?.StartingCash ?? 0;
+        var cashInTotal = playerProjections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
+        var cashOutTotal = playerProjections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
+        var coinsNetEndGame = startingCoins + cashInTotal - cashOutTotal;
+        var coinsHeldCurrent = coinsNetEndGame;
+
+        var eventById = playerEvents
+            .GroupBy(e => e.EventId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var spentByTurn = new Dictionary<int, double>();
+        var earnedByTurn = new Dictionary<int, double>();
+
+        foreach (var projection in playerProjections)
+        {
+            if (!eventById.TryGetValue(projection.EventId, out var evt))
+            {
+                continue;
+            }
+
+            var turn = evt.TurnNumber;
+            if (string.Equals(projection.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                spentByTurn[turn] = spentByTurn.TryGetValue(turn, out var existing) ? existing + projection.Amount : projection.Amount;
+            }
+            else if (string.Equals(projection.Direction, "IN", StringComparison.OrdinalIgnoreCase))
+            {
+                earnedByTurn[turn] = earnedByTurn.TryGetValue(turn, out var existing) ? existing + projection.Amount : projection.Amount;
+            }
+        }
+
+        var turnNumbers = spentByTurn.Keys.Union(earnedByTurn.Keys).OrderBy(t => t).ToList();
+        var coinsSpentPerTurn = spentByTurn
+            .OrderBy(k => k.Key)
+            .Select(k => new { turn_number = k.Key, amount = k.Value })
+            .ToList();
+        var coinsEarnedPerTurn = earnedByTurn
+            .OrderBy(k => k.Key)
+            .Select(k => new { turn_number = k.Key, amount = k.Value })
+            .ToList();
+
+        var netIncomePerTurn = new List<object>();
+        var coinsProgression = new List<object>();
+        var runningCoins = (double)startingCoins;
+        foreach (var turn in turnNumbers)
+        {
+            var spent = spentByTurn.TryGetValue(turn, out var spentAmount) ? spentAmount : 0;
+            var earned = earnedByTurn.TryGetValue(turn, out var earnedAmount) ? earnedAmount : 0;
+            var net = earned - spent;
+            runningCoins += net;
+            netIncomePerTurn.Add(new { turn_number = turn, net });
+            coinsProgression.Add(new { turn_number = turn, coins = runningCoins });
+        }
+
+        var donationByDay = playerEvents
+            .Where(e => e.ActionType == "day.friday.donation")
+            .GroupBy(e => e.DayIndex)
+            .Select(g => new
+            {
+                day_index = g.Key,
+                amount = g.Sum(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+            })
+            .OrderBy(item => item.day_index)
+            .ToList();
+        var donationTotal = donationByDay.Sum(item => item.amount);
+
+        var donationRanks = playerEvents
+            .Where(e => e.ActionType == "donation.rank.awarded")
+            .GroupBy(e => e.DayIndex)
+            .Select(g =>
+            {
+                var rank = 0;
+                foreach (var evt in g)
+                {
+                    if (TryReadRankAwarded(evt.Payload, out var awardedRank, out _))
+                    {
+                        rank = awardedRank;
+                        break;
+                    }
+                }
+
+                return new { day_index = g.Key, rank = rank == 0 ? (int?)null : rank };
+            })
+            .OrderBy(item => item.day_index)
+            .ToList();
+
+        var donationChampionCards = playerEvents.Count(e => e.ActionType == "donation.rank.awarded");
+
+        var savingDepositTotal = playerProjections
+            .Where(p => p.Category == "SAVING_DEPOSIT" && p.Direction == "OUT")
+            .Sum(p => p.Amount);
+        var savingWithdrawTotal = playerProjections
+            .Where(p => p.Category == "SAVING_WITHDRAW" && p.Direction == "IN")
+            .Sum(p => p.Amount);
+        var coinsSaved = savingDepositTotal - savingWithdrawTotal;
+
+        var ingredientPurchaseMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var ingredientsCollected = 0;
+        var ingredientPurchaseEvents = playerEvents.Where(e => e.ActionType == "ingredient.purchased").ToList();
+        foreach (var evt in ingredientPurchaseEvents)
+        {
+            if (TryReadIngredientPurchaseDetailed(evt.Payload, out var cardId, out var ingredientName, out var amount))
+            {
+                ingredientsCollected += amount;
+                if (!string.IsNullOrWhiteSpace(cardId) && !string.IsNullOrWhiteSpace(ingredientName))
+                {
+                    ingredientPurchaseMap[cardId] = ingredientName;
+                }
+            }
+            else if (TryReadIngredientPurchase(evt.Payload, out var fallbackCardId, out var fallbackAmount))
+            {
+                ingredientsCollected += fallbackAmount;
+                if (!string.IsNullOrWhiteSpace(fallbackCardId) && !ingredientPurchaseMap.ContainsKey(fallbackCardId))
+                {
+                    ingredientPurchaseMap[fallbackCardId] = fallbackCardId;
+                }
+            }
+        }
+
+        var inventory = BuildIngredientInventory(playerEvents);
+        var ingredientTypesHeld = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (cardId, qty) in inventory.ByCardId)
+        {
+            if (qty <= 0)
+            {
+                continue;
+            }
+
+            var name = ingredientPurchaseMap.TryGetValue(cardId, out var ingredientName) ? ingredientName : cardId;
+            ingredientTypesHeld[name] = ingredientTypesHeld.TryGetValue(name, out var existing) ? existing + qty : qty;
+        }
+
+        var ingredientsUsedTotal = playerEvents
+            .Where(e => e.ActionType == "order.claimed")
+            .Select(e => TryReadOrderClaim(e.Payload, out var cards, out _) ? cards.Count : 0)
+            .Sum();
+
+        var ingredientInvestmentTotal = playerProjections
+            .Where(p => p.Category == "INGREDIENT" && p.Direction == "OUT")
+            .Sum(p => p.Amount);
+
+        var mealOrderIncomeValues = new List<int>();
+        foreach (var evt in playerEvents.Where(e => e.ActionType == "order.claimed"))
+        {
+            if (TryReadOrderClaim(evt.Payload, out _, out var income))
+            {
+                mealOrderIncomeValues.Add(income);
+            }
+        }
+
+        var mealOrdersClaimed = mealOrderIncomeValues.Count;
+        var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
+        var maxTurnNumber = playerEvents.Count == 0 ? 0 : playerEvents.Max(e => e.TurnNumber);
+        var mealOrdersPerTurnAverage = maxTurnNumber > 0 ? (double)mealOrdersClaimed / maxTurnNumber : 0;
+
+        var primaryNeeds = 0;
+        var secondaryNeeds = 0;
+        var tertiaryNeeds = 0;
+        var tertiaryCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var missions = new List<MissionAssignment>();
+        foreach (var evt in playerEvents)
+        {
+            if (evt.ActionType == "need.primary.purchased" &&
+                TryReadNeedPurchase(evt.Payload, out _, out _, out _))
+            {
+                primaryNeeds += 1;
+            }
+
+            if (evt.ActionType == "need.secondary.purchased" &&
+                TryReadNeedPurchase(evt.Payload, out _, out _, out _))
+            {
+                secondaryNeeds += 1;
+            }
+
+            if (evt.ActionType == "need.tertiary.purchased" &&
+                TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
+            {
+                tertiaryNeeds += 1;
+                if (!string.IsNullOrWhiteSpace(cardId))
+                {
+                    tertiaryCardIds.Add(cardId);
+                }
+            }
+
+            if (evt.ActionType == "mission.assigned" &&
+                TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
+            {
+                missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
+            }
+        }
+
+        var needCardsPurchased = primaryNeeds + secondaryNeeds + tertiaryNeeds;
+        var needCoinsSpent = playerProjections
+            .Where(p => p.Direction == "OUT" &&
+                        (p.Category == "NEED_PRIMARY" || p.Category == "NEED_SECONDARY" || p.Category == "NEED_TERTIARY"))
+            .Sum(p => p.Amount);
+
+        bool? specificTertiaryAcquired = null;
+        bool? collectionMissionComplete = null;
+        if (missions.Count > 0)
+        {
+            specificTertiaryAcquired = missions.Any(m => !string.IsNullOrWhiteSpace(m.TargetTertiaryCardId) &&
+                                                        tertiaryCardIds.Contains(m.TargetTertiaryCardId));
+
+            var hasPrimary = primaryNeeds > 0;
+            var hasSecondary = secondaryNeeds > 0;
+            collectionMissionComplete = missions.All(m =>
+            {
+                var hasTarget = string.IsNullOrWhiteSpace(m.TargetTertiaryCardId) ||
+                                tertiaryCardIds.Contains(m.TargetTertiaryCardId);
+                var requirePrimary = !m.RequirePrimary || hasPrimary;
+                var requireSecondary = !m.RequireSecondary || hasSecondary;
+                return hasTarget && requirePrimary && requireSecondary;
+            });
+        }
+
+        var goldBuyQty = 0;
+        var goldSellQty = 0;
+        var goldPurchasePrices = new List<int>();
+        var goldSalePrices = new List<int>();
+        var goldInvestmentSpent = 0;
+        var goldInvestmentEarned = 0;
+
+        foreach (var evt in playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade"))
+        {
+            if (!TryReadGoldTradeDetailed(evt.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
+            {
+                continue;
+            }
+
+            if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase))
+            {
+                goldBuyQty += qty;
+                goldInvestmentSpent += amount;
+                if (unitPrice > 0)
+                {
+                    goldPurchasePrices.Add(unitPrice);
+                }
+            }
+            else if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase))
+            {
+                goldSellQty += qty;
+                goldInvestmentEarned += amount;
+                if (unitPrice > 0)
+                {
+                    goldSalePrices.Add(unitPrice);
+                }
+            }
+        }
+
+        var goldHeldEnd = goldBuyQty - goldSellQty;
+        var goldInvestmentNet = goldInvestmentEarned - goldInvestmentSpent;
+
+        var pensionRank = playerEvents
+            .Where(e => e.ActionType == "pension.rank.awarded")
+            .Select(e => TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0)
+            .FirstOrDefault(rank => rank > 0);
+
+        var riskEvents = playerEvents.Where(e => e.ActionType == "risk.life.drawn").ToList();
+        var riskCostsPerCard = new List<int>();
+        foreach (var riskEvent in riskEvents)
+        {
+            var cost = playerProjections
+                .Where(p => p.EventId == riskEvent.EventId && p.Category == "RISK_LIFE" && p.Direction == "OUT")
+                .Sum(p => p.Amount);
+            if (cost > 0)
+            {
+                riskCostsPerCard.Add(cost);
+            }
+        }
+
+        var riskCostsTotal = riskCostsPerCard.Sum();
+        var riskCardsDrawn = riskEvents.Count;
+        var riskMitigated = playerEvents.Count(e => e.ActionType == "insurance.multirisk.used");
+        var insurancePayments = playerProjections
+            .Where(p => p.Category == "INSURANCE_PREMIUM" && p.Direction == "OUT")
+            .Sum(p => p.Amount);
+
+        var savingDepositsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var evt in playerEvents.Where(e => e.ActionType == "saving.deposit.created"))
+        {
+            if (TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
+            {
+                savingDepositsByGoal[goalId] = savingDepositsByGoal.TryGetValue(goalId, out var existing) ? existing + amount : amount;
+            }
+        }
+
+        var financialGoalsAttempted = savingDepositsByGoal.Count;
+        var financialGoalsCompleted = playerEvents.Count(e => e.ActionType == "saving.goal.achieved");
+
+        var loanStates = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
+        foreach (var evt in playerEvents)
+        {
+            if (evt.ActionType == "loan.syariah.taken" &&
+                TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPoints))
+            {
+                loanStates[loanId] = new LoanState(loanId, principal, penaltyPoints, 0);
+            }
+
+            if (evt.ActionType == "loan.syariah.repaid" &&
+                TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount))
+            {
+                if (loanStates.TryGetValue(repayLoanId, out var state))
+                {
+                    loanStates[repayLoanId] = state with { RepaidAmount = state.RepaidAmount + repayAmount };
+                }
+            }
+        }
+
+        var loansTaken = loanStates.Count;
+        var loansRepaid = loanStates.Values.Count(l => l.RepaidAmount >= l.Principal);
+        var loansUnpaid = loanStates.Values.Count(l => l.RepaidAmount < l.Principal);
+        var loansOutstandingAmount = loanStates.Values.Sum(l => Math.Max(0, l.Principal - l.RepaidAmount));
+
+        var actionEvents = playerEvents
+            .Where(e => IsActionEvent(e.ActionType))
+            .OrderBy(e => e.SequenceNumber)
+            .ToList();
+
+        var actionSequences = actionEvents
+            .GroupBy(e => e.TurnNumber)
+            .OrderBy(g => g.Key)
+            .Select(g => new
+            {
+                turn_number = g.Key,
+                actions = g.Select(e => e.ActionType).ToList()
+            })
+            .ToList();
+
+        var actionRepetitions = actionEvents
+            .GroupBy(e => e.TurnNumber)
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var distinctActions = g.Select(e => e.ActionType).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+                var totalActions = g.Count();
+                var repeatedActions = Math.Max(0, totalActions - distinctActions);
+                var diversityBase = config?.ActionsPerTurn ?? 2;
+                var diversityScore = diversityBase > 0 ? (double)distinctActions / diversityBase : 0;
+                return new
+                {
+                    turn_number = g.Key,
+                    total_actions = totalActions,
+                    distinct_actions = distinctActions,
+                    repeated_actions = repeatedActions,
+                    diversity_score = diversityScore
+                };
+            })
+            .ToList();
+
+        var actionTurns = actionRepetitions.Select(item => item.turn_number).ToHashSet();
+        var actionsSkipped = maxTurnNumber > 0 ? Math.Max(0, maxTurnNumber - actionTurns.Count) : 0;
+
+        var raw = new
+        {
+            coins = new
+            {
+                starting_coins = startingCoins,
+                coins_held_current = coinsHeldCurrent,
+                coins_spent_per_turn = coinsSpentPerTurn,
+                coins_earned_per_turn = coinsEarnedPerTurn,
+                coins_donated = donationTotal,
+                coins_saved = coinsSaved,
+                coins_net_end_game = coinsNetEndGame
+            },
+            ingredients = new
+            {
+                ingredients_collected = ingredientsCollected,
+                ingredients_held_current = inventory.Total,
+                ingredient_types_held = ingredientTypesHeld,
+                ingredients_used_per_meal = ingredientsUsedTotal,
+                ingredients_wasted = (int?)null,
+                ingredient_investment_coins_total = ingredientInvestmentTotal
+            },
+            meal_orders = new
+            {
+                meal_orders_claimed = mealOrdersClaimed,
+                meal_orders_available_passed = (int?)null,
+                meal_order_income_per_order = mealOrderIncomeValues,
+                meal_order_income_total = mealOrderIncomeTotal,
+                meal_orders_per_turn_average = mealOrdersPerTurnAverage
+            },
+            needs = new
+            {
+                need_cards_purchased = needCardsPurchased,
+                primary_needs_owned = primaryNeeds,
+                secondary_needs_owned = secondaryNeeds,
+                tertiary_needs_owned = tertiaryNeeds,
+                specific_tertiary_need = specificTertiaryAcquired,
+                collection_mission_complete = collectionMissionComplete,
+                need_cards_coins_spent = needCoinsSpent
+            },
+            donations = new
+            {
+                donation_amount_per_friday = donationByDay,
+                donation_rank_per_friday = donationRanks,
+                donation_total_coins = donationTotal,
+                donation_champion_cards_earned = donationChampionCards,
+                donation_happiness_points = happiness.DonationPoints
+            },
+            gold = new
+            {
+                gold_cards_purchased = goldBuyQty,
+                gold_cards_sold = goldSellQty,
+                gold_cards_held_end = goldHeldEnd,
+                gold_prices_per_purchase = goldPurchasePrices,
+                gold_price_per_sale = goldSalePrices,
+                gold_investment_coins_spent = goldInvestmentSpent,
+                gold_investment_coins_earned = goldInvestmentEarned,
+                gold_investment_net = goldInvestmentNet
+            },
+            pension = new
+            {
+                leftover_coins_end_game = coinsHeldCurrent,
+                ingredient_cards_value_end = inventory.Total,
+                coins_in_savings_goal = coinsSaved,
+                pension_fund_total = coinsHeldCurrent + inventory.Total + coinsSaved,
+                pension_fund_rank_per_game = pensionRank == 0 ? (int?)null : pensionRank,
+                pension_fund_happiness_points = happiness.PensionPoints
+            },
+            life_risk = new
+            {
+                life_risk_cards_drawn = riskCardsDrawn,
+                life_risk_costs_per_card = riskCostsPerCard,
+                life_risk_costs_total = riskCostsTotal,
+                life_risk_mitigated_with_insurance = riskMitigated,
+                insurance_payments_made = insurancePayments,
+                emergency_options_used = (int?)null
+            },
+            financial_goals = new
+            {
+                financial_goals_attempted = financialGoalsAttempted,
+                financial_goals_completed = financialGoalsCompleted,
+                financial_goals_coins_per_goal = savingDepositsByGoal,
+                financial_goals_coins_total_invested = savingDepositsByGoal.Values.Sum(),
+                financial_goals_incomplete_coins_wasted = (int?)null,
+                sharia_loan_cards_taken = loansTaken,
+                sharia_loans_repaid = loansRepaid,
+                sharia_loans_unpaid_end = loansUnpaid,
+                loan_penalty_if_unpaid = happiness.LoanPenaltyPoints
+            },
+            actions = new
+            {
+                actions_per_turn = config?.ActionsPerTurn ?? 2,
+                action_repetitions_per_turn = actionRepetitions,
+                action_sequence = actionSequences,
+                actions_skipped = actionsSkipped
+            },
+            turns = new
+            {
+                coins_per_turn_progression = coinsProgression,
+                net_income_per_turn = netIncomePerTurn,
+                turn_number_when_debt_introduced = playerEvents
+                    .Where(e => e.ActionType == "loan.syariah.taken")
+                    .Select(e => (int?)e.TurnNumber)
+                    .OrderBy(t => t)
+                    .FirstOrDefault(),
+                turn_number_when_first_risk_hit = playerEvents
+                    .Where(e => e.ActionType == "risk.life.drawn")
+                    .Select(e => (int?)e.TurnNumber)
+                    .OrderBy(t => t)
+                    .FirstOrDefault(),
+                turn_number_game_completion = maxTurnNumber == 0 ? (int?)null : maxTurnNumber
+            },
+            notes = notesRaw
+        };
+
+        notesRaw.Add("meal_orders_available_passed_not_tracked");
+        notesRaw.Add("ingredients_wasted_requires_discard_event");
+        notesRaw.Add("emergency_options_used_requires_sell_event");
+
+        var totalIncome = cashInTotal;
+        var totalExpenses = cashOutTotal;
+        var businessEfficiencyRatio = SafeRatio(mealOrderIncomeTotal, ingredientInvestmentTotal);
+        var goldRoiPercentage = SafeRatio(goldInvestmentNet, goldInvestmentSpent, true);
+        var riskExposurePercentage = SafeRatio(riskCostsTotal, totalIncome, true);
+        var riskMitigationEffectiveness = SafeRatio(riskMitigated, riskCardsDrawn, true);
+
+        var netWorthIndex = SafeRatio(coinsNetEndGame, startingCoins, true);
+        var incomeDiversification = SafeRatio(
+            playerEvents.Where(e => e.ActionType == "work.freelance.completed")
+                .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+                .Sum()
+            + mealOrderIncomeTotal
+            + goldInvestmentEarned,
+            totalIncome,
+            true);
+
+        if (incomeDiversification is null)
+        {
+            notesDerived.Add("income_diversification_requires_income");
+        }
+
+        var expenseEfficiency = SafeRatio(ingredientInvestmentTotal, totalExpenses, true);
+        var businessProfitMargin = SafeRatio(mealOrderIncomeTotal - ingredientInvestmentTotal, mealOrderIncomeTotal, true);
+
+        var averageRiskCost = riskCardsDrawn > 0 ? (double)riskCostsTotal / riskCardsDrawn : 0;
+        var insuranceActivationRate = riskCardsDrawn > 0 ? (double)riskMitigated / riskCardsDrawn : 0;
+        var riskAppetiteScore = riskCardsDrawn > 0 ? averageRiskCost * insuranceActivationRate : (double?)null;
+        if (riskCardsDrawn == 0)
+        {
+            notesDerived.Add("risk_appetite_requires_risk_events");
+        }
+
+        var debtLeverageRatio = SafeRatio(loansOutstandingAmount, coinsNetEndGame, true);
+        var loanRepaymentDiscipline = SafeRatio(loansRepaid, loansTaken, true);
+        var debtRatio = SafeRatio(loansUnpaid, loansTaken);
+        var goalSettingAmbition = coinsNetEndGame > 0
+            ? (financialGoalsAttempted + (savingDepositsByGoal.Values.Sum() / coinsNetEndGame)) * 100
+            : (double?)null;
+
+        var incomeActionEventIds = playerProjections
+            .Where(p => p.Direction == "IN")
+            .Select(p => p.EventId)
+            .ToHashSet();
+        var incomeActions = actionEvents.Count(e => incomeActionEventIds.Contains(e.EventId));
+        var actionEfficiency = SafeRatio(incomeActions, actionEvents.Count);
+        var actionDiversityAverage = actionRepetitions.Count > 0
+            ? actionRepetitions.Average(item => item.diversity_score)
+            : 0;
+
+        var mealOrderSuccessRate = (double?)null;
+        notesDerived.Add("meal_orders_available_passed_not_tracked");
+
+        var planningHorizon = SafeRatio(
+            savingDepositsByGoal.Values.Sum() + financialGoalsAttempted + playerEvents.Count(e => e.ActionType == "insurance.multirisk.purchased"),
+            actionEvents.Count);
+
+        var totalNeeds = needCardsPurchased;
+        var fulfillmentDiversity = totalNeeds > 0
+            ? Math.Sqrt(primaryNeeds * primaryNeeds + secondaryNeeds * secondaryNeeds + tertiaryNeeds * tertiaryNeeds) / totalNeeds
+            : (double?)null;
+
+        var missionAchievement = collectionMissionComplete.HasValue
+            ? (collectionMissionComplete.Value ? 1 : 0)
+            : (int?)null;
+
+        var donationAmounts = donationByDay.Select(d => (double)d.amount).ToList();
+        var donationStability = donationAmounts.Count > 0 ? 100 - StdDev(donationAmounts) : (double?)null;
+        var donationRatio = SafeRatio(donationTotal, coinsNetEndGame);
+        var totalFridays = allEvents.Where(e => string.Equals(e.Weekday, "FRI", StringComparison.OrdinalIgnoreCase))
+            .Select(e => e.DayIndex)
+            .Distinct()
+            .Count();
+        var fridayParticipationRate = totalFridays > 0 ? (double)donationByDay.Count / totalFridays : (double?)null;
+        var donationCommitmentScore = donationStability.HasValue && donationRatio.HasValue && fridayParticipationRate.HasValue
+            ? donationStability.Value * donationRatio.Value * fridayParticipationRate.Value
+            : (double?)null;
+
+        var derived = new
+        {
+            net_worth_index = netWorthIndex,
+            income_diversification_ratio = incomeDiversification,
+            expense_management_efficiency = expenseEfficiency,
+            business_profit_margin = businessProfitMargin,
+            business_efficiency_ratio = businessEfficiencyRatio,
+            gold_roi_percentage = goldRoiPercentage,
+            risk_exposure_percentage = riskExposurePercentage,
+            risk_mitigation_effectiveness = riskMitigationEffectiveness,
+            risk_appetite_score = riskAppetiteScore,
+            debt_leverage_ratio = debtLeverageRatio,
+            loan_repayment_discipline = loanRepaymentDiscipline,
+            debt_ratio = debtRatio,
+            goal_setting_ambition = goalSettingAmbition,
+            action_efficiency = actionEfficiency,
+            action_diversity_score_avg = actionDiversityAverage,
+            meal_order_success_rate = mealOrderSuccessRate,
+            planning_horizon = planningHorizon,
+            fulfillment_diversity = fulfillmentDiversity,
+            mission_achievement = missionAchievement,
+            donation_commitment_score = donationCommitmentScore,
+            happiness_portfolio = new
+            {
+                need_cards_pts = happiness.NeedPoints,
+                donations_pts = happiness.DonationPoints,
+                gold_pts = happiness.GoldPoints,
+                pension_pts = happiness.PensionPoints,
+                financial_goals_pts = happiness.SavingGoalPointsEffective,
+                mission_bonus_pts = 0 - happiness.MissionPenaltyPoints
+            },
+            notes = notesDerived
+        };
+
+        var rawJson = JsonSerializer.Serialize(raw);
+        var derivedJson = JsonSerializer.Serialize(derived);
+        return new GameplaySnapshot(rawJson, derivedJson);
+    }
+
+    private static double? SafeRatio(double numerator, double denominator, bool percent = false)
+    {
+        if (Math.Abs(denominator) < 0.000001)
+        {
+            return null;
+        }
+
+        var value = numerator / denominator;
+        return percent ? value * 100 : value;
+    }
+
+    private static double StdDev(IReadOnlyList<double> values)
+    {
+        if (values.Count == 0)
+        {
+            return 0;
+        }
+
+        var mean = values.Average();
+        var variance = values.Sum(v => Math.Pow(v - mean, 2)) / values.Count;
+        return Math.Sqrt(variance);
+    }
+
+    private static bool IsActionEvent(string actionType)
+    {
+        if (string.IsNullOrWhiteSpace(actionType))
+        {
+            return false;
+        }
+
+        return !actionType.Equals("turn.action.used", StringComparison.OrdinalIgnoreCase) &&
+               !actionType.EndsWith(".awarded", StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals("tie_breaker.assigned", StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals("mission.assigned", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool TryReadActionUsed(string payloadJson, out int used, out int remaining)
     {
         used = 0;
@@ -934,6 +1581,99 @@ public sealed class AnalyticsController : ControllerBase
             used = usedProp.GetInt32();
             remaining = remainingProp.GetInt32();
             return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadGoldTradeDetailed(
+        string payloadJson,
+        out string tradeType,
+        out int qty,
+        out int unitPrice,
+        out int amount)
+    {
+        tradeType = string.Empty;
+        qty = 0;
+        unitPrice = 0;
+        amount = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("trade_type", out var tradeTypeProp) ||
+                !root.TryGetProperty("qty", out var qtyProp) ||
+                !root.TryGetProperty("unit_price", out var unitPriceProp) ||
+                !root.TryGetProperty("amount", out var amountProp))
+            {
+                return false;
+            }
+
+            tradeType = tradeTypeProp.GetString() ?? string.Empty;
+            qty = qtyProp.GetInt32();
+            unitPrice = unitPriceProp.GetInt32();
+            amount = amountProp.GetInt32();
+            return qty > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadIngredientPurchaseDetailed(
+        string payloadJson,
+        out string cardId,
+        out string ingredientName,
+        out int amount)
+    {
+        cardId = string.Empty;
+        ingredientName = string.Empty;
+        amount = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("card_id", out var cardIdProp) ||
+                !root.TryGetProperty("ingredient_name", out var nameProp) ||
+                !root.TryGetProperty("amount", out var amountProp))
+            {
+                return false;
+            }
+
+            cardId = cardIdProp.GetString() ?? string.Empty;
+            ingredientName = nameProp.GetString() ?? string.Empty;
+            amount = amountProp.GetInt32();
+            return !string.IsNullOrWhiteSpace(cardId);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadSavingDeposit(string payloadJson, out string goalId, out int amount)
+    {
+        goalId = string.Empty;
+        amount = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("goal_id", out var goalProp) ||
+                !root.TryGetProperty("amount", out var amountProp))
+            {
+                return false;
+            }
+
+            goalId = goalProp.GetString() ?? string.Empty;
+            amount = amountProp.GetInt32();
+            return !string.IsNullOrWhiteSpace(goalId);
         }
         catch (JsonException)
         {

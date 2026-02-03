@@ -24,14 +24,14 @@ public sealed class PlayerDirectoryController : Controller
         var response = await client.GetAsync("api/players", ct);
         if (!response.IsSuccessStatusCode)
         {
-            return View(new PlayerDirectoryViewModel
+            return View("~/Views/Players/Index.cshtml", new PlayerDirectoryViewModel
             {
                 ErrorMessage = $"Gagal memuat daftar pemain. Status: {(int)response.StatusCode}"
             });
         }
 
         var data = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
-        return View(new PlayerDirectoryViewModel
+        return View("~/Views/Players/Index.cshtml", new PlayerDirectoryViewModel
         {
             Players = data?.Items ?? new List<PlayerResponseDto>()
         });
@@ -43,7 +43,7 @@ public sealed class PlayerDirectoryController : Controller
         if (string.IsNullOrWhiteSpace(model.DisplayName))
         {
             model.ErrorMessage = "Nama pemain wajib diisi.";
-            return View("Index", model);
+            return View("~/Views/Players/Index.cshtml", model);
         }
 
         var client = _clientFactory.CreateClient("Api");
@@ -53,7 +53,7 @@ public sealed class PlayerDirectoryController : Controller
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
             model.ErrorMessage = error?.Message ?? $"Gagal membuat pemain. Status: {(int)response.StatusCode}";
-            return View("Index", model);
+            return View("~/Views/Players/Index.cshtml", model);
         }
 
         return RedirectToAction(nameof(Index));

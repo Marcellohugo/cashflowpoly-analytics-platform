@@ -3,14 +3,17 @@
 
 ### Dokumen
 - Nama dokumen: Definisi Metrik dan Aturan Agregasi
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 3 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan Dokumen
 Dokumen ini disusun untuk mendefinisikan metrik yang sistem hitung dari log event, beserta aturan agregasi, frekuensi perhitungan, dan format penyimpanan pada tabel `metric_snapshots`. Dokumen ini menjadi acuan implementasi modul analitika dan validasi tampilan dasbor.
+
+Dokumen pendamping yang berisi variabel gameplay fisik dan metrik turunan:
+- `docs/02-Perancangan/02-06-metrik-gameplay-fisik-dan-turunan.md`
 
 ---
 
@@ -100,6 +103,17 @@ Tabel berikut mendefinisikan metrik minimum yang dasbor tampilkan.
 
 Catatan:
 - Sistem tetap dapat menghitung `cashflow.*` dari event langsung, namun sistem sebaiknya memakai proyeksi agar query cepat.
+
+### 5.1 Metrik tambahan (snapshot JSON)
+Sistem menyimpan snapshot variabel gameplay fisik dan metrik turunan pada metrik JSON berikut:
+
+| Kode Metrik | Level | Tipe Nilai | Ringkas Fungsi |
+|---|---|---|---|
+| gameplay.raw.variables | pemain | jsonb | Variabel gameplay fisik (koin, bahan, kebutuhan, donasi, emas, tabungan, risiko). |
+| gameplay.derived.metrics | pemain | jsonb | Metrik turunan (net worth index, efisiensi, ROI, risk appetite, dll). |
+
+Catatan:
+- Isi JSON mengikuti dokumen `docs/02-Perancangan/02-06-metrik-gameplay-fisik-dan-turunan.md`.
 
 ---
 

@@ -1,4 +1,1 @@
-body {
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 60%);
-  color: #0f172a;
-}
+/* Reserved for small overrides that are not covered by Tailwind layers. */

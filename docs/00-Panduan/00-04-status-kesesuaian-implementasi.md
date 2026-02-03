@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 1.0
-- Tanggal: 31 Januari 2026
+- Versi: 1.1
+- Tanggal: 3 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -35,10 +35,11 @@ Ringkasan berikut membandingkan artefak utama pada `docs/01-ringkasan-proposal-t
 |---|---|---|---|
 | Model data & basis data | Sesuai | Skema DB tersedia sesuai entitas utama. | `database/00_create_schema.sql` |
 | RESTful API event log | Sesuai | Endpoint event & validasi tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Manajemen ruleset dinamis | Sesuai | CRUD + versioning + aktivasi per sesi. | `src/Cashflowpoly.Api/Controllers/RulesetsController.cs` |
+| Manajemen ruleset dinamis | Sesuai | CRUD + versioning + aktivasi per sesi + UI manajemen ruleset. | `src/Cashflowpoly.Api/Controllers/RulesetsController.cs`, `src/Cashflowpoly.Ui/Views/Rulesets/*` |
 | Agregasi metrik | Sesuai | Cashflow, donasi, emas, compliance, dan poin kebahagiaan tersedia; skor poin otomatis via ruleset scoring. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
 | Dasbor analitika instruktur | Sesuai | UI sesi, ringkasan analitika, detail pemain tersedia. | `src/Cashflowpoly.Ui/Views/Sessions/*` |
-| Dasbor analitika pemain | Parsial | Detail pemain tersedia, belum ada pemisahan akses per peran. | `src/Cashflowpoly.Ui/Views/Players/Details.cshtml` |
+| Dasbor analitika pemain | Parsial | Detail pemain tersedia, akses per peran belum dipisah. | `src/Cashflowpoly.Ui/Views/Players/Details.cshtml` |
+| Desain UI dashboard | Sesuai | Tema visual, layout, dan motion diperbarui untuk konsistensi. | `src/Cashflowpoly.Ui/Views/Shared/_Layout.cshtml`, `src/Cashflowpoly.Ui/wwwroot/css/tailwind.input.css`, `src/Cashflowpoly.Ui/wwwroot/js/site.js` |
 | Pengujian fungsional & integrasi | Parsial | Dokumen uji ada, test otomatis bertambah namun belum menyeluruh. | `docs/03-Pengujian/*`, `tests/*` |
 
 ---

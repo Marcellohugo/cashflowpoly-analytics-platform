@@ -7,11 +7,11 @@
 <section class="section-shell">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Manajemen Ruleset</p>
-            <h1 class="mt-3 text-3xl text-slate-900">Daftar Ruleset</h1>
+            <p class="eyebrow">Manajemen Ruleset</p>
+            <h1 class="headline">Daftar ruleset</h1>
         </div>
         <a class="btn-primary"
-           asp-controller="Rulesets" asp-action="Create">Buat Ruleset</a>
+           asp-controller="Rulesets" asp-action="Create">Buat ruleset</a>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
