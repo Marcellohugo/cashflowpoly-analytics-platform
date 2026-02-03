@@ -1,4 +1,4 @@
-# Rencana Pengujian Fungsional dan Validasi Sistem  
+﻿# Rencana Pengujian Fungsional dan Validasi Sistem  
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini saya susun untuk menetapkan skenario uji fungsional (*black-box*), uji integrasi alur event, serta validasi konsistensi tampilan dasbor terhadap data basis data. Dokumen ini juga saya susun untuk menetapkan format pencatatan hasil uji dan kriteria kelulusan.
+Dokumen ini disusun untuk menetapkan skenario uji fungsional (*black-box*), uji integrasi alur event, serta validasi konsistensi tampilan dasbor terhadap data basis data. Dokumen ini juga disusun untuk menetapkan format pencatatan hasil uji dan kriteria kelulusan.
 
 ---
 
@@ -153,6 +153,9 @@ Setiap skenario memuat:
 ---
 
 #### B. Manajemen *Ruleset* (M2)
+Catatan:
+- Semua endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan header `X-Actor-Role: INSTRUCTOR`.
+
 **TC-API-05 — Buat ruleset + versi 1**
 - Endpoint: `POST /api/rulesets`
 - Input contoh:
@@ -160,7 +163,49 @@ Setiap skenario memuat:
 {
   "name": "Ruleset Default",
   "description": "Default pemula",
-  "config_json": { "mode": "PEMULA", "actions_per_turn": 2, "starting_cash": 20 }
+  "config_json": {
+    "mode": "PEMULA",
+    "actions_per_turn": 2,
+    "starting_cash": 20,
+    "weekday_rules": {
+      "friday": { "feature": "DONATION", "enabled": true },
+      "saturday": { "feature": "GOLD_TRADE", "enabled": true },
+      "sunday": { "feature": "REST", "enabled": true }
+    },
+    "constraints": {
+      "cash_min": 0,
+      "max_ingredient_total": 6,
+      "max_same_ingredient": 3,
+      "primary_need_max_per_day": 1,
+      "require_primary_before_others": true
+    },
+    "donation": { "min_amount": 1, "max_amount": 999999 },
+    "gold_trade": { "allow_buy": true, "allow_sell": true },
+    "advanced": {
+      "loan": { "enabled": false },
+      "insurance": { "enabled": false },
+      "saving_goal": { "enabled": false }
+    },
+    "freelance": { "income": 1 },
+    "scoring": {
+      "donation_rank_points": [
+        { "rank": 1, "points": 7 },
+        { "rank": 2, "points": 5 },
+        { "rank": 3, "points": 2 }
+      ],
+      "gold_points_by_qty": [
+        { "qty": 1, "points": 3 },
+        { "qty": 2, "points": 5 },
+        { "qty": 3, "points": 8 },
+        { "qty": 4, "points": 12 }
+      ],
+      "pension_rank_points": [
+        { "rank": 1, "points": 5 },
+        { "rank": 2, "points": 3 },
+        { "rank": 3, "points": 1 }
+      ]
+    }
+  }
 }
 ```
 - Ekspektasi:
@@ -204,7 +249,7 @@ Setiap skenario memuat:
 
 #### C. Ingest Event (M3)
 **TC-API-10 — Terima event valid**
-- Endpoint: `POST /api/sessions/{sessionId}/events`
+- Endpoint: `POST /api/events`
 - Input contoh:
 ```json
 {
@@ -445,9 +490,28 @@ Sistem membuat rekap mingguan:
 
 ## 12. Checklist Kelulusan Akhir
 Sistem lulus tahap pengujian dan validasi jika:
-1. sistem menyelesaikan semua TC-API-01 s.d. TC-API-17 dengan PASS,
+1. sistem menyelesaikan semua TC-API-01 s.d. TC-API-28 dengan PASS,
 2. sistem menyelesaikan IT-01 s.d. IT-03 dengan PASS,
 3. sistem menyelesaikan UI-01 s.d. UI-03 dengan PASS,
 4. sistem tidak meninggalkan temuan berstatus OPEN pada modul inti (M1–M6).
 
 
+
+
+## 13. Tambahan TC Event Skor & Risiko
+Tambahan pengujian untuk event baru:
+1. TC-API-18 — `mission.assigned` valid (penetapan misi)
+2. TC-API-19 — `donation.rank.awarded` valid (award poin)
+3. TC-API-20 — `gold.points.awarded` valid (award poin emas)
+4. TC-API-21 — `pension.rank.awarded` valid (award poin pensiun)
+5. TC-API-22 — `saving.deposit.created` dan `saving.deposit.withdrawn` valid
+6. TC-API-23 — `saving.goal.achieved` valid
+7. TC-API-24 — `risk.life.drawn` valid untuk mode MAHIR
+8. TC-API-25 — `loan.syariah.repaid` menolak pembayaran melebihi principal
+9. TC-API-26 — `work.freelance.completed` valid sesuai `freelance.income`
+10. TC-API-27 — `turn.ended` menolak jika `order.claimed` tanpa `risk.life.drawn` (mode MAHIR)
+11. TC-API-28 — ruleset scoring menghitung poin donasi/emas/pensiun pada analitika
+
+Catatan:
+- TC ini mengikuti format skenario uji pada bagian TC-API sebelumnya.
+- Bila sistem belum memakai otomatisasi, pengujian dilakukan melalui Postman.

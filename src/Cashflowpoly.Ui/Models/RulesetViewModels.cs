@@ -13,3 +13,15 @@ public sealed class CreateRulesetViewModel
     public string ConfigJson { get; set; } = "{}";
     public string? ErrorMessage { get; set; }
 }
+
+public sealed class RulesetDetailViewModel
+{
+    public RulesetDetailResponseDto? Ruleset { get; init; }
+    public string? ErrorMessage { get; init; }
+}
+
+public sealed class RulesetArchiveViewModel
+{
+    public Guid RulesetId { get; set; }
+    public string? ErrorMessage { get; set; }
+}

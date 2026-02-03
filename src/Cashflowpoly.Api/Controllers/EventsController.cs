@@ -18,12 +18,17 @@ public sealed class EventsController : ControllerBase
     private readonly SessionRepository _sessions;
     private readonly RulesetRepository _rulesets;
     private readonly EventRepository _events;
+    private readonly PlayerRepository _players;
 
-    public EventsController(SessionRepository sessions, RulesetRepository rulesets, EventRepository events)
+    /// <summary>
+    /// Controller untuk ingest event dan akses histori event.
+    /// </summary>
+    public EventsController(SessionRepository sessions, RulesetRepository rulesets, EventRepository events, PlayerRepository players)
     {
         _sessions = sessions;
         _rulesets = rulesets;
         _events = events;
+        _players = players;
     }
 
     private static readonly HashSet<string> AllowedActorTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -162,6 +167,21 @@ public sealed class EventsController : ControllerBase
                 new ErrorDetail("player_id", "REQUIRED"));
         }
 
+        if (request.PlayerId is not null)
+        {
+            var player = await _players.GetPlayerAsync(request.PlayerId.Value, ct);
+            if (player is null)
+            {
+                return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Player tidak ditemukan");
+            }
+
+            var inSession = await _players.IsPlayerInSessionAsync(request.SessionId, request.PlayerId.Value, ct);
+            if (!inSession)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Player belum terdaftar pada sesi");
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(request.ActionType))
         {
             return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Action type wajib diisi",
@@ -172,6 +192,11 @@ public sealed class EventsController : ControllerBase
         if (maxSequence.HasValue && request.SequenceNumber < maxSequence.Value)
         {
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Sequence number lebih kecil dari event terakhir");
+        }
+
+        if (maxSequence.HasValue && request.SequenceNumber > maxSequence.Value + 1)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Sequence number loncat dari event terakhir");
         }
 
         if (await _events.EventIdExistsAsync(request.SessionId, request.EventId, ct))
@@ -201,26 +226,29 @@ public sealed class EventsController : ControllerBase
     private async Task<Guid> StoreEventAsync(EventRequest request, CancellationToken ct)
     {
         var eventPk = Guid.NewGuid();
-        var record = new EventDb(
-            eventPk,
-            request.EventId,
-            request.SessionId,
-            request.PlayerId,
-            request.ActorType.ToUpperInvariant(),
-            request.Timestamp,
-            request.DayIndex,
-            request.Weekday.ToUpperInvariant(),
-            request.TurnNumber,
-            request.SequenceNumber,
-            request.ActionType,
-            request.RulesetVersionId,
-            request.Payload.GetRawText(),
-            DateTimeOffset.UtcNow,
-            request.ClientRequestId);
+        var timestamp = request.Timestamp.ToUniversalTime();
+        var record = new EventDb
+        {
+            EventPk = eventPk,
+            EventId = request.EventId,
+            SessionId = request.SessionId,
+            PlayerId = request.PlayerId,
+            ActorType = request.ActorType.ToUpperInvariant(),
+            Timestamp = timestamp,
+            DayIndex = request.DayIndex,
+            Weekday = request.Weekday.ToUpperInvariant(),
+            TurnNumber = request.TurnNumber,
+            SequenceNumber = request.SequenceNumber,
+            ActionType = request.ActionType,
+            RulesetVersionId = request.RulesetVersionId,
+            Payload = request.Payload.GetRawText(),
+            ReceivedAt = DateTimeOffset.UtcNow,
+            ClientRequestId = request.ClientRequestId
+        };
 
         await _events.InsertEventAsync(record, ct);
 
-        if (TryBuildCashflowProjection(request, eventPk, out var projection))
+        if (TryBuildCashflowProjection(request, timestamp, eventPk, out var projection))
         {
             await _events.InsertCashflowProjectionAsync(projection, ct);
         }
@@ -295,6 +323,15 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("payload.counterparty", "INVALID_ENUM"));
             }
 
+            if (string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) && request.PlayerId is not null)
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
+            }
+
             return Valid;
         }
 
@@ -320,6 +357,15 @@ public sealed class EventsController : ControllerBase
             if (amount < config.DonationMin || amount > config.DonationMax)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Jumlah donasi di luar batas");
+            }
+
+            if (request.PlayerId is not null)
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
             }
 
             return Valid;
@@ -372,6 +418,37 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang SELL emas");
             }
 
+            if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && request.PlayerId is not null)
+            {
+                var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+                var goldQty = 0;
+                foreach (var evt in events.Where(e =>
+                             e.PlayerId == request.PlayerId &&
+                             e.ActionType == "day.saturday.gold_trade"))
+                {
+                    if (!TryReadGoldTrade(ReadPayload(evt.Payload), out var evtTradeType, out var evtQty, out _, out _))
+                    {
+                        continue;
+                    }
+
+                    goldQty += string.Equals(evtTradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? evtQty : -evtQty;
+                }
+
+                if (goldQty < qty)
+                {
+                    return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Kepemilikan emas tidak mencukupi");
+                }
+            }
+
+            if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && request.PlayerId is not null)
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
+            }
+
             return Valid;
         }
 
@@ -417,18 +494,60 @@ public sealed class EventsController : ControllerBase
             return Valid;
         }
 
+        if (string.Equals(actionType, "turn.ended", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+        {
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var turnEvents = events.Where(e => e.TurnNumber == request.TurnNumber && e.PlayerId.HasValue).ToList();
+
+            var orderCounts = turnEvents
+                .Where(e => e.ActionType == "order.claimed")
+                .GroupBy(e => e.PlayerId!.Value)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var riskCounts = turnEvents
+                .Where(e => e.ActionType == "risk.life.drawn")
+                .GroupBy(e => e.PlayerId!.Value)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            foreach (var playerId in orderCounts.Keys.Union(riskCounts.Keys))
+            {
+                orderCounts.TryGetValue(playerId, out var orders);
+                riskCounts.TryGetValue(playerId, out var risks);
+                if (orders != risks)
+                {
+                    return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                        "Setiap klaim pesanan harus diikuti pengambilan risiko pada mode MAHIR");
+                }
+            }
+
+            return Valid;
+        }
+
         if (string.Equals(actionType, "need.primary.purchased", StringComparison.OrdinalIgnoreCase))
         {
-            if (!TryReadAmount(payload, out var amount))
+            if (!TryReadNeedPurchase(payload, out var cardId, out var amount, out var points))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload kebutuhan primer tidak valid",
-                    new ErrorDetail("payload.amount", "REQUIRED"));
+                    new ErrorDetail("payload.card_id", "REQUIRED"));
             }
 
             if (amount <= 0)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
                     new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            if (string.IsNullOrWhiteSpace(cardId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Card ID wajib diisi",
+                    new ErrorDetail("payload.card_id", "REQUIRED"));
+            }
+
+            if (points < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points tidak valid",
+                    new ErrorDetail("payload.points", "OUT_OF_RANGE"));
             }
 
             if (config.PrimaryNeedMaxPerDay == 0)
@@ -453,22 +572,43 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Pembelian kebutuhan primer melebihi batas harian");
             }
 
+            if (request.PlayerId is not null)
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
+            }
+
             return Valid;
         }
 
         if (string.Equals(actionType, "need.secondary.purchased", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(actionType, "need.tertiary.purchased", StringComparison.OrdinalIgnoreCase))
         {
-            if (!TryReadAmount(payload, out var amount))
+            if (!TryReadNeedPurchase(payload, out var cardId, out var amount, out var points))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload kebutuhan tidak valid",
-                    new ErrorDetail("payload.amount", "REQUIRED"));
+                    new ErrorDetail("payload.card_id", "REQUIRED"));
             }
 
             if (amount <= 0)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
                     new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            if (string.IsNullOrWhiteSpace(cardId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Card ID wajib diisi",
+                    new ErrorDetail("payload.card_id", "REQUIRED"));
+            }
+
+            if (points < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points tidak valid",
+                    new ErrorDetail("payload.points", "OUT_OF_RANGE"));
             }
 
             if (config.RequirePrimaryBeforeOthers && request.PlayerId is not null)
@@ -482,6 +622,15 @@ public sealed class EventsController : ControllerBase
                 if (!hasPrimary)
                 {
                     return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Kebutuhan primer harus dibeli terlebih dahulu");
+                }
+            }
+
+            if (request.PlayerId is not null)
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
                 }
             }
 
@@ -520,6 +669,12 @@ public sealed class EventsController : ControllerBase
             if (currentSame + amount > config.MaxSameIngredient)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Jumlah kartu bahan sejenis melebihi batas ruleset");
+            }
+
+            var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+            if (!balanceCheck.IsValid)
+            {
+                return balanceCheck;
             }
 
             return Valid;
@@ -561,6 +716,346 @@ public sealed class EventsController : ControllerBase
             return Valid;
         }
 
+        if (string.Equals(actionType, "work.freelance.completed", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadAmount(payload, out var amount))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload kerja lepas tidak valid",
+                    new ErrorDetail("payload.amount", "REQUIRED"));
+            }
+
+            if (amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
+                    new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            var rounded = (int)Math.Round(amount);
+            if (rounded != config.FreelanceIncome)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Amount kerja lepas tidak sesuai ruleset");
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "mission.assigned", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadMissionAssigned(payload, out var missionId, out var targetCardId, out var penaltyPoints))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload mission tidak valid",
+                    new ErrorDetail("payload.mission_id", "REQUIRED"));
+            }
+
+            if (string.IsNullOrWhiteSpace(missionId) || string.IsNullOrWhiteSpace(targetCardId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Mission ID dan target wajib diisi",
+                    new ErrorDetail("payload.target_tertiary_card_id", "REQUIRED"));
+            }
+
+            if (penaltyPoints < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Penalty points tidak valid",
+                    new ErrorDetail("payload.penalty_points", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var alreadyAssigned = events.Any(e =>
+                e.PlayerId == request.PlayerId &&
+                e.ActionType == "mission.assigned");
+            if (alreadyAssigned)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Misi sudah ditetapkan untuk pemain");
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "tie_breaker.assigned", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadTieBreaker(payload, out var number))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload tie breaker tidak valid",
+                    new ErrorDetail("payload.number", "REQUIRED"));
+            }
+
+            if (number <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Nomor tie breaker tidak valid",
+                    new ErrorDetail("payload.number", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var alreadyAssigned = events.Any(e =>
+                e.PlayerId == request.PlayerId &&
+                e.ActionType == "tie_breaker.assigned");
+            if (alreadyAssigned)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Tie breaker sudah ditetapkan untuk pemain");
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "donation.rank.awarded", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadRankAwarded(payload, out var rank, out var points))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload donasi tidak valid",
+                    new ErrorDetail("payload.rank", "REQUIRED"));
+            }
+
+            if (rank <= 0 || points < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Nilai rank/points tidak valid",
+                    new ErrorDetail("payload.points", "OUT_OF_RANGE"));
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "gold.points.awarded", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadPointsAwarded(payload, out var points))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload gold points tidak valid",
+                    new ErrorDetail("payload.points", "REQUIRED"));
+            }
+
+            if (points < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points tidak valid",
+                    new ErrorDetail("payload.points", "OUT_OF_RANGE"));
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "pension.rank.awarded", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadRankAwarded(payload, out var rank, out var points))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload pension tidak valid",
+                    new ErrorDetail("payload.rank", "REQUIRED"));
+            }
+
+            if (rank <= 0 || points < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Nilai rank/points tidak valid",
+                    new ErrorDetail("payload.points", "OUT_OF_RANGE"));
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "saving.deposit.created", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(actionType, "saving.deposit.withdrawn", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!config.SavingGoalEnabled)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur tabungan tujuan tidak aktif");
+            }
+
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadSavingDeposit(payload, out var goalId, out var amount))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload tabungan tidak valid",
+                    new ErrorDetail("payload.amount", "REQUIRED"));
+            }
+
+            if (string.IsNullOrWhiteSpace(goalId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Goal ID wajib diisi",
+                    new ErrorDetail("payload.goal_id", "REQUIRED"));
+            }
+
+            if (amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
+                    new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var balance = ComputeSavingBalance(events, request.PlayerId.Value, goalId);
+
+            if (string.Equals(actionType, "saving.deposit.withdrawn", StringComparison.OrdinalIgnoreCase) && balance < amount)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi");
+            }
+
+            if (string.Equals(actionType, "saving.deposit.created", StringComparison.OrdinalIgnoreCase))
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "saving.goal.achieved", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!config.SavingGoalEnabled)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur tabungan tujuan tidak aktif");
+            }
+
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadSavingGoalAchieved(payload, out var goalId, out var points, out var cost))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload goal tidak valid",
+                    new ErrorDetail("payload.goal_id", "REQUIRED"));
+            }
+
+            if (points < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points tidak valid",
+                    new ErrorDetail("payload.points", "OUT_OF_RANGE"));
+            }
+
+            if (cost < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Cost tidak valid",
+                    new ErrorDetail("payload.cost", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var balance = ComputeSavingBalance(events, request.PlayerId.Value, goalId);
+            if (cost > 0 && balance < cost)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi untuk goal");
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur risiko hanya tersedia di mode MAHIR");
+            }
+
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadRiskLife(payload, out var riskId, out var direction, out var amount))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload risiko tidak valid",
+                    new ErrorDetail("payload.amount", "REQUIRED"));
+            }
+
+            if (string.IsNullOrWhiteSpace(riskId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Risk ID wajib diisi",
+                    new ErrorDetail("payload.risk_id", "REQUIRED"));
+            }
+
+            if (amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
+                    new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var turnEvents = events.Where(e =>
+                e.PlayerId == request.PlayerId &&
+                e.TurnNumber == request.TurnNumber);
+
+            var orderCount = turnEvents.Count(e => e.ActionType == "order.claimed");
+            var riskCount = turnEvents.Count(e => e.ActionType == "risk.life.drawn");
+
+            if (riskCount >= orderCount)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Risiko hanya dapat diambil setelah klaim pesanan");
+            }
+
+            if (string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!config.InsuranceEnabled)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur asuransi tidak aktif");
+            }
+
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadInsuranceUsed(payload, out _))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload insurance used tidak valid",
+                    new ErrorDetail("payload.risk_event_id", "REQUIRED"));
+            }
+
+            return Valid;
+        }
+
         if (string.Equals(actionType, "loan.syariah.taken", StringComparison.OrdinalIgnoreCase))
         {
             if (!config.LoanEnabled)
@@ -568,16 +1063,39 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur pinjaman tidak aktif");
             }
 
-            if (!TryReadLoanTaken(payload, out var principal, out var installment, out var duration))
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadLoanTaken(payload, out var loanId, out var principal, out var installment, out var duration, out var penaltyPoints))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload loan taken tidak valid",
-                    new ErrorDetail("payload.principal", "REQUIRED"));
+                    new ErrorDetail("payload.loan_id", "REQUIRED"));
             }
 
             if (principal <= 0 || installment <= 0 || duration <= 0)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Nilai pinjaman tidak valid",
                     new ErrorDetail("payload.principal", "OUT_OF_RANGE"));
+            }
+
+            if (penaltyPoints < 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Penalty points tidak valid",
+                    new ErrorDetail("payload.penalty_points", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var exists = events.Any(e =>
+                e.PlayerId == request.PlayerId &&
+                e.ActionType == "loan.syariah.taken" &&
+                TryReadLoanTaken(ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
+                string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
+            if (exists)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Loan ID sudah dipakai");
             }
 
             return Valid;
@@ -590,16 +1108,58 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur pinjaman tidak aktif");
             }
 
-            if (!TryReadLoanRepay(payload, out var amount))
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadLoanRepay(payload, out var loanId, out var amount))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload loan repaid tidak valid",
-                    new ErrorDetail("payload.amount", "REQUIRED"));
+                    new ErrorDetail("payload.loan_id", "REQUIRED"));
             }
 
             if (amount <= 0)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
                     new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var loan = events.FirstOrDefault(e =>
+                e.PlayerId == request.PlayerId &&
+                e.ActionType == "loan.syariah.taken" &&
+                TryReadLoanTaken(ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
+                string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
+
+            if (loan is null)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Loan ID tidak ditemukan");
+            }
+
+            var principal = 0;
+            if (TryReadLoanTaken(ReadPayload(loan.Payload), out _, out var principalValue, out _, out _, out _))
+            {
+                principal = principalValue;
+            }
+
+            var repaidSoFar = events.Where(e =>
+                    e.PlayerId == request.PlayerId &&
+                    e.ActionType == "loan.syariah.repaid" &&
+                    TryReadLoanRepay(ReadPayload(e.Payload), out var existingLoanId, out _) &&
+                    string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase))
+                .Sum(e => TryReadLoanRepay(ReadPayload(e.Payload), out _, out var repaidAmount) ? repaidAmount : 0);
+
+            if (principal > 0 && repaidSoFar + amount > principal)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Pembayaran melebihi sisa pinjaman");
+            }
+
+            var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+            if (!balanceCheck.IsValid)
+            {
+                return balanceCheck;
             }
 
             return Valid;
@@ -622,6 +1182,15 @@ public sealed class EventsController : ControllerBase
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Premium harus > 0",
                     new ErrorDetail("payload.premium", "OUT_OF_RANGE"));
+            }
+
+            if (request.PlayerId is not null)
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, premium, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
             }
 
             return Valid;
@@ -745,35 +1314,197 @@ public sealed class EventsController : ControllerBase
         return requiredCards.Count > 0;
     }
 
-    private static bool TryReadLoanTaken(JsonElement payload, out int principal, out int installment, out int duration)
+    private static bool TryReadNeedPurchase(JsonElement payload, out string cardId, out int amount, out int points)
     {
-        principal = 0;
-        installment = 0;
-        duration = 0;
+        cardId = string.Empty;
+        amount = 0;
+        points = 0;
 
-        if (!payload.TryGetProperty("principal", out var principalProp) ||
-            !payload.TryGetProperty("installment", out var installmentProp) ||
-            !payload.TryGetProperty("duration_turn", out var durationProp))
+        if (!payload.TryGetProperty("card_id", out var cardIdProp) ||
+            !payload.TryGetProperty("amount", out var amountProp))
         {
             return false;
         }
 
-        principal = principalProp.GetInt32();
-        installment = installmentProp.GetInt32();
-        duration = durationProp.GetInt32();
+        cardId = cardIdProp.GetString() ?? string.Empty;
+        amount = amountProp.GetInt32();
+        if (payload.TryGetProperty("points", out var pointsProp))
+        {
+            points = pointsProp.GetInt32();
+        }
+
+        return !string.IsNullOrWhiteSpace(cardId);
+    }
+
+    private static bool TryReadMissionAssigned(JsonElement payload, out string missionId, out string targetCardId, out int penaltyPoints)
+    {
+        missionId = string.Empty;
+        targetCardId = string.Empty;
+        penaltyPoints = 0;
+
+        if (!payload.TryGetProperty("mission_id", out var missionIdProp) ||
+            !payload.TryGetProperty("target_tertiary_card_id", out var targetProp) ||
+            !payload.TryGetProperty("penalty_points", out var penaltyProp))
+        {
+            return false;
+        }
+
+        missionId = missionIdProp.GetString() ?? string.Empty;
+        targetCardId = targetProp.GetString() ?? string.Empty;
+        penaltyPoints = penaltyProp.GetInt32();
+        return !string.IsNullOrWhiteSpace(missionId);
+    }
+
+    private static bool TryReadTieBreaker(JsonElement payload, out int number)
+    {
+        number = 0;
+        if (!payload.TryGetProperty("number", out var numberProp))
+        {
+            return false;
+        }
+
+        number = numberProp.GetInt32();
         return true;
     }
 
-    private static bool TryReadLoanRepay(JsonElement payload, out int amount)
+    private static bool TryReadRankAwarded(JsonElement payload, out int rank, out int points)
     {
-        amount = 0;
-        if (!payload.TryGetProperty("amount", out var amountProp))
+        rank = 0;
+        points = 0;
+        if (!payload.TryGetProperty("rank", out var rankProp) ||
+            !payload.TryGetProperty("points", out var pointsProp))
         {
             return false;
         }
 
+        rank = rankProp.GetInt32();
+        points = pointsProp.GetInt32();
+        return true;
+    }
+
+    private static bool TryReadPointsAwarded(JsonElement payload, out int points)
+    {
+        points = 0;
+        if (!payload.TryGetProperty("points", out var pointsProp))
+        {
+            return false;
+        }
+
+        points = pointsProp.GetInt32();
+        return true;
+    }
+
+    private static bool TryReadSavingDeposit(JsonElement payload, out string goalId, out int amount)
+    {
+        goalId = string.Empty;
+        amount = 0;
+        if (!payload.TryGetProperty("goal_id", out var goalProp) ||
+            !payload.TryGetProperty("amount", out var amountProp))
+        {
+            return false;
+        }
+
+        goalId = goalProp.GetString() ?? string.Empty;
         amount = amountProp.GetInt32();
         return true;
+    }
+
+    private static bool TryReadSavingGoalAchieved(JsonElement payload, out string goalId, out int points, out int cost)
+    {
+        goalId = string.Empty;
+        points = 0;
+        cost = 0;
+        if (!payload.TryGetProperty("goal_id", out var goalProp) ||
+            !payload.TryGetProperty("points", out var pointsProp))
+        {
+            return false;
+        }
+
+        goalId = goalProp.GetString() ?? string.Empty;
+        points = pointsProp.GetInt32();
+        if (payload.TryGetProperty("cost", out var costProp))
+        {
+            cost = costProp.GetInt32();
+        }
+
+        return !string.IsNullOrWhiteSpace(goalId);
+    }
+
+    private static bool TryReadRiskLife(JsonElement payload, out string riskId, out string direction, out int amount)
+    {
+        riskId = string.Empty;
+        direction = string.Empty;
+        amount = 0;
+        if (!payload.TryGetProperty("risk_id", out var riskProp) ||
+            !payload.TryGetProperty("direction", out var directionProp) ||
+            !payload.TryGetProperty("amount", out var amountProp))
+        {
+            return false;
+        }
+
+        riskId = riskProp.GetString() ?? string.Empty;
+        direction = directionProp.GetString() ?? string.Empty;
+        amount = amountProp.GetInt32();
+        return direction.Equals("IN", StringComparison.OrdinalIgnoreCase) ||
+               direction.Equals("OUT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId)
+    {
+        riskEventId = string.Empty;
+        if (!payload.TryGetProperty("risk_event_id", out var riskProp))
+        {
+            return false;
+        }
+
+        riskEventId = riskProp.GetString() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(riskEventId);
+    }
+
+    private static bool TryReadLoanTaken(
+        JsonElement payload,
+        out string loanId,
+        out int principal,
+        out int installment,
+        out int duration,
+        out int penaltyPoints)
+    {
+        loanId = string.Empty;
+        principal = 0;
+        installment = 0;
+        duration = 0;
+        penaltyPoints = 0;
+
+        if (!payload.TryGetProperty("loan_id", out var loanIdProp) ||
+            !payload.TryGetProperty("principal", out var principalProp) ||
+            !payload.TryGetProperty("installment", out var installmentProp) ||
+            !payload.TryGetProperty("duration_turn", out var durationProp) ||
+            !payload.TryGetProperty("penalty_points", out var penaltyProp))
+        {
+            return false;
+        }
+
+        loanId = loanIdProp.GetString() ?? string.Empty;
+        principal = principalProp.GetInt32();
+        installment = installmentProp.GetInt32();
+        duration = durationProp.GetInt32();
+        penaltyPoints = penaltyProp.GetInt32();
+        return !string.IsNullOrWhiteSpace(loanId);
+    }
+
+    private static bool TryReadLoanRepay(JsonElement payload, out string loanId, out int amount)
+    {
+        loanId = string.Empty;
+        amount = 0;
+        if (!payload.TryGetProperty("loan_id", out var loanIdProp) ||
+            !payload.TryGetProperty("amount", out var amountProp))
+        {
+            return false;
+        }
+
+        loanId = loanIdProp.GetString() ?? string.Empty;
+        amount = amountProp.GetInt32();
+        return !string.IsNullOrWhiteSpace(loanId);
     }
 
     private static bool TryReadInsurance(JsonElement payload, out int premium)
@@ -818,6 +1549,37 @@ public sealed class EventsController : ControllerBase
         return inventory;
     }
 
+    private static int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, string goalId)
+    {
+        var balance = 0;
+
+        foreach (var evt in events.Where(e => e.PlayerId == playerId))
+        {
+            if (evt.ActionType == "saving.deposit.created" &&
+                TryReadSavingDeposit(ReadPayload(evt.Payload), out var existingGoalId, out var amount) &&
+                string.Equals(existingGoalId, goalId, StringComparison.OrdinalIgnoreCase))
+            {
+                balance += amount;
+            }
+
+            if (evt.ActionType == "saving.deposit.withdrawn" &&
+                TryReadSavingDeposit(ReadPayload(evt.Payload), out var withdrawGoalId, out var amountWithdraw) &&
+                string.Equals(withdrawGoalId, goalId, StringComparison.OrdinalIgnoreCase))
+            {
+                balance -= amountWithdraw;
+            }
+
+            if (evt.ActionType == "saving.goal.achieved" &&
+                TryReadSavingGoalAchieved(ReadPayload(evt.Payload), out var achievedGoalId, out _, out var cost) &&
+                string.Equals(achievedGoalId, goalId, StringComparison.OrdinalIgnoreCase))
+            {
+                balance -= cost;
+            }
+        }
+
+        return balance;
+    }
+
     private static JsonElement ReadPayload(string payload)
     {
         using var doc = JsonDocument.Parse(payload);
@@ -847,7 +1609,39 @@ public sealed class EventsController : ControllerBase
         internal Dictionary<string, int> ByCardId { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static bool TryBuildCashflowProjection(EventRequest request, Guid eventPk, out CashflowProjectionDb projection)
+    private async Task<ValidationOutcome> EnsureSufficientBalanceAsync(
+        EventRequest request,
+        RulesetConfig config,
+        double outgoingAmount,
+        CancellationToken ct)
+    {
+        if (request.PlayerId is null)
+        {
+            return Valid;
+        }
+
+        var currentBalance = await GetPlayerBalanceAsync(request.SessionId, request.PlayerId.Value, config.StartingCash, ct);
+        var projectedBalance = currentBalance - outgoingAmount;
+
+        if (projectedBalance < config.CashMin)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tidak mencukupi");
+        }
+
+        return Valid;
+    }
+
+    private async Task<double> GetPlayerBalanceAsync(Guid sessionId, Guid playerId, int startingCash, CancellationToken ct)
+    {
+        var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        var net = projections
+            .Where(p => p.PlayerId == playerId)
+            .Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount);
+
+        return startingCash + net;
+    }
+
+    private static bool TryBuildCashflowProjection(EventRequest request, DateTimeOffset timestamp, Guid eventPk, out CashflowProjectionDb projection)
     {
         projection = default!;
         if (request.PlayerId is null)
@@ -856,7 +1650,6 @@ public sealed class EventsController : ControllerBase
         }
 
         var action = request.ActionType;
-        var timestamp = request.Timestamp;
         var playerId = request.PlayerId.Value;
         var direction = string.Empty;
         var amount = 0;
@@ -888,10 +1681,10 @@ public sealed class EventsController : ControllerBase
             category = "GOLD_TRADE";
         }
         else if (string.Equals(action, "ingredient.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 TryReadAmount(request.Payload, out var ingredientAmount))
+                 TryReadIngredientPurchase(request.Payload, out _, out var ingredientAmount))
         {
             direction = "OUT";
-            amount = (int)Math.Round(ingredientAmount);
+            amount = ingredientAmount;
             category = "INGREDIENT";
         }
         else if (string.Equals(action, "order.claimed", StringComparison.OrdinalIgnoreCase) &&
@@ -901,36 +1694,64 @@ public sealed class EventsController : ControllerBase
             amount = income;
             category = "ORDER";
         }
+        else if (string.Equals(action, "work.freelance.completed", StringComparison.OrdinalIgnoreCase) &&
+                 TryReadAmount(request.Payload, out var freelanceAmount))
+        {
+            direction = "IN";
+            amount = (int)Math.Round(freelanceAmount);
+            category = "FREELANCE";
+        }
         else if (string.Equals(action, "need.primary.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 TryReadAmount(request.Payload, out var primaryAmount))
+                 TryReadNeedPurchase(request.Payload, out _, out var primaryAmount, out _))
         {
             direction = "OUT";
-            amount = (int)Math.Round(primaryAmount);
+            amount = primaryAmount;
             category = "NEED_PRIMARY";
         }
         else if (string.Equals(action, "need.secondary.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 TryReadAmount(request.Payload, out var secondaryAmount))
+                 TryReadNeedPurchase(request.Payload, out _, out var secondaryAmount, out _))
         {
             direction = "OUT";
-            amount = (int)Math.Round(secondaryAmount);
+            amount = secondaryAmount;
             category = "NEED_SECONDARY";
         }
         else if (string.Equals(action, "need.tertiary.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 TryReadAmount(request.Payload, out var tertiaryAmount))
+                 TryReadNeedPurchase(request.Payload, out _, out var tertiaryAmount, out _))
         {
             direction = "OUT";
-            amount = (int)Math.Round(tertiaryAmount);
+            amount = tertiaryAmount;
             category = "NEED_TERTIARY";
         }
+        else if (string.Equals(action, "saving.deposit.created", StringComparison.OrdinalIgnoreCase) &&
+                 TryReadSavingDeposit(request.Payload, out _, out var savingAmount))
+        {
+            direction = "OUT";
+            amount = savingAmount;
+            category = "SAVING_DEPOSIT";
+        }
+        else if (string.Equals(action, "saving.deposit.withdrawn", StringComparison.OrdinalIgnoreCase) &&
+                 TryReadSavingDeposit(request.Payload, out _, out var savingWithdrawAmount))
+        {
+            direction = "IN";
+            amount = savingWithdrawAmount;
+            category = "SAVING_WITHDRAW";
+        }
+        else if (string.Equals(action, "risk.life.drawn", StringComparison.OrdinalIgnoreCase) &&
+                 TryReadRiskLife(request.Payload, out _, out var riskDirection, out var riskAmount))
+        {
+            direction = riskDirection.ToUpperInvariant();
+            amount = riskAmount;
+            category = "RISK_LIFE";
+        }
         else if (string.Equals(action, "loan.syariah.taken", StringComparison.OrdinalIgnoreCase) &&
-                 TryReadLoanTaken(request.Payload, out var principal, out _, out _))
+                 TryReadLoanTaken(request.Payload, out _, out var principal, out _, out _, out _))
         {
             direction = "IN";
             amount = principal;
             category = "LOAN_TAKEN";
         }
         else if (string.Equals(action, "loan.syariah.repaid", StringComparison.OrdinalIgnoreCase) &&
-                 TryReadLoanRepay(request.Payload, out var repayAmount))
+                 TryReadLoanRepay(request.Payload, out _, out var repayAmount))
         {
             direction = "OUT";
             amount = repayAmount;
@@ -953,19 +1774,21 @@ public sealed class EventsController : ControllerBase
             return false;
         }
 
-        projection = new CashflowProjectionDb(
-            Guid.NewGuid(),
-            request.SessionId,
-            playerId,
-            eventPk,
-            request.EventId,
-            timestamp,
-            direction,
-            amount,
-            category,
-            counterparty,
-            reference,
-            note);
+        projection = new CashflowProjectionDb
+        {
+            ProjectionId = Guid.NewGuid(),
+            SessionId = request.SessionId,
+            PlayerId = playerId,
+            EventPk = eventPk,
+            EventId = request.EventId,
+            Timestamp = timestamp,
+            Direction = direction,
+            Amount = amount,
+            Category = category,
+            Counterparty = counterparty,
+            Reference = reference,
+            Note = note
+        };
 
         return true;
     }

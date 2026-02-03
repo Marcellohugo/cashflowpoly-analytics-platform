@@ -1,0 +1,94 @@
+@model Cashflowpoly.Ui.Models.SessionDetailViewModel
+
+@{
+    ViewData["Title"] = "Detail Sesi";
+}
+
+<section class="section-shell">
+    <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">Analitika Sesi</p>
+        <h1 class="mt-3 text-3xl text-slate-900">Detail Sesi</h1>
+        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    @if (Model.Analytics is not null)
+    {
+        <div class="mt-6 grid gap-4 md:grid-cols-5">
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Total Event</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.EventCount</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Cash In</p>
+                <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Analytics.Summary.CashInTotal</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Cash Out</p>
+                <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Analytics.Summary.CashOutTotal</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Net Cashflow</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.CashflowNetTotal</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Pelanggaran</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3">
+            <a class="btn-ghost"
+               asp-controller="Sessions" asp-action="Ruleset" asp-route-sessionId="@Model.SessionId">Aktivasi Ruleset</a>
+        </div>
+
+        <div class="mt-8 table-wrap">
+            <table class="w-full text-left text-sm">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">Player ID</th>
+                        <th class="px-4 py-3 text-right">Cash In</th>
+                        <th class="px-4 py-3 text-right">Cash Out</th>
+                        <th class="px-4 py-3 text-right">Donation</th>
+                        <th class="px-4 py-3 text-right">Gold Qty</th>
+                        <th class="px-4 py-3 text-right">Happiness</th>
+                        <th class="px-4 py-3 text-right">Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Analytics.ByPlayer.Count == 0)
+                {
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500" colspan="7">Belum ada data pemain.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Analytics.ByPlayer)
+                    {
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
+                            <td class="px-4 py-3 text-right">@item.CashInTotal</td>
+                            <td class="px-4 py-3 text-right">@item.CashOutTotal</td>
+                            <td class="px-4 py-3 text-right">@item.DonationTotal</td>
+                            <td class="px-4 py-3 text-right">@item.GoldQty</td>
+                            <td class="px-4 py-3 text-right">@item.HappinessPointsTotal</td>
+                            <td class="px-4 py-3 text-right">
+                                <a class="text-sm font-semibold text-slate-900 hover:underline"
+                                   asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
+                                   asp-route-playerId="@item.PlayerId">Lihat</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

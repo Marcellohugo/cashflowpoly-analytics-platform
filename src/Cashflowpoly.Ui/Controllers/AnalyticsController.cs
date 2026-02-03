@@ -8,6 +8,9 @@ public sealed class AnalyticsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
+    /// <summary>
+    /// Controller UI untuk pencarian analitika sesi.
+    /// </summary>
     public AnalyticsController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;

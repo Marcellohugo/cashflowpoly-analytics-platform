@@ -3,7 +3,10 @@ using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
-internal sealed class MetricsRepository
+/// <summary>
+/// Repository untuk penyimpanan snapshot metrik.
+/// </summary>
+public sealed class MetricsRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 

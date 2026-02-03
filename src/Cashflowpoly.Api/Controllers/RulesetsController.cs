@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
@@ -16,9 +17,31 @@ public sealed class RulesetsController : ControllerBase
         _rulesets = rulesets;
     }
 
+    private IActionResult? EnsureInstructorRole()
+    {
+        if (!Request.Headers.TryGetValue("X-Actor-Role", out var role) ||
+            !string.Equals(role.ToString(), "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akses khusus instruktur"));
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Membuat ruleset baru beserta versi awal.
+    /// </summary>
+
     [HttpPost]
     public async Task<IActionResult> CreateRuleset([FromBody] CreateRulesetRequest request, CancellationToken ct)
     {
+        var guard = EnsureInstructorRole();
+        if (guard is not null)
+        {
+            return guard;
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
@@ -38,6 +61,12 @@ public sealed class RulesetsController : ControllerBase
     [HttpPut("{rulesetId:guid}")]
     public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
+        var guard = EnsureInstructorRole();
+        if (guard is not null)
+        {
+            return guard;
+        }
+
         var existing = await _rulesets.GetRulesetAsync(rulesetId, ct);
         if (existing is null)
         {
@@ -65,5 +94,90 @@ public sealed class RulesetsController : ControllerBase
     {
         var items = await _rulesets.ListRulesetsAsync(ct);
         return Ok(new RulesetListResponse(items));
+    }
+
+    [HttpGet("{rulesetId:guid}")]
+    public async Task<IActionResult> GetRulesetDetail(Guid rulesetId, CancellationToken ct)
+    {
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var versions = await _rulesets.ListRulesetVersionsAsync(rulesetId, ct);
+        var versionItems = versions.Select(v => new RulesetVersionItem(
+            v.RulesetVersionId,
+            v.Version,
+            v.Status,
+            v.CreatedAt)).ToList();
+
+        JsonElement? configJson = null;
+        var latest = versions.FirstOrDefault();
+        if (latest is not null)
+        {
+            using var doc = JsonDocument.Parse(latest.ConfigJson);
+            configJson = doc.RootElement.Clone();
+        }
+
+        var response = new RulesetDetailResponse(
+            ruleset.RulesetId,
+            ruleset.Name,
+            ruleset.Description,
+            ruleset.IsArchived,
+            versionItems,
+            configJson);
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Mengarsipkan ruleset (soft archive).
+    /// </summary>
+    [HttpPost("{rulesetId:guid}/archive")]
+    public async Task<IActionResult> ArchiveRuleset(Guid rulesetId, CancellationToken ct)
+    {
+        var guard = EnsureInstructorRole();
+        if (guard is not null)
+        {
+            return guard;
+        }
+
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        await _rulesets.SetArchiveAsync(rulesetId, true, ct);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Menghapus ruleset jika belum pernah dipakai pada sesi.
+    /// </summary>
+    [HttpDelete("{rulesetId:guid}")]
+    public async Task<IActionResult> DeleteRuleset(Guid rulesetId, CancellationToken ct)
+    {
+        var guard = EnsureInstructorRole();
+        if (guard is not null)
+        {
+            return guard;
+        }
+
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var inUse = await _rulesets.IsRulesetUsedAsync(rulesetId, ct);
+        if (inUse)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Ruleset sudah dipakai sesi"));
+        }
+
+        await _rulesets.DeleteRulesetAsync(rulesetId, ct);
+        return NoContent();
     }
 }

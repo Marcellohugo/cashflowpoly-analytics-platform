@@ -1,8 +1,9 @@
 # Cashflowpoly Dashboard & Manajemen *Ruleset*
 
-Repositori ini memuat sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada dasbor web. Sistem juga menyediakan modul manajemen *ruleset* berbasis konfigurasi dinamis agar instruktur mengubah parameter permainan tanpa mengubah kode.
+Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada dasbor web. Modul manajemen *ruleset* berbasis konfigurasi dinamis disediakan agar instruktur dapat mengubah parameter permainan tanpa mengubah kode.
 
 ## Tujuan
+Tujuan utama:
 - Menerima *event* permainan dari IDN atau simulator melalui REST API.
 - Menjaga kualitas data melalui validasi skema, validasi aturan domain, idempotensi, dan keterurutan *event*.
 - Mengelola *ruleset* sebagai konfigurasi variabel permainan (CRUD, *versioning*, aktivasi).
@@ -34,6 +35,7 @@ Repositori ini memuat sistem informasi yang merekam aktivitas gim papan Cashflow
 - Menyimpan pemain, sesi, *ruleset* dan versi, *event*, proyeksi arus kas, *metric snapshot*, serta log validasi.
 
 ## Arsitektur tingkat tinggi
+Arsitektur dibagi menjadi tiga komponen:
 - **Cashflowpoly.Api**: REST API (ASP.NET Core 10) + Swagger UI.
 - **Cashflowpoly.Ui**: MVC (Controller + Razor Views) yang memanggil REST API via `HttpClient`.
 - **PostgreSQL**: penyimpanan data dan sumber kebenaran untuk analitika.
@@ -148,12 +150,23 @@ Buka terminal baru:
 dotnet run --project src/Cashflowpoly.Ui
 ```
 
+## Endpoint tambahan
+Endpoint tambahan yang tersedia:
+- `POST /api/rulesets/{rulesetId}/archive` arsip ruleset
+- `DELETE /api/rulesets/{rulesetId}` hapus ruleset (jika belum dipakai sesi)
+- `GET /api/sessions` daftar sesi
+- `POST /api/players` buat pemain
+- `GET /api/players` daftar pemain
+- `POST /api/sessions/{sessionId}/players` tambah pemain ke sesi
+- `GET /api/rulesets/{rulesetId}` detail ruleset + versi
+- `POST /api/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
+
 ## Catatan pengembangan
 - Hapus *template endpoint* `GET /weatherforecast` setelah menyiapkan *controller* sesuai kontrak API pada dokumen spesifikasi.
 - Gunakan Swagger untuk uji cepat *endpoint* dan gunakan Postman untuk skenario uji *black-box* yang terdokumentasi.
 
 ## Dokumen desain dan spesifikasi
-Simpan seluruh dokumen TA pada folder `docs/` agar repositori memuat artefak desain dan artefak implementasi pada satu tempat.
+Seluruh dokumen TA disimpan pada folder `docs/` agar repositori memuat artefak desain dan artefak implementasi pada satu tempat.
 
 Dokumen kunci:
 - Spesifikasi kebutuhan sistem (SRS): `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
@@ -166,11 +179,15 @@ Dokumen kunci:
 - Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
+- Jalankan unit test: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj`.
+- Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Smoke test cepat (butuh API berjalan): `powershell -File scripts/smoke.ps1`.
 
 ## Lisensi
-Tentukan lisensi yang digunakan untuk repositori ini.
+Lisensi akan ditentukan untuk repositori ini.
+
+
 

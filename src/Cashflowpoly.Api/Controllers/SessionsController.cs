@@ -18,6 +18,37 @@ public sealed class SessionsController : ControllerBase
         _sessions = sessions;
     }
 
+    private IActionResult? EnsureInstructorRole()
+    {
+        if (!Request.Headers.TryGetValue("X-Actor-Role", out var role) ||
+            !string.Equals(role.ToString(), "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akses khusus instruktur"));
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Mengembalikan daftar sesi yang ada.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> ListSessions(CancellationToken ct)
+    {
+        var sessions = await _sessions.ListSessionsAsync(ct);
+        var items = sessions.Select(s => new SessionListItem(
+            s.SessionId,
+            s.SessionName,
+            s.Mode,
+            s.Status,
+            s.CreatedAt,
+            s.StartedAt,
+            s.EndedAt)).ToList();
+
+        return Ok(new SessionListResponse(items));
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateSession([FromBody] CreateSessionRequest request, CancellationToken ct)
     {
@@ -99,10 +130,21 @@ public sealed class SessionsController : ControllerBase
     [HttpPost("{sessionId:guid}/ruleset/activate")]
     public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
     {
+        var guard = EnsureInstructorRole();
+        if (guard is not null)
+        {
+            return guard;
+        }
+
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        if (string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase))
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session sudah berakhir"));
         }
 
         var rulesetVersion = await _rulesets.GetRulesetVersionAsync(request.RulesetId, request.Version, ct);

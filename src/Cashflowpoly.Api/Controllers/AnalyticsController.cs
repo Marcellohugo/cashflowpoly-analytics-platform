@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
@@ -24,6 +23,46 @@ public sealed class AnalyticsController : ControllerBase
         _metrics = metrics;
     }
 
+    /// <summary>
+    /// Menghitung ulang metrik dan menyimpan snapshot terbaru.
+    /// </summary>
+    [HttpPost("sessions/{sessionId:guid}/recompute")]
+    public async Task<IActionResult> Recompute(Guid sessionId, CancellationToken ct)
+    {
+        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
+        var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
+
+        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
+        RulesetConfig? config = null;
+        if (activeRulesetVersionId.HasValue)
+        {
+            var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
+            if (rulesetVersion is not null &&
+                RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+            {
+                config = parsed;
+            }
+        }
+
+        var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
+        var summary = BuildSummary(events, projections, violations);
+        var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+
+        if (activeRulesetVersionId.HasValue)
+        {
+            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
+        }
+
+        return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer));
+    }
+
     [HttpGet("sessions/{sessionId:guid}")]
     public async Task<IActionResult> GetSessionAnalytics(Guid sessionId, CancellationToken ct)
     {
@@ -35,14 +74,27 @@ public sealed class AnalyticsController : ControllerBase
 
         var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
-
-        var summary = BuildSummary(events, projections);
-        var byPlayer = BuildByPlayer(events, projections);
+        var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
 
         var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
+        RulesetConfig? config = null;
         if (activeRulesetVersionId.HasValue)
         {
-            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, ct);
+            var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
+            if (rulesetVersion is not null &&
+                RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+            {
+                config = parsed;
+            }
+        }
+
+        var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
+        var summary = BuildSummary(events, projections, violations);
+        var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+
+        if (activeRulesetVersionId.HasValue)
+        {
+            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
         }
 
         return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer));
@@ -57,38 +109,29 @@ public sealed class AnalyticsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
-
-        var items = new List<TransactionHistoryItem>();
-
-        foreach (var evt in events.Where(e => e.ActionType == "transaction.recorded"))
-        {
-            if (playerId.HasValue && evt.PlayerId != playerId.Value)
-            {
-                continue;
-            }
-
-            if (!TryReadTransaction(evt.Payload, out var direction, out var amount, out var category))
-            {
-                continue;
-            }
-
-            items.Add(new TransactionHistoryItem(evt.Timestamp, direction, amount, category));
-        }
+        var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        var items = projections
+            .Where(p => !playerId.HasValue || p.PlayerId == playerId.Value)
+            .OrderBy(p => p.Timestamp)
+            .Select(p => new TransactionHistoryItem(p.Timestamp, p.Direction, p.Amount, p.Category))
+            .ToList();
 
         return Ok(new TransactionHistoryResponse(items));
     }
 
-    private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections)
+    private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections, int rulesViolationsCount)
     {
         var cashInTotal = projections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOutTotal = projections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
-        return new AnalyticsSessionSummary(events.Count, cashInTotal, cashOutTotal);
+        var cashflowNetTotal = cashInTotal - cashOutTotal;
+        return new AnalyticsSessionSummary(events.Count, cashInTotal, cashOutTotal, cashflowNetTotal, rulesViolationsCount);
     }
 
-    private static List<AnalyticsByPlayerItem> BuildByPlayer(List<EventDb> events, List<CashflowProjectionDb> projections)
+    private static List<AnalyticsByPlayerItem> BuildByPlayer(
+        List<EventDb> events,
+        List<CashflowProjectionDb> projections,
+        Dictionary<Guid, HappinessBreakdown> happinessByPlayer)
     {
-        var byPlayer = new Dictionary<Guid, AnalyticsByPlayerItem>();
         var cashTotals = projections
             .GroupBy(p => p.PlayerId)
             .ToDictionary(
@@ -99,38 +142,56 @@ public sealed class AnalyticsController : ControllerBase
                     Out = g.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount)
                 });
 
-        foreach (var evt in events)
+        var result = new List<AnalyticsByPlayerItem>();
+        var grouped = events.Where(e => e.PlayerId.HasValue)
+            .GroupBy(e => e.PlayerId!.Value)
+            .ToList();
+
+        foreach (var group in grouped)
         {
-            if (evt.PlayerId is null)
-            {
-                continue;
-            }
+            var playerId = group.Key;
+            var playerEvents = group.ToList();
 
-            var playerId = evt.PlayerId.Value;
-            if (!byPlayer.TryGetValue(playerId, out var item))
-            {
-                var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };
-                item = new AnalyticsByPlayerItem(playerId, totals.In, totals.Out, 0, 0);
-            }
+            var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };
+            var donationTotal = playerEvents.Where(e => e.ActionType == "day.friday.donation")
+                .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+                .Sum();
 
-            if (evt.ActionType == "day.friday.donation" && TryReadAmount(evt.Payload, out var donationAmount))
-            {
-                item = item with { DonationTotal = item.DonationTotal + donationAmount };
-            }
-
-            if (evt.ActionType == "day.saturday.gold_trade" &&
-                TryReadGoldTrade(evt.Payload, out var tradeType, out var qty))
-            {
-                item = item with
+            var goldQty = playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade")
+                .Select(e =>
                 {
-                    GoldQty = item.GoldQty + (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty)
-                };
-            }
+                    if (!TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
+                    {
+                        return 0;
+                    }
 
-            byPlayer[playerId] = item;
+                    return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
+                })
+                .Sum();
+
+            var happiness = happinessByPlayer.TryGetValue(playerId, out var breakdown)
+                ? breakdown
+                : ComputeHappinessBreakdown(playerEvents, 0, 0, 0);
+
+            result.Add(new AnalyticsByPlayerItem(
+                playerId,
+                totals.In,
+                totals.Out,
+                donationTotal,
+                goldQty,
+                happiness.Total,
+                happiness.NeedPoints,
+                happiness.NeedSetBonusPoints,
+                happiness.DonationPoints,
+                happiness.GoldPoints,
+                happiness.PensionPoints,
+                happiness.SavingGoalPointsEffective,
+                happiness.MissionPenaltyPoints,
+                happiness.LoanPenaltyPoints,
+                happiness.HasUnpaidLoan));
         }
 
-        return byPlayer.Values.ToList();
+        return result;
     }
 
     private static bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category)
@@ -210,12 +271,14 @@ public sealed class AnalyticsController : ControllerBase
         Guid rulesetVersionId,
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
+        RulesetConfig? config,
+        Dictionary<Guid, HappinessBreakdown> happinessByPlayer,
         CancellationToken ct)
     {
         var computedAt = DateTimeOffset.UtcNow;
         var snapshots = new List<MetricSnapshotDb>();
 
-        var sessionMetrics = ComputeSessionMetrics(events, projections);
+        var sessionMetrics = ComputeSessionMetrics(events, projections, happinessByPlayer);
         var sessionViolations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
         sessionMetrics["rules.violations.count"] = (sessionViolations, null);
         snapshots.AddRange(BuildMetricSnapshots(sessionId, null, rulesetVersionId, computedAt, sessionMetrics));
@@ -223,7 +286,9 @@ public sealed class AnalyticsController : ControllerBase
         var players = events.Where(e => e.PlayerId.HasValue).Select(e => e.PlayerId!.Value).Distinct().ToList();
         foreach (var playerId in players)
         {
-            var playerMetrics = await ComputePlayerMetricsAsync(sessionId, playerId, rulesetVersionId, events, projections, ct);
+            var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
+            var playerMetrics = await ComputePlayerMetricsAsync(sessionId, playerId, rulesetVersionId, events, projections,
+                hasHappiness ? breakdown : null, ct);
             snapshots.AddRange(BuildMetricSnapshots(sessionId, playerId, rulesetVersionId, computedAt, playerMetrics));
         }
 
@@ -235,7 +300,8 @@ public sealed class AnalyticsController : ControllerBase
 
     private static Dictionary<string, (double? Numeric, string? Json)> ComputeSessionMetrics(
         List<EventDb> events,
-        List<CashflowProjectionDb> projections)
+        List<CashflowProjectionDb> projections,
+        Dictionary<Guid, HappinessBreakdown> happinessByPlayer)
     {
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
 
@@ -250,6 +316,9 @@ public sealed class AnalyticsController : ControllerBase
             .Sum();
         metrics["donation.total"] = (donationTotal, null);
 
+        var happinessTotal = happinessByPlayer.Values.Sum(item => item.Total);
+        metrics["happiness.points.total"] = (happinessTotal, null);
+
         return metrics;
     }
 
@@ -259,6 +328,7 @@ public sealed class AnalyticsController : ControllerBase
         Guid rulesetVersionId,
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
+        HappinessBreakdown? happiness,
         CancellationToken ct)
     {
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
@@ -306,6 +376,23 @@ public sealed class AnalyticsController : ControllerBase
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
         metrics["rules.violations.count"] = (violations, null);
 
+        var resolvedHappiness = happiness ?? ComputeHappinessBreakdown(
+            playerEvents,
+            SumRankAwarded(playerEvents, "donation.rank.awarded"),
+            SumPointsAwarded(playerEvents, "gold.points.awarded"),
+            SumRankAwarded(playerEvents, "pension.rank.awarded"));
+
+        metrics["happiness.points.total"] = (resolvedHappiness.Total, null);
+        metrics["happiness.need.points"] = (resolvedHappiness.NeedPoints, null);
+        metrics["happiness.need.bonus"] = (resolvedHappiness.NeedSetBonusPoints, null);
+        metrics["happiness.donation.points"] = (resolvedHappiness.DonationPoints, null);
+        metrics["happiness.gold.points"] = (resolvedHappiness.GoldPoints, null);
+        metrics["happiness.pension.points"] = (resolvedHappiness.PensionPoints, null);
+        metrics["happiness.saving_goal.points"] = (resolvedHappiness.SavingGoalPointsEffective, null);
+        metrics["happiness.mission.penalty"] = (resolvedHappiness.MissionPenaltyPoints, null);
+        metrics["happiness.loan.penalty"] = (resolvedHappiness.LoanPenaltyPoints, null);
+        metrics["loan.unpaid.flag"] = (resolvedHappiness.HasUnpaidLoan ? 1 : 0, null);
+
         return metrics;
     }
 
@@ -319,15 +406,17 @@ public sealed class AnalyticsController : ControllerBase
         var list = new List<MetricSnapshotDb>();
         foreach (var item in metrics)
         {
-            list.Add(new MetricSnapshotDb(
-                Guid.NewGuid(),
-                sessionId,
-                playerId,
-                computedAt,
-                item.Key,
-                item.Value.Numeric,
-                item.Value.Json,
-                rulesetVersionId));
+            list.Add(new MetricSnapshotDb
+            {
+                MetricSnapshotId = Guid.NewGuid(),
+                SessionId = sessionId,
+                PlayerId = playerId,
+                ComputedAt = computedAt,
+                MetricName = item.Key,
+                MetricValueNumeric = item.Value.Numeric,
+                MetricValueJson = item.Value.Json,
+                RulesetVersionId = rulesetVersionId
+            });
         }
 
         return list;
@@ -443,6 +532,386 @@ public sealed class AnalyticsController : ControllerBase
         return inventory;
     }
 
+    private static Dictionary<Guid, HappinessBreakdown> ComputeHappinessByPlayer(
+        List<EventDb> events,
+        List<CashflowProjectionDb> projections,
+        RulesetConfig? config)
+    {
+        var playerGroups = events.Where(e => e.PlayerId.HasValue)
+            .GroupBy(e => e.PlayerId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var donationPointsByPlayer = new Dictionary<Guid, double>();
+        var goldPointsByPlayer = new Dictionary<Guid, double>();
+        var pensionPointsByPlayer = new Dictionary<Guid, double>();
+
+        var hasScoring = config?.Scoring is not null;
+        if (hasScoring && config!.Scoring!.DonationRankPoints.Count > 0)
+        {
+            var tieBreakers = BuildTieBreakerLookup(events);
+            donationPointsByPlayer = ComputeDonationPointsFromScoring(events, config.Scoring, tieBreakers);
+        }
+        else
+        {
+            foreach (var (playerId, playerEvents) in playerGroups)
+            {
+                donationPointsByPlayer[playerId] = SumRankAwarded(playerEvents, "donation.rank.awarded");
+            }
+        }
+
+        if (hasScoring && config!.Scoring!.GoldPointsByQty.Count > 0)
+        {
+            goldPointsByPlayer = ComputeGoldPointsFromScoring(events, config.Scoring);
+        }
+        else
+        {
+            foreach (var (playerId, playerEvents) in playerGroups)
+            {
+                goldPointsByPlayer[playerId] = SumPointsAwarded(playerEvents, "gold.points.awarded");
+            }
+        }
+
+        if (hasScoring && config!.Scoring!.PensionRankPoints.Count > 0 && config is not null)
+        {
+            var tieBreakers = BuildTieBreakerLookup(events);
+            pensionPointsByPlayer = ComputePensionPointsFromScoring(events, projections, config, tieBreakers);
+        }
+        else
+        {
+            foreach (var (playerId, playerEvents) in playerGroups)
+            {
+                pensionPointsByPlayer[playerId] = SumRankAwarded(playerEvents, "pension.rank.awarded");
+            }
+        }
+
+        var result = new Dictionary<Guid, HappinessBreakdown>();
+        foreach (var (playerId, playerEvents) in playerGroups)
+        {
+            donationPointsByPlayer.TryGetValue(playerId, out var donationPoints);
+            goldPointsByPlayer.TryGetValue(playerId, out var goldPoints);
+            pensionPointsByPlayer.TryGetValue(playerId, out var pensionPoints);
+
+            result[playerId] = ComputeHappinessBreakdown(playerEvents, donationPoints, goldPoints, pensionPoints);
+        }
+
+        return result;
+    }
+
+    private static Dictionary<Guid, int> BuildTieBreakerLookup(IEnumerable<EventDb> events)
+    {
+        return events.Where(e => e.PlayerId.HasValue && e.ActionType == "tie_breaker.assigned")
+            .OrderBy(e => e.SequenceNumber)
+            .GroupBy(e => e.PlayerId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var last = g.Last();
+                    return TryReadTieBreaker(last.Payload, out var number) ? number : 0;
+                });
+    }
+
+    private static Dictionary<Guid, double> ComputeDonationPointsFromScoring(
+        List<EventDb> events,
+        RulesetScoringConfig scoring,
+        Dictionary<Guid, int> tieBreakers)
+    {
+        var pointsByRank = scoring.DonationRankPoints.ToDictionary(item => item.Rank, item => item.Points);
+        var result = new Dictionary<Guid, double>();
+
+        var fridayGroups = events.Where(e => e.ActionType == "day.friday.donation" && e.PlayerId.HasValue)
+            .GroupBy(e => e.DayIndex);
+
+        foreach (var dayGroup in fridayGroups)
+        {
+            var totals = dayGroup
+                .GroupBy(e => e.PlayerId!.Value)
+                .Select(g =>
+                {
+                    var total = g.Sum(e => TryReadAmount(e.Payload, out var amount) ? amount : 0);
+                    tieBreakers.TryGetValue(g.Key, out var tieNumber);
+                    return new { PlayerId = g.Key, Amount = total, Tie = tieNumber };
+                })
+                .Where(item => item.Amount > 0)
+                .OrderByDescending(item => item.Amount)
+                .ThenByDescending(item => item.Tie)
+                .ThenBy(item => item.PlayerId)
+                .ToList();
+
+            var rank = 1;
+            foreach (var item in totals)
+            {
+                if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
+                {
+                    result[item.PlayerId] = result.TryGetValue(item.PlayerId, out var existing) ? existing + points : points;
+                }
+
+                rank += 1;
+            }
+        }
+
+        return result;
+    }
+
+    private static Dictionary<Guid, double> ComputeGoldPointsFromScoring(
+        List<EventDb> events,
+        RulesetScoringConfig scoring)
+    {
+        var table = scoring.GoldPointsByQty
+            .OrderBy(item => item.Qty)
+            .ToList();
+
+        var goldQtyByPlayer = events.Where(e => e.ActionType == "day.saturday.gold_trade" && e.PlayerId.HasValue)
+            .GroupBy(e => e.PlayerId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(e =>
+                {
+                    if (!TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
+                    {
+                        return 0;
+                    }
+
+                    return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
+                }));
+
+        var result = new Dictionary<Guid, double>();
+        foreach (var (playerId, qty) in goldQtyByPlayer)
+        {
+            var points = ResolvePointsByQty(qty, table);
+            if (points > 0)
+            {
+                result[playerId] = points;
+            }
+        }
+
+        return result;
+    }
+
+    private static Dictionary<Guid, double> ComputePensionPointsFromScoring(
+        List<EventDb> events,
+        List<CashflowProjectionDb> projections,
+        RulesetConfig config,
+        Dictionary<Guid, int> tieBreakers)
+    {
+        var pointsByRank = config.Scoring?.PensionRankPoints.ToDictionary(item => item.Rank, item => item.Points)
+                           ?? new Dictionary<int, int>();
+
+        var cashByPlayer = projections
+            .GroupBy(p => p.PlayerId)
+            .ToDictionary(
+                g => g.Key,
+                g => config.StartingCash + g.Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount));
+
+        var players = events.Where(e => e.PlayerId.HasValue).Select(e => e.PlayerId!.Value).Distinct().ToList();
+        var ranking = players.Select(playerId =>
+            {
+                cashByPlayer.TryGetValue(playerId, out var cash);
+                tieBreakers.TryGetValue(playerId, out var tieNumber);
+                return new { PlayerId = playerId, Cash = cash, Tie = tieNumber };
+            })
+            .OrderByDescending(item => item.Cash)
+            .ThenByDescending(item => item.Tie)
+            .ThenBy(item => item.PlayerId)
+            .ToList();
+
+        var result = new Dictionary<Guid, double>();
+        var rank = 1;
+        foreach (var item in ranking)
+        {
+            if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
+            {
+                result[item.PlayerId] = points;
+            }
+
+            rank += 1;
+        }
+
+        return result;
+    }
+
+    private static int ResolvePointsByQty(int qty, IReadOnlyList<QtyPoint> table)
+    {
+        var bestQty = 0;
+        var bestPoints = 0;
+        foreach (var entry in table)
+        {
+            if (entry.Qty <= qty && entry.Qty >= bestQty)
+            {
+                bestQty = entry.Qty;
+                bestPoints = entry.Points;
+            }
+        }
+
+        return bestPoints;
+    }
+
+    private static double SumRankAwarded(IEnumerable<EventDb> events, string actionType)
+    {
+        return events.Where(e => e.ActionType == actionType)
+            .Sum(e => TryReadRankAwarded(e.Payload, out _, out var points) ? points : 0);
+    }
+
+    private static double SumPointsAwarded(IEnumerable<EventDb> events, string actionType)
+    {
+        return events.Where(e => e.ActionType == actionType)
+            .Sum(e => TryReadPointsAwarded(e.Payload, out var points) ? points : 0);
+    }
+
+    private sealed record HappinessBreakdown(
+        double Total,
+        double NeedPoints,
+        double NeedSetBonusPoints,
+        double DonationPoints,
+        double GoldPoints,
+        double PensionPoints,
+        double SavingGoalPointsEffective,
+        double MissionPenaltyPoints,
+        double LoanPenaltyPoints,
+        bool HasUnpaidLoan);
+
+    private sealed record MissionAssignment(
+        string MissionId,
+        string TargetTertiaryCardId,
+        int PenaltyPoints,
+        bool RequirePrimary,
+        bool RequireSecondary);
+
+    private sealed record LoanState(
+        string LoanId,
+        int Principal,
+        int PenaltyPoints,
+        double RepaidAmount);
+
+    private static HappinessBreakdown ComputeHappinessBreakdown(
+        List<EventDb> playerEvents,
+        double donationPoints,
+        double goldPoints,
+        double pensionPoints)
+    {
+        double needPoints = 0;
+        var primaryCount = 0;
+        var secondaryCount = 0;
+        var tertiaryCount = 0;
+        var tertiaryCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var missions = new List<MissionAssignment>();
+        var loans = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
+        double savingGoalPoints = 0;
+
+        foreach (var evt in playerEvents)
+        {
+            if (evt.ActionType == "need.primary.purchased" &&
+                TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValue))
+            {
+                primaryCount += 1;
+                needPoints += needPointsValue;
+            }
+
+            if (evt.ActionType == "need.secondary.purchased" &&
+                TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValueSecondary))
+            {
+                secondaryCount += 1;
+                needPoints += needPointsValueSecondary;
+            }
+
+            if (evt.ActionType == "need.tertiary.purchased" &&
+                TryReadNeedPurchase(evt.Payload, out _, out var tertiaryCardId, out var needPointsValueTertiary))
+            {
+                tertiaryCount += 1;
+                needPoints += needPointsValueTertiary;
+                if (!string.IsNullOrWhiteSpace(tertiaryCardId))
+                {
+                    tertiaryCardIds.Add(tertiaryCardId);
+                }
+            }
+
+            if (evt.ActionType == "mission.assigned" &&
+                TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
+            {
+                missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
+            }
+
+            if (evt.ActionType == "saving.goal.achieved" && TryReadSavingGoalAchieved(evt.Payload, out var savingPoints))
+            {
+                savingGoalPoints += savingPoints;
+            }
+
+            if (evt.ActionType == "loan.syariah.taken" && TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
+            {
+                loans[loanId] = new LoanState(loanId, principal, penaltyPointsValue, 0);
+            }
+
+            if (evt.ActionType == "loan.syariah.repaid" && TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount))
+            {
+                if (loans.TryGetValue(repayLoanId, out var state))
+                {
+                    loans[repayLoanId] = state with { RepaidAmount = state.RepaidAmount + repayAmount };
+                }
+            }
+        }
+
+        var mixedSets = Math.Min(primaryCount, Math.Min(secondaryCount, tertiaryCount));
+        var remainingPrimary = primaryCount - mixedSets;
+        var remainingSecondary = secondaryCount - mixedSets;
+        var remainingTertiary = tertiaryCount - mixedSets;
+        var sameSets = (remainingPrimary / 3) + (remainingSecondary / 3) + (remainingTertiary / 3);
+        var needSetBonusPoints = mixedSets * 4 + sameSets * 2;
+
+        var hasPrimary = primaryCount > 0;
+        var hasSecondary = secondaryCount > 0;
+        var missionPenaltyPoints = 0d;
+        foreach (var mission in missions)
+        {
+            var hasTargetTertiary = string.IsNullOrWhiteSpace(mission.TargetTertiaryCardId) ||
+                                    tertiaryCardIds.Contains(mission.TargetTertiaryCardId);
+            var requiresPrimary = mission.RequirePrimary;
+            var requiresSecondary = mission.RequireSecondary;
+
+            var satisfied = (!requiresPrimary || hasPrimary) &&
+                            (!requiresSecondary || hasSecondary) &&
+                            hasTargetTertiary;
+
+            if (!satisfied)
+            {
+                missionPenaltyPoints += mission.PenaltyPoints;
+            }
+        }
+
+        var loanPenaltyPoints = 0d;
+        var hasUnpaidLoan = false;
+        foreach (var loan in loans.Values)
+        {
+            if (loan.RepaidAmount < loan.Principal)
+            {
+                hasUnpaidLoan = true;
+                loanPenaltyPoints += loan.PenaltyPoints;
+            }
+        }
+
+        var savingGoalPointsEffective = hasUnpaidLoan ? 0 : savingGoalPoints;
+
+        var total = needPoints +
+                    needSetBonusPoints +
+                    donationPoints +
+                    goldPoints +
+                    pensionPoints +
+                    savingGoalPointsEffective -
+                    missionPenaltyPoints -
+                    loanPenaltyPoints;
+
+        return new HappinessBreakdown(
+            total,
+            needPoints,
+            needSetBonusPoints,
+            donationPoints,
+            goldPoints,
+            pensionPoints,
+            savingGoalPointsEffective,
+            missionPenaltyPoints,
+            loanPenaltyPoints,
+            hasUnpaidLoan);
+    }
+
     private sealed class IngredientInventory
     {
         internal int Total { get; set; }
@@ -488,6 +957,217 @@ public sealed class AnalyticsController : ControllerBase
             cardId = cardIdProp.GetString() ?? string.Empty;
             amount = amountProp.GetInt32();
             return !string.IsNullOrWhiteSpace(cardId);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadNeedPurchase(string payloadJson, out int amount, out string cardId, out int points)
+    {
+        amount = 0;
+        cardId = string.Empty;
+        points = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("amount", out var amountProp))
+            {
+                return false;
+            }
+
+            amount = amountProp.GetInt32();
+            if (doc.RootElement.TryGetProperty("card_id", out var cardIdProp))
+            {
+                cardId = cardIdProp.GetString() ?? string.Empty;
+            }
+
+            if (doc.RootElement.TryGetProperty("points", out var pointsProp))
+            {
+                points = pointsProp.GetInt32();
+            }
+
+            return amount > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadMissionAssigned(
+        string payloadJson,
+        out string missionId,
+        out string targetTertiaryCardId,
+        out int penaltyPoints,
+        out bool requirePrimary,
+        out bool requireSecondary)
+    {
+        missionId = string.Empty;
+        targetTertiaryCardId = string.Empty;
+        penaltyPoints = 0;
+        requirePrimary = true;
+        requireSecondary = true;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("mission_id", out var missionIdProp) ||
+                !root.TryGetProperty("target_tertiary_card_id", out var targetProp) ||
+                !root.TryGetProperty("penalty_points", out var penaltyProp))
+            {
+                return false;
+            }
+
+            missionId = missionIdProp.GetString() ?? string.Empty;
+            targetTertiaryCardId = targetProp.GetString() ?? string.Empty;
+            penaltyPoints = penaltyProp.GetInt32();
+
+            if (root.TryGetProperty("require_primary", out var requirePrimaryProp))
+            {
+                requirePrimary = requirePrimaryProp.GetBoolean();
+            }
+
+            if (root.TryGetProperty("require_secondary", out var requireSecondaryProp))
+            {
+                requireSecondary = requireSecondaryProp.GetBoolean();
+            }
+
+            return !string.IsNullOrWhiteSpace(missionId);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadTieBreaker(string payloadJson, out int number)
+    {
+        number = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("number", out var numberProp))
+            {
+                return false;
+            }
+
+            number = numberProp.GetInt32();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadRankAwarded(string payloadJson, out int rank, out int points)
+    {
+        rank = 0;
+        points = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("rank", out var rankProp) ||
+                !doc.RootElement.TryGetProperty("points", out var pointsProp))
+            {
+                return false;
+            }
+
+            rank = rankProp.GetInt32();
+            points = pointsProp.GetInt32();
+            return rank > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadPointsAwarded(string payloadJson, out int points)
+    {
+        points = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("points", out var pointsProp))
+            {
+                return false;
+            }
+
+            points = pointsProp.GetInt32();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadSavingGoalAchieved(string payloadJson, out int points)
+    {
+        points = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("points", out var pointsProp))
+            {
+                return false;
+            }
+
+            points = pointsProp.GetInt32();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadLoanTaken(string payloadJson, out string loanId, out int principal, out int penaltyPoints)
+    {
+        loanId = string.Empty;
+        principal = 0;
+        penaltyPoints = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("loan_id", out var loanIdProp) ||
+                !doc.RootElement.TryGetProperty("principal", out var principalProp) ||
+                !doc.RootElement.TryGetProperty("penalty_points", out var penaltyProp))
+            {
+                return false;
+            }
+
+            loanId = loanIdProp.GetString() ?? string.Empty;
+            principal = principalProp.GetInt32();
+            penaltyPoints = penaltyProp.GetInt32();
+            return !string.IsNullOrWhiteSpace(loanId);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadLoanRepay(string payloadJson, out string loanId, out int amount)
+    {
+        loanId = string.Empty;
+        amount = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("loan_id", out var loanIdProp) ||
+                !doc.RootElement.TryGetProperty("amount", out var amountProp))
+            {
+                return false;
+            }
+
+            loanId = loanIdProp.GetString() ?? string.Empty;
+            amount = amountProp.GetInt32();
+            return !string.IsNullOrWhiteSpace(loanId);
         }
         catch (JsonException)
         {

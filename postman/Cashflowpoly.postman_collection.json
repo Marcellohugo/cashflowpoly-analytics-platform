@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "Cashflowpoly API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ruleset",
+      "item": [
+        {
+          "name": "Create Ruleset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Actor-Role", "value": "INSTRUCTOR"}
+            ],
+            "url": "{{baseUrl}}/api/rulesets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Ruleset Default\",\"description\":\"Konfigurasi awal\",\"config\":{\"mode\":\"PEMULA\",\"actions_per_turn\":2,\"starting_cash\":20,\"weekday_rules\":{\"friday\":{\"feature\":\"DONATION\",\"enabled\":true},\"saturday\":{\"feature\":\"GOLD_TRADE\",\"enabled\":true},\"sunday\":{\"feature\":\"REST\",\"enabled\":true}},\"constraints\":{\"cash_min\":0,\"max_ingredient_total\":6,\"max_same_ingredient\":3,\"primary_need_max_per_day\":1,\"require_primary_before_others\":true},\"donation\":{\"min_amount\":1,\"max_amount\":999999},\"gold_trade\":{\"allow_buy\":true,\"allow_sell\":true},\"advanced\":{\"loan\":{\"enabled\":false},\"insurance\":{\"enabled\":false},\"saving_goal\":{\"enabled\":false}},\"freelance\":{\"income\":1},\"scoring\":{\"donation_rank_points\":[{\"rank\":1,\"points\":7},{\"rank\":2,\"points\":5},{\"rank\":3,\"points\":2}],\"gold_points_by_qty\":[{\"qty\":1,\"points\":3},{\"qty\":2,\"points\":5},{\"qty\":3,\"points\":8},{\"qty\":4,\"points\":12}],\"pension_rank_points\":[{\"rank\":1,\"points\":5},{\"rank\":2,\"points\":3},{\"rank\":3,\"points\":1}]}}}"
+            }
+          }
+        },
+        {
+          "name": "Update Ruleset",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Actor-Role", "value": "INSTRUCTOR"}
+            ],
+            "url": "{{baseUrl}}/api/rulesets/{{rulesetId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Ruleset Default v2\",\"description\":\"Update kecil\",\"config\":{\"mode\":\"PEMULA\",\"actions_per_turn\":2,\"starting_cash\":20,\"weekday_rules\":{\"friday\":{\"feature\":\"DONATION\",\"enabled\":true},\"saturday\":{\"feature\":\"GOLD_TRADE\",\"enabled\":true},\"sunday\":{\"feature\":\"REST\",\"enabled\":true}},\"constraints\":{\"cash_min\":0,\"max_ingredient_total\":6,\"max_same_ingredient\":3,\"primary_need_max_per_day\":1,\"require_primary_before_others\":true},\"donation\":{\"min_amount\":1,\"max_amount\":999999},\"gold_trade\":{\"allow_buy\":true,\"allow_sell\":true},\"advanced\":{\"loan\":{\"enabled\":false},\"insurance\":{\"enabled\":false},\"saving_goal\":{\"enabled\":false}},\"freelance\":{\"income\":1},\"scoring\":{\"donation_rank_points\":[{\"rank\":1,\"points\":7},{\"rank\":2,\"points\":5},{\"rank\":3,\"points\":2}],\"gold_points_by_qty\":[{\"qty\":1,\"points\":3},{\"qty\":2,\"points\":5},{\"qty\":3,\"points\":8},{\"qty\":4,\"points\":12}],\"pension_rank_points\":[{\"rank\":1,\"points\":5},{\"rank\":2,\"points\":3},{\"rank\":3,\"points\":1}]}}}"
+            }
+          }
+        },
+        {
+          "name": "List Rulesets",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/rulesets"}
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "item": [
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"session_name\":\"Sesi A\",\"mode\":\"PEMULA\",\"ruleset_id\":\"{{rulesetId}}\"}"
+            }
+          }
+        },
+        {
+          "name": "List Sessions",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/sessions"}
+        },
+        {
+          "name": "Activate Ruleset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Actor-Role", "value": "INSTRUCTOR"}
+            ],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/ruleset/activate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ruleset_id\":\"{{rulesetId}}\",\"version\":1}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "Create Player",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/players",
+            "body": {"mode": "raw", "raw": "{\"display_name\":\"Player A\"}"}
+          }
+        },
+        {
+          "name": "List Players",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/players"}
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Work Freelance Completed",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventId}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":1,\"action_type\":\"work.freelance.completed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"amount\":1}}"
+            }
+          }
+        },
+        {
+          "name": "Order Claimed",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdOrder}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":2,\"action_type\":\"order.claimed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-001\",\"required_ingredient_card_ids\":[\"ING-001\"],\"income\":10}}"
+            }
+          }
+        },
+        {
+          "name": "Risk Life Drawn",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdRisk}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":3,\"action_type\":\"risk.life.drawn\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_id\":\"RISK-001\",\"direction\":\"OUT\",\"amount\":3,\"note\":\"Biaya kesehatan\"}}"
+            }
+          }
+        },
+        {
+          "name": "Turn Ended",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdTurnEnd}}\",\"session_id\":\"{{sessionId}}\",\"actor_type\":\"SYSTEM\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":4,\"action_type\":\"turn.ended\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"note\":\"Akhir giliran\"}}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Recompute",
+          "request": {"method": "POST", "url": "{{baseUrl}}/api/analytics/sessions/{{sessionId}}/recompute"}
+        }
+      ]
+    }
+  ]
+}
+

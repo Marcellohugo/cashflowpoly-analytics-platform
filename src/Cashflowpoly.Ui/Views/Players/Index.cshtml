@@ -1,0 +1,55 @@
+@model Cashflowpoly.Ui.Models.PlayerDirectoryViewModel
+
+@{
+    ViewData["Title"] = "Pemain";
+}
+
+<section class="section-shell">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Manajemen Pemain</p>
+            <h1 class="mt-3 text-3xl text-slate-900">Daftar Pemain</h1>
+        </div>
+        <form class="flex flex-wrap items-center gap-3" method="post" asp-controller="PlayerDirectory" asp-action="Create">
+            <input class="w-56 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                   asp-for="DisplayName" placeholder="Nama pemain" />
+            <button class="btn-primary" type="submit">Tambah</button>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="mt-6 table-wrap">
+        <table class="w-full text-left text-sm">
+            <thead class="table-head">
+                <tr>
+                    <th class="px-4 py-3">Nama</th>
+                    <th class="px-4 py-3">Player ID</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Players.Count == 0)
+            {
+                <tr>
+                    <td class="px-4 py-4 text-slate-500" colspan="2">Belum ada pemain.</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var player in Model.Players)
+                {
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-medium text-slate-900">@player.DisplayName</td>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

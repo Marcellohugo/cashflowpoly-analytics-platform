@@ -1,4 +1,4 @@
-# Rancangan *Dashboard* Analitika Berbasis ASP.NET Core MVC (Razor Views)  
+﻿# Rancangan *Dashboard* Analitika Berbasis ASP.NET Core MVC (Razor Views)  
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini saya susun untuk mendefinisikan rancangan antarmuka *dashboard* analitika berbasis ASP.NET Core MVC (Razor Views) yang menampilkan metrik, histori transaksi, dan ringkasan sesi. Dokumen ini juga saya susun untuk menetapkan pemetaan data UI ke kontrak REST API agar implementasi UI konsisten dengan data pada basis data.
+Dokumen ini disusun untuk mendefinisikan rancangan antarmuka *dashboard* analitika berbasis ASP.NET Core MVC (Razor Views) yang menampilkan metrik, histori transaksi, dan ringkasan sesi. Dokumen ini juga disusun untuk menetapkan pemetaan data UI ke kontrak REST API agar implementasi UI konsisten dengan data pada basis data.
 
 ---
 
@@ -128,6 +128,7 @@ UI menampilkan ringkasan metrik sesi dan daftar pemain agar instruktur dapat men
    - total pemasukan,
    - total pengeluaran,
    - donasi,
+   - poin kebahagiaan,
    - jumlah order berhasil,
    - pelanggaran aturan.
 4. Tautan:
@@ -151,6 +152,7 @@ UI menampilkan detail perilaku pemain berbasis event dan proyeksi transaksi.
    - total pemasukan,
    - total pengeluaran,
    - donasi,
+   - poin kebahagiaan,
    - jumlah order berhasil,
    - jumlah token aksi yang dipakai,
    - kepatuhan kebutuhan primer (rasio),
@@ -295,5 +297,6 @@ UI siap diimplementasikan jika:
 3. endpoint histori transaksi berjalan,
 4. UI menampilkan data tanpa menghitung ulang metrik di sisi klien,
 5. UI menampilkan error sesuai format standar API.
+
 
 

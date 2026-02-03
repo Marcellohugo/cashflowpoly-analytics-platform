@@ -1,4 +1,4 @@
-# Manual Pengguna dan Skenario Operasional  
+﻿# Manual Pengguna dan Skenario Operasional  
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini menjelaskan cara penggunaan sistem dari sudut pandang pengguna, terutama instruktur sebagai operator. Dokumen ini juga mendefinisikan skenario operasional standar dari pembuatan sesi sampai interpretasi metrik pada dasbor.
+Dokumen ini menjelaskan cara penggunaan sistem dari sudut pandang instruktur sebagai operator. Dokumen ini juga mendokumentasikan skenario operasional standar dari pembuatan sesi sampai interpretasi metrik pada dasbor.
 
 ---
 
@@ -19,14 +19,14 @@ Dokumen ini menjelaskan cara penggunaan sistem dari sudut pandang pengguna, teru
 Instruktur mengelola sesi, memilih *ruleset*, memantau performa pembelajaran dan performa misi, serta membaca tren hasil pembelajaran.
 
 ### 2.2 Pemain
-Pemain melihat performa diri dan histori transaksi diri.
+Pemain melihat performa diri dan histori transaksi.
 
-Jika implementasi tahap awal hanya menampilkan UI instruktur, sistem tetap mencatat kebutuhan UI pemain sebagai pengembangan berikutnya.
+Jika tahap awal hanya menampilkan UI instruktur, kebutuhan UI pemain tetap dicatat sebagai pengembangan berikutnya.
 
 ---
 
 ## 3. Akses Sistem
-Sistem menyediakan dua komponen yang instruktur jalankan:
+Instruktur menjalankan dua komponen berikut:
 1. REST API (server) untuk menerima event dan menghasilkan analitika,
 2. Web MVC (dasbor) untuk tampilan analitika.
 
@@ -42,7 +42,7 @@ Catatan:
 
 ---
 
-## 4. Alur Operasional Standar (Instruktur)
+## 4. Alur Operasional Standar (Sebagai Instruktur)
 Bagian ini mendefinisikan langkah kerja yang instruktur lakukan pada setiap sesi.
 
 ### 4.1 Menyiapkan sistem
@@ -54,7 +54,7 @@ Instruktur memastikan:
 
 ---
 
-## 5. Skenario 1 — Membuat Sesi Baru
+## 5. Skenario 1 - Membuat Sesi Baru
 ### Tujuan
 Instruktur membuat sesi permainan untuk menerima event dan menyimpan histori.
 
@@ -72,16 +72,16 @@ Instruktur membuka halaman `/sessions` pada Web dan memastikan sesi muncul pada 
 
 ---
 
-## 6. Skenario 2 — Mengaktifkan *Ruleset* pada Sesi
+## 6. Skenario 2 - Mengaktifkan *Ruleset* pada Sesi
 ### Tujuan
 Instruktur menetapkan konfigurasi aturan yang berlaku pada sesi.
 
 ### Langkah
 1. Buka Web MVC.
 2. Buka daftar sesi `/sessions`.
-3. Buka aksi “Ruleset” pada sesi.
+3. Buka aksi `Ruleset` pada sesi.
 4. Pilih ruleset dan versi.
-5. Tekan tombol “Aktifkan”.
+5. Tekan tombol `Aktifkan`.
 
 ### Hasil yang instruktur lihat
 Sistem menampilkan ruleset aktif dan versi yang terpilih.
@@ -89,9 +89,12 @@ Sistem menampilkan ruleset aktif dan versi yang terpilih.
 ### Aturan penting
 Sistem menolak aktivasi jika sesi berstatus `ENDED`.
 
+Catatan akses:
+- Jika aktivasi dilakukan via API/Swagger, sertakan header `X-Actor-Role: INSTRUCTOR`.
+
 ---
 
-## 7. Skenario 3 — Memulai Sesi (opsional jika sistem menerapkan status)
+## 7. Skenario 3 - Memulai Sesi (opsional jika sistem menerapkan status)
 ### Tujuan
 Instruktur menandai sesi siap menerima event permainan.
 
@@ -104,7 +107,7 @@ Sistem mengubah status menjadi `STARTED`.
 
 ---
 
-## 8. Skenario 4 — Mengirim Event Permainan (Klien/Simulator)
+## 8. Skenario 4 - Mengirim Event Permainan (Klien/Simulator)
 ### Tujuan
 Sistem menerima event permainan dan menyimpannya sebagai histori.
 
@@ -112,7 +115,7 @@ Sistem menerima event permainan dan menyimpannya sebagai histori.
 Sistem menerima event dari klien IDN/simulator atau pengujian manual via Postman/Swagger.
 
 ### Langkah uji manual (Postman/Swagger)
-1. Buka endpoint `POST /api/sessions/{sessionId}/events`.
+1. Buka endpoint `POST /api/events`.
 2. Isi payload event sesuai kontrak.
 3. Kirim event berurutan berdasarkan `sequence_number`.
 
@@ -128,21 +131,25 @@ Catatan server:
 - Sistem menyimpan event dengan `event_pk` sebagai PK internal.
 - Sistem menerapkan idempotensi pada kombinasi `session_id + event_id`.
 
-### Bukti yang bisa instruktur simpan
+Catatan operasional:
+- Aksi kerja lepas dicatat dengan event `work.freelance.completed` dengan `amount` mengikuti ruleset.
+- Pada mode mahir, setiap `order.claimed` harus diikuti `risk.life.drawn` pada giliran yang sama.
+
+### Bukti yang instruktur simpan
 Instruktur menyimpan:
 - respons API,
 - `trace_id` jika sistem menolak event.
 
 ---
 
-## 9. Skenario 5 — Memantau Analitika pada Detail Sesi
+## 9. Skenario 5 - Memantau Analitika pada Detail Sesi
 ### Tujuan
 Instruktur menilai performa pembelajaran dan performa misi pada level sesi (agregat) dan per pemain.
 
 ### Langkah
 1. Buka Web MVC.
 2. Buka `/sessions`.
-3. Pilih sesi dan buka “Detail”.
+3. Pilih sesi dan buka `Detail`.
 4. Lihat kartu metrik ringkasan:
    - total pemasukan,
    - total pengeluaran,
@@ -151,6 +158,9 @@ Instruktur menilai performa pembelajaran dan performa misi pada level sesi (agre
    - jumlah pelanggaran aturan (jika ada).
 5. Lihat indikator performa pembelajaran dan performa misi (agregat).
 6. Lihat tabel pemain untuk ringkasan per pemain.
+   - total poin kebahagiaan,
+   - total donasi dan emas,
+   - indikator pinjaman belum lunas (jika ada).
 7. Gunakan filter/pengelompokan berdasarkan *ruleset* bila tersedia pada UI.
 
 ### Interpretasi cepat
@@ -160,7 +170,7 @@ Instruktur menilai performa pembelajaran dan performa misi pada level sesi (agre
 
 ---
 
-## 10. Skenario 6 — Membaca Detail Pemain dan Histori Transaksi
+## 10. Skenario 6 - Membaca Detail Pemain dan Histori Transaksi
 ### Tujuan
 Instruktur atau pemain menilai performa pembelajaran, performa misi, dan perilaku pemain berdasarkan transaksi dan metrik.
 
@@ -171,6 +181,10 @@ Instruktur atau pemain menilai performa pembelajaran, performa misi, dan perilak
    - metrik pemain (kartu/daftar),
    - indikator performa pembelajaran dan performa misi pemain,
    - tabel histori transaksi.
+   - rincian poin kebahagiaan (kebutuhan, bonus set, donasi, emas, pensiun, tujuan keuangan, penalti).
+
+Catatan:
+- Jika ruleset memuat tabel scoring, poin donasi/emas/pensiun dihitung otomatis tanpa event awarding.
 
 ### Cara membaca tabel transaksi
 Instruktur menilai:
@@ -181,7 +195,7 @@ Instruktur menilai:
 
 ---
 
-## 11. Skenario 7 — Mengakhiri Sesi dan Membekukan Data
+## 11. Skenario 7 - Mengakhiri Sesi dan Membekukan Data
 ### Tujuan
 Instruktur menandai sesi selesai agar sistem tidak menerima perubahan konfigurasi.
 
@@ -199,8 +213,8 @@ Sistem menolak:
 
 ---
 
-## 12. Skenario 8 — Menghitung Ulang Metrik (opsional)
-Jika sistem menyediakan endpoint “recompute”, instruktur menjalankan fitur ini saat:
+## 12. Skenario 8 - Menghitung Ulang Metrik (opsional)
+Jika sistem menyediakan endpoint `recompute`, instruktur menjalankan fitur ini saat:
 - instruktur memperbaiki data seed,
 - instruktur menemukan inkonsistensi snapshot,
 - instruktur ingin menghasilkan snapshot akhir sesi.
@@ -212,10 +226,10 @@ Jika sistem menyediakan endpoint “recompute”, instruktur menjalankan fitur i
 
 ---
 
-## 13. Skenario 9 — Pengambilan Bukti untuk Laporan Tugas Akhir
+## 13. Skenario 9 - Pengambilan Bukti untuk Laporan Tugas Akhir
 Instruktur menyiapkan bukti uji dan bukti tampilan untuk laporan.
 
-### Bukti yang 
+### Bukti yang instruktur siapkan
 1. Screenshot Swagger untuk uji endpoint utama:
    - create session,
    - activate ruleset,
@@ -245,7 +259,7 @@ docs/evidence/
 ---
 
 ## 14. Masalah Umum dan Solusi Cepat
-### 14.1 Web menampilkan error “API tidak dapat diakses”
+### 14.1 Web menampilkan error `API tidak dapat diakses`
 Instruktur melakukan:
 1. cek API berjalan pada URL yang benar,
 2. cek `ApiBaseUrl` pada `Cashflowpoly.Ui/appsettings.Development.json`,
@@ -257,7 +271,7 @@ Instruktur melakukan:
 2. cek proyeksi transaksi pada `event_cashflow_projections`,
 3. pastikan proyeksi punya referensi event yang valid via `event_pk`,
 4. cek snapshot pada `metric_snapshots`,
-5. jalankan “recompute” jika endpoint tersedia.
+5. jalankan `recompute` jika endpoint tersedia.
 
 ### 14.3 Event ditolak terus
 Instruktur melakukan:
@@ -278,6 +292,9 @@ Instruktur menjalankan urutan ini pada setiap sesi:
 6. evaluasi detail pemain,
 7. akhiri sesi,
 8. simpan bukti uji dan tampilan.
+
+
+
 
 
 

@@ -7,6 +7,7 @@ var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5041";
 builder.Services.AddHttpClient("Api", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
+    client.DefaultRequestHeaders.Add("X-Actor-Role", "INSTRUCTOR");
 });
 
 var app = builder.Build();

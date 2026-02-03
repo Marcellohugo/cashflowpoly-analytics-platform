@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
 
+/// <summary>
+/// Controller UI untuk manajemen ruleset.
+/// </summary>
+[Route("rulesets")]
 public sealed class RulesetsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
@@ -15,7 +19,7 @@ public sealed class RulesetsController : Controller
         _clientFactory = clientFactory;
     }
 
-    [HttpGet]
+    [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
@@ -36,7 +40,7 @@ public sealed class RulesetsController : Controller
         });
     }
 
-    [HttpGet]
+    [HttpGet("create")]
     public IActionResult Create()
     {
         return View(new CreateRulesetViewModel
@@ -64,13 +68,32 @@ public sealed class RulesetsController : Controller
                 "loan": { "enabled": false },
                 "insurance": { "enabled": false },
                 "saving_goal": { "enabled": false }
+              },
+              "freelance": { "income": 1 },
+              "scoring": {
+                "donation_rank_points": [
+                  { "rank": 1, "points": 7 },
+                  { "rank": 2, "points": 5 },
+                  { "rank": 3, "points": 2 }
+                ],
+                "gold_points_by_qty": [
+                  { "qty": 1, "points": 3 },
+                  { "qty": 2, "points": 5 },
+                  { "qty": 3, "points": 8 },
+                  { "qty": 4, "points": 12 }
+                ],
+                "pension_rank_points": [
+                  { "rank": 1, "points": 5 },
+                  { "rank": 2, "points": 3 },
+                  { "rank": 3, "points": 1 }
+                ]
               }
             }
             """
         });
     }
 
-    [HttpPost]
+    [HttpPost("create")]
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(model.Name))
@@ -104,6 +127,61 @@ public sealed class RulesetsController : Controller
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
             model.ErrorMessage = error?.Message ?? $"Gagal membuat ruleset. Status: {(int)response.StatusCode}";
             return View(model);
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet("{rulesetId:guid}")]
+    public async Task<IActionResult> Details(Guid rulesetId, CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/rulesets/{rulesetId}", ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            return View(new RulesetDetailViewModel
+            {
+                ErrorMessage = error?.Message ?? $"Gagal memuat ruleset. Status: {(int)response.StatusCode}"
+            });
+        }
+
+        var data = await response.Content.ReadFromJsonAsync<RulesetDetailResponseDto>(cancellationToken: ct);
+        return View(new RulesetDetailViewModel
+        {
+            Ruleset = data
+        });
+    }
+
+    [HttpPost("{rulesetId:guid}/archive")]
+    public async Task<IActionResult> Archive(Guid rulesetId, CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.PostAsync($"api/rulesets/{rulesetId}/archive", null, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            return View("Details", new RulesetDetailViewModel
+            {
+                ErrorMessage = error?.Message ?? $"Gagal arsip ruleset. Status: {(int)response.StatusCode}"
+            });
+        }
+
+        return RedirectToAction(nameof(Details), new { rulesetId });
+    }
+
+    [HttpPost("{rulesetId:guid}/delete")]
+    public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.DeleteAsync($"api/rulesets/{rulesetId}", ct);
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NoContent)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            return View("Details", new RulesetDetailViewModel
+            {
+                ErrorMessage = error?.Message ?? $"Gagal hapus ruleset. Status: {(int)response.StatusCode}"
+            });
         }
 
         return RedirectToAction(nameof(Index));

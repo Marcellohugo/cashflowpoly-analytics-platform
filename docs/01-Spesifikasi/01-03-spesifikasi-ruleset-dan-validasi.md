@@ -1,4 +1,4 @@
-# Spesifikasi *Ruleset* dan Validasi Konfigurasi  
+﻿# Spesifikasi *Ruleset* dan Validasi Konfigurasi  
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini saya susun untuk menetapkan struktur data *ruleset*, daftar parameter konfigurasi, aturan validasi, dan kebijakan versi. Dokumen ini saya susun untuk memandu implementasi modul manajemen *ruleset* di REST API dan UI MVC.
+Dokumen ini disusun untuk menetapkan struktur data *ruleset*, daftar parameter konfigurasi, aturan validasi, dan kebijakan versi. Dokumen ini disusun untuk memandu implementasi modul manajemen *ruleset* di REST API dan UI MVC.
 
 ---
 
@@ -100,6 +100,12 @@ Sistem menyimpan konfigurasi pada JSON dengan struktur top-level berikut.
     "loan": { "enabled": false },
     "insurance": { "enabled": false },
     "saving_goal": { "enabled": false }
+  },
+  "freelance": { "income": 1 },
+  "scoring": {
+    "donation_rank_points": [ { "rank": 1, "points": 7 } ],
+    "gold_points_by_qty": [ { "qty": 1, "points": 3 } ],
+    "pension_rank_points": [ { "rank": 1, "points": 5 } ]
   }
 }
 ```
@@ -152,6 +158,24 @@ Tabel berikut merangkum parameter utama. Penambahan parameter lain diperbolehkan
 | advanced.insurance.enabled | bool | Ya | false | - | Sistem mengaktifkan event asuransi. |
 | advanced.saving_goal.enabled | bool | Ya | false | - | Sistem mengaktifkan event tabungan tujuan. |
 
+### 5.6 Parameter kerja lepas
+| Parameter | Tipe | Wajib | Default | Rentang | Deskripsi |
+|---|---|---:|---:|---|---|
+| freelance.income | int | Tidak | 1 | 1–1.000.000 | Nilai koin yang didapat dari aksi kerja lepas. |
+
+### 5.7 Parameter scoring (opsional)
+| Parameter | Tipe | Wajib | Default | Rentang | Deskripsi |
+|---|---|---:|---:|---|---|
+| scoring.donation_rank_points | array | Tidak | [] | - | Tabel poin berdasarkan peringkat donasi per Jumat. |
+| scoring.gold_points_by_qty | array | Tidak | [] | - | Tabel poin berdasarkan jumlah kartu emas akhir sesi. |
+| scoring.pension_rank_points | array | Tidak | [] | - | Tabel poin berdasarkan peringkat saldo akhir sesi. |
+
+Catatan:
+- `scoring.donation_rank_points` berisi item `{ "rank": int, "points": int }`.
+- `scoring.gold_points_by_qty` berisi item `{ "qty": int, "points": int }`.
+- `scoring.pension_rank_points` berisi item `{ "rank": int, "points": int }`.
+- Jika tabel scoring tidak diisi, sistem mengandalkan event awarding (`donation.rank.awarded`, `gold.points.awarded`, `pension.rank.awarded`).
+
 ---
 
 ## 6. Aturan Validasi Konfigurasi
@@ -170,6 +194,9 @@ Sistem memeriksa:
 2. `starting_cash` tidak negatif.
 3. `donation.min_amount` tidak lebih besar dari `donation.max_amount`.
 4. `max_same_ingredient` tidak lebih besar dari `max_ingredient_total`.
+5. `freelance.income` harus > 0 jika disediakan.
+6. `scoring.*` memastikan `rank/qty > 0` dan `points >= 0`.
+7. `scoring.*` melarang duplikasi `rank` atau `qty` dalam satu tabel.
 
 ### 6.3 Validasi konflik dan dependensi
 Sistem memeriksa:
@@ -195,7 +222,11 @@ Sistem memetakan aturan *ruleset* ke validasi event:
 - `donation.min_amount` memvalidasi `day.friday.donation`.
 - batas kartu bahan memvalidasi `ingredient.purchased`.
 - aturan kebutuhan primer memvalidasi `need.*.purchased`.
+- `freelance.income` memvalidasi `work.freelance.completed`.
 - fitur mode mahir memvalidasi event `loan.*` dan `insurance.*`.
+- `advanced.saving_goal.enabled` memvalidasi event `saving.*`.
+- mode `MAHIR` memvalidasi event `risk.life.drawn`.
+- `scoring.*` mengatur perhitungan poin donasi/emas/pensiun pada modul analitika.
 
 Catatan implementasi logging:
 - Untuk event yang ditolak sebelum disimpan ke `events`, `validation_logs.event_pk` dapat bernilai `null`.
@@ -205,6 +236,9 @@ Catatan implementasi logging:
 
 ## 8. Kontrak API untuk *Ruleset*
 Bagian ini merangkum endpoint yang menangani *ruleset*. Dokumen kontrak lengkap tetap berada pada dokumen “Spesifikasi Event dan Kontrak REST API”.
+
+Catatan akses:
+- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan header `X-Actor-Role: INSTRUCTOR`.
 
 ### 8.1 Endpoint minimum
 1. `POST /api/rulesets`  
@@ -249,6 +283,25 @@ Sistem mengembalikan `ruleset_version_id` yang aktif pada sesi.
     "loan": { "enabled": false },
     "insurance": { "enabled": false },
     "saving_goal": { "enabled": false }
+  },
+  "freelance": { "income": 1 },
+  "scoring": {
+    "donation_rank_points": [
+      { "rank": 1, "points": 7 },
+      { "rank": 2, "points": 5 },
+      { "rank": 3, "points": 2 }
+    ],
+    "gold_points_by_qty": [
+      { "qty": 1, "points": 3 },
+      { "qty": 2, "points": 5 },
+      { "qty": 3, "points": 8 },
+      { "qty": 4, "points": 12 }
+    ],
+    "pension_rank_points": [
+      { "rank": 1, "points": 5 },
+      { "rank": 2, "points": 3 },
+      { "rank": 3, "points": 1 }
+    ]
   }
 }
 ```
@@ -258,7 +311,7 @@ Sistem mengembalikan `ruleset_version_id` yang aktif pada sesi.
 {
   "mode": "MAHIR",
   "actions_per_turn": 2,
-  "starting_cash": 20,
+  "starting_cash": 10,
   "weekday_rules": {
     "friday": { "feature": "DONATION", "enabled": true },
     "saturday": { "feature": "GOLD_TRADE", "enabled": true },
@@ -277,6 +330,25 @@ Sistem mengembalikan `ruleset_version_id` yang aktif pada sesi.
     "loan": { "enabled": true },
     "insurance": { "enabled": true },
     "saving_goal": { "enabled": true }
+  },
+  "freelance": { "income": 1 },
+  "scoring": {
+    "donation_rank_points": [
+      { "rank": 1, "points": 7 },
+      { "rank": 2, "points": 5 },
+      { "rank": 3, "points": 2 }
+    ],
+    "gold_points_by_qty": [
+      { "qty": 1, "points": 3 },
+      { "qty": 2, "points": 5 },
+      { "qty": 3, "points": 8 },
+      { "qty": 4, "points": 12 }
+    ],
+    "pension_rank_points": [
+      { "rank": 1, "points": 5 },
+      { "rank": 2, "points": 3 },
+      { "rank": 3, "points": 1 }
+    ]
   }
 }
 ```
@@ -290,6 +362,7 @@ Sistem siap masuk tahap implementasi modul manajemen *ruleset* jika:
 3. Sistem menyimpan versi baru saat instruktur mengubah konfigurasi.
 4. Sistem mengunci versi aktif pada sesi.
 5. Sistem menolak event dengan `ruleset_version_id` yang tidak cocok.
+
 
 
 

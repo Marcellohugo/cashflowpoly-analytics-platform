@@ -1,4 +1,4 @@
-# Rencana Implementasi dan Struktur *Solution* .NET  
+ï»¿# Rencana Implementasi dan Struktur *Solution* .NET  
 ## RESTful API + ASP.NET Core MVC (Razor Views) untuk Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini saya susun untuk menetapkan struktur repositori, struktur *solution* .NET, pembagian proyek REST API dan UI MVC, konvensi folder, dependensi, serta urutan implementasi agar pengerjaan berjalan terukur.
+Dokumen ini disusun untuk menetapkan struktur repositori, struktur *solution* .NET, pembagian proyek REST API dan UI MVC, konvensi folder, dependensi, serta urutan implementasi agar pengerjaan berjalan terukur.
 
 Dokumen ini menargetkan lingkungan:
 - Windows 11 Home
@@ -30,7 +30,7 @@ Sistem memakai dua aplikasi dalam satu *solution*:
 ### 2.2 Integrasi UI
 UI MVC bertindak sebagai *client* internal yang memanggil REST API melalui `HttpClient`. UI tidak mengakses DB langsung. UI memetakan DTO API ke ViewModel.
 
-### 2.3 Kenapa tetap “MVC” walau ada API
+### 2.3 Kenapa tetap ï¿½MVCï¿½ walau ada API
 Kampus meminta MVC untuk UI. Sistem tetap memenuhi itu karena:
 - UI memakai *Controller* + Razor Views (MVC),
 - REST API memakai controller API terpisah,
@@ -169,7 +169,7 @@ Sistem mengunci port via file `.env`:
 ## 8. Urutan Implementasi
 Sistem menerapkan urutan berikut agar setiap langkah langsung bisa diuji.
 
-### Tahap A — *Bootstrap* proyek
+### Tahap A ï¿½ *Bootstrap* proyek
 1. Buat repo dan *solution*.
 2. Buat proyek Api dan Ui.
 
@@ -178,14 +178,14 @@ Output:
 - swagger API bisa terbuka,
 - halaman UI bisa terbuka.
 
-### Tahap B — Database dan skema SQL
+### Tahap B ï¿½ Database dan skema SQL
 1. Jalankan skrip `database/00_create_schema.sql` pada PostgreSQL (mis. lewat DBeaver).
 2. Pastikan semua tabel dan indeks terbentuk sesuai dokumen 04.
 
 Output:
 - skema terbentuk sesuai dokumen 04.
 
-### Tahap C — Endpoint inti modul sesi dan ruleset
+### Tahap C ï¿½ Endpoint inti modul sesi dan ruleset
 1. Implementasi use case:
    - CreateSession, StartSession, EndSession
    - CreateRuleset, UpdateRuleset, ActivateRuleset
@@ -195,7 +195,7 @@ Output:
 Output:
 - TC-API-01 s.d. TC-API-09 dapat dijalankan.
 
-### Tahap D — Ingest event + idempotensi + urutan
+### Tahap D ï¿½ Ingest event + idempotensi + urutan
 1. Implementasi endpoint ingest event.
 2. Implementasi validasi:
    - format dan tipe payload dasar,
@@ -208,7 +208,7 @@ Output:
 Output:
 - TC-API-10 s.d. TC-API-14 dapat dijalankan.
 
-### Tahap E — Proyeksi arus kas
+### Tahap E ï¿½ Proyeksi arus kas
 1. Buat translator event ? `event_cashflow_projections`.
 2. Tulis proyeksi hanya untuk event yang memengaruhi uang:
    - `transaction.recorded`, `day.friday.donation`, `ingredient.purchased`, `order.claimed`.
@@ -218,15 +218,15 @@ Output:
 Output:
 - proyeksi transaksi terbentuk otomatis.
 
-### Tahap F — Agregasi metrik + snapshot
+### Tahap F ï¿½ Agregasi metrik + snapshot
 1. Implementasi komputasi metrik minimum dari dokumen 05.
 2. Simpan ke `metric_snapshots`.
-3. Sediakan endpoint “recompute” (opsional) untuk memudahkan uji.
+3. Sediakan endpoint ï¿½recomputeï¿½ (opsional) untuk memudahkan uji.
 
 Output:
 - snapshot metrik muncul dan konsisten.
 
-### Tahap G — Endpoint analitika
+### Tahap G ï¿½ Endpoint analitika
 1. Implementasi:
    - `GET /api/analytics/sessions/{sessionId}`
    - `GET /api/analytics/sessions/{sessionId}/transactions?playerId=...`
@@ -235,7 +235,7 @@ Output:
 Output:
 - TC-API-15 s.d. TC-API-17 lulus.
 
-### Tahap H — UI MVC
+### Tahap H ï¿½ UI MVC
 1. Buat halaman:
    - `/sessions`
    - `/sessions/{sessionId}`
@@ -249,8 +249,8 @@ Output:
 
 ---
 
-## 9. Definisi “Satu file dengan *solution* berbeda”
-Kalimat “membuat semuanya dalam 1 file dengan *solution* yang berbeda” biasanya rancu.
+## 9. Definisi ï¿½Satu file dengan *solution* berbedaï¿½
+Kalimat ï¿½membuat semuanya dalam 1 file dengan *solution* yang berbedaï¿½ biasanya rancu.
 
 Struktur yang benar pada .NET:
 - satu repositori,
@@ -272,10 +272,11 @@ Sistem siap diimplementasikan jika:
 
 ## 11. *Deliverable* per Minggu (opsional)
 Jika diperlukan target mingguan:
-- Minggu 1: Tahap A–B
-- Minggu 2: Tahap C–D
-- Minggu 3: Tahap E–F
-- Minggu 4: Tahap G–H + pengujian (dokumen 07)
+- Minggu 1: Tahap Aï¿½B
+- Minggu 2: Tahap Cï¿½D
+- Minggu 3: Tahap Eï¿½F
+- Minggu 4: Tahap Gï¿½H + pengujian (dokumen 07)
+
 
 
 

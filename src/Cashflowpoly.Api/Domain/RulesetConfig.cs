@@ -21,7 +21,18 @@ internal sealed record RulesetConfig(
     bool GoldAllowSell,
     bool LoanEnabled,
     bool InsuranceEnabled,
-    bool SavingGoalEnabled);
+    bool SavingGoalEnabled,
+    int FreelanceIncome,
+    RulesetScoringConfig? Scoring);
+
+internal sealed record RulesetScoringConfig(
+    IReadOnlyList<RankPoint> DonationRankPoints,
+    IReadOnlyList<QtyPoint> GoldPointsByQty,
+    IReadOnlyList<RankPoint> PensionRankPoints);
+
+internal sealed record RankPoint(int Rank, int Points);
+
+internal sealed record QtyPoint(int Qty, int Points);
 
 internal static class RulesetConfigParser
 {
@@ -83,6 +94,148 @@ internal static class RulesetConfigParser
         if (!TryGetBool(insurance, "enabled", out var insuranceEnabled, errors)) return false;
         if (!TryGetBool(saving, "enabled", out var savingGoalEnabled, errors)) return false;
 
+        var freelanceIncome = 1;
+        if (root.TryGetProperty("freelance", out var freelanceElement))
+        {
+            if (freelanceElement.ValueKind != JsonValueKind.Object)
+            {
+                errors.Add(new ErrorDetail("config.freelance", "INVALID_TYPE"));
+                return false;
+            }
+
+            if (!freelanceElement.TryGetProperty("income", out var incomeProp) ||
+                incomeProp.ValueKind != JsonValueKind.Number ||
+                !incomeProp.TryGetInt32(out freelanceIncome))
+            {
+                errors.Add(new ErrorDetail("config.freelance.income", "REQUIRED"));
+                return false;
+            }
+        }
+
+        RulesetScoringConfig? scoring = null;
+        if (root.TryGetProperty("scoring", out var scoringElement))
+        {
+            if (scoringElement.ValueKind != JsonValueKind.Object)
+            {
+                errors.Add(new ErrorDetail("config.scoring", "INVALID_TYPE"));
+                return false;
+            }
+
+            var donationRankPoints = new List<RankPoint>();
+            var goldPointsByQty = new List<QtyPoint>();
+            var pensionRankPoints = new List<RankPoint>();
+
+            if (scoringElement.TryGetProperty("donation_rank_points", out var donationElement))
+            {
+                if (donationElement.ValueKind != JsonValueKind.Array)
+                {
+                    errors.Add(new ErrorDetail("config.scoring.donation_rank_points", "INVALID_TYPE"));
+                    return false;
+                }
+
+                var seenRanks = new HashSet<int>();
+                foreach (var item in donationElement.EnumerateArray())
+                {
+                    if (!item.TryGetProperty("rank", out var rankProp) ||
+                        !item.TryGetProperty("points", out var pointsProp) ||
+                        !rankProp.TryGetInt32(out var rankValue) ||
+                        !pointsProp.TryGetInt32(out var pointsValue))
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.donation_rank_points", "INVALID_ITEM"));
+                        return false;
+                    }
+
+                    if (rankValue <= 0 || pointsValue < 0)
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.donation_rank_points", "OUT_OF_RANGE"));
+                        return false;
+                    }
+
+                    if (!seenRanks.Add(rankValue))
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.donation_rank_points", "DUPLICATE"));
+                        return false;
+                    }
+
+                    donationRankPoints.Add(new RankPoint(rankValue, pointsValue));
+                }
+            }
+
+            if (scoringElement.TryGetProperty("gold_points_by_qty", out var goldElement))
+            {
+                if (goldElement.ValueKind != JsonValueKind.Array)
+                {
+                    errors.Add(new ErrorDetail("config.scoring.gold_points_by_qty", "INVALID_TYPE"));
+                    return false;
+                }
+
+                var seenQty = new HashSet<int>();
+                foreach (var item in goldElement.EnumerateArray())
+                {
+                    if (!item.TryGetProperty("qty", out var qtyProp) ||
+                        !item.TryGetProperty("points", out var pointsProp) ||
+                        !qtyProp.TryGetInt32(out var qtyValue) ||
+                        !pointsProp.TryGetInt32(out var pointsValue))
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.gold_points_by_qty", "INVALID_ITEM"));
+                        return false;
+                    }
+
+                    if (qtyValue <= 0 || pointsValue < 0)
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.gold_points_by_qty", "OUT_OF_RANGE"));
+                        return false;
+                    }
+
+                    if (!seenQty.Add(qtyValue))
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.gold_points_by_qty", "DUPLICATE"));
+                        return false;
+                    }
+
+                    goldPointsByQty.Add(new QtyPoint(qtyValue, pointsValue));
+                }
+            }
+
+            if (scoringElement.TryGetProperty("pension_rank_points", out var pensionElement))
+            {
+                if (pensionElement.ValueKind != JsonValueKind.Array)
+                {
+                    errors.Add(new ErrorDetail("config.scoring.pension_rank_points", "INVALID_TYPE"));
+                    return false;
+                }
+
+                var seenRanks = new HashSet<int>();
+                foreach (var item in pensionElement.EnumerateArray())
+                {
+                    if (!item.TryGetProperty("rank", out var rankProp) ||
+                        !item.TryGetProperty("points", out var pointsProp) ||
+                        !rankProp.TryGetInt32(out var rankValue) ||
+                        !pointsProp.TryGetInt32(out var pointsValue))
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.pension_rank_points", "INVALID_ITEM"));
+                        return false;
+                    }
+
+                    if (rankValue <= 0 || pointsValue < 0)
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.pension_rank_points", "OUT_OF_RANGE"));
+                        return false;
+                    }
+
+                    if (!seenRanks.Add(rankValue))
+                    {
+                        errors.Add(new ErrorDetail("config.scoring.pension_rank_points", "DUPLICATE"));
+                        return false;
+                    }
+
+                    pensionRankPoints.Add(new RankPoint(rankValue, pointsValue));
+                }
+            }
+
+            scoring = new RulesetScoringConfig(donationRankPoints, goldPointsByQty, pensionRankPoints);
+        }
+
         var upperMode = mode.ToUpperInvariant();
         if (upperMode is not ("PEMULA" or "MAHIR"))
         {
@@ -129,6 +282,11 @@ internal static class RulesetConfigParser
             errors.Add(new ErrorDetail("config.donation.min_amount", "INVALID_RANGE"));
         }
 
+        if (freelanceIncome <= 0)
+        {
+            errors.Add(new ErrorDetail("config.freelance.income", "OUT_OF_RANGE"));
+        }
+
         if (upperMode == "PEMULA" && (loanEnabled || insuranceEnabled || savingGoalEnabled))
         {
             errors.Add(new ErrorDetail("config.advanced", "DISALLOWED_FOR_MODE"));
@@ -157,7 +315,9 @@ internal static class RulesetConfigParser
             allowSell,
             loanEnabled,
             insuranceEnabled,
-            savingGoalEnabled);
+            savingGoalEnabled,
+            freelanceIncome,
+            scoring);
 
         return true;
     }

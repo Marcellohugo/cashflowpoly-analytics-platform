@@ -1,4 +1,4 @@
-# Spesifikasi Event dan Kontrak REST API  
+﻿# Spesifikasi Event dan Kontrak REST API  
 ## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini saya susun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta manajemen ruleset. Dokumen ini saya jadikan acuan implementasi back-end dan acuan integrasi UI MVC serta pengujian fungsional.
+Dokumen ini disusun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta manajemen ruleset. Dokumen ini menjadi acuan implementasi back-end dan acuan integrasi UI MVC serta pengujian fungsional.
 
 ---
 
@@ -22,7 +22,7 @@ Sistem memperlakukan event sebagai sumber utama untuk membentuk histori dan meng
 Sistem menolak event duplikat berdasarkan kombinasi `session_id` dan `event_id`. Klien dapat mengirim ulang request yang sama tanpa menimbulkan dampak ganda.
 
 ### 2.3 Keterurutan
-Sistem memproses event sesuai urutan `sequence_number` per sesi. Sistem menolak event dengan `sequence_number` lebih kecil dari event terakhir pada sesi.
+Sistem memproses event sesuai urutan `sequence_number` per sesi. Sistem menolak event dengan `sequence_number` lebih kecil dari event terakhir pada sesi maupun yang melompati urutan (gap) dari event terakhir.
 
 ### 2.4 Jejak ruleset
 Setiap event wajib menyertakan `ruleset_version_id` agar analisis tetap konsisten walau ruleset berubah.
@@ -170,6 +170,7 @@ Payload:
 
 Validasi:
 - Giliran harus sudah dimulai.
+- Pada mode MAHIR, jumlah `risk.life.drawn` per pemain harus sama dengan jumlah `order.claimed` pada giliran yang sama.
 
 Efek data:
 - Menandai akhir giliran.
@@ -255,7 +256,8 @@ Payload:
 ```json
 {
   "card_id": "NEED-001",
-  "amount": 5
+  "amount": 5,
+  "points": 2
 }
 ```
 
@@ -263,10 +265,15 @@ Validasi:
 - `weekday` tidak membatasi, namun sistem membatasi maksimal 1 pembelian kebutuhan primer per hari.
 - Sistem menolak pembelian kebutuhan non-primer jika kebutuhan primer belum terpenuhi pada hari itu.
 - `amount > 0`.
+- `card_id` wajib diisi.
+- `points` opsional (nilai poin pada kartu kebutuhan).
 
 Efek data:
 - Mengurangi saldo.
 - Menambah kepemilikan kartu kebutuhan.
+
+Catatan:
+- Struktur payload `need.secondary.purchased` dan `need.tertiary.purchased` sama dengan `need.primary.purchased`.
 
 ---
 
@@ -311,15 +318,33 @@ Efek data:
 
 ---
 
+#### 4.5.4 `work.freelance.completed`
+Payload:
+```json
+{
+  "amount": 1
+}
+```
+
+Validasi:
+- `amount > 0`.
+- `amount` harus sama dengan `freelance.income` pada ruleset aktif.
+
+Efek data:
+- Menambah saldo.
+
+---
+
 ### 4.6 Event mode mahir (minimum)
 #### 4.6.1 `loan.syariah.taken`
 Payload:
 ```json
 {
   "loan_id": "LOAN-001",
-  "principal": 20,
-  "installment": 5,
-  "duration_turn": 4
+  "principal": 10,
+  "installment": 10,
+  "duration_turn": 1,
+  "penalty_points": 15
 }
 ```
 
@@ -327,6 +352,7 @@ Validasi:
 - `principal > 0`.
 - `installment > 0`.
 - `duration_turn > 0`.
+- `penalty_points >= 0`.
 - Sistem menolak jika aturan ruleset melarang pinjaman pada kondisi tertentu.
 
 Efek data:
@@ -348,6 +374,8 @@ Validasi:
 - `amount > 0`.
 - Pemain memiliki saldo cukup.
 - Loan masih aktif.
+- Sistem menolak pembayaran melebihi sisa pinjaman.
+- `loan_id` harus terdaftar pada loan yang masih aktif.
 
 Efek data:
 - Mengurangi saldo.
@@ -360,7 +388,7 @@ Payload:
 ```json
 {
   "policy_id": "INS-001",
-  "premium": 3,
+  "premium": 1,
   "coverage_type": "MULTIRISK"
 }
 ```
@@ -371,6 +399,197 @@ Validasi:
 Efek data:
 - Mengurangi saldo.
 - Menambah status proteksi.
+
+---
+
+## 4.7 Event Misi dan Skor
+#### 4.7.1 `mission.assigned`
+Payload:
+```json
+{
+  "mission_id": "MIS-001",
+  "target_tertiary_card_id": "NEED-T-003",
+  "penalty_points": 10,
+  "require_primary": true,
+  "require_secondary": true
+}
+```
+
+Validasi:
+- `mission_id` wajib.
+- `target_tertiary_card_id` wajib.
+- `penalty_points >= 0`.
+
+Efek data:
+- Menetapkan misi koleksi pemain untuk evaluasi di akhir sesi.
+
+---
+
+#### 4.7.2 `donation.rank.awarded`
+Payload:
+```json
+{
+  "rank": 1,
+  "points": 7
+}
+```
+
+Validasi:
+- `rank > 0`.
+- `points >= 0`.
+
+Efek data:
+- Menambah poin kebahagiaan kategori donasi.
+
+---
+
+#### 4.7.3 `gold.points.awarded`
+Payload:
+```json
+{
+  "points": 5
+}
+```
+
+Validasi:
+- `points >= 0`.
+
+Efek data:
+- Menambah poin kebahagiaan dari investasi emas.
+
+---
+
+#### 4.7.4 `pension.rank.awarded`
+Payload:
+```json
+{
+  "rank": 2,
+  "points": 3
+}
+```
+
+Validasi:
+- `rank > 0`.
+- `points >= 0`.
+
+Efek data:
+- Menambah poin kebahagiaan kategori dana pensiun.
+
+---
+
+#### 4.7.5 `saving.goal.achieved`
+Payload:
+```json
+{
+  "goal_id": "GOAL-001",
+  "points": 5,
+  "cost": 15
+}
+```
+
+Validasi:
+- `goal_id` wajib.
+- `points >= 0`.
+- `cost >= 0` (opsional, dipakai untuk validasi saldo tabungan).
+
+Efek data:
+- Menambah poin kebahagiaan dari tujuan keuangan (hanya berlaku jika pinjaman lunas).
+
+---
+
+#### 4.7.6 `tie_breaker.assigned`
+Payload:
+```json
+{
+  "number": 7
+}
+```
+
+Validasi:
+- `number > 0`.
+
+Efek data:
+- Menyimpan nomor tie breaker untuk pemecah seri.
+
+---
+
+## 4.8 Event Tabungan dan Risiko
+#### 4.8.1 `saving.deposit.created`
+Payload:
+```json
+{
+  "goal_id": "GOAL-001",
+  "amount": 5
+}
+```
+
+Validasi:
+- `goal_id` wajib.
+- `amount > 0`.
+- Fitur tabungan tujuan aktif.
+
+Efek data:
+- Mengurangi saldo.
+- Menambah saldo tabungan tujuan.
+
+---
+
+#### 4.8.2 `saving.deposit.withdrawn`
+Payload:
+```json
+{
+  "goal_id": "GOAL-001",
+  "amount": 5
+}
+```
+
+Validasi:
+- `goal_id` wajib.
+- `amount > 0`.
+- Saldo tabungan mencukupi.
+
+Efek data:
+- Menambah saldo.
+- Mengurangi saldo tabungan tujuan.
+
+---
+
+#### 4.8.3 `risk.life.drawn`
+Payload:
+```json
+{
+  "risk_id": "RISK-012",
+  "direction": "OUT",
+  "amount": 3,
+  "note": "Biaya kesehatan"
+}
+```
+
+Validasi:
+- `risk_id` wajib.
+- `direction` bernilai `IN` atau `OUT`.
+- `amount > 0`.
+- Hanya tersedia pada mode mahir.
+- Sistem menolak jika jumlah `risk.life.drawn` melebihi jumlah `order.claimed` pemain pada giliran yang sama.
+
+Efek data:
+- Menambah/mengurangi saldo sesuai `direction`.
+
+---
+
+#### 4.8.4 `insurance.multirisk.used`
+Payload:
+```json
+{
+  "risk_event_id": "uuid-event"
+}
+```
+
+Validasi:
+- `risk_event_id` wajib.
+
+Efek data:
+- Menandai penggunaan asuransi terhadap kartu risiko.
 
 ---
 
@@ -480,6 +699,9 @@ Status code:
 ---
 
 ## 8. Endpoint Ruleset
+Catatan akses:
+- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan header `X-Actor-Role: INSTRUCTOR`.
+
 ### 8.1 Buat ruleset
 - Method: `POST`
 - Path: `/api/rulesets`
@@ -489,11 +711,47 @@ Status code:
   "name": "Ruleset Default",
   "description": "Konfigurasi awal",
   "config": {
+    "mode": "PEMULA",
     "actions_per_turn": 2,
     "starting_cash": 20,
-    "donation_min": 1,
-    "max_ingredient_total": 6,
-    "max_same_ingredient": 3
+    "weekday_rules": {
+      "friday": { "feature": "DONATION", "enabled": true },
+      "saturday": { "feature": "GOLD_TRADE", "enabled": true },
+      "sunday": { "feature": "REST", "enabled": true }
+    },
+    "constraints": {
+      "cash_min": 0,
+      "max_ingredient_total": 6,
+      "max_same_ingredient": 3,
+      "primary_need_max_per_day": 1,
+      "require_primary_before_others": true
+    },
+    "donation": { "min_amount": 1, "max_amount": 999999 },
+    "gold_trade": { "allow_buy": true, "allow_sell": true },
+    "advanced": {
+      "loan": { "enabled": false },
+      "insurance": { "enabled": false },
+      "saving_goal": { "enabled": false }
+    },
+    "freelance": { "income": 1 },
+    "scoring": {
+      "donation_rank_points": [
+        { "rank": 1, "points": 7 },
+        { "rank": 2, "points": 5 },
+        { "rank": 3, "points": 2 }
+      ],
+      "gold_points_by_qty": [
+        { "qty": 1, "points": 3 },
+        { "qty": 2, "points": 5 },
+        { "qty": 3, "points": 8 },
+        { "qty": 4, "points": 12 }
+      ],
+      "pension_rank_points": [
+        { "rank": 1, "points": 5 },
+        { "rank": 2, "points": 3 },
+        { "rank": 3, "points": 1 }
+      ]
+    }
   }
 }
 ```
@@ -549,7 +807,9 @@ Status code:
   "summary": {
     "event_count": 120,
     "cash_in_total": 200,
-    "cash_out_total": 150
+    "cash_out_total": 150,
+    "cashflow_net_total": 50,
+    "rules_violations_count": 2
   },
   "by_player": [
     {
@@ -557,7 +817,17 @@ Status code:
       "cash_in_total": 120,
       "cash_out_total": 90,
       "donation_total": 10,
-      "gold_qty": 2
+      "gold_qty": 2,
+      "happiness_points_total": 14,
+      "need_points_total": 6,
+      "need_set_bonus_points": 4,
+      "donation_points_total": 5,
+      "gold_points_total": 3,
+      "pension_points_total": 3,
+      "saving_goal_points_total": 3,
+      "mission_penalty_total": 10,
+      "loan_penalty_total": 0,
+      "has_unpaid_loan": false
     }
   ]
 }
@@ -600,5 +870,6 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
+
 
 

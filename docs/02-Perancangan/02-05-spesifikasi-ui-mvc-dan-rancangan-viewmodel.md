@@ -1,4 +1,4 @@
-# Spesifikasi UI MVC dan Rancangan *ViewModel*  
+﻿# Spesifikasi UI MVC dan Rancangan *ViewModel*  
 ## Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly (ASP.NET Core MVC + Razor Views)
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini saya susun untuk menetapkan:
+Dokumen ini disusun untuk menetapkan:
 1. struktur halaman UI MVC yang sistem bangun,
 2. *ViewModel* per halaman,
 3. struktur folder `Views/` dan *partial view*,
@@ -298,11 +298,24 @@ Contoh mapping untuk ringkasan sesi:
 - API `summary.cashflow_out_total` → VM `TotalOut`
 - API `summary.cashflow_net_total` → VM `Net`
 - API `summary.ruleset.name` → VM `ActiveRulesetName`
+- API `summary.rules_violations_count` → VM `RulesViolations`
 
 Contoh mapping untuk transaksi:
 - API `transactions[].timestamp` → VM `Timestamp`
 - API `transactions[].direction` → VM `Direction`
 - API `transactions[].amount` → VM `Amount`
+
+Contoh mapping untuk ringkasan pemain:
+- API `by_player[].happiness_points_total` → VM `HappinessPoints`
+- API `by_player[].need_points_total` → VM `NeedPoints`
+- API `by_player[].need_set_bonus_points` → VM `NeedSetBonusPoints`
+- API `by_player[].donation_points_total` → VM `DonationPoints`
+- API `by_player[].gold_points_total` → VM `GoldPoints`
+- API `by_player[].pension_points_total` → VM `PensionPoints`
+- API `by_player[].saving_goal_points_total` → VM `SavingGoalPoints`
+- API `by_player[].mission_penalty_total` → VM `MissionPenalty`
+- API `by_player[].loan_penalty_total` → VM `LoanPenalty`
+- API `by_player[].has_unpaid_loan` → VM `HasUnpaidLoan`
 
 ---
 
@@ -321,13 +334,13 @@ Wajib:
 1. judul berisi nama sesi
 2. baris informasi (mode, status, ruleset aktif)
 3. grid kartu metrik (minimal 4 kartu)
-4. tabel pemain
+4. tabel pemain (termasuk poin kebahagiaan)
 5. tautan ke detail pemain
 
 ### 8.3 Players/Details.cshtml
 Wajib:
 1. judul pemain
-2. daftar metrik pemain
+2. daftar metrik pemain (termasuk poin kebahagiaan)
 3. tabel transaksi dengan urutan waktu konsisten
 4. *empty state* saat transaksi kosong
 
@@ -397,5 +410,6 @@ UI siap uji jika:
 3. UI menampilkan *loading* atau minimal *empty state*,
 4. UI menampilkan error terstruktur,
 5. nilai UI sama dengan data API.
+
 
 

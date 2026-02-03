@@ -3,7 +3,10 @@ using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
-internal sealed class EventRepository
+/// <summary>
+/// Repository untuk event, log validasi, dan proyeksi arus kas.
+/// </summary>
+public sealed class EventRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 

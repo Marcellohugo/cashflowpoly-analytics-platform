@@ -1,4 +1,4 @@
-# Panduan Menjalankan Sistem (Windows 11 + VS Code)
+﻿# Panduan Menjalankan Sistem (Windows 11 + VS Code)
 ## RESTful API + ASP.NET Core MVC (Razor Views) untuk Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini saya susun untuk memandu cara menjalankan REST API dan UI MVC, mengakses Swagger UI, menjalankan dua proyek sekaligus, serta langkah troubleshooting yang paling sering terjadi.
+Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakses Swagger UI, menjalankan dua proyek sekaligus, serta langkah troubleshooting yang paling sering terjadi.
 
 ---
 
@@ -134,5 +134,6 @@ Sistem berjalan baik jika:
 2. Swagger UI dapat diakses,
 3. endpoint sample dapat dipanggil,
 4. MVC bisa jalan dan menampilkan halaman.
+
 
 

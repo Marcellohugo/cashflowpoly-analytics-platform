@@ -1,4 +1,4 @@
-# Definisi Metrik dan Aturan Agregasi  
+﻿# Definisi Metrik dan Aturan Agregasi  
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini saya susun untuk mendefinisikan metrik yang sistem hitung dari log event, beserta aturan agregasi, frekuensi perhitungan, dan format penyimpanan pada tabel `metric_snapshots`. Dokumen ini saya jadikan acuan implementasi modul analitika dan validasi tampilan dasbor.
+Dokumen ini disusun untuk mendefinisikan metrik yang sistem hitung dari log event, beserta aturan agregasi, frekuensi perhitungan, dan format penyimpanan pada tabel `metric_snapshots`. Dokumen ini menjadi acuan implementasi modul analitika dan validasi tampilan dasbor.
 
 ---
 
@@ -87,6 +87,16 @@ Tabel berikut mendefinisikan metrik minimum yang dasbor tampilkan.
 | compliance.primary_need.rate | pemain | numeric | `events` + aturan ruleset | Rasio hari yang memenuhi kewajiban kebutuhan primer. |
 | actions.used.total | pemain | numeric | `events` (`turn.action.used`) | Total token aksi yang pemain pakai. |
 | rules.violations.count | sesi & pemain | numeric | `validation_logs` atau hasil validasi | Jumlah pelanggaran aturan domain. |
+| happiness.points.total | sesi & pemain | numeric | agregasi event poin | Total Poin Kebahagiaan pemain / sesi. |
+| happiness.need.points | pemain | numeric | `events` (`need.*.purchased`) | Total poin kartu kebutuhan. |
+| happiness.need.bonus | pemain | numeric | `events` (`need.*.purchased`) | Bonus set kebutuhan. |
+| happiness.donation.points | pemain | numeric | `ruleset.scoring` atau `events` (`donation.rank.awarded`) | Poin juara donasi. |
+| happiness.gold.points | pemain | numeric | `ruleset.scoring` atau `events` (`gold.points.awarded`) | Poin investasi emas. |
+| happiness.pension.points | pemain | numeric | `ruleset.scoring` atau `events` (`pension.rank.awarded`) | Poin juara dana pensiun. |
+| happiness.saving_goal.points | pemain | numeric | `events` (`saving.goal.achieved`) | Poin tujuan keuangan. |
+| happiness.mission.penalty | pemain | numeric | `events` (`mission.assigned`) | Penalti misi koleksi. |
+| happiness.loan.penalty | pemain | numeric | `events` (`loan.syariah.*`) | Penalti pinjaman belum lunas. |
+| loan.unpaid.flag | pemain | numeric | `events` (`loan.syariah.*`) | Indikator pinjaman belum lunas (1/0). |
 
 Catatan:
 - Sistem tetap dapat menghitung `cashflow.*` dari event langsung, namun sistem sebaiknya memakai proyeksi agar query cepat.
@@ -247,6 +257,109 @@ Sistem menilai setiap `day_index` pada sesi:
 
 ---
 
+## 6.11 `happiness.points.total`
+**Definisi:** total Poin Kebahagiaan pemain berdasarkan kartu kebutuhan, bonus set, donasi, investasi emas, dana pensiun, tujuan keuangan, dan penalti.
+
+**Sumber data:**
+- `need.*.purchased` (poin kartu kebutuhan)
+- `ruleset.scoring.donation_rank_points` atau `donation.rank.awarded`
+- `ruleset.scoring.gold_points_by_qty` atau `gold.points.awarded`
+- `ruleset.scoring.pension_rank_points` atau `pension.rank.awarded`
+- `saving.goal.achieved`
+- `mission.assigned`
+- `loan.syariah.taken`, `loan.syariah.repaid`
+
+**Rumus ringkas:**
+```
+total = need_points
+        + need_set_bonus
+        + donation_points
+        + gold_points
+        + pension_points
+        + saving_goal_points (jika semua pinjaman lunas)
+        - mission_penalty
+        - loan_penalty
+```
+
+**Catatan:**
+- `saving_goal_points` tidak dihitung bila ada pinjaman belum lunas.
+- Penalti misi diambil dari `mission.assigned.penalty_points`.
+- Penalti pinjaman diambil dari `loan.syariah.taken.penalty_points` untuk loan yang belum lunas.
+
+---
+
+## 6.12 `happiness.need.points`
+**Definisi:** total poin yang tercantum pada kartu kebutuhan.
+
+**Sumber event:** `need.primary/secondary/tertiary.purchased`.
+
+**Rumus:** `sum(payload.points)`.
+
+---
+
+## 6.13 `happiness.need.bonus`
+**Definisi:** bonus set kebutuhan.
+
+**Rumus:**
+- `mixed_sets = min(primary_count, secondary_count, tertiary_count)`
+- `same_sets = floor((primary_count - mixed_sets)/3) + floor((secondary_count - mixed_sets)/3) + floor((tertiary_count - mixed_sets)/3)`
+- `bonus = mixed_sets * 4 + same_sets * 2`
+
+---
+
+## 6.14 `happiness.donation.points`
+**Definisi:** poin dari juara donasi.
+
+**Sumber data:** tabel `ruleset.scoring.donation_rank_points` (jika tersedia), atau `donation.rank.awarded`.
+
+**Rumus:** `sum(points_awarded)` per Jumat sesuai peringkat donasi.
+
+**Aturan tie breaker:** jika jumlah donasi sama, gunakan `tie_breaker.assigned.number` (lebih besar menang).
+
+---
+
+## 6.15 `happiness.gold.points`
+**Definisi:** poin investasi emas.
+
+**Sumber data:** tabel `ruleset.scoring.gold_points_by_qty` (jika tersedia), atau `gold.points.awarded`.
+
+---
+
+## 6.16 `happiness.pension.points`
+**Definisi:** poin juara dana pensiun.
+
+**Sumber data:** tabel `ruleset.scoring.pension_rank_points` (jika tersedia), atau `pension.rank.awarded`.
+
+**Aturan tie breaker:** jika saldo sama, gunakan `tie_breaker.assigned.number` (lebih besar menang).
+
+---
+
+## 6.17 `happiness.saving_goal.points`
+**Definisi:** poin tujuan keuangan.
+
+**Sumber event:** `saving.goal.achieved`.
+
+**Aturan:** poin hanya dihitung jika tidak ada pinjaman syariah yang belum lunas.
+
+---
+
+## 6.18 `happiness.mission.penalty`
+**Definisi:** penalti misi koleksi yang gagal.
+
+**Sumber event:** `mission.assigned`.
+
+**Aturan:** jika target misi tidak terpenuhi, penalti diambil dari `payload.penalty_points`.
+
+---
+
+## 6.19 `happiness.loan.penalty`
+**Definisi:** penalti pinjaman syariah yang belum lunas.
+
+**Sumber event:** `loan.syariah.taken`, `loan.syariah.repaid`.
+
+**Aturan:** penalti diambil dari `payload.penalty_points` pada loan yang belum lunas.
+
+---
 ## 7. Pemetaan Event ke Metrik (Ringkas)
 Sistem memakai pemetaan berikut sebagai aturan implementasi.
 
@@ -255,12 +368,25 @@ Sistem memakai pemetaan berikut sebagai aturan implementasi.
 | transaction.recorded | cashflow.in.total, cashflow.out.total, cashflow.net.total |
 | day.friday.donation | donation.total, cashflow.out.total, cashflow.net.total |
 | day.saturday.gold_trade | gold.qty.current, cashflow.* (bila ada biaya/hasil) |
+| risk.life.drawn | cashflow.in.total / cashflow.out.total |
+| saving.deposit.created | cashflow.out.total |
+| saving.deposit.withdrawn | cashflow.in.total |
 | ingredient.purchased | inventory.ingredient.total, cashflow.out.total |
 | order.claimed | orders.completed.count, inventory.ingredient.total, cashflow.in.total |
+| work.freelance.completed | cashflow.in.total |
 | need.primary.purchased | compliance.primary_need.rate, cashflow.out.total |
 | need.secondary/tertiary.purchased | compliance.primary_need.rate, cashflow.out.total |
 | turn.action.used | actions.used.total |
 | event ditolak validasi | rules.violations.count |
+| mission.assigned | happiness.mission.penalty, happiness.points.total |
+| donation.rank.awarded | happiness.donation.points, happiness.points.total |
+| gold.points.awarded | happiness.gold.points, happiness.points.total |
+| pension.rank.awarded | happiness.pension.points, happiness.points.total |
+| saving.goal.achieved | happiness.saving_goal.points, happiness.points.total |
+| loan.syariah.taken/loan.syariah.repaid | happiness.loan.penalty, loan.unpaid.flag |
+
+Catatan:
+- Jika tabel `ruleset.scoring.*` tersedia, sistem dapat menghitung `happiness.*` tanpa event awarding.
 
 ---
 
@@ -310,5 +436,6 @@ Sistem lulus uji metrik jika:
 2. Sistem tidak menghasilkan nilai negatif untuk metrik kepemilikan (emas, bahan).
 3. Sistem memperbarui snapshot setelah sistem menerima event yang relevan.
 4. Sistem menampilkan nilai pada dasbor yang cocok dengan isi `metric_snapshots`.
+
 
 

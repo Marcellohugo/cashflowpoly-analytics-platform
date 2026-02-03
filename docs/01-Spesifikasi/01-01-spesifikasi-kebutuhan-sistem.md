@@ -1,4 +1,4 @@
-# Analisis Kebutuhan Sistem  
+﻿# Analisis Kebutuhan Sistem  
 ## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
@@ -10,20 +10,20 @@
 ---
 
 ## 1. Tujuan Sistem
-Sistem menyediakan layanan pencatatan event permainan Cashflowpoly dan menyajikan analitika berbasis data untuk mendukung pemantauan progres belajar. Sistem juga menyediakan modul manajemen *ruleset* agar instruktur dapat mengubah konfigurasi permainan tanpa mengubah kode program. Sistem memproses log event yang tersimpan untuk menghasilkan metrik pembelajaran dan menampilkannya pada dasbor analitika.
+Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres belajar. Modul manajemen *ruleset* disediakan agar instruktur dapat mengubah konfigurasi permainan tanpa mengubah kode program. Log event yang tersimpan digunakan untuk menghitung metrik pembelajaran dan menampilkannya pada dasbor analitika.
 
 ---
 
 ## 2. Ruang Lingkup
 ### 2.1 Ruang lingkup pengembangan
-Sistem mencakup:
+Ruang lingkup pengembangan mencakup:
 1. Back-end berbasis RESTful API untuk menerima, memvalidasi, dan menyimpan event permainan.
 2. Modul manajemen *ruleset* untuk membuat, memperbarui, menghapus, dan mengaktifkan konfigurasi permainan.
 3. Modul analitika untuk menghitung metrik dari log event.
 4. Antarmuka web berbasis ASP.NET Core MVC (*Razor Views*) untuk menampilkan dasbor analitika dan fitur administrasi *ruleset*.
 
 ### 2.2 Batasan ruang lingkup
-Sistem:
+Batasan ruang lingkup:
 1. Tidak membangun klien permainan (IDN) dan hanya menerima event dari klien IDN atau simulator.
 2. Tidak melakukan pengenalan citra atau input otomatis dari media fisik.
 3. Tidak menggantikan proses permainan manual, namun mendukung pencatatan dan analisis berbasis event.
@@ -32,21 +32,21 @@ Sistem:
 
 ## 3. Definisi Konsep Sistem
 ### 3.1 Event
-Event merupakan representasi terstruktur dari aksi diskret yang terjadi selama permainan. Sistem menerima event dari klien, memvalidasi event, lalu menyimpannya sebagai log.
+Event didefinisikan sebagai representasi terstruktur dari aksi diskret yang terjadi selama permainan. Sistem menerima event dari klien, memvalidasi event, lalu menyimpannya sebagai log.
 
 ### 3.2 Log event
-Log event merupakan urutan event di dalam satu sesi permainan. Sistem menggunakan urutan event untuk menghitung metrik dan merekonstruksi state permainan.
+Log event didefinisikan sebagai urutan event di dalam satu sesi permainan. Sistem menggunakan urutan event untuk menghitung metrik dan merekonstruksi state permainan.
 
 ### 3.3 State permainan dan konsistensi
-State permainan mencakup kondisi yang berubah akibat aksi pemain, seperti saldo, aset, status misi, dan variabel lain yang relevan. Sistem menjaga konsistensi state dengan memproses event secara berurutan, menolak event tidak valid, dan mencegah dampak ganda dari event duplikat.
+State permainan didefinisikan sebagai kondisi yang berubah akibat aksi pemain, seperti saldo, aset, status misi, dan variabel lain yang relevan. Sistem menjaga konsistensi state dengan memproses event secara berurutan, menolak event tidak valid, dan mencegah dampak ganda dari event duplikat.
 
 ### 3.4 Near real-time
-Sistem memperbarui metrik dan tampilan dasbor setelah sistem menerima event pada setiap aksi atau setelah akhir giliran, sehingga instruktur dapat memantau progres secara cepat tanpa menunggu akhir permainan.
+Targetnya, metrik dan tampilan dasbor diperbarui setelah sistem menerima event pada setiap aksi atau setelah akhir giliran, sehingga instruktur dapat memantau progres secara cepat tanpa menunggu akhir permainan.
 
 ---
 
 ## 4. Aturan Domain yang Mempengaruhi Sistem
-Sistem mengikuti aturan permainan yang berdampak pada pencatatan dan validasi, meliputi:
+Dalam rancangan ini, aturan permainan yang berdampak pada pencatatan dan validasi meliputi:
 1. Pemain menjalankan dua aksi per giliran menggunakan token aksi.
 2. Hari Jumat menjalankan mekanik donasi, dan hari Sabtu menjalankan mekanik investasi emas.
 3. Setiap transaksi yang menambah atau mengurangi koin wajib tercatat sebagai arus kas.
@@ -57,7 +57,7 @@ Sistem mengikuti aturan permainan yang berdampak pada pencatatan dan validasi, m
 ---
 
 ## 5. Aktor Sistem
-Sistem melibatkan dua aktor:
+Aktor sistem terdiri dari dua peran:
 1. Instruktur
 2. Pemain
 
@@ -65,7 +65,7 @@ Sistem melibatkan dua aktor:
 
 ## 6. Kebutuhan Pengguna
 ### 6.1 Kebutuhan instruktur
-Instruktur membutuhkan:
+Kebutuhan instruktur dirangkum sebagai berikut:
 1. Fitur untuk membuat, memperbarui, menghapus, dan mengaktifkan *ruleset*.
 2. Fitur untuk memulai dan mengakhiri sesi permainan.
 3. Fitur untuk memantau performa pembelajaran dan performa misi pada level sesi (agregat) dan per pemain.
@@ -74,7 +74,7 @@ Instruktur membutuhkan:
 6. Fitur audit untuk melihat ringkasan aktivitas dan kesalahan validasi event.
 
 ### 6.2 Kebutuhan pemain
-Pemain membutuhkan:
+Kebutuhan pemain dirangkum sebagai berikut:
 1. Tampilan performa pembelajaran dan performa misi personal berbasis metrik dan histori keputusan.
 2. Tampilan ringkasan progres per sesi permainan.
 3. Tampilan histori transaksi arus kas untuk melihat pola pemasukan dan pengeluaran.
@@ -82,7 +82,7 @@ Pemain membutuhkan:
 ---
 
 ## 7. Kebutuhan Fungsional
-Bagian ini merinci kebutuhan yang dapat diuji.
+Kebutuhan fungsional berikut dirumuskan agar dapat diuji.
 
 ### 7.1 Penerimaan event dan validasi (REST API)
 - FR-API-01 Sistem menerima event dari klien IDN atau simulator melalui RESTful API.
@@ -93,7 +93,7 @@ Bagian ini merinci kebutuhan yang dapat diuji.
 - FR-API-06 Sistem menyimpan event yang valid ke basis data.
 - FR-API-07 Sistem menyediakan endpoint untuk mengambil daftar event per sesi dalam urutan yang konsisten.
 
-Aturan server (ringkas, tanpa mengubah kontrak payload):
+Aturan server (ringkas, tanpa mengubah kontrak payload) ditegaskan sebagai berikut:
 - Sistem menyimpan event dengan `event_pk` sebagai primary key internal.
 - Sistem menerapkan idempotensi pada kombinasi `session_id + event_id`.
 - Sistem menolak `sequence_number` duplikat dalam satu sesi.
@@ -128,7 +128,7 @@ Kriteria uji minimum:
 ---
 
 ## 8. Kebutuhan Data
-Sistem menyimpan data minimum berikut:
+Data minimum yang disimpan mencakup:
 1. Data pemain
 2. Data sesi permainan
 3. Data event permainan
@@ -144,7 +144,7 @@ Sistem menyimpan data minimum berikut:
 - MetricSnapshot: `metric_id`, session_id, player_id (opsional), timestamp, nama metrik, nilai metrik
 
 ### 8.2 Integritas data
-Sistem menjaga:
+Integritas data yang dijaga:
 1. Keunikan event pada kombinasi `session_id` dan `event_id`.
 2. Keterurutan event per sesi berdasarkan `sequence_number`.
 3. Keterkaitan event dengan ruleset versi aktif untuk sesi.
@@ -152,6 +152,7 @@ Sistem menjaga:
 ---
 
 ## 9. Kebutuhan Non-Fungsional
+Kebutuhan non-fungsional berikut ditetapkan.
 ### 9.1 Keamanan dan hak akses
 - NFR-SEC-01 Sistem menerapkan akses berbasis peran untuk instruktur dan pemain.
 - NFR-SEC-02 Sistem membatasi fitur pengelolaan ruleset hanya untuk instruktur.
@@ -200,6 +201,7 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - need.tertiary.purchased
 - ingredient.purchased
 - order.claimed
+- work.freelance.completed
 
 ### 10.6 Event mode mahir
 - loan.syariah.taken
@@ -207,13 +209,23 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - insurance.multirisk.purchased
 - saving.deposit.created
 - saving.deposit.withdrawn
+- saving.goal.achieved
+- risk.life.drawn
+- insurance.multirisk.used
+
+### 10.7 Event misi dan skor
+- mission.assigned
+- donation.rank.awarded
+- gold.points.awarded
+- pension.rank.awarded
+- tie_breaker.assigned
 
 Catatan: daftar event ini dapat bertambah saat spesifikasi desain dibuat, namun setiap event wajib mengikuti konteks minimum event dan aturan validasi.
 
 ---
 
 ## 11. Checklist Kelengkapan dan Konsistensi
-Sistem dinyatakan siap masuk tahap perancangan apabila:
+Tahap perancangan siap dimulai apabila:
 1. Setiap event pada katalog memiliki definisi field wajib dan aturan validasi.
 2. Setiap kebutuhan fungsional memiliki kriteria uji minimum.
 3. Setiap metrik pada dasbor memiliki sumber data dari event.
@@ -221,5 +233,9 @@ Sistem dinyatakan siap masuk tahap perancangan apabila:
 5. Setiap aturan domain yang berdampak pada validasi memiliki aturan validasi yang tertulis.
 
 ---
+
+
+
+
 
 

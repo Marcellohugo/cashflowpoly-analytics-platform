@@ -3,7 +3,10 @@ using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
-internal sealed class SessionRepository
+/// <summary>
+/// Repository untuk data sesi dan aktivasi ruleset per sesi.
+/// </summary>
+public sealed class SessionRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
@@ -91,6 +94,19 @@ internal sealed class SessionRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
+    public async Task<List<SessionDb>> ListSessionsAsync(CancellationToken ct)
+    {
+        const string sql = """
+            select session_id, session_name, mode, status, started_at, ended_at, created_at
+            from sessions
+            order by created_at desc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, cancellationToken: ct));
+        return items.ToList();
     }
 
     public async Task ActivateRulesetAsync(Guid sessionId, Guid rulesetVersionId, string? activatedBy, CancellationToken ct)

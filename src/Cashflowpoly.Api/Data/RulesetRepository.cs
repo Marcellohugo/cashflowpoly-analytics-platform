@@ -6,7 +6,10 @@ using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
-internal sealed class RulesetRepository
+/// <summary>
+/// Repository untuk ruleset dan versi ruleset.
+/// </summary>
+public sealed class RulesetRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
@@ -189,6 +192,58 @@ internal sealed class RulesetRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<RulesetListItem>(new CommandDefinition(sql, cancellationToken: ct));
         return items.ToList();
+    }
+
+    public async Task<List<RulesetVersionDb>> ListRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            from ruleset_versions
+            where ruleset_id = @rulesetId
+            order by version desc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task SetArchiveAsync(Guid rulesetId, bool isArchived, CancellationToken ct)
+    {
+        const string sql = """
+            update rulesets
+            set is_archived = @isArchived
+            where ruleset_id = @rulesetId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(sql, new { rulesetId, isArchived }, cancellationToken: ct));
+    }
+
+    public async Task<bool> IsRulesetUsedAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select 1
+            from session_ruleset_activations sra
+            join ruleset_versions rv on rv.ruleset_version_id = sra.ruleset_version_id
+            where rv.ruleset_id = @rulesetId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var result = await conn.ExecuteScalarAsync<int?>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+        return result.HasValue;
+    }
+
+    public async Task DeleteRulesetAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            delete from rulesets
+            where ruleset_id = @rulesetId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
     private static string ComputeHash(string input)

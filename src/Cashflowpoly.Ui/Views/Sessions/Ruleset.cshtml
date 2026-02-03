@@ -1,0 +1,45 @@
+@model Cashflowpoly.Ui.Models.SessionRulesetViewModel
+
+@{
+    ViewData["Title"] = "Aktivasi Ruleset";
+}
+
+<section class="section-shell">
+    <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Aktivasi Ruleset</p>
+        <h1 class="mt-3 text-3xl text-slate-900">Pilih Ruleset untuk Sesi</h1>
+        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <form class="mt-6 space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-4" method="post">
+        <div>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ruleset</label>
+            <select class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
+                    asp-for="SelectedRulesetId">
+                <option value="">Pilih ruleset</option>
+                @foreach (var item in Model.Rulesets)
+                {
+                    <option value="@item.RulesetId">@item.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Versi</label>
+            <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
+                   asp-for="SelectedVersion" type="number" min="1" />
+            <p class="mt-1 text-xs text-slate-500">Isi versi manual (mis. 1 atau versi terbaru).</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="btn-primary"
+                    type="submit">Aktifkan</button>
+            <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">Batal</a>
+        </div>
+    </form>
+</section>

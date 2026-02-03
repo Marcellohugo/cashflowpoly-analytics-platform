@@ -1,4 +1,4 @@
-# Laporan Hasil Pengujian  
+﻿# Laporan Hasil Pengujian  
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini saya susun untuk menyajikan rekap hasil uji fungsional (*black-box*), uji integrasi alur event, dan validasi UI dasbor. Dokumen ini juga saya susun untuk merangkum temuan (*bug*), modul yang paling sering bermasalah, dan status perbaikannya.
+Dokumen ini disusun untuk menyajikan rekap hasil uji fungsional (*black-box*), uji integrasi alur event, dan validasi UI dasbor. Dokumen ini juga disusun untuk merangkum temuan (*bug*), modul yang paling sering bermasalah, dan status perbaikannya.
 
 Dokumen ini diisi setelah menjalankan rencana uji pada dokumen 01.
 
@@ -201,6 +201,7 @@ Daftar lampiran:
 - SS-UI-01.png: detail sesi
 - DB-01.sql: query metric_snapshots
 - (isi sesuai bukti nyata)
+
 
 
 
