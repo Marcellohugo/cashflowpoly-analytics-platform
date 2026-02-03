@@ -86,3 +86,10 @@ public sealed class MetricSnapshotDb
     public string? MetricValueJson { get; set; }
     public Guid RulesetVersionId { get; set; }
 }
+
+public sealed class MetricSnapshotJsonDb
+{
+    public string MetricName { get; set; } = string.Empty;
+    public string? MetricValueJson { get; set; }
+    public DateTimeOffset ComputedAt { get; set; }
+}

@@ -50,12 +50,29 @@ public sealed class PlayersController : Controller
         }
 
         var tx = await txResponse.Content.ReadFromJsonAsync<TransactionHistoryResponseDto>(cancellationToken: ct);
+        string? gameplayError = null;
+        GameplayMetricsResponseDto? gameplay = null;
+        var gameplayResponse = await client.GetAsync($"api/analytics/sessions/{sessionId}/players/{playerId}/gameplay", ct);
+        if (gameplayResponse.IsSuccessStatusCode)
+        {
+            gameplay = await gameplayResponse.Content.ReadFromJsonAsync<GameplayMetricsResponseDto>(cancellationToken: ct);
+        }
+        else
+        {
+            var error = await gameplayResponse.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            gameplayError = error?.Message ?? $"Gagal memuat metrik gameplay. Status: {(int)gameplayResponse.StatusCode}";
+        }
+
         return View(new PlayerDetailViewModel
         {
             SessionId = sessionId,
             PlayerId = playerId,
             Summary = summary,
-            Transactions = tx?.Items ?? new List<TransactionHistoryItemDto>()
+            Transactions = tx?.Items ?? new List<TransactionHistoryItemDto>(),
+            GameplayRaw = gameplay?.Raw,
+            GameplayDerived = gameplay?.Derived,
+            GameplayComputedAt = gameplay?.ComputedAt,
+            GameplayErrorMessage = gameplayError
         });
     }
 }

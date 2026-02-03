@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Cashflowpoly.Ui.Models;
 
 public sealed class AnalyticsSearchViewModel
@@ -26,6 +28,10 @@ public sealed class PlayerDetailViewModel
     public Guid PlayerId { get; init; }
     public AnalyticsByPlayerItemDto? Summary { get; init; }
     public List<TransactionHistoryItemDto> Transactions { get; init; } = new();
+    public JsonElement? GameplayRaw { get; init; }
+    public JsonElement? GameplayDerived { get; init; }
+    public DateTimeOffset? GameplayComputedAt { get; init; }
+    public string? GameplayErrorMessage { get; init; }
     public string? ErrorMessage { get; init; }
 }
 

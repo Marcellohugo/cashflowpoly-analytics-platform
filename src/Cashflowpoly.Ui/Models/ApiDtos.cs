@@ -66,6 +66,13 @@ public sealed record AnalyticsSessionResponseDto(
     [property: JsonPropertyName("summary")] AnalyticsSessionSummaryDto Summary,
     [property: JsonPropertyName("by_player")] List<AnalyticsByPlayerItemDto> ByPlayer);
 
+public sealed record GameplayMetricsResponseDto(
+    [property: JsonPropertyName("session_id")] Guid SessionId,
+    [property: JsonPropertyName("player_id")] Guid PlayerId,
+    [property: JsonPropertyName("computed_at")] DateTimeOffset? ComputedAt,
+    [property: JsonPropertyName("raw")] JsonElement? Raw,
+    [property: JsonPropertyName("derived")] JsonElement? Derived);
+
 public sealed record TransactionHistoryItemDto(
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
     [property: JsonPropertyName("direction")] string Direction,

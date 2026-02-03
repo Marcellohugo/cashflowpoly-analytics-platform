@@ -119,12 +119,45 @@ public sealed class AnalyticsController : ControllerBase
         return Ok(new TransactionHistoryResponse(items));
     }
 
+    [HttpGet("sessions/{sessionId:guid}/players/{playerId:guid}/gameplay")]
+    public async Task<IActionResult> GetGameplayMetrics(Guid sessionId, Guid playerId, CancellationToken ct)
+    {
+        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        var snapshots = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, playerId, ct);
+        var rawJson = snapshots.FirstOrDefault(item => item.MetricName == "gameplay.raw.variables")?.MetricValueJson;
+        var derivedJson = snapshots.FirstOrDefault(item => item.MetricName == "gameplay.derived.metrics")?.MetricValueJson;
+        var computedAt = snapshots.Count == 0 ? (DateTimeOffset?)null : snapshots.Max(item => item.ComputedAt);
+
+        return Ok(new GameplayMetricsResponse(
+            sessionId,
+            playerId,
+            computedAt,
+            ParseJsonElement(rawJson),
+            ParseJsonElement(derivedJson)));
+    }
+
     private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections, int rulesViolationsCount)
     {
         var cashInTotal = projections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOutTotal = projections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
         var cashflowNetTotal = cashInTotal - cashOutTotal;
         return new AnalyticsSessionSummary(events.Count, cashInTotal, cashOutTotal, cashflowNetTotal, rulesViolationsCount);
+    }
+
+    private static JsonElement? ParseJsonElement(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.Clone();
     }
 
     private static List<AnalyticsByPlayerItem> BuildByPlayer(

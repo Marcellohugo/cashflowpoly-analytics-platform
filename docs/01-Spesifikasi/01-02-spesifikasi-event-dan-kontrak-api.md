@@ -855,6 +855,27 @@ Catatan akses:
 
 ---
 
+### 9.3 Ambil snapshot metrik gameplay (raw + derived)
+- Method: `GET`
+- Path: `/api/analytics/sessions/{sessionId}/players/{playerId}/gameplay`
+- Response 200:
+```json
+{
+  "session_id": "uuid",
+  "player_id": "uuid",
+  "computed_at": "2026-02-03T11:20:00Z",
+  "raw": { "...": "..." },
+  "derived": { "...": "..." }
+}
+```
+
+Catatan:
+- `raw` berisi variabel gameplay fisik.
+- `derived` berisi metrik turunan dari variabel fisik.
+- Struktur lengkap mengikuti dokumen `docs/02-Perancangan/02-06-metrik-gameplay-fisik-dan-turunan.md`.
+
+---
+
 ## 10. Status Code dan Makna
 | Status | Makna |
 |---:|---|
