@@ -266,4 +266,32 @@ public sealed class EventRepository
         var items = await conn.QueryAsync<EventDb>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
         return items.ToList();
     }
+
+    public async Task<EventDb?> GetEventByIdAsync(Guid sessionId, Guid eventId, CancellationToken ct)
+    {
+        const string sql = """
+            select event_pk,
+                   event_id,
+                   session_id,
+                   player_id,
+                   actor_type,
+                   timestamp,
+                   day_index,
+                   weekday,
+                   turn_number,
+                   sequence_number,
+                   action_type,
+                   ruleset_version_id,
+                   payload::text as payload,
+                   received_at,
+                   client_request_id
+            from events
+            where session_id = @sessionId
+              and event_id = @eventId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QueryFirstOrDefaultAsync<EventDb>(new CommandDefinition(sql, new { sessionId, eventId }, cancellationToken: ct));
+    }
 }

@@ -266,7 +266,7 @@ Validasi:
 - Sistem menolak pembelian kebutuhan non-primer jika kebutuhan primer belum terpenuhi pada hari itu.
 - `amount > 0`.
 - `card_id` wajib diisi.
-- `points` opsional (nilai poin pada kartu kebutuhan).
+- `points` wajib diisi (nilai poin pada kartu kebutuhan).
 
 Efek data:
 - Mengurangi saldo.
@@ -353,6 +353,8 @@ Validasi:
 - `installment > 0`.
 - `duration_turn > 0`.
 - `penalty_points >= 0`.
+- `principal` harus **10** koin (sesuai rulebook).
+- `penalty_points` harus **15** poin (sesuai rulebook).
 - Sistem menolak jika aturan ruleset melarang pinjaman pada kondisi tertentu.
 
 Efek data:
@@ -395,6 +397,7 @@ Payload:
 
 Validasi:
 - `premium > 0`.
+- `premium` harus **1** koin (sesuai rulebook).
 
 Efek data:
 - Mengurangi saldo.
@@ -419,6 +422,7 @@ Validasi:
 - `mission_id` wajib.
 - `target_tertiary_card_id` wajib.
 - `penalty_points >= 0`.
+- `penalty_points` harus **10** poin (sesuai rulebook).
 
 Efek data:
 - Menetapkan misi koleksi pemain untuk evaluasi di akhir sesi.
@@ -526,6 +530,7 @@ Payload:
 Validasi:
 - `goal_id` wajib.
 - `amount > 0`.
+- `amount` maksimal **15** koin per aksi (sesuai rulebook).
 - Fitur tabungan tujuan aktif.
 
 Efek data:
@@ -587,6 +592,7 @@ Payload:
 
 Validasi:
 - `risk_event_id` wajib.
+- `risk_event_id` harus merujuk ke event `risk.life.drawn` bertipe OUT milik pemain yang sama.
 
 Efek data:
 - Menandai penggunaan asuransi terhadap kartu risiko.

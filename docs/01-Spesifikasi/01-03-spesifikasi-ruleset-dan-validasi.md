@@ -22,6 +22,12 @@ Sistem menjaga aturan inti berikut tetap stabil:
 1. Sistem mencatat aksi sebagai event terstruktur.
 2. Sistem mengurutkan event per sesi dan mencegah dampak ganda dari event duplikat.
 3. Sistem mengikat event pada versi *ruleset* yang aktif saat event terjadi.
+4. Sistem menerapkan batas tetap berbasis rulebook:
+   - `saving.deposit.created.amount` maksimal 15 koin per aksi.
+   - `loan.syariah.taken.principal` = 10 koin dan `penalty_points` = 15 poin.
+   - `insurance.multirisk.purchased.premium` = 1 koin.
+   - `mission.assigned.penalty_points` = 10 poin.
+   - `need.*.purchased.points` wajib diisi.
 
 ### 2.2 Parameter variabel
 Sistem mengelola parameter variabel seperti:

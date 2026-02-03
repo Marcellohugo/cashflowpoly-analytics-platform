@@ -295,6 +295,8 @@ total = need_points
 
 **Rumus:** `sum(payload.points)`.
 
+Catatan: `payload.points` wajib diisi pada event kebutuhan.
+
 ---
 
 ## 6.13 `happiness.need.bonus`
@@ -341,6 +343,8 @@ total = need_points
 
 **Aturan:** poin hanya dihitung jika tidak ada pinjaman syariah yang belum lunas.
 
+Catatan: `saving.deposit.created.amount` maksimal 15 koin per aksi (rulebook).
+
 ---
 
 ## 6.18 `happiness.mission.penalty`
@@ -350,6 +354,8 @@ total = need_points
 
 **Aturan:** jika target misi tidak terpenuhi, penalti diambil dari `payload.penalty_points`.
 
+Catatan: rulebook menetapkan `penalty_points = 10`.
+
 ---
 
 ## 6.19 `happiness.loan.penalty`
@@ -358,6 +364,8 @@ total = need_points
 **Sumber event:** `loan.syariah.taken`, `loan.syariah.repaid`.
 
 **Aturan:** penalti diambil dari `payload.penalty_points` pada loan yang belum lunas.
+
+Catatan: rulebook menetapkan `principal = 10` dan `penalty_points = 15`.
 
 ---
 ## 7. Pemetaan Event ke Metrik (Ringkas)

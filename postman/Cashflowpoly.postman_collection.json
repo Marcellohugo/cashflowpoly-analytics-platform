@@ -38,6 +38,21 @@
           }
         },
         {
+          "name": "Create Ruleset (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Actor-Role", "value": "INSTRUCTOR"}
+            ],
+            "url": "{{baseUrl}}/api/rulesets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Ruleset Mahir\",\"description\":\"Konfigurasi mahir rulebook\",\"config\":{\"mode\":\"MAHIR\",\"actions_per_turn\":2,\"starting_cash\":10,\"weekday_rules\":{\"friday\":{\"feature\":\"DONATION\",\"enabled\":true},\"saturday\":{\"feature\":\"GOLD_TRADE\",\"enabled\":true},\"sunday\":{\"feature\":\"REST\",\"enabled\":true}},\"constraints\":{\"cash_min\":0,\"max_ingredient_total\":6,\"max_same_ingredient\":3,\"primary_need_max_per_day\":1,\"require_primary_before_others\":true},\"donation\":{\"min_amount\":1,\"max_amount\":999999},\"gold_trade\":{\"allow_buy\":true,\"allow_sell\":true},\"advanced\":{\"loan\":{\"enabled\":true},\"insurance\":{\"enabled\":true},\"saving_goal\":{\"enabled\":true}},\"freelance\":{\"income\":1},\"scoring\":{\"donation_rank_points\":[{\"rank\":1,\"points\":7},{\"rank\":2,\"points\":5},{\"rank\":3,\"points\":2}],\"gold_points_by_qty\":[{\"qty\":1,\"points\":3},{\"qty\":2,\"points\":5},{\"qty\":3,\"points\":8},{\"qty\":4,\"points\":12}],\"pension_rank_points\":[{\"rank\":1,\"points\":5},{\"rank\":2,\"points\":3},{\"rank\":3,\"points\":1}]}}}"
+            }
+          }
+        },
+        {
           "name": "List Rulesets",
           "request": {"method": "GET", "url": "{{baseUrl}}/api/rulesets"}
         }
@@ -113,6 +128,42 @@
           }
         },
         {
+          "name": "Need Primary Purchased",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdNeedPrimary}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":2,\"action_type\":\"need.primary.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-P-001\",\"amount\":2,\"points\":2}}"
+            }
+          }
+        },
+        {
+          "name": "Need Secondary Purchased",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdNeedSecondary}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":3,\"action_type\":\"need.secondary.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-S-001\",\"amount\":3,\"points\":3}}"
+            }
+          }
+        },
+        {
+          "name": "Need Tertiary Purchased",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdNeedTertiary}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":4,\"action_type\":\"need.tertiary.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-T-001\",\"amount\":4,\"points\":4}}"
+            }
+          }
+        },
+        {
           "name": "Order Claimed",
           "request": {
             "method": "POST",
@@ -120,19 +171,31 @@
             "url": "{{baseUrl}}/api/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdOrder}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":2,\"action_type\":\"order.claimed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-001\",\"required_ingredient_card_ids\":[\"ING-001\"],\"income\":10}}"
+              "raw": "{\"event_id\":\"{{eventIdOrder}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":5,\"action_type\":\"order.claimed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-001\",\"required_ingredient_card_ids\":[\"ING-001\"],\"income\":10}}"
             }
           }
         },
         {
-          "name": "Risk Life Drawn",
+          "name": "Risk Life Drawn (MAHIR)",
           "request": {
             "method": "POST",
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "url": "{{baseUrl}}/api/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdRisk}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":3,\"action_type\":\"risk.life.drawn\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_id\":\"RISK-001\",\"direction\":\"OUT\",\"amount\":3,\"note\":\"Biaya kesehatan\"}}"
+              "raw": "{\"event_id\":\"{{eventIdRisk}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":6,\"action_type\":\"risk.life.drawn\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_id\":\"RISK-001\",\"direction\":\"OUT\",\"amount\":3,\"note\":\"Biaya kesehatan\"}}"
+            }
+          }
+        },
+        {
+          "name": "Insurance Multirisk Used (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdInsuranceUsed}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":7,\"action_type\":\"insurance.multirisk.used\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_event_id\":\"{{eventIdRisk}}\"}}"
             }
           }
         },
@@ -144,7 +207,91 @@
             "url": "{{baseUrl}}/api/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdTurnEnd}}\",\"session_id\":\"{{sessionId}}\",\"actor_type\":\"SYSTEM\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":4,\"action_type\":\"turn.ended\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"note\":\"Akhir giliran\"}}"
+              "raw": "{\"event_id\":\"{{eventIdTurnEnd}}\",\"session_id\":\"{{sessionId}}\",\"actor_type\":\"SYSTEM\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":8,\"action_type\":\"turn.ended\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"note\":\"Akhir giliran\"}}"
+            }
+          }
+        },
+        {
+          "name": "Mission Assigned",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdMission}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":9,\"action_type\":\"mission.assigned\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"mission_id\":\"MIS-001\",\"target_tertiary_card_id\":\"NEED-T-001\",\"penalty_points\":10,\"require_primary\":true,\"require_secondary\":true}}"
+            }
+          }
+        },
+        {
+          "name": "Insurance Multirisk Purchased (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdInsurance}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":10,\"action_type\":\"insurance.multirisk.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"policy_id\":\"INS-001\",\"premium\":1,\"coverage_type\":\"MULTIRISK\"}}"
+            }
+          }
+        },
+        {
+          "name": "Saving Deposit Created (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdSavingDeposit}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":11,\"action_type\":\"saving.deposit.created\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"goal_id\":\"GOAL-001\",\"amount\":10}}"
+            }
+          }
+        },
+        {
+          "name": "Saving Deposit Withdrawn (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdSavingWithdraw}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":12,\"action_type\":\"saving.deposit.withdrawn\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"goal_id\":\"GOAL-001\",\"amount\":5}}"
+            }
+          }
+        },
+        {
+          "name": "Saving Goal Achieved (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdSavingGoal}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":13,\"action_type\":\"saving.goal.achieved\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"goal_id\":\"GOAL-001\",\"points\":5,\"cost\":15}}"
+            }
+          }
+        },
+        {
+          "name": "Loan Syariah Taken (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdLoanTaken}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":14,\"action_type\":\"loan.syariah.taken\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"loan_id\":\"LOAN-001\",\"principal\":10,\"installment\":10,\"duration_turn\":1,\"penalty_points\":15}}"
+            }
+          }
+        },
+        {
+          "name": "Loan Syariah Repaid (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdLoanRepaid}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":15,\"action_type\":\"loan.syariah.repaid\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"loan_id\":\"LOAN-001\",\"amount\":10}}"
             }
           }
         }

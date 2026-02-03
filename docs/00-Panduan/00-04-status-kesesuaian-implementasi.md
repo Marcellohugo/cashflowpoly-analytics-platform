@@ -18,12 +18,12 @@ Ringkasan berikut membandingkan mekanika utama pada `docs/00-ringkasan-rulebook-
 | Donasi Jumat | Sesuai | Event donasi + poin juara otomatis jika ruleset scoring tersedia. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
 | Investasi Emas Sabtu | Sesuai | BUY/SELL + validasi saldo & kepemilikan, poin emas otomatis via ruleset scoring. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
 | Bahan & Pesanan Masakan | Sesuai | Validasi kepemilikan bahan dan klaim order tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Kebutuhan primer/sekunder/tersier | Parsial | Aturan “primer dulu” + poin/bonus set dihitung jika payload menyertakan `points`. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
+| Kebutuhan primer/sekunder/tersier | Sesuai | Aturan “primer dulu” + `points` wajib diisi, bonus set dihitung otomatis. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Kerja Lepas | Sesuai | Event `work.freelance.completed` + validasi amount sesuai ruleset. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Risiko Kehidupan | Sesuai | Event + validasi tersedia, wajib mengikuti `order.claimed` pada mode mahir. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Asuransi Multi Risiko | Parsial | Event pembelian & penggunaan ada, dampak risiko masih berbasis input event. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Tabungan Tujuan Keuangan | Parsial | Deposit/withdraw/goal event tersedia, poin tujuan dihitung. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Pinjaman Syariah | Parsial | Event pinjam & bayar ada, penalti dihitung dari payload. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
+| Asuransi Multi Risiko | Sesuai | `insurance.multirisk.used` harus merujuk risiko OUT dan menambah proyeksi offset. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
+| Tabungan Tujuan Keuangan | Sesuai | Deposit dibatasi maksimal 15 koin per aksi, poin tujuan dihitung. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
+| Pinjaman Syariah | Sesuai | Principal 10 koin + penalti 15 poin divalidasi sesuai rulebook. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Poin Kebahagiaan | Sesuai | Dihitung dari event kebutuhan/bonus/penalti + scoring otomatis donasi/emas/pensiun bila tersedia. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
 
 ---

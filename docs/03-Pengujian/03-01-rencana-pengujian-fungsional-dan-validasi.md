@@ -504,13 +504,18 @@ Tambahan pengujian untuk event baru:
 2. TC-API-19 — `donation.rank.awarded` valid (award poin)
 3. TC-API-20 — `gold.points.awarded` valid (award poin emas)
 4. TC-API-21 — `pension.rank.awarded` valid (award poin pensiun)
-5. TC-API-22 — `saving.deposit.created` dan `saving.deposit.withdrawn` valid
+5. TC-API-22 — `saving.deposit.created` dan `saving.deposit.withdrawn` valid (deposit max 15 koin/aksi)
 6. TC-API-23 — `saving.goal.achieved` valid
 7. TC-API-24 — `risk.life.drawn` valid untuk mode MAHIR
 8. TC-API-25 — `loan.syariah.repaid` menolak pembayaran melebihi principal
 9. TC-API-26 — `work.freelance.completed` valid sesuai `freelance.income`
 10. TC-API-27 — `turn.ended` menolak jika `order.claimed` tanpa `risk.life.drawn` (mode MAHIR)
 11. TC-API-28 — ruleset scoring menghitung poin donasi/emas/pensiun pada analitika
+
+Catatan tambahan:
+- `mission.assigned.penalty_points` harus 10 (rulebook).
+- `loan.syariah.taken.principal` harus 10 dan `penalty_points` harus 15.
+- `insurance.multirisk.purchased.premium` harus 1 dan `insurance.multirisk.used` harus merujuk risiko OUT milik pemain.
 
 Catatan:
 - TC ini mengikuti format skenario uji pada bagian TC-API sebelumnya.

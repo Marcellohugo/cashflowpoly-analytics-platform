@@ -42,6 +42,12 @@ public sealed class EventsController : ControllerBase
         "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
     };
 
+    private const int RulebookMissionPenaltyPoints = 10;
+    private const int RulebookLoanPrincipal = 10;
+    private const int RulebookLoanPenaltyPoints = 15;
+    private const int RulebookInsurancePremium = 1;
+    private const int RulebookSavingMaxDeposit = 15;
+
     [HttpPost("events")]
     public async Task<IActionResult> CreateEvent([FromBody] EventRequest request, CancellationToken ct)
     {
@@ -251,6 +257,41 @@ public sealed class EventsController : ControllerBase
         if (TryBuildCashflowProjection(request, timestamp, eventPk, out var projection))
         {
             await _events.InsertCashflowProjectionAsync(projection, ct);
+        }
+
+        if (request.PlayerId is { } insurancePlayerId &&
+            string.Equals(request.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) &&
+            TryReadInsuranceUsed(request.Payload, out var riskEventIdText) &&
+            Guid.TryParse(riskEventIdText, out var riskEventId))
+        {
+            var riskEvent = await _events.GetEventByIdAsync(request.SessionId, riskEventId, ct);
+            if (riskEvent is not null &&
+                riskEvent.PlayerId == request.PlayerId &&
+                string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+            {
+                var riskPayload = ReadPayload(riskEvent.Payload);
+                if (TryReadRiskLife(riskPayload, out _, out var direction, out var amount) &&
+                    string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) &&
+                    amount > 0)
+                {
+                    var offset = new CashflowProjectionDb
+                    {
+                        ProjectionId = Guid.NewGuid(),
+                        SessionId = request.SessionId,
+                        PlayerId = insurancePlayerId,
+                        EventPk = eventPk,
+                        EventId = request.EventId,
+                        Timestamp = timestamp,
+                        Direction = "IN",
+                        Amount = amount,
+                        Category = "INSURANCE_CLAIM",
+                        Counterparty = "BANK",
+                        Reference = riskEventIdText,
+                        Note = "Offset risiko via asuransi"
+                    };
+                    await _events.InsertCashflowProjectionAsync(offset, ct);
+                }
+            }
         }
 
         return eventPk;
@@ -550,6 +591,12 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("payload.points", "OUT_OF_RANGE"));
             }
 
+            if (!payload.TryGetProperty("points", out _))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points wajib diisi",
+                    new ErrorDetail("payload.points", "REQUIRED"));
+            }
+
             if (config.PrimaryNeedMaxPerDay == 0)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang pembelian kebutuhan primer");
@@ -609,6 +656,12 @@ public sealed class EventsController : ControllerBase
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points tidak valid",
                     new ErrorDetail("payload.points", "OUT_OF_RANGE"));
+            }
+
+            if (!payload.TryGetProperty("points", out _))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Points wajib diisi",
+                    new ErrorDetail("payload.points", "REQUIRED"));
             }
 
             if (config.RequirePrimaryBeforeOthers && request.PlayerId is not null)
@@ -771,6 +824,11 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("payload.penalty_points", "OUT_OF_RANGE"));
             }
 
+            if (penaltyPoints != RulebookMissionPenaltyPoints)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Penalty misi harus 10 poin");
+            }
+
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var alreadyAssigned = events.Any(e =>
                 e.PlayerId == request.PlayerId &&
@@ -916,6 +974,12 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
             }
 
+            if (string.Equals(actionType, "saving.deposit.created", StringComparison.OrdinalIgnoreCase) &&
+                amount > RulebookSavingMaxDeposit)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Maksimal tabungan per aksi adalah 15 koin");
+            }
+
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var balance = ComputeSavingBalance(events, request.PlayerId.Value, goalId);
 
@@ -1047,10 +1111,46 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("player_id", "REQUIRED"));
             }
 
-            if (!TryReadInsuranceUsed(payload, out _))
+            if (!TryReadInsuranceUsed(payload, out var riskEventIdText))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload insurance used tidak valid",
                     new ErrorDetail("payload.risk_event_id", "REQUIRED"));
+            }
+
+            if (!Guid.TryParse(riskEventIdText, out var riskEventId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Risk event id tidak valid",
+                    new ErrorDetail("payload.risk_event_id", "INVALID_FORMAT"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
+            if (riskEvent is null || !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
+            }
+
+            if (riskEvent.PlayerId != request.PlayerId)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
+            }
+
+            var riskPayload = ReadPayload(riskEvent.Payload);
+            if (!TryReadRiskLife(riskPayload, out _, out var direction, out var amount) ||
+                !string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
+                amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Asuransi hanya berlaku untuk risiko OUT");
+            }
+
+            var alreadyUsed = events.Any(e =>
+                string.Equals(e.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) &&
+                TryReadInsuranceUsed(ReadPayload(e.Payload), out var usedRiskEventId) &&
+                string.Equals(usedRiskEventId, riskEventIdText, StringComparison.OrdinalIgnoreCase));
+
+            if (alreadyUsed)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event sudah ditangkal asuransi");
             }
 
             return Valid;
@@ -1085,6 +1185,16 @@ public sealed class EventsController : ControllerBase
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Penalty points tidak valid",
                     new ErrorDetail("payload.penalty_points", "OUT_OF_RANGE"));
+            }
+
+            if (principal != RulebookLoanPrincipal)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Nilai pinjaman harus 10 koin");
+            }
+
+            if (penaltyPoints != RulebookLoanPenaltyPoints)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Penalty pinjaman harus 15 poin");
             }
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
@@ -1182,6 +1292,11 @@ public sealed class EventsController : ControllerBase
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Premium harus > 0",
                     new ErrorDetail("payload.premium", "OUT_OF_RANGE"));
+            }
+
+            if (premium != RulebookInsurancePremium)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Premium asuransi harus 1 koin");
             }
 
             if (request.PlayerId is not null)
