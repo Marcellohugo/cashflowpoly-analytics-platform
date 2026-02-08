@@ -733,6 +733,61 @@ public sealed class EventsController : ControllerBase
             return Valid;
         }
 
+        if (string.Equals(actionType, "ingredient.discarded", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadIngredientPurchase(payload, out var cardId, out var amount))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload discard ingredient tidak valid",
+                    new ErrorDetail("payload.card_id", "REQUIRED"));
+            }
+
+            if (amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
+                    new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var inventory = BuildIngredientInventory(events, request.PlayerId.Value);
+            var currentQty = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty : 0;
+
+            if (currentQty < amount)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Jumlah discard melebihi stok bahan");
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "order.passed", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadOrderClaim(payload, out _, out var income))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload order pass tidak valid",
+                    new ErrorDetail("payload.required_ingredient_card_ids", "REQUIRED"));
+            }
+
+            if (income <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Income harus > 0",
+                    new ErrorDetail("payload.income", "OUT_OF_RANGE"));
+            }
+
+            return Valid;
+        }
+
         if (string.Equals(actionType, "order.claimed", StringComparison.OrdinalIgnoreCase))
         {
             if (request.PlayerId is null)
@@ -1151,6 +1206,78 @@ public sealed class EventsController : ControllerBase
             if (alreadyUsed)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event sudah ditangkal asuransi");
+            }
+
+            return Valid;
+        }
+
+        if (string.Equals(actionType, "risk.emergency.used", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.PlayerId is null)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                    new ErrorDetail("player_id", "REQUIRED"));
+            }
+
+            if (!TryReadEmergencyOption(payload, out var riskEventIdText, out var optionType, out var direction, out var amount))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload emergency option tidak valid",
+                    new ErrorDetail("payload.risk_event_id", "REQUIRED"));
+            }
+
+            if (!Guid.TryParse(riskEventIdText, out var riskEventId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Risk event id tidak valid",
+                    new ErrorDetail("payload.risk_event_id", "INVALID_FORMAT"));
+            }
+
+            if (amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
+                    new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+            }
+
+            if (!string.Equals(direction, "IN", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Direction tidak valid",
+                    new ErrorDetail("payload.direction", "INVALID_ENUM"));
+            }
+
+            var allowedOptions = new[] { "SELL_NEED", "SELL_GOLD", "SELL_GOAL", "OTHER" };
+            if (string.IsNullOrWhiteSpace(optionType) ||
+                !allowedOptions.Any(opt => string.Equals(opt, optionType, StringComparison.OrdinalIgnoreCase)))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Option type tidak valid",
+                    new ErrorDetail("payload.option_type", "INVALID_ENUM"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
+            if (riskEvent is null || !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
+            }
+
+            if (riskEvent.PlayerId != request.PlayerId)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
+            }
+
+            var riskPayload = ReadPayload(riskEvent.Payload);
+            if (!TryReadRiskLife(riskPayload, out _, out var riskDirection, out _) ||
+                !string.Equals(riskDirection, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Emergency option hanya berlaku untuk risiko OUT");
+            }
+
+            if (string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                if (!balanceCheck.IsValid)
+                {
+                    return balanceCheck;
+                }
             }
 
             return Valid;
@@ -1576,6 +1703,33 @@ public sealed class EventsController : ControllerBase
         return !string.IsNullOrWhiteSpace(riskEventId);
     }
 
+    private static bool TryReadEmergencyOption(
+        JsonElement payload,
+        out string riskEventId,
+        out string optionType,
+        out string direction,
+        out int amount)
+    {
+        riskEventId = string.Empty;
+        optionType = string.Empty;
+        direction = string.Empty;
+        amount = 0;
+
+        if (!payload.TryGetProperty("risk_event_id", out var riskProp) ||
+            !payload.TryGetProperty("option_type", out var optionProp) ||
+            !payload.TryGetProperty("direction", out var directionProp) ||
+            !payload.TryGetProperty("amount", out var amountProp))
+        {
+            return false;
+        }
+
+        riskEventId = riskProp.GetString() ?? string.Empty;
+        optionType = optionProp.GetString() ?? string.Empty;
+        direction = directionProp.GetString() ?? string.Empty;
+        amount = amountProp.GetInt32();
+        return !string.IsNullOrWhiteSpace(riskEventId);
+    }
+
     private static bool TryReadLoanTaken(
         JsonElement payload,
         out string loanId,
@@ -1657,6 +1811,17 @@ public sealed class EventsController : ControllerBase
                         inventory.ByCardId[card] = qty - 1;
                         inventory.Total = Math.Max(0, inventory.Total - 1);
                     }
+                }
+            }
+
+            if (evt.ActionType == "ingredient.discarded" &&
+                TryReadIngredientPurchase(ReadPayload(evt.Payload), out var discardCardId, out var discardAmount))
+            {
+                if (inventory.ByCardId.TryGetValue(discardCardId, out var qty))
+                {
+                    var newQty = Math.Max(0, qty - discardAmount);
+                    inventory.ByCardId[discardCardId] = newQty;
+                    inventory.Total = Math.Max(0, inventory.Total - discardAmount);
                 }
             }
         }
@@ -1878,6 +2043,13 @@ public sealed class EventsController : ControllerBase
             direction = "OUT";
             amount = premium;
             category = "INSURANCE_PREMIUM";
+        }
+        else if (string.Equals(action, "risk.emergency.used", StringComparison.OrdinalIgnoreCase) &&
+                 TryReadEmergencyOption(request.Payload, out _, out _, out var emergencyDirection, out var emergencyAmount))
+        {
+            direction = emergencyDirection.ToUpperInvariant();
+            amount = emergencyAmount;
+            category = "EMERGENCY_OPTION";
         }
         else
         {

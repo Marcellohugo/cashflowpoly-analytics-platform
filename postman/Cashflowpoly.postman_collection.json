@@ -294,6 +294,42 @@
               "raw": "{\"event_id\":\"{{eventIdLoanRepaid}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":15,\"action_type\":\"loan.syariah.repaid\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"loan_id\":\"LOAN-001\",\"amount\":10}}"
             }
           }
+        },
+        {
+          "name": "Order Passed",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdOrderPassed}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":16,\"action_type\":\"order.passed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-002\",\"required_ingredient_card_ids\":[\"ING-002\"],\"income\":12}}"
+            }
+          }
+        },
+        {
+          "name": "Ingredient Discarded",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdIngredientDiscarded}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":17,\"action_type\":\"ingredient.discarded\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"ING-001\",\"amount\":1,\"reason\":\"HAND_LIMIT\"}}"
+            }
+          }
+        },
+        {
+          "name": "Risk Emergency Used (MAHIR)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"event_id\":\"{{eventIdRiskEmergency}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":18,\"action_type\":\"risk.emergency.used\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_event_id\":\"{{eventIdRisk}}\",\"option_type\":\"SELL_NEED\",\"direction\":\"IN\",\"amount\":3,\"note\":\"Menjual kebutuhan\"}}"
+            }
+          }
         }
       ]
     },

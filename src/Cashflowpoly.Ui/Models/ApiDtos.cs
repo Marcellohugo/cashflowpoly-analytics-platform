@@ -89,6 +89,25 @@ public sealed record PlayerResponseDto(
 public sealed record PlayerListResponseDto(
     [property: JsonPropertyName("items")] List<PlayerResponseDto> Items);
 
+public sealed record EventRequestDto(
+    [property: JsonPropertyName("event_id")] Guid EventId,
+    [property: JsonPropertyName("session_id")] Guid SessionId,
+    [property: JsonPropertyName("player_id")] Guid? PlayerId,
+    [property: JsonPropertyName("actor_type")] string ActorType,
+    [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
+    [property: JsonPropertyName("day_index")] int DayIndex,
+    [property: JsonPropertyName("weekday")] string Weekday,
+    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("sequence_number")] long SequenceNumber,
+    [property: JsonPropertyName("action_type")] string ActionType,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
+    [property: JsonPropertyName("payload")] JsonElement Payload,
+    [property: JsonPropertyName("client_request_id")] string? ClientRequestId);
+
+public sealed record EventsBySessionResponseDto(
+    [property: JsonPropertyName("session_id")] Guid SessionId,
+    [property: JsonPropertyName("events")] List<EventRequestDto> Events);
+
 public sealed record ApiErrorDetailDto(
     [property: JsonPropertyName("field")] string Field,
     [property: JsonPropertyName("issue")] string Issue);

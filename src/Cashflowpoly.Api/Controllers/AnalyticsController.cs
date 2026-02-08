@@ -571,6 +571,17 @@ public sealed class AnalyticsController : ControllerBase
                     }
                 }
             }
+
+            if (evt.ActionType == "ingredient.discarded" &&
+                TryReadIngredientPurchase(evt.Payload, out var discardCardId, out var discardAmount))
+            {
+                if (inventory.ByCardId.TryGetValue(discardCardId, out var qty))
+                {
+                    var newQty = Math.Max(0, qty - discardAmount);
+                    inventory.ByCardId[discardCardId] = newQty;
+                    inventory.Total = Math.Max(0, inventory.Total - discardAmount);
+                }
+            }
         }
 
         return inventory;
@@ -1062,13 +1073,57 @@ public sealed class AnalyticsController : ControllerBase
 
         var donationChampionCards = playerEvents.Count(e => e.ActionType == "donation.rank.awarded");
 
-        var savingDepositTotal = playerProjections
-            .Where(p => p.Category == "SAVING_DEPOSIT" && p.Direction == "OUT")
-            .Sum(p => p.Amount);
-        var savingWithdrawTotal = playerProjections
-            .Where(p => p.Category == "SAVING_WITHDRAW" && p.Direction == "IN")
-            .Sum(p => p.Amount);
-        var coinsSaved = savingDepositTotal - savingWithdrawTotal;
+        var savingDepositsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var savingWithdrawalsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var savingGoalCostsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var savingGoalsAchieved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var evt in playerEvents)
+        {
+            if (evt.ActionType == "saving.deposit.created" &&
+                TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
+            {
+                savingDepositsByGoal[goalId] = savingDepositsByGoal.TryGetValue(goalId, out var existing)
+                    ? existing + amount
+                    : amount;
+            }
+
+            if (evt.ActionType == "saving.deposit.withdrawn" &&
+                TryReadSavingDeposit(evt.Payload, out var withdrawGoalId, out var withdrawAmount))
+            {
+                savingWithdrawalsByGoal[withdrawGoalId] = savingWithdrawalsByGoal.TryGetValue(withdrawGoalId, out var existing)
+                    ? existing + withdrawAmount
+                    : withdrawAmount;
+            }
+
+            if (evt.ActionType == "saving.goal.achieved" &&
+                TryReadSavingGoalAchievedDetailed(evt.Payload, out var achievedGoalId, out _, out var cost))
+            {
+                if (!string.IsNullOrWhiteSpace(achievedGoalId))
+                {
+                    savingGoalsAchieved.Add(achievedGoalId);
+                }
+
+                savingGoalCostsByGoal[achievedGoalId] = savingGoalCostsByGoal.TryGetValue(achievedGoalId, out var existing)
+                    ? existing + cost
+                    : cost;
+            }
+        }
+
+        var savingBalancesByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var goalId in savingDepositsByGoal.Keys
+                     .Concat(savingWithdrawalsByGoal.Keys)
+                     .Concat(savingGoalCostsByGoal.Keys)
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var deposits = savingDepositsByGoal.TryGetValue(goalId, out var dep) ? dep : 0;
+            var withdraws = savingWithdrawalsByGoal.TryGetValue(goalId, out var wit) ? wit : 0;
+            var costs = savingGoalCostsByGoal.TryGetValue(goalId, out var cst) ? cst : 0;
+            var balance = deposits - withdraws - costs;
+            savingBalancesByGoal[goalId] = Math.Max(0, balance);
+        }
+
+        var coinsSaved = savingBalancesByGoal.Values.Sum();
 
         var ingredientPurchaseMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var ingredientsCollected = 0;
@@ -1111,6 +1166,11 @@ public sealed class AnalyticsController : ControllerBase
             .Select(e => TryReadOrderClaim(e.Payload, out var cards, out _) ? cards.Count : 0)
             .Sum();
 
+        var ingredientsWasted = playerEvents
+            .Where(e => e.ActionType == "ingredient.discarded")
+            .Select(e => TryReadIngredientPurchase(e.Payload, out _, out var amount) ? amount : 0)
+            .Sum();
+
         var ingredientInvestmentTotal = playerProjections
             .Where(p => p.Category == "INGREDIENT" && p.Direction == "OUT")
             .Sum(p => p.Amount);
@@ -1125,6 +1185,7 @@ public sealed class AnalyticsController : ControllerBase
         }
 
         var mealOrdersClaimed = mealOrderIncomeValues.Count;
+        var mealOrdersPassed = playerEvents.Count(e => e.ActionType == "order.passed");
         var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
         var maxTurnNumber = playerEvents.Count == 0 ? 0 : playerEvents.Max(e => e.TurnNumber);
         var mealOrdersPerTurnAverage = maxTurnNumber > 0 ? (double)mealOrdersClaimed / maxTurnNumber : 0;
@@ -1251,18 +1312,14 @@ public sealed class AnalyticsController : ControllerBase
         var insurancePayments = playerProjections
             .Where(p => p.Category == "INSURANCE_PREMIUM" && p.Direction == "OUT")
             .Sum(p => p.Amount);
-
-        var savingDepositsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var evt in playerEvents.Where(e => e.ActionType == "saving.deposit.created"))
-        {
-            if (TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
-            {
-                savingDepositsByGoal[goalId] = savingDepositsByGoal.TryGetValue(goalId, out var existing) ? existing + amount : amount;
-            }
-        }
-
-        var financialGoalsAttempted = savingDepositsByGoal.Count;
-        var financialGoalsCompleted = playerEvents.Count(e => e.ActionType == "saving.goal.achieved");
+        var emergencyOptionsUsed = playerEvents.Count(e => e.ActionType == "risk.emergency.used");
+        var goalIds = new HashSet<string>(savingDepositsByGoal.Keys, StringComparer.OrdinalIgnoreCase);
+        goalIds.UnionWith(savingGoalsAchieved);
+        var financialGoalsAttempted = goalIds.Count;
+        var financialGoalsCompleted = savingGoalsAchieved.Count;
+        var financialGoalsIncompleteCoinsWasted = savingBalancesByGoal
+            .Where(kvp => !savingGoalsAchieved.Contains(kvp.Key))
+            .Sum(kvp => kvp.Value);
 
         var loanStates = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         foreach (var evt in playerEvents)
@@ -1345,13 +1402,13 @@ public sealed class AnalyticsController : ControllerBase
                 ingredients_held_current = inventory.Total,
                 ingredient_types_held = ingredientTypesHeld,
                 ingredients_used_per_meal = ingredientsUsedTotal,
-                ingredients_wasted = (int?)null,
+                ingredients_wasted = ingredientsWasted,
                 ingredient_investment_coins_total = ingredientInvestmentTotal
             },
             meal_orders = new
             {
                 meal_orders_claimed = mealOrdersClaimed,
-                meal_orders_available_passed = (int?)null,
+                meal_orders_available_passed = mealOrdersPassed,
                 meal_order_income_per_order = mealOrderIncomeValues,
                 meal_order_income_total = mealOrderIncomeTotal,
                 meal_orders_per_turn_average = mealOrdersPerTurnAverage
@@ -1401,15 +1458,15 @@ public sealed class AnalyticsController : ControllerBase
                 life_risk_costs_total = riskCostsTotal,
                 life_risk_mitigated_with_insurance = riskMitigated,
                 insurance_payments_made = insurancePayments,
-                emergency_options_used = (int?)null
+                emergency_options_used = emergencyOptionsUsed
             },
             financial_goals = new
             {
                 financial_goals_attempted = financialGoalsAttempted,
                 financial_goals_completed = financialGoalsCompleted,
-                financial_goals_coins_per_goal = savingDepositsByGoal,
+                financial_goals_coins_per_goal = savingBalancesByGoal,
                 financial_goals_coins_total_invested = savingDepositsByGoal.Values.Sum(),
-                financial_goals_incomplete_coins_wasted = (int?)null,
+                financial_goals_incomplete_coins_wasted = financialGoalsIncompleteCoinsWasted,
                 sharia_loan_cards_taken = loansTaken,
                 sharia_loans_repaid = loansRepaid,
                 sharia_loans_unpaid_end = loansUnpaid,
@@ -1440,10 +1497,6 @@ public sealed class AnalyticsController : ControllerBase
             },
             notes = notesRaw
         };
-
-        notesRaw.Add("meal_orders_available_passed_not_tracked");
-        notesRaw.Add("ingredients_wasted_requires_discard_event");
-        notesRaw.Add("emergency_options_used_requires_sell_event");
 
         var totalIncome = cashInTotal;
         var totalExpenses = cashOutTotal;
@@ -1495,9 +1548,8 @@ public sealed class AnalyticsController : ControllerBase
             ? actionRepetitions.Average(item => item.diversity_score)
             : 0;
 
-        var mealOrderSuccessRate = (double?)null;
-        notesDerived.Add("meal_orders_available_passed_not_tracked");
-
+        var mealOrdersAttempted = mealOrdersClaimed + mealOrdersPassed;
+        var mealOrderSuccessRate = SafeRatio(mealOrdersClaimed, mealOrdersAttempted, true);
         var planningHorizon = SafeRatio(
             savingDepositsByGoal.Values.Sum() + financialGoalsAttempted + playerEvents.Count(e => e.ActionType == "insurance.multirisk.purchased"),
             actionEvents.Count);
@@ -1594,6 +1646,9 @@ public sealed class AnalyticsController : ControllerBase
 
         return !actionType.Equals("turn.action.used", StringComparison.OrdinalIgnoreCase) &&
                !actionType.EndsWith(".awarded", StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals("order.passed", StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals("ingredient.discarded", StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals("risk.emergency.used", StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals("tie_breaker.assigned", StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals("mission.assigned", StringComparison.OrdinalIgnoreCase);
     }
@@ -1872,6 +1927,43 @@ public sealed class AnalyticsController : ControllerBase
 
             points = pointsProp.GetInt32();
             return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadSavingGoalAchievedDetailed(
+        string payloadJson,
+        out string goalId,
+        out int points,
+        out int cost)
+    {
+        goalId = string.Empty;
+        points = 0;
+        cost = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("goal_id", out var goalProp))
+            {
+                return false;
+            }
+
+            goalId = goalProp.GetString() ?? string.Empty;
+
+            if (doc.RootElement.TryGetProperty("points", out var pointsProp))
+            {
+                points = pointsProp.GetInt32();
+            }
+
+            if (doc.RootElement.TryGetProperty("cost", out var costProp))
+            {
+                cost = costProp.GetInt32();
+            }
+
+            return !string.IsNullOrWhiteSpace(goalId);
         }
         catch (JsonException)
         {
