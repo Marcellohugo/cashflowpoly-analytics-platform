@@ -1,4 +1,5 @@
 @model Cashflowpoly.Ui.Models.AnalyticsSearchViewModel
+@using System.Text.Json
 
 @{
     ViewData["Title"] = Context.T("nav.analytics");
@@ -33,64 +34,195 @@
 
     @if (Model.Result is not null)
     {
-        <div class="mt-8 grid gap-4 md:grid-cols-5">
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.EventCount</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
-                <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Result.Summary.CashInTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
-                <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Result.Summary.CashOutTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.CashflowNetTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.RulesViolationsCount</p>
-            </div>
+        <div class="mt-8 chart-grid">
+            <article class="chart-card md:col-span-2">
+                <h3 class="chart-title">Ringkasan Sesi</h3>
+                <canvas id="summaryLineChart" height="120"></canvas>
+            </article>
+            <article class="chart-card md:col-span-2">
+                <h3 class="chart-title">Arus Kas Per Pemain</h3>
+                <canvas id="cashflowLineChart" height="120"></canvas>
+            </article>
         </div>
 
-        <div class="mt-8 table-wrap">
-            <table class="w-full text-left text-sm">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3">@Context.T("common.player_id")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_in")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_out")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.donation")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.gold_qty")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Result.ByPlayer.Count == 0)
-                {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="6">@Context.T("state.no_player_data")</td>
-                    </tr>
-                }
-                else
-                {
-                    foreach (var item in Model.Result.ByPlayer)
-                    {
-                        <tr class="border-t border-slate-200">
-                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
-                            <td class="px-4 py-3 text-right">@item.CashInTotal</td>
-                            <td class="px-4 py-3 text-right">@item.CashOutTotal</td>
-                            <td class="px-4 py-3 text-right">@item.DonationTotal</td>
-                            <td class="px-4 py-3 text-right">@item.GoldQty</td>
-                            <td class="px-4 py-3 text-right">@item.HappinessPointsTotal</td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
+        @if (Model.Result.ByPlayer.Count == 0)
+        {
+            <div class="mt-6 rounded-lg border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-600">
+                @Context.T("state.no_player_data")
+            </div>
+        }
+        else
+        {
+            <div class="mt-8 chart-grid">
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.donation")</h3>
+                    <canvas id="donationLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.gold_qty")</h3>
+                    <canvas id="goldQtyLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.happiness")</h3>
+                    <canvas id="happinessLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.need_points")</h3>
+                    <canvas id="needPointsLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.need_bonus")</h3>
+                    <canvas id="needBonusLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.donation_points")</h3>
+                    <canvas id="donationPointsLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.gold_points")</h3>
+                    <canvas id="goldPointsLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.pension_points")</h3>
+                    <canvas id="pensionPointsLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.saving_goal")</h3>
+                    <canvas id="savingGoalLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.mission_penalty")</h3>
+                    <canvas id="missionPenaltyLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.loan_penalty")</h3>
+                    <canvas id="loanPenaltyLineChart" height="110"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("metric.loan_unpaid")</h3>
+                    <canvas id="loanUnpaidLineChart" height="110"></canvas>
+                </article>
+            </div>
+        }
     }
 </section>
+
+@section Scripts {
+    @if (Model.Result is not null)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+        <script>
+            (() => {
+                if (typeof Chart === "undefined") {
+                    return;
+                }
+
+                const data = @Html.Raw(JsonSerializer.Serialize(Model.Result));
+                const players = data.by_player ?? [];
+                const playerLabels = players.map((p, idx) => `P${idx + 1}`);
+
+                const makeLine = (canvasId, labels, datasets) => {
+                    const el = document.getElementById(canvasId);
+                    if (!el) {
+                        return;
+                    }
+
+                    new Chart(el, {
+                        type: "line",
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            aspectRatio: 2.4,
+                            scales: {
+                                y: { beginAtZero: true }
+                            },
+                            plugins: {
+                                legend: { display: datasets.length > 1 }
+                            }
+                        }
+                    });
+                };
+
+                makeLine("summaryLineChart",
+                    ["Event", "Cash In", "Cash Out", "Net", "Violations"],
+                    [{
+                        label: "Summary",
+                        data: [
+                            data.summary.event_count,
+                            data.summary.cash_in_total,
+                            data.summary.cash_out_total,
+                            data.summary.cashflow_net_total,
+                            data.summary.rules_violations_count
+                        ],
+                        borderColor: "#e95a4b",
+                        backgroundColor: "rgba(233, 90, 75, 0.18)",
+                        tension: 0.32,
+                        pointRadius: 4,
+                        fill: true
+                    }]);
+
+                makeLine("cashflowLineChart", playerLabels, [
+                    {
+                        label: "Cash In",
+                        data: players.map((p) => p.cash_in_total),
+                        borderColor: "#1ba784",
+                        backgroundColor: "rgba(27, 167, 132, 0.15)",
+                        tension: 0.32,
+                        pointRadius: 3
+                    },
+                    {
+                        label: "Cash Out",
+                        data: players.map((p) => p.cash_out_total),
+                        borderColor: "#e95a4b",
+                        backgroundColor: "rgba(233, 90, 75, 0.15)",
+                        tension: 0.32,
+                        pointRadius: 3
+                    },
+                    {
+                        label: "Donation",
+                        data: players.map((p) => p.donation_total),
+                        borderColor: "#3f74ff",
+                        backgroundColor: "rgba(63, 116, 255, 0.15)",
+                        tension: 0.32,
+                        pointRadius: 3
+                    }
+                ]);
+
+                const metricCharts = [
+                    { id: "donationLineChart", key: "donation_total", color: "#18a8a0" },
+                    { id: "goldQtyLineChart", key: "gold_qty", color: "#f39c12" },
+                    { id: "happinessLineChart", key: "happiness_points_total", color: "#ef4e4e" },
+                    { id: "needPointsLineChart", key: "need_points_total", color: "#6b4eff" },
+                    { id: "needBonusLineChart", key: "need_set_bonus_points", color: "#2fa56e" },
+                    { id: "donationPointsLineChart", key: "donation_points_total", color: "#2d7dd2" },
+                    { id: "goldPointsLineChart", key: "gold_points_total", color: "#dd9f00" },
+                    { id: "pensionPointsLineChart", key: "pension_points_total", color: "#ff7f50" },
+                    { id: "savingGoalLineChart", key: "saving_goal_points_total", color: "#00a6a6" },
+                    { id: "missionPenaltyLineChart", key: "mission_penalty_total", color: "#b33c86" },
+                    { id: "loanPenaltyLineChart", key: "loan_penalty_total", color: "#d1495b" },
+                    { id: "loanUnpaidLineChart", key: "has_unpaid_loan", color: "#374151", boolToNum: true }
+                ];
+
+                metricCharts.forEach((metric) => {
+                    const values = players.map((p) => {
+                        if (metric.boolToNum) {
+                            return p[metric.key] ? 1 : 0;
+                        }
+                        return p[metric.key] ?? 0;
+                    });
+
+                    makeLine(metric.id, playerLabels, [{
+                        label: metric.key,
+                        data: values,
+                        borderColor: metric.color,
+                        backgroundColor: `${metric.color}33`,
+                        tension: 0.32,
+                        pointRadius: 3,
+                        fill: true
+                    }]);
+                });
+            })();
+        </script>
+    }
+}
