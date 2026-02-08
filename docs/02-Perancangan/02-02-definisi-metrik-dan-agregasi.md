@@ -3,7 +3,7 @@
 
 ### Dokumen
 - Nama dokumen: Definisi Metrik dan Aturan Agregasi
-- Versi: 1.1
+- Versi: 1.2
 - Tanggal: 3 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
@@ -394,7 +394,9 @@ Sistem memakai pemetaan berikut sebagai aturan implementasi.
 | saving.deposit.created | cashflow.out.total |
 | saving.deposit.withdrawn | cashflow.in.total |
 | ingredient.purchased | inventory.ingredient.total, cashflow.out.total |
+| ingredient.discarded | inventory.ingredient.total |
 | order.claimed | orders.completed.count, inventory.ingredient.total, cashflow.in.total |
+| order.passed | gameplay.raw.variables (meal_orders_available_passed) |
 | work.freelance.completed | cashflow.in.total |
 | need.primary.purchased | compliance.primary_need.rate, cashflow.out.total |
 | need.secondary/tertiary.purchased | compliance.primary_need.rate, cashflow.out.total |
@@ -405,6 +407,7 @@ Sistem memakai pemetaan berikut sebagai aturan implementasi.
 | gold.points.awarded | happiness.gold.points, happiness.points.total |
 | pension.rank.awarded | happiness.pension.points, happiness.points.total |
 | saving.goal.achieved | happiness.saving_goal.points, happiness.points.total |
+| risk.emergency.used | cashflow.in.total, cashflow.out.total, gameplay.raw.variables (emergency_options_used) |
 | loan.syariah.taken/loan.syariah.repaid | happiness.loan.penalty, loan.unpaid.flag |
 
 Catatan:

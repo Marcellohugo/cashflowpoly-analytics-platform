@@ -3,7 +3,7 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 1.1
+- Versi: 1.3
 - Tanggal: 3 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
@@ -17,10 +17,10 @@ Ringkasan berikut membandingkan mekanika utama pada `docs/00-ringkasan-rulebook-
 | Token aksi per giliran | Sesuai | Divalidasi melalui `turn.action.used` vs `actions_per_turn`. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Donasi Jumat | Sesuai | Event donasi + poin juara otomatis jika ruleset scoring tersedia. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
 | Investasi Emas Sabtu | Sesuai | BUY/SELL + validasi saldo & kepemilikan, poin emas otomatis via ruleset scoring. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
-| Bahan & Pesanan Masakan | Sesuai | Validasi kepemilikan bahan dan klaim order tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
+| Bahan & Pesanan Masakan | Sesuai | Validasi kepemilikan bahan, klaim order, pass order, dan discard bahan tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Kebutuhan primer/sekunder/tersier | Sesuai | Aturan “primer dulu” + `points` wajib diisi, bonus set dihitung otomatis. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Kerja Lepas | Sesuai | Event `work.freelance.completed` + validasi amount sesuai ruleset. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Risiko Kehidupan | Sesuai | Event + validasi tersedia, wajib mengikuti `order.claimed` pada mode mahir. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
+| Risiko Kehidupan | Sesuai | Event + validasi tersedia, wajib mengikuti `order.claimed` pada mode mahir, opsi darurat tercatat. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Asuransi Multi Risiko | Sesuai | `insurance.multirisk.used` harus merujuk risiko OUT dan menambah proyeksi offset. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Tabungan Tujuan Keuangan | Sesuai | Deposit dibatasi maksimal 15 koin per aksi, poin tujuan dihitung. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Pinjaman Syariah | Sesuai | Principal 10 koin + penalti 15 poin divalidasi sesuai rulebook. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
@@ -36,10 +36,11 @@ Ringkasan berikut membandingkan artefak utama pada `docs/01-ringkasan-proposal-t
 | Model data & basis data | Sesuai | Skema DB tersedia sesuai entitas utama. | `database/00_create_schema.sql` |
 | RESTful API event log | Sesuai | Endpoint event & validasi tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
 | Manajemen ruleset dinamis | Sesuai | CRUD + versioning + aktivasi per sesi + UI manajemen ruleset. | `src/Cashflowpoly.Api/Controllers/RulesetsController.cs`, `src/Cashflowpoly.Ui/Views/Rulesets/*` |
-| Agregasi metrik | Sesuai | Cashflow, donasi, emas, compliance, dan poin kebahagiaan tersedia; skor poin otomatis via ruleset scoring. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
+| Agregasi metrik | Sesuai | Cashflow, donasi, emas, compliance, poin kebahagiaan, serta snapshot gameplay raw/derived terisi penuh jika event lengkap. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
 | Dasbor analitika instruktur | Sesuai | UI sesi, ringkasan analitika, detail pemain tersedia. | `src/Cashflowpoly.Ui/Views/Sessions/*` |
 | Dasbor analitika pemain | Parsial | Detail pemain tersedia, akses per peran belum dipisah. | `src/Cashflowpoly.Ui/Views/Players/Details.cshtml` |
 | Desain UI dashboard | Sesuai | Tema visual, layout, dan motion diperbarui untuk konsistensi. | `src/Cashflowpoly.Ui/Views/Shared/_Layout.cshtml`, `src/Cashflowpoly.Ui/wwwroot/css/tailwind.input.css`, `src/Cashflowpoly.Ui/wwwroot/js/site.js` |
+| Konsol event manual | Sesuai | UI sederhana untuk mengirim event backfill secara manual. | `src/Cashflowpoly.Ui/Controllers/EventConsoleController.cs`, `src/Cashflowpoly.Ui/Views/EventConsole/Index.cshtml` |
 | Pengujian fungsional & integrasi | Parsial | Dokumen uji ada, test otomatis bertambah namun belum menyeluruh. | `docs/03-Pengujian/*`, `tests/*` |
 
 ---

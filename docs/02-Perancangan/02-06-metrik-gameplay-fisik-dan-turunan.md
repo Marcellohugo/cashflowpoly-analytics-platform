@@ -3,7 +3,7 @@
 
 ### Dokumen
 - Nama dokumen: Variabel Gameplay Fisik dan Metrik Turunan
-- Versi: 1.0
+- Versi: 1.1
 - Tanggal: 3 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
@@ -75,13 +75,11 @@ Where:
 
 **Sumber data di sistem:**
 - `ingredients_collected` dari `ingredient.purchased`.
-- `ingredients_held_current` dari `ingredient.purchased` dikurangi konsumsi `order.claimed`.
+- `ingredients_held_current` dari `ingredient.purchased` dikurangi konsumsi `order.claimed` dan `ingredient.discarded`.
 - `ingredient_types_held` dari `ingredient.purchased.ingredient_name`.
 - `ingredients_used_per_meal` dari `order.claimed.required_ingredient_card_ids`.
+- `ingredients_wasted` dari `ingredient.discarded`.
 - `ingredient_investment_coins_total` dari `ingredient.purchased.amount` (biaya) di `event_cashflow_projections`.
-
-**Catatan implementasi:**
-- `ingredients_wasted` membutuhkan event tambahan seperti `ingredient.discarded` atau status discard saat akhir permainan.
 
 ---
 
@@ -95,12 +93,10 @@ Where:
 
 **Sumber data di sistem:**
 - `meal_orders_claimed` dari `order.claimed`.
+- `meal_orders_available_passed` dari `order.passed`.
 - `meal_order_income_per_order` dari `order.claimed.income`.
 - `meal_order_income_total` dari penjumlahan `order.claimed.income`.
 - `meal_orders_per_turn_average` dari `order.claimed` per `turn_number`.
-
-**Catatan implementasi:**
-- `meal_orders_available_passed` belum bisa dihitung karena event untuk order yang ditolak/belum diambil belum tersedia.
 
 **Business Efficiency Pattern:**
 ```
@@ -216,9 +212,7 @@ gold_roi_percentage = (gold_investment_coins_earned - gold_investment_coins_spen
 - `life_risk_costs_per_card` dari proyeksi `cashflow` untuk risk OUT.
 - `life_risk_mitigated_with_insurance` dari `insurance.multirisk.used`.
 - `insurance_payments_made` dari `insurance.multirisk.purchased`.
-
-**Catatan implementasi:**
-- `emergency_options_used` membutuhkan event tambahan jika pemain menjual kebutuhan/emas secara khusus untuk risiko.
+- `emergency_options_used` dari `risk.emergency.used`.
 
 **Risk Resilience Pattern:**
 ```
@@ -245,6 +239,10 @@ risk_mitigation_effectiveness = life_risk_mitigated_with_insurance / life_risk_c
 - `saving.deposit.created` dan `saving.deposit.withdrawn`.
 - `saving.goal.achieved` untuk goal selesai.
 - `loan.syariah.taken` dan `loan.syariah.repaid`.
+
+Catatan perhitungan:
+- `financial_goals_coins_per_goal` dihitung sebagai saldo tabungan per goal (deposit - withdraw - cost goal tercapai).
+- `financial_goals_incomplete_coins_wasted` dihitung dari saldo goal yang belum tercapai.
 
 **Debt Management Pattern:**
 ```
@@ -391,7 +389,7 @@ happiness_portfolio = [need_cards_pts, donations_pts, gold_pts, pension_pts, fin
 ---
 
 ## 3. Catatan Implementasi
-- Variabel yang membutuhkan event tambahan (contoh: `meal_orders_available_passed`, `ingredients_wasted`, `actions_skipped`) dapat dimasukkan ke backlog event jika ingin menghitung metrik turunan secara penuh.
+- Variabel yang membutuhkan event tambahan (contoh: `actions_skipped`) dapat dimasukkan ke backlog event jika ingin menghitung metrik turunan secara lebih detail.
 - UI hanya menampilkan metrik yang tersedia dari API (`/api/analytics/...`). UI tidak menghitung ulang rumus di sisi klien.
 - Jika metrik turunan ini diimplementasikan, pastikan `metric_name` mengikuti konvensi pada dokumen `02-02-definisi-metrik-dan-agregasi`.
 

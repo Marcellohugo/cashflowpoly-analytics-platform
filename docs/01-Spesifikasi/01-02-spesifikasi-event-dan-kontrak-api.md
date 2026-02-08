@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Spesifikasi Event dan Kontrak REST API
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 3 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -298,7 +298,27 @@ Efek data:
 
 ---
 
-#### 4.5.3 `order.claimed`
+#### 4.5.3 `ingredient.discarded`
+Payload:
+```json
+{
+  "card_id": "ING-012",
+  "amount": 1,
+  "reason": "HAND_LIMIT"
+}
+```
+
+Validasi:
+- `amount > 0`.
+- `card_id` wajib diisi.
+- Pemain harus memiliki stok bahan yang cukup untuk didiscard.
+
+Efek data:
+- Mengurangi inventori bahan.
+
+---
+
+#### 4.5.4 `order.claimed`
 Payload:
 ```json
 {
@@ -318,7 +338,27 @@ Efek data:
 
 ---
 
-#### 4.5.4 `work.freelance.completed`
+#### 4.5.5 `order.passed`
+Payload:
+```json
+{
+  "order_card_id": "ORD-006",
+  "required_ingredient_card_ids": ["ING-003", "ING-010"],
+  "income": 13
+}
+```
+
+Validasi:
+- `income > 0`.
+- `required_ingredient_card_ids` wajib diisi.
+
+Efek data:
+- Tidak mengubah saldo.
+- Menambah catatan order yang dilewati untuk analitika.
+
+---
+
+#### 4.5.6 `work.freelance.completed`
 Payload:
 ```json
 {
@@ -596,6 +636,30 @@ Validasi:
 
 Efek data:
 - Menandai penggunaan asuransi terhadap kartu risiko.
+
+---
+
+#### 4.8.5 `risk.emergency.used`
+Payload:
+```json
+{
+  "risk_event_id": "uuid-event",
+  "option_type": "SELL_NEED",
+  "direction": "IN",
+  "amount": 3,
+  "note": "Menjual kartu kebutuhan untuk menutup risiko"
+}
+```
+
+Validasi:
+- `risk_event_id` wajib dan harus merujuk ke event `risk.life.drawn` bertipe OUT milik pemain yang sama.
+- `option_type` bernilai `SELL_NEED`, `SELL_GOLD`, `SELL_GOAL`, atau `OTHER`.
+- `direction` bernilai `IN` atau `OUT`.
+- `amount > 0`.
+
+Efek data:
+- Menambah catatan penggunaan opsi darurat.
+- Jika `direction = IN/OUT`, sistem memproyeksikan arus kas sesuai nilai `amount`.
 
 ---
 
