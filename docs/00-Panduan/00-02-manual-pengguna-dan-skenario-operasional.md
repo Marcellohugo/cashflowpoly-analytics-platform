@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Manual Pengguna dan Skenario Operasional
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -39,6 +39,13 @@ Instruktur menguji API melalui Swagger:
 Catatan:
 - URL dapat berbeda tergantung konfigurasi `launchSettings.json`.
 - UI menggunakan Tailwind CSS. Jika baru setup atau ada perubahan tampilan, jalankan build CSS Tailwind sesuai panduan setup.
+- Endpoint API selain login/register mensyaratkan token Bearer.
+
+### 3.1 Alur autentikasi API (ringkas)
+1. Login via `POST /api/auth/login`.
+2. Simpan `access_token` dari respons login.
+3. Kirim header `Authorization: Bearer <access_token>` pada endpoint terproteksi.
+4. Jika token kedaluwarsa atau salah, API merespons `401`.
 
 ---
 
@@ -90,7 +97,7 @@ Sistem menampilkan ruleset aktif dan versi yang terpilih.
 Sistem menolak aktivasi jika sesi berstatus `ENDED`.
 
 Catatan akses:
-- Jika aktivasi dilakukan via API/Swagger, sertakan header `X-Actor-Role: INSTRUCTOR`.
+- Jika aktivasi dilakukan via API/Swagger, endpoint wajib memakai token Bearer milik role `INSTRUCTOR`.
 
 ---
 

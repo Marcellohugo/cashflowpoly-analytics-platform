@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Spesifikasi *Ruleset* dan Validasi Konfigurasi
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -70,6 +70,24 @@ Sistem menerapkan kebijakan berikut:
 2. Sistem menyimpan `ruleset_version_id` pada setiap event.
 3. Sistem mengizinkan satu versi aktif per sesi permainan.
 4. Sistem melarang penghapusan versi yang sudah dipakai oleh sesi.
+
+### 3.3 Lifecycle ruleset
+Lifecycle ditetapkan eksplisit sebagai berikut.
+
+Lifecycle entitas `rulesets`:
+1. `ACTIVE_RECORD`: ruleset aktif dipakai operasional.
+2. `ARCHIVED`: `is_archived = true`, ruleset tidak dipilih untuk sesi baru.
+3. `DELETED`: hard delete, hanya jika ruleset belum pernah dipakai sesi.
+
+Lifecycle entitas `ruleset_versions`:
+1. `DRAFT`: versi disiapkan namun belum dijadikan aktif.
+2. `ACTIVE`: versi aktif pada ruleset tersebut.
+3. `RETIRED`: versi lama yang tidak aktif.
+
+Aturan transisi minimum:
+1. `ACTIVE_RECORD -> ARCHIVED` melalui endpoint archive.
+2. `ACTIVE_RECORD -> DELETED` hanya jika `IsRulesetUsed=false`.
+3. `ACTIVE -> RETIRED` saat versi baru diaktifkan.
 
 ---
 
@@ -244,7 +262,7 @@ Catatan implementasi logging:
 Bagian ini merangkum endpoint yang menangani *ruleset*. Dokumen kontrak lengkap tetap berada pada dokumen “Spesifikasi Event dan Kontrak REST API”.
 
 Catatan akses:
-- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan header `X-Actor-Role: INSTRUCTOR`.
+- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer.
 
 ### 8.1 Endpoint minimum
 1. `POST /api/rulesets`  
@@ -368,6 +386,8 @@ Sistem siap masuk tahap implementasi modul manajemen *ruleset* jika:
 3. Sistem menyimpan versi baru saat instruktur mengubah konfigurasi.
 4. Sistem mengunci versi aktif pada sesi.
 5. Sistem menolak event dengan `ruleset_version_id` yang tidak cocok.
+6. Sistem menegakkan lifecycle ruleset sesuai bagian 3.3.
+7. Sistem mencatat jejak audit perubahan (`created_by`, `activated_by`) untuk operasi ruleset utama.
 
 
 

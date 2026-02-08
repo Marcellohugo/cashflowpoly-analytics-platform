@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Definisi Metrik dan Aturan Agregasi
-- Versi: 1.2
-- Tanggal: 3 Februari 2026
+- Versi: 1.3
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -57,6 +57,39 @@ Sistem memakai strategi berikut:
 1. Sistem hitung metrik ringan setiap kali sistem menerima event arus kas atau event kepemilikan.
 2. Sistem hitung metrik kepatuhan aturan saat sistem menerima event yang terkait aturan.
 3. Sistem hitung ringkasan sesi saat instruktur mengakhiri sesi atau saat instruktur menekan tombol “Recompute”.
+
+### 3.4 KPI final performa (wajib untuk scope analitika web)
+Sistem menetapkan empat KPI final berikut.
+
+1. `learning.performance.individual.score` (0-100)
+2. `learning.performance.aggregate.score` (0-100)
+3. `mission.performance.individual.score` (0-100)
+4. `mission.performance.aggregate.score` (0-100)
+
+Definisi komponen:
+- `cashflow_component` = `clamp(50 + 5 * cashflow.net.total, 0, 100)`
+- `compliance_component` = `compliance.primary_need.rate * 100`
+- `happiness_component` = `clamp(5 * happiness.points.total, 0, 100)`
+- `mission_success_component` = `clamp(100 - 10 * loan.unpaid.flag - mission_penalty_component, 0, 100)`
+- `mission_penalty_component` = `clamp(happiness.mission.penalty + happiness.loan.penalty, 0, 100)`
+
+Rumus KPI:
+- `learning.performance.individual.score = 0.40 * cashflow_component + 0.35 * compliance_component + 0.25 * happiness_component`
+- `mission.performance.individual.score = clamp(100 - mission_penalty_component, 0, 100)`
+
+Agregasi:
+- `learning.performance.aggregate.score = average(learning.performance.individual.score) per sesi atau grup ruleset`
+- `mission.performance.aggregate.score = average(mission.performance.individual.score) per sesi atau grup ruleset`
+
+Satuan:
+- semua KPI dalam skala 0-100 (numeric).
+
+Aturan data tidak lengkap:
+1. Jika komponen tidak tersedia, komponen tersebut diisi `null`.
+2. Skor individual dihitung dari komponen non-null dengan normalisasi bobot aktif.
+3. Jika seluruh komponen null, skor individual = `null`.
+4. Skor agregat menghitung rata-rata hanya dari nilai individual non-null.
+5. UI wajib menampilkan label `N/A` untuk skor `null`.
 
 ---
 

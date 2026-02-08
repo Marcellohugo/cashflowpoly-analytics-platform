@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---

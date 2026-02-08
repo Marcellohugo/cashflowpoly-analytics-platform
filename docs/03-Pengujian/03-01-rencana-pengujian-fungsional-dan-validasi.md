@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Rencana Pengujian Fungsional dan Validasi
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -154,7 +154,7 @@ Setiap skenario memuat:
 
 #### B. Manajemen *Ruleset* (M2)
 Catatan:
-- Semua endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan header `X-Actor-Role: INSTRUCTOR`.
+- Semua endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan token Bearer milik role `INSTRUCTOR`.
 
 **TC-API-05 — Buat ruleset + versi 1**
 - Endpoint: `POST /api/rulesets`
@@ -318,6 +318,38 @@ Catatan:
 - Ekspektasi:
   - Status: `400`
   - `error_code` menyebut parameter wajib.
+
+---
+
+#### E. Autentikasi dan Otorisasi (M8)
+**TC-API-18 — Login valid**
+- Endpoint: `POST /api/auth/login`
+- Input: username/password valid.
+- Ekspektasi:
+  - Status: `200`
+  - Respons memuat `access_token`, `expires_at`, dan `role`.
+
+**TC-API-19 — Login kredensial salah**
+- Endpoint: `POST /api/auth/login`
+- Ekspektasi:
+  - Status: `401`
+  - Error mengikuti format standar.
+
+**TC-API-20 — Register valid**
+- Endpoint: `POST /api/auth/register`
+- Ekspektasi:
+  - Status: `201`
+  - User baru tersimpan.
+
+**TC-API-21 — Endpoint terproteksi tanpa token**
+- Contoh endpoint: `POST /api/rulesets`.
+- Ekspektasi:
+  - Status: `401`.
+
+**TC-API-22 — Endpoint instruktur dipanggil token player**
+- Contoh endpoint: `DELETE /api/rulesets/{rulesetId}`.
+- Ekspektasi:
+  - Status: `403`.
 
 ---
 
@@ -490,7 +522,7 @@ Sistem membuat rekap mingguan:
 
 ## 12. Checklist Kelulusan Akhir
 Sistem lulus tahap pengujian dan validasi jika:
-1. sistem menyelesaikan semua TC-API-01 s.d. TC-API-28 dengan PASS,
+1. sistem menyelesaikan semua TC-API-01 s.d. TC-API-33 dengan PASS,
 2. sistem menyelesaikan IT-01 s.d. IT-03 dengan PASS,
 3. sistem menyelesaikan UI-01 s.d. UI-03 dengan PASS,
 4. sistem tidak meninggalkan temuan berstatus OPEN pada modul inti (M1–M6).
@@ -500,17 +532,17 @@ Sistem lulus tahap pengujian dan validasi jika:
 
 ## 13. Tambahan TC Event Skor & Risiko
 Tambahan pengujian untuk event baru:
-1. TC-API-18 — `mission.assigned` valid (penetapan misi)
-2. TC-API-19 — `donation.rank.awarded` valid (award poin)
-3. TC-API-20 — `gold.points.awarded` valid (award poin emas)
-4. TC-API-21 — `pension.rank.awarded` valid (award poin pensiun)
-5. TC-API-22 — `saving.deposit.created` dan `saving.deposit.withdrawn` valid (deposit max 15 koin/aksi)
-6. TC-API-23 — `saving.goal.achieved` valid
-7. TC-API-24 — `risk.life.drawn` valid untuk mode MAHIR
-8. TC-API-25 — `loan.syariah.repaid` menolak pembayaran melebihi principal
-9. TC-API-26 — `work.freelance.completed` valid sesuai `freelance.income`
-10. TC-API-27 — `turn.ended` menolak jika `order.claimed` tanpa `risk.life.drawn` (mode MAHIR)
-11. TC-API-28 — ruleset scoring menghitung poin donasi/emas/pensiun pada analitika
+1. TC-API-23 — `mission.assigned` valid (penetapan misi)
+2. TC-API-24 — `donation.rank.awarded` valid (award poin)
+3. TC-API-25 — `gold.points.awarded` valid (award poin emas)
+4. TC-API-26 — `pension.rank.awarded` valid (award poin pensiun)
+5. TC-API-27 — `saving.deposit.created` dan `saving.deposit.withdrawn` valid (deposit max 15 koin/aksi)
+6. TC-API-28 — `saving.goal.achieved` valid
+7. TC-API-29 — `risk.life.drawn` valid untuk mode MAHIR
+8. TC-API-30 — `loan.syariah.repaid` menolak pembayaran melebihi principal
+9. TC-API-31 — `work.freelance.completed` valid sesuai `freelance.income`
+10. TC-API-32 — `turn.ended` menolak jika `order.claimed` tanpa `risk.life.drawn` (mode MAHIR)
+11. TC-API-33 — ruleset scoring menghitung poin donasi/emas/pensiun pada analitika
 
 Catatan tambahan:
 - `mission.assigned.penalty_points` harus 10 (rulebook).

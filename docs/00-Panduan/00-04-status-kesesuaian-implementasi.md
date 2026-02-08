@@ -1,60 +1,50 @@
-﻿# Status Kesesuaian Implementasi
-## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
+# Status Kesesuaian Implementasi
+## Sistem Informasi Dasbor Analitika dan Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 1.3
-- Tanggal: 3 Februari 2026
+- Versi: 1.5
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
-## 1. Kesesuaian dengan Ringkasan Rulebook
-Ringkasan berikut membandingkan mekanika utama pada `docs/00-ringkasan-rulebook-cashflowpoly.md` dengan implementasi saat ini.
+## 1. Tujuan
+Dokumen ini memetakan kesesuaian implementasi terhadap dokumen spesifikasi aktif, sekaligus menjadi daftar gap prioritas yang harus ditutup.
 
-| Mekanika | Status | Catatan Implementasi | Bukti Utama |
-|---|---|---|---|
-| Token aksi per giliran | Sesuai | Divalidasi melalui `turn.action.used` vs `actions_per_turn`. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Donasi Jumat | Sesuai | Event donasi + poin juara otomatis jika ruleset scoring tersedia. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
-| Investasi Emas Sabtu | Sesuai | BUY/SELL + validasi saldo & kepemilikan, poin emas otomatis via ruleset scoring. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
-| Bahan & Pesanan Masakan | Sesuai | Validasi kepemilikan bahan, klaim order, pass order, dan discard bahan tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Kebutuhan primer/sekunder/tersier | Sesuai | Aturan “primer dulu” + `points` wajib diisi, bonus set dihitung otomatis. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Kerja Lepas | Sesuai | Event `work.freelance.completed` + validasi amount sesuai ruleset. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Risiko Kehidupan | Sesuai | Event + validasi tersedia, wajib mengikuti `order.claimed` pada mode mahir, opsi darurat tercatat. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Asuransi Multi Risiko | Sesuai | `insurance.multirisk.used` harus merujuk risiko OUT dan menambah proyeksi offset. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Tabungan Tujuan Keuangan | Sesuai | Deposit dibatasi maksimal 15 koin per aksi, poin tujuan dihitung. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Pinjaman Syariah | Sesuai | Principal 10 koin + penalti 15 poin divalidasi sesuai rulebook. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Poin Kebahagiaan | Sesuai | Dihitung dari event kebutuhan/bonus/penalti + scoring otomatis donasi/emas/pensiun bila tersedia. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
+Acuan utama:
+- `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
+- `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
+- `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
+- `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
 
 ---
 
-## 2. Kesesuaian dengan Ringkasan Proposal
-Ringkasan berikut membandingkan artefak utama pada `docs/01-ringkasan-proposal-tugas-akhir.md` dengan implementasi saat ini.
-
-| Artefak/Target | Status | Catatan Implementasi | Bukti Utama |
-|---|---|---|---|
-| Model data & basis data | Sesuai | Skema DB tersedia sesuai entitas utama. | `database/00_create_schema.sql` |
-| RESTful API event log | Sesuai | Endpoint event & validasi tersedia. | `src/Cashflowpoly.Api/Controllers/EventsController.cs` |
-| Manajemen ruleset dinamis | Sesuai | CRUD + versioning + aktivasi per sesi + UI manajemen ruleset. | `src/Cashflowpoly.Api/Controllers/RulesetsController.cs`, `src/Cashflowpoly.Ui/Views/Rulesets/*` |
-| Agregasi metrik | Sesuai | Cashflow, donasi, emas, compliance, poin kebahagiaan, serta snapshot gameplay raw/derived terisi penuh jika event lengkap. | `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` |
-| Dasbor analitika instruktur | Sesuai | UI sesi, ringkasan analitika, detail pemain tersedia. | `src/Cashflowpoly.Ui/Views/Sessions/*` |
-| Dasbor analitika pemain | Parsial | Detail pemain tersedia, akses per peran belum dipisah. | `src/Cashflowpoly.Ui/Views/Players/Details.cshtml` |
-| Desain UI dashboard | Sesuai | Tema visual, layout, dan motion diperbarui untuk konsistensi. | `src/Cashflowpoly.Ui/Views/Shared/_Layout.cshtml`, `src/Cashflowpoly.Ui/wwwroot/css/tailwind.input.css`, `src/Cashflowpoly.Ui/wwwroot/js/site.js` |
-| Konsol event manual | Sesuai | UI sederhana untuk mengirim event backfill secara manual. | `src/Cashflowpoly.Ui/Controllers/EventConsoleController.cs`, `src/Cashflowpoly.Ui/Views/EventConsole/Index.cshtml` |
-| Pengujian fungsional & integrasi | Parsial | Dokumen uji ada, test otomatis bertambah namun belum menyeluruh. | `docs/03-Pengujian/*`, `tests/*` |
+## 2. Ringkasan Kesesuaian per Area
+| Area | Status | Catatan |
+|---|---|---|
+| Ingest event + validasi domain | Sesuai | Validasi urutan, idempotensi, ruleset aktif, dan aturan event utama sudah ada. |
+| Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia. |
+| Manajemen ruleset (create/list/detail/archive/delete) | Sesuai | Alur CRUD + guard ruleset terpakai sudah ada. |
+| UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API. |
+| Kontrak auth Bearer + RBAC | Sesuai | API sudah Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side. |
+| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/analytics/rulesets/{rulesetId}/summary` dan halaman UI ruleset analytics tersedia. |
+| NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`. |
+| Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
 
 ---
 
-## 3. Catatan Prioritas Lanjutan
-1. Menambah skenario uji otomatis untuk integrasi event kompleks (risk/loan/saving).
-2. Menambahkan pemisahan akses per peran pada UI (instruktur vs pemain).
-3. Menambah pengujian data riil untuk tabel scoring dari rulebook.
+## 3. Daftar Gap Prioritas
+1. Menambah otomatisasi integration test untuk alur auth + RBAC lintas endpoint.
+2. Menambah observability lebih detail (dashboard metrics, tracing terstruktur).
+3. Menambah hardening keamanan produksi (rotasi key JWT, secret management).
 
 ---
 
-## 4. Referensi Dokumen Utama
-- Ringkasan Rulebook: `docs/00-ringkasan-rulebook-cashflowpoly.md`
-- Ringkasan Proposal: `docs/01-ringkasan-proposal-tugas-akhir.md`
-- Spesifikasi Event & API: `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
-- Spesifikasi Ruleset: `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
-- Manual Pengguna: `docs/00-Panduan/00-02-manual-pengguna-dan-skenario-operasional.md`
+## 4. Kriteria Siap Sidang
+Implementasi dianggap siap ketika:
+1. semua endpoint terproteksi sudah Bearer-only,
+2. role check instruktur/player tervalidasi API (bukan UI saja),
+3. endpoint grouped-by-ruleset tersedia dan tervalidasi,
+4. docs, smoke, postman, dan implementasi konsisten,
+5. hasil build/test/smoke/compose lulus tanpa bug blocker.

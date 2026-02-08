@@ -3,14 +3,19 @@
 
 ### Dokumen
 - Nama dokumen: Spesifikasi Event dan Kontrak REST API
-- Versi: 1.1
-- Tanggal: 3 Februari 2026
+- Versi: 1.2
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan Dokumen
 Dokumen ini disusun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta manajemen ruleset. Dokumen ini menjadi acuan implementasi back-end dan acuan integrasi UI MVC serta pengujian fungsional.
+
+Jika ada konflik detail antara dokumen ini dan dokumen lain, prioritas acuan:
+1. `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
+2. dokumen ini (`01-02`)
+3. dokumen pengujian (`03-01`)
 
 ---
 
@@ -670,6 +675,50 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 - Semua endpoint mengirim dan menerima JSON.
 - Sistem mengembalikan error sesuai format standar bagian 3.2.
 - Sistem mengembalikan `trace_id` untuk pelacakan log.
+- Endpoint terproteksi wajib mengirim `Authorization: Bearer <token>`.
+- Endpoint publik tanpa token hanya endpoint autentikasi (`/api/auth/login`, `/api/auth/register`).
+- Retry/idempotency klien mengikuti dokumen `01-04` (bagian retry/backoff/timeouts).
+
+### 5.2 Endpoint autentikasi
+#### 5.2.1 Login
+- Method: `POST`
+- Path: `/api/auth/login`
+- Request:
+```json
+{ "username": "instructor", "password": "instructor123" }
+```
+- Response 200 (minimum):
+```json
+{
+  "user_id": "uuid",
+  "username": "instructor",
+  "role": "INSTRUCTOR",
+  "access_token": "jwt",
+  "expires_at": "2026-02-08T12:00:00Z"
+}
+```
+
+#### 5.2.2 Register
+- Method: `POST`
+- Path: `/api/auth/register`
+- Request:
+```json
+{
+  "username": "player_a",
+  "password": "player123",
+  "role": "PLAYER"
+}
+```
+- Response 201:
+```json
+{
+  "user_id": "uuid",
+  "username": "player_a",
+  "role": "PLAYER",
+  "access_token": "jwt",
+  "expires_at": "2026-02-08T12:00:00Z"
+}
+```
 
 ---
 
@@ -770,7 +819,7 @@ Status code:
 
 ## 8. Endpoint Ruleset
 Catatan akses:
-- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan header `X-Actor-Role: INSTRUCTOR`.
+- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer.
 
 ### 8.1 Buat ruleset
 - Method: `POST`
@@ -940,6 +989,24 @@ Catatan:
 
 ---
 
+### 9.4 Ambil ringkasan analitika per ruleset
+- Method: `GET`
+- Path: `/api/analytics/rulesets/{rulesetId}/summary`
+- Response 200:
+```json
+{
+  "ruleset_id": "uuid",
+  "sessions_count": 4,
+  "event_count_total": 420,
+  "cash_in_total": 910,
+  "cash_out_total": 700,
+  "cashflow_net_total": 210,
+  "rules_violations_count": 12
+}
+```
+
+---
+
 ## 10. Status Code dan Makna
 | Status | Makna |
 |---:|---|
@@ -951,6 +1018,7 @@ Catatan:
 | 404 | Resource tidak ditemukan. |
 | 409 | Duplikasi data, terutama event idempotensi. |
 | 422 | Aturan domain permainan dilanggar. |
+| 429 | Request melebihi batas rate limit. |
 | 500 | Kesalahan internal server. |
 
 ---

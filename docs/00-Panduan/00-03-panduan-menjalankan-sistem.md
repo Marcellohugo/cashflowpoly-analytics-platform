@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Menjalankan Sistem
-- Versi: 1.0
-- Tanggal: 29 Januari 2026
+- Versi: 1.1
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -130,10 +130,24 @@ Dokumen rancangan UI memakai pendekatan server-side call via `HttpClient`, sehin
 
 ## 7. Checklist Menjalankan Sistem
 Sistem berjalan baik jika:
-1. `dotnet build` sukses untuk solution,
+1. `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` dan `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` sukses,
 2. Swagger UI dapat diakses,
 3. endpoint sample dapat dipanggil,
-4. MVC bisa jalan dan menampilkan halaman.
+4. MVC bisa jalan dan menampilkan halaman,
+5. login API mengembalikan token Bearer dan endpoint terproteksi bisa diakses dengan token tersebut.
+
+---
+
+## 8. Menjalankan dengan Docker Compose
+Jalankan dari root repository:
+```bash
+docker compose up --build
+```
+
+Hentikan container:
+```bash
+docker compose down
+```
 
 
 

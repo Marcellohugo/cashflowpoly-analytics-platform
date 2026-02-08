@@ -3,14 +3,19 @@
 
 ### Dokumen
 - Nama dokumen: Analisis Kebutuhan Sistem
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 1.1
+- Tanggal: 8 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan Sistem
 Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres belajar. Modul manajemen *ruleset* disediakan agar instruktur dapat mengubah konfigurasi permainan tanpa mengubah kode program. Log event yang tersimpan digunakan untuk menghitung metrik pembelajaran dan menampilkannya pada dasbor analitika.
+
+Dokumen ini dipakai bersama:
+- `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md` untuk kontrak endpoint/payload.
+- `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` untuk lifecycle ruleset.
+- `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md` untuk detail integrasi IDN, retry/idempotency, keamanan, dan NFR operasional.
 
 ---
 
@@ -92,6 +97,8 @@ Kebutuhan fungsional berikut dirumuskan agar dapat diuji.
 - FR-API-05 Sistem menjaga keterurutan event di dalam sesi dengan `sequence_number` atau `turn_number`.
 - FR-API-06 Sistem menyimpan event yang valid ke basis data.
 - FR-API-07 Sistem menyediakan endpoint untuk mengambil daftar event per sesi dalam urutan yang konsisten.
+- FR-API-08 Sistem menyediakan autentikasi berbasis token Bearer untuk endpoint API.
+- FR-API-09 Sistem menerapkan otorisasi berbasis role (`INSTRUCTOR`, `PLAYER`) pada endpoint yang sensitif.
 
 Aturan server (ringkas, tanpa mengubah kontrak payload) ditegaskan sebagai berikut:
 - Sistem menyimpan event dengan `event_pk` sebagai primary key internal.
@@ -154,22 +161,43 @@ Integritas data yang dijaga:
 ## 9. Kebutuhan Non-Fungsional
 Kebutuhan non-fungsional berikut ditetapkan.
 ### 9.1 Keamanan dan hak akses
-- NFR-SEC-01 Sistem menerapkan akses berbasis peran untuk instruktur dan pemain.
-- NFR-SEC-02 Sistem membatasi fitur pengelolaan ruleset hanya untuk instruktur.
-- NFR-SEC-03 Sistem memvalidasi input untuk mencegah payload tidak valid dan manipulasi data.
+- NFR-SEC-01 Sistem menerapkan autentikasi token Bearer pada endpoint API (kecuali endpoint login/register).
+- NFR-SEC-02 Sistem menerapkan akses berbasis peran untuk instruktur dan pemain.
+- NFR-SEC-03 Sistem membatasi fitur pengelolaan ruleset hanya untuk instruktur.
+- NFR-SEC-04 Sistem memvalidasi input untuk mencegah payload tidak valid dan manipulasi data.
+- NFR-SEC-05 Sistem menyimpan password dalam bentuk hash kuat (`pgcrypto`/bcrypt) dan tidak pernah mengembalikan password pada respons API.
+- NFR-SEC-06 Sistem menerapkan pembatasan laju request (*rate limiting*) minimum:
+  1. endpoint ingest event: 120 request/menit/identitas klien,
+  2. endpoint non-ingest: 60 request/menit/identitas klien.
 
 ### 9.2 Audit dan logging
 - NFR-AUD-01 Sistem mencatat request dan hasil validasi event untuk audit.
 - NFR-AUD-02 Sistem mencatat error dan exception dengan informasi yang cukup untuk debugging.
 - NFR-AUD-03 Sistem menyediakan jejak event terurut untuk rekonstruksi state.
+- NFR-AUD-04 Sistem menyertakan `trace_id` pada respons error dan log server.
+- NFR-AUD-05 Sistem menyimpan jejak perubahan ruleset (siapa, kapan, versi berapa) pada kolom audit (`created_by`, `activated_by`) dan log aplikasi.
 
 ### 9.3 Kinerja
-- NFR-PERF-01 Sistem merespons penerimaan event dalam waktu wajar pada skenario kelas.
-- NFR-PERF-02 Sistem memperbarui metrik dan tampilan dasbor setelah menerima event pada setiap aksi atau akhir giliran.
+- NFR-PERF-01 Sistem merespons ingest event tunggal dengan P95 <= 500 ms pada beban kelas normal.
+- NFR-PERF-02 Sistem merespons endpoint analitika sesi (`GET /api/analytics/sessions/{sessionId}`) dengan P95 <= 1500 ms untuk sesi hingga 2000 event.
+- NFR-PERF-03 Sistem memperbarui metrik dan tampilan dasbor setelah menerima event pada setiap aksi atau akhir giliran.
 
 ### 9.4 Reliabilitas
 - NFR-REL-01 Sistem tidak menggandakan dampak saat menerima event duplikat.
 - NFR-REL-02 Sistem tetap menjaga konsistensi data saat terjadi kegagalan parsial, melalui transaksi dan mekanisme penanganan error.
+- NFR-REL-03 Sistem mendukung retry klien pada kegagalan jaringan tanpa menimbulkan efek ganda (mengacu idempotensi event).
+- NFR-REL-04 Sistem menyediakan prosedur backup/restore database:
+  1. backup harian otomatis untuk lingkungan staging/produksi,
+  2. uji restore minimal 1 kali per bulan.
+
+### 9.5 Observability
+- NFR-OBS-01 Sistem menghasilkan log terstruktur minimum: `timestamp`, `trace_id`, `path`, `status_code`, `error_code`.
+- NFR-OBS-02 Sistem menyediakan metrik operasional minimum: jumlah request, error rate, dan latency endpoint utama.
+
+### 9.6 Integrasi API dengan IDN
+- NFR-IDN-01 Sistem mendefinisikan kontrak payload request/response yang stabil dan terversi.
+- NFR-IDN-02 Sistem mendefinisikan aturan retry, timeout, dan idempotency secara eksplisit untuk klien IDN.
+- NFR-IDN-03 Sistem mendefinisikan matriks izin endpoint untuk mencegah ambiguitas implementasi lintas tim.
 
 ---
 
