@@ -47,13 +47,17 @@
                         <th class="px-4 py-3">@Context.T("common.version")</th>
                         <th class="px-4 py-3">@Context.T("common.status")</th>
                         <th class="px-4 py-3">@Context.T("common.created")</th>
+                        @if (isInstructor)
+                        {
+                            <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
                 @if (Model.Ruleset.Versions.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="3">@Context.T("state.no_versions")</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="@(isInstructor ? 4 : 3)">@Context.T("state.no_versions")</td>
                     </tr>
                 }
                 else
@@ -64,6 +68,17 @@
                             <td class="px-4 py-3 font-medium text-slate-900">v@version.Version</td>
                             <td class="px-4 py-3 text-slate-600">@version.Status</td>
                             <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            @if (isInstructor)
+                            {
+                                <td class="px-4 py-3 text-right">
+                                    @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
+                                            <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
+                                        </form>
+                                    }
+                                </td>
+                            }
                         </tr>
                     }
                 }

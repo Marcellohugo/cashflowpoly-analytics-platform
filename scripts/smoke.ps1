@@ -9,7 +9,7 @@ $loginBody = @{
     username = "instructor"
     password = "instructor123"
 }
-$login = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/auth/login" -ContentType "application/json" -Body ($loginBody | ConvertTo-Json)
+$login = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/auth/login" -ContentType "application/json" -Body ($loginBody | ConvertTo-Json)
 $bearerHeaders = @{ Authorization = "Bearer $($login.access_token)" }
 
 $rulesetBody = @{
@@ -61,11 +61,36 @@ $rulesetBody = @{
 }
 
 Write-Host "Create ruleset..."
-$ruleset = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/rulesets" -Headers $bearerHeaders -ContentType "application/json" -Body ($rulesetBody | ConvertTo-Json -Depth 8)
+$ruleset = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/rulesets" -Headers $bearerHeaders -ContentType "application/json" -Body ($rulesetBody | ConvertTo-Json -Depth 8)
+
+Write-Host "Create draft ruleset version..."
+$rulesetUpdateBody = @{
+    name = "Ruleset Smoke V2"
+    description = "Smoke test ruleset draft"
+    config = $rulesetBody.config
+}
+$rulesetUpdateBody.config.starting_cash = 21
+$rulesetUpdate = Invoke-RestMethod -Method Put -Uri "$ApiBaseUrl/api/v1/rulesets/$($ruleset.ruleset_id)" -Headers $bearerHeaders -ContentType "application/json" -Body ($rulesetUpdateBody | ConvertTo-Json -Depth 8)
 
 Write-Host "Get ruleset detail..."
-$rulesetDetail = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/rulesets/$($ruleset.ruleset_id)" -Headers $bearerHeaders -ContentType "application/json"
-$latestVersion = $rulesetDetail.versions | Sort-Object -Property version -Descending | Select-Object -First 1
+$rulesetDetail = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/v1/rulesets/$($ruleset.ruleset_id)" -Headers $bearerHeaders -ContentType "application/json"
+$draftVersion = $rulesetDetail.versions | Where-Object { $_.version -eq $rulesetUpdate.version } | Select-Object -First 1
+if ($null -eq $draftVersion -or $draftVersion.status -ne "DRAFT") {
+    throw "Expected draft version status DRAFT after update."
+}
+
+Write-Host "Activate draft ruleset version..."
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/rulesets/$($ruleset.ruleset_id)/versions/$($rulesetUpdate.version)/activate" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
+
+Write-Host "Recheck ruleset detail..."
+$rulesetDetail = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/v1/rulesets/$($ruleset.ruleset_id)" -Headers $bearerHeaders -ContentType "application/json"
+$latestVersion = $rulesetDetail.versions |
+    Where-Object { $_.status -eq "ACTIVE" } |
+    Sort-Object -Property version -Descending |
+    Select-Object -First 1
+if ($null -eq $latestVersion -or $latestVersion.version -ne $rulesetUpdate.version) {
+    throw "Expected updated version to become ACTIVE after activation."
+}
 
 Write-Host "Create session..."
 $sessionBody = @{
@@ -73,13 +98,13 @@ $sessionBody = @{
     mode = "PEMULA"
     ruleset_id = $ruleset.ruleset_id
 }
-$session = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions" -Headers $bearerHeaders -ContentType "application/json" -Body ($sessionBody | ConvertTo-Json)
+$session = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/sessions" -Headers $bearerHeaders -ContentType "application/json" -Body ($sessionBody | ConvertTo-Json)
 
 Write-Host "Create player..."
 $playerBody = @{
     display_name = "Player Smoke"
 }
-$player = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($playerBody | ConvertTo-Json)
+$player = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($playerBody | ConvertTo-Json)
 
 Write-Host "Add player to session..."
 $addPlayerBody = @{
@@ -87,10 +112,10 @@ $addPlayerBody = @{
     role = "PLAYER"
     join_order = 1
 }
-Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions/$($session.session_id)/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($addPlayerBody | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/sessions/$($session.session_id)/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($addPlayerBody | ConvertTo-Json) | Out-Null
 
 Write-Host "Start session..."
-Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions/$($session.session_id)/start" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/sessions/$($session.session_id)/start" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
 
 Write-Host "Post event..."
 $eventBody = @{
@@ -112,9 +137,9 @@ $eventBody = @{
         counterparty = "BANK"
     }
 }
-Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/events" -Headers $bearerHeaders -ContentType "application/json" -Body ($eventBody | ConvertTo-Json -Depth 6) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/events" -Headers $bearerHeaders -ContentType "application/json" -Body ($eventBody | ConvertTo-Json -Depth 6) | Out-Null
 
 Write-Host "Fetch analytics..."
-Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/analytics/sessions/$($session.session_id)" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/v1/analytics/sessions/$($session.session_id)" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
 
 Write-Host "Smoke test selesai."

@@ -17,7 +17,7 @@
                                                                          "value":  "application/json"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/auth/login",
+                                                      "url":  "{{baseUrl}}/api/v1/auth/login",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"username\":\"instructor\",\"password\":\"instructor123\"}"
@@ -50,7 +50,7 @@
                                                                          "value":  "application/json"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/auth/register",
+                                                      "url":  "{{baseUrl}}/api/v1/auth/register",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"username\":\"newplayer\",\"password\":\"newplayer123\",\"role\":\"PLAYER\"}"
@@ -76,7 +76,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/rulesets",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"name\":\"Ruleset Default\",\"description\":\"Konfigurasi awal\",\"config\":{\"mode\":\"PEMULA\",\"actions_per_turn\":2,\"starting_cash\":20,\"weekday_rules\":{\"friday\":{\"feature\":\"DONATION\",\"enabled\":true},\"saturday\":{\"feature\":\"GOLD_TRADE\",\"enabled\":true},\"sunday\":{\"feature\":\"REST\",\"enabled\":true}},\"constraints\":{\"cash_min\":0,\"max_ingredient_total\":6,\"max_same_ingredient\":3,\"primary_need_max_per_day\":1,\"require_primary_before_others\":true},\"donation\":{\"min_amount\":1,\"max_amount\":999999},\"gold_trade\":{\"allow_buy\":true,\"allow_sell\":true},\"advanced\":{\"loan\":{\"enabled\":false},\"insurance\":{\"enabled\":false},\"saving_goal\":{\"enabled\":false}},\"freelance\":{\"income\":1},\"scoring\":{\"donation_rank_points\":[{\"rank\":1,\"points\":7},{\"rank\":2,\"points\":5},{\"rank\":3,\"points\":2}],\"gold_points_by_qty\":[{\"qty\":1,\"points\":3},{\"qty\":2,\"points\":5},{\"qty\":3,\"points\":8},{\"qty\":4,\"points\":12}],\"pension_rank_points\":[{\"rank\":1,\"points\":5},{\"rank\":2,\"points\":3},{\"rank\":3,\"points\":1}]}}}"
@@ -97,7 +97,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/rulesets/{{rulesetId}}",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets/{{rulesetId}}",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"name\":\"Ruleset Default v2\",\"description\":\"Update kecil\",\"config\":{\"mode\":\"PEMULA\",\"actions_per_turn\":2,\"starting_cash\":20,\"weekday_rules\":{\"friday\":{\"feature\":\"DONATION\",\"enabled\":true},\"saturday\":{\"feature\":\"GOLD_TRADE\",\"enabled\":true},\"sunday\":{\"feature\":\"REST\",\"enabled\":true}},\"constraints\":{\"cash_min\":0,\"max_ingredient_total\":6,\"max_same_ingredient\":3,\"primary_need_max_per_day\":1,\"require_primary_before_others\":true},\"donation\":{\"min_amount\":1,\"max_amount\":999999},\"gold_trade\":{\"allow_buy\":true,\"allow_sell\":true},\"advanced\":{\"loan\":{\"enabled\":false},\"insurance\":{\"enabled\":false},\"saving_goal\":{\"enabled\":false}},\"freelance\":{\"income\":1},\"scoring\":{\"donation_rank_points\":[{\"rank\":1,\"points\":7},{\"rank\":2,\"points\":5},{\"rank\":3,\"points\":2}],\"gold_points_by_qty\":[{\"qty\":1,\"points\":3},{\"qty\":2,\"points\":5},{\"qty\":3,\"points\":8},{\"qty\":4,\"points\":12}],\"pension_rank_points\":[{\"rank\":1,\"points\":5},{\"rank\":2,\"points\":3},{\"rank\":3,\"points\":1}]}}}"
@@ -118,7 +118,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/rulesets",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"name\":\"Ruleset Mahir\",\"description\":\"Konfigurasi mahir rulebook\",\"config\":{\"mode\":\"MAHIR\",\"actions_per_turn\":2,\"starting_cash\":10,\"weekday_rules\":{\"friday\":{\"feature\":\"DONATION\",\"enabled\":true},\"saturday\":{\"feature\":\"GOLD_TRADE\",\"enabled\":true},\"sunday\":{\"feature\":\"REST\",\"enabled\":true}},\"constraints\":{\"cash_min\":0,\"max_ingredient_total\":6,\"max_same_ingredient\":3,\"primary_need_max_per_day\":1,\"require_primary_before_others\":true},\"donation\":{\"min_amount\":1,\"max_amount\":999999},\"gold_trade\":{\"allow_buy\":true,\"allow_sell\":true},\"advanced\":{\"loan\":{\"enabled\":true},\"insurance\":{\"enabled\":true},\"saving_goal\":{\"enabled\":true}},\"freelance\":{\"income\":1},\"scoring\":{\"donation_rank_points\":[{\"rank\":1,\"points\":7},{\"rank\":2,\"points\":5},{\"rank\":3,\"points\":2}],\"gold_points_by_qty\":[{\"qty\":1,\"points\":3},{\"qty\":2,\"points\":5},{\"qty\":3,\"points\":8},{\"qty\":4,\"points\":12}],\"pension_rank_points\":[{\"rank\":1,\"points\":5},{\"rank\":2,\"points\":3},{\"rank\":3,\"points\":1}]}}}"
@@ -129,7 +129,7 @@
                                       "name":  "List Rulesets",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/rulesets",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -142,7 +142,7 @@
                                       "name":  "Get Ruleset Detail",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/rulesets/{{rulesetId}}",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets/{{rulesetId}}",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -155,7 +155,7 @@
                                       "name":  "Archive Ruleset",
                                       "request":  {
                                                       "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/rulesets/{{rulesetId}}/archive",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets/{{rulesetId}}/archive",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -168,7 +168,7 @@
                                       "name":  "Delete Ruleset",
                                       "request":  {
                                                       "method":  "DELETE",
-                                                      "url":  "{{baseUrl}}/api/rulesets/{{rulesetId}}",
+                                                      "url":  "{{baseUrl}}/api/v1/rulesets/{{rulesetId}}",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -196,7 +196,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/sessions",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"session_name\":\"Sesi A\",\"mode\":\"PEMULA\",\"ruleset_id\":\"{{rulesetId}}\"}"
@@ -207,7 +207,7 @@
                                       "name":  "List Sessions",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/sessions",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -230,7 +230,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/sessions/{{sessionId}}/ruleset/activate",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions/{{sessionId}}/ruleset/activate",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"ruleset_id\":\"{{rulesetId}}\",\"version\":1}"
@@ -241,7 +241,7 @@
                                       "name":  "Start Session",
                                       "request":  {
                                                       "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/sessions/{{sessionId}}/start",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions/{{sessionId}}/start",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -254,7 +254,7 @@
                                       "name":  "End Session",
                                       "request":  {
                                                       "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/sessions/{{sessionId}}/end",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions/{{sessionId}}/end",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -267,7 +267,7 @@
                                       "name":  "Add Player To Session",
                                       "request":  {
                                                       "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/sessions/{{sessionId}}/players",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions/{{sessionId}}/players",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Content-Type",
@@ -303,7 +303,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/players",
+                                                      "url":  "{{baseUrl}}/api/v1/players",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"display_name\":\"Player A\"}"
@@ -314,7 +314,7 @@
                                       "name":  "List Players",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/players",
+                                                      "url":  "{{baseUrl}}/api/v1/players",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -342,7 +342,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventId}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":1,\"action_type\":\"work.freelance.completed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"amount\":1}}"
@@ -363,7 +363,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdNeedPrimary}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":2,\"action_type\":\"need.primary.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-P-001\",\"amount\":2,\"points\":2}}"
@@ -384,7 +384,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdNeedSecondary}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":3,\"action_type\":\"need.secondary.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-S-001\",\"amount\":3,\"points\":3}}"
@@ -405,7 +405,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdNeedTertiary}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":4,\"action_type\":\"need.tertiary.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-T-001\",\"amount\":4,\"points\":4}}"
@@ -426,7 +426,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdOrder}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":5,\"action_type\":\"order.claimed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-001\",\"required_ingredient_card_ids\":[\"ING-001\"],\"income\":10}}"
@@ -447,7 +447,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdRisk}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":6,\"action_type\":\"risk.life.drawn\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_id\":\"RISK-001\",\"direction\":\"OUT\",\"amount\":3,\"note\":\"Biaya kesehatan\"}}"
@@ -468,7 +468,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdInsuranceUsed}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":7,\"action_type\":\"insurance.multirisk.used\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_event_id\":\"{{eventIdRisk}}\"}}"
@@ -489,7 +489,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdTurnEnd}}\",\"session_id\":\"{{sessionId}}\",\"actor_type\":\"SYSTEM\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":8,\"action_type\":\"turn.ended\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"note\":\"Akhir giliran\"}}"
@@ -510,7 +510,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdMission}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":9,\"action_type\":\"mission.assigned\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"mission_id\":\"MIS-001\",\"target_tertiary_card_id\":\"NEED-T-001\",\"penalty_points\":10,\"require_primary\":true,\"require_secondary\":true}}"
@@ -531,7 +531,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdInsurance}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":10,\"action_type\":\"insurance.multirisk.purchased\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"policy_id\":\"INS-001\",\"premium\":1,\"coverage_type\":\"MULTIRISK\"}}"
@@ -552,7 +552,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdSavingDeposit}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":11,\"action_type\":\"saving.deposit.created\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"goal_id\":\"GOAL-001\",\"amount\":10}}"
@@ -573,7 +573,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdSavingWithdraw}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":12,\"action_type\":\"saving.deposit.withdrawn\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"goal_id\":\"GOAL-001\",\"amount\":5}}"
@@ -594,7 +594,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdSavingGoal}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":13,\"action_type\":\"saving.goal.achieved\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"goal_id\":\"GOAL-001\",\"points\":5,\"cost\":15}}"
@@ -615,7 +615,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdLoanTaken}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":14,\"action_type\":\"loan.syariah.taken\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"loan_id\":\"LOAN-001\",\"principal\":10,\"installment\":10,\"duration_turn\":1,\"penalty_points\":15}}"
@@ -636,7 +636,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdLoanRepaid}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":15,\"action_type\":\"loan.syariah.repaid\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"loan_id\":\"LOAN-001\",\"amount\":10}}"
@@ -657,7 +657,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdOrderPassed}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":16,\"action_type\":\"order.passed\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-002\",\"required_ingredient_card_ids\":[\"ING-002\"],\"income\":12}}"
@@ -678,7 +678,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdIngredientDiscarded}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":17,\"action_type\":\"ingredient.discarded\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"ING-001\",\"amount\":1,\"reason\":\"HAND_LIMIT\"}}"
@@ -699,7 +699,7 @@
                                                                          "value":  "Bearer {{accessToken}}"
                                                                      }
                                                                  ],
-                                                      "url":  "{{baseUrl}}/api/events",
+                                                      "url":  "{{baseUrl}}/api/v1/events",
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"event_id\":\"{{eventIdRiskEmergency}}\",\"session_id\":\"{{sessionId}}\",\"player_id\":\"{{playerId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":1,\"sequence_number\":18,\"action_type\":\"risk.emergency.used\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"risk_event_id\":\"{{eventIdRisk}}\",\"option_type\":\"SELL_NEED\",\"direction\":\"IN\",\"amount\":3,\"note\":\"Menjual kebutuhan\"}}"
@@ -710,7 +710,7 @@
                                       "name":  "Create Events Batch",
                                       "request":  {
                                                       "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/events/batch",
+                                                      "url":  "{{baseUrl}}/api/v1/events/batch",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Content-Type",
@@ -731,7 +731,7 @@
                                       "name":  "Get Events By Session",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/sessions/{{sessionId}}/events?fromSeq=0\u0026limit=200",
+                                                      "url":  "{{baseUrl}}/api/v1/sessions/{{sessionId}}/events?fromSeq=0\u0026limit=200",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -749,7 +749,7 @@
                                       "name":  "Recompute",
                                       "request":  {
                                                       "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/analytics/sessions/{{sessionId}}/recompute",
+                                                      "url":  "{{baseUrl}}/api/v1/analytics/sessions/{{sessionId}}/recompute",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -762,7 +762,7 @@
                                       "name":  "Get Session Analytics",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/analytics/sessions/{{sessionId}}",
+                                                      "url":  "{{baseUrl}}/api/v1/analytics/sessions/{{sessionId}}",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -775,7 +775,7 @@
                                       "name":  "Get Transactions",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/analytics/sessions/{{sessionId}}/transactions?playerId={{playerId}}",
+                                                      "url":  "{{baseUrl}}/api/v1/analytics/sessions/{{sessionId}}/transactions?playerId={{playerId}}",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",
@@ -788,7 +788,7 @@
                                       "name":  "Get Gameplay Metrics",
                                       "request":  {
                                                       "method":  "GET",
-                                                      "url":  "{{baseUrl}}/api/analytics/sessions/{{sessionId}}/players/{{playerId}}/gameplay",
+                                                      "url":  "{{baseUrl}}/api/v1/analytics/sessions/{{sessionId}}/players/{{playerId}}/gameplay",
                                                       "header":  [
                                                                      {
                                                                          "key":  "Authorization",

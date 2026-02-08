@@ -189,6 +189,7 @@ Dokumen kunci:
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Smoke test cepat (butuh API berjalan): `powershell -File scripts/smoke.ps1`.
+- RBAC smoke test: `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1`.
 
 ## Operasional DB (Backup/Restore)
 - Backup database: `powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1`

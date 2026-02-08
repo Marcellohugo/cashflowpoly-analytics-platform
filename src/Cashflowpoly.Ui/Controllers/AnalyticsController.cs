@@ -33,7 +33,7 @@ public sealed class AnalyticsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/analytics/sessions/{sessionId}", ct);
+        var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -56,7 +56,7 @@ public sealed class AnalyticsController : Controller
     public async Task<IActionResult> Ruleset(Guid rulesetId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/analytics/rulesets/{rulesetId}/summary", ct);
+        var response = await client.GetAsync($"api/v1/analytics/rulesets/{rulesetId}/summary", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -81,3 +81,4 @@ public sealed class AnalyticsController : Controller
         });
     }
 }
+

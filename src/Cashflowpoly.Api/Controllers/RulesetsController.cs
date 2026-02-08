@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
+[Route("api/v1/rulesets")]
 [Route("api/rulesets")]
 [Authorize]
 public sealed class RulesetsController : ControllerBase
@@ -41,7 +42,7 @@ public sealed class RulesetsController : ControllerBase
         var configJson = request.Config.GetRawText();
         var created = await _rulesets.CreateRulesetAsync(request.Name, request.Description, configJson, GetActorName(), ct);
 
-        return Created($"/api/rulesets/{created.RulesetId}", new CreateRulesetResponse(created.RulesetId, created.Version));
+        return Created($"/api/v1/rulesets/{created.RulesetId}", new CreateRulesetResponse(created.RulesetId, created.Version));
     }
 
     [HttpPut("{rulesetId:guid}")]
@@ -74,6 +75,35 @@ public sealed class RulesetsController : ControllerBase
             ct);
 
         return Ok(new CreateRulesetResponse(rulesetId, nextVersion));
+    }
+
+    [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    public async Task<IActionResult> ActivateRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
+    {
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var selectedVersion = await _rulesets.GetRulesetVersionAsync(rulesetId, version, ct);
+        if (selectedVersion is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        if (!RulesetConfigParser.TryParse(selectedVersion.ConfigJson, out _, out var configErrors))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Konfigurasi ruleset tidak valid",
+                configErrors.ToArray()));
+        }
+
+        await _rulesets.ActivateRulesetVersionAsync(rulesetId, version, ct);
+        return Ok(new CreateRulesetResponse(rulesetId, version));
     }
 
     [HttpGet]

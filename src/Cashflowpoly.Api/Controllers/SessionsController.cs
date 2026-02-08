@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
+[Route("api/v1/sessions")]
 [Route("api/sessions")]
 [Authorize]
 public sealed class SessionsController : ControllerBase
@@ -63,10 +64,10 @@ public sealed class SessionsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        var latestVersion = await _rulesets.GetLatestVersionAsync(request.RulesetId, ct);
+        var latestVersion = await _rulesets.GetLatestActiveVersionAsync(request.RulesetId, ct);
         if (latestVersion is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset belum memiliki versi"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset belum memiliki versi ACTIVE"));
         }
 
         var sessionId = await _sessions.CreateSessionAsync(
@@ -76,7 +77,7 @@ public sealed class SessionsController : ControllerBase
             GetActorName(),
             ct);
 
-        return Created($"/api/sessions/{sessionId}", new CreateSessionResponse(sessionId));
+        return Created($"/api/v1/sessions/{sessionId}", new CreateSessionResponse(sessionId));
     }
 
     [HttpPost("{sessionId:guid}/start")]
@@ -140,6 +141,14 @@ public sealed class SessionsController : ControllerBase
         if (rulesetVersion is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        if (!string.Equals(rulesetVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset version harus ACTIVE sebelum dipakai sesi"));
         }
 
         if (!RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out _, out var errors))

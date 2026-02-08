@@ -27,7 +27,7 @@ public sealed class SessionsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/sessions", ct);
+        var response = await client.GetAsync("api/v1/sessions", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -53,7 +53,7 @@ public sealed class SessionsController : Controller
     public async Task<IActionResult> Details(Guid sessionId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/analytics/sessions/{sessionId}", ct);
+        var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -87,7 +87,7 @@ public sealed class SessionsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/rulesets", ct);
+        var response = await client.GetAsync("api/v1/rulesets", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -132,7 +132,7 @@ public sealed class SessionsController : Controller
             version = model.SelectedVersion
         };
 
-        var response = await client.PostAsJsonAsync($"api/sessions/{sessionId}/ruleset/activate", payload, ct);
+        var response = await client.PostAsJsonAsync($"api/v1/sessions/{sessionId}/ruleset/activate", payload, ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -149,3 +149,4 @@ public sealed class SessionsController : Controller
         return RedirectToAction(nameof(Details), new { sessionId });
     }
 }
+

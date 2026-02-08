@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
+[Route("api/v1/auth")]
 [Route("api/auth")]
 [AllowAnonymous]
 public sealed class AuthController : ControllerBase
@@ -78,7 +79,7 @@ public sealed class AuthController : ControllerBase
         var created = await _users.CreateUserAsync(username, request.Password, normalizedRole, ct);
         var issued = _tokens.IssueToken(created);
         return Created(
-            $"/api/auth/users/{created.UserId}",
+            $"/api/v1/auth/users/{created.UserId}",
             new RegisterResponse(created.UserId, created.Username, created.Role, issued.AccessToken, issued.ExpiresAt));
     }
 }

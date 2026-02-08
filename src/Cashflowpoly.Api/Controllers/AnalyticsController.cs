@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
+[Route("api/v1/analytics")]
 [Route("api/analytics")]
 [Authorize]
 public sealed class AnalyticsController : ControllerBase

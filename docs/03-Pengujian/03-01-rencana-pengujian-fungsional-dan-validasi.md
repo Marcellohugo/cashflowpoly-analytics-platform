@@ -582,11 +582,20 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
    - sesi (create/start/end/activate ruleset),
    - ingest event dan analytics.
 
+### 14.2A RBAC smoke test
+1. Jalankan `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1`.
+2. Verifikasi skenario minimum:
+   - endpoint terproteksi tanpa token => `401`,
+   - endpoint instruktur dipanggil token player => `403`,
+   - endpoint read yang diizinkan player => `200`,
+   - endpoint instruktur dipanggil token instruktur => sukses.
+
 ### 14.3 Definition of Done (DoD)
 Fitur dinyatakan selesai jika:
 1. Build API dan UI lulus tanpa error.
 2. Unit test lulus.
 3. Smoke test lulus.
-4. Skenario Postman kritikal lulus.
-5. Tidak ada bug blocker (`S1`) pada modul terdampak.
+4. RBAC smoke test lulus.
+5. Skenario Postman kritikal lulus.
+6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 

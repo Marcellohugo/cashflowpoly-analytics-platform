@@ -25,7 +25,7 @@ public sealed class RulesetsController : Controller
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/rulesets", ct);
+        var response = await client.GetAsync("api/v1/rulesets", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -138,7 +138,7 @@ public sealed class RulesetsController : Controller
             config = configNode
         };
 
-        var response = await client.PostAsJsonAsync("api/rulesets", payload, ct);
+        var response = await client.PostAsJsonAsync("api/v1/rulesets", payload, ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -159,7 +159,7 @@ public sealed class RulesetsController : Controller
     public async Task<IActionResult> Details(Guid rulesetId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/rulesets/{rulesetId}", ct);
+        var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -192,7 +192,7 @@ public sealed class RulesetsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.PostAsync($"api/rulesets/{rulesetId}/archive", null, ct);
+        var response = await client.PostAsync($"api/v1/rulesets/{rulesetId}/archive", null, ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -211,6 +211,33 @@ public sealed class RulesetsController : Controller
         return RedirectToAction(nameof(Details), new { rulesetId });
     }
 
+    [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
+    public async Task<IActionResult> ActivateVersion(Guid rulesetId, int version, CancellationToken ct)
+    {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { rulesetId });
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.PostAsync($"api/v1/rulesets/{rulesetId}/versions/{version}/activate", null, ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+                response,
+                "Gagal mengaktifkan versi ruleset",
+                ct);
+        }
+
+        return RedirectToAction(nameof(Details), new { rulesetId });
+    }
+
     [HttpPost("{rulesetId:guid}/delete")]
     public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
     {
@@ -220,7 +247,7 @@ public sealed class RulesetsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.DeleteAsync($"api/rulesets/{rulesetId}", ct);
+        var response = await client.DeleteAsync($"api/v1/rulesets/{rulesetId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -254,3 +281,4 @@ public sealed class RulesetsController : Controller
         return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
     }
 }
+

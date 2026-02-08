@@ -27,7 +27,7 @@ public sealed class PlayerDirectoryController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/players", ct);
+        var response = await client.GetAsync("api/v1/players", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -49,3 +49,4 @@ public sealed class PlayerDirectoryController : Controller
         });
     }
 }
+

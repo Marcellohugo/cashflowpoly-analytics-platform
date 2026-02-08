@@ -47,7 +47,7 @@ public sealed class AuthController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var payload = new LoginRequestDto(model.Username.Trim(), model.Password);
-        var response = await client.PostAsJsonAsync("api/auth/login", payload);
+        var response = await client.PostAsJsonAsync("api/v1/auth/login", payload);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -123,7 +123,7 @@ public sealed class AuthController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var payload = new RegisterRequestDto(model.Username.Trim(), model.Password, model.Role.ToUpperInvariant());
-        var response = await client.PostAsJsonAsync("api/auth/register", payload);
+        var response = await client.PostAsJsonAsync("api/v1/auth/register", payload);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -169,3 +169,4 @@ public sealed class AuthController : Controller
         return RedirectToAction(nameof(Login));
     }
 }
+

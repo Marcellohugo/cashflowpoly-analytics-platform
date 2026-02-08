@@ -44,6 +44,21 @@ public sealed class RulesetRepository
         return await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
+    public async Task<RulesetVersionDb?> GetLatestActiveVersionAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            from ruleset_versions
+            where ruleset_id = @rulesetId
+              and status = 'ACTIVE'
+            order by version desc
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+    }
+
     public async Task<RulesetVersionDb?> GetRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
         const string sql = """
@@ -131,15 +146,9 @@ public sealed class RulesetRepository
             where ruleset_id = @rulesetId
             """;
 
-        const string retireActive = """
-            update ruleset_versions
-            set status = 'RETIRED'
-            where ruleset_id = @rulesetId and status = 'ACTIVE'
-            """;
-
         const string insertVersion = """
             insert into ruleset_versions (ruleset_version_id, ruleset_id, version, status, config_json, config_hash, created_at, created_by)
-            values (@rulesetVersionId, @rulesetId, @version, 'ACTIVE', @configJson::jsonb, @configHash, @createdAt, @createdBy)
+            values (@rulesetVersionId, @rulesetId, @version, 'DRAFT', @configJson::jsonb, @configHash, @createdAt, @createdBy)
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -157,9 +166,6 @@ public sealed class RulesetRepository
             await conn.ExecuteAsync(updateDef);
         }
 
-        var retireDef = new CommandDefinition(retireActive, new { rulesetId }, tx, cancellationToken: ct);
-        await conn.ExecuteAsync(retireDef);
-
         var insertDef = new CommandDefinition(insertVersion, new
         {
             rulesetVersionId,
@@ -174,6 +180,45 @@ public sealed class RulesetRepository
 
         await tx.CommitAsync(ct);
         return nextVersion;
+    }
+
+    public async Task<bool> ActivateRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
+    {
+        const string targetSql = """
+            select 1
+            from ruleset_versions
+            where ruleset_id = @rulesetId and version = @version
+            limit 1
+            """;
+
+        const string retireSql = """
+            update ruleset_versions
+            set status = 'RETIRED'
+            where ruleset_id = @rulesetId
+              and status = 'ACTIVE'
+              and version <> @version
+            """;
+
+        const string activateSql = """
+            update ruleset_versions
+            set status = 'ACTIVE'
+            where ruleset_id = @rulesetId
+              and version = @version
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var exists = await conn.ExecuteScalarAsync<int?>(
+            new CommandDefinition(targetSql, new { rulesetId, version }, cancellationToken: ct));
+        if (!exists.HasValue)
+        {
+            return false;
+        }
+
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(retireSql, new { rulesetId, version }, tx, cancellationToken: ct));
+        await conn.ExecuteAsync(new CommandDefinition(activateSql, new { rulesetId, version }, tx, cancellationToken: ct));
+        await tx.CommitAsync(ct);
+        return true;
     }
 
     public async Task<List<RulesetListItem>> ListRulesetsAsync(CancellationToken ct)

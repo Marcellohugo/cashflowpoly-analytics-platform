@@ -9,6 +9,7 @@ using Npgsql;
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
+[Route("api/v1")]
 [Route("api")]
 [Authorize]
 public sealed class EventsController : ControllerBase

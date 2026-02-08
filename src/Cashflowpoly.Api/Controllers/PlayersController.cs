@@ -9,6 +9,7 @@ namespace Cashflowpoly.Api.Controllers;
 /// Controller untuk manajemen pemain dan relasi pemain ke sesi.
 /// </summary>
 [ApiController]
+[Route("api/v1/players")]
 [Route("api/players")]
 [Authorize]
 public sealed class PlayersController : ControllerBase
@@ -33,7 +34,7 @@ public sealed class PlayersController : ControllerBase
         }
 
         var playerId = await _players.CreatePlayerAsync(request.DisplayName, ct);
-        return Created($"/api/players/{playerId}", new PlayerResponse(playerId, request.DisplayName));
+        return Created($"/api/v1/players/{playerId}", new PlayerResponse(playerId, request.DisplayName));
     }
 
     [HttpGet]
@@ -45,6 +46,7 @@ public sealed class PlayersController : ControllerBase
         return Ok(new PlayerListResponse(items));
     }
 
+    [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]
     [HttpPost("/api/sessions/{sessionId:guid}/players")]
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
