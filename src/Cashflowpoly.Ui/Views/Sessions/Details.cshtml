@@ -1,13 +1,14 @@
 @model Cashflowpoly.Ui.Models.SessionDetailViewModel
 
 @{
-    ViewData["Title"] = "Detail Sesi";
+    ViewData["Title"] = Context.T("sessions.detail_title");
+    var isInstructor = Context.Session.IsInstructor();
 }
 
 <section class="section-shell">
     <div>
-        <p class="eyebrow text-emerald-700">Analitika Sesi</p>
-        <h1 class="headline">Detail sesi</h1>
+        <p class="eyebrow text-emerald-700">@Context.T("sessions.analytics_title")</p>
+        <h1 class="headline">@Context.T("sessions.detail_title")</h1>
         <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
     </div>
 
@@ -22,50 +23,53 @@
     {
         <div class="mt-6 grid gap-4 md:grid-cols-5">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Total Event</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.EventCount</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Cash In</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
                 <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Analytics.Summary.CashInTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Cash Out</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
                 <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Analytics.Summary.CashOutTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Net Cashflow</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.CashflowNetTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Pelanggaran</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
             </div>
         </div>
 
-        <div class="mt-6 flex items-center gap-3">
-            <a class="btn-ghost"
-               asp-controller="Sessions" asp-action="Ruleset" asp-route-sessionId="@Model.SessionId">Aktivasi Ruleset</a>
-        </div>
+        @if (isInstructor)
+        {
+            <div class="mt-6 flex items-center gap-3">
+                <a class="btn-ghost"
+                   asp-controller="Sessions" asp-action="Ruleset" asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+            </div>
+        }
 
         <div class="mt-8 table-wrap">
             <table class="w-full text-left text-sm">
                 <thead class="table-head">
                     <tr>
-                        <th class="px-4 py-3">Player ID</th>
-                        <th class="px-4 py-3 text-right">Cash In</th>
-                        <th class="px-4 py-3 text-right">Cash Out</th>
-                        <th class="px-4 py-3 text-right">Donation</th>
-                        <th class="px-4 py-3 text-right">Gold Qty</th>
-                        <th class="px-4 py-3 text-right">Happiness</th>
-                        <th class="px-4 py-3 text-right">Detail</th>
+                        <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_in")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_out")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.donation")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.gold_qty")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (Model.Analytics.ByPlayer.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="7">Belum ada data pemain.</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="7">@Context.T("state.no_player_data")</td>
                     </tr>
                 }
                 else
@@ -82,7 +86,7 @@
                             <td class="px-4 py-3 text-right">
                                 <a class="text-sm font-semibold text-slate-900 hover:underline"
                                    asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
-                                   asp-route-playerId="@item.PlayerId">Lihat</a>
+                                   asp-route-playerId="@item.PlayerId">@Context.T("common.view")</a>
                             </td>
                         </tr>
                     }

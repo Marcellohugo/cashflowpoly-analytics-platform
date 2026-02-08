@@ -17,6 +17,8 @@ builder.Services.AddScoped<Cashflowpoly.Api.Data.SessionRepository>();
 builder.Services.AddScoped<Cashflowpoly.Api.Data.EventRepository>();
 builder.Services.AddScoped<Cashflowpoly.Api.Data.MetricsRepository>();
 builder.Services.AddScoped<Cashflowpoly.Api.Data.PlayerRepository>();
+builder.Services.AddScoped<Cashflowpoly.Api.Data.UserRepository>();
+builder.Services.AddHostedService<Cashflowpoly.Api.Data.AuthSchemaBootstrapper>();
 
 var app = builder.Build();
 

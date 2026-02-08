@@ -1,13 +1,14 @@
 @model Cashflowpoly.Ui.Models.RulesetDetailViewModel
 
 @{
-    ViewData["Title"] = "Detail Ruleset";
+    ViewData["Title"] = Context.T("rulesets.detail_title");
+    var isInstructor = Context.Session.IsInstructor();
 }
 
 <section class="section-shell">
     <div>
-        <p class="eyebrow">Manajemen Ruleset</p>
-        <h1 class="headline">Detail ruleset</h1>
+        <p class="eyebrow">@Context.T("rulesets.management")</p>
+        <h1 class="headline">@Context.T("rulesets.detail_title")</h1>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -20,35 +21,38 @@
     @if (Model.Ruleset is not null)
     {
         <div class="mt-4">
-            <p class="text-sm text-slate-600">Nama</p>
+            <p class="text-sm text-slate-600">@Context.T("common.name")</p>
             <p class="text-lg font-semibold text-slate-900">@Model.Ruleset.Name</p>
-            <p class="mt-2 text-sm text-slate-600">Deskripsi</p>
+            <p class="mt-2 text-sm text-slate-600">@Context.T("common.description")</p>
             <p class="text-sm text-slate-700">@Model.Ruleset.Description</p>
         </div>
 
-        <div class="mt-4 flex flex-wrap gap-3">
-            <form method="post" asp-controller="Rulesets" asp-action="Archive" asp-route-rulesetId="@Model.Ruleset.RulesetId">
-                <button class="btn-ghost" type="submit">Arsipkan</button>
-            </form>
-            <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
-                <button class="btn-primary" type="submit">Hapus</button>
-            </form>
-        </div>
+        @if (isInstructor)
+        {
+            <div class="mt-4 flex flex-wrap gap-3">
+                <form method="post" asp-controller="Rulesets" asp-action="Archive" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                    <button class="btn-ghost" type="submit">@Context.T("rulesets.archive")</button>
+                </form>
+                <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                    <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
+                </form>
+            </div>
+        }
 
         <div class="mt-6 table-wrap">
             <table class="w-full text-left text-sm">
                 <thead class="table-head">
                     <tr>
-                        <th class="px-4 py-3">Versi</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3">Dibuat</th>
+                        <th class="px-4 py-3">@Context.T("common.version")</th>
+                        <th class="px-4 py-3">@Context.T("common.status")</th>
+                        <th class="px-4 py-3">@Context.T("common.created")</th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (Model.Ruleset.Versions.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="3">Belum ada versi.</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="3">@Context.T("state.no_versions")</td>
                     </tr>
                 }
                 else
@@ -67,7 +71,7 @@
         </div>
 
         <div class="mt-6">
-            <p class="text-sm text-slate-600">Config JSON (versi terbaru)</p>
+            <p class="text-sm text-slate-600">Config JSON</p>
             <pre class="mt-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">@Model.Ruleset.ConfigJson</pre>
         </div>
     }

@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,7 @@ namespace Cashflowpoly.Ui.Controllers;
 public sealed class RulesetsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
+    private const string RulesetErrorTempDataKey = "ruleset_error";
 
     public RulesetsController(IHttpClientFactory clientFactory)
     {
@@ -43,6 +45,11 @@ public sealed class RulesetsController : Controller
     [HttpGet("create")]
     public IActionResult Create()
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
         return View(new CreateRulesetViewModel
         {
             ConfigJson = """
@@ -96,6 +103,11 @@ public sealed class RulesetsController : Controller
     [HttpPost("create")]
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
         if (string.IsNullOrWhiteSpace(model.Name))
         {
             model.ErrorMessage = "Nama ruleset wajib diisi.";
@@ -149,22 +161,28 @@ public sealed class RulesetsController : Controller
         var data = await response.Content.ReadFromJsonAsync<RulesetDetailResponseDto>(cancellationToken: ct);
         return View(new RulesetDetailViewModel
         {
-            Ruleset = data
+            Ruleset = data,
+            ErrorMessage = TempData[RulesetErrorTempDataKey] as string
         });
     }
 
     [HttpPost("{rulesetId:guid}/archive")]
     public async Task<IActionResult> Archive(Guid rulesetId, CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { rulesetId });
+        }
+
         var client = _clientFactory.CreateClient("Api");
         var response = await client.PostAsync($"api/rulesets/{rulesetId}/archive", null, ct);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            return View("Details", new RulesetDetailViewModel
-            {
-                ErrorMessage = error?.Message ?? $"Gagal arsip ruleset. Status: {(int)response.StatusCode}"
-            });
+            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+                response,
+                "Gagal arsip ruleset",
+                ct);
+            return RedirectToAction(nameof(Details), new { rulesetId });
         }
 
         return RedirectToAction(nameof(Details), new { rulesetId });
@@ -173,17 +191,37 @@ public sealed class RulesetsController : Controller
     [HttpPost("{rulesetId:guid}/delete")]
     public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { rulesetId });
+        }
+
         var client = _clientFactory.CreateClient("Api");
         var response = await client.DeleteAsync($"api/rulesets/{rulesetId}", ct);
         if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NoContent)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            return View("Details", new RulesetDetailViewModel
-            {
-                ErrorMessage = error?.Message ?? $"Gagal hapus ruleset. Status: {(int)response.StatusCode}"
-            });
+            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+                response,
+                "Gagal hapus ruleset",
+                ct);
+            return RedirectToAction(nameof(Details), new { rulesetId });
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private static async Task<string> BuildRulesetApiErrorMessage(HttpResponseMessage response, string prefix, CancellationToken ct)
+    {
+        ApiErrorResponseDto? error = null;
+        try
+        {
+            error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+        }
+        catch (JsonException)
+        {
+            // Fallback to generic text when API body is not JSON.
+        }
+
+        return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
     }
 }

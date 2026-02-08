@@ -34,3 +34,27 @@
 
   targets.forEach((el) => observer.observe(el));
 })();
+
+(() => {
+  const dropdowns = Array.from(document.querySelectorAll(".nav-dropdown"));
+  if (!dropdowns.length) {
+    return;
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    dropdowns.forEach((dropdown) => {
+      if (dropdown.contains(target)) {
+        return;
+      }
+      dropdown.removeAttribute("open");
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") {
+      return;
+    }
+    dropdowns.forEach((dropdown) => dropdown.removeAttribute("open"));
+  });
+})();

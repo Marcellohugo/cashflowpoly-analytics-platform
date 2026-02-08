@@ -2,13 +2,13 @@
 @model Cashflowpoly.Ui.Models.PlayerDetailViewModel
 
 @{
-    ViewData["Title"] = "Detail Pemain";
+    ViewData["Title"] = Context.T("players.detail_title");
 }
 
 <section class="section-shell">
     <div>
-        <p class="eyebrow text-emerald-700">Analitika Pemain</p>
-        <h1 class="headline">Detail pemain</h1>
+        <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
+        <h1 class="headline">@Context.T("players.detail_title")</h1>
         <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
     </div>
 
@@ -23,68 +23,68 @@
     {
         <div class="mt-6 grid gap-4 md:grid-cols-4">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Cash In</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
                 <p class="mt-2 text-xl font-semibold text-emerald-700">@Model.Summary.CashInTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Cash Out</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
                 <p class="mt-2 text-xl font-semibold text-rose-700">@Model.Summary.CashOutTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Donation</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.donation")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.DonationTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Gold Qty</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.gold_qty")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.GoldQty</p>
             </div>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-4">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Happiness</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.happiness")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.HappinessPointsTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Need Points</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.need_points")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.NeedPointsTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Need Bonus</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.need_bonus")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.NeedSetBonusPoints</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Donation Points</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.donation_points")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.DonationPointsTotal</p>
             </div>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-4">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Gold Points</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.gold_points")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.GoldPointsTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Pension Points</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.pension_points")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.PensionPointsTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Saving Goal</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.saving_goal")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.SavingGoalPointsTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Loan Unpaid</p>
-                <p class="mt-2 text-xl font-semibold text-slate-900">@((Model.Summary.HasUnpaidLoan) ? "Ya" : "Tidak")</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.loan_unpaid")</p>
+                <p class="mt-2 text-xl font-semibold text-slate-900">@((Model.Summary.HasUnpaidLoan) ? Context.T("state.true") : Context.T("state.false"))</p>
             </div>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-2">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Mission Penalty</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.mission_penalty")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.MissionPenaltyTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Loan Penalty</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.loan_penalty")</p>
                 <p class="mt-2 text-xl font-semibold text-slate-900">@Model.Summary.LoanPenaltyTotal</p>
             </div>
         </div>
@@ -94,17 +94,17 @@
         <table class="w-full text-left text-sm">
             <thead class="table-head">
                 <tr>
-                    <th class="px-4 py-3">Waktu</th>
-                    <th class="px-4 py-3">Arah</th>
-                    <th class="px-4 py-3 text-right">Nominal</th>
-                    <th class="px-4 py-3">Kategori</th>
+                    <th class="px-4 py-3">@Context.T("common.time")</th>
+                    <th class="px-4 py-3">@Context.T("common.direction")</th>
+                    <th class="px-4 py-3 text-right">@Context.T("common.transaction_amount")</th>
+                    <th class="px-4 py-3">@Context.T("common.category")</th>
                 </tr>
             </thead>
             <tbody>
             @if (Model.Transactions.Count == 0)
             {
                 <tr>
-                    <td class="px-4 py-4 text-slate-500" colspan="4">Belum ada transaksi.</td>
+                    <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("players.no_transactions")</td>
                 </tr>
             }
             else
@@ -127,10 +127,10 @@
         <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
                 <p class="eyebrow">Gameplay Metrics</p>
-                <h2 class="headline text-2xl">Snapshot gameplay & turunan</h2>
+                <h2 class="headline text-2xl">@Context.T("gameplay.title")</h2>
                 @if (Model.GameplayComputedAt.HasValue)
                 {
-                    <p class="mt-1 text-xs text-slate-500">Computed: @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p class="mt-1 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
                 }
             </div>
         </div>
@@ -144,7 +144,7 @@
 
         <div class="mt-6 grid gap-4 lg:grid-cols-2">
             <div class="glass-surface p-4">
-                <p class="text-xs uppercase text-slate-500">Raw Gameplay Variables</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("gameplay.raw")</p>
                 <pre class="mt-3 max-h-96 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">@(
                     Model.GameplayRaw.HasValue
                         ? JsonSerializer.Serialize(Model.GameplayRaw.Value, new JsonSerializerOptions { WriteIndented = true })
@@ -152,7 +152,7 @@
                 )</pre>
             </div>
             <div class="glass-surface p-4">
-                <p class="text-xs uppercase text-slate-500">Derived Metrics</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("gameplay.derived")</p>
                 <pre class="mt-3 max-h-96 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">@(
                     Model.GameplayDerived.HasValue
                         ? JsonSerializer.Serialize(Model.GameplayDerived.Value, new JsonSerializerOptions { WriteIndented = true })

@@ -1,13 +1,13 @@
 @model Cashflowpoly.Ui.Models.SessionRulesetViewModel
 
 @{
-    ViewData["Title"] = "Aktivasi Ruleset";
+    ViewData["Title"] = Context.T("sessions.activate_ruleset");
 }
 
 <section class="section-shell">
     <div>
-        <p class="eyebrow">Aktivasi Ruleset</p>
-        <h1 class="headline">Pilih ruleset untuk sesi</h1>
+        <p class="eyebrow">@Context.T("sessions.activate_ruleset")</p>
+        <h1 class="headline">@Context.T("sessions.ruleset_title")</h1>
         <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
     </div>
 
@@ -20,10 +20,10 @@
 
     <form class="mt-6 space-y-4 glass-surface p-4" method="post">
         <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ruleset</label>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.ruleset")</label>
             <select class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
                     asp-for="SelectedRulesetId">
-                <option value="">Pilih ruleset</option>
+                <option value="">@Context.T("sessions.ruleset_title")</option>
                 @foreach (var item in Model.Rulesets)
                 {
                     <option value="@item.RulesetId">@item.Name</option>
@@ -31,15 +31,15 @@
             </select>
         </div>
         <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Versi</label>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.version")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
                    asp-for="SelectedVersion" type="number" min="1" />
-            <p class="mt-1 text-xs text-slate-500">Isi versi manual (mis. 1 atau versi terbaru).</p>
+            <p class="mt-1 text-xs text-slate-500">@Context.T("sessions.ruleset_hint")</p>
         </div>
         <div class="flex items-center gap-3">
             <button class="btn-primary"
-                    type="submit">Aktifkan</button>
-            <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">Batal</a>
+                    type="submit">@Context.T("sessions.activate")</button>
+            <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">@Context.T("common.cancel")</a>
         </div>
     </form>
 </section>

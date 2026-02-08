@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +21,11 @@ public sealed class SessionsController : Controller
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction("Index", "Analytics");
+        }
+
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/sessions", ct);
         if (!response.IsSuccessStatusCode)
@@ -63,6 +69,11 @@ public sealed class SessionsController : Controller
     [HttpGet("{sessionId:guid}/ruleset")]
     public async Task<IActionResult> Ruleset(Guid sessionId, CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { sessionId });
+        }
+
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/rulesets", ct);
         if (!response.IsSuccessStatusCode)
@@ -85,6 +96,11 @@ public sealed class SessionsController : Controller
     [HttpPost("{sessionId:guid}/ruleset")]
     public async Task<IActionResult> Ruleset(Guid sessionId, SessionRulesetViewModel model, CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { sessionId });
+        }
+
         if (model.SelectedRulesetId is null || model.SelectedVersion is null)
         {
             model.ErrorMessage = "Ruleset dan versi wajib dipilih.";

@@ -1,7 +1,45 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+@model Cashflowpoly.Ui.Models.RulebookPageViewModel
+@{
+    ViewData["Title"] = Context.T("privacy.title");
 }
 <section class="section-shell">
     <h1 class="headline">@ViewData["Title"]</h1>
-    <p class="subhead">Gunakan halaman ini untuk menjelaskan kebijakan privasi aplikasi.</p>
+    <p class="subhead">@Model.Subtitle</p>
+
+    <div class="rulebook-grid mt-6">
+        @foreach (var section in Model.Sections)
+        {
+            <article class="rulebook-card">
+                <h2 class="rulebook-heading">@(section.Heading)</h2>
+                <p class="rulebook-desc">@(section.Description)</p>
+                <ul class="rulebook-list">
+                    @foreach (var point in section.Points)
+                    {
+                        <li>@point</li>
+                    }
+                </ul>
+            </article>
+        }
+    </div>
+
+    <div class="rulebook-score mt-6">
+        <h2 class="rulebook-heading">Ringkasan Poin Kebahagiaan</h2>
+        <table class="w-full text-left text-sm">
+            <thead class="table-head">
+                <tr>
+                    <th class="px-4 py-3">Kategori</th>
+                    <th class="px-4 py-3">Aturan</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Scoring)
+            {
+                <tr class="border-t border-slate-200">
+                    <td class="px-4 py-3 font-semibold text-slate-900">@item.Category</td>
+                    <td class="px-4 py-3 text-slate-700">@item.Rule</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 </section>

@@ -1,43 +1,43 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = Context.T("nav.home");
 }
 
 <section class="section-shell">
     <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div>
-            <span class="badge badge-emerald">Cashflowpoly</span>
-            <h1 class="headline text-4xl md:text-5xl">Dasbor analitika dan manajemen ruleset.</h1>
+            <span class="badge badge-emerald">@Context.T("home.badge")</span>
+            <h1 class="headline text-4xl md:text-5xl">@Context.T("home.title")</h1>
             <p class="subhead">
-                Pantau event, proyeksi arus kas, dan ringkasan performa pemain dengan validasi aturan yang rapi.
+                @Context.T("home.subtitle")
             </p>
             <div class="mt-6 flex flex-wrap gap-3">
-                <a class="btn-primary" asp-controller="Sessions" asp-action="Index">Mulai dari sesi</a>
-                <a class="btn-ghost" asp-controller="Analytics" asp-action="Index">Lihat analitika</a>
+                <a class="btn-primary" asp-controller="Sessions" asp-action="Index">@Context.T("home.cta.sessions")</a>
+                <a class="btn-ghost" asp-controller="Analytics" asp-action="Index">@Context.T("home.cta.analytics")</a>
             </div>
             <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                 <li class="flex items-start gap-2">
                     <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
-                    <span>Validasi rulebook dan skor otomatis.</span>
+                    <span>@Context.T("home.feature.1")</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
-                    <span>Aktivasi ruleset per sesi dengan cepat.</span>
+                    <span>@Context.T("home.feature.2")</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
-                    <span>Snapshot arus kas dan pelanggaran.</span>
+                    <span>@Context.T("home.feature.3")</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
-                    <span>Ringkasan pemain siap untuk evaluasi.</span>
+                    <span>@Context.T("home.feature.4")</span>
                 </li>
             </ul>
         </div>
         <div class="glass-surface p-5">
             <div class="space-y-4">
                 <div class="flex items-center justify-between text-sm text-slate-600">
-                    <span>Active sessions</span>
-                    <span class="badge badge-emerald">Real-time</span>
+                    <span>@Context.T("home.active_sessions")</span>
+                    <span class="badge badge-emerald">@Context.T("home.realtime")</span>
                 </div>
                 <div class="text-4xl font-semibold text-slate-900">3</div>
                 <div class="h-2 w-full rounded-full bg-slate-100">
@@ -45,15 +45,15 @@
                 </div>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">Ruleset aktif</p>
+                        <p class="text-xs uppercase text-slate-500">@Context.T("home.ruleset_active")</p>
                         <p class="mt-2 text-lg font-semibold text-slate-900">Default v1</p>
                     </div>
                     <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">Pemain dipantau</p>
+                        <p class="text-xs uppercase text-slate-500">@Context.T("home.players_monitored")</p>
                         <p class="mt-2 text-lg font-semibold text-slate-900">24</p>
                     </div>
                 </div>
-                <p class="text-xs text-slate-500">Snapshot singkat untuk demo tampilan.</p>
+                <p class="text-xs text-slate-500">@Context.T("home.snapshot_demo")</p>
             </div>
         </div>
     </div>

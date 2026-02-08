@@ -1,17 +1,21 @@
 @model Cashflowpoly.Ui.Models.RulesetListViewModel
 
 @{
-    ViewData["Title"] = "Rulesets";
+    ViewData["Title"] = Context.T("nav.ruleset");
+    var isInstructor = Context.Session.IsInstructor();
 }
 
 <section class="section-shell">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-            <p class="eyebrow">Manajemen Ruleset</p>
-            <h1 class="headline">Daftar ruleset</h1>
+            <p class="eyebrow">@Context.T("rulesets.management")</p>
+            <h1 class="headline">@Context.T("rulesets.title")</h1>
         </div>
-        <a class="btn-primary"
-           asp-controller="Rulesets" asp-action="Create">Buat ruleset</a>
+        @if (isInstructor)
+        {
+            <a class="btn-primary"
+               asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
+        }
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -25,17 +29,17 @@
         <table class="w-full text-left text-sm">
             <thead class="table-head">
                 <tr>
-                    <th class="px-4 py-3">Nama</th>
-                    <th class="px-4 py-3">Ruleset ID</th>
-                    <th class="px-4 py-3 text-right">Versi Terbaru</th>
-                    <th class="px-4 py-3 text-right">Detail</th>
+                    <th class="px-4 py-3">@Context.T("common.name")</th>
+                    <th class="px-4 py-3">@Context.T("common.ruleset_id")</th>
+                    <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
+                    <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
                 </tr>
             </thead>
             <tbody>
             @if (Model.Items.Count == 0)
             {
                 <tr>
-                    <td class="px-4 py-4 text-slate-500" colspan="4">Belum ada ruleset.</td>
+                    <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("state.no_rulesets")</td>
                 </tr>
             }
             else
@@ -48,7 +52,7 @@
                         <td class="px-4 py-3 text-right text-slate-700">@item.LatestVersion</td>
                         <td class="px-4 py-3 text-right">
                             <a class="text-sm font-semibold text-slate-900 hover:underline"
-                               asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">Lihat</a>
+                               asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
                         </td>
                     </tr>
                 }

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Cashflowpoly.Ui.Models;
+using Cashflowpoly.Ui.Infrastructure;
 
 namespace Cashflowpoly.Ui.Controllers;
 
@@ -11,9 +12,14 @@ public class HomeController : Controller
         return View();
     }
 
+    public IActionResult Rulebook()
+    {
+        return View("Privacy", model: RulebookContent.Build());
+    }
+
     public IActionResult Privacy()
     {
-        return View();
+        return RedirectToAction(nameof(Rulebook));
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

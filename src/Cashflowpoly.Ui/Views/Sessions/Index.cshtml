@@ -1,17 +1,17 @@
 @model Cashflowpoly.Ui.Models.SessionListViewModel
 
 @{
-    ViewData["Title"] = "Sesi";
+    ViewData["Title"] = Context.T("nav.sessions");
 }
 
 <section class="section-shell">
     <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-            <p class="eyebrow">Manajemen Sesi</p>
-            <h1 class="headline">Daftar sesi</h1>
-            <p class="subhead">Pantau sesi aktif dan akses detail analitika.</p>
+            <p class="eyebrow">@Context.T("sessions.management")</p>
+            <h1 class="headline">@Context.T("sessions.title")</h1>
+            <p class="subhead">@Context.T("sessions.subtitle")</p>
         </div>
-        <div class="badge badge-amber">Live session log</div>
+        <div class="badge badge-amber">@Context.T("sessions.live_log")</div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -25,18 +25,18 @@
         <table class="w-full text-left text-sm">
             <thead class="table-head">
                 <tr>
-                    <th class="px-4 py-3">Nama</th>
-                    <th class="px-4 py-3">Mode</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Dibuat</th>
-                    <th class="px-4 py-3 text-right">Aksi</th>
+                    <th class="px-4 py-3">@Context.T("common.name")</th>
+                    <th class="px-4 py-3">@Context.T("common.mode")</th>
+                    <th class="px-4 py-3">@Context.T("common.status")</th>
+                    <th class="px-4 py-3">@Context.T("common.created")</th>
+                    <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
                 </tr>
             </thead>
             <tbody>
             @if (Model.Items.Count == 0)
             {
                 <tr>
-                    <td class="px-4 py-4 text-slate-500" colspan="5">Belum ada sesi.</td>
+                    <td class="px-4 py-4 text-slate-500" colspan="5">@Context.T("state.no_sessions")</td>
                 </tr>
             }
             else
@@ -50,7 +50,7 @@
                         <td class="px-4 py-3 text-slate-600">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                         <td class="px-4 py-3 text-right">
                             <a class="text-sm font-semibold text-slate-900 hover:underline"
-                               asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@item.SessionId">Detail</a>
+                               asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@item.SessionId">@Context.T("common.detail")</a>
                         </td>
                     </tr>
                 }

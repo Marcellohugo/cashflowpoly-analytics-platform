@@ -117,3 +117,22 @@ public sealed record ApiErrorResponseDto(
     [property: JsonPropertyName("message")] string Message,
     [property: JsonPropertyName("details")] List<ApiErrorDetailDto> Details,
     [property: JsonPropertyName("trace_id")] string TraceId);
+
+public sealed record LoginRequestDto(
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("password")] string Password);
+
+public sealed record LoginResponseDto(
+    [property: JsonPropertyName("user_id")] Guid UserId,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("role")] string Role);
+
+public sealed record RegisterRequestDto(
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("password")] string Password,
+    [property: JsonPropertyName("role")] string Role);
+
+public sealed record RegisterResponseDto(
+    [property: JsonPropertyName("user_id")] Guid UserId,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("role")] string Role);

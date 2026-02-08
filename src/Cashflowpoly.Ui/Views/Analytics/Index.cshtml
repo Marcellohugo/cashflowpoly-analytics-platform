@@ -1,27 +1,27 @@
 @model Cashflowpoly.Ui.Models.AnalyticsSearchViewModel
 
 @{
-    ViewData["Title"] = "Analitika";
+    ViewData["Title"] = Context.T("nav.analytics");
 }
 
 <section class="section-shell">
     <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-            <p class="eyebrow text-emerald-700">Dashboard Analitika</p>
-            <h1 class="headline">Cari analitika sesi</h1>
-            <p class="subhead">Masukkan ID sesi untuk melihat ringkasan dan performa pemain.</p>
+            <p class="eyebrow text-emerald-700">@Context.T("analytics.dashboard")</p>
+            <h1 class="headline">@Context.T("analytics.title")</h1>
+            <p class="subhead">@Context.T("analytics.subtitle")</p>
         </div>
-        <div class="badge badge-emerald">Real-time snapshot</div>
+        <div class="badge badge-emerald">@Context.T("home.realtime")</div>
     </div>
 
     <form class="mt-6 flex flex-col gap-3 glass-surface p-4 md:flex-row md:items-end" method="post">
         <div class="flex-1">
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Session ID</label>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.session_id")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
-                   asp-for="SessionId" placeholder="UUID sesi" />
+                   asp-for="SessionId" placeholder="UUID" />
         </div>
         <button class="btn-primary"
-                type="submit">Lihat Analitika</button>
+                type="submit">@Context.T("analytics.button")</button>
     </form>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -35,23 +35,23 @@
     {
         <div class="mt-8 grid gap-4 md:grid-cols-5">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Total Event</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.EventCount</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Cash In</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
                 <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Result.Summary.CashInTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Cash Out</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
                 <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Result.Summary.CashOutTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Net Cashflow</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.CashflowNetTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Pelanggaran</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.RulesViolationsCount</p>
             </div>
         </div>
@@ -60,19 +60,19 @@
             <table class="w-full text-left text-sm">
                 <thead class="table-head">
                     <tr>
-                        <th class="px-4 py-3">Player ID</th>
-                        <th class="px-4 py-3 text-right">Cash In</th>
-                        <th class="px-4 py-3 text-right">Cash Out</th>
-                        <th class="px-4 py-3 text-right">Donation</th>
-                        <th class="px-4 py-3 text-right">Gold Qty</th>
-                        <th class="px-4 py-3 text-right">Happiness</th>
+                        <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_in")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_out")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.donation")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.gold_qty")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (Model.Result.ByPlayer.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="6">Belum ada data pemain.</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="6">@Context.T("state.no_player_data")</td>
                     </tr>
                 }
                 else

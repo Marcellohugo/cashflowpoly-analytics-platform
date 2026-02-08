@@ -157,3 +157,22 @@ public sealed record TransactionHistoryItem(
 
 public sealed record TransactionHistoryResponse(
     [property: JsonPropertyName("items")] List<TransactionHistoryItem> Items);
+
+public sealed record LoginRequest(
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("password")] string Password);
+
+public sealed record LoginResponse(
+    [property: JsonPropertyName("user_id")] Guid UserId,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("role")] string Role);
+
+public sealed record RegisterRequest(
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("password")] string Password,
+    [property: JsonPropertyName("role")] string Role);
+
+public sealed record RegisterResponse(
+    [property: JsonPropertyName("user_id")] Guid UserId,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("role")] string Role);

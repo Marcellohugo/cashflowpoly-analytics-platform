@@ -1,11 +1,12 @@
 using System.Net.Http.Json;
+using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
 
 /// <summary>
-/// Controller UI untuk daftar dan pembuatan pemain.
+/// Controller UI untuk daftar pemain.
 /// </summary>
 [Route("players")]
 public sealed class PlayerDirectoryController : Controller
@@ -20,6 +21,11 @@ public sealed class PlayerDirectoryController : Controller
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction("Index", "Analytics");
+        }
+
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/players", ct);
         if (!response.IsSuccessStatusCode)
@@ -35,27 +41,5 @@ public sealed class PlayerDirectoryController : Controller
         {
             Players = data?.Items ?? new List<PlayerResponseDto>()
         });
-    }
-
-    [HttpPost("create")]
-    public async Task<IActionResult> Create(PlayerDirectoryViewModel model, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(model.DisplayName))
-        {
-            model.ErrorMessage = "Nama pemain wajib diisi.";
-            return View("~/Views/Players/Index.cshtml", model);
-        }
-
-        var client = _clientFactory.CreateClient("Api");
-        var payload = new { display_name = model.DisplayName };
-        var response = await client.PostAsJsonAsync("api/players", payload, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            model.ErrorMessage = error?.Message ?? $"Gagal membuat pemain. Status: {(int)response.StatusCode}";
-            return View("~/Views/Players/Index.cshtml", model);
-        }
-
-        return RedirectToAction(nameof(Index));
     }
 }

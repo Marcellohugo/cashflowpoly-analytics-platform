@@ -47,6 +47,5 @@ public sealed class SessionRulesetViewModel
 public sealed class PlayerDirectoryViewModel
 {
     public List<PlayerResponseDto> Players { get; init; } = new();
-    public string DisplayName { get; set; } = string.Empty;
     public string? ErrorMessage { get; set; }
 }

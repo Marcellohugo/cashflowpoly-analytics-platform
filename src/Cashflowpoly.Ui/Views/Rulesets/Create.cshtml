@@ -1,14 +1,14 @@
 @model Cashflowpoly.Ui.Models.CreateRulesetViewModel
 
 @{
-    ViewData["Title"] = "Buat Ruleset";
+    ViewData["Title"] = Context.T("rulesets.create");
 }
 
 <section class="section-shell">
     <div>
-        <p class="eyebrow">Manajemen Ruleset</p>
-        <h1 class="headline">Buat ruleset baru</h1>
-        <p class="subhead">Isi konfigurasi JSON sesuai spesifikasi ruleset.</p>
+        <p class="eyebrow">@Context.T("rulesets.management")</p>
+        <h1 class="headline">@Context.T("rulesets.create_title")</h1>
+        <p class="subhead">@Context.T("rulesets.create_subtitle")</p>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -20,12 +20,12 @@
 
     <form class="mt-6 space-y-4 glass-surface p-4" method="post">
         <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Nama</label>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.name")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
                    asp-for="Name" />
         </div>
         <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Deskripsi</label>
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.description")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
                    asp-for="Description" />
         </div>
@@ -36,8 +36,8 @@
         </div>
         <div class="flex items-center gap-3">
             <button class="btn-primary"
-                    type="submit">Simpan Ruleset</button>
-            <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Rulesets" asp-action="Index">Batal</a>
+                    type="submit">@Context.T("rulesets.save")</button>
+            <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Rulesets" asp-action="Index">@Context.T("common.cancel")</a>
         </div>
     </form>
 </section>
