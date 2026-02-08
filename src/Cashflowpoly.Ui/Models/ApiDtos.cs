@@ -82,6 +82,28 @@ public sealed record TransactionHistoryItemDto(
 public sealed record TransactionHistoryResponseDto(
     [property: JsonPropertyName("items")] List<TransactionHistoryItemDto> Items);
 
+public sealed record RulesetAnalyticsPlayerItemDto(
+    [property: JsonPropertyName("player_id")] Guid PlayerId,
+    [property: JsonPropertyName("learning_performance_individual_score")] double? LearningPerformanceIndividualScore,
+    [property: JsonPropertyName("mission_performance_individual_score")] double? MissionPerformanceIndividualScore);
+
+public sealed record RulesetAnalyticsSessionItemDto(
+    [property: JsonPropertyName("session_id")] Guid SessionId,
+    [property: JsonPropertyName("session_name")] string SessionName,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("event_count")] int EventCount,
+    [property: JsonPropertyName("learning_performance_aggregate_score")] double? LearningPerformanceAggregateScore,
+    [property: JsonPropertyName("mission_performance_aggregate_score")] double? MissionPerformanceAggregateScore,
+    [property: JsonPropertyName("players")] List<RulesetAnalyticsPlayerItemDto> Players);
+
+public sealed record RulesetAnalyticsSummaryResponseDto(
+    [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
+    [property: JsonPropertyName("ruleset_name")] string RulesetName,
+    [property: JsonPropertyName("session_count")] int SessionCount,
+    [property: JsonPropertyName("learning_performance_aggregate_score")] double? LearningPerformanceAggregateScore,
+    [property: JsonPropertyName("mission_performance_aggregate_score")] double? MissionPerformanceAggregateScore,
+    [property: JsonPropertyName("sessions")] List<RulesetAnalyticsSessionItemDto> Sessions);
+
 public sealed record PlayerResponseDto(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
     [property: JsonPropertyName("display_name")] string DisplayName);
@@ -125,7 +147,9 @@ public sealed record LoginRequestDto(
 public sealed record LoginResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,
     [property: JsonPropertyName("username")] string Username,
-    [property: JsonPropertyName("role")] string Role);
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("access_token")] string AccessToken,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
 public sealed record RegisterRequestDto(
     [property: JsonPropertyName("username")] string Username,
@@ -135,4 +159,6 @@ public sealed record RegisterRequestDto(
 public sealed record RegisterResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,
     [property: JsonPropertyName("username")] string Username,
-    [property: JsonPropertyName("role")] string Role);
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("access_token")] string AccessToken,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);

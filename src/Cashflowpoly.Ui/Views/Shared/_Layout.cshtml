@@ -3,7 +3,8 @@
 @{
     var activeRole = Context.Session.GetString(AuthConstants.SessionRoleKey);
     var activeUsername = Context.Session.GetString(AuthConstants.SessionUsernameKey);
-    var isLoggedIn = !string.IsNullOrWhiteSpace(activeRole);
+    var activeToken = Context.Session.GetString(AuthConstants.SessionAccessTokenKey);
+    var isLoggedIn = !string.IsNullOrWhiteSpace(activeRole) && !string.IsNullOrWhiteSpace(activeToken);
     var isInstructor = Context.Session.IsInstructor();
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
     var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));

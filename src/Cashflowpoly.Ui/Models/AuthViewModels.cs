@@ -4,6 +4,8 @@ public static class AuthConstants
 {
     public const string SessionRoleKey = "current_role";
     public const string SessionUsernameKey = "current_username";
+    public const string SessionAccessTokenKey = "current_access_token";
+    public const string SessionTokenExpiresAtKey = "current_token_expires_at";
     public const string SessionLanguageKey = "current_language";
     public const string InstructorRole = "INSTRUCTOR";
     public const string PlayerRole = "PLAYER";

@@ -1,5 +1,6 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
@@ -9,6 +10,7 @@ namespace Cashflowpoly.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/players")]
+[Authorize]
 public sealed class PlayersController : ControllerBase
 {
     private readonly PlayerRepository _players;
@@ -21,6 +23,7 @@ public sealed class PlayersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.DisplayName))
@@ -34,6 +37,7 @@ public sealed class PlayersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ListPlayers(CancellationToken ct)
     {
         var players = await _players.ListPlayersAsync(ct);
@@ -42,6 +46,7 @@ public sealed class PlayersController : ControllerBase
     }
 
     [HttpPost("/api/sessions/{sessionId:guid}/players")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
         var session = await _sessions.GetSessionAsync(sessionId, ct);

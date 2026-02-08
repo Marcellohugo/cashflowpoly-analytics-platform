@@ -9,6 +9,13 @@ public sealed class AnalyticsSearchViewModel
     public string? ErrorMessage { get; set; }
 }
 
+public sealed class RulesetAnalyticsViewModel
+{
+    public string RulesetId { get; set; } = string.Empty;
+    public RulesetAnalyticsSummaryResponseDto? Result { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
 public sealed class SessionListViewModel
 {
     public List<SessionListItemDto> Items { get; init; } = new();

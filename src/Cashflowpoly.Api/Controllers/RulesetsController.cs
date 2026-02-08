@@ -2,12 +2,15 @@ using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/rulesets")]
+[Authorize]
 public sealed class RulesetsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
@@ -17,31 +20,14 @@ public sealed class RulesetsController : ControllerBase
         _rulesets = rulesets;
     }
 
-    private IActionResult? EnsureInstructorRole()
-    {
-        if (!Request.Headers.TryGetValue("X-Actor-Role", out var role) ||
-            !string.Equals(role.ToString(), "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return StatusCode(StatusCodes.Status403Forbidden,
-                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akses khusus instruktur"));
-        }
-
-        return null;
-    }
-
     /// <summary>
     /// Membuat ruleset baru beserta versi awal.
     /// </summary>
 
     [HttpPost]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> CreateRuleset([FromBody] CreateRulesetRequest request, CancellationToken ct)
     {
-        var guard = EnsureInstructorRole();
-        if (guard is not null)
-        {
-            return guard;
-        }
-
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
@@ -53,20 +39,15 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var configJson = request.Config.GetRawText();
-        var created = await _rulesets.CreateRulesetAsync(request.Name, request.Description, configJson, null, ct);
+        var created = await _rulesets.CreateRulesetAsync(request.Name, request.Description, configJson, GetActorName(), ct);
 
         return Created($"/api/rulesets/{created.RulesetId}", new CreateRulesetResponse(created.RulesetId, created.Version));
     }
 
     [HttpPut("{rulesetId:guid}")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
-        var guard = EnsureInstructorRole();
-        if (guard is not null)
-        {
-            return guard;
-        }
-
         var existing = await _rulesets.GetRulesetAsync(rulesetId, ct);
         if (existing is null)
         {
@@ -84,7 +65,13 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var configJson = request.Config.Value.GetRawText();
-        var nextVersion = await _rulesets.CreateRulesetVersionAsync(rulesetId, request.Name, request.Description, configJson, null, ct);
+        var nextVersion = await _rulesets.CreateRulesetVersionAsync(
+            rulesetId,
+            request.Name,
+            request.Description,
+            configJson,
+            GetActorName(),
+            ct);
 
         return Ok(new CreateRulesetResponse(rulesetId, nextVersion));
     }
@@ -135,14 +122,9 @@ public sealed class RulesetsController : ControllerBase
     /// Mengarsipkan ruleset (soft archive).
     /// </summary>
     [HttpPost("{rulesetId:guid}/archive")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ArchiveRuleset(Guid rulesetId, CancellationToken ct)
     {
-        var guard = EnsureInstructorRole();
-        if (guard is not null)
-        {
-            return guard;
-        }
-
         var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
         if (ruleset is null)
         {
@@ -157,14 +139,9 @@ public sealed class RulesetsController : ControllerBase
     /// Menghapus ruleset jika belum pernah dipakai pada sesi.
     /// </summary>
     [HttpDelete("{rulesetId:guid}")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> DeleteRuleset(Guid rulesetId, CancellationToken ct)
     {
-        var guard = EnsureInstructorRole();
-        if (guard is not null)
-        {
-            return guard;
-        }
-
         var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
         if (ruleset is null)
         {
@@ -179,5 +156,11 @@ public sealed class RulesetsController : ControllerBase
 
         await _rulesets.DeleteRulesetAsync(rulesetId, ct);
         return NoContent();
+    }
+
+    private string? GetActorName()
+    {
+        return User.FindFirstValue(ClaimTypes.Name) ??
+               User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 }

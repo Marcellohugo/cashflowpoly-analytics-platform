@@ -28,6 +28,12 @@ public sealed class PlayerDirectoryController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/players", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             return View("~/Views/Players/Index.cshtml", new PlayerDirectoryViewModel

@@ -20,7 +20,10 @@ public sealed class AuthController : Controller
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
         var existingRole = HttpContext.Session.GetString(AuthConstants.SessionRoleKey);
-        if (AuthConstants.IsValidRole(existingRole) && string.IsNullOrWhiteSpace(returnUrl))
+        var existingToken = HttpContext.Session.GetString(AuthConstants.SessionAccessTokenKey);
+        if (AuthConstants.IsValidRole(existingRole) &&
+            !string.IsNullOrWhiteSpace(existingToken) &&
+            string.IsNullOrWhiteSpace(returnUrl))
         {
             return RedirectToAction("Index", "Home");
         }
@@ -55,7 +58,9 @@ public sealed class AuthController : Controller
         }
 
         var data = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
-        if (data is null || !AuthConstants.IsValidRole(data.Role))
+        if (data is null ||
+            !AuthConstants.IsValidRole(data.Role) ||
+            string.IsNullOrWhiteSpace(data.AccessToken))
         {
             model.ErrorMessage = HttpContext.T("auth.error.login_response_invalid");
             model.Password = string.Empty;
@@ -64,6 +69,10 @@ public sealed class AuthController : Controller
 
         HttpContext.Session.SetString(AuthConstants.SessionRoleKey, data.Role.ToUpperInvariant());
         HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, data.Username);
+        HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, data.AccessToken);
+        HttpContext.Session.SetString(
+            AuthConstants.SessionTokenExpiresAtKey,
+            data.ExpiresAt.ToUniversalTime().ToString("O"));
 
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -126,7 +135,7 @@ public sealed class AuthController : Controller
         }
 
         var created = await response.Content.ReadFromJsonAsync<RegisterResponseDto>();
-        if (created is null)
+        if (created is null || string.IsNullOrWhiteSpace(created.AccessToken))
         {
             model.ErrorMessage = HttpContext.T("auth.error.register_response_invalid");
             model.Password = string.Empty;
@@ -136,6 +145,10 @@ public sealed class AuthController : Controller
 
         HttpContext.Session.SetString(AuthConstants.SessionRoleKey, created.Role.ToUpperInvariant());
         HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, created.Username);
+        HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, created.AccessToken);
+        HttpContext.Session.SetString(
+            AuthConstants.SessionTokenExpiresAtKey,
+            created.ExpiresAt.ToUniversalTime().ToString("O"));
 
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -151,6 +164,8 @@ public sealed class AuthController : Controller
     {
         HttpContext.Session.Remove(AuthConstants.SessionRoleKey);
         HttpContext.Session.Remove(AuthConstants.SessionUsernameKey);
+        HttpContext.Session.Remove(AuthConstants.SessionAccessTokenKey);
+        HttpContext.Session.Remove(AuthConstants.SessionTokenExpiresAtKey);
         return RedirectToAction(nameof(Login));
     }
 }

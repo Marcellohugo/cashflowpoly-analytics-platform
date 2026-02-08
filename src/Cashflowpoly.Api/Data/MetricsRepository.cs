@@ -82,4 +82,22 @@ public sealed class MetricsRepository
             new CommandDefinition(sql, new { sessionId, playerId, metricNames }, cancellationToken: ct));
         return items.ToList();
     }
+
+    public async Task<double?> GetLatestMetricNumericAsync(Guid sessionId, Guid playerId, string metricName, CancellationToken ct)
+    {
+        const string sql = """
+            select metric_value_numeric
+            from metric_snapshots
+            where session_id = @sessionId
+              and player_id = @playerId
+              and metric_name = @metricName
+              and metric_value_numeric is not null
+            order by computed_at desc
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<double?>(
+            new CommandDefinition(sql, new { sessionId, playerId, metricName }, cancellationToken: ct));
+    }
 }

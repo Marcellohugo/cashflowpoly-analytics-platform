@@ -9,7 +9,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.IdleTimeout = TimeSpan.FromHours(8);
 });
-builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.RoleHeaderHandler>();
+builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5041";
 
@@ -17,7 +17,7 @@ builder.Services.AddHttpClient("Api", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 })
-    .AddHttpMessageHandler<Cashflowpoly.Ui.Infrastructure.RoleHeaderHandler>();
+    .AddHttpMessageHandler<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
 
 var app = builder.Build();
 
@@ -40,8 +40,11 @@ app.Use(async (context, next) =>
     var isLanguagePath = path.StartsWithSegments("/language", StringComparison.OrdinalIgnoreCase);
     var hasRole = !string.IsNullOrWhiteSpace(
         context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey));
+    var hasAccessToken = !string.IsNullOrWhiteSpace(
+        context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionAccessTokenKey));
     var hasLanguage = !string.IsNullOrWhiteSpace(
         context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionLanguageKey));
+    var tokenExpiresAtRaw = context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionTokenExpiresAtKey);
 
     if (!hasLanguage)
     {
@@ -50,7 +53,18 @@ app.Use(async (context, next) =>
             Cashflowpoly.Ui.Models.AuthConstants.LanguageId);
     }
 
-    if (!isLoginPath && !isRegisterPath && !isLanguagePath && !hasRole)
+    if (DateTimeOffset.TryParse(tokenExpiresAtRaw, out var tokenExpiresAt) &&
+        tokenExpiresAt <= DateTimeOffset.UtcNow)
+    {
+        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey);
+        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionUsernameKey);
+        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionAccessTokenKey);
+        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionTokenExpiresAtKey);
+        hasRole = false;
+        hasAccessToken = false;
+    }
+
+    if (!isLoginPath && !isRegisterPath && !isLanguagePath && (!hasRole || !hasAccessToken))
     {
         var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
         context.Response.Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");

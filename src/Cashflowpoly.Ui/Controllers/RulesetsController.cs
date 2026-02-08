@@ -26,6 +26,11 @@ public sealed class RulesetsController : Controller
     {
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/rulesets", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
 
         if (!response.IsSuccessStatusCode)
         {
@@ -134,6 +139,12 @@ public sealed class RulesetsController : Controller
         };
 
         var response = await client.PostAsJsonAsync("api/rulesets", payload, ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
@@ -149,6 +160,12 @@ public sealed class RulesetsController : Controller
     {
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/rulesets/{rulesetId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
@@ -176,6 +193,12 @@ public sealed class RulesetsController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.PostAsync($"api/rulesets/{rulesetId}/archive", null, ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
@@ -198,6 +221,12 @@ public sealed class RulesetsController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.DeleteAsync($"api/rulesets/{rulesetId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NoContent)
         {
             TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(

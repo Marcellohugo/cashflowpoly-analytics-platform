@@ -4,6 +4,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+Write-Host "Login instructor..."
+$loginBody = @{
+    username = "instructor"
+    password = "instructor123"
+}
+$login = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/auth/login" -ContentType "application/json" -Body ($loginBody | ConvertTo-Json)
+$bearerHeaders = @{ Authorization = "Bearer $($login.access_token)" }
+
 $rulesetBody = @{
     name = "Ruleset Smoke"
     description = "Smoke test ruleset"
@@ -53,11 +61,10 @@ $rulesetBody = @{
 }
 
 Write-Host "Create ruleset..."
-$rulesetHeaders = @{ "X-Actor-Role" = "INSTRUCTOR" }
-$ruleset = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/rulesets" -Headers $rulesetHeaders -ContentType "application/json" -Body ($rulesetBody | ConvertTo-Json -Depth 8)
+$ruleset = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/rulesets" -Headers $bearerHeaders -ContentType "application/json" -Body ($rulesetBody | ConvertTo-Json -Depth 8)
 
 Write-Host "Get ruleset detail..."
-$rulesetDetail = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/rulesets/$($ruleset.ruleset_id)" -ContentType "application/json"
+$rulesetDetail = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/rulesets/$($ruleset.ruleset_id)" -Headers $bearerHeaders -ContentType "application/json"
 $latestVersion = $rulesetDetail.versions | Sort-Object -Property version -Descending | Select-Object -First 1
 
 Write-Host "Create session..."
@@ -66,13 +73,13 @@ $sessionBody = @{
     mode = "PEMULA"
     ruleset_id = $ruleset.ruleset_id
 }
-$session = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions" -ContentType "application/json" -Body ($sessionBody | ConvertTo-Json)
+$session = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions" -Headers $bearerHeaders -ContentType "application/json" -Body ($sessionBody | ConvertTo-Json)
 
 Write-Host "Create player..."
 $playerBody = @{
     display_name = "Player Smoke"
 }
-$player = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/players" -ContentType "application/json" -Body ($playerBody | ConvertTo-Json)
+$player = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($playerBody | ConvertTo-Json)
 
 Write-Host "Add player to session..."
 $addPlayerBody = @{
@@ -80,10 +87,10 @@ $addPlayerBody = @{
     role = "PLAYER"
     join_order = 1
 }
-Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions/$($session.session_id)/players" -ContentType "application/json" -Body ($addPlayerBody | ConvertTo-Json) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions/$($session.session_id)/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($addPlayerBody | ConvertTo-Json) | Out-Null
 
 Write-Host "Start session..."
-Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions/$($session.session_id)/start" -ContentType "application/json" | Out-Null
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/sessions/$($session.session_id)/start" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
 
 Write-Host "Post event..."
 $eventBody = @{
@@ -105,9 +112,9 @@ $eventBody = @{
         counterparty = "BANK"
     }
 }
-Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/events" -ContentType "application/json" -Body ($eventBody | ConvertTo-Json -Depth 6) | Out-Null
+Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/events" -Headers $bearerHeaders -ContentType "application/json" -Body ($eventBody | ConvertTo-Json -Depth 6) | Out-Null
 
 Write-Host "Fetch analytics..."
-Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/analytics/sessions/$($session.session_id)" -ContentType "application/json" | Out-Null
+Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/api/analytics/sessions/$($session.session_id)" -Headers $bearerHeaders -ContentType "application/json" | Out-Null
 
 Write-Host "Smoke test selesai."

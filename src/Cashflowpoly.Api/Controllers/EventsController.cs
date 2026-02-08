@@ -2,6 +2,7 @@ using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
@@ -9,6 +10,7 @@ namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api")]
+[Authorize]
 public sealed class EventsController : ControllerBase
 {
     private sealed record ValidationOutcome(bool IsValid, int StatusCode, ErrorResponse? Error);

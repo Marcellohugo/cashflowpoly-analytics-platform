@@ -28,6 +28,12 @@ public sealed class SessionsController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/sessions", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             return View(new SessionListViewModel
@@ -48,6 +54,12 @@ public sealed class SessionsController : Controller
     {
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/analytics/sessions/{sessionId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
@@ -76,6 +88,12 @@ public sealed class SessionsController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/rulesets", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             return View(new SessionRulesetViewModel
@@ -115,6 +133,12 @@ public sealed class SessionsController : Controller
         };
 
         var response = await client.PostAsJsonAsync($"api/sessions/{sessionId}/ruleset/activate", payload, ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);

@@ -1,0 +1,80 @@
+@model Cashflowpoly.Ui.Models.RulesetAnalyticsViewModel
+
+@{
+    ViewData["Title"] = "Ruleset Analytics";
+}
+
+<section class="section-shell">
+    <div>
+        <p class="eyebrow text-emerald-700">Ruleset Analytics</p>
+        <h1 class="headline">Ringkasan Analitika per Ruleset</h1>
+        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.RulesetId</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    @if (Model.Result is not null)
+    {
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Session Count</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.SessionCount</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Learning Aggregate</p>
+                <p class="mt-2 text-2xl font-semibold text-emerald-700">@(Model.Result.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs uppercase text-slate-500">Mission Aggregate</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@(Model.Result.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
+            </div>
+        </div>
+
+        <div class="mt-8 table-wrap">
+            <table class="w-full text-left text-sm">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">Session</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Events</th>
+                        <th class="px-4 py-3 text-right">Learning Aggregate</th>
+                        <th class="px-4 py-3 text-right">Mission Aggregate</th>
+                        <th class="px-4 py-3 text-right">Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Result.Sessions.Count == 0)
+                {
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500" colspan="6">Belum ada sesi yang memakai ruleset ini.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Result.Sessions)
+                    {
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3 text-slate-700">@item.SessionName</td>
+                            <td class="px-4 py-3 text-slate-700">@item.Status</td>
+                            <td class="px-4 py-3 text-right">@item.EventCount</td>
+                            <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
+                            <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
+                            <td class="px-4 py-3 text-right">
+                                <a class="text-sm font-semibold text-slate-900 hover:underline"
+                                   asp-controller="Sessions"
+                                   asp-action="Details"
+                                   asp-route-sessionId="@item.SessionId">Lihat</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

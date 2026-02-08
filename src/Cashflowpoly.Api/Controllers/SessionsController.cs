@@ -1,12 +1,15 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/sessions")]
+[Authorize]
 public sealed class SessionsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
@@ -16,18 +19,6 @@ public sealed class SessionsController : ControllerBase
     {
         _rulesets = rulesets;
         _sessions = sessions;
-    }
-
-    private IActionResult? EnsureInstructorRole()
-    {
-        if (!Request.Headers.TryGetValue("X-Actor-Role", out var role) ||
-            !string.Equals(role.ToString(), "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return StatusCode(StatusCodes.Status403Forbidden,
-                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akses khusus instruktur"));
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -50,6 +41,7 @@ public sealed class SessionsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> CreateSession([FromBody] CreateSessionRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.SessionName))
@@ -81,13 +73,14 @@ public sealed class SessionsController : ControllerBase
             request.SessionName,
             request.Mode.ToUpperInvariant(),
             latestVersion.RulesetVersionId,
-            null,
+            GetActorName(),
             ct);
 
         return Created($"/api/sessions/{sessionId}", new CreateSessionResponse(sessionId));
     }
 
     [HttpPost("{sessionId:guid}/start")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> StartSession(Guid sessionId, CancellationToken ct)
     {
         var session = await _sessions.GetSessionAsync(sessionId, ct);
@@ -108,6 +101,7 @@ public sealed class SessionsController : ControllerBase
     }
 
     [HttpPost("{sessionId:guid}/end")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> EndSession(Guid sessionId, CancellationToken ct)
     {
         var session = await _sessions.GetSessionAsync(sessionId, ct);
@@ -128,14 +122,9 @@ public sealed class SessionsController : ControllerBase
     }
 
     [HttpPost("{sessionId:guid}/ruleset/activate")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
     {
-        var guard = EnsureInstructorRole();
-        if (guard is not null)
-        {
-            return guard;
-        }
-
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
@@ -158,8 +147,14 @@ public sealed class SessionsController : ControllerBase
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", errors.ToArray()));
         }
 
-        await _sessions.ActivateRulesetAsync(sessionId, rulesetVersion.RulesetVersionId, null, ct);
+        await _sessions.ActivateRulesetAsync(sessionId, rulesetVersion.RulesetVersionId, GetActorName(), ct);
 
         return Ok(new ActivateRulesetResponse(sessionId, rulesetVersion.RulesetVersionId));
+    }
+
+    private string? GetActorName()
+    {
+        return User.FindFirstValue(ClaimTypes.Name) ??
+               User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 }

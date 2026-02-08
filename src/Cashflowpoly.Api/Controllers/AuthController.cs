@@ -1,18 +1,23 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
+using Cashflowpoly.Api.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[AllowAnonymous]
 public sealed class AuthController : ControllerBase
 {
+    private readonly JwtTokenService _tokens;
     private readonly UserRepository _users;
 
-    public AuthController(UserRepository users)
+    public AuthController(UserRepository users, JwtTokenService tokens)
     {
         _users = users;
+        _tokens = tokens;
     }
 
     [HttpPost("login")]
@@ -29,7 +34,8 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "INVALID_CREDENTIALS", "Username atau password salah"));
         }
 
-        return Ok(new LoginResponse(user.UserId, user.Username, user.Role));
+        var issued = _tokens.IssueToken(user);
+        return Ok(new LoginResponse(user.UserId, user.Username, user.Role, issued.AccessToken, issued.ExpiresAt));
     }
 
     [HttpPost("register")]
@@ -70,6 +76,9 @@ public sealed class AuthController : ControllerBase
         }
 
         var created = await _users.CreateUserAsync(username, request.Password, normalizedRole, ct);
-        return Created($"/api/auth/users/{created.UserId}", new RegisterResponse(created.UserId, created.Username, created.Role));
+        var issued = _tokens.IssueToken(created);
+        return Created(
+            $"/api/auth/users/{created.UserId}",
+            new RegisterResponse(created.UserId, created.Username, created.Role, issued.AccessToken, issued.ExpiresAt));
     }
 }

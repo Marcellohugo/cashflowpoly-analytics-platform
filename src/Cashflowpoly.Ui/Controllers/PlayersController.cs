@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,12 @@ public sealed class PlayersController : Controller
     {
         var client = _clientFactory.CreateClient("Api");
         var analyticsResponse = await client.GetAsync($"api/analytics/sessions/{sessionId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(analyticsResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!analyticsResponse.IsSuccessStatusCode)
         {
             var error = await analyticsResponse.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
@@ -37,6 +44,12 @@ public sealed class PlayersController : Controller
         var summary = analytics?.ByPlayer.FirstOrDefault(p => p.PlayerId == playerId);
 
         var txResponse = await client.GetAsync($"api/analytics/sessions/{sessionId}/transactions?playerId={playerId}", ct);
+        unauthorized = this.HandleUnauthorizedApiResponse(txResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (!txResponse.IsSuccessStatusCode)
         {
             var error = await txResponse.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
@@ -53,6 +66,12 @@ public sealed class PlayersController : Controller
         string? gameplayError = null;
         GameplayMetricsResponseDto? gameplay = null;
         var gameplayResponse = await client.GetAsync($"api/analytics/sessions/{sessionId}/players/{playerId}/gameplay", ct);
+        unauthorized = this.HandleUnauthorizedApiResponse(gameplayResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
         if (gameplayResponse.IsSuccessStatusCode)
         {
             gameplay = await gameplayResponse.Content.ReadFromJsonAsync<GameplayMetricsResponseDto>(cancellationToken: ct);

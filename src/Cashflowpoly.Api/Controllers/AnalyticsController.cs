@@ -2,12 +2,14 @@ using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/analytics")]
+[Authorize]
 public sealed class AnalyticsController : ControllerBase
 {
     private readonly SessionRepository _sessions;
@@ -27,6 +29,7 @@ public sealed class AnalyticsController : ControllerBase
     /// Menghitung ulang metrik dan menyimpan snapshot terbaru.
     /// </summary>
     [HttpPost("sessions/{sessionId:guid}/recompute")]
+    [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> Recompute(Guid sessionId, CancellationToken ct)
     {
         var session = await _sessions.GetSessionAsync(sessionId, ct);
@@ -141,12 +144,154 @@ public sealed class AnalyticsController : ControllerBase
             ParseJsonElement(derivedJson)));
     }
 
+    [HttpGet("rulesets/{rulesetId:guid}/summary")]
+    public async Task<IActionResult> GetRulesetAnalyticsSummary(Guid rulesetId, CancellationToken ct)
+    {
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var sessions = await _sessions.ListSessionsAsync(ct);
+        var sessionItems = new List<RulesetAnalyticsSessionItem>();
+
+        foreach (var session in sessions)
+        {
+            var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(session.SessionId, ct);
+            if (!activeRulesetVersionId.HasValue)
+            {
+                continue;
+            }
+
+            var activeVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
+            if (activeVersion is null || activeVersion.RulesetId != rulesetId)
+            {
+                continue;
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(session.SessionId, ct);
+            var projections = await _events.GetCashflowProjectionsAsync(session.SessionId, ct);
+            RulesetConfig? config = null;
+            if (RulesetConfigParser.TryParse(activeVersion.ConfigJson, out var parsed, out _))
+            {
+                config = parsed;
+            }
+
+            var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
+            var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+            var playerItems = new List<RulesetAnalyticsPlayerItem>();
+
+            foreach (var player in byPlayer)
+            {
+                var complianceRate = await _metrics.GetLatestMetricNumericAsync(
+                    session.SessionId,
+                    player.PlayerId,
+                    "compliance.primary_need.rate",
+                    ct);
+
+                var learningScore = ComputeLearningPerformanceScore(
+                    player.CashInTotal,
+                    player.CashOutTotal,
+                    player.HappinessPointsTotal,
+                    complianceRate);
+
+                var missionScore = ComputeMissionPerformanceScore(
+                    player.MissionPenaltyTotal,
+                    player.LoanPenaltyTotal);
+
+                playerItems.Add(new RulesetAnalyticsPlayerItem(player.PlayerId, learningScore, missionScore));
+            }
+
+            var learningAggregate = AverageNullable(playerItems.Select(item => item.LearningPerformanceIndividualScore));
+            var missionAggregate = AverageNullable(playerItems.Select(item => item.MissionPerformanceIndividualScore));
+
+            sessionItems.Add(new RulesetAnalyticsSessionItem(
+                session.SessionId,
+                session.SessionName,
+                session.Status,
+                events.Count,
+                learningAggregate,
+                missionAggregate,
+                playerItems));
+        }
+
+        var learningOverall = AverageNullable(sessionItems.Select(item => item.LearningPerformanceAggregateScore));
+        var missionOverall = AverageNullable(sessionItems.Select(item => item.MissionPerformanceAggregateScore));
+
+        return Ok(new RulesetAnalyticsSummaryResponse(
+            rulesetId,
+            ruleset.Name,
+            sessionItems.Count,
+            learningOverall,
+            missionOverall,
+            sessionItems));
+    }
+
     private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections, int rulesViolationsCount)
     {
         var cashInTotal = projections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOutTotal = projections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
         var cashflowNetTotal = cashInTotal - cashOutTotal;
         return new AnalyticsSessionSummary(events.Count, cashInTotal, cashOutTotal, cashflowNetTotal, rulesViolationsCount);
+    }
+
+    private static double? ComputeLearningPerformanceScore(
+        double cashInTotal,
+        double cashOutTotal,
+        double happinessPointsTotal,
+        double? complianceRate)
+    {
+        var cashflowComponent = Clamp(50 + 5 * (cashInTotal - cashOutTotal), 0, 100);
+        var complianceComponent = complianceRate.HasValue ? Clamp(complianceRate.Value * 100, 0, 100) : (double?)null;
+        var happinessComponent = Clamp(5 * happinessPointsTotal, 0, 100);
+
+        return WeightedAverage(new (double? value, double weight)[]
+        {
+            (cashflowComponent, 0.40),
+            (complianceComponent, 0.35),
+            (happinessComponent, 0.25)
+        });
+    }
+
+    private static double ComputeMissionPerformanceScore(double missionPenaltyTotal, double loanPenaltyTotal)
+    {
+        var missionPenaltyComponent = Clamp(missionPenaltyTotal + loanPenaltyTotal, 0, 100);
+        return Clamp(100 - missionPenaltyComponent, 0, 100);
+    }
+
+    private static double? WeightedAverage(IEnumerable<(double? value, double weight)> components)
+    {
+        var active = components.Where(item => item.value.HasValue).ToList();
+        if (active.Count == 0)
+        {
+            return null;
+        }
+
+        var weightTotal = active.Sum(item => item.weight);
+        if (weightTotal <= 0)
+        {
+            return null;
+        }
+
+        var weightedScore = active.Sum(item => item.value!.Value * item.weight) / weightTotal;
+        return Math.Round(weightedScore, 2);
+    }
+
+    private static double? AverageNullable(IEnumerable<double?> values)
+    {
+        var nonNull = values.Where(value => value.HasValue).Select(value => value!.Value).ToList();
+        if (nonNull.Count == 0)
+        {
+            return null;
+        }
+
+        return Math.Round(nonNull.Average(), 2);
+    }
+
+    private static double Clamp(double value, double min, double max)
+    {
+        return Math.Min(max, Math.Max(min, value));
     }
 
     private static JsonElement? ParseJsonElement(string? json)
