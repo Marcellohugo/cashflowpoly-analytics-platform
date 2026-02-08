@@ -1,4 +1,4 @@
-# Variabel Gameplay Fisik dan Metrik Turunan
+﻿# Variabel Gameplay Fisik dan Metrik Turunan
 ## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
@@ -390,10 +390,11 @@ happiness_portfolio = [need_cards_pts, donations_pts, gold_pts, pension_pts, fin
 
 ## 3. Catatan Implementasi
 - Variabel yang membutuhkan event tambahan (contoh: `actions_skipped`) dapat dimasukkan ke backlog event jika ingin menghitung metrik turunan secara lebih detail.
-- UI hanya menampilkan metrik yang tersedia dari API (`/api/analytics/...`). UI tidak menghitung ulang rumus di sisi klien.
+- UI hanya menampilkan metrik yang tersedia dari API (`/api/v1/analytics/...`). UI tidak menghitung ulang rumus di sisi klien.
 - Jika metrik turunan ini diimplementasikan, pastikan `metric_name` mengikuti konvensi pada dokumen `02-02-definisi-metrik-dan-agregasi`.
 
 ### 3.1 Nama metrik snapshot JSON
 Implementasi saat ini menyimpan variabel dan metrik turunan pada:
 - `gameplay.raw.variables` (jsonb)
 - `gameplay.derived.metrics` (jsonb)
+

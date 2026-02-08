@@ -1,4 +1,4 @@
-# Rencana Implementasi dan Struktur Solution .NET
+﻿# Rencana Implementasi dan Struktur Solution .NET
 ## REST API + ASP.NET Core MVC (Razor Views) untuk Cashflowpoly
 
 ### Dokumen
@@ -98,7 +98,7 @@ Tanggung jawab:
 4. guard domain: ruleset dipakai sesi tidak boleh dihapus.
 
 ### Tahap E - Ingest Event dan Validasi Domain
-1. ingest `POST /api/events`,
+1. ingest `POST /api/v1/events`,
 2. validasi payload + urutan `sequence_number`,
 3. idempotensi `(session_id, event_id)`,
 4. tulis validation log untuk event invalid.
@@ -109,10 +109,10 @@ Tanggung jawab:
 3. simpan ke `metric_snapshots`.
 
 ### Tahap G - Endpoint Analitika
-1. analitika sesi: `GET /api/analytics/sessions/{sessionId}`,
-2. histori transaksi: `GET /api/analytics/sessions/{sessionId}/transactions`,
-3. gameplay snapshot: `GET /api/analytics/sessions/{sessionId}/players/{playerId}/gameplay`,
-4. agregasi per ruleset: `GET /api/analytics/rulesets/{rulesetId}/summary`.
+1. analitika sesi: `GET /api/v1/analytics/sessions/{sessionId}`,
+2. histori transaksi: `GET /api/v1/analytics/sessions/{sessionId}/transactions`,
+3. gameplay snapshot: `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay`,
+4. agregasi per ruleset: `GET /api/v1/analytics/rulesets/{rulesetId}/summary`.
 
 ### Tahap H - UI Dashboard
 1. login/register,
@@ -138,3 +138,4 @@ Tanggung jawab:
 4. build/test lulus,
 5. smoke test lulus,
 6. tidak ada bug blocker terbuka untuk modul inti.
+

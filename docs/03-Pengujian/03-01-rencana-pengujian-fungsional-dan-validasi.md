@@ -114,10 +114,10 @@ Setiap skenario memuat:
 ### 7.2 Daftar skenario uji inti
 #### A. Manajemen Sesi (M1)
 **TC-API-01 — Buat sesi**
-- Endpoint: `POST /api/sessions`
+- Endpoint: `POST /api/v1/sessions`
 - Input contoh:
 ```json
-{ "session_name": "Sesi Uji 01", "mode": "PEMULA" }
+{ "session_name": "Sesi Uji 01", "mode": "PEMULA", "ruleset_id": "UUID" }
 ```
 - Langkah:
 1. Kirim permintaan.
@@ -128,7 +128,7 @@ Setiap skenario memuat:
   - DB: tabel `sessions` menambah 1 baris.
 
 **TC-API-02 — Mulai sesi**
-- Endpoint: `POST /api/sessions/{sessionId}/start`
+- Endpoint: `POST /api/v1/sessions/{sessionId}/start`
 - Langkah:
 1. Kirim permintaan pada sesi berstatus `CREATED`.
 - Ekspektasi:
@@ -136,7 +136,7 @@ Setiap skenario memuat:
   - DB: `status=STARTED`, `started_at` terisi.
 
 **TC-API-03 — Akhiri sesi**
-- Endpoint: `POST /api/sessions/{sessionId}/end`
+- Endpoint: `POST /api/v1/sessions/{sessionId}/end`
 - Langkah:
 1. Kirim permintaan pada sesi berstatus `STARTED`.
 - Ekspektasi:
@@ -144,10 +144,10 @@ Setiap skenario memuat:
   - DB: `status=ENDED`, `ended_at` terisi.
 
 **TC-API-04 — Tolak start sesi yang sudah END**
-- Endpoint: `POST /api/sessions/{sessionId}/start`
+- Endpoint: `POST /api/v1/sessions/{sessionId}/start`
 - Kondisi: sesi `ENDED`
 - Ekspektasi:
-  - Status: `409` atau `422` (pilih satu dan konsisten)
+  - Status: `422`
   - Body error sesuai standar.
 
 ---
@@ -157,13 +157,13 @@ Catatan:
 - Semua endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan token Bearer milik role `INSTRUCTOR`.
 
 **TC-API-05 — Buat ruleset + versi 1**
-- Endpoint: `POST /api/rulesets`
+- Endpoint: `POST /api/v1/rulesets`
 - Input contoh:
 ```json
 {
   "name": "Ruleset Default",
   "description": "Default pemula",
-  "config_json": {
+  "config": {
     "mode": "PEMULA",
     "actions_per_turn": 2,
     "starting_cash": 20,
@@ -210,69 +210,78 @@ Catatan:
 ```
 - Ekspektasi:
   - Status: `201`
-  - Body memuat `ruleset_id` dan `ruleset_version_id`
+  - Body memuat `ruleset_id` dan `version`
   - DB: `rulesets` dan `ruleset_versions` bertambah.
 
 **TC-API-06 — Update ruleset membuat versi baru**
-- Endpoint: `PUT /api/rulesets/{rulesetId}`
-- Input: perubahan kecil pada `config_json`
+- Endpoint: `PUT /api/v1/rulesets/{rulesetId}`
+- Input: perubahan kecil pada `config`
 - Ekspektasi:
   - Status: `200`
-  - DB: `ruleset_versions` menambah versi `version+1`.
+  - DB: `ruleset_versions` menambah versi baru berstatus awal `DRAFT`.
 
 **TC-API-07 — Tolak ruleset invalid (rentang salah)**
-- Endpoint: `POST /api/rulesets`
+- Endpoint: `POST /api/v1/rulesets`
 - Input: `donation.min_amount > donation.max_amount`
 - Ekspektasi:
-  - Status: `422`
+  - Status: `400`
   - `error_code` menyebut validasi ruleset
   - DB: tidak menambah versi.
 
+**TC-API-07B — Aktivasi versi ruleset global**
+- Endpoint: `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`
+- Prasyarat: versi target tersedia dan masih `DRAFT`.
+- Ekspektasi:
+  - Status: `200`
+  - DB: versi target menjadi `ACTIVE` dan versi `ACTIVE` lama menjadi `RETIRED`.
+
 **TC-API-08 — Aktivasi ruleset pada sesi**
-- Endpoint: `POST /api/sessions/{sessionId}/ruleset/activate`
+- Endpoint: `POST /api/v1/sessions/{sessionId}/ruleset/activate`
 - Input contoh:
 ```json
-{ "ruleset_version_id": "UUID" }
+{ "ruleset_id": "UUID", "version": 2 }
 ```
 - Ekspektasi:
   - Status: `200`
   - DB: `session_ruleset_activations` menambah 1 baris.
 
 **TC-API-09 — Tolak aktivasi ruleset pada sesi END**
-- Endpoint: `POST /api/sessions/{sessionId}/ruleset/activate`
+- Endpoint: `POST /api/v1/sessions/{sessionId}/ruleset/activate`
 - Kondisi: sesi `ENDED`
 - Ekspektasi:
-  - Status: `409` atau `422`
+  - Status: `422`
   - DB: tidak menambah aktivasi.
 
 ---
 
 #### C. Ingest Event (M3)
 **TC-API-10 — Terima event valid**
-- Endpoint: `POST /api/events`
+- Endpoint: `POST /api/v1/events`
 - Input contoh:
 ```json
 {
   "event_id": "UUID",
-  "ruleset_version_id": "UUID",
-  "sequence_number": 0,
+  "session_id": "UUID",
+  "player_id": "UUID",
+  "actor_type": "PLAYER",
   "timestamp": "2026-01-27T10:00:00Z",
   "day_index": 0,
   "weekday": "MON",
   "turn_number": 0,
+  "sequence_number": 1,
   "action_type": "turn.action.used",
-  "player_id": "UUID",
+  "ruleset_version_id": "UUID",
   "payload": { "used": 1 }
 }
 ```
 - Ekspektasi:
-  - Status: `202` atau `201` (pilih satu dan konsisten)
+  - Status: `201`
   - DB: `events` bertambah 1 baris.
 
 **TC-API-11 — Idempotensi event (event_id sama)**
 - Kirim input TC-API-10 dua kali.
 - Ekspektasi:
-  - Respons kedua: `200` atau `409` (pilih satu dan konsisten)
+  - Respons kedua: `409`
   - DB: tidak menambah baris kedua pada `events`.
 
 **TC-API-12 — Tolak ruleset_version_id tidak cocok dengan sesi**
@@ -298,7 +307,7 @@ Catatan:
 
 #### D. Analitika (M6)
 **TC-API-15 — Ringkasan analitika sesi**
-- Endpoint: `GET /api/analytics/sessions/{sessionId}`
+- Endpoint: `GET /api/v1/analytics/sessions/{sessionId}`
 - Prasyarat: sistem sudah menerima minimal 5 event valid.
 - Ekspektasi:
   - Status: `200`
@@ -308,7 +317,7 @@ Catatan:
     - `ruleset_version_id` konteks
 
 **TC-API-16 — Histori transaksi pemain**
-- Endpoint: `GET /api/analytics/sessions/{sessionId}/transactions?playerId={playerId}`
+- Endpoint: `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId={playerId}`
 - Ekspektasi:
   - Status: `200`
   - Body list transaksi terurut waktu desc/asc (pilih satu dan konsisten).
@@ -323,31 +332,31 @@ Catatan:
 
 #### E. Autentikasi dan Otorisasi (M8)
 **TC-API-18 — Login valid**
-- Endpoint: `POST /api/auth/login`
+- Endpoint: `POST /api/v1/auth/login`
 - Input: username/password valid.
 - Ekspektasi:
   - Status: `200`
   - Respons memuat `access_token`, `expires_at`, dan `role`.
 
 **TC-API-19 — Login kredensial salah**
-- Endpoint: `POST /api/auth/login`
+- Endpoint: `POST /api/v1/auth/login`
 - Ekspektasi:
   - Status: `401`
   - Error mengikuti format standar.
 
 **TC-API-20 — Register valid**
-- Endpoint: `POST /api/auth/register`
+- Endpoint: `POST /api/v1/auth/register`
 - Ekspektasi:
   - Status: `201`
   - User baru tersimpan.
 
 **TC-API-21 — Endpoint terproteksi tanpa token**
-- Contoh endpoint: `POST /api/rulesets`.
+- Contoh endpoint: `POST /api/v1/rulesets`.
 - Ekspektasi:
   - Status: `401`.
 
 **TC-API-22 — Endpoint instruktur dipanggil token player**
-- Contoh endpoint: `DELETE /api/rulesets/{rulesetId}`.
+- Contoh endpoint: `DELETE /api/v1/rulesets/{rulesetId}`.
 - Ekspektasi:
   - Status: `403`.
 
@@ -369,7 +378,7 @@ Sistem menjalankan uji integrasi memakai rangkaian event yang menyerupai permain
    - `ingredient.purchased`
    - `order.claimed`
    - `day.friday.donation`
-5. Panggil `GET /api/analytics/sessions/{sessionId}`.
+5. Panggil `GET /api/v1/analytics/sessions/{sessionId}`.
 
 **Ekspektasi:**
 - `events` berisi event sesuai urutan `sequence_number`.
@@ -415,9 +424,11 @@ Ekspektasi: `orphan_validation_logs = 0`.
 **Langkah:**
 1. Aktifkan ruleset versi 1 pada sesi.
 2. Kirim 3 event valid.
-3. Aktifkan ruleset versi 2 pada sesi.
-4. Kirim 3 event valid berikutnya.
-5. Ambil ringkasan analitika dan audit event.
+3. Buat/update ruleset hingga terbentuk versi 2 berstatus `DRAFT`.
+4. Aktifkan versi 2 secara global melalui endpoint aktivasi versi ruleset.
+5. Aktifkan ruleset versi 2 pada sesi.
+6. Kirim 3 event valid berikutnya.
+7. Ambil ringkasan analitika dan audit event.
 
 **Ekspektasi:**
 - Event awal mereferensikan `ruleset_version_id` versi 1.
@@ -522,7 +533,7 @@ Sistem membuat rekap mingguan:
 
 ## 12. Checklist Kelulusan Akhir
 Sistem lulus tahap pengujian dan validasi jika:
-1. sistem menyelesaikan semua TC-API-01 s.d. TC-API-33 dengan PASS,
+1. sistem menyelesaikan semua TC-API-01 s.d. TC-API-33 (termasuk TC-API-07B) dengan PASS,
 2. sistem menyelesaikan IT-01 s.d. IT-03 dengan PASS,
 3. sistem menyelesaikan UI-01 s.d. UI-03 dengan PASS,
 4. sistem tidak meninggalkan temuan berstatus OPEN pada modul inti (M1–M6).
@@ -552,3 +563,30 @@ Catatan tambahan:
 Catatan:
 - TC ini mengikuti format skenario uji pada bagian TC-API sebelumnya.
 - Bila sistem belum memakai otomatisasi, pengujian dilakukan melalui Postman.
+
+---
+
+## 14. Smoke Test dan Kriteria Fitur Selesai
+Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur dinyatakan selesai.
+
+### 14.1 Smoke test otomatis
+1. Jalankan `docker compose up --build -d`.
+2. Jalankan `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1`.
+3. Verifikasi semua langkah smoke berstatus sukses tanpa exception.
+
+### 14.2 Verifikasi API collection
+1. Jalankan collection `postman/Cashflowpoly.postman_collection.json`.
+2. Verifikasi endpoint kritikal:
+   - autentikasi (`login/register`),
+   - ruleset (create/update/activate/archive/delete),
+   - sesi (create/start/end/activate ruleset),
+   - ingest event dan analytics.
+
+### 14.3 Definition of Done (DoD)
+Fitur dinyatakan selesai jika:
+1. Build API dan UI lulus tanpa error.
+2. Unit test lulus.
+3. Smoke test lulus.
+4. Skenario Postman kritikal lulus.
+5. Tidak ada bug blocker (`S1`) pada modul terdampak.
+

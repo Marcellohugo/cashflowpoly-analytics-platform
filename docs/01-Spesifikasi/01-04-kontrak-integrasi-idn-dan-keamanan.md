@@ -19,7 +19,8 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 ## 2. Versi API dan Kompatibilitas
 ### 2.1 Versi kontrak aktif
 - Versi kontrak API aktif: `v1`.
-- Prefix route aktif: `/api/...` (tanpa prefix `/v1`).
+- Prefix route aktif: `/api/v1/...`.
+- Route lama `/api/...` dipertahankan sementara untuk kompatibilitas mundur.
 
 ### 2.2 Kebijakan kompatibilitas
 1. Perubahan non-breaking boleh menambah field response baru.
@@ -30,8 +31,8 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 
 ## 3. Autentikasi dan Otorisasi
 ### 3.1 Endpoint autentikasi
-1. `POST /api/auth/login`
-2. `POST /api/auth/register`
+1. `POST /api/v1/auth/login`
+2. `POST /api/v1/auth/register`
 
 Response login minimal:
 ```json
@@ -48,27 +49,44 @@ Response login minimal:
 - Header wajib untuk endpoint terproteksi:
   - `Authorization: Bearer <access_token>`
 
-### 3.3 Role matrix endpoint
+### 3.3 Swagger dan Bearer
+1. Swagger UI tersedia pada environment development di `/swagger`.
+2. Skema keamanan `Bearer` sudah terdefinisi di OpenAPI.
+3. Pengujian manual endpoint terproteksi dilakukan dengan tombol `Authorize` di Swagger UI menggunakan format token JWT Bearer.
+
+### 3.4 Role matrix endpoint
 | Endpoint | INSTRUCTOR | PLAYER |
 |---|---:|---:|
-| `POST /api/sessions` | Ya | Tidak |
-| `POST /api/sessions/{id}/start` | Ya | Tidak |
-| `POST /api/sessions/{id}/end` | Ya | Tidak |
-| `POST /api/sessions/{id}/ruleset/activate` | Ya | Tidak |
-| `POST /api/rulesets` | Ya | Tidak |
-| `PUT /api/rulesets/{id}` | Ya | Tidak |
-| `POST /api/rulesets/{id}/archive` | Ya | Tidak |
-| `DELETE /api/rulesets/{id}` | Ya | Tidak |
-| `POST /api/players` | Ya | Tidak |
-| `POST /api/sessions/{id}/players` | Ya | Tidak |
-| `GET /api/sessions` | Ya | Ya |
-| `GET /api/analytics/...` | Ya | Ya |
-| `POST /api/events` | Ya | Ya |
-| `POST /api/events/batch` | Ya | Ya |
+| `POST /api/v1/sessions` | Ya | Tidak |
+| `POST /api/v1/sessions/{id}/start` | Ya | Tidak |
+| `POST /api/v1/sessions/{id}/end` | Ya | Tidak |
+| `POST /api/v1/sessions/{id}/ruleset/activate` | Ya | Tidak |
+| `POST /api/v1/rulesets` | Ya | Tidak |
+| `PUT /api/v1/rulesets/{id}` | Ya | Tidak |
+| `POST /api/v1/rulesets/{id}/versions/{version}/activate` | Ya | Tidak |
+| `POST /api/v1/rulesets/{id}/archive` | Ya | Tidak |
+| `DELETE /api/v1/rulesets/{id}` | Ya | Tidak |
+| `POST /api/v1/players` | Ya | Tidak |
+| `POST /api/v1/sessions/{id}/players` | Ya | Tidak |
+| `GET /api/v1/sessions` | Ya | Ya |
+| `GET /api/v1/analytics/...` | Ya | Ya |
+| `POST /api/v1/events` | Ya | Ya |
+| `POST /api/v1/events/batch` | Ya | Ya |
 
 Catatan:
 - Peran PLAYER hanya boleh mengakses data yang diizinkan oleh UI dan kebijakan bisnis.
 - Endpoint publik tanpa token hanya `login` dan `register`.
+
+### 3.5 Kebijakan data sensitif
+1. Password disimpan sebagai hash kuat (`pgcrypto`/bcrypt) di basis data.
+2. API tidak pernah mengembalikan `password_hash` atau kredensial mentah dalam response.
+3. JWT hanya disimpan pada sisi klien yang membutuhkan akses API dan harus dikirim via header `Authorization`.
+4. Log aplikasi tidak boleh mencatat password mentah, token JWT utuh, atau payload sensitif di luar kebutuhan debugging terkontrol.
+
+### 3.6 Validasi input minimum
+1. Endpoint autentikasi memvalidasi field wajib (`username`, `password`).
+2. Endpoint ruleset memvalidasi struktur/tipe/rentang nilai konfigurasi sebelum disimpan atau diaktifkan.
+3. Endpoint event memvalidasi urutan (`sequence_number`), idempotensi (`session_id + event_id`), dan kesesuaian `ruleset_version_id`.
 
 ---
 
@@ -120,9 +138,14 @@ Kode status domain utama:
 3. `DELETED` (hard delete, hanya jika belum pernah dipakai sesi)
 
 ### 6.2 Lifecycle level ruleset version
-1. `DRAFT` (opsional, belum dipakai)
+1. `DRAFT` (dipakai pada versi hasil update sebelum aktivasi)
 2. `ACTIVE` (dipakai saat ini)
 3. `RETIRED` (versi lama, tidak aktif)
+
+Aturan aktivasi:
+1. Aktivasi versi dilakukan eksplisit via `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`.
+2. Saat satu versi diaktifkan, versi `ACTIVE` lain pada ruleset yang sama otomatis menjadi `RETIRED`.
+3. Pembuatan sesi baru mengambil versi `ACTIVE` terbaru dari ruleset yang dipilih.
 
 ### 6.3 Aturan penghapusan
 1. Ruleset tidak boleh dihapus jika sudah muncul pada `session_ruleset_activations`.
@@ -153,17 +176,26 @@ Catatan:
 1. P95 ingest event tunggal <= 500 ms.
 2. P95 analitika sesi <= 1500 ms (<= 2000 event per sesi).
 
+### 8.1A Rate limiting operasional
+1. Endpoint ingest (`/api/v1/events`, `/api/v1/events/batch`) dibatasi 120 request/menit per identitas klien.
+2. Endpoint non-ingest dibatasi 60 request/menit per identitas klien.
+3. Pelanggaran rate limit mengembalikan HTTP `429` dengan format error standar.
+
 ### 8.2 Reliabilitas
 1. Tidak ada efek ganda pada retry event duplikat.
 2. Konsistensi data dijaga oleh transaksi pada operasi multi-tabel.
 
 ### 8.3 Observability
-1. Log terstruktur minimum: `trace_id`, `path`, `status_code`, `duration_ms`.
+1. Log request terstruktur minimum: `trace_id`, `method`, `path`, `status_code`, `duration_ms`.
 2. Audit validasi event masuk ke `validation_logs`.
+3. Error tak terduga harus direkam ke log server dan dikembalikan sebagai respons error standar.
 
 ### 8.4 Backup dan restore
 1. Backup database harian.
 2. Uji restore minimal bulanan.
+3. Prosedur operasional lokal memakai skrip:
+   - `scripts/db-backup.ps1`
+   - `scripts/db-restore.ps1`
 
 ---
 

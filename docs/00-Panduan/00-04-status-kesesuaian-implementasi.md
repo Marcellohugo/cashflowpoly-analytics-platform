@@ -1,4 +1,4 @@
-# Status Kesesuaian Implementasi
+﻿# Status Kesesuaian Implementasi
 ## Sistem Informasi Dasbor Analitika dan Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
@@ -28,7 +28,7 @@ Acuan utama:
 | Manajemen ruleset (create/list/detail/archive/delete) | Sesuai | Alur CRUD + guard ruleset terpakai sudah ada. |
 | UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API. |
 | Kontrak auth Bearer + RBAC | Sesuai | API sudah Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side. |
-| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/analytics/rulesets/{rulesetId}/summary` dan halaman UI ruleset analytics tersedia. |
+| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` dan halaman UI ruleset analytics tersedia. |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`. |
 | Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
 
@@ -48,3 +48,4 @@ Implementasi dianggap siap ketika:
 3. endpoint grouped-by-ruleset tersedia dan tervalidasi,
 4. docs, smoke, postman, dan implementasi konsisten,
 5. hasil build/test/smoke/compose lulus tanpa bug blocker.
+

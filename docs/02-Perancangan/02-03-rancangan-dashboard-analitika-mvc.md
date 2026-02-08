@@ -1,4 +1,4 @@
-# Rancangan Dashboard Analitika Berbasis ASP.NET Core MVC (Razor Views)
+﻿# Rancangan Dashboard Analitika Berbasis ASP.NET Core MVC (Razor Views)
 ## Sistem Informasi Dasbor Analitika dan Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
@@ -146,21 +146,21 @@ Menampilkan:
 ## 7. Pemetaan Endpoint API ke UI
 | Kebutuhan UI | Endpoint | Otorisasi |
 |---|---|---|
-| Login | `POST /api/auth/login` | publik |
-| Register | `POST /api/auth/register` | publik |
-| Daftar sesi | `GET /api/sessions` | Bearer |
-| Buat sesi | `POST /api/sessions` | Bearer (`INSTRUCTOR`) |
-| Mulai sesi | `POST /api/sessions/{sessionId}/start` | Bearer (`INSTRUCTOR`) |
-| Akhiri sesi | `POST /api/sessions/{sessionId}/end` | Bearer (`INSTRUCTOR`) |
-| Aktivasi ruleset | `POST /api/sessions/{sessionId}/ruleset/activate` | Bearer (`INSTRUCTOR`) |
-| Daftar ruleset | `GET /api/rulesets` | Bearer |
-| Buat ruleset | `POST /api/rulesets` | Bearer (`INSTRUCTOR`) |
-| Arsip ruleset | `POST /api/rulesets/{rulesetId}/archive` | Bearer (`INSTRUCTOR`) |
-| Hapus ruleset | `DELETE /api/rulesets/{rulesetId}` | Bearer (`INSTRUCTOR`) |
-| Analitika sesi | `GET /api/analytics/sessions/{sessionId}` | Bearer |
-| Histori transaksi | `GET /api/analytics/sessions/{sessionId}/transactions?playerId=...` | Bearer |
-| Gameplay snapshot | `GET /api/analytics/sessions/{sessionId}/players/{playerId}/gameplay` | Bearer |
-| Analitika per ruleset | `GET /api/analytics/rulesets/{rulesetId}/summary` | Bearer |
+| Login | `POST /api/v1/auth/login` | publik |
+| Register | `POST /api/v1/auth/register` | publik |
+| Daftar sesi | `GET /api/v1/sessions` | Bearer |
+| Buat sesi | `POST /api/v1/sessions` | Bearer (`INSTRUCTOR`) |
+| Mulai sesi | `POST /api/v1/sessions/{sessionId}/start` | Bearer (`INSTRUCTOR`) |
+| Akhiri sesi | `POST /api/v1/sessions/{sessionId}/end` | Bearer (`INSTRUCTOR`) |
+| Aktivasi ruleset | `POST /api/v1/sessions/{sessionId}/ruleset/activate` | Bearer (`INSTRUCTOR`) |
+| Daftar ruleset | `GET /api/v1/rulesets` | Bearer |
+| Buat ruleset | `POST /api/v1/rulesets` | Bearer (`INSTRUCTOR`) |
+| Arsip ruleset | `POST /api/v1/rulesets/{rulesetId}/archive` | Bearer (`INSTRUCTOR`) |
+| Hapus ruleset | `DELETE /api/v1/rulesets/{rulesetId}` | Bearer (`INSTRUCTOR`) |
+| Analitika sesi | `GET /api/v1/analytics/sessions/{sessionId}` | Bearer |
+| Histori transaksi | `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` | Bearer |
+| Gameplay snapshot | `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` | Bearer |
+| Analitika per ruleset | `GET /api/v1/analytics/rulesets/{rulesetId}/summary` | Bearer |
 
 ---
 
@@ -207,3 +207,4 @@ UI dinyatakan siap jika:
 3. halaman analitika sesi dan per-ruleset berjalan,
 4. grafik garis tidak mengalami stretch horizontal tak terbatas,
 5. error state 401/403/422/429 tampil sesuai standar.
+

@@ -831,7 +831,7 @@ Catatan: komponen ini tetap valid sebagai kebutuhan sistem besar, tetapi bukan t
 #### A.3.1 Output API analitik sesi
 
 Endpoint:
-- `GET /api/analytics/sessions/{sessionId}`
+- `GET /api/v1/analytics/sessions/{sessionId}`
 
 Field ringkasan sesi:
 - `event_count`
@@ -886,10 +886,10 @@ Player level:
 - `gameplay.derived.metrics` (JSON)
 
 Endpoint gameplay snapshot:
-- `GET /api/analytics/sessions/{sessionId}/players/{playerId}/gameplay`
+- `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay`
 
 Endpoint histori transaksi:
-- `GET /api/analytics/sessions/{sessionId}/transactions?playerId=...`
+- `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...`
 
 ### A.4 Penyesuaian terhadap kebutuhan Anda (bagian 2)
 

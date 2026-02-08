@@ -68,8 +68,8 @@ Bagian ini memuat tabel hasil uji per kasus.
 |---|---|---|---|---|---|---|---|---|
 
 ### 5.2 Contoh pengisian (contoh format)
-| 2026-01-27 | TC-API-01 | POST /api/sessions | M1 | session_name=Sesi Uji 01 | PASS | SS-API-01.png | 201 sesuai | - |
-| 2026-01-27 | TC-API-13 | POST /api/sessions/{id}/events | M3 | sequence loncat | PASS | SS-API-13.png | 422 sesuai | 00-abc... |
+| 2026-01-27 | TC-API-01 | POST /api/v1/sessions | M1 | session_name=Sesi Uji 01 | PASS | SS-API-01.png | 201 sesuai | - |
+| 2026-01-27 | TC-API-13 | POST /api/v1/events | M3 | sequence loncat | PASS | SS-API-13.png | 422 sesuai | 00-abc... |
 
 Catatan:
 - “Bukti” berupa nama file screenshot atau link Postman collection export.
@@ -83,8 +83,8 @@ Catatan:
 
 ### 6.2 Kolom “Modul Dominan”
 Kolom “Modul Dominan” diisi dengan modul yang paling berpengaruh pada hasil uji itu. Contoh:
-- IT-01 gagal karena snapshot kosong → M5
-- IT-02 gagal karena ruleset tidak memblokir event → M2/M3
+- IT-01 gagal karena snapshot kosong ? M5
+- IT-02 gagal karena ruleset tidak memblokir event ? M2/M3
 
 ---
 
@@ -185,7 +185,20 @@ Catatan:
 
 ---
 
-## 11. Lampiran Bukti
+## 11. Rekap Verifikasi Otomatis (Build/Test/Smoke)
+Checklist ini dipakai untuk memastikan hasil uji fungsional selaras dengan kondisi teknis terbaru.
+
+| Pemeriksaan | Perintah | Status | Catatan |
+|---|---|---|---|
+| Build API | `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` | PASS/FAIL | |
+| Build UI | `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` | PASS/FAIL | |
+| Unit test API | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | PASS/FAIL | |
+| Compose run | `docker compose up --build -d` | PASS/FAIL | |
+| Smoke script | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS/FAIL | |
+
+---
+
+## 12. Lampiran Bukti
 Sistem menaruh bukti pada struktur folder berikut:
 ```
 docs/evidence/
@@ -201,6 +214,7 @@ Daftar lampiran:
 - SS-UI-01.png: detail sesi
 - DB-01.sql: query metric_snapshots
 - (isi sesuai bukti nyata)
+
 
 
 

@@ -676,13 +676,13 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 - Sistem mengembalikan error sesuai format standar bagian 3.2.
 - Sistem mengembalikan `trace_id` untuk pelacakan log.
 - Endpoint terproteksi wajib mengirim `Authorization: Bearer <token>`.
-- Endpoint publik tanpa token hanya endpoint autentikasi (`/api/auth/login`, `/api/auth/register`).
+- Endpoint publik tanpa token hanya endpoint autentikasi (`/api/v1/auth/login`, `/api/v1/auth/register`).
 - Retry/idempotency klien mengikuti dokumen `01-04` (bagian retry/backoff/timeouts).
 
 ### 5.2 Endpoint autentikasi
 #### 5.2.1 Login
 - Method: `POST`
-- Path: `/api/auth/login`
+- Path: `/api/v1/auth/login`
 - Request:
 ```json
 { "username": "instructor", "password": "instructor123" }
@@ -700,7 +700,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 
 #### 5.2.2 Register
 - Method: `POST`
-- Path: `/api/auth/register`
+- Path: `/api/v1/auth/register`
 - Request:
 ```json
 {
@@ -725,7 +725,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ## 6. Endpoint Session
 ### 6.1 Buat sesi
 - Method: `POST`
-- Path: `/api/sessions`
+- Path: `/api/v1/sessions`
 - Request:
 ```json
 {
@@ -748,7 +748,7 @@ Status code:
 
 ### 6.2 Mulai sesi
 - Method: `POST`
-- Path: `/api/sessions/{sessionId}/start`
+- Path: `/api/v1/sessions/{sessionId}/start`
 - Response 200:
 ```json
 { "status": "STARTED" }
@@ -758,7 +758,7 @@ Status code:
 
 ### 6.3 Akhiri sesi
 - Method: `POST`
-- Path: `/api/sessions/{sessionId}/end`
+- Path: `/api/v1/sessions/{sessionId}/end`
 - Response 200:
 ```json
 { "status": "ENDED" }
@@ -769,7 +769,7 @@ Status code:
 ## 7. Endpoint Event
 ### 7.1 Kirim event tunggal
 - Method: `POST`
-- Path: `/api/events`
+- Path: `/api/v1/events`
 - Request: sesuai struktur event umum bagian 3.1
 - Response 201:
 ```json
@@ -787,7 +787,7 @@ Status code:
 
 ### 7.2 Kirim event batch
 - Method: `POST`
-- Path: `/api/events/batch`
+- Path: `/api/v1/events/batch`
 - Request:
 ```json
 { "events": [ { ... }, { ... } ] }
@@ -806,7 +806,7 @@ Status code:
 
 ### 7.3 Ambil event per sesi
 - Method: `GET`
-- Path: `/api/sessions/{sessionId}/events?fromSeq=0&limit=200`
+- Path: `/api/v1/sessions/{sessionId}/events?fromSeq=0&limit=200`
 - Response 200:
 ```json
 {
@@ -823,7 +823,7 @@ Catatan akses:
 
 ### 8.1 Buat ruleset
 - Method: `POST`
-- Path: `/api/rulesets`
+- Path: `/api/v1/rulesets`
 - Request:
 ```json
 {
@@ -883,7 +883,7 @@ Catatan akses:
 
 ### 8.2 Update ruleset (menciptakan versi baru)
 - Method: `PUT`
-- Path: `/api/rulesets/{rulesetId}`
+- Path: `/api/v1/rulesets/{rulesetId}`
 - Response 200:
 ```json
 { "ruleset_id": "uuid", "version": 2 }
@@ -893,7 +893,7 @@ Catatan akses:
 
 ### 8.3 Aktivasi ruleset untuk sesi
 - Method: `POST`
-- Path: `/api/sessions/{sessionId}/ruleset/activate`
+- Path: `/api/v1/sessions/{sessionId}/ruleset/activate`
 - Request:
 ```json
 { "ruleset_id": "uuid", "version": 2 }
@@ -907,7 +907,7 @@ Catatan akses:
 
 ### 8.4 Ambil daftar ruleset
 - Method: `GET`
-- Path: `/api/rulesets`
+- Path: `/api/v1/rulesets`
 - Response 200:
 ```json
 { "items": [ { "ruleset_id":"uuid", "name":"Ruleset Default", "latest_version": 2 } ] }
@@ -918,7 +918,7 @@ Catatan akses:
 ## 9. Endpoint Metrics dan Dashboard
 ### 9.1 Ambil metrik sesi
 - Method: `GET`
-- Path: `/api/analytics/sessions/{sessionId}`
+- Path: `/api/v1/analytics/sessions/{sessionId}`
 - Response 200:
 ```json
 {
@@ -956,7 +956,7 @@ Catatan akses:
 
 ### 9.2 Ambil histori transaksi
 - Method: `GET`
-- Path: `/api/analytics/sessions/{sessionId}/transactions?playerId=uuid`
+- Path: `/api/v1/analytics/sessions/{sessionId}/transactions?playerId=uuid`
 - Response 200:
 ```json
 {
@@ -970,7 +970,7 @@ Catatan akses:
 
 ### 9.3 Ambil snapshot metrik gameplay (raw + derived)
 - Method: `GET`
-- Path: `/api/analytics/sessions/{sessionId}/players/{playerId}/gameplay`
+- Path: `/api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay`
 - Response 200:
 ```json
 {
@@ -991,7 +991,7 @@ Catatan:
 
 ### 9.4 Ambil ringkasan analitika per ruleset
 - Method: `GET`
-- Path: `/api/analytics/rulesets/{rulesetId}/summary`
+- Path: `/api/v1/analytics/rulesets/{rulesetId}/summary`
 - Response 200:
 ```json
 {
@@ -1029,6 +1029,7 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
+
 
 
 

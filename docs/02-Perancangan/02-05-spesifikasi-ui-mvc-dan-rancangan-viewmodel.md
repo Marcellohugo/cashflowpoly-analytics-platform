@@ -1,4 +1,4 @@
-# Spesifikasi UI MVC dan Rancangan ViewModel
+﻿# Spesifikasi UI MVC dan Rancangan ViewModel
 ## Dasbor Analitika dan Manajemen Ruleset Cashflowpoly (ASP.NET Core MVC + Razor Views)
 
 ### Dokumen
@@ -126,16 +126,16 @@ Entitas tampilan minimum:
 ## 7. Pemetaan API ke Halaman
 | Halaman | Endpoint API |
 |---|---|
-| Login | `POST /api/auth/login` |
-| Register | `POST /api/auth/register` |
-| Sessions list | `GET /api/sessions` |
-| Session details | `GET /api/analytics/sessions/{sessionId}` |
-| Player details | `GET /api/analytics/sessions/{sessionId}` + `GET /api/analytics/sessions/{sessionId}/transactions?playerId=...` + `GET /api/analytics/sessions/{sessionId}/players/{playerId}/gameplay` |
-| Rulesets list | `GET /api/rulesets` |
-| Ruleset create | `POST /api/rulesets` |
-| Ruleset archive | `POST /api/rulesets/{rulesetId}/archive` |
-| Ruleset delete | `DELETE /api/rulesets/{rulesetId}` |
-| Session ruleset activation | `POST /api/sessions/{sessionId}/ruleset/activate` |
+| Login | `POST /api/v1/auth/login` |
+| Register | `POST /api/v1/auth/register` |
+| Sessions list | `GET /api/v1/sessions` |
+| Session details | `GET /api/v1/analytics/sessions/{sessionId}` |
+| Player details | `GET /api/v1/analytics/sessions/{sessionId}` + `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` + `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` |
+| Rulesets list | `GET /api/v1/rulesets` |
+| Ruleset create | `POST /api/v1/rulesets` |
+| Ruleset archive | `POST /api/v1/rulesets/{rulesetId}/archive` |
+| Ruleset delete | `DELETE /api/v1/rulesets/{rulesetId}` |
+| Session ruleset activation | `POST /api/v1/sessions/{sessionId}/ruleset/activate` |
 
 ---
 
@@ -171,3 +171,4 @@ Entitas tampilan minimum:
 3. Alur login/register/logout berjalan.
 4. Aksi instruktur-only tidak bisa diakses player.
 5. Halaman analitika dan ruleset menampilkan error state dengan benar.
+

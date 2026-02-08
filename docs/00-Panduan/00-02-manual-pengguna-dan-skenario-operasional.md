@@ -42,7 +42,7 @@ Catatan:
 - Endpoint API selain login/register mensyaratkan token Bearer.
 
 ### 3.1 Alur autentikasi API (ringkas)
-1. Login via `POST /api/auth/login`.
+1. Login via `POST /api/v1/auth/login`.
 2. Simpan `access_token` dari respons login.
 3. Kirim header `Authorization: Bearer <access_token>` pada endpoint terproteksi.
 4. Jika token kedaluwarsa atau salah, API merespons `401`.
@@ -67,7 +67,7 @@ Instruktur membuat sesi permainan untuk menerima event dan menyimpan histori.
 
 ### Langkah
 1. Buka Swagger UI.
-2. Buka endpoint `POST /api/sessions`.
+2. Buka endpoint `POST /api/v1/sessions`.
 3. Isi `session_name` dan `mode`.
 4. Kirim permintaan.
 
@@ -107,7 +107,7 @@ Instruktur menandai sesi siap menerima event permainan.
 
 ### Langkah
 1. Buka Swagger.
-2. Panggil `POST /api/sessions/{sessionId}/start`.
+2. Panggil `POST /api/v1/sessions/{sessionId}/start`.
 
 ### Hasil yang instruktur lihat
 Sistem mengubah status menjadi `STARTED`.
@@ -122,7 +122,7 @@ Sistem menerima event permainan dan menyimpannya sebagai histori.
 Sistem menerima event dari klien IDN/simulator atau pengujian manual via Postman/Swagger.
 
 ### Langkah uji manual (Postman/Swagger)
-1. Buka endpoint `POST /api/events`.
+1. Buka endpoint `POST /api/v1/events`.
 2. Isi payload event sesuai kontrak.
 3. Kirim event berurutan berdasarkan `sequence_number`.
 
@@ -208,7 +208,7 @@ Instruktur menandai sesi selesai agar sistem tidak menerima perubahan konfiguras
 
 ### Langkah
 1. Buka Swagger.
-2. Panggil `POST /api/sessions/{sessionId}/end`.
+2. Panggil `POST /api/v1/sessions/{sessionId}/end`.
 
 ### Hasil yang instruktur lihat
 Sistem mengubah status menjadi `ENDED`.
@@ -228,7 +228,7 @@ Jika sistem menyediakan endpoint `recompute`, instruktur menjalankan fitur ini s
 
 ### Langkah
 1. Buka Swagger.
-2. Panggil `POST /api/analytics/sessions/{sessionId}/recompute` (jika ada).
+2. Panggil `POST /api/v1/analytics/sessions/{sessionId}/recompute` (jika ada).
 3. Buka ulang detail sesi pada Web.
 
 ---
@@ -299,6 +299,7 @@ Instruktur menjalankan urutan ini pada setiap sesi:
 6. evaluasi detail pemain,
 7. akhiri sesi,
 8. simpan bukti uji dan tampilan.
+
 
 
 

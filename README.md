@@ -1,4 +1,4 @@
-# Cashflowpoly Dashboard & Manajemen *Ruleset*
+ï»¿# Cashflowpoly Dashboard & Manajemen *Ruleset*
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada dasbor web. Modul manajemen *ruleset* berbasis konfigurasi dinamis disediakan agar instruktur dapat mengubah parameter permainan tanpa mengubah kode.
 
@@ -42,6 +42,10 @@ Arsitektur dibagi menjadi tiga komponen:
 
 UI tidak mengakses database secara langsung. UI membaca data dari REST API agar konsisten dengan kontrak API dan skema data.
 
+Catatan kontrak API:
+- Prefix endpoint aktif: `/api/v1/...`.
+- Route `/api/...` tetap tersedia sementara untuk kompatibilitas mundur.
+
 ## Teknologi dan alat
 | No | Perangkat lunak | Fungsi penggunaan |
 |---:|---|---|
@@ -67,25 +71,25 @@ UI tidak mengakses database secara langsung. UI membaca data dari REST API agar 
 +- README.md
 +- docker-compose.yml
 +- database/
-¦  +- 00_create_schema.sql
+Â¦  +- 00_create_schema.sql
 +- docs/
-¦  +- 00-Panduan/
-¦  ¦  +- 00-01-panduan-setup-lingkungan.md
-¦  ¦  +- 00-02-manual-pengguna-dan-skenario-operasional.md
-¦  ¦  +- 00-03-panduan-menjalankan-sistem.md
-¦  +- 01-Spesifikasi/
-¦  ¦  +- 01-01-spesifikasi-kebutuhan-sistem.md
-¦  ¦  +- 01-02-spesifikasi-event-dan-kontrak-api.md
-¦  ¦  +- 01-03-spesifikasi-ruleset-dan-validasi.md
-¦  +- 02-Perancangan/
-¦  ¦  +- 02-01-rancangan-model-data-dan-basis-data.md
-¦  ¦  +- 02-02-definisi-metrik-dan-agregasi.md
-¦  ¦  +- 02-03-rancangan-dashboard-analitika-mvc.md
-¦  ¦  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
-¦  ¦  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
-¦  +- 03-Pengujian/
-¦  ¦  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
-¦  ¦  +- 03-02-laporan-hasil-pengujian.md
+Â¦  +- 00-Panduan/
+Â¦  Â¦  +- 00-01-panduan-setup-lingkungan.md
+Â¦  Â¦  +- 00-02-manual-pengguna-dan-skenario-operasional.md
+Â¦  Â¦  +- 00-03-panduan-menjalankan-sistem.md
+Â¦  +- 01-Spesifikasi/
+Â¦  Â¦  +- 01-01-spesifikasi-kebutuhan-sistem.md
+Â¦  Â¦  +- 01-02-spesifikasi-event-dan-kontrak-api.md
+Â¦  Â¦  +- 01-03-spesifikasi-ruleset-dan-validasi.md
+Â¦  +- 02-Perancangan/
+Â¦  Â¦  +- 02-01-rancangan-model-data-dan-basis-data.md
+Â¦  Â¦  +- 02-02-definisi-metrik-dan-agregasi.md
+Â¦  Â¦  +- 02-03-rancangan-dashboard-analitika-mvc.md
+Â¦  Â¦  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
+Â¦  Â¦  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
+Â¦  +- 03-Pengujian/
+Â¦  Â¦  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
+Â¦  Â¦  +- 03-02-laporan-hasil-pengujian.md
 +- src/
    +- Cashflowpoly.Api/
    +- Cashflowpoly.Ui/
@@ -152,14 +156,14 @@ dotnet run --project src/Cashflowpoly.Ui
 
 ## Endpoint tambahan
 Endpoint tambahan yang tersedia:
-- `POST /api/rulesets/{rulesetId}/archive` arsip ruleset
-- `DELETE /api/rulesets/{rulesetId}` hapus ruleset (jika belum dipakai sesi)
-- `GET /api/sessions` daftar sesi
-- `POST /api/players` buat pemain
-- `GET /api/players` daftar pemain
-- `POST /api/sessions/{sessionId}/players` tambah pemain ke sesi
-- `GET /api/rulesets/{rulesetId}` detail ruleset + versi
-- `POST /api/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
+- `POST /api/v1/rulesets/{rulesetId}/archive` arsip ruleset
+- `DELETE /api/v1/rulesets/{rulesetId}` hapus ruleset (jika belum dipakai sesi)
+- `GET /api/v1/sessions` daftar sesi
+- `POST /api/v1/players` buat pemain
+- `GET /api/v1/players` daftar pemain
+- `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
+- `GET /api/v1/rulesets/{rulesetId}` detail ruleset + versi
+- `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
 
 ## Catatan pengembangan
 - Hapus *template endpoint* `GET /weatherforecast` setelah menyiapkan *controller* sesuai kontrak API pada dokumen spesifikasi.
@@ -186,8 +190,13 @@ Dokumen kunci:
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Smoke test cepat (butuh API berjalan): `powershell -File scripts/smoke.ps1`.
 
+## Operasional DB (Backup/Restore)
+- Backup database: `powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1`
+- Restore database: `powershell -ExecutionPolicy Bypass -File scripts/db-restore.ps1 -InputFile backups/<nama_file>.sql`
+
 ## Lisensi
 Lisensi akan ditentukan untuk repositori ini.
+
 
 
 

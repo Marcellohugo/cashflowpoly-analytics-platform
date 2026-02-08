@@ -265,16 +265,19 @@ Catatan akses:
 - Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer.
 
 ### 8.1 Endpoint minimum
-1. `POST /api/rulesets`  
-   Sistem membuat *ruleset* dan versi 1.
+1. `POST /api/v1/rulesets`  
+   Sistem membuat *ruleset* dan versi 1 dengan status awal `ACTIVE`.
 
-2. `PUT /api/rulesets/{rulesetId}`  
-   Sistem membuat versi baru dari *ruleset* yang sama.
+2. `PUT /api/v1/rulesets/{rulesetId}`  
+   Sistem membuat versi baru dari *ruleset* yang sama dengan status awal `DRAFT`.
 
-3. `GET /api/rulesets`  
+3. `GET /api/v1/rulesets`  
    Sistem mengembalikan daftar *ruleset* beserta versi terbaru.
 
-4. `POST /api/sessions/{sessionId}/ruleset/activate`  
+4. `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`  
+   Instruktur mengaktifkan versi ruleset secara eksplisit pada level ruleset.
+
+5. `POST /api/v1/sessions/{sessionId}/ruleset/activate`  
    Instruktur mengaktifkan versi tertentu untuk sesi.
 
 ### 8.2 Respons aktivasi

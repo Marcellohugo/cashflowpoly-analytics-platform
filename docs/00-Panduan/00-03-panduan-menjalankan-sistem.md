@@ -69,7 +69,7 @@ Buka:
 - `https://localhost:7203/sessions` (HTTPS)
 - `http://localhost:5203/sessions` (HTTP)
 
-Jika halaman masih kosong, itu normal jika endpoint `/api/sessions` belum diimplementasikan.
+Jika halaman masih kosong, itu normal jika endpoint `/api/v1/sessions` belum diimplementasikan.
 
 Catatan:
 - Jika styling belum muncul, pastikan Tailwind sudah dibuild sesuai panduan setup.
@@ -148,6 +148,7 @@ Hentikan container:
 ```bash
 docker compose down
 ```
+
 
 
 

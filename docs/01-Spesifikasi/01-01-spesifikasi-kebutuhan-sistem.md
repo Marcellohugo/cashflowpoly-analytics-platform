@@ -179,7 +179,7 @@ Kebutuhan non-fungsional berikut ditetapkan.
 
 ### 9.3 Kinerja
 - NFR-PERF-01 Sistem merespons ingest event tunggal dengan P95 <= 500 ms pada beban kelas normal.
-- NFR-PERF-02 Sistem merespons endpoint analitika sesi (`GET /api/analytics/sessions/{sessionId}`) dengan P95 <= 1500 ms untuk sesi hingga 2000 event.
+- NFR-PERF-02 Sistem merespons endpoint analitika sesi (`GET /api/v1/analytics/sessions/{sessionId}`) dengan P95 <= 1500 ms untuk sesi hingga 2000 event.
 - NFR-PERF-03 Sistem memperbarui metrik dan tampilan dasbor setelah menerima event pada setiap aksi atau akhir giliran.
 
 ### 9.4 Reliabilitas
@@ -261,6 +261,7 @@ Tahap perancangan siap dimulai apabila:
 5. Setiap aturan domain yang berdampak pada validasi memiliki aturan validasi yang tertulis.
 
 ---
+
 
 
 
