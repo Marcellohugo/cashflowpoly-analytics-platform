@@ -26,6 +26,8 @@ public sealed class SessionDetailViewModel
 {
     public Guid SessionId { get; init; }
     public AnalyticsSessionResponseDto? Analytics { get; init; }
+    public string? SessionStatus { get; init; }
+    public bool IsDevelopment { get; init; }
     public string? ErrorMessage { get; init; }
 }
 

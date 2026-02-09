@@ -81,6 +81,7 @@ public static class UiText
         ["sessions.detail_title"] = ("Detail sesi", "Session details"),
         ["sessions.analytics_title"] = ("Analitika Sesi", "Session Analytics"),
         ["sessions.activate_ruleset"] = ("Aktivasi Ruleset", "Activate Ruleset"),
+        ["sessions.end_dev"] = ("Selesaikan Session (Dev)", "End Session (Dev)"),
         ["sessions.ruleset_title"] = ("Pilih ruleset untuk sesi", "Select a ruleset for session"),
         ["sessions.ruleset_hint"] = ("Isi versi manual (mis. 1 atau versi terbaru).", "Enter version manually (e.g., 1 or latest)."),
         ["sessions.activate"] = ("Aktifkan", "Activate"),

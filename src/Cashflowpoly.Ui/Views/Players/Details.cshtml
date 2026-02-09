@@ -3,6 +3,81 @@
 
 @{
     ViewData["Title"] = Context.T("players.detail_title");
+
+    static JsonElement? TryGetPath(JsonElement? root, params string[] path)
+    {
+        if (!root.HasValue)
+        {
+            return null;
+        }
+
+        var current = root.Value;
+        foreach (var key in path)
+        {
+            if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(key, out var next))
+            {
+                return null;
+            }
+
+            current = next;
+        }
+
+        return current;
+    }
+
+    static double? TryGetNumber(JsonElement? root, params string[] path)
+    {
+        var element = TryGetPath(root, path);
+        if (!element.HasValue || element.Value.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        return element.Value.GetDouble();
+    }
+
+    static bool? TryGetBool(JsonElement? root, params string[] path)
+    {
+        var element = TryGetPath(root, path);
+        if (!element.HasValue || (element.Value.ValueKind != JsonValueKind.True && element.Value.ValueKind != JsonValueKind.False))
+        {
+            return null;
+        }
+
+        return element.Value.GetBoolean();
+    }
+
+    static string FormatNumber(double? value, string format = "0.##")
+    {
+        return value.HasValue ? value.Value.ToString(format) : "N/A";
+    }
+
+    static string FormatBool(bool? value)
+    {
+        if (!value.HasValue)
+        {
+            return "N/A";
+        }
+
+        return value.Value ? "Yes" : "No";
+    }
+
+    var netWorthIndex = TryGetNumber(Model.GameplayDerived, "net_worth_index");
+    var incomeDiversificationRatio = TryGetNumber(Model.GameplayDerived, "income_diversification_ratio");
+    var expenseEfficiency = TryGetNumber(Model.GameplayDerived, "expense_management_efficiency");
+    var businessProfitMargin = TryGetNumber(Model.GameplayDerived, "business_profit_margin");
+    var riskAppetite = TryGetNumber(Model.GameplayDerived, "risk_appetite_score_normalized");
+    var debtLeverageRatio = TryGetNumber(Model.GameplayDerived, "debt_leverage_ratio");
+    var goalSettingAmbition = TryGetNumber(Model.GameplayDerived, "goal_setting_ambition");
+    var mealOrderSuccessRate = TryGetNumber(Model.GameplayDerived, "meal_order_success_rate");
+    var planningHorizonPercent = TryGetNumber(Model.GameplayDerived, "planning_horizon_percent");
+    var growthPatternRatio = TryGetNumber(Model.GameplayDerived, "growth_pattern_ratio");
+    var donationAggressivenessPercent = TryGetNumber(Model.GameplayDerived, "donation_aggressiveness_percent");
+    var donationStabilityStdDev = TryGetNumber(Model.GameplayDerived, "donation_stability_std_deviation");
+
+    var basicProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "basic_profile");
+    var collectorProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "collector_profile");
+    var specialistProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "specialist_profile");
 }
 
 <section class="section-shell">
@@ -139,6 +214,75 @@
         {
             <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 @Model.GameplayErrorMessage
+            </div>
+        }
+
+        @if (Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue)
+        {
+            <div class="mt-6 grid gap-4 md:grid-cols-3">
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Net Worth Index</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(netWorthIndex)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Income Diversification</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(incomeDiversificationRatio)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Expense Efficiency</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(expenseEfficiency)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Business Profit Margin</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(businessProfitMargin)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Risk Appetite (0-100)</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(riskAppetite)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Debt Leverage</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(debtLeverageRatio)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Goal Setting Ambition</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(goalSettingAmbition)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Meal Order Success</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(mealOrderSuccessRate)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Planning Horizon</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(planningHorizonPercent)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Growth Pattern Ratio</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(growthPatternRatio)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Donation Aggressiveness</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(donationAggressivenessPercent)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Donation Stability (StdDev)</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatNumber(donationStabilityStdDev)</p>
+                </div>
+            </div>
+
+            <div class="mt-4 grid gap-4 md:grid-cols-3">
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Basic Need Profile</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatBool(basicProfile)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Collector Need Profile</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatBool(collectorProfile)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">Specialist Need Profile</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@FormatBool(specialistProfile)</p>
+                </div>
             </div>
         }
 

@@ -49,6 +49,12 @@
             <div class="mt-6 flex items-center gap-3">
                 <a class="btn-ghost"
                    asp-controller="Sessions" asp-action="Ruleset" asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+                @if (Model.IsDevelopment && string.Equals(Model.SessionStatus, "STARTED", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    <form asp-controller="Sessions" asp-action="End" asp-route-sessionId="@Model.SessionId" method="post">
+                        <button class="btn-ghost" type="submit">@Context.T("sessions.end_dev")</button>
+                    </form>
+                }
             </div>
         }
 

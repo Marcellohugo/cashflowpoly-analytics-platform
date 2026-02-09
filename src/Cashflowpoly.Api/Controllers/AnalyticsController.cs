@@ -1336,23 +1336,66 @@ public sealed class AnalyticsController : ControllerBase
         var maxTurnNumber = playerEvents.Count == 0 ? 0 : playerEvents.Max(e => e.TurnNumber);
         var mealOrdersPerTurnAverage = maxTurnNumber > 0 ? (double)mealOrdersClaimed / maxTurnNumber : 0;
 
+        var purchaseCostByCardId = new Dictionary<string, Queue<double>>(StringComparer.OrdinalIgnoreCase);
+        var essentialIngredientExpenses = 0d;
+        var playerEventsOrdered = playerEvents.OrderBy(e => e.SequenceNumber).ToList();
+        foreach (var evt in playerEventsOrdered)
+        {
+            if (evt.ActionType == "ingredient.purchased" &&
+                TryReadIngredientPurchase(evt.Payload, out var purchasedCardId, out var purchaseAmount) &&
+                !string.IsNullOrWhiteSpace(purchasedCardId))
+            {
+                if (!purchaseCostByCardId.TryGetValue(purchasedCardId, out var queue))
+                {
+                    queue = new Queue<double>();
+                    purchaseCostByCardId[purchasedCardId] = queue;
+                }
+
+                queue.Enqueue(Math.Max(0, purchaseAmount));
+            }
+
+            if (evt.ActionType == "order.claimed" &&
+                TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
+            {
+                foreach (var requiredCard in requiredCards)
+                {
+                    if (!purchaseCostByCardId.TryGetValue(requiredCard, out var queue) || queue.Count == 0)
+                    {
+                        essentialIngredientExpenses += 1;
+                        continue;
+                    }
+
+                    essentialIngredientExpenses += queue.Dequeue();
+                }
+            }
+        }
+
         var primaryNeeds = 0;
         var secondaryNeeds = 0;
         var tertiaryNeeds = 0;
+        var distinctNeedCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var tertiaryCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var missions = new List<MissionAssignment>();
         foreach (var evt in playerEvents)
         {
             if (evt.ActionType == "need.primary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out _, out _))
+                TryReadNeedPurchase(evt.Payload, out _, out var primaryCardId, out _))
             {
                 primaryNeeds += 1;
+                if (!string.IsNullOrWhiteSpace(primaryCardId))
+                {
+                    distinctNeedCardIds.Add(primaryCardId);
+                }
             }
 
             if (evt.ActionType == "need.secondary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out _, out _))
+                TryReadNeedPurchase(evt.Payload, out _, out var secondaryCardId, out _))
             {
                 secondaryNeeds += 1;
+                if (!string.IsNullOrWhiteSpace(secondaryCardId))
+                {
+                    distinctNeedCardIds.Add(secondaryCardId);
+                }
             }
 
             if (evt.ActionType == "need.tertiary.purchased" &&
@@ -1373,6 +1416,10 @@ public sealed class AnalyticsController : ControllerBase
         }
 
         var needCardsPurchased = primaryNeeds + secondaryNeeds + tertiaryNeeds;
+        var hasBasicNeedProfile = primaryNeeds > 0 && secondaryNeeds > 0 && tertiaryNeeds > 0;
+        var isCollectorNeedProfile = distinctNeedCardIds.Count >= 4;
+        var dominantNeedCount = Math.Max(primaryNeeds, Math.Max(secondaryNeeds, tertiaryNeeds));
+        var isSpecialistNeedProfile = needCardsPurchased > 0 && ((double)dominantNeedCount / needCardsPurchased) >= 0.7;
         var needCoinsSpent = playerProjections
             .Where(p => p.Direction == "OUT" &&
                         (p.Category == "NEED_PRIMARY" || p.Category == "NEED_SECONDARY" || p.Category == "NEED_TERTIARY"))
@@ -1455,6 +1502,7 @@ public sealed class AnalyticsController : ControllerBase
         var riskCostsTotal = riskCostsPerCard.Sum();
         var riskCardsDrawn = riskEvents.Count;
         var riskMitigated = playerEvents.Count(e => e.ActionType == "insurance.multirisk.used");
+        var riskAccepted = riskCostsPerCard.Count;
         var insurancePayments = playerProjections
             .Where(p => p.Category == "INSURANCE_PREMIUM" && p.Direction == "OUT")
             .Sum(p => p.Amount);
@@ -1565,6 +1613,12 @@ public sealed class AnalyticsController : ControllerBase
                 primary_needs_owned = primaryNeeds,
                 secondary_needs_owned = secondaryNeeds,
                 tertiary_needs_owned = tertiaryNeeds,
+                need_profile = new
+                {
+                    basic_profile = hasBasicNeedProfile,
+                    collector_profile = isCollectorNeedProfile,
+                    specialist_profile = isSpecialistNeedProfile
+                },
                 specific_tertiary_need = specificTertiaryAcquired,
                 collection_mission_complete = collectionMissionComplete,
                 need_cards_coins_spent = needCoinsSpent
@@ -1652,12 +1706,17 @@ public sealed class AnalyticsController : ControllerBase
         var riskMitigationEffectiveness = SafeRatio(riskMitigated, riskCardsDrawn, true);
 
         var netWorthIndex = SafeRatio(coinsNetEndGame, startingCoins, true);
+        var donationsReceived = playerProjections
+            .Where(p => p.Direction == "IN" && p.Category.Contains("DONATION", StringComparison.OrdinalIgnoreCase))
+            .Sum(p => (double)p.Amount);
+
         var incomeDiversification = SafeRatio(
             playerEvents.Where(e => e.ActionType == "work.freelance.completed")
                 .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
                 .Sum()
             + mealOrderIncomeTotal
-            + goldInvestmentEarned,
+            + goldInvestmentEarned
+            + donationsReceived,
             totalIncome,
             true);
 
@@ -1666,12 +1725,15 @@ public sealed class AnalyticsController : ControllerBase
             notesDerived.Add("income_diversification_requires_income");
         }
 
-        var expenseEfficiency = SafeRatio(ingredientInvestmentTotal, totalExpenses, true);
+        var expenseEfficiency = SafeRatio(essentialIngredientExpenses, totalExpenses, true);
         var businessProfitMargin = SafeRatio(mealOrderIncomeTotal - ingredientInvestmentTotal, mealOrderIncomeTotal, true);
 
         var averageRiskCost = riskCardsDrawn > 0 ? (double)riskCostsTotal / riskCardsDrawn : 0;
         var insuranceActivationRate = riskCardsDrawn > 0 ? (double)riskMitigated / riskCardsDrawn : 0;
-        var riskAppetiteScore = riskCardsDrawn > 0 ? averageRiskCost * insuranceActivationRate : (double?)null;
+        var riskAcceptanceRate = SafeRatio(riskAccepted, riskCardsDrawn);
+        var riskAppetiteScore = riskAcceptanceRate.HasValue
+            ? riskAcceptanceRate.Value * averageRiskCost * insuranceActivationRate
+            : (double?)null;
         if (riskCardsDrawn == 0)
         {
             notesDerived.Add("risk_appetite_requires_risk_events");
@@ -1690,6 +1752,7 @@ public sealed class AnalyticsController : ControllerBase
             .ToHashSet();
         var incomeActions = actionEvents.Count(e => incomeActionEventIds.Contains(e.EventId));
         var actionEfficiency = SafeRatio(incomeActions, actionEvents.Count);
+        var actionEfficiencyPercent = actionEfficiency.HasValue ? actionEfficiency.Value * 100 : (double?)null;
         var actionDiversityAverage = actionRepetitions.Count > 0
             ? actionRepetitions.Average(item => item.diversity_score)
             : 0;
@@ -1699,6 +1762,7 @@ public sealed class AnalyticsController : ControllerBase
         var planningHorizon = SafeRatio(
             savingDepositsByGoal.Values.Sum() + financialGoalsAttempted + playerEvents.Count(e => e.ActionType == "insurance.multirisk.purchased"),
             actionEvents.Count);
+        var planningHorizonPercent = planningHorizon.HasValue ? planningHorizon.Value * 100 : (double?)null;
 
         var totalNeeds = needCardsPurchased;
         var fulfillmentDiversity = totalNeeds > 0
@@ -1710,8 +1774,10 @@ public sealed class AnalyticsController : ControllerBase
             : (int?)null;
 
         var donationAmounts = donationByDay.Select(d => (double)d.amount).ToList();
+        var donationStabilityStdDeviation = donationAmounts.Count > 0 ? StdDev(donationAmounts) : (double?)null;
         var donationStability = donationAmounts.Count > 0 ? 100 - StdDev(donationAmounts) : (double?)null;
         var donationRatio = SafeRatio(donationTotal, coinsNetEndGame);
+        var donationAggressivenessPercent = SafeRatio(donationTotal, coinsNetEndGame, true);
         var totalFridays = allEvents.Where(e => string.Equals(e.Weekday, "FRI", StringComparison.OrdinalIgnoreCase))
             .Select(e => e.DayIndex)
             .Distinct()
@@ -1720,29 +1786,50 @@ public sealed class AnalyticsController : ControllerBase
         var donationCommitmentScore = donationStability.HasValue && donationRatio.HasValue && fridayParticipationRate.HasValue
             ? donationStability.Value * donationRatio.Value * fridayParticipationRate.Value
             : (double?)null;
+        var growthPatternRatio = SafeRatio(coinsNetEndGame, startingCoins);
+        var riskAppetiteScoreNormalized = riskAppetiteScore.HasValue ? Clamp(riskAppetiteScore.Value, 0, 100) : (double?)null;
 
         var derived = new
         {
             net_worth_index = netWorthIndex,
             income_diversification_ratio = incomeDiversification,
             expense_management_efficiency = expenseEfficiency,
+            expense_management_components = new
+            {
+                essential_expenses = essentialIngredientExpenses,
+                total_expenses = totalExpenses
+            },
             business_profit_margin = businessProfitMargin,
             business_efficiency_ratio = businessEfficiencyRatio,
             gold_roi_percentage = goldRoiPercentage,
             risk_exposure_percentage = riskExposurePercentage,
             risk_mitigation_effectiveness = riskMitigationEffectiveness,
             risk_appetite_score = riskAppetiteScore,
+            risk_appetite_components = new
+            {
+                life_risks_accepted = riskAccepted,
+                life_risks_available = riskCardsDrawn,
+                risk_acceptance_rate = riskAcceptanceRate,
+                average_risk_cost = averageRiskCost,
+                insurance_activation_rate = insuranceActivationRate
+            },
             debt_leverage_ratio = debtLeverageRatio,
             loan_repayment_discipline = loanRepaymentDiscipline,
             debt_ratio = debtRatio,
             goal_setting_ambition = goalSettingAmbition,
             action_efficiency = actionEfficiency,
+            action_efficiency_percent = actionEfficiencyPercent,
             action_diversity_score_avg = actionDiversityAverage,
             meal_order_success_rate = mealOrderSuccessRate,
             planning_horizon = planningHorizon,
+            planning_horizon_percent = planningHorizonPercent,
             fulfillment_diversity = fulfillmentDiversity,
             mission_achievement = missionAchievement,
+            growth_pattern_ratio = growthPatternRatio,
+            donation_aggressiveness_percent = donationAggressivenessPercent,
+            donation_stability_std_deviation = donationStabilityStdDeviation,
             donation_commitment_score = donationCommitmentScore,
+            risk_appetite_score_normalized = riskAppetiteScoreNormalized,
             happiness_portfolio = new
             {
                 need_cards_pts = happiness.NeedPoints,

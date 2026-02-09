@@ -12,10 +12,12 @@ namespace Cashflowpoly.Ui.Controllers;
 public sealed class SessionsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
+    private readonly IWebHostEnvironment _environment;
 
-    public SessionsController(IHttpClientFactory clientFactory)
+    public SessionsController(IHttpClientFactory clientFactory, IWebHostEnvironment environment)
     {
         _clientFactory = clientFactory;
+        _environment = environment;
     }
 
     [HttpGet("")]
@@ -52,30 +54,37 @@ public sealed class SessionsController : Controller
     [HttpGet("{sessionId:guid}")]
     public async Task<IActionResult> Details(Guid sessionId, CancellationToken ct)
     {
+        var detail = await BuildSessionDetailViewModel(sessionId, ct);
+        return detail.Result ?? View(detail.Model);
+    }
+
+    [HttpPost("{sessionId:guid}/end")]
+    public async Task<IActionResult> End(Guid sessionId, CancellationToken ct)
+    {
+        if (!_environment.IsDevelopment() || !HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { sessionId });
+        }
+
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
+        var response = await client.PostAsync($"api/v1/sessions/{sessionId}/end", null, ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
             return unauthorized;
         }
 
-        if (!response.IsSuccessStatusCode)
+        if (response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            return View(new SessionDetailViewModel
-            {
-                SessionId = sessionId,
-                ErrorMessage = error?.Message ?? $"Gagal memuat detail sesi. Status: {(int)response.StatusCode}"
-            });
+            return RedirectToAction(nameof(Details), new { sessionId });
         }
 
-        var analytics = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
-        return View(new SessionDetailViewModel
-        {
-            SessionId = sessionId,
-            Analytics = analytics
-        });
+        var apiError = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+        var detail = await BuildSessionDetailViewModel(
+            sessionId,
+            ct,
+            apiError?.Message ?? $"Gagal menyelesaikan sesi. Status: {(int)response.StatusCode}");
+        return detail.Result ?? View("Details", detail.Model);
     }
 
     [HttpGet("{sessionId:guid}/ruleset")]
@@ -147,6 +156,60 @@ public sealed class SessionsController : Controller
         }
 
         return RedirectToAction(nameof(Details), new { sessionId });
+    }
+
+    private async Task<(SessionDetailViewModel Model, IActionResult? Result)> BuildSessionDetailViewModel(
+        Guid sessionId,
+        CancellationToken ct,
+        string? overrideErrorMessage = null)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return (new SessionDetailViewModel
+            {
+                SessionId = sessionId,
+                IsDevelopment = _environment.IsDevelopment()
+            }, unauthorized);
+        }
+
+        var sessionStatus = await GetSessionStatusAsync(client, sessionId, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            return (new SessionDetailViewModel
+            {
+                SessionId = sessionId,
+                SessionStatus = sessionStatus,
+                IsDevelopment = _environment.IsDevelopment(),
+                ErrorMessage = overrideErrorMessage ?? error?.Message ?? $"Gagal memuat detail sesi. Status: {(int)response.StatusCode}"
+            }, null);
+        }
+
+        var analytics = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        return (new SessionDetailViewModel
+        {
+            SessionId = sessionId,
+            SessionStatus = sessionStatus,
+            IsDevelopment = _environment.IsDevelopment(),
+            Analytics = analytics,
+            ErrorMessage = overrideErrorMessage
+        }, null);
+    }
+
+    private static async Task<string?> GetSessionStatusAsync(HttpClient client, Guid sessionId, CancellationToken ct)
+    {
+        var sessionResponse = await client.GetAsync("api/v1/sessions", ct);
+        if (!sessionResponse.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var data = await sessionResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+        return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
     }
 }
 
