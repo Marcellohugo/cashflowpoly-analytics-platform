@@ -26,9 +26,25 @@ public sealed class SessionDetailViewModel
 {
     public Guid SessionId { get; init; }
     public AnalyticsSessionResponseDto? Analytics { get; init; }
+    public List<SessionTimelineEventViewModel> Timeline { get; init; } = new();
+    public string? TimelineErrorMessage { get; init; }
     public string? SessionStatus { get; init; }
     public bool IsDevelopment { get; init; }
     public string? ErrorMessage { get; init; }
+}
+
+public sealed class SessionTimelineEventViewModel
+{
+    public DateTimeOffset Timestamp { get; init; }
+    public long SequenceNumber { get; init; }
+    public int DayIndex { get; init; }
+    public string Weekday { get; init; } = string.Empty;
+    public int TurnNumber { get; init; }
+    public string ActorType { get; init; } = string.Empty;
+    public Guid? PlayerId { get; init; }
+    public string ActionType { get; init; } = string.Empty;
+    public string FlowLabel { get; init; } = string.Empty;
+    public string FlowDescription { get; init; } = string.Empty;
 }
 
 public sealed class PlayerDetailViewModel
@@ -56,5 +72,27 @@ public sealed class SessionRulesetViewModel
 public sealed class PlayerDirectoryViewModel
 {
     public List<PlayerResponseDto> Players { get; init; } = new();
+    public List<PlayerSessionGroupViewModel> SessionGroups { get; init; } = new();
     public string? ErrorMessage { get; set; }
+}
+
+public sealed class PlayerSessionGroupViewModel
+{
+    public Guid SessionId { get; init; }
+    public string SessionName { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public DateTimeOffset? StartedAt { get; init; }
+    public DateTimeOffset? EndedAt { get; init; }
+    public List<PlayerSessionEntryViewModel> Players { get; init; } = new();
+}
+
+public sealed class PlayerSessionEntryViewModel
+{
+    public Guid PlayerId { get; init; }
+    public string DisplayName { get; init; } = string.Empty;
+    public double CashInTotal { get; init; }
+    public double CashOutTotal { get; init; }
+    public double DonationTotal { get; init; }
+    public int GoldQty { get; init; }
+    public double HappinessPointsTotal { get; init; }
 }

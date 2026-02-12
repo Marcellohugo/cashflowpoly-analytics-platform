@@ -42,8 +42,6 @@ public sealed class AuthSchemaBootstrapper : IHostedService
               instructor_user_id uuid null references app_users(user_id) on delete set null,
               created_at timestamptz not null default now()
             );
-            create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
-
             create table if not exists user_player_links (
               link_id uuid primary key,
               user_id uuid not null unique references app_users(user_id) on delete cascade,

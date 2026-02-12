@@ -114,5 +114,72 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="mt-8">
+            <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="eyebrow">Timeline</p>
+                    <h2 class="headline text-2xl">Alur Permainan per Waktu</h2>
+                    <p class="subhead">Urutan aktivitas selama sesi berdasarkan waktu event dan sequence.</p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.TimelineErrorMessage))
+            {
+                <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                    @Model.TimelineErrorMessage
+                </div>
+            }
+
+            <div class="mt-4 table-wrap">
+                <table class="w-full text-left text-sm">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3">@Context.T("common.time")</th>
+                            <th class="px-4 py-3 text-right">Seq</th>
+                            <th class="px-4 py-3">Hari/Turn</th>
+                            <th class="px-4 py-3">Aktor</th>
+                            <th class="px-4 py-3">Alur</th>
+                            <th class="px-4 py-3">Penjelasan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Timeline.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500" colspan="6">Belum ada event timeline pada sesi ini.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Timeline)
+                        {
+                            var actorLabel = string.Equals(item.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase)
+                                ? $"PLAYER {(item.PlayerId.HasValue ? item.PlayerId.Value.ToString()[..8] : "-")}"
+                                : item.ActorType;
+
+                            <tr class="border-t border-slate-200 align-top">
+                                <td class="px-4 py-3 text-slate-600">@item.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                <td class="px-4 py-3 text-right text-slate-600">@item.SequenceNumber</td>
+                                <td class="px-4 py-3 text-slate-600">D@item.DayIndex | @item.Weekday | T@item.TurnNumber</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <div>@actorLabel</div>
+                                    @if (item.PlayerId.HasValue)
+                                    {
+                                        <div class="mt-1 font-mono text-[11px] text-slate-500">@item.PlayerId</div>
+                                    }
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="font-semibold text-slate-800">@item.FlowLabel</div>
+                                    <div class="mt-1 text-xs text-slate-500 font-mono">@item.ActionType</div>
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">@item.FlowDescription</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     }
 </section>

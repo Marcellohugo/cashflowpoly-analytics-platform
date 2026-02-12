@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -190,12 +191,16 @@ public sealed class SessionsController : Controller
         }
 
         var analytics = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        var (timeline, timelineError) = await LoadTimelineAsync(client, sessionId, ct);
+
         return (new SessionDetailViewModel
         {
             SessionId = sessionId,
             SessionStatus = sessionStatus,
             IsDevelopment = _environment.IsDevelopment(),
             Analytics = analytics,
+            Timeline = timeline,
+            TimelineErrorMessage = timelineError,
             ErrorMessage = overrideErrorMessage
         }, null);
     }
@@ -210,6 +215,183 @@ public sealed class SessionsController : Controller
 
         var data = await sessionResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
         return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
+    }
+
+    private static async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
+        HttpClient client,
+        Guid sessionId,
+        CancellationToken ct)
+    {
+        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq=0&limit=1000", ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            return (new List<SessionTimelineEventViewModel>(), $"Gagal memuat alur event sesi. Status: {(int)response.StatusCode}");
+        }
+
+        var data = await response.Content.ReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);
+        if (data?.Events is null || data.Events.Count == 0)
+        {
+            return (new List<SessionTimelineEventViewModel>(), null);
+        }
+
+        var timeline = data.Events
+            .OrderBy(x => x.Timestamp)
+            .ThenBy(x => x.SequenceNumber)
+            .Select(x =>
+            {
+                var flowLabel = ResolveFlowLabel(x.ActionType);
+                var flowDescription = BuildFlowDescription(x.ActionType, x.Payload);
+                return new SessionTimelineEventViewModel
+                {
+                    Timestamp = x.Timestamp,
+                    SequenceNumber = x.SequenceNumber,
+                    DayIndex = x.DayIndex,
+                    Weekday = x.Weekday,
+                    TurnNumber = x.TurnNumber,
+                    ActorType = x.ActorType,
+                    PlayerId = x.PlayerId,
+                    ActionType = x.ActionType,
+                    FlowLabel = flowLabel,
+                    FlowDescription = flowDescription
+                };
+            })
+            .ToList();
+
+        return (timeline, null);
+    }
+
+    private static string ResolveFlowLabel(string actionType)
+    {
+        if (string.IsNullOrWhiteSpace(actionType))
+        {
+            return "Aktivitas";
+        }
+
+        var lower = actionType.ToLowerInvariant();
+        if (lower.StartsWith("setup."))
+        {
+            return "Setup";
+        }
+
+        if (lower.StartsWith("day."))
+        {
+            return "Event Harian";
+        }
+
+        if (lower.StartsWith("risk."))
+        {
+            return "Risiko";
+        }
+
+        if (lower.StartsWith("loan."))
+        {
+            return "Pembiayaan";
+        }
+
+        if (lower.StartsWith("saving."))
+        {
+            return "Tabungan";
+        }
+
+        if (lower.StartsWith("mission."))
+        {
+            return "Misi";
+        }
+
+        if (lower.Contains("order"))
+        {
+            return "Order";
+        }
+
+        if (lower.Contains("purchased"))
+        {
+            return "Belanja";
+        }
+
+        return "Aktivitas";
+    }
+
+    private static string BuildFlowDescription(string actionType, JsonElement payload)
+    {
+        var text = actionType switch
+        {
+            "transaction.recorded" => "Transaksi kas pemain dicatat.",
+            "day.friday.donation" => "Pemain melakukan donasi khusus hari Jumat.",
+            "day.saturday.gold_trade" => "Pemain melakukan jual/beli emas saat event Sabtu.",
+            "ingredient.purchased" => "Pemain membeli bahan untuk kebutuhan/order.",
+            "order.claimed" => "Pemain menyelesaikan order dan menerima hasil.",
+            "work.freelance.completed" => "Pemain menyelesaikan kerja freelance dan mendapat pemasukan.",
+            "need.primary.purchased" => "Pemain membeli kebutuhan primer.",
+            "need.secondary.purchased" => "Pemain membeli kebutuhan sekunder.",
+            "need.tertiary.purchased" => "Pemain membeli kebutuhan tersier.",
+            "saving.deposit.created" => "Pemain menaruh dana ke tabungan tujuan.",
+            "saving.deposit.withdrawn" => "Pemain menarik dana dari tabungan tujuan.",
+            "saving.goal.achieved" => "Pemain mencapai target tabungan.",
+            "loan.syariah.taken" => "Pemain mengambil pinjaman syariah.",
+            "loan.syariah.repaid" => "Pemain melakukan cicilan/pelunasan pinjaman.",
+            "risk.life.drawn" => "Pemain terkena efek kartu risiko.",
+            "risk.emergency.used" => "Pemain menggunakan opsi mitigasi risiko darurat.",
+            "insurance.multirisk.purchased" => "Pemain membeli proteksi asuransi.",
+            "insurance.multirisk.used" => "Pemain mengaktifkan proteksi asuransi.",
+            _ => $"Aksi `{actionType}` dieksekusi pada sesi."
+        };
+
+        var payloadSummary = BuildPayloadSummary(payload);
+        return string.IsNullOrWhiteSpace(payloadSummary) ? text : $"{text} Detail: {payloadSummary}";
+    }
+
+    private static string BuildPayloadSummary(JsonElement payload)
+    {
+        if (payload.ValueKind != JsonValueKind.Object)
+        {
+            return string.Empty;
+        }
+
+        var keyOrder = new[]
+        {
+            "amount",
+            "direction",
+            "category",
+            "trade_type",
+            "qty",
+            "unit_price",
+            "card_id",
+            "goal_id",
+            "loan_id",
+            "risk_id",
+            "points"
+        };
+
+        var parts = new List<string>();
+        foreach (var key in keyOrder)
+        {
+            if (!payload.TryGetProperty(key, out var value))
+            {
+                continue;
+            }
+
+            parts.Add($"{key}: {JsonElementToInlineText(value)}");
+            if (parts.Count == 4)
+            {
+                break;
+            }
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    private static string JsonElementToInlineText(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            JsonValueKind.Number => value.ToString(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Array => $"[{value.GetArrayLength()} item]",
+            JsonValueKind.Object => "{...}",
+            _ => string.Empty
+        };
     }
 }
 

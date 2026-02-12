@@ -42,10 +42,75 @@ public sealed class PlayerDirectoryController : Controller
             });
         }
 
-        var data = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+        var playerData = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+        var players = playerData?.Items ?? new List<PlayerResponseDto>();
+
+        var sessionsResponse = await client.GetAsync("api/v1/sessions", ct);
+        unauthorized = this.HandleUnauthorizedApiResponse(sessionsResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        var groups = new List<PlayerSessionGroupViewModel>();
+        string? groupError = null;
+
+        if (sessionsResponse.IsSuccessStatusCode)
+        {
+            var sessionsData = await sessionsResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+            var sessions = sessionsData?.Items ?? new List<SessionListItemDto>();
+            var playerMap = players.ToDictionary(x => x.PlayerId, x => x.DisplayName);
+
+            var analyticsTasks = sessions.Select(async session =>
+            {
+                var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
+                if (!analyticsResponse.IsSuccessStatusCode)
+                {
+                    return (session, analytics: (AnalyticsSessionResponseDto?)null);
+                }
+
+                var analytics = await analyticsResponse.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+                return (session, analytics);
+            });
+
+            var analyticsResults = await Task.WhenAll(analyticsTasks);
+            groups = analyticsResults
+                .Where(x => x.analytics is not null && x.analytics.ByPlayer.Count > 0)
+                .Select(x => new PlayerSessionGroupViewModel
+                {
+                    SessionId = x.session.SessionId,
+                    SessionName = x.session.SessionName,
+                    Status = x.session.Status,
+                    StartedAt = x.session.StartedAt,
+                    EndedAt = x.session.EndedAt,
+                    Players = x.analytics!.ByPlayer
+                        .OrderBy(p => playerMap.TryGetValue(p.PlayerId, out var name) ? name : p.PlayerId.ToString())
+                        .Select(p => new PlayerSessionEntryViewModel
+                        {
+                            PlayerId = p.PlayerId,
+                            DisplayName = playerMap.TryGetValue(p.PlayerId, out var displayName) ? displayName : p.PlayerId.ToString(),
+                            CashInTotal = p.CashInTotal,
+                            CashOutTotal = p.CashOutTotal,
+                            DonationTotal = p.DonationTotal,
+                            GoldQty = p.GoldQty,
+                            HappinessPointsTotal = p.HappinessPointsTotal
+                        })
+                        .ToList()
+                })
+                .OrderByDescending(x => x.StartedAt ?? x.EndedAt ?? DateTimeOffset.MinValue)
+                .ThenBy(x => x.SessionName)
+                .ToList();
+        }
+        else
+        {
+            groupError = $"Gagal memuat daftar sesi untuk grouping pemain. Status: {(int)sessionsResponse.StatusCode}";
+        }
+
         return View("~/Views/Players/Index.cshtml", new PlayerDirectoryViewModel
         {
-            Players = data?.Items ?? new List<PlayerResponseDto>()
+            Players = players,
+            SessionGroups = groups,
+            ErrorMessage = groupError
         });
     }
 }

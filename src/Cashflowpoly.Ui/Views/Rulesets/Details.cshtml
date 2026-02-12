@@ -40,6 +40,31 @@
             _ => v.ToString()
         };
     }
+
+    private static int AsInt(JsonElement? value, int fallback = 0)
+    {
+        if (!value.HasValue || value.Value.ValueKind != JsonValueKind.Number)
+        {
+            return fallback;
+        }
+
+        return value.Value.TryGetInt32(out var number) ? number : fallback;
+    }
+
+    private static bool AsBool(JsonElement? value, bool fallback = false)
+    {
+        if (!value.HasValue)
+        {
+            return fallback;
+        }
+
+        return value.Value.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => fallback
+        };
+    }
 }
 
 <section class="section-shell">
@@ -131,49 +156,109 @@
                     }
                     else
                     {
-                        <div class="ruleset-config-grid mt-3">
-                            <article class="ruleset-config-card">
+                        <div class="mt-3 space-y-4">
+                            <div class="ruleset-form-section">
                                 <h3>Core Setup</h3>
-                                <div class="metric-list">
-                                    <div class="metric-row"><span class="metric-key">Mode</span><span class="metric-value">@AsText(GetPath(cfg, "mode"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Actions / Turn</span><span class="metric-value">@AsText(GetPath(cfg, "actions_per_turn"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Starting Cash</span><span class="metric-value">@AsText(GetPath(cfg, "starting_cash"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Freelance Income</span><span class="metric-value">@AsText(GetPath(cfg, "freelance", "income"))</span></div>
+                                <div class="grid gap-3 md:grid-cols-2 mt-3">
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mode</label>
+                                        <input type="text"
+                                               readonly
+                                               value="@AsText(GetPath(cfg, "mode"), "PEMULA")"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Actions / Turn</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "actions_per_turn"), 2)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Starting Cash</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "starting_cash"), 20)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Freelance Income</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "freelance", "income"), 1)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
                                 </div>
-                            </article>
+                            </div>
 
-                            <article class="ruleset-config-card">
+                            <div class="ruleset-form-section">
                                 <h3>Weekday Features</h3>
-                                <div class="metric-list">
-                                    <div class="metric-row"><span class="metric-key">Friday Donation</span><span class="metric-value">@AsText(GetPath(cfg, "weekday_rules", "friday", "enabled"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Saturday Gold Trade</span><span class="metric-value">@AsText(GetPath(cfg, "weekday_rules", "saturday", "enabled"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Sunday Rest</span><span class="metric-value">@AsText(GetPath(cfg, "weekday_rules", "sunday", "enabled"))</span></div>
+                                <div class="grid gap-3 md:grid-cols-3 mt-3">
+                                    <label class="metric-row"><span class="metric-key">Friday Donation</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "friday", "enabled"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">Saturday Gold Trade</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "saturday", "enabled"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">Sunday Rest</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "sunday", "enabled"), true) ? "checked" : null) /></label>
                                 </div>
-                            </article>
+                            </div>
 
-                            <article class="ruleset-config-card">
+                            <div class="ruleset-form-section">
                                 <h3>Constraints</h3>
-                                <div class="metric-list">
-                                    <div class="metric-row"><span class="metric-key">Cash Min</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "cash_min"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Max Ingredient Total</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "max_ingredient_total"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Max Same Ingredient</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "max_same_ingredient"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Primary Need Max / Day</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "primary_need_max_per_day"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Require Primary First</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "require_primary_before_others"))</span></div>
+                                <div class="grid gap-3 md:grid-cols-2 mt-3">
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Cash Min</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "constraints", "cash_min"), 0)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max Ingredient Total</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "constraints", "max_ingredient_total"), 6)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max Same Ingredient</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "constraints", "max_same_ingredient"), 3)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Primary Need Max / Day</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "constraints", "primary_need_max_per_day"), 1)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <label class="metric-row md:col-span-2"><span class="metric-key">Require Primary Before Others</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "constraints", "require_primary_before_others"), true) ? "checked" : null) /></label>
                                 </div>
-                            </article>
+                            </div>
 
-                            <article class="ruleset-config-card">
+                            <div class="ruleset-form-section">
                                 <h3>Economy & Advanced</h3>
-                                <div class="metric-list">
-                                    <div class="metric-row"><span class="metric-key">Donation Min</span><span class="metric-value">@AsText(GetPath(cfg, "donation", "min_amount"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Donation Max</span><span class="metric-value">@AsText(GetPath(cfg, "donation", "max_amount"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Gold Buy</span><span class="metric-value">@AsText(GetPath(cfg, "gold_trade", "allow_buy"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Gold Sell</span><span class="metric-value">@AsText(GetPath(cfg, "gold_trade", "allow_sell"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Loan Enabled</span><span class="metric-value">@AsText(GetPath(cfg, "advanced", "loan", "enabled"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Insurance Enabled</span><span class="metric-value">@AsText(GetPath(cfg, "advanced", "insurance", "enabled"))</span></div>
-                                    <div class="metric-row"><span class="metric-key">Saving Goal Enabled</span><span class="metric-value">@AsText(GetPath(cfg, "advanced", "saving_goal", "enabled"))</span></div>
+                                <div class="grid gap-3 md:grid-cols-2 mt-3">
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Donation Min</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "donation", "min_amount"), 1)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Donation Max</label>
+                                        <input type="number"
+                                               readonly
+                                               value="@AsInt(GetPath(cfg, "donation", "max_amount"), 999999)"
+                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                    </div>
+                                    <label class="metric-row"><span class="metric-key">Gold Buy</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_buy"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">Gold Sell</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_sell"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">Loan Enabled</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "loan", "enabled"), false) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">Insurance Enabled</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "insurance", "enabled"), false) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">Saving Goal Enabled</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "saving_goal", "enabled"), false) ? "checked" : null) /></label>
                                 </div>
-                            </article>
+                            </div>
                         </div>
                     }
                 </div>

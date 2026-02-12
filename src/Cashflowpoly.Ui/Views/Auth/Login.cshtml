@@ -8,22 +8,22 @@
 <div class="auth-split-shell">
     <div class="auth-split-card auth-mode-login">
             <div class="auth-split-left">
-                <p class="auth-kicker">@Context.T("auth.access")</p>
-                <h1 class="auth-heading">@Context.T("auth.title")</h1>
-                <p class="auth-copy">@Context.T("auth.subtitle")</p>
+                <p class="auth-kicker">@Context.T(key: "auth.access")</p>
+                <h1 class="auth-heading">@Context.T(key: "auth.title")</h1>
+                <p class="auth-copy">@Context.T(key: "auth.subtitle")</p>
 
                 <form class="auth-form" method="post" asp-controller="Auth" asp-action="Login">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div>
-                        <label class="auth-label">@Context.T("auth.username")</label>
+                        <label class="auth-label">@Context.T(key: "auth.username")</label>
                         <input class="auth-input"
                                asp-for="Username" placeholder="Username" />
                     </div>
 
                     <div>
-                        <label class="auth-label">@Context.T("auth.password")</label>
+                        <label class="auth-label">@Context.T(key: "auth.password")</label>
                         <input class="auth-input"
                                asp-for="Password" type="password" placeholder="********" />
                     </div>
@@ -35,11 +35,11 @@
                         </div>
                     }
 
-                    <button class="auth-login-btn" type="submit">@Context.T("auth.submit")</button>
+                    <button class="auth-login-btn" type="submit">@Context.T(key: "auth.submit")</button>
 
                     <p class="auth-register-copy">
-                        @Context.T("auth.no_account")
-                        <a class="js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.register")</a>
+                        @Context.T(key: "auth.no_account")
+                        <a class="js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T(key: "auth.register")</a>
                     </p>
                 </form>
 

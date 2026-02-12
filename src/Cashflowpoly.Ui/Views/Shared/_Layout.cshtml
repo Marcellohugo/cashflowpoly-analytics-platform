@@ -12,6 +12,7 @@
     var languageCode = isEnglish ? "EN" : "ID";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    var isAuthPage = string.Equals(currentController, "Auth", StringComparison.OrdinalIgnoreCase);
     Func<string, string, string> navClass = (controller, action) =>
         string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)
@@ -34,22 +35,25 @@
 <body>
     <a class="skip-link" href="#content">Skip to content</a>
     <header class="sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur">
-        <nav class="nav-shell @(isLoggedIn ? "nav-shell-auth" : "nav-shell-guest")">
+        <nav class="nav-shell @(isLoggedIn ? "nav-shell-auth" : "nav-shell-guest") @(isAuthPage ? "nav-auth-page" : string.Empty)">
             <a class="flex items-center gap-3 text-lg font-semibold text-slate-900" asp-area="" asp-controller="Home" asp-action="Index">
                 <img class="brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="Cashflowpoly logo" />
                 <div class="leading-tight">
                     <span class="brand-title">Cashflowpoly</span>
                 </div>
             </a>
-            <button class="nav-mobile-toggle js-nav-toggle"
-                    type="button"
-                    aria-expanded="false"
-                    aria-controls="primary-nav-links"
-                    aria-label="Toggle navigation menu">
-                <span class="nav-mobile-toggle-line"></span>
-                <span class="nav-mobile-toggle-line"></span>
-                <span class="nav-mobile-toggle-line"></span>
-            </button>
+            @if (!isAuthPage)
+            {
+                <button class="nav-mobile-toggle js-nav-toggle"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="primary-nav-links"
+                        aria-label="Toggle navigation menu">
+                    <span class="nav-mobile-toggle-line"></span>
+                    <span class="nav-mobile-toggle-line"></span>
+                    <span class="nav-mobile-toggle-line"></span>
+                </button>
+            }
             @if (isLoggedIn)
             {
                 <div id="primary-nav-links" class="nav-pill nav-center">
@@ -66,7 +70,7 @@
 
                 <div class="nav-pill nav-right">
                     <div class="nav-right-cluster">
-                        <details class="nav-dropdown">
+                        <details class="nav-dropdown nav-dropdown-lang">
                             <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
                                 <span>@languageCode</span>
                                 <span class="nav-caret">&#9662;</span>
@@ -87,7 +91,7 @@
                             </div>
                         </details>
 
-                        <details class="nav-dropdown">
+                        <details class="nav-dropdown nav-dropdown-profile">
                             <summary class="nav-avatar-trigger" title="@activeUsername" aria-label="@activeUsername">
                                 <img class="nav-avatar" src="~/images/images.jpg" asp-append-version="true" alt="Profile" />
                             </summary>
@@ -109,7 +113,7 @@
             {
                 <div id="primary-nav-links" class="nav-pill nav-right">
                     <div class="nav-right-cluster">
-                        <details class="nav-dropdown">
+                        <details class="nav-dropdown nav-dropdown-lang">
                             <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
                                 <span>@languageCode</span>
                                 <span class="nav-caret">&#9662;</span>

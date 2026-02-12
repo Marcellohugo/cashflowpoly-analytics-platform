@@ -18,6 +18,10 @@
             <p class="text-xs uppercase text-slate-500">Total Players</p>
             <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Players.Count</p>
         </div>
+        <div class="stat-card">
+            <p class="text-xs uppercase text-slate-500">Total Sessions</p>
+            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.SessionGroups.Count</p>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -38,34 +42,98 @@
         </div>
     </details>
 
-    <div class="mt-6 table-wrap">
-        <table class="w-full text-left text-sm">
-            <thead class="table-head">
-                <tr>
-                    <th class="px-4 py-3">@Context.T("common.name")</th>
-                    <th class="px-4 py-3">@Context.T("common.player_id")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (Model.Players.Count == 0)
-            {
-                <tr>
-                    <td class="px-4 py-4 text-slate-500" colspan="2">@Context.T("state.no_players")</td>
-                </tr>
-            }
-            else
-            {
-                foreach (var player in Model.Players)
+    @if (Model.SessionGroups.Count == 0)
+    {
+        <div class="mt-6 table-wrap">
+            <table class="w-full text-left text-sm">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">@Context.T("common.name")</th>
+                        <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Players.Count == 0)
                 {
-                    <tr class="border-t border-slate-200">
-                        <td class="px-4 py-3">
-                            <span class="font-medium text-slate-900">@player.DisplayName</span>
-                        </td>
-                        <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500" colspan="2">@Context.T("state.no_players")</td>
                     </tr>
                 }
+                else
+                {
+                    foreach (var player in Model.Players)
+                    {
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3">
+                                <span class="font-medium text-slate-900">@player.DisplayName</span>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="mt-6 space-y-4">
+            @foreach (var session in Model.SessionGroups)
+            {
+                <details class="data-toggle" open>
+                    <summary>
+                        @session.SessionName
+                        <span class="ml-2 text-xs text-slate-500">(@session.Players.Count pemain)</span>
+                    </summary>
+                    <div class="mt-3 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-xs text-slate-600">
+                        <span class="font-semibold">Session ID:</span> <span class="font-mono">@session.SessionId</span>
+                        <span class="ml-3 font-semibold">Status:</span> @session.Status
+                        @if (session.StartedAt.HasValue)
+                        {
+                            <span class="ml-3 font-semibold">Mulai:</span> @session.StartedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                        }
+                        @if (session.EndedAt.HasValue)
+                        {
+                            <span class="ml-3 font-semibold">Selesai:</span> @session.EndedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                        }
+                    </div>
+
+                    <div class="mt-3 table-wrap">
+                        <table class="w-full text-left text-sm">
+                            <thead class="table-head">
+                                <tr>
+                                    <th class="px-4 py-3">@Context.T("common.name")</th>
+                                    <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                                    <th class="px-4 py-3 text-right">@Context.T("metric.net_cashflow")</th>
+                                    <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
+                                    <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var player in session.Players)
+                            {
+                                var netCashflow = player.CashInTotal - player.CashOutTotal;
+                                <tr class="border-t border-slate-200">
+                                    <td class="px-4 py-3">
+                                        <span class="font-medium text-slate-900">@player.DisplayName</span>
+                                    </td>
+                                    <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
+                                    <td class="px-4 py-3 text-right">@netCashflow</td>
+                                    <td class="px-4 py-3 text-right">@player.HappinessPointsTotal</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <a class="text-sm font-semibold text-slate-900 hover:underline"
+                                           asp-controller="Players"
+                                           asp-action="Details"
+                                           asp-route-sessionId="@session.SessionId"
+                                           asp-route-playerId="@player.PlayerId">@Context.T("common.view")</a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             }
-            </tbody>
-        </table>
-    </div>
+        </div>
+    }
 </section>

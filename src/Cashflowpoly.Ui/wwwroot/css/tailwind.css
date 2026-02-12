@@ -993,6 +993,14 @@ h1, h2, h3, h4 {
   z-index: 30;
 }
 
+.ml-2{
+  margin-left: 0.5rem;
+}
+
+.ml-3{
+  margin-left: 0.75rem;
+}
+
 .mt-1{
   margin-top: 0.25rem;
 }
@@ -1298,6 +1306,10 @@ h1, h2, h3, h4 {
   text-align: right;
 }
 
+.align-top{
+  vertical-align: top;
+}
+
 .font-mono{
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -1315,6 +1327,10 @@ h1, h2, h3, h4 {
 .text-4xl{
   font-size: 2.25rem;
   line-height: 2.5rem;
+}
+
+.text-\[11px\]{
+  font-size: 11px;
 }
 
 .text-lg{
@@ -1385,6 +1401,11 @@ h1, h2, h3, h4 {
 .text-slate-700{
   --tw-text-opacity: 1;
   color: rgb(51 65 85 / var(--tw-text-opacity, 1));
+}
+
+.text-slate-800{
+  --tw-text-opacity: 1;
+  color: rgb(30 41 59 / var(--tw-text-opacity, 1));
 }
 
 .text-slate-900{
