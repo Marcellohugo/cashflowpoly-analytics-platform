@@ -1,224 +1,97 @@
-﻿# Laporan Hasil Pengujian  
-## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
+# Laporan Hasil Pengujian
+## Sistem Informasi Dasbor Analitika dan Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 12 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
-## 1. Tujuan
-Dokumen ini disusun untuk menyajikan rekap hasil uji fungsional (*black-box*), uji integrasi alur event, dan validasi UI dasbor. Dokumen ini juga disusun untuk merangkum temuan (*bug*), modul yang paling sering bermasalah, dan status perbaikannya.
+## 1. Tujuan dan Cakupan
+Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 12 Februari 2026.
 
-Dokumen ini diisi setelah menjalankan rencana uji pada dokumen 01.
+Cakupan laporan ini:
+- verifikasi teknis otomatis (build, test, compose, smoke),
+- verifikasi API black-box utama,
+- verifikasi RBAC dan rate limiting,
+- verifikasi UI MVC halaman inti.
 
 ---
 
 ## 2. Identitas Pengujian
-- Lingkungan: Windows 11 Home, VS Code, .NET 10, PostgreSQL
-- Tanggal pengujian: (isi)
-- Versi aplikasi (git commit/tag): (isi)
-- Penguji: (isi)
+- Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
+- Tanggal pengujian: 12 Februari 2026
+- Versi aplikasi (git commit): `187c89b`
+- Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
-- URL API: (isi)
-- URL Web: (isi)
+- URL API: `http://localhost:5041`
+- URL Web: `http://localhost:5203`
 
 ---
 
 ## 3. Ringkasan Hasil Uji
-### 3.1 Rekap keseluruhan
-| Jenis Uji | Total Kasus | PASS | FAIL | Catatan |
-|---|---:|---:|---:|---|
-| Uji REST API (black-box) | (isi) | (isi) | (isi) | |
-| Uji Integrasi | (isi) | (isi) | (isi) | |
-| Validasi UI MVC | (isi) | (isi) | (isi) | |
-| **Total** | (isi) | (isi) | (isi) | |
+| Jenis Uji | Cakupan | Status |
+|---|---|---|
+| Uji REST API (black-box) | Alur auth, ruleset, sessions, players, ingest event, analytics | PASS |
+| Uji Integrasi | Alur end-to-end: login/register -> ruleset -> session -> player -> event -> analytics | PASS |
+| Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
+| Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
 
-### 3.2 Kriteria kelulusan
-Sistem dinyatakan valid jika:
-1. semua skenario wajib berstatus PASS,
-2. tidak ada temuan OPEN pada modul inti (M1–M6),
-3. nilai metrik pada UI cocok dengan data pada basis data.
+Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan pada seluruh skrip verifikasi.
 
 ---
 
-## 4. Rekap Hasil Uji Per Modul
-Sistem merekap hasil berdasarkan modul pada dokumen 07.
-
-| Kode Modul | Modul | PASS | FAIL | Temuan (BUG) |
-|---|---|---:|---:|---|
-| M1 | Manajemen Sesi | (isi) | (isi) | (isi) |
-| M2 | Manajemen Ruleset | (isi) | (isi) | (isi) |
-| M3 | Ingest Event | (isi) | (isi) | (isi) |
-| M4 | Proyeksi Arus Kas | (isi) | (isi) | (isi) |
-| M5 | Agregasi Metrik | (isi) | (isi) | (isi) |
-| M6 | Analitika (Endpoint) | (isi) | (isi) | (isi) |
-| M7 | UI MVC Dasbor | (isi) | (isi) | (isi) |
-| M8 | Logging & Error Handling | (isi) | (isi) | (isi) |
-
----
-
-## 5. Detail Hasil Uji REST API (Black-box)
-Bagian ini memuat tabel hasil uji per kasus.
-
-### 5.1 Template tabel hasil uji API
-| Tanggal | ID Uji | Endpoint | Modul | Input Ringkas | Status | Bukti | Catatan | Trace ID |
-|---|---|---|---|---|---|---|---|---|
-
-### 5.2 Contoh pengisian (contoh format)
-| 2026-01-27 | TC-API-01 | POST /api/v1/sessions | M1 | session_name=Sesi Uji 01 | PASS | SS-API-01.png | 201 sesuai | - |
-| 2026-01-27 | TC-API-13 | POST /api/v1/events | M3 | sequence loncat | PASS | SS-API-13.png | 422 sesuai | 00-abc... |
-
-Catatan:
-- “Bukti” berupa nama file screenshot atau link Postman collection export.
-
----
-
-## 6. Detail Hasil Uji Integrasi
-### 6.1 Template tabel hasil uji integrasi
-| Tanggal | ID Uji | Skenario | Modul Dominan | Status | Bukti | Catatan |
-|---|---|---|---|---|---|---|
-
-### 6.2 Kolom “Modul Dominan”
-Kolom “Modul Dominan” diisi dengan modul yang paling berpengaruh pada hasil uji itu. Contoh:
-- IT-01 gagal karena snapshot kosong ? M5
-- IT-02 gagal karena ruleset tidak memblokir event ? M2/M3
-
----
-
-## 7. Validasi UI MVC
-### 7.1 Template validasi UI vs DB
-| Tanggal | ID Uji | Halaman | Data UI | Query DB | Status | Bukti | Catatan |
-|---|---|---|---|---|---|---|---|
-
-Contoh query DB yang dipakai:
-```sql
-select metric_name, metric_value_numeric
-from metric_snapshots
-where session_id = '<SESSION_ID>' and player_id is null
-order by computed_at desc;
-```
-
-Contoh validasi integritas referensi event (FK berbasis `event_pk`):
-```sql
-select count(*) as orphan_projections
-from event_cashflow_projections ecp
-left join events e on e.event_pk = ecp.event_pk
-where e.event_pk is null;
-```
-Ekspektasi: `orphan_projections = 0`.
-
----
-
-## 8. Rekap Temuan (*Bug*) dan Perbaikan
-### 8.1 Template daftar temuan
-| ID Bug | Modul | Ringkasan | Severity | Status | Tanggal Temuan | Tanggal Fix | Bukti | Trace ID |
-|---|---|---|---|---|---|---|---|---|
-
-**Severity (pakai salah satu):**
-- S1 Kritikal: sistem tidak bisa jalan, data korup, endpoint utama gagal
-- S2 Mayor: fitur inti salah namun sistem tetap jalan
-- S3 Minor: tampilan/teks, validasi kecil, non-inti
-
-### 8.2 Template detail temuan
-Untuk setiap bug, sistem menulis deskripsi berikut:
-- ID temuan:
-- Modul:
-- Ringkasan:
-- Langkah reproduksi:
-  1. ...
-  2. ...
-- Ekspektasi:
-- Aktual:
-- Dampak:
-- Akar masalah (ringkas):
-- Perbaikan:
-- Status re-test:
-
----
-
-## 9. Rekap “Temuan Uji Dominan”
-Bagian ini menjawab pertanyaan: **temuan paling banyak terjadi di modul mana**.
-
-### 9.1 Rekap jumlah temuan per modul
-| Modul | Jumlah Temuan | Persentase |
-|---|---:|---:|
-| M1 | (isi) | (isi) |
-| M2 | (isi) | (isi) |
-| M3 | (isi) | (isi) |
-| M4 | (isi) | (isi) |
-| M5 | (isi) | (isi) |
-| M6 | (isi) | (isi) |
-| M7 | (isi) | (isi) |
-| M8 | (isi) | (isi) |
-
-### 9.2 Modul dengan temuan dominan
-- Modul dominan: (isi Mx)
-- Alasan dominan:
-  1. (contoh: validasi payload kompleks)
-  2. (contoh: urutan event dan idempotensi)
-  3. (contoh: perhitungan metrik butuh aturan ruleset)
-
-### 9.3 Tindakan pencegahan
-Sistem mencatat tindakan pencegahan agar bug tidak berulang:
-1. tambah uji otomatis (unit/integration),
-2. tambah validasi kontrak request,
-3. tambah logging dengan `trace_id`,
-4. tambah seed data uji yang stabil.
-
----
-
-## 10. Kesimpulan Hasil Pengujian
-Sistem mencatat status akhir:
-- Status akhir: VALID / BELUM VALID
-- Ringkasan:
-  - jumlah kasus uji PASS:
-  - jumlah temuan tersisa:
-  - modul yang masih perlu perbaikan:
-- Rencana tindak lanjut (jika belum valid):
-  1. ...
-
-Catatan:
-- Bagian ini diisi setelah semua uji pada dokumen 07 selesai.
-
----
-
-## 11. Rekap Verifikasi Otomatis (Build/Test/Smoke)
-Checklist ini dipakai untuk memastikan hasil uji fungsional selaras dengan kondisi teknis terbaru.
-
-| Pemeriksaan | Perintah | Status | Catatan |
+## 4. Detail Verifikasi Otomatis
+| Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
-| Build API | `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` | PASS/FAIL | |
-| Build UI | `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` | PASS/FAIL | |
-| Test solution | `dotnet test Cashflowpoly.sln` | PASS/FAIL | |
-| Unit test API | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | PASS/FAIL | |
-| RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS/FAIL | |
-| Web UI smoke | `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1` | PASS/FAIL | |
-| Compose run | `docker compose up --build -d` | PASS/FAIL | |
-| Smoke script | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS/FAIL | |
+| Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | 0 warning, 0 error |
+| Test solution | `dotnet test Cashflowpoly.sln -c Debug --no-build` | PASS | 13 test lulus, 0 gagal |
+| Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
+| Smoke API end-to-end | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS | ruleset/session/player/event/analytics sukses |
+| RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS | 401/403/200/201 sesuai ekspektasi |
+| Rate-limit smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1 -CheckRateLimit` | PASS | respons `429` terdeteksi |
+| Web UI smoke | `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1` | PASS | login + halaman utama + Swagger terverifikasi |
+
+Tambahan cek endpoint analitika:
+- `GET /api/v1/analytics/rulesets/{rulesetId}/summary` -> `200`
+- `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` -> `200`
+- `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` -> `200`
+- `POST /api/v1/analytics/sessions/{sessionId}/recompute` -> `200`
 
 ---
 
-## 12. Lampiran Bukti
-Sistem menaruh bukti pada struktur folder berikut:
-```
-docs/evidence/
-  api/
-  ui/
-  db/
-  postman/
-```
+## 5. Rekap Hasil Uji Per Modul
+| Kode Modul | Modul | Status | Bukti Ringkas |
+|---|---|---|---|
+| M1 | Manajemen Sesi | PASS | create/list/start sesi pada smoke + rbac smoke |
+| M2 | Manajemen Ruleset | PASS | create/update/activate/detail ruleset |
+| M3 | Ingest Event | PASS | `POST /api/v1/events` sukses (`201`) |
+| M4 | Proyeksi Arus Kas | PASS | endpoint transaksi sesi/pemain terbaca (`200`) |
+| M5 | Agregasi Metrik | PASS | analitika sesi mengembalikan ringkasan dan by-player |
+| M6 | Analitika (Endpoint) | PASS | session analytics, ruleset summary, gameplay, recompute |
+| M7 | UI MVC Dasbor | PASS | halaman Home/Sessions/Players/Rulesets/Analytics/Rulebook |
+| M8 | Logging dan Error Handling | PASS (baseline) | log `request_completed` + `trace_id` tampil; rate limit `429` tervalidasi |
 
-Daftar lampiran:
-- SS-API-01.png: create session
-- SS-API-08.png: activate ruleset
-- SS-UI-01.png: detail sesi
-- DB-01.sql: query metric_snapshots
-- (isi sesuai bukti nyata)
+---
 
+## 6. Temuan dan Risiko Residual
+Temuan blocker: **tidak ada**.
 
+Catatan residual:
+1. Uji performa beban tinggi (volume event besar) belum dieksekusi pada sesi ini.
+2. Bukti screenshot/sql lampiran formal belum dikurasi ke folder `docs/evidence/` pada laporan ini.
 
+---
 
+## 7. Kesimpulan
+- Status akhir: **VALID (cakupan baseline otomatis)**
+- Ringkasan:
+  - build dan unit test lulus,
+  - verifikasi API/UI/RBAC/rate-limit lulus,
+  - tidak ditemukan bug blocker pada jalur fitur inti.
 
+Tindak lanjut yang direkomendasikan:
+1. Tambahkan pengujian performa terukur (P95 endpoint analitika).
+2. Lengkapi artefak bukti formal (screenshot UI, hasil query DB, export Postman) bila dibutuhkan untuk lampiran sidang.

@@ -22,7 +22,12 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("ConnectionStrings:Default belum dikonfigurasi.");
 }
 
-var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
+if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey))
+{
+    jwtOptions.SigningKey = builder.Configuration["JWT_SIGNING_KEY"] ?? string.Empty;
+}
 if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey))
 {
     throw new InvalidOperationException("Jwt:SigningKey belum dikonfigurasi.");
@@ -36,7 +41,14 @@ if (string.Equals(jwtOptions.SigningKey, "change-this-jwt-signing-key-for-produc
     throw new InvalidOperationException("Jwt:SigningKey masih placeholder. Set nilai rahasia yang kuat lewat environment/config aman.");
 }
 
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<JwtOptions>(options =>
+{
+    jwtSection.Bind(options);
+    if (string.IsNullOrWhiteSpace(options.SigningKey))
+    {
+        options.SigningKey = builder.Configuration["JWT_SIGNING_KEY"] ?? string.Empty;
+    }
+});
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<AuthBootstrapOptions>(builder.Configuration.GetSection("AuthBootstrap"));
 builder.Services.AddSingleton<JwtTokenService>();
