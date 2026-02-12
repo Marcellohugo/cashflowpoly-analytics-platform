@@ -6,10 +6,23 @@
 }
 
 <section class="section-shell">
-    <div>
-        <p class="eyebrow text-emerald-700">@Context.T("sessions.analytics_title")</p>
-        <h1 class="headline">@Context.T("sessions.detail_title")</h1>
-        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
+    <div class="ruleset-hero">
+        <div>
+            <p class="eyebrow text-emerald-700">@Context.T("sessions.analytics_title")</p>
+            <h1 class="headline">@Context.T("sessions.detail_title")</h1>
+            <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
+        </div>
+        <div class="ruleset-hero-meta">
+            @if (!string.IsNullOrWhiteSpace(Model.SessionStatus))
+            {
+                var sessionStatusClass = string.Equals(Model.SessionStatus, "STARTED", StringComparison.OrdinalIgnoreCase)
+                    ? "status-active"
+                    : string.Equals(Model.SessionStatus, "CREATED", StringComparison.OrdinalIgnoreCase)
+                        ? "status-draft"
+                        : "status-retired";
+                <span class="status-pill @sessionStatusClass">@Model.SessionStatus</span>
+            }
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -46,7 +59,7 @@
 
         @if (isInstructor)
         {
-            <div class="mt-6 flex items-center gap-3">
+            <div class="mt-6 action-toolbar">
                 <a class="btn-ghost"
                    asp-controller="Sessions" asp-action="Ruleset" asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
                 @if (Model.IsDevelopment && string.Equals(Model.SessionStatus, "STARTED", System.StringComparison.OrdinalIgnoreCase))

@@ -5,10 +5,15 @@
 }
 
 <section class="section-shell">
-    <div>
-        <p class="eyebrow text-emerald-700">Ruleset Analytics</p>
-        <h1 class="headline">Ringkasan Analitika per Ruleset</h1>
-        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.RulesetId</p>
+    <div class="ruleset-hero">
+        <div>
+            <p class="eyebrow text-emerald-700">Ruleset Analytics</p>
+            <h1 class="headline">Ringkasan Analitika per Ruleset</h1>
+            <p class="mt-2 text-xs text-slate-500 font-mono">@Model.RulesetId</p>
+        </div>
+        <div class="ruleset-hero-meta">
+            <a class="btn-ghost" asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@Model.RulesetId">Kembali ke Ruleset</a>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -60,7 +65,16 @@
                     {
                         <tr class="border-t border-slate-200">
                             <td class="px-4 py-3 text-slate-700">@item.SessionName</td>
-                            <td class="px-4 py-3 text-slate-700">@item.Status</td>
+                            <td class="px-4 py-3 text-slate-700">
+                                @{
+                                    var statusClass = string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase)
+                                        ? "status-active"
+                                        : string.Equals(item.Status, "CREATED", StringComparison.OrdinalIgnoreCase)
+                                            ? "status-draft"
+                                            : "status-retired";
+                                }
+                                <span class="status-pill @statusClass">@item.Status</span>
+                            </td>
                             <td class="px-4 py-3 text-right">@item.EventCount</td>
                             <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
                             <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>

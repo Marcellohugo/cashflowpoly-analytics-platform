@@ -4,7 +4,7 @@
     ViewData["Title"] = Context.T("nav.sessions");
 }
 
-<section class="section-shell">
+<section class="section-shell w-full">
     <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
             <p class="eyebrow">@Context.T("sessions.management")</p>
@@ -14,12 +14,38 @@
         <div class="badge badge-amber">@Context.T("sessions.live_log")</div>
     </div>
 
+    <div class="mt-6 session-stats-grid">
+        <div class="stat-card session-total-card">
+            <p class="text-xs uppercase text-slate-500">Total Sessions</p>
+            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Items.Count</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-xs uppercase text-slate-500">Started</p>
+            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Items.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase))</p>
+        </div>
+        <div class="stat-card">
+            <p class="text-xs uppercase text-slate-500">Ended</p>
+            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Items.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase))</p>
+        </div>
+    </div>
+
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             @Model.ErrorMessage
         </div>
     }
+
+    <details class="mt-4 data-toggle">
+        <summary>Tips penggunaan menu Sesi</summary>
+        <div class="mt-3 metric-panel">
+            <div class="metric-list">
+                <div class="metric-row"><span class="metric-key">Langkah 1</span><span class="metric-value">Pilih sesi pada kolom detail.</span></div>
+                <div class="metric-row"><span class="metric-key">Langkah 2</span><span class="metric-value">Aktifkan ruleset pada halaman detail sesi (instruktur).</span></div>
+                <div class="metric-row"><span class="metric-key">Langkah 3</span><span class="metric-value">Masuk ke detail pemain untuk evaluasi metrik individual.</span></div>
+            </div>
+        </div>
+    </details>
 
     <div class="mt-6 table-wrap">
         <table class="w-full text-left text-sm">
@@ -46,7 +72,16 @@
                     <tr class="border-t border-slate-200">
                         <td class="px-4 py-3 font-medium text-slate-900">@item.SessionName</td>
                         <td class="px-4 py-3 text-slate-600">@item.Mode</td>
-                        <td class="px-4 py-3 text-slate-600">@item.Status</td>
+                        <td class="px-4 py-3 text-slate-600">
+                            @{
+                                var statusClass = string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase)
+                                    ? "status-active"
+                                    : string.Equals(item.Status, "CREATED", StringComparison.OrdinalIgnoreCase)
+                                        ? "status-draft"
+                                        : "status-retired";
+                            }
+                            <span class="status-pill @statusClass">@item.Status</span>
+                        </td>
                         <td class="px-4 py-3 text-slate-600">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                         <td class="px-4 py-3 text-right">
                             <a class="text-sm font-semibold text-slate-900 hover:underline"

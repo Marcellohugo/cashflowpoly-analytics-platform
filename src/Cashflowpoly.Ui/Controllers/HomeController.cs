@@ -2,14 +2,51 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Cashflowpoly.Ui.Models;
 using Cashflowpoly.Ui.Infrastructure;
+using System.Net.Http.Json;
 
 namespace Cashflowpoly.Ui.Controllers;
 
 public class HomeController : Controller
 {
-    public IActionResult Index()
+    private readonly IHttpClientFactory _clientFactory;
+
+    public HomeController(IHttpClientFactory clientFactory)
     {
-        return View();
+        _clientFactory = clientFactory;
+    }
+
+    public async Task<IActionResult> Index(CancellationToken ct)
+    {
+        var statsResult = await GetRealtimeStatsInternal(ct);
+        if (statsResult.UnauthorizedResult is not null)
+        {
+            return statsResult.UnauthorizedResult;
+        }
+
+        var model = statsResult.Model;
+
+        return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> RealtimeStats(CancellationToken ct)
+    {
+        var statsResult = await GetRealtimeStatsInternal(ct);
+        if (statsResult.UnauthorizedResult is not null)
+        {
+            return statsResult.UnauthorizedResult;
+        }
+
+        var model = statsResult.Model;
+        return Json(new
+        {
+            activeSessions = model.ActiveSessions,
+            totalSessions = model.TotalSessions,
+            totalPlayers = model.TotalPlayers,
+            totalRulesets = model.TotalRulesets,
+            lastSyncedAt = model.LastSyncedAt,
+            errorMessage = model.ErrorMessage
+        });
     }
 
     public IActionResult Rulebook()
@@ -26,5 +63,74 @@ public class HomeController : Controller
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+
+    private async Task<(HomeIndexViewModel Model, IActionResult? UnauthorizedResult)> GetRealtimeStatsInternal(CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+
+        var sessionsTask = client.GetAsync("api/v1/sessions", ct);
+        var playersTask = client.GetAsync("api/v1/players", ct);
+        var rulesetsTask = client.GetAsync("api/v1/rulesets", ct);
+        await Task.WhenAll(sessionsTask, playersTask, rulesetsTask);
+
+        var sessionsResponse = sessionsTask.Result;
+        var playersResponse = playersTask.Result;
+        var rulesetsResponse = rulesetsTask.Result;
+
+        var unauthorized = this.HandleUnauthorizedApiResponse(sessionsResponse)
+                          ?? this.HandleUnauthorizedApiResponse(playersResponse)
+                          ?? this.HandleUnauthorizedApiResponse(rulesetsResponse);
+        if (unauthorized is not null)
+        {
+            return (new HomeIndexViewModel(), unauthorized);
+        }
+
+        var errorMessages = new List<string>();
+        var sessions = new List<SessionListItemDto>();
+        var players = new List<PlayerResponseDto>();
+        var rulesets = new List<RulesetListItemDto>();
+
+        if (sessionsResponse.IsSuccessStatusCode)
+        {
+            var data = await sessionsResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+            sessions = data?.Items ?? new List<SessionListItemDto>();
+        }
+        else
+        {
+            errorMessages.Add($"sessions:{(int)sessionsResponse.StatusCode}");
+        }
+
+        if (playersResponse.IsSuccessStatusCode)
+        {
+            var data = await playersResponse.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+            players = data?.Items ?? new List<PlayerResponseDto>();
+        }
+        else
+        {
+            errorMessages.Add($"players:{(int)playersResponse.StatusCode}");
+        }
+
+        if (rulesetsResponse.IsSuccessStatusCode)
+        {
+            var data = await rulesetsResponse.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
+            rulesets = data?.Items ?? new List<RulesetListItemDto>();
+        }
+        else
+        {
+            errorMessages.Add($"rulesets:{(int)rulesetsResponse.StatusCode}");
+        }
+
+        var model = new HomeIndexViewModel
+        {
+            TotalSessions = sessions.Count,
+            ActiveSessions = sessions.Count(s => string.Equals(s.Status, "STARTED", StringComparison.OrdinalIgnoreCase)),
+            TotalPlayers = players.Count,
+            TotalRulesets = rulesets.Count,
+            LastSyncedAt = DateTimeOffset.UtcNow,
+            ErrorMessage = errorMessages.Count == 0 ? null : $"Sebagian data realtime gagal dimuat ({string.Join(", ", errorMessages)})."
+        };
+
+        return (model, null);
     }
 }

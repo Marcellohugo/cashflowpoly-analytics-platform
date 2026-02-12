@@ -1,5 +1,9 @@
+@model Cashflowpoly.Ui.Models.HomeIndexViewModel
 @{
     ViewData["Title"] = Context.T("nav.home");
+    var progressPercent = Model.TotalSessions == 0
+        ? 0
+        : (int)Math.Round((double)Model.ActiveSessions / Model.TotalSessions * 100);
 }
 
 <section class="section-shell">
@@ -36,25 +40,170 @@
         <div class="glass-surface p-5">
             <div class="space-y-4">
                 <div class="flex items-center justify-between text-sm text-slate-600">
-                    <span>@Context.T("home.active_sessions")</span>
-                    <span class="badge badge-emerald">@Context.T("home.realtime")</span>
+                    <span class="inline-flex items-center gap-2">
+                        <span class="live-dot"></span>
+                        @Context.T("home.realtime")
+                    </span>
+                    <span class="badge badge-emerald">LIVE</span>
                 </div>
-                <div class="text-4xl font-semibold text-slate-900">3</div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Waktu server lokal</p>
+                    <p id="home-live-time" class="text-3xl font-semibold text-slate-900">@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                    <p class="mt-1 text-xs text-slate-500">Sinkron data: <span id="home-last-synced">@Model.LastSyncedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span></p>
+                </div>
                 <div class="h-2 w-full rounded-full bg-slate-100">
-                    <div class="h-2 w-2/3 rounded-full bg-emerald-500"></div>
+                    <div id="home-progress-bar" class="h-2 rounded-full bg-emerald-500" style="width:@progressPercent%"></div>
                 </div>
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                {
+                    <div id="home-realtime-error" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        @Model.ErrorMessage
+                    </div>
+                }
+                else
+                {
+                    <div id="home-realtime-error" class="hidden rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></div>
+                }
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@Context.T("home.ruleset_active")</p>
-                        <p class="mt-2 text-lg font-semibold text-slate-900">Default v1</p>
+                        <p class="text-xs uppercase text-slate-500">Total sesi</p>
+                        <p id="home-total-sessions" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalSessions</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-xs uppercase text-slate-500">@Context.T("home.active_sessions")</p>
+                        <p id="home-active-sessions" class="mt-2 text-lg font-semibold text-slate-900">@Model.ActiveSessions</p>
                     </div>
                     <div class="stat-card">
                         <p class="text-xs uppercase text-slate-500">@Context.T("home.players_monitored")</p>
-                        <p class="mt-2 text-lg font-semibold text-slate-900">24</p>
+                        <p id="home-total-players" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalPlayers</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-xs uppercase text-slate-500">@Context.T("home.ruleset_active")</p>
+                        <p id="home-total-rulesets" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalRulesets</p>
                     </div>
                 </div>
-                <p class="text-xs text-slate-500">@Context.T("home.snapshot_demo")</p>
+                <p class="text-xs text-slate-500">Data diperbarui otomatis setiap 10 detik.</p>
             </div>
         </div>
     </div>
 </section>
+
+<section class="section-shell mt-6">
+    <div>
+        <p class="eyebrow">Panduan Menu</p>
+        <h2 class="headline text-3xl">Kumpulan cara penggunaan</h2>
+        <p class="subhead">Gunakan panduan cepat ini supaya alur kerja dari setup sampai analitik lebih rapi.</p>
+    </div>
+
+    <div class="mt-6 tips-grid">
+        <article class="tip-card">
+            <h3>Sesi</h3>
+            <p>Buka daftar sesi, pilih sesi aktif, lalu masuk detail pemain untuk analitik per individu.</p>
+            <a asp-controller="Sessions" asp-action="Index">Buka menu Sesi</a>
+        </article>
+        <article class="tip-card">
+            <h3>Ruleset</h3>
+            <p>Buat ruleset baru, cek versi, aktifkan versi yang tepat sebelum sesi dimulai.</p>
+            <a asp-controller="Rulesets" asp-action="Index">Buka menu Ruleset</a>
+        </article>
+        <article class="tip-card">
+            <h3>Analitika</h3>
+            <p>Masukkan Session ID untuk melihat ringkasan cashflow, metrik misi, dan performa pemain.</p>
+            <a asp-controller="Analytics" asp-action="Index">Buka menu Analitika</a>
+        </article>
+        <article class="tip-card">
+            <h3>Pemain</h3>
+            <p>Lihat direktori pemain untuk validasi identitas sebelum meninjau detail metrik.</p>
+            <a asp-controller="PlayerDirectory" asp-action="Index">Buka menu Pemain</a>
+        </article>
+    </div>
+
+    <div class="mt-6 metric-panel">
+        <h3>Alur Penggunaan Cepat</h3>
+        <div class="metric-list">
+            <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">Setup ruleset yang dibutuhkan di menu Ruleset.</span></div>
+            <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">Masuk menu Sesi, pilih sesi, lalu aktifkan ruleset.</span></div>
+            <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">Ingest event gameplay dari IDN/simulator ke API.</span></div>
+            <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">Cek Analitika untuk ringkasan sesi dan tren metrik.</span></div>
+            <div class="metric-row"><span class="metric-key">5</span><span class="metric-value">Buka detail pemain untuk evaluasi performa per individu.</span></div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const el = document.getElementById("home-live-time");
+            if (!el) return;
+            const totalSessionsEl = document.getElementById("home-total-sessions");
+            const activeSessionsEl = document.getElementById("home-active-sessions");
+            const totalPlayersEl = document.getElementById("home-total-players");
+            const totalRulesetsEl = document.getElementById("home-total-rulesets");
+            const lastSyncedEl = document.getElementById("home-last-synced");
+            const progressBarEl = document.getElementById("home-progress-bar");
+            const realtimeErrorEl = document.getElementById("home-realtime-error");
+
+            const tick = () => {
+                const now = new Date();
+                const pad = (v) => v.toString().padStart(2, "0");
+                const text = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+                el.textContent = text;
+            };
+
+            const setError = (message) => {
+                if (!realtimeErrorEl) return;
+                if (!message) {
+                    realtimeErrorEl.textContent = "";
+                    realtimeErrorEl.classList.add("hidden");
+                    return;
+                }
+
+                realtimeErrorEl.textContent = message;
+                realtimeErrorEl.classList.remove("hidden");
+            };
+
+            const syncRealtimeStats = async () => {
+                try {
+                    const response = await fetch("@Url.Action("RealtimeStats", "Home")", {
+                        method: "GET",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    });
+
+                    if (!response.ok) {
+                        setError(`Gagal sinkron realtime (${response.status}).`);
+                        return;
+                    }
+
+                    const data = await response.json();
+                    const totalSessions = Number(data.totalSessions ?? 0);
+                    const activeSessions = Number(data.activeSessions ?? 0);
+                    const totalPlayers = Number(data.totalPlayers ?? 0);
+                    const totalRulesets = Number(data.totalRulesets ?? 0);
+                    const progressPercent = totalSessions === 0 ? 0 : Math.round((activeSessions / totalSessions) * 100);
+
+                    if (totalSessionsEl) totalSessionsEl.textContent = `${totalSessions}`;
+                    if (activeSessionsEl) activeSessionsEl.textContent = `${activeSessions}`;
+                    if (totalPlayersEl) totalPlayersEl.textContent = `${totalPlayers}`;
+                    if (totalRulesetsEl) totalRulesetsEl.textContent = `${totalRulesets}`;
+                    if (progressBarEl) progressBarEl.style.width = `${progressPercent}%`;
+                    if (lastSyncedEl && data.lastSyncedAt) {
+                        const syncedAt = new Date(data.lastSyncedAt);
+                        const pad = (v) => v.toString().padStart(2, "0");
+                        lastSyncedEl.textContent = `${pad(syncedAt.getDate())}/${pad(syncedAt.getMonth() + 1)}/${syncedAt.getFullYear()} ${pad(syncedAt.getHours())}:${pad(syncedAt.getMinutes())}:${pad(syncedAt.getSeconds())}`;
+                    }
+
+                    setError(data.errorMessage);
+                } catch {
+                    setError("Gagal sinkron realtime (network error).");
+                }
+            };
+
+            tick();
+            syncRealtimeStats();
+            setInterval(tick, 1000);
+            setInterval(syncRealtimeStats, 10000);
+        })();
+    </script>
+}

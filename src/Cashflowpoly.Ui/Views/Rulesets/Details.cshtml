@@ -20,75 +20,103 @@
 
     @if (Model.Ruleset is not null)
     {
-        <div class="mt-4">
-            <p class="text-sm text-slate-600">@Context.T("common.name")</p>
-            <p class="text-lg font-semibold text-slate-900">@Model.Ruleset.Name</p>
-            <p class="mt-2 text-sm text-slate-600">@Context.T("common.description")</p>
-            <p class="text-sm text-slate-700">@Model.Ruleset.Description</p>
-        </div>
-
-        @if (isInstructor)
-        {
-            <div class="mt-4 flex flex-wrap gap-3">
-                <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">Analitika Ruleset</a>
-                <form method="post" asp-controller="Rulesets" asp-action="Archive" asp-route-rulesetId="@Model.Ruleset.RulesetId">
-                    <button class="btn-ghost" type="submit">@Context.T("rulesets.archive")</button>
-                </form>
-                <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
-                    <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
-                </form>
+        <div class="mt-4 ruleset-unified">
+            <div class="ruleset-unified-head">
+                <div>
+                    <p class="text-sm text-slate-600">@Context.T("common.name")</p>
+                    <p class="text-lg font-semibold text-slate-900">@Model.Ruleset.Name</p>
+                    <p class="mt-2 text-sm text-slate-600">@Context.T("common.description")</p>
+                    <p class="text-sm text-slate-700">@Model.Ruleset.Description</p>
+                </div>
+                <div class="ruleset-hero-meta">
+                    <span class="id-chip">@Model.Ruleset.RulesetId</span>
+                    <span class="status-pill @(Model.Ruleset.IsArchived ? "status-retired" : "status-active")">
+                        @(Model.Ruleset.IsArchived ? "ARCHIVED" : "AVAILABLE")
+                    </span>
+                </div>
             </div>
-        }
 
-        <div class="mt-6 table-wrap">
-            <table class="w-full text-left text-sm">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3">@Context.T("common.version")</th>
-                        <th class="px-4 py-3">@Context.T("common.status")</th>
-                        <th class="px-4 py-3">@Context.T("common.created")</th>
-                        @if (isInstructor)
-                        {
-                            <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
-                        }
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Ruleset.Versions.Count == 0)
+            <div class="action-toolbar mt-4">
+                <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+                @if (isInstructor)
                 {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="@(isInstructor ? 4 : 3)">@Context.T("state.no_versions")</td>
-                    </tr>
+                    <a class="btn-primary" asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
+                    <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">Analitika Ruleset</a>
+                    <form method="post" asp-controller="Rulesets" asp-action="Archive" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                        <button class="btn-ghost" type="submit">@Context.T("rulesets.archive")</button>
+                    </form>
+                    <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                        <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
+                    </form>
                 }
                 else
                 {
-                    foreach (var version in Model.Ruleset.Versions)
-                    {
-                        <tr class="border-t border-slate-200">
-                            <td class="px-4 py-3 font-medium text-slate-900">v@version.Version</td>
-                            <td class="px-4 py-3 text-slate-600">@version.Status</td>
-                            <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    <span class="hint-chip">@Context.T("rulesets.readonly_hint")</span>
+                }
+            </div>
+
+            <div class="ruleset-stream-divider mt-5"></div>
+
+            <div class="table-wrap mt-5">
+                <div class="px-4 pt-4 pb-2 text-sm font-semibold text-slate-700">Riwayat Versi</div>
+                <table class="w-full text-left text-sm">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3">@Context.T("common.version")</th>
+                            <th class="px-4 py-3">@Context.T("common.status")</th>
+                            <th class="px-4 py-3">@Context.T("common.created")</th>
                             @if (isInstructor)
                             {
-                                <td class="px-4 py-3 text-right">
-                                    @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
-                                            <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
-                                        </form>
-                                    }
-                                </td>
+                                <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
                             }
                         </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Ruleset.Versions.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500" colspan="@(isInstructor ? 4 : 3)">@Context.T("state.no_versions")</td>
+                        </tr>
                     }
-                }
-                </tbody>
-            </table>
-        </div>
+                    else
+                    {
+                        foreach (var version in Model.Ruleset.Versions)
+                        {
+                            <tr class="border-t border-slate-200">
+                                <td class="px-4 py-3 font-medium text-slate-900">v@version.Version</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    @{
+                                        var statusClass = string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+                                            ? "status-active"
+                                            : string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
+                                                ? "status-draft"
+                                                : "status-retired";
+                                    }
+                                    <span class="status-pill @statusClass">@version.Status</span>
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                @if (isInstructor)
+                                {
+                                    <td class="px-4 py-3 text-right">
+                                        @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
+                                                <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
+                                            </form>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="mt-6">
-            <p class="text-sm text-slate-600">Config JSON</p>
-            <pre class="mt-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">@Model.Ruleset.ConfigJson</pre>
+            <div class="mt-5">
+                <p class="text-sm font-semibold text-slate-700">Config JSON Tersimpan</p>
+                <pre class="mt-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">@Model.Ruleset.ConfigJson</pre>
+            </div>
         </div>
     }
 </section>

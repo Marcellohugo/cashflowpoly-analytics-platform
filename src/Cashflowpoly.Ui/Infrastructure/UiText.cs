@@ -100,6 +100,8 @@ public static class UiText
         ["rulesets.create_title"] = ("Buat ruleset baru", "Create new ruleset"),
         ["rulesets.create_subtitle"] = ("Isi konfigurasi JSON sesuai spesifikasi ruleset.", "Fill JSON config according to the ruleset specification."),
         ["rulesets.detail_title"] = ("Detail ruleset", "Ruleset details"),
+        ["rulesets.readonly_hint"] = ("Mode baca saja.", "Read-only mode."),
+        ["rulesets.back_to_list"] = ("Kembali ke daftar", "Back to list"),
         ["rulesets.archive"] = ("Arsipkan", "Archive"),
         ["rulesets.delete"] = ("Hapus", "Delete"),
         ["rulesets.save"] = ("Simpan Ruleset", "Save Ruleset"),

@@ -5,10 +5,15 @@
 }
 
 <section class="section-shell">
-    <div>
-        <p class="eyebrow">@Context.T("rulesets.management")</p>
-        <h1 class="headline">@Context.T("rulesets.create_title")</h1>
-        <p class="subhead">@Context.T("rulesets.create_subtitle")</p>
+    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+            <p class="eyebrow">@Context.T("rulesets.management")</p>
+            <h1 class="headline">@Context.T("rulesets.create_title")</h1>
+            <p class="subhead">@Context.T("rulesets.create_subtitle")</p>
+        </div>
+        <div class="action-toolbar">
+            <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -18,7 +23,14 @@
         </div>
     }
 
-    <form class="mt-6 space-y-4 glass-surface p-4" method="post">
+    <div class="mt-6 ruleset-unified">
+        <div class="ruleset-tipline">
+            <span>Versioning: atur draft dulu, lalu aktifkan.</span>
+            <span>Consistency: gunakan format JSON valid.</span>
+            <span>Safety: ubah ruleset sebelum sesi dimulai.</span>
+        </div>
+
+    <form class="mt-4 space-y-5" method="post">
         <div>
             <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.name")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
@@ -29,15 +41,184 @@
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
                    asp-for="Description" />
         </div>
-        <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Config JSON</label>
-            <textarea class="mt-2 h-72 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-mono text-xs focus:border-slate-400 focus:outline-none"
-                      asp-for="ConfigJson"></textarea>
+
+        <div class="ruleset-form-section">
+            <h3>Core Setup</h3>
+            <div class="grid gap-3 md:grid-cols-2 mt-3">
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mode</label>
+                    <select id="cfg-mode" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm">
+                        <option value="PEMULA">PEMULA</option>
+                        <option value="MAHIR">MAHIR</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Actions / Turn</label>
+                    <input id="cfg-actions" type="number" min="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="2" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Starting Cash</label>
+                    <input id="cfg-cash" type="number" min="0" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="20" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Freelance Income</label>
+                    <input id="cfg-freelance-income" type="number" min="0" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="1" />
+                </div>
+            </div>
         </div>
+
+        <div class="ruleset-form-section">
+            <h3>Weekday Features</h3>
+            <div class="grid gap-3 md:grid-cols-3 mt-3">
+                <label class="metric-row"><span class="metric-key">Friday Donation</span><input id="cfg-friday" type="checkbox" checked /></label>
+                <label class="metric-row"><span class="metric-key">Saturday Gold Trade</span><input id="cfg-saturday" type="checkbox" checked /></label>
+                <label class="metric-row"><span class="metric-key">Sunday Rest</span><input id="cfg-sunday" type="checkbox" checked /></label>
+            </div>
+        </div>
+
+        <div class="ruleset-form-section">
+            <h3>Constraints</h3>
+            <div class="grid gap-3 md:grid-cols-2 mt-3">
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Cash Min</label>
+                    <input id="cfg-cash-min" type="number" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="0" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max Ingredient Total</label>
+                    <input id="cfg-max-ing-total" type="number" min="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="6" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max Same Ingredient</label>
+                    <input id="cfg-max-same-ing" type="number" min="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="3" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Primary Need Max / Day</label>
+                    <input id="cfg-primary-max-day" type="number" min="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="1" />
+                </div>
+                <label class="metric-row md:col-span-2"><span class="metric-key">Require Primary Before Others</span><input id="cfg-require-primary" type="checkbox" checked /></label>
+            </div>
+        </div>
+
+        <div class="ruleset-form-section">
+            <h3>Economy & Advanced</h3>
+            <div class="grid gap-3 md:grid-cols-2 mt-3">
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Donation Min</label>
+                    <input id="cfg-donation-min" type="number" min="0" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="1" />
+                </div>
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Donation Max</label>
+                    <input id="cfg-donation-max" type="number" min="0" class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm" value="999999" />
+                </div>
+                <label class="metric-row"><span class="metric-key">Gold Buy</span><input id="cfg-gold-buy" type="checkbox" checked /></label>
+                <label class="metric-row"><span class="metric-key">Gold Sell</span><input id="cfg-gold-sell" type="checkbox" checked /></label>
+                <label class="metric-row"><span class="metric-key">Loan Enabled</span><input id="cfg-adv-loan" type="checkbox" /></label>
+                <label class="metric-row"><span class="metric-key">Insurance Enabled</span><input id="cfg-adv-insurance" type="checkbox" /></label>
+                <label class="metric-row"><span class="metric-key">Saving Goal Enabled</span><input id="cfg-adv-saving-goal" type="checkbox" /></label>
+            </div>
+        </div>
+
+        <textarea asp-for="ConfigJson" class="hidden"></textarea>
         <div class="flex items-center gap-3">
             <button class="btn-primary"
                     type="submit">@Context.T("rulesets.save")</button>
             <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Rulesets" asp-action="Index">@Context.T("common.cancel")</a>
         </div>
     </form>
+    </div>
 </section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const getEl = (id) => document.getElementById(id);
+            const toInt = (id, fallback = 0) => {
+                const v = parseInt(getEl(id)?.value ?? "", 10);
+                return Number.isFinite(v) ? v : fallback;
+            };
+            const toBool = (id) => !!getEl(id)?.checked;
+            const configTextArea = getEl("ConfigJson");
+
+            const scoreDefaults = {
+                donation_rank_points: [{ rank: 1, points: 7 }, { rank: 2, points: 5 }, { rank: 3, points: 2 }],
+                gold_points_by_qty: [{ qty: 1, points: 3 }, { qty: 2, points: 5 }, { qty: 3, points: 8 }, { qty: 4, points: 12 }],
+                pension_rank_points: [{ rank: 1, points: 5 }, { rank: 2, points: 3 }, { rank: 3, points: 1 }]
+            };
+
+            const readForm = () => ({
+                mode: getEl("cfg-mode")?.value ?? "PEMULA",
+                actions_per_turn: toInt("cfg-actions", 2),
+                starting_cash: toInt("cfg-cash", 20),
+                weekday_rules: {
+                    friday: { feature: "DONATION", enabled: toBool("cfg-friday") },
+                    saturday: { feature: "GOLD_TRADE", enabled: toBool("cfg-saturday") },
+                    sunday: { feature: "REST", enabled: toBool("cfg-sunday") }
+                },
+                constraints: {
+                    cash_min: toInt("cfg-cash-min", 0),
+                    max_ingredient_total: toInt("cfg-max-ing-total", 6),
+                    max_same_ingredient: toInt("cfg-max-same-ing", 3),
+                    primary_need_max_per_day: toInt("cfg-primary-max-day", 1),
+                    require_primary_before_others: toBool("cfg-require-primary")
+                },
+                donation: {
+                    min_amount: toInt("cfg-donation-min", 1),
+                    max_amount: toInt("cfg-donation-max", 999999)
+                },
+                gold_trade: {
+                    allow_buy: toBool("cfg-gold-buy"),
+                    allow_sell: toBool("cfg-gold-sell")
+                },
+                advanced: {
+                    loan: { enabled: toBool("cfg-adv-loan") },
+                    insurance: { enabled: toBool("cfg-adv-insurance") },
+                    saving_goal: { enabled: toBool("cfg-adv-saving-goal") }
+                },
+                freelance: { income: toInt("cfg-freelance-income", 1) },
+                scoring: scoreDefaults
+            });
+
+            const writeFormFromConfig = (cfg) => {
+                if (!cfg || typeof cfg !== "object") return;
+                getEl("cfg-mode").value = cfg.mode ?? "PEMULA";
+                getEl("cfg-actions").value = cfg.actions_per_turn ?? 2;
+                getEl("cfg-cash").value = cfg.starting_cash ?? 20;
+                getEl("cfg-freelance-income").value = cfg.freelance?.income ?? 1;
+                getEl("cfg-friday").checked = !!cfg.weekday_rules?.friday?.enabled;
+                getEl("cfg-saturday").checked = !!cfg.weekday_rules?.saturday?.enabled;
+                getEl("cfg-sunday").checked = !!cfg.weekday_rules?.sunday?.enabled;
+                getEl("cfg-cash-min").value = cfg.constraints?.cash_min ?? 0;
+                getEl("cfg-max-ing-total").value = cfg.constraints?.max_ingredient_total ?? 6;
+                getEl("cfg-max-same-ing").value = cfg.constraints?.max_same_ingredient ?? 3;
+                getEl("cfg-primary-max-day").value = cfg.constraints?.primary_need_max_per_day ?? 1;
+                getEl("cfg-require-primary").checked = cfg.constraints?.require_primary_before_others ?? true;
+                getEl("cfg-donation-min").value = cfg.donation?.min_amount ?? 1;
+                getEl("cfg-donation-max").value = cfg.donation?.max_amount ?? 999999;
+                getEl("cfg-gold-buy").checked = cfg.gold_trade?.allow_buy ?? true;
+                getEl("cfg-gold-sell").checked = cfg.gold_trade?.allow_sell ?? true;
+                getEl("cfg-adv-loan").checked = !!cfg.advanced?.loan?.enabled;
+                getEl("cfg-adv-insurance").checked = !!cfg.advanced?.insurance?.enabled;
+                getEl("cfg-adv-saving-goal").checked = !!cfg.advanced?.saving_goal?.enabled;
+            };
+
+            const refreshConfig = () => {
+                const cfg = readForm();
+                const json = JSON.stringify(cfg, null, 2);
+                configTextArea.value = json;
+            };
+
+            try {
+                if (configTextArea?.value?.trim()) {
+                    writeFormFromConfig(JSON.parse(configTextArea.value));
+                }
+            } catch (_) {}
+
+            document.querySelectorAll("input, select").forEach((el) => {
+                el.addEventListener("input", refreshConfig);
+                el.addEventListener("change", refreshConfig);
+            });
+
+            refreshConfig();
+        })();
+    </script>
+}

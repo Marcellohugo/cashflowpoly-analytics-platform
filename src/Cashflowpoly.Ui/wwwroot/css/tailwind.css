@@ -730,22 +730,6 @@ h1, h2, h3, h4 {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
-.brand-chip{
-  margin-left: 0.5rem;
-  border-radius: 9999px;
-  background-color: rgb(209 250 229 / 0.8);
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  font-size: 0.55rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  --tw-text-opacity: 1;
-  color: rgb(6 95 70 / var(--tw-text-opacity, 1));
-}
-
 .glass-surface{
   border-radius: 1.5rem;
   border-width: 1px;
@@ -993,6 +977,10 @@ h1, h2, h3, h4 {
   color: rgb(100 116 139 / var(--tw-text-opacity, 1));
 }
 
+.static{
+  position: static;
+}
+
 .sticky{
   position: sticky;
 }
@@ -1005,6 +993,11 @@ h1, h2, h3, h4 {
   z-index: 30;
 }
 
+.mx-auto{
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .mt-1{
   margin-top: 0.25rem;
 }
@@ -1013,8 +1006,16 @@ h1, h2, h3, h4 {
   margin-top: 0.5rem;
 }
 
+.mt-3{
+  margin-top: 0.75rem;
+}
+
 .mt-4{
   margin-top: 1rem;
+}
+
+.mt-5{
+  margin-top: 1.25rem;
 }
 
 .mt-6{
@@ -1025,12 +1026,12 @@ h1, h2, h3, h4 {
   margin-top: 2rem;
 }
 
-.block{
-  display: block;
-}
-
 .flex{
   display: flex;
+}
+
+.inline-flex{
+  display: inline-flex;
 }
 
 .table{
@@ -1041,28 +1042,28 @@ h1, h2, h3, h4 {
   display: grid;
 }
 
+.hidden{
+  display: none;
+}
+
 .h-2{
   height: 0.5rem;
 }
 
-.h-72{
-  height: 18rem;
+.max-h-96{
+  max-height: 24rem;
 }
 
 .w-2{
   width: 0.5rem;
 }
 
-.w-2\/3{
-  width: 66.666667%;
-}
-
-.w-56{
-  width: 14rem;
-}
-
 .w-full{
   width: 100%;
+}
+
+.max-w-xl{
+  max-width: 36rem;
 }
 
 .flex-1{
@@ -1111,6 +1112,12 @@ h1, h2, h3, h4 {
   margin-bottom: calc(1rem * var(--tw-space-y-reverse));
 }
 
+.space-y-5 > :not([hidden]) ~ :not([hidden]){
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1.25rem * var(--tw-space-y-reverse));
+}
+
 .space-y-6 > :not([hidden]) ~ :not([hidden]){
   --tw-space-y-reverse: 0;
   margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
@@ -1149,6 +1156,11 @@ h1, h2, h3, h4 {
   border-top-width: 1px;
 }
 
+.border-amber-200{
+  --tw-border-opacity: 1;
+  border-color: rgb(253 230 138 / var(--tw-border-opacity, 1));
+}
+
 .border-red-200{
   --tw-border-opacity: 1;
   border-color: rgb(254 202 202 / var(--tw-border-opacity, 1));
@@ -1170,6 +1182,11 @@ h1, h2, h3, h4 {
 
 .border-white\/70{
   border-color: rgb(255 255 255 / 0.7);
+}
+
+.bg-amber-50{
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
 }
 
 .bg-amber-500{
@@ -1220,6 +1237,10 @@ h1, h2, h3, h4 {
   background-color: rgb(255 255 255 / 0.8);
 }
 
+.p-3{
+  padding: 0.75rem;
+}
+
 .p-4{
   padding: 1rem;
 }
@@ -1236,9 +1257,19 @@ h1, h2, h3, h4 {
   padding: 2rem;
 }
 
+.px-3{
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
 .px-4{
   padding-left: 1rem;
   padding-right: 1rem;
+}
+
+.py-1{
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
 .py-2{
@@ -1254,6 +1285,14 @@ h1, h2, h3, h4 {
 .py-4{
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.pb-2{
+  padding-bottom: 0.5rem;
+}
+
+.pt-4{
+  padding-top: 1rem;
 }
 
 .text-left{
@@ -1273,6 +1312,11 @@ h1, h2, h3, h4 {
   line-height: 2rem;
 }
 
+.text-3xl{
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
 .text-4xl{
   font-size: 2.25rem;
   line-height: 2.5rem;
@@ -1286,11 +1330,6 @@ h1, h2, h3, h4 {
 .text-sm{
   font-size: 0.875rem;
   line-height: 1.25rem;
-}
-
-.text-xl{
-  font-size: 1.25rem;
-  line-height: 1.75rem;
 }
 
 .text-xs{
@@ -1314,12 +1353,13 @@ h1, h2, h3, h4 {
   line-height: 1.25;
 }
 
-.tracking-wide{
-  letter-spacing: 0.025em;
-}
-
 .tracking-wider{
   letter-spacing: 0.05em;
+}
+
+.text-amber-700{
+  --tw-text-opacity: 1;
+  color: rgb(180 83 9 / var(--tw-text-opacity, 1));
 }
 
 .text-emerald-700{
@@ -1407,12 +1447,16 @@ h1, h2, h3, h4 {
 }
 
 @media (min-width: 768px){
+  .md\:col-span-2{
+    grid-column: span 2 / span 2;
+  }
+
   .md\:grid-cols-2{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .md\:grid-cols-4{
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .md\:grid-cols-3{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .md\:grid-cols-5{
@@ -1442,6 +1486,10 @@ h1, h2, h3, h4 {
 }
 
 @media (min-width: 1024px){
+  .lg\:grid-cols-2{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .lg\:grid-cols-\[1\.1fr_0\.9fr\]{
     grid-template-columns: 1.1fr 0.9fr;
   }

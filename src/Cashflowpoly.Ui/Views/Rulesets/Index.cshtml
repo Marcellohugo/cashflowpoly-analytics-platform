@@ -5,59 +5,84 @@
     var isInstructor = Context.Session.IsInstructor();
 }
 
-<section class="section-shell">
+<section class="section-shell w-full">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
             <p class="eyebrow">@Context.T("rulesets.management")</p>
             <h1 class="headline">@Context.T("rulesets.title")</h1>
+            <p class="subhead">Kelola versi ruleset aktif untuk sesi pembelajaran.</p>
         </div>
-        @if (isInstructor)
-        {
-            <a class="btn-primary"
-               asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
-        }
-    </div>
-
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            @Model.ErrorMessage
-        </div>
-    }
-
-    <div class="mt-6 table-wrap">
-        <table class="w-full text-left text-sm">
-            <thead class="table-head">
-                <tr>
-                    <th class="px-4 py-3">@Context.T("common.name")</th>
-                    <th class="px-4 py-3">@Context.T("common.ruleset_id")</th>
-                    <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
-                    <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (Model.Items.Count == 0)
+        <div class="action-toolbar">
+            @if (isInstructor)
             {
-                <tr>
-                    <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("state.no_rulesets")</td>
-                </tr>
+                <a class="btn-primary"
+                   asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
             }
             else
             {
-                foreach (var item in Model.Items)
+                <span class="hint-chip">@Context.T("rulesets.readonly_hint")</span>
+            }
+        </div>
+    </div>
+
+    <div class="mt-6 ruleset-unified">
+        <div class="ruleset-unified-head">
+            <div>
+                <p class="text-xs uppercase text-slate-500">Total Ruleset</p>
+                <p class="mt-1 text-2xl font-semibold text-slate-900">@Model.Items.Count</p>
+            </div>
+            <p class="text-sm text-slate-600">Satu tempat untuk buat, cek versi, dan buka detail ruleset.</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                @Model.ErrorMessage
+            </div>
+        }
+
+        <div class="mt-4 ruleset-tipline">
+            <span>Create: buat ruleset sesuai mode sesi.</span>
+            <span>Versioning: aktifkan versi valid sebelum sesi.</span>
+            <span>Safety: arsipkan/hapus yang tidak dipakai.</span>
+        </div>
+
+        <div class="mt-6 table-wrap">
+            <table class="w-full text-left text-sm">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">@Context.T("common.name")</th>
+                        <th class="px-4 py-3">@Context.T("common.ruleset_id")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Items.Count == 0)
                 {
-                    <tr class="border-t border-slate-200">
-                        <td class="px-4 py-3 font-medium text-slate-900">@item.Name</td>
-                        <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.RulesetId</td>
-                        <td class="px-4 py-3 text-right text-slate-700">@item.LatestVersion</td>
-                        <td class="px-4 py-3 text-right">
-                            <a class="text-sm font-semibold text-slate-900 hover:underline"
-                               asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500" colspan="4">
+                            @Context.T("state.no_rulesets")
                         </td>
                     </tr>
                 }
-            }
-            </tbody>
-        </table>
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3 font-medium text-slate-900">@item.Name</td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.RulesetId</td>
+                            <td class="px-4 py-3 text-right text-slate-700"><span class="version-pill">v@item.LatestVersion</span></td>
+                            <td class="px-4 py-3 text-right">
+                                <a class="text-sm font-semibold text-slate-900 hover:underline"
+                                   asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
     </div>
 </section>

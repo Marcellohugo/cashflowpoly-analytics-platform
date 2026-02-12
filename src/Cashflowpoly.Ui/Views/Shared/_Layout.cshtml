@@ -10,6 +10,13 @@
     var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
     var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
     var languageCode = isEnglish ? "EN" : "ID";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    Func<string, string, string> navClass = (controller, action) =>
+        string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)
+            ? "nav-link is-active"
+            : "nav-link";
 }
 <!DOCTYPE html>
 <html lang="@activeLanguage">
@@ -36,15 +43,15 @@
             @if (isLoggedIn)
             {
                 <div class="nav-pill nav-center">
-                    <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
+                    <a class="@navClass("Home", "Index")" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
                     @if (isInstructor)
                     {
-                        <a class="nav-link" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
-                        <a class="nav-link" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
+                        <a class="@navClass("Sessions", "Index")" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
+                        <a class="@navClass("PlayerDirectory", "Index")" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
                     }
-                    <a class="nav-link" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
-                    <a class="nav-link" asp-area="" asp-controller="Analytics" asp-action="Index">@Context.T("nav.analytics")</a>
-                    <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
+                    <a class="@navClass("Rulesets", "Index")" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
+                    <a class="@navClass("Analytics", "Index")" asp-area="" asp-controller="Analytics" asp-action="Index">@Context.T("nav.analytics")</a>
+                    <a class="@navClass("Home", "Rulebook")" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
                 </div>
 
                 <div class="nav-pill nav-right">

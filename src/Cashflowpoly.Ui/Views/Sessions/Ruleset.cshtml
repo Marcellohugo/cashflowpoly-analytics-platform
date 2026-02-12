@@ -5,10 +5,15 @@
 }
 
 <section class="section-shell">
-    <div>
-        <p class="eyebrow">@Context.T("sessions.activate_ruleset")</p>
-        <h1 class="headline">@Context.T("sessions.ruleset_title")</h1>
-        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
+    <div class="ruleset-hero">
+        <div>
+            <p class="eyebrow">@Context.T("sessions.activate_ruleset")</p>
+            <h1 class="headline">@Context.T("sessions.ruleset_title")</h1>
+            <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
+        </div>
+        <div class="ruleset-hero-meta">
+            <a class="btn-ghost" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">@Context.T("common.cancel")</a>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -17,6 +22,17 @@
             @Model.ErrorMessage
         </div>
     }
+
+    <div class="mt-6 metric-panels">
+        <div class="metric-panel">
+            <h3>Panduan Aktivasi</h3>
+            <div class="metric-list">
+                <div class="metric-row"><span class="metric-key">Langkah 1</span><span class="metric-value">Pilih ruleset target.</span></div>
+                <div class="metric-row"><span class="metric-key">Langkah 2</span><span class="metric-value">Isi versi yang ingin dipakai.</span></div>
+                <div class="metric-row"><span class="metric-key">Catatan</span><span class="metric-value">Pastikan versi berstatus ACTIVE.</span></div>
+            </div>
+        </div>
+    </div>
 
     <form class="mt-6 space-y-4 glass-surface p-4" method="post">
         <div>
