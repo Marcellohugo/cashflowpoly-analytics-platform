@@ -48,7 +48,12 @@ public sealed class UserRepository
         return result.HasValue;
     }
 
-    public async Task<AuthenticatedUserDb> CreateUserAsync(string username, string password, string role, CancellationToken ct)
+    public async Task<AuthenticatedUserDb> CreateUserAsync(
+        string username,
+        string password,
+        string role,
+        string? displayName,
+        CancellationToken ct)
     {
         const string insertUserSql = """
             insert into app_users (user_id, username, password_hash, role, is_active, created_at)
@@ -56,17 +61,21 @@ public sealed class UserRepository
             returning user_id, username, role, is_active
             """;
 
-        const string insertPlayerSql = """
+        const string upsertPlayerSql = """
             insert into players (player_id, display_name, instructor_user_id, created_at)
             values (@playerId, @displayName, @instructorUserId, @createdAt)
+            on conflict (player_id) do update
+            set display_name = excluded.display_name
             """;
 
-        const string insertUserPlayerLinkSql = """
+        const string upsertUserPlayerLinkSql = """
             insert into user_player_links (link_id, user_id, player_id, created_at)
             values (@linkId, @userId, @playerId, @createdAt)
+            on conflict (user_id) do nothing
             """;
 
         var userId = Guid.NewGuid();
+        var profileDisplayName = string.IsNullOrWhiteSpace(displayName) ? username : displayName.Trim();
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
@@ -78,26 +87,23 @@ public sealed class UserRepository
             role
         }, tx, cancellationToken: ct));
 
-        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        var createdAt = DateTimeOffset.UtcNow;
+        var canonicalPlayerId = userId;
+        await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
         {
-            var playerId = Guid.NewGuid();
-            var createdAt = DateTimeOffset.UtcNow;
-            await conn.ExecuteAsync(new CommandDefinition(insertPlayerSql, new
-            {
-                playerId,
-                displayName = username,
-                instructorUserId = userId,
-                createdAt
-            }, tx, cancellationToken: ct));
+            playerId = canonicalPlayerId,
+            displayName = profileDisplayName,
+            instructorUserId = userId,
+            createdAt
+        }, tx, cancellationToken: ct));
 
-            await conn.ExecuteAsync(new CommandDefinition(insertUserPlayerLinkSql, new
-            {
-                linkId = Guid.NewGuid(),
-                userId,
-                playerId,
-                createdAt
-            }, tx, cancellationToken: ct));
-        }
+        await conn.ExecuteAsync(new CommandDefinition(upsertUserPlayerLinkSql, new
+        {
+            linkId = Guid.NewGuid(),
+            userId,
+            playerId = canonicalPlayerId,
+            createdAt
+        }, tx, cancellationToken: ct));
 
         await tx.CommitAsync(ct);
         return created;
@@ -132,9 +138,10 @@ public sealed class UserRepository
             limit 1
             """;
 
-        const string insertPlayerSql = """
+        const string upsertPlayerSql = """
             insert into players (player_id, display_name, instructor_user_id, created_at)
             values (@playerId, @displayName, @instructorUserId, @createdAt)
+            on conflict (player_id) do nothing
             """;
 
         const string insertLinkSql = """
@@ -154,9 +161,9 @@ public sealed class UserRepository
             return linked.Value;
         }
 
-        var playerId = Guid.NewGuid();
+        var playerId = userId;
         var createdAt = DateTimeOffset.UtcNow;
-        await conn.ExecuteAsync(new CommandDefinition(insertPlayerSql, new
+        await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
         {
             playerId,
             displayName = username,

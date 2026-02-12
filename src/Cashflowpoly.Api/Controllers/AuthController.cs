@@ -81,7 +81,13 @@ public sealed class AuthController : ControllerBase
             return Conflict(ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Username sudah digunakan"));
         }
 
-        var created = await _users.CreateUserAsync(username, request.Password, normalizedRole, ct);
+        var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? username : request.DisplayName.Trim();
+        if (displayName.Length > 80)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Display name maksimal 80 karakter"));
+        }
+
+        var created = await _users.CreateUserAsync(username, request.Password, normalizedRole, displayName, ct);
         if (string.Equals(created.Role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             await _users.EnsurePlayerLinkAsync(created.UserId, created.Username, ct);

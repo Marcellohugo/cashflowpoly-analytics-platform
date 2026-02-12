@@ -6,6 +6,9 @@
     var activeToken = Context.Session.GetString(AuthConstants.SessionAccessTokenKey);
     var isLoggedIn = !string.IsNullOrWhiteSpace(activeRole) && !string.IsNullOrWhiteSpace(activeToken);
     var isInstructor = Context.Session.IsInstructor();
+    var roleThemeClass = isLoggedIn
+        ? (isInstructor ? "role-instructor" : "role-player")
+        : "role-guest";
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
     var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
     var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
@@ -32,7 +35,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Cashflowpoly.Ui.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="@roleThemeClass">
     <a class="skip-link" href="#content">Skip to content</a>
     <header class="sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur">
         <nav class="nav-shell @(isLoggedIn ? "nav-shell-auth" : "nav-shell-guest") @(isAuthPage ? "nav-auth-page" : string.Empty)">

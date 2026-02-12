@@ -75,6 +75,34 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             where p.player_id = upl.player_id
               and p.instructor_user_id is null;
 
+            insert into players (player_id, display_name, instructor_user_id, created_at)
+            select u.user_id, u.username, u.user_id, u.created_at
+            from app_users u
+            where not exists (
+                select 1
+                from user_player_links upl
+                where upl.user_id = u.user_id
+            )
+              and not exists (
+                select 1
+                from players p
+                where p.player_id = u.user_id
+            );
+
+            insert into user_player_links (link_id, user_id, player_id, created_at)
+            select gen_random_uuid(), u.user_id, u.user_id, now()
+            from app_users u
+            where not exists (
+                select 1
+                from user_player_links upl
+                where upl.user_id = u.user_id
+            )
+              and exists (
+                select 1
+                from players p
+                where p.player_id = u.user_id
+            );
+
             do $$
             begin
               if to_regclass('public.rulesets') is not null then
@@ -152,10 +180,38 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             where not exists (select 1 from app_users where lower(username) = lower(@username));
             """;
 
+        const string ensureProfileSql = """
+            insert into players (player_id, display_name, instructor_user_id, created_at)
+            select u.user_id, u.username, u.user_id, now()
+            from app_users u
+            where lower(u.username) = lower(@username)
+              and not exists (
+                  select 1
+                  from players p
+                  where p.player_id = u.user_id
+              );
+
+            insert into user_player_links (link_id, user_id, player_id, created_at)
+            select gen_random_uuid(), u.user_id, u.user_id, now()
+            from app_users u
+            where lower(u.username) = lower(@username)
+              and not exists (
+                  select 1
+                  from user_player_links upl
+                  where upl.user_id = u.user_id
+              );
+            """;
+
         await conn.ExecuteAsync(
             new CommandDefinition(
                 insertSql,
                 new { username, password, role },
+                cancellationToken: cancellationToken));
+
+        await conn.ExecuteAsync(
+            new CommandDefinition(
+                ensureProfileSql,
+                new { username },
                 cancellationToken: cancellationToken));
     }
 }

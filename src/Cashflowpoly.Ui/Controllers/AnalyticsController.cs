@@ -18,38 +18,66 @@ public sealed class AnalyticsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index(CancellationToken ct)
     {
-        return View(new AnalyticsSearchViewModel());
+        var setup = await BuildInitialModelAsync(ct);
+        if (setup.Result is not null)
+        {
+            return setup.Result;
+        }
+
+        var model = setup.Model;
+        if (!model.IsInstructor && model.Sessions.Count > 0)
+        {
+            var preferredSession = model.Sessions
+                .OrderByDescending(item => string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(item => item.StartedAt ?? item.CreatedAt)
+                .First();
+
+            model.SessionId = preferredSession.SessionId.ToString();
+            var loadResult = await PopulateAnalyticsResultAsync(model, preferredSession.SessionId, ct);
+            if (loadResult is not null)
+            {
+                return loadResult;
+            }
+        }
+
+        return View(model);
     }
 
     [HttpPost]
     public async Task<IActionResult> Index(AnalyticsSearchViewModel model, CancellationToken ct)
     {
-        if (!Guid.TryParse(model.SessionId, out var sessionId))
+        var setup = await BuildInitialModelAsync(ct);
+        if (setup.Result is not null)
         {
-            model.ErrorMessage = "Session ID tidak valid.";
-            return View(model);
+            return setup.Result;
         }
 
-        var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
+        var viewModel = setup.Model;
+        viewModel.SessionId = (model.SessionId ?? string.Empty).Trim();
+
+        if (!Guid.TryParse(viewModel.SessionId, out var sessionId))
         {
-            return unauthorized;
+            viewModel.ErrorMessage = "Session ID tidak valid.";
+            return View(viewModel);
         }
 
-        if (!response.IsSuccessStatusCode)
+        if (!viewModel.IsInstructor &&
+            viewModel.Sessions.Count > 0 &&
+            viewModel.Sessions.All(item => item.SessionId != sessionId))
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            model.ErrorMessage = error?.Message ?? $"Gagal memuat analitika. Status: {(int)response.StatusCode}";
-            return View(model);
+            viewModel.ErrorMessage = "Session tidak tersedia untuk akun player ini.";
+            return View(viewModel);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
-        model.Result = result;
-        return View(model);
+        var loadResult = await PopulateAnalyticsResultAsync(viewModel, sessionId, ct);
+        if (loadResult is not null)
+        {
+            return loadResult;
+        }
+
+        return View(viewModel);
     }
 
     [HttpGet("/analytics/rulesets/{rulesetId:guid}")]
@@ -79,6 +107,64 @@ public sealed class AnalyticsController : Controller
             RulesetId = rulesetId.ToString(),
             Result = result
         });
+    }
+
+    private async Task<(AnalyticsSearchViewModel Model, IActionResult? Result)> BuildInitialModelAsync(CancellationToken ct)
+    {
+        var model = new AnalyticsSearchViewModel
+        {
+            IsInstructor = HttpContext.Session.IsInstructor()
+        };
+
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync("api/v1/sessions", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return (model, unauthorized);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            model.SessionLookupErrorMessage = $"Gagal memuat daftar sesi. Status: {(int)response.StatusCode}";
+            return (model, null);
+        }
+
+        var sessions = await response.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+        model.Sessions = (sessions?.Items ?? new List<SessionListItemDto>())
+            .OrderByDescending(item => string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(item => item.StartedAt ?? item.CreatedAt)
+            .ToList();
+
+        return (model, null);
+    }
+
+    private async Task<IActionResult?> PopulateAnalyticsResultAsync(
+        AnalyticsSearchViewModel model,
+        Guid sessionId,
+        CancellationToken ct)
+    {
+        model.SessionId = sessionId.ToString();
+
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            model.ErrorMessage = error?.Message ?? $"Gagal memuat analitika. Status: {(int)response.StatusCode}";
+            model.Result = null;
+            return null;
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        model.Result = result;
+        return null;
     }
 }
 

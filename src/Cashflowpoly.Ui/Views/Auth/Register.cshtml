@@ -23,6 +23,12 @@
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div>
+                        <label class="auth-label">@Context.T("auth.display_name")</label>
+                        <input class="auth-input"
+                               asp-for="DisplayName" placeholder="Nama Lengkap" />
+                    </div>
+
+                    <div>
                         <label class="auth-label">@Context.T("auth.username")</label>
                         <input class="auth-input"
                                asp-for="Username" placeholder="player_baru" />

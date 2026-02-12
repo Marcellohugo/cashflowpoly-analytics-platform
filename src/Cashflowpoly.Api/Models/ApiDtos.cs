@@ -13,7 +13,9 @@ public sealed record CreateSessionResponse([property: JsonPropertyName("session_
 public sealed record SessionStatusResponse([property: JsonPropertyName("status")] string Status);
 
 public sealed record CreatePlayerRequest(
-    [property: JsonPropertyName("display_name")] string DisplayName);
+    [property: JsonPropertyName("display_name")] string DisplayName,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("password")] string Password);
 
 public sealed record PlayerResponse(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
@@ -194,7 +196,8 @@ public sealed record LoginResponse(
 public sealed record RegisterRequest(
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("password")] string Password,
-    [property: JsonPropertyName("role")] string Role);
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("display_name")] string? DisplayName);
 
 public sealed record RegisterResponse(
     [property: JsonPropertyName("user_id")] Guid UserId,

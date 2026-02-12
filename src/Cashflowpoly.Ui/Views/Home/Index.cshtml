@@ -1,41 +1,80 @@
 @model Cashflowpoly.Ui.Models.HomeIndexViewModel
 @{
     ViewData["Title"] = Context.T("nav.home");
+    var isInstructor = Context.Session.IsInstructor();
     var progressPercent = Model.TotalSessions == 0
         ? 0
         : (int)Math.Round((double)Model.ActiveSessions / Model.TotalSessions * 100);
+    var heroBadge = isInstructor ? Context.T("home.badge") : "Dashboard Player";
+    var heroTitle = isInstructor
+        ? Context.T("home.title")
+        : "Pantau progres permainanmu secara real-time.";
+    var heroSubtitle = isInstructor
+        ? Context.T("home.subtitle")
+        : "Lihat status sesi, ruleset yang bisa kamu akses, dan ringkasan performa pribadi tanpa perlu membuka menu instructor.";
+    var primaryCtaController = isInstructor ? "Sessions" : "Analytics";
+    var primaryCtaText = isInstructor ? Context.T("home.cta.sessions") : "Lihat progres saya";
+    var secondaryCtaController = isInstructor ? "Analytics" : "Rulesets";
+    var secondaryCtaText = isInstructor ? Context.T("home.cta.analytics") : "Buka ruleset";
+    var totalSessionsLabel = isInstructor ? "Total sesi" : "Sesi saya";
+    var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : "Teman satu sesi";
+    var totalRulesetsLabel = isInstructor ? Context.T("home.ruleset_active") : "Ruleset tersedia";
 }
 
-<section class="section-shell">
+<section class="section-shell home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
     <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div>
-            <span class="badge badge-emerald">@Context.T("home.badge")</span>
-            <h1 class="headline text-4xl md:text-5xl">@Context.T("home.title")</h1>
+            <span class="badge @(isInstructor ? "badge-emerald" : "badge-amber")">@heroBadge</span>
+            <h1 class="headline text-4xl md:text-5xl">@heroTitle</h1>
             <p class="subhead">
-                @Context.T("home.subtitle")
+                @heroSubtitle
             </p>
             <div class="mt-6 flex flex-wrap gap-3">
-                <a class="btn-primary" asp-controller="Sessions" asp-action="Index">@Context.T("home.cta.sessions")</a>
-                <a class="btn-ghost" asp-controller="Analytics" asp-action="Index">@Context.T("home.cta.analytics")</a>
+                <a class="btn-primary" asp-controller="@primaryCtaController" asp-action="Index">@primaryCtaText</a>
+                <a class="btn-ghost" asp-controller="@secondaryCtaController" asp-action="Index">@secondaryCtaText</a>
             </div>
-            <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                <li class="flex items-start gap-2">
-                    <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
-                    <span>@Context.T("home.feature.1")</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
-                    <span>@Context.T("home.feature.2")</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
-                    <span>@Context.T("home.feature.3")</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
-                    <span>@Context.T("home.feature.4")</span>
-                </li>
-            </ul>
+            @if (isInstructor)
+            {
+                <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span>@Context.T("home.feature.1")</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
+                        <span>@Context.T("home.feature.2")</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
+                        <span>@Context.T("home.feature.3")</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
+                        <span>@Context.T("home.feature.4")</span>
+                    </li>
+                </ul>
+            }
+            else
+            {
+                <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
+                        <span>Pilih sesi dari menu Analitika tanpa input UUID manual.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
+                        <span>Lihat metrik cashflow dan poinmu dalam satu dashboard.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
+                        <span>Cek ruleset aktif untuk memahami target skor dan penalti.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
+                        <span>Pantau pembaruan data otomatis setiap 10 detik.</span>
+                    </li>
+                </ul>
+            }
         </div>
         <div class="glass-surface p-5">
             <div class="space-y-4">
@@ -52,7 +91,9 @@
                     <p class="mt-1 text-xs text-slate-500">Sinkron data: <span id="home-last-synced">@Model.LastSyncedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span></p>
                 </div>
                 <div class="h-2 w-full rounded-full bg-slate-100">
-                    <div id="home-progress-bar" class="h-2 rounded-full bg-emerald-500" style="width:@progressPercent%"></div>
+                    <div id="home-progress-bar"
+                         class="h-2 rounded-full @(isInstructor ? "home-progress-instructor" : "home-progress-player")"
+                         style="width:@progressPercent%"></div>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
                 {
@@ -66,7 +107,7 @@
                 }
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">Total sesi</p>
+                        <p class="text-xs uppercase text-slate-500">@totalSessionsLabel</p>
                         <p id="home-total-sessions" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalSessions</p>
                     </div>
                     <div class="stat-card">
@@ -74,11 +115,11 @@
                         <p id="home-active-sessions" class="mt-2 text-lg font-semibold text-slate-900">@Model.ActiveSessions</p>
                     </div>
                     <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@Context.T("home.players_monitored")</p>
+                        <p class="text-xs uppercase text-slate-500">@totalPlayersLabel</p>
                         <p id="home-total-players" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalPlayers</p>
                     </div>
                     <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@Context.T("home.ruleset_active")</p>
+                        <p class="text-xs uppercase text-slate-500">@totalRulesetsLabel</p>
                         <p id="home-total-rulesets" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalRulesets</p>
                     </div>
                 </div>
@@ -88,47 +129,88 @@
     </div>
 </section>
 
-<section class="section-shell mt-6">
-    <div>
-        <p class="eyebrow">Panduan Menu</p>
-        <h2 class="headline text-3xl">Kumpulan cara penggunaan</h2>
-        <p class="subhead">Gunakan panduan cepat ini supaya alur kerja dari setup sampai analitik lebih rapi.</p>
-    </div>
-
-    <div class="mt-6 tips-grid">
-        <article class="tip-card">
-            <h3>Sesi</h3>
-            <p>Buka daftar sesi, pilih sesi aktif, lalu masuk detail pemain untuk analitik per individu.</p>
-            <a asp-controller="Sessions" asp-action="Index">Buka menu Sesi</a>
-        </article>
-        <article class="tip-card">
-            <h3>Ruleset</h3>
-            <p>Buat ruleset baru, cek versi, aktifkan versi yang tepat sebelum sesi dimulai.</p>
-            <a asp-controller="Rulesets" asp-action="Index">Buka menu Ruleset</a>
-        </article>
-        <article class="tip-card">
-            <h3>Analitika</h3>
-            <p>Masukkan Session ID untuk melihat ringkasan cashflow, metrik misi, dan performa pemain.</p>
-            <a asp-controller="Analytics" asp-action="Index">Buka menu Analitika</a>
-        </article>
-        <article class="tip-card">
-            <h3>Pemain</h3>
-            <p>Lihat direktori pemain untuk validasi identitas sebelum meninjau detail metrik.</p>
-            <a asp-controller="PlayerDirectory" asp-action="Index">Buka menu Pemain</a>
-        </article>
-    </div>
-
-    <div class="mt-6 metric-panel">
-        <h3>Alur Penggunaan Cepat</h3>
-        <div class="metric-list">
-            <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">Setup ruleset yang dibutuhkan di menu Ruleset.</span></div>
-            <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">Masuk menu Sesi, pilih sesi, lalu aktifkan ruleset.</span></div>
-            <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">Ingest event gameplay dari IDN/simulator ke API.</span></div>
-            <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">Cek Analitika untuk ringkasan sesi dan tren metrik.</span></div>
-            <div class="metric-row"><span class="metric-key">5</span><span class="metric-value">Buka detail pemain untuk evaluasi performa per individu.</span></div>
+@if (isInstructor)
+{
+    <section class="section-shell mt-6">
+        <div>
+            <p class="eyebrow">Panduan Menu</p>
+            <h2 class="headline text-3xl">Kumpulan cara penggunaan</h2>
+            <p class="subhead">Gunakan panduan cepat ini supaya alur kerja dari setup sampai analitik lebih rapi.</p>
         </div>
-    </div>
-</section>
+
+        <div class="mt-6 tips-grid">
+            <article class="tip-card">
+                <h3>Sesi</h3>
+                <p>Buka daftar sesi, pilih sesi aktif, lalu masuk detail pemain untuk analitik per individu.</p>
+                <a asp-controller="Sessions" asp-action="Index">Buka menu Sesi</a>
+            </article>
+            <article class="tip-card">
+                <h3>Ruleset</h3>
+                <p>Buat ruleset baru, cek versi, aktifkan versi yang tepat sebelum sesi dimulai.</p>
+                <a asp-controller="Rulesets" asp-action="Index">Buka menu Ruleset</a>
+            </article>
+            <article class="tip-card">
+                <h3>Analitika</h3>
+                <p>Masukkan Session ID untuk melihat ringkasan cashflow, metrik misi, dan performa pemain.</p>
+                <a asp-controller="Analytics" asp-action="Index">Buka menu Analitika</a>
+            </article>
+            <article class="tip-card">
+                <h3>Pemain</h3>
+                <p>Lihat direktori pemain untuk validasi identitas sebelum meninjau detail metrik.</p>
+                <a asp-controller="PlayerDirectory" asp-action="Index">Buka menu Pemain</a>
+            </article>
+        </div>
+
+        <div class="mt-6 metric-panel">
+            <h3>Alur Penggunaan Cepat</h3>
+            <div class="metric-list">
+                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">Setup ruleset yang dibutuhkan di menu Ruleset.</span></div>
+                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">Masuk menu Sesi, pilih sesi, lalu aktifkan ruleset.</span></div>
+                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">Ingest event gameplay dari IDN/simulator ke API.</span></div>
+                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">Cek Analitika untuk ringkasan sesi dan tren metrik.</span></div>
+                <div class="metric-row"><span class="metric-key">5</span><span class="metric-value">Buka detail pemain untuk evaluasi performa per individu.</span></div>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <section class="section-shell mt-6 player-guide">
+        <div>
+            <p class="eyebrow">Panduan Pemain</p>
+            <h2 class="headline text-3xl">Langkah cepat melihat progres</h2>
+            <p class="subhead">Tampilan player difokuskan untuk membaca hasil permainanmu sendiri dengan cepat.</p>
+        </div>
+
+        <div class="mt-6 tips-grid">
+            <article class="tip-card">
+                <h3>Analitika Saya</h3>
+                <p>Pilih sesi dari dropdown, lalu cek cashflow, poin, dan risiko pribadi di satu halaman.</p>
+                <a asp-controller="Analytics" asp-action="Index">Buka Analitika Saya</a>
+            </article>
+            <article class="tip-card">
+                <h3>Ruleset Aktif</h3>
+                <p>Lihat daftar ruleset untuk memahami target poin, penalti, dan batasan aksi permainan.</p>
+                <a asp-controller="Rulesets" asp-action="Index">Buka Ruleset</a>
+            </article>
+            <article class="tip-card">
+                <h3>Rulebook</h3>
+                <p>Buka rulebook kapan saja saat butuh klarifikasi aturan game.</p>
+                <a asp-controller="Home" asp-action="Rulebook">Buka Rulebook</a>
+            </article>
+        </div>
+
+        <div class="mt-6 metric-panel">
+            <h3>Alur Pemain yang Disarankan</h3>
+            <div class="metric-list">
+                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">Masuk ke Analitika lalu pilih sesi yang sedang kamu ikuti.</span></div>
+                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">Pantau net cashflow dan poin kebutuhan untuk evaluasi keputusan harian.</span></div>
+                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">Periksa penalti misi dan status pinjaman untuk menghindari skor turun.</span></div>
+                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">Cocokkan progresmu dengan ruleset agar strategi berikutnya lebih tepat.</span></div>
+            </div>
+        </div>
+    </section>
+}
 
 @section Scripts {
     <script>

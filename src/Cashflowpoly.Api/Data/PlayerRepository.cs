@@ -62,6 +62,26 @@ public sealed class PlayerRepository
         return playerId;
     }
 
+    public async Task<bool> UpdatePlayerProfileAsync(Guid playerId, string displayName, Guid? instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            update players
+            set display_name = @displayName,
+                instructor_user_id = @instructorUserId
+            where player_id = @playerId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var rows = await conn.ExecuteAsync(new CommandDefinition(sql, new
+        {
+            playerId,
+            displayName,
+            instructorUserId
+        }, cancellationToken: ct));
+
+        return rows > 0;
+    }
+
     public async Task<List<PlayerDb>> ListPlayersAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -73,6 +93,27 @@ public sealed class PlayerRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<PlayerDb>(new CommandDefinition(sql, new { instructorUserId }, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task<List<PlayerDb>> ListPlayersByPlayerScopeAsync(Guid playerId, CancellationToken ct)
+    {
+        const string sql = """
+            select distinct p.player_id, p.display_name, p.instructor_user_id, p.created_at
+            from players p
+            where p.player_id = @playerId
+               or exists (
+                   select 1
+                   from session_players me
+                   join session_players peer on peer.session_id = me.session_id
+                   where me.player_id = @playerId
+                     and peer.player_id = p.player_id
+               )
+            order by p.display_name asc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<PlayerDb>(new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
         return items.ToList();
     }
 

@@ -15,10 +15,12 @@ namespace Cashflowpoly.Api.Controllers;
 public sealed class RulesetsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
+    private readonly UserRepository _users;
 
-    public RulesetsController(RulesetRepository rulesets)
+    public RulesetsController(RulesetRepository rulesets, UserRepository users)
     {
         _rulesets = rulesets;
+        _users = users;
     }
 
     /// <summary>
@@ -130,24 +132,69 @@ public sealed class RulesetsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ListRulesets(CancellationToken ct)
     {
-        if (!TryGetCurrentUserId(out var instructorUserId))
+        if (!TryGetCurrentUserId(out var userId))
         {
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var items = await _rulesets.ListRulesetsByInstructorAsync(instructorUserId, ct);
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        List<RulesetListItem> items;
+
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            items = await _rulesets.ListRulesetsByInstructorAsync(userId, ct);
+        }
+        else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
+            if (!linkedPlayerId.HasValue)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
+            }
+
+            items = await _rulesets.ListRulesetsByPlayerAsync(linkedPlayerId.Value, ct);
+        }
+        else
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
         return Ok(new RulesetListResponse(items));
     }
 
     [HttpGet("{rulesetId:guid}")]
     public async Task<IActionResult> GetRulesetDetail(Guid rulesetId, CancellationToken ct)
     {
-        if (!TryGetCurrentUserId(out var instructorUserId))
+        if (!TryGetCurrentUserId(out var userId))
         {
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        RulesetDb? ruleset;
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, userId, ct);
+        }
+        else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
+            if (!linkedPlayerId.HasValue)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
+            }
+
+            ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
+        }
+        else
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));

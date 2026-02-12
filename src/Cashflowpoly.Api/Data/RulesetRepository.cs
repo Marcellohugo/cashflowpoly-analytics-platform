@@ -264,6 +264,54 @@ public sealed class RulesetRepository
         return items.ToList();
     }
 
+    public async Task<List<RulesetListItem>> ListRulesetsByPlayerAsync(Guid playerId, CancellationToken ct)
+    {
+        const string sql = """
+            select r.ruleset_id, r.name, coalesce(v.latest_version, 0) as latest_version
+            from rulesets r
+            left join (
+                select ruleset_id, max(version) as latest_version
+                from ruleset_versions
+                group by ruleset_id
+            ) v on v.ruleset_id = r.ruleset_id
+            where exists (
+                select 1
+                from session_players sp
+                join session_ruleset_activations sra on sra.session_id = sp.session_id
+                join ruleset_versions rv on rv.ruleset_version_id = sra.ruleset_version_id
+                where sp.player_id = @playerId
+                  and rv.ruleset_id = r.ruleset_id
+            )
+            order by r.created_at desc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<RulesetListItem>(
+            new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid playerId, CancellationToken ct)
+    {
+        const string sql = """
+            select r.ruleset_id, r.name, r.description, r.instructor_user_id, r.is_archived, r.created_at, r.created_by
+            from rulesets r
+            where r.ruleset_id = @rulesetId
+              and exists (
+                  select 1
+                  from session_players sp
+                  join session_ruleset_activations sra on sra.session_id = sp.session_id
+                  join ruleset_versions rv on rv.ruleset_version_id = sra.ruleset_version_id
+                  where sp.player_id = @playerId
+                    and rv.ruleset_id = r.ruleset_id
+              )
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<RulesetDb>(
+            new CommandDefinition(sql, new { rulesetId, playerId }, cancellationToken: ct));
+    }
+
     public async Task<List<RulesetVersionDb>> ListRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """

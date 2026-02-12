@@ -154,7 +154,8 @@ public sealed record LoginResponseDto(
 public sealed record RegisterRequestDto(
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("password")] string Password,
-    [property: JsonPropertyName("role")] string Role);
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("display_name")] string? DisplayName);
 
 public sealed record RegisterResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,

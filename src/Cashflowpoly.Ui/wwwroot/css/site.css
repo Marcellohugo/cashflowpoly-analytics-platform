@@ -91,6 +91,84 @@ body::before {
     z-index: -1;
 }
 
+body.role-player {
+    background:
+        radial-gradient(circle at 12% 10%, rgba(45, 125, 210, 0.2), transparent 36%),
+        radial-gradient(circle at 86% 12%, rgba(245, 139, 44, 0.24), transparent 34%),
+        radial-gradient(circle at 86% 88%, rgba(82, 189, 140, 0.2), transparent 36%),
+        linear-gradient(136deg, #ecf6ff 0%, #dff1ff 38%, #fff4df 70%, #ffe5cf 100%);
+}
+
+body.role-player .sticky.top-0 {
+    border-bottom-color: rgba(45, 125, 210, 0.3) !important;
+    box-shadow: 0 10px 24px rgba(33, 87, 140, 0.14);
+}
+
+body.role-player .nav-pill {
+    border-color: #95c7ef !important;
+    box-shadow: 0 10px 26px rgba(30, 78, 124, 0.14);
+}
+
+body.role-player .nav-center {
+    border-color: #8ebfe6 !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 255, 0.96)) !important;
+}
+
+body.role-player .nav-mobile-toggle {
+    border-color: #8dbde5;
+    background: linear-gradient(145deg, #ffffff, #eef6ff);
+    box-shadow: 0 8px 20px rgba(30, 78, 124, 0.15);
+}
+
+body.role-player .nav-trigger {
+    border-color: #8dbde5;
+    background: linear-gradient(145deg, #ffffff, #eef6ff);
+    color: #245f8f;
+    box-shadow: 0 8px 20px rgba(30, 78, 124, 0.15);
+}
+
+body.role-player .nav-avatar-trigger {
+    border-color: #f09a39;
+    background: radial-gradient(circle at 30% 20%, #ffd48b, #f3a13c 68%);
+    box-shadow: 0 10px 22px rgba(198, 113, 25, 0.24);
+}
+
+body.role-player .nav-center .nav-link.is-active {
+    background: linear-gradient(145deg, #ffd08a, #f6ad53);
+    box-shadow: inset 0 0 0 1px #d6862b;
+    color: #754206 !important;
+}
+
+body.role-player .section-shell,
+body.role-player .glass-surface,
+body.role-player .table-wrap,
+body.role-player .stat-card {
+    border-color: #9ec9ea !important;
+    box-shadow: 0 14px 32px rgba(31, 85, 136, 0.14);
+}
+
+body.role-player .badge-emerald {
+    background: linear-gradient(145deg, #ffca74, #f4a84a) !important;
+    border-color: #dc8d2f;
+    color: #744103 !important;
+}
+
+body.role-player .btn-primary {
+    background: linear-gradient(145deg, #347ed4, #2064b5) !important;
+    border-color: #194f92 !important;
+    box-shadow: 0 8px 18px rgba(32, 93, 166, 0.28);
+}
+
+body.role-player .btn-ghost {
+    border-color: #95c7ef !important;
+    color: #245f8f !important;
+    background: linear-gradient(145deg, #ffffff, #f3f9ff) !important;
+}
+
+body.role-player .eyebrow {
+    color: #2167aa !important;
+}
+
 h1,
 h2,
 h3,
@@ -1017,6 +1095,61 @@ body > footer .footer-shell {
     0% { box-shadow: 0 0 0 0 rgba(26, 191, 143, 0.45); }
     70% { box-shadow: 0 0 0 10px rgba(26, 191, 143, 0); }
     100% { box-shadow: 0 0 0 0 rgba(26, 191, 143, 0); }
+}
+
+.home-hero {
+    position: relative;
+    overflow: hidden;
+}
+
+.home-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.7;
+}
+
+.home-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.home-hero-instructor::before {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(39, 182, 154, 0.18), transparent 44%),
+        radial-gradient(circle at 100% 0%, rgba(255, 187, 62, 0.16), transparent 40%);
+}
+
+.home-hero-player::before {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(45, 125, 210, 0.18), transparent 44%),
+        radial-gradient(circle at 100% 0%, rgba(245, 139, 44, 0.18), transparent 42%);
+}
+
+.home-progress-instructor {
+    background: linear-gradient(90deg, #1ba784, #26c59b);
+}
+
+.home-progress-player {
+    background: linear-gradient(90deg, #2d7dd2, #f4a84a);
+}
+
+.player-guide .tip-card {
+    border-color: #9cc7e8;
+    box-shadow: 0 12px 24px rgba(31, 85, 136, 0.12);
+}
+
+.player-guide .tip-card a {
+    color: #2363a0;
+}
+
+.analytics-shell-player .glass-surface {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(245, 168, 74, 0.14), transparent 38%),
+        linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(239, 247, 255, 0.94)) !important;
+    border-color: #9ec9ea !important;
 }
 
 .tips-grid {

@@ -138,6 +138,21 @@ public sealed class SessionRepository
         return items.ToList();
     }
 
+    public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid playerId, CancellationToken ct)
+    {
+        const string sql = """
+            select distinct s.session_id, s.session_name, s.mode, s.status, s.started_at, s.ended_at, s.instructor_user_id, s.created_at
+            from sessions s
+            join session_players sp on sp.session_id = s.session_id
+            where sp.player_id = @playerId
+            order by s.created_at desc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
+        return items.ToList();
+    }
+
     public async Task ActivateRulesetAsync(Guid sessionId, Guid rulesetVersionId, string? activatedBy, CancellationToken ct)
     {
         const string sql = """

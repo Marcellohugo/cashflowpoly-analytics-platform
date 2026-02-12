@@ -15,11 +15,13 @@ public sealed class SessionsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
     private readonly SessionRepository _sessions;
+    private readonly UserRepository _users;
 
-    public SessionsController(RulesetRepository rulesets, SessionRepository sessions)
+    public SessionsController(RulesetRepository rulesets, SessionRepository sessions, UserRepository users)
     {
         _rulesets = rulesets;
         _sessions = sessions;
+        _users = users;
     }
 
     /// <summary>
@@ -28,12 +30,35 @@ public sealed class SessionsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ListSessions(CancellationToken ct)
     {
-        if (!TryGetCurrentUserId(out var instructorUserId))
+        if (!TryGetCurrentUserId(out var userId))
         {
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var sessions = await _sessions.ListSessionsByInstructorAsync(instructorUserId, ct);
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        List<SessionDb> sessions;
+
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            sessions = await _sessions.ListSessionsByInstructorAsync(userId, ct);
+        }
+        else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
+            if (!linkedPlayerId.HasValue)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
+            }
+
+            sessions = await _sessions.ListSessionsByPlayerAsync(linkedPlayerId.Value, ct);
+        }
+        else
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
         var items = sessions.Select(s => new SessionListItem(
             s.SessionId,
             s.SessionName,

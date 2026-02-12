@@ -95,7 +95,8 @@ public sealed class AuthController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        if (string.IsNullOrWhiteSpace(model.Username) ||
+        if (string.IsNullOrWhiteSpace(model.DisplayName) ||
+            string.IsNullOrWhiteSpace(model.Username) ||
             string.IsNullOrWhiteSpace(model.Password) ||
             string.IsNullOrWhiteSpace(model.ConfirmPassword))
         {
@@ -122,7 +123,11 @@ public sealed class AuthController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var payload = new RegisterRequestDto(model.Username.Trim(), model.Password, model.Role.ToUpperInvariant());
+        var payload = new RegisterRequestDto(
+            model.Username.Trim(),
+            model.Password,
+            model.Role.ToUpperInvariant(),
+            model.DisplayName.Trim());
         var response = await client.PostAsJsonAsync("api/v1/auth/register", payload);
 
         if (!response.IsSuccessStatusCode)
