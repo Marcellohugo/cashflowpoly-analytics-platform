@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.Claims;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
@@ -17,13 +18,23 @@ public sealed class AnalyticsController : ControllerBase
     private readonly EventRepository _events;
     private readonly RulesetRepository _rulesets;
     private readonly MetricsRepository _metrics;
+    private readonly PlayerRepository _players;
+    private readonly UserRepository _users;
 
-    public AnalyticsController(SessionRepository sessions, EventRepository events, RulesetRepository rulesets, MetricsRepository metrics)
+    public AnalyticsController(
+        SessionRepository sessions,
+        EventRepository events,
+        RulesetRepository rulesets,
+        MetricsRepository metrics,
+        PlayerRepository players,
+        UserRepository users)
     {
         _sessions = sessions;
         _events = events;
         _rulesets = rulesets;
         _metrics = metrics;
+        _players = players;
+        _users = users;
     }
 
     /// <summary>
@@ -71,6 +82,12 @@ public sealed class AnalyticsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
+        var scope = await ResolvePlayerScopeAsync(sessionId, ct);
+        if (scope.Error is not null)
+        {
+            return scope.Error;
+        }
+
         var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
@@ -90,6 +107,10 @@ public sealed class AnalyticsController : ControllerBase
         var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
         var summary = BuildSummary(events, projections, violations);
         var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+        if (scope.PlayerId.HasValue)
+        {
+            byPlayer = byPlayer.Where(item => item.PlayerId == scope.PlayerId.Value).ToList();
+        }
 
         if (activeRulesetVersionId.HasValue)
         {
@@ -108,9 +129,17 @@ public sealed class AnalyticsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
+        var scope = await ResolvePlayerScopeAsync(sessionId, ct);
+        if (scope.Error is not null)
+        {
+            return scope.Error;
+        }
+
+        var effectivePlayerId = scope.PlayerId ?? playerId;
+
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
         var items = projections
-            .Where(p => !playerId.HasValue || p.PlayerId == playerId.Value)
+            .Where(p => !effectivePlayerId.HasValue || p.PlayerId == effectivePlayerId.Value)
             .OrderBy(p => p.Timestamp)
             .Select(p => new TransactionHistoryItem(p.Timestamp, p.Direction, p.Amount, p.Category))
             .ToList();
@@ -125,6 +154,18 @@ public sealed class AnalyticsController : ControllerBase
         if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        var scope = await ResolvePlayerScopeAsync(sessionId, ct);
+        if (scope.Error is not null)
+        {
+            return scope.Error;
+        }
+
+        if (scope.PlayerId.HasValue && scope.PlayerId.Value != playerId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Player hanya dapat melihat metrik miliknya"));
         }
 
         var snapshots = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, playerId, ct);
@@ -149,6 +190,12 @@ public sealed class AnalyticsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
+        var scope = await ResolvePlayerScopeAsync(null, ct);
+        if (scope.Error is not null)
+        {
+            return scope.Error;
+        }
+
         var sessions = await _sessions.ListSessionsAsync(ct);
         var sessionItems = new List<RulesetAnalyticsSessionItem>();
 
@@ -166,6 +213,15 @@ public sealed class AnalyticsController : ControllerBase
                 continue;
             }
 
+            if (scope.PlayerId.HasValue)
+            {
+                var inSession = await _players.IsPlayerInSessionAsync(session.SessionId, scope.PlayerId.Value, ct);
+                if (!inSession)
+                {
+                    continue;
+                }
+            }
+
             var events = await _events.GetAllEventsBySessionAsync(session.SessionId, ct);
             var projections = await _events.GetCashflowProjectionsAsync(session.SessionId, ct);
             RulesetConfig? config = null;
@@ -176,7 +232,7 @@ public sealed class AnalyticsController : ControllerBase
 
             var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
             var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
-            var playerItems = new List<RulesetAnalyticsPlayerItem>();
+            var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
 
             foreach (var player in byPlayer)
             {
@@ -196,11 +252,14 @@ public sealed class AnalyticsController : ControllerBase
                     player.MissionPenaltyTotal,
                     player.LoanPenaltyTotal);
 
-                playerItems.Add(new RulesetAnalyticsPlayerItem(player.PlayerId, learningScore, missionScore));
+                allPlayerItems.Add(new RulesetAnalyticsPlayerItem(player.PlayerId, learningScore, missionScore));
             }
 
-            var learningAggregate = AverageNullable(playerItems.Select(item => item.LearningPerformanceIndividualScore));
-            var missionAggregate = AverageNullable(playerItems.Select(item => item.MissionPerformanceIndividualScore));
+            var learningAggregate = AverageNullable(allPlayerItems.Select(item => item.LearningPerformanceIndividualScore));
+            var missionAggregate = AverageNullable(allPlayerItems.Select(item => item.MissionPerformanceIndividualScore));
+            var visiblePlayers = scope.PlayerId.HasValue
+                ? allPlayerItems.Where(item => item.PlayerId == scope.PlayerId.Value).ToList()
+                : allPlayerItems;
 
             sessionItems.Add(new RulesetAnalyticsSessionItem(
                 session.SessionId,
@@ -209,7 +268,7 @@ public sealed class AnalyticsController : ControllerBase
                 events.Count,
                 learningAggregate,
                 missionAggregate,
-                playerItems));
+                visiblePlayers));
         }
 
         var learningOverall = AverageNullable(sessionItems.Select(item => item.LearningPerformanceAggregateScore));
@@ -222,6 +281,40 @@ public sealed class AnalyticsController : ControllerBase
             learningOverall,
             missionOverall,
             sessionItems));
+    }
+
+    private async Task<(Guid? PlayerId, IActionResult? Error)> ResolvePlayerScopeAsync(Guid? sessionId, CancellationToken ct)
+    {
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        if (!string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            return (null, null);
+        }
+
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdRaw, out var userId))
+        {
+            return (null, Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid")));
+        }
+
+        var playerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
+        if (!playerId.HasValue)
+        {
+            return (null, StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain")));
+        }
+
+        if (sessionId.HasValue)
+        {
+            var inSession = await _players.IsPlayerInSessionAsync(sessionId.Value, playerId.Value, ct);
+            if (!inSession)
+            {
+                return (null, StatusCode(StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Player tidak terdaftar di sesi ini")));
+            }
+        }
+
+        return (playerId.Value, null);
     }
 
     private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections, int rulesViolationsCount)

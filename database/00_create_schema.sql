@@ -17,6 +17,16 @@ create table if not exists players (
   created_at timestamptz not null default now()
 );
 
+create table if not exists user_player_links (
+  link_id uuid primary key,
+  user_id uuid not null unique references app_users(user_id) on delete cascade,
+  player_id uuid not null unique references players(player_id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ix_user_player_links_user on user_player_links(user_id);
+create index if not exists ix_user_player_links_player on user_player_links(player_id);
+
 create table if not exists sessions (
   session_id uuid primary key,
   session_name varchar(120) not null,

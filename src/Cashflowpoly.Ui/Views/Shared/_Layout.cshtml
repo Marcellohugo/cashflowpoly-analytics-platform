@@ -17,6 +17,7 @@
         string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)
             ? "nav-link is-active"
             : "nav-link";
+    var hideFooter = ViewData["HideFooter"] as bool? ?? false;
 }
 <!DOCTYPE html>
 <html lang="@activeLanguage">
@@ -40,9 +41,18 @@
                     <span class="brand-title">Cashflowpoly</span>
                 </div>
             </a>
+            <button class="nav-mobile-toggle js-nav-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="primary-nav-links"
+                    aria-label="Toggle navigation menu">
+                <span class="nav-mobile-toggle-line"></span>
+                <span class="nav-mobile-toggle-line"></span>
+                <span class="nav-mobile-toggle-line"></span>
+            </button>
             @if (isLoggedIn)
             {
-                <div class="nav-pill nav-center">
+                <div id="primary-nav-links" class="nav-pill nav-center">
                     <a class="@navClass("Home", "Index")" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
                     @if (isInstructor)
                     {
@@ -97,7 +107,7 @@
             }
             else
             {
-                <div class="nav-pill nav-right">
+                <div id="primary-nav-links" class="nav-pill nav-right">
                     <div class="nav-right-cluster">
                         <details class="nav-dropdown">
                             <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
@@ -130,12 +140,15 @@
         </main>
     </div>
 
-    <footer class="border-t border-white/70">
-        <div class="footer-shell">
-            <span>&copy; 2026 - Cashflowpoly</span>
-            <a class="hover:text-slate-700" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
-        </div>
-    </footer>
+    @if (!hideFooter)
+    {
+        <footer class="border-t border-white/70">
+            <div class="footer-shell">
+                <span>&copy; 2026 - Cashflowpoly</span>
+                <a class="hover:text-slate-700" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
+            </div>
+        </footer>
+    }
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

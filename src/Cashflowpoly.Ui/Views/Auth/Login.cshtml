@@ -2,44 +2,58 @@
 
 @{
     ViewData["Title"] = Context.T("auth.title");
+    ViewData["HideFooter"] = true;
 }
 
-<section class="section-shell">
-    <div class="mx-auto max-w-xl">
-        <div>
-            <p class="eyebrow text-emerald-700">@Context.T("auth.access")</p>
-            <h1 class="headline">@Context.T("auth.title")</h1>
-            <p class="subhead">@Context.T("auth.subtitle")</p>
-        </div>
+<div class="auth-split-shell">
+    <div class="auth-split-card auth-mode-login">
+            <div class="auth-split-left">
+                <p class="auth-kicker">@Context.T("auth.access")</p>
+                <h1 class="auth-heading">@Context.T("auth.title")</h1>
+                <p class="auth-copy">@Context.T("auth.subtitle")</p>
 
-        <form class="mt-6 glass-surface p-6" method="post" asp-controller="Auth" asp-action="Login">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="ReturnUrl" />
+                <form class="auth-form" method="post" asp-controller="Auth" asp-action="Login">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" />
 
-            <div>
-                <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("auth.username")</label>
-                <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
-                       asp-for="Username" placeholder="Username" />
-            </div>
+                    <div>
+                        <label class="auth-label">@Context.T("auth.username")</label>
+                        <input class="auth-input"
+                               asp-for="Username" placeholder="Username" />
+                    </div>
 
-            <div class="mt-4">
-                <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("auth.password")</label>
-                <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
-                       asp-for="Password" type="password" placeholder="********" />
-            </div>
+                    <div>
+                        <label class="auth-label">@Context.T("auth.password")</label>
+                        <input class="auth-input"
+                               asp-for="Password" type="password" placeholder="********" />
+                    </div>
 
-            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-            {
-                <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    @Model.ErrorMessage
+                    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                    {
+                        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            @Model.ErrorMessage
+                        </div>
+                    }
+
+                    <button class="auth-login-btn" type="submit">@Context.T("auth.submit")</button>
+
+                    <p class="auth-register-copy">
+                        @Context.T("auth.no_account")
+                        <a class="js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.register")</a>
+                    </p>
+                </form>
+
+                <div class="auth-login-notes" aria-hidden="true">
+                    <span>Akses sesi lebih cepat</span>
+                    <span>Monitoring analytics real-time</span>
+                    <span>Manajemen ruleset terpusat</span>
                 </div>
-            }
+            </div>
 
-            <button class="btn-primary mt-6" type="submit">@Context.T("auth.submit")</button>
-            <p class="mt-3 text-sm text-slate-500">
-                @Context.T("auth.no_account")
-                <a class="font-semibold hover:underline" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.register")</a>
-            </p>
-        </form>
+            <aside class="auth-split-right" aria-hidden="true">
+                <h2>Belum Punya Akun?</h2>
+                <p>Buat akun baru untuk mulai mengelola sesi dan analytics.</p>
+                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">DAFTAR</a>
+            </aside>
     </div>
-</section>
+</div>
