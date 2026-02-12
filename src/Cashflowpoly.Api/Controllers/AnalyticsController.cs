@@ -208,32 +208,44 @@ public sealed class AnalyticsController : ControllerBase
     [HttpGet("rulesets/{rulesetId:guid}/summary")]
     public async Task<IActionResult> GetRulesetAnalyticsSummary(Guid rulesetId, CancellationToken ct)
     {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
-        if (ruleset is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
-
-        var scope = await ResolvePlayerScopeAsync(null, ct);
-        if (scope.Error is not null)
-        {
-            return scope.Error;
-        }
-
         var role = User.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        RulesetDb? ruleset = null;
         List<SessionDb> sessions;
-        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        Guid? scopedPlayerId = null;
+
+        if (isInstructor)
         {
             if (!TryGetCurrentUserId(out var instructorUserId))
             {
                 return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
             }
 
+            ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
+            if (ruleset is null)
+            {
+                return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+            }
+
             sessions = await _sessions.ListSessionsByInstructorAsync(instructorUserId, ct);
+        }
+        else if (isPlayer)
+        {
+            var scope = await ResolvePlayerScopeAsync(null, ct);
+            if (scope.Error is not null)
+            {
+                return scope.Error;
+            }
+
+            scopedPlayerId = scope.PlayerId;
+            sessions = await _sessions.ListSessionsAsync(ct);
         }
         else
         {
-            sessions = await _sessions.ListSessionsAsync(ct);
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
         }
 
         var sessionItems = new List<RulesetAnalyticsSessionItem>();
@@ -252,9 +264,9 @@ public sealed class AnalyticsController : ControllerBase
                 continue;
             }
 
-            if (scope.PlayerId.HasValue)
+            if (scopedPlayerId.HasValue)
             {
-                var inSession = await _players.IsPlayerInSessionAsync(session.SessionId, scope.PlayerId.Value, ct);
+                var inSession = await _players.IsPlayerInSessionAsync(session.SessionId, scopedPlayerId.Value, ct);
                 if (!inSession)
                 {
                     continue;
@@ -296,8 +308,8 @@ public sealed class AnalyticsController : ControllerBase
 
             var learningAggregate = AverageNullable(allPlayerItems.Select(item => item.LearningPerformanceIndividualScore));
             var missionAggregate = AverageNullable(allPlayerItems.Select(item => item.MissionPerformanceIndividualScore));
-            var visiblePlayers = scope.PlayerId.HasValue
-                ? allPlayerItems.Where(item => item.PlayerId == scope.PlayerId.Value).ToList()
+            var visiblePlayers = scopedPlayerId.HasValue
+                ? allPlayerItems.Where(item => item.PlayerId == scopedPlayerId.Value).ToList()
                 : allPlayerItems;
 
             sessionItems.Add(new RulesetAnalyticsSessionItem(
@@ -308,6 +320,25 @@ public sealed class AnalyticsController : ControllerBase
                 learningAggregate,
                 missionAggregate,
                 visiblePlayers));
+        }
+
+        if (isPlayer && sessionItems.Count == 0)
+        {
+            // Jangan menyingkap ruleset yang tidak pernah dipakai oleh sesi player ini.
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        if (!isInstructor)
+        {
+            ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+            if (ruleset is null)
+            {
+                return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+            }
+        }
+        else if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
         var learningOverall = AverageNullable(sessionItems.Select(item => item.LearningPerformanceAggregateScore));

@@ -21,13 +21,27 @@ public sealed class RulesetRepository
     public async Task<RulesetDb?> GetRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_id, name, description, is_archived, created_at, created_by
+            select ruleset_id, name, description, instructor_user_id, is_archived, created_at, created_by
             from rulesets
             where ruleset_id = @rulesetId
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.QuerySingleOrDefaultAsync<RulesetDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+    }
+
+    public async Task<RulesetDb?> GetRulesetForInstructorAsync(Guid rulesetId, Guid instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            select ruleset_id, name, description, instructor_user_id, is_archived, created_at, created_by
+            from rulesets
+            where ruleset_id = @rulesetId
+              and instructor_user_id = @instructorUserId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<RulesetDb>(
+            new CommandDefinition(sql, new { rulesetId, instructorUserId }, cancellationToken: ct));
     }
 
     public async Task<RulesetVersionDb?> GetLatestVersionAsync(Guid rulesetId, CancellationToken ct)
@@ -86,6 +100,7 @@ public sealed class RulesetRepository
     public async Task<(Guid RulesetId, int Version)> CreateRulesetAsync(
         string name,
         string? description,
+        Guid instructorUserId,
         string configJson,
         string? createdBy,
         CancellationToken ct)
@@ -96,8 +111,8 @@ public sealed class RulesetRepository
         var configHash = ComputeHash(configJson);
 
         const string insertRuleset = """
-            insert into rulesets (ruleset_id, name, description, is_archived, created_at, created_by)
-            values (@rulesetId, @name, @description, false, @createdAt, @createdBy)
+            insert into rulesets (ruleset_id, name, description, instructor_user_id, is_archived, created_at, created_by)
+            values (@rulesetId, @name, @description, @instructorUserId, false, @createdAt, @createdBy)
             """;
 
         const string insertVersion = """
@@ -107,7 +122,15 @@ public sealed class RulesetRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
-        var def1 = new CommandDefinition(insertRuleset, new { rulesetId, name, description, createdAt, createdBy }, tx, cancellationToken: ct);
+        var def1 = new CommandDefinition(insertRuleset, new
+        {
+            rulesetId,
+            name,
+            description,
+            instructorUserId,
+            createdAt,
+            createdBy
+        }, tx, cancellationToken: ct);
         await conn.ExecuteAsync(def1);
 
         var def2 = new CommandDefinition(insertVersion, new
@@ -221,7 +244,7 @@ public sealed class RulesetRepository
         return true;
     }
 
-    public async Task<List<RulesetListItem>> ListRulesetsAsync(CancellationToken ct)
+    public async Task<List<RulesetListItem>> ListRulesetsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
             select r.ruleset_id, r.name, coalesce(v.latest_version, 0) as latest_version
@@ -231,11 +254,13 @@ public sealed class RulesetRepository
                 from ruleset_versions
                 group by ruleset_id
             ) v on v.ruleset_id = r.ruleset_id
+            where r.instructor_user_id = @instructorUserId
             order by r.created_at desc
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var items = await conn.QueryAsync<RulesetListItem>(new CommandDefinition(sql, cancellationToken: ct));
+        var items = await conn.QueryAsync<RulesetListItem>(
+            new CommandDefinition(sql, new { instructorUserId }, cancellationToken: ct));
         return items.ToList();
     }
 

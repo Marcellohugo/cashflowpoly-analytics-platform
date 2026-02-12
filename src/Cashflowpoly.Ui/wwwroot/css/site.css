@@ -139,6 +139,8 @@ a:hover {
 }
 
 .nav-center {
+    display: flex;
+    justify-content: center;
     padding: 0.3rem !important;
     border-color: #73d8cf !important;
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(236, 255, 251, 0.96)) !important;
@@ -816,6 +818,7 @@ body > footer .footer-shell {
         flex-wrap: wrap;
         overflow-x: visible;
         gap: 0.5rem;
+        justify-content: center;
     }
 
     .nav-shell-auth {
@@ -830,7 +833,7 @@ body > footer .footer-shell {
         grid-column: 1 / -1;
         grid-row: 2;
         width: 100%;
-        justify-content: flex-start;
+        justify-content: center;
     }
 
     .nav-shell-auth .nav-right {

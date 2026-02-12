@@ -55,10 +55,17 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             alter table players add column if not exists instructor_user_id uuid null references app_users(user_id) on delete set null;
             create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
             alter table if exists sessions add column if not exists instructor_user_id uuid null references app_users(user_id) on delete set null;
+            alter table if exists rulesets add column if not exists instructor_user_id uuid null references app_users(user_id) on delete set null;
             do $$
             begin
               if to_regclass('public.sessions') is not null then
                 execute 'create index if not exists ix_sessions_instructor_user on sessions(instructor_user_id, created_at desc)';
+              end if;
+            end $$;
+            do $$
+            begin
+              if to_regclass('public.rulesets') is not null then
+                execute 'create index if not exists ix_rulesets_instructor_user on rulesets(instructor_user_id, created_at desc)';
               end if;
             end $$;
 
@@ -67,6 +74,40 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             from user_player_links upl
             where p.player_id = upl.player_id
               and p.instructor_user_id is null;
+
+            do $$
+            begin
+              if to_regclass('public.rulesets') is not null then
+                update rulesets r
+                set instructor_user_id = u.user_id
+                from app_users u
+                where r.instructor_user_id is null
+                  and r.created_by is not null
+                  and lower(u.username) = lower(r.created_by);
+              end if;
+            end $$;
+
+            do $$
+            begin
+              if to_regclass('public.rulesets') is not null
+                 and to_regclass('public.ruleset_versions') is not null
+                 and to_regclass('public.session_ruleset_activations') is not null
+                 and to_regclass('public.sessions') is not null then
+                update rulesets r
+                set instructor_user_id = src.instructor_user_id
+                from (
+                  select rv.ruleset_id, min(s.instructor_user_id::text)::uuid as instructor_user_id
+                  from ruleset_versions rv
+                  join session_ruleset_activations sra on sra.ruleset_version_id = rv.ruleset_version_id
+                  join sessions s on s.session_id = sra.session_id
+                  where s.instructor_user_id is not null
+                  group by rv.ruleset_id
+                  having count(distinct s.instructor_user_id) = 1
+                ) src
+                where r.ruleset_id = src.ruleset_id
+                  and r.instructor_user_id is null;
+              end if;
+            end $$;
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);

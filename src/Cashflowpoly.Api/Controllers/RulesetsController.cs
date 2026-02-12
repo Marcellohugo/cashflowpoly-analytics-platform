@@ -29,6 +29,11 @@ public sealed class RulesetsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> CreateRuleset([FromBody] CreateRulesetRequest request, CancellationToken ct)
     {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
@@ -40,7 +45,13 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var configJson = request.Config.GetRawText();
-        var created = await _rulesets.CreateRulesetAsync(request.Name, request.Description, configJson, GetActorName(), ct);
+        var created = await _rulesets.CreateRulesetAsync(
+            request.Name,
+            request.Description,
+            instructorUserId,
+            configJson,
+            GetActorName(),
+            ct);
 
         return Created($"/api/v1/rulesets/{created.RulesetId}", new CreateRulesetResponse(created.RulesetId, created.Version));
     }
@@ -49,7 +60,12 @@ public sealed class RulesetsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
-        var existing = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var existing = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
         if (existing is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -81,7 +97,12 @@ public sealed class RulesetsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ActivateRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
     {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -109,14 +130,24 @@ public sealed class RulesetsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ListRulesets(CancellationToken ct)
     {
-        var items = await _rulesets.ListRulesetsAsync(ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var items = await _rulesets.ListRulesetsByInstructorAsync(instructorUserId, ct);
         return Ok(new RulesetListResponse(items));
     }
 
     [HttpGet("{rulesetId:guid}")]
     public async Task<IActionResult> GetRulesetDetail(Guid rulesetId, CancellationToken ct)
     {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -155,7 +186,12 @@ public sealed class RulesetsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ArchiveRuleset(Guid rulesetId, CancellationToken ct)
     {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -172,7 +208,12 @@ public sealed class RulesetsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> DeleteRuleset(Guid rulesetId, CancellationToken ct)
     {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -192,5 +233,11 @@ public sealed class RulesetsController : ControllerBase
     {
         return User.FindFirstValue(ClaimTypes.Name) ??
                User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdRaw, out userId);
     }
 }

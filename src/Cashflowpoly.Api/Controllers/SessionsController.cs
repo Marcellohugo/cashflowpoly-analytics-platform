@@ -68,7 +68,7 @@ public sealed class SessionsController : ControllerBase
                 new ErrorDetail("mode", "INVALID_ENUM")));
         }
 
-        var ruleset = await _rulesets.GetRulesetAsync(request.RulesetId, ct);
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(request.RulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -161,6 +161,12 @@ public sealed class SessionsController : ControllerBase
         if (string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase))
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session sudah berakhir"));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(request.RulesetId, instructorUserId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
         var rulesetVersion = await _rulesets.GetRulesetVersionAsync(request.RulesetId, request.Version, ct);
