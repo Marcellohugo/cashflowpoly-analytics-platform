@@ -39,8 +39,10 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             create table if not exists players (
               player_id uuid primary key,
               display_name varchar(80) not null,
+              instructor_user_id uuid null references app_users(user_id) on delete set null,
               created_at timestamptz not null default now()
             );
+            create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
 
             create table if not exists user_player_links (
               link_id uuid primary key,
@@ -51,6 +53,22 @@ public sealed class AuthSchemaBootstrapper : IHostedService
 
             create index if not exists ix_user_player_links_user on user_player_links(user_id);
             create index if not exists ix_user_player_links_player on user_player_links(player_id);
+
+            alter table players add column if not exists instructor_user_id uuid null references app_users(user_id) on delete set null;
+            create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
+            alter table if exists sessions add column if not exists instructor_user_id uuid null references app_users(user_id) on delete set null;
+            do $$
+            begin
+              if to_regclass('public.sessions') is not null then
+                execute 'create index if not exists ix_sessions_instructor_user on sessions(instructor_user_id, created_at desc)';
+              end if;
+            end $$;
+
+            update players p
+            set instructor_user_id = upl.user_id
+            from user_player_links upl
+            where p.player_id = upl.player_id
+              and p.instructor_user_id is null;
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);

@@ -28,7 +28,12 @@ public sealed class SessionsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ListSessions(CancellationToken ct)
     {
-        var sessions = await _sessions.ListSessionsAsync(ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var sessions = await _sessions.ListSessionsByInstructorAsync(instructorUserId, ct);
         var items = sessions.Select(s => new SessionListItem(
             s.SessionId,
             s.SessionName,
@@ -45,6 +50,11 @@ public sealed class SessionsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> CreateSession([FromBody] CreateSessionRequest request, CancellationToken ct)
     {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
         if (string.IsNullOrWhiteSpace(request.SessionName))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
@@ -74,6 +84,7 @@ public sealed class SessionsController : ControllerBase
             request.SessionName,
             request.Mode.ToUpperInvariant(),
             latestVersion.RulesetVersionId,
+            instructorUserId,
             GetActorName(),
             ct);
 
@@ -84,7 +95,12 @@ public sealed class SessionsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> StartSession(Guid sessionId, CancellationToken ct)
     {
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
@@ -105,7 +121,12 @@ public sealed class SessionsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> EndSession(Guid sessionId, CancellationToken ct)
     {
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
@@ -126,7 +147,12 @@ public sealed class SessionsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
     {
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
@@ -165,5 +191,11 @@ public sealed class SessionsController : ControllerBase
     {
         return User.FindFirstValue(ClaimTypes.Name) ??
                User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdRaw, out userId);
     }
 }

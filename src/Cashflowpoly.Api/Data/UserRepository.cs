@@ -57,8 +57,8 @@ public sealed class UserRepository
             """;
 
         const string insertPlayerSql = """
-            insert into players (player_id, display_name, created_at)
-            values (@playerId, @displayName, @createdAt)
+            insert into players (player_id, display_name, instructor_user_id, created_at)
+            values (@playerId, @displayName, @instructorUserId, @createdAt)
             """;
 
         const string insertUserPlayerLinkSql = """
@@ -86,6 +86,7 @@ public sealed class UserRepository
             {
                 playerId,
                 displayName = username,
+                instructorUserId = userId,
                 createdAt
             }, tx, cancellationToken: ct));
 
@@ -132,8 +133,8 @@ public sealed class UserRepository
             """;
 
         const string insertPlayerSql = """
-            insert into players (player_id, display_name, created_at)
-            values (@playerId, @displayName, @createdAt)
+            insert into players (player_id, display_name, instructor_user_id, created_at)
+            values (@playerId, @displayName, @instructorUserId, @createdAt)
             """;
 
         const string insertLinkSql = """
@@ -159,6 +160,7 @@ public sealed class UserRepository
         {
             playerId,
             displayName = username,
+            instructorUserId = userId,
             createdAt
         }, tx, cancellationToken: ct));
 

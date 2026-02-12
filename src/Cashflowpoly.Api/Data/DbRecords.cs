@@ -30,6 +30,7 @@ public sealed class SessionDb
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
+    public Guid? InstructorUserId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 
@@ -37,6 +38,7 @@ public sealed class PlayerDb
 {
     public Guid PlayerId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
+    public Guid? InstructorUserId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 

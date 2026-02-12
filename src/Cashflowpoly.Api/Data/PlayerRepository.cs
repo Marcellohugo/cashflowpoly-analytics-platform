@@ -18,7 +18,7 @@ public sealed class PlayerRepository
     public async Task<PlayerDb?> GetPlayerAsync(Guid playerId, CancellationToken ct)
     {
         const string sql = """
-            select player_id, display_name, created_at
+            select player_id, display_name, instructor_user_id, created_at
             from players
             where player_id = @playerId
             """;
@@ -27,13 +27,27 @@ public sealed class PlayerRepository
         return await conn.QuerySingleOrDefaultAsync<PlayerDb>(new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
     }
 
-    public async Task<Guid> CreatePlayerAsync(string displayName, CancellationToken ct)
+    public async Task<PlayerDb?> GetPlayerForInstructorAsync(Guid playerId, Guid instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            select player_id, display_name, instructor_user_id, created_at
+            from players
+            where player_id = @playerId
+              and instructor_user_id = @instructorUserId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<PlayerDb>(
+            new CommandDefinition(sql, new { playerId, instructorUserId }, cancellationToken: ct));
+    }
+
+    public async Task<Guid> CreatePlayerAsync(string displayName, Guid instructorUserId, CancellationToken ct)
     {
         var playerId = Guid.NewGuid();
 
         const string sql = """
-            insert into players (player_id, display_name, created_at)
-            values (@playerId, @displayName, @createdAt)
+            insert into players (player_id, display_name, instructor_user_id, created_at)
+            values (@playerId, @displayName, @instructorUserId, @createdAt)
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -41,22 +55,24 @@ public sealed class PlayerRepository
         {
             playerId,
             displayName,
+            instructorUserId,
             createdAt = DateTimeOffset.UtcNow
         }, cancellationToken: ct));
 
         return playerId;
     }
 
-    public async Task<List<PlayerDb>> ListPlayersAsync(CancellationToken ct)
+    public async Task<List<PlayerDb>> ListPlayersAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select player_id, display_name, created_at
+            select player_id, display_name, instructor_user_id, created_at
             from players
+            where instructor_user_id = @instructorUserId
             order by created_at desc
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var items = await conn.QueryAsync<PlayerDb>(new CommandDefinition(sql, cancellationToken: ct));
+        var items = await conn.QueryAsync<PlayerDb>(new CommandDefinition(sql, new { instructorUserId }, cancellationToken: ct));
         return items.ToList();
     }
 

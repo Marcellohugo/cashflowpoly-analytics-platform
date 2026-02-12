@@ -2,6 +2,7 @@ using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -27,13 +28,18 @@ public sealed class PlayersController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama pemain wajib diisi",
                 new ErrorDetail("display_name", "REQUIRED")));
         }
 
-        var playerId = await _players.CreatePlayerAsync(request.DisplayName, ct);
+        var playerId = await _players.CreatePlayerAsync(request.DisplayName, instructorUserId, ct);
         return Created($"/api/v1/players/{playerId}", new PlayerResponse(playerId, request.DisplayName));
     }
 
@@ -41,7 +47,12 @@ public sealed class PlayersController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> ListPlayers(CancellationToken ct)
     {
-        var players = await _players.ListPlayersAsync(ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var players = await _players.ListPlayersAsync(instructorUserId, ct);
         var items = players.Select(p => new PlayerResponse(p.PlayerId, p.DisplayName)).ToList();
         return Ok(new PlayerListResponse(items));
     }
@@ -51,13 +62,18 @@ public sealed class PlayersController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        var player = await _players.GetPlayerAsync(request.PlayerId, ct);
+        var player = await _players.GetPlayerForInstructorAsync(request.PlayerId, instructorUserId, ct);
         if (player is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Player tidak ditemukan"));
@@ -68,5 +84,11 @@ public sealed class PlayersController : ControllerBase
 
         await _players.AddPlayerToSessionAsync(sessionId, request.PlayerId, role, joinOrder, ct);
         return Ok();
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdRaw, out userId);
     }
 }

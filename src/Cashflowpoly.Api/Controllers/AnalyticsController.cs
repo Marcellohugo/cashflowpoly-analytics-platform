@@ -44,6 +44,12 @@ public sealed class AnalyticsController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     public async Task<IActionResult> Recompute(Guid sessionId, CancellationToken ct)
     {
+        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
+        if (instructorScopeError is not null)
+        {
+            return instructorScopeError;
+        }
+
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
@@ -76,6 +82,12 @@ public sealed class AnalyticsController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}")]
     public async Task<IActionResult> GetSessionAnalytics(Guid sessionId, CancellationToken ct)
     {
+        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
+        if (instructorScopeError is not null)
+        {
+            return instructorScopeError;
+        }
+
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
@@ -123,6 +135,12 @@ public sealed class AnalyticsController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}/transactions")]
     public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? playerId = null, CancellationToken ct = default)
     {
+        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
+        if (instructorScopeError is not null)
+        {
+            return instructorScopeError;
+        }
+
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
@@ -150,6 +168,12 @@ public sealed class AnalyticsController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}/players/{playerId:guid}/gameplay")]
     public async Task<IActionResult> GetGameplayMetrics(Guid sessionId, Guid playerId, CancellationToken ct)
     {
+        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
+        if (instructorScopeError is not null)
+        {
+            return instructorScopeError;
+        }
+
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
@@ -196,7 +220,22 @@ public sealed class AnalyticsController : ControllerBase
             return scope.Error;
         }
 
-        var sessions = await _sessions.ListSessionsAsync(ct);
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        List<SessionDb> sessions;
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!TryGetCurrentUserId(out var instructorUserId))
+            {
+                return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            }
+
+            sessions = await _sessions.ListSessionsByInstructorAsync(instructorUserId, ct);
+        }
+        else
+        {
+            sessions = await _sessions.ListSessionsAsync(ct);
+        }
+
         var sessionItems = new List<RulesetAnalyticsSessionItem>();
 
         foreach (var session in sessions)
@@ -315,6 +354,34 @@ public sealed class AnalyticsController : ControllerBase
         }
 
         return (playerId.Value, null);
+    }
+
+    private async Task<IActionResult?> EnsureInstructorSessionAccessAsync(Guid sessionId, CancellationToken ct)
+    {
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        return null;
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdRaw, out userId);
     }
 
     private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections, int rulesViolationsCount)

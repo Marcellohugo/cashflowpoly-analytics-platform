@@ -14,8 +14,11 @@ create index if not exists ix_app_users_role_active on app_users(role, is_active
 create table if not exists players (
   player_id uuid primary key,
   display_name varchar(80) not null,
+  instructor_user_id uuid null references app_users(user_id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
 
 create table if not exists user_player_links (
   link_id uuid primary key,
@@ -34,11 +37,13 @@ create table if not exists sessions (
   status varchar(10) not null check (status in ('CREATED','STARTED','ENDED')),
   started_at timestamptz null,
   ended_at timestamptz null,
+  instructor_user_id uuid null references app_users(user_id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 create index if not exists ix_sessions_status on sessions(status);
 create index if not exists ix_sessions_created_at on sessions(created_at desc);
+create index if not exists ix_sessions_instructor_user on sessions(instructor_user_id, created_at desc);
 
 create table if not exists rulesets (
   ruleset_id uuid primary key,

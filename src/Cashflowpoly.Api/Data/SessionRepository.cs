@@ -18,7 +18,7 @@ public sealed class SessionRepository
     public async Task<SessionDb?> GetSessionAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
             from sessions
             where session_id = @sessionId
             """;
@@ -27,10 +27,25 @@ public sealed class SessionRepository
         return await conn.QuerySingleOrDefaultAsync<SessionDb>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
     }
 
+    public async Task<SessionDb?> GetSessionForInstructorAsync(Guid sessionId, Guid instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
+            from sessions
+            where session_id = @sessionId
+              and instructor_user_id = @instructorUserId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<SessionDb>(
+            new CommandDefinition(sql, new { sessionId, instructorUserId }, cancellationToken: ct));
+    }
+
     public async Task<Guid> CreateSessionAsync(
         string sessionName,
         string mode,
         Guid rulesetVersionId,
+        Guid instructorUserId,
         string? createdBy,
         CancellationToken ct)
     {
@@ -38,8 +53,8 @@ public sealed class SessionRepository
         var createdAt = DateTimeOffset.UtcNow;
 
         const string insertSession = """
-            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, created_at)
-            values (@sessionId, @sessionName, @mode, 'CREATED', null, null, @createdAt)
+            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at)
+            values (@sessionId, @sessionName, @mode, 'CREATED', null, null, @instructorUserId, @createdAt)
             """;
 
         const string insertActivation = """
@@ -50,7 +65,7 @@ public sealed class SessionRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
-        var def1 = new CommandDefinition(insertSession, new { sessionId, sessionName, mode, createdAt }, tx, cancellationToken: ct);
+        var def1 = new CommandDefinition(insertSession, new { sessionId, sessionName, mode, instructorUserId, createdAt }, tx, cancellationToken: ct);
         await conn.ExecuteAsync(def1);
 
         var def2 = new CommandDefinition(insertActivation, new
@@ -99,13 +114,27 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsAsync(CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
             from sessions
             order by created_at desc
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task<List<SessionDb>> ListSessionsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
+            from sessions
+            where instructor_user_id = @instructorUserId
+            order by created_at desc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, new { instructorUserId }, cancellationToken: ct));
         return items.ToList();
     }
 

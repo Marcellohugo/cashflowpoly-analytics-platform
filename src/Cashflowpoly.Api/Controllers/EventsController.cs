@@ -5,6 +5,7 @@ using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using System.Security.Claims;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -127,6 +128,12 @@ public sealed class EventsController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}/events")]
     public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] long fromSeq = 0, [FromQuery] int limit = 200, CancellationToken ct = default)
     {
+        var instructorScopeCheck = await ValidateInstructorSessionAccessAsync(sessionId, ct);
+        if (!instructorScopeCheck.IsValid)
+        {
+            return StatusCode(instructorScopeCheck.StatusCode, instructorScopeCheck.Error);
+        }
+
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
@@ -140,6 +147,12 @@ public sealed class EventsController : ControllerBase
 
     private async Task<ValidationOutcome> ValidateEventAsync(EventRequest request, CancellationToken ct)
     {
+        var instructorScopeCheck = await ValidateInstructorSessionAccessAsync(request.SessionId, ct);
+        if (!instructorScopeCheck.IsValid)
+        {
+            return instructorScopeCheck;
+        }
+
         var session = await _sessions.GetSessionAsync(request.SessionId, ct);
         if (session is null)
         {
@@ -1909,6 +1922,29 @@ public sealed class EventsController : ControllerBase
         if (projectedBalance < config.CashMin)
         {
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tidak mencukupi");
+        }
+
+        return Valid;
+    }
+
+    private async Task<ValidationOutcome> ValidateInstructorSessionAccessAsync(Guid sessionId, CancellationToken ct)
+    {
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return Valid;
+        }
+
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdRaw, out var instructorUserId))
+        {
+            return BuildOutcome(StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Token user tidak valid");
+        }
+
+        var ownedSession = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (ownedSession is null)
+        {
+            return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Session tidak ditemukan");
         }
 
         return Valid;

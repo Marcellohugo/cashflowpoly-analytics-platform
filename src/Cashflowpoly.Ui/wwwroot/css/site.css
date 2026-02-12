@@ -1022,6 +1022,10 @@ body > footer .footer-shell {
     flex-wrap: wrap;
 }
 
+.ruleset-title-block {
+    max-width: 48rem;
+}
+
 .ruleset-tipline {
     display: flex;
     flex-wrap: wrap;
@@ -1165,6 +1169,66 @@ body > footer .footer-shell {
 .ruleset-editor {
     line-height: 1.45;
     letter-spacing: 0.01em;
+}
+
+.ruleset-config-grid {
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.ruleset-config-card {
+    border: 2px solid #95ded6;
+    border-radius: 1rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 199, 71, 0.12), transparent 36%),
+        rgba(255, 255, 255, 0.88);
+    padding: 0.85rem;
+    box-shadow: 0 12px 22px rgba(20, 99, 134, 0.1);
+}
+
+.ruleset-config-card h3 {
+    margin: 0;
+    color: #1f4863;
+    font-family: "Baloo 2", cursive;
+    font-size: 1.02rem;
+    font-weight: 800;
+}
+
+.ruleset-overview-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.ruleset-overview-card {
+    border: 2px solid #9de0d8;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0.65rem 0.75rem;
+}
+
+.ruleset-overview-label {
+    margin: 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #527083;
+}
+
+.ruleset-overview-value {
+    margin: 0.28rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1d3042;
+}
+
+.ruleset-layout-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
 }
 
 .auth-split-shell {
@@ -1413,6 +1477,10 @@ body > footer .footer-shell {
 
     .ruleset-hero-meta {
         align-items: flex-start;
+    }
+
+    .ruleset-layout-grid {
+        grid-template-columns: 1fr;
     }
 
     .auth-split-card {

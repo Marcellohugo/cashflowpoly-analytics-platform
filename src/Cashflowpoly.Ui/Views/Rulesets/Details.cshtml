@@ -1,8 +1,45 @@
 @model Cashflowpoly.Ui.Models.RulesetDetailViewModel
+@using System.Text.Json
 
 @{
     ViewData["Title"] = Context.T("rulesets.detail_title");
     var isInstructor = Context.Session.IsInstructor();
+}
+
+@functions {
+    private static JsonElement? GetPath(JsonElement root, params string[] path)
+    {
+        var cursor = root;
+        foreach (var segment in path)
+        {
+            if (cursor.ValueKind != JsonValueKind.Object || !cursor.TryGetProperty(segment, out var next))
+            {
+                return null;
+            }
+
+            cursor = next;
+        }
+
+        return cursor;
+    }
+
+    private static string AsText(JsonElement? value, string fallback = "-")
+    {
+        if (!value.HasValue)
+        {
+            return fallback;
+        }
+
+        var v = value.Value;
+        return v.ValueKind switch
+        {
+            JsonValueKind.String => v.GetString() ?? fallback,
+            JsonValueKind.Number => v.ToString(),
+            JsonValueKind.True => "Aktif",
+            JsonValueKind.False => "Nonaktif",
+            _ => v.ToString()
+        };
+    }
 }
 
 <section class="section-shell">
@@ -20,13 +57,18 @@
 
     @if (Model.Ruleset is not null)
     {
+        var hasConfig = Model.Ruleset.ConfigJson.HasValue && Model.Ruleset.ConfigJson.Value.ValueKind == JsonValueKind.Object;
+        var cfg = hasConfig ? Model.Ruleset.ConfigJson!.Value : default;
+        var latestVersion = Model.Ruleset.Versions.Count > 0 ? Model.Ruleset.Versions.Max(v => v.Version) : 0;
+        var activeVersionCount = Model.Ruleset.Versions.Count(v => string.Equals(v.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase));
+
         <div class="mt-4 ruleset-unified">
             <div class="ruleset-unified-head">
-                <div>
+                <div class="ruleset-title-block">
                     <p class="text-sm text-slate-600">@Context.T("common.name")</p>
                     <p class="text-lg font-semibold text-slate-900">@Model.Ruleset.Name</p>
                     <p class="mt-2 text-sm text-slate-600">@Context.T("common.description")</p>
-                    <p class="text-sm text-slate-700">@Model.Ruleset.Description</p>
+                    <p class="text-sm text-slate-700">@(string.IsNullOrWhiteSpace(Model.Ruleset.Description) ? "-" : Model.Ruleset.Description)</p>
                 </div>
                 <div class="ruleset-hero-meta">
                     <span class="id-chip">@Model.Ruleset.RulesetId</span>
@@ -57,68 +99,143 @@
                 }
             </div>
 
+            <div class="ruleset-overview-grid mt-5">
+                <article class="ruleset-overview-card">
+                    <p class="ruleset-overview-label">Total Versi</p>
+                    <p class="ruleset-overview-value">@Model.Ruleset.Versions.Count</p>
+                </article>
+                <article class="ruleset-overview-card">
+                    <p class="ruleset-overview-label">Versi Aktif</p>
+                    <p class="ruleset-overview-value">@activeVersionCount</p>
+                </article>
+                <article class="ruleset-overview-card">
+                    <p class="ruleset-overview-label">Versi Terbaru</p>
+                    <p class="ruleset-overview-value">@(latestVersion > 0 ? $"v{latestVersion}" : "-")</p>
+                </article>
+                <article class="ruleset-overview-card">
+                    <p class="ruleset-overview-label">Status Ruleset</p>
+                    <p class="ruleset-overview-value">@(Model.Ruleset.IsArchived ? "Archived" : "Available")</p>
+                </article>
+            </div>
+
             <div class="ruleset-stream-divider mt-5"></div>
 
-            <div class="table-wrap mt-5">
-                <div class="px-4 pt-4 pb-2 text-sm font-semibold text-slate-700">Riwayat Versi</div>
-                <table class="w-full text-left text-sm">
-                    <thead class="table-head">
-                        <tr>
-                            <th class="px-4 py-3">@Context.T("common.version")</th>
-                            <th class="px-4 py-3">@Context.T("common.status")</th>
-                            <th class="px-4 py-3">@Context.T("common.created")</th>
-                            @if (isInstructor)
-                            {
-                                <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @if (Model.Ruleset.Versions.Count == 0)
+            <div class="ruleset-layout-grid mt-5">
+                <div>
+                    <p class="text-sm font-semibold text-slate-700">Ringkasan Konfigurasi Ruleset</p>
+                    @if (!hasConfig)
                     {
-                        <tr>
-                            <td class="px-4 py-4 text-slate-500" colspan="@(isInstructor ? 4 : 3)">@Context.T("state.no_versions")</td>
-                        </tr>
+                        <div class="mt-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-600">
+                            Konfigurasi belum tersedia.
+                        </div>
                     }
                     else
                     {
-                        foreach (var version in Model.Ruleset.Versions)
-                        {
-                            <tr class="border-t border-slate-200">
-                                <td class="px-4 py-3 font-medium text-slate-900">v@version.Version</td>
-                                <td class="px-4 py-3 text-slate-600">
-                                    @{
-                                        var statusClass = string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
-                                            ? "status-active"
-                                            : string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
-                                                ? "status-draft"
-                                                : "status-retired";
-                                    }
-                                    <span class="status-pill @statusClass">@version.Status</span>
-                                </td>
-                                <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                @if (isInstructor)
-                                {
-                                    <td class="px-4 py-3 text-right">
-                                        @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
-                                                @Html.AntiForgeryToken()
-                                                <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
-                                            </form>
-                                        }
-                                    </td>
-                                }
-                            </tr>
-                        }
-                    }
-                    </tbody>
-                </table>
-            </div>
+                        <div class="ruleset-config-grid mt-3">
+                            <article class="ruleset-config-card">
+                                <h3>Core Setup</h3>
+                                <div class="metric-list">
+                                    <div class="metric-row"><span class="metric-key">Mode</span><span class="metric-value">@AsText(GetPath(cfg, "mode"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Actions / Turn</span><span class="metric-value">@AsText(GetPath(cfg, "actions_per_turn"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Starting Cash</span><span class="metric-value">@AsText(GetPath(cfg, "starting_cash"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Freelance Income</span><span class="metric-value">@AsText(GetPath(cfg, "freelance", "income"))</span></div>
+                                </div>
+                            </article>
 
-            <div class="mt-5">
-                <p class="text-sm font-semibold text-slate-700">Config JSON Tersimpan</p>
-                <pre class="mt-2 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">@Model.Ruleset.ConfigJson</pre>
+                            <article class="ruleset-config-card">
+                                <h3>Weekday Features</h3>
+                                <div class="metric-list">
+                                    <div class="metric-row"><span class="metric-key">Friday Donation</span><span class="metric-value">@AsText(GetPath(cfg, "weekday_rules", "friday", "enabled"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Saturday Gold Trade</span><span class="metric-value">@AsText(GetPath(cfg, "weekday_rules", "saturday", "enabled"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Sunday Rest</span><span class="metric-value">@AsText(GetPath(cfg, "weekday_rules", "sunday", "enabled"))</span></div>
+                                </div>
+                            </article>
+
+                            <article class="ruleset-config-card">
+                                <h3>Constraints</h3>
+                                <div class="metric-list">
+                                    <div class="metric-row"><span class="metric-key">Cash Min</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "cash_min"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Max Ingredient Total</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "max_ingredient_total"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Max Same Ingredient</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "max_same_ingredient"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Primary Need Max / Day</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "primary_need_max_per_day"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Require Primary First</span><span class="metric-value">@AsText(GetPath(cfg, "constraints", "require_primary_before_others"))</span></div>
+                                </div>
+                            </article>
+
+                            <article class="ruleset-config-card">
+                                <h3>Economy & Advanced</h3>
+                                <div class="metric-list">
+                                    <div class="metric-row"><span class="metric-key">Donation Min</span><span class="metric-value">@AsText(GetPath(cfg, "donation", "min_amount"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Donation Max</span><span class="metric-value">@AsText(GetPath(cfg, "donation", "max_amount"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Gold Buy</span><span class="metric-value">@AsText(GetPath(cfg, "gold_trade", "allow_buy"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Gold Sell</span><span class="metric-value">@AsText(GetPath(cfg, "gold_trade", "allow_sell"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Loan Enabled</span><span class="metric-value">@AsText(GetPath(cfg, "advanced", "loan", "enabled"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Insurance Enabled</span><span class="metric-value">@AsText(GetPath(cfg, "advanced", "insurance", "enabled"))</span></div>
+                                    <div class="metric-row"><span class="metric-key">Saving Goal Enabled</span><span class="metric-value">@AsText(GetPath(cfg, "advanced", "saving_goal", "enabled"))</span></div>
+                                </div>
+                            </article>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <div class="table-wrap">
+                        <div class="px-4 pt-4 pb-2 text-sm font-semibold text-slate-700">Riwayat Versi</div>
+                        <table class="w-full text-left text-sm">
+                            <thead class="table-head">
+                                <tr>
+                                    <th class="px-4 py-3">@Context.T("common.version")</th>
+                                    <th class="px-4 py-3">@Context.T("common.status")</th>
+                                    <th class="px-4 py-3">@Context.T("common.created")</th>
+                                    @if (isInstructor)
+                                    {
+                                        <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @if (Model.Ruleset.Versions.Count == 0)
+                            {
+                                <tr>
+                                    <td class="px-4 py-4 text-slate-500" colspan="@(isInstructor ? 4 : 3)">@Context.T("state.no_versions")</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var version in Model.Ruleset.Versions.OrderByDescending(v => v.Version))
+                                {
+                                    <tr class="border-t border-slate-200">
+                                        <td class="px-4 py-3 font-medium text-slate-900">v@version.Version</td>
+                                        <td class="px-4 py-3 text-slate-600">
+                                            @{
+                                                var statusClass = string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+                                                    ? "status-active"
+                                                    : string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
+                                                        ? "status-draft"
+                                                        : "status-retired";
+                                            }
+                                            <span class="status-pill @statusClass">@version.Status</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        @if (isInstructor)
+                                        {
+                                            <td class="px-4 py-3 text-right">
+                                                @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
+                                                        @Html.AntiForgeryToken()
+                                                        <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
+                                                    </form>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     }
