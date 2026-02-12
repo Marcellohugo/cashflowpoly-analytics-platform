@@ -1,16 +1,71 @@
 param(
-    [string]$ApiBaseUrl = "http://localhost:5041"
+    [string]$ApiBaseUrl = "http://localhost:5041",
+    [string]$InstructorUsername = "smoke_instructor",
+    [string]$InstructorPassword = "SmokeInstructorPass!123"
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Login instructor..."
-$loginBody = @{
-    username = "instructor"
-    password = "instructor123"
+function Try-LoginToken {
+    param(
+        [string]$Username,
+        [string]$Password
+    )
+
+    $loginBody = @{
+        username = $Username
+        password = $Password
+    }
+
+    try {
+        $login = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/auth/login" -ContentType "application/json" -Body ($loginBody | ConvertTo-Json)
+        return $login.access_token
+    }
+    catch {
+        return $null
+    }
 }
-$login = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/auth/login" -ContentType "application/json" -Body ($loginBody | ConvertTo-Json)
-$bearerHeaders = @{ Authorization = "Bearer $($login.access_token)" }
+
+function Ensure-UserToken {
+    param(
+        [string]$Username,
+        [string]$Password,
+        [string]$Role
+    )
+
+    $token = Try-LoginToken -Username $Username -Password $Password
+    if (-not [string]::IsNullOrWhiteSpace($token)) {
+        return $token
+    }
+
+    Write-Host "Register user '$Username' ($Role)..."
+    $registerBody = @{
+        username = $Username
+        password = $Password
+        role = $Role
+    }
+
+    try {
+        $registered = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/auth/register" -ContentType "application/json" -Body ($registerBody | ConvertTo-Json)
+        if (-not [string]::IsNullOrWhiteSpace($registered.access_token)) {
+            return $registered.access_token
+        }
+    }
+    catch {
+        # Bisa gagal karena user sudah ada, registrasi instruktur ditutup, atau policy lain.
+    }
+
+    $token = Try-LoginToken -Username $Username -Password $Password
+    if (-not [string]::IsNullOrWhiteSpace($token)) {
+        return $token
+    }
+
+    throw "Gagal memperoleh token untuk user '$Username'. Pastikan kredensial benar atau bootstrap instruktur sudah dikonfigurasi."
+}
+
+Write-Host "Login/register instructor..."
+$instructorToken = Ensure-UserToken -Username $InstructorUsername -Password $InstructorPassword -Role "INSTRUCTOR"
+$bearerHeaders = @{ Authorization = "Bearer $instructorToken" }
 
 $rulesetBody = @{
     name = "Ruleset Smoke"

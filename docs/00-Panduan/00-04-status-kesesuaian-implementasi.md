@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 1.5
-- Tanggal: 8 Februari 2026
+- Versi: 1.6
+- Tanggal: 12 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -24,12 +24,12 @@ Acuan utama:
 | Area | Status | Catatan |
 |---|---|---|
 | Ingest event + validasi domain | Sesuai | Validasi urutan, idempotensi, ruleset aktif, dan aturan event utama sudah ada. |
-| Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia. |
+| Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
 | Manajemen ruleset (create/list/detail/archive/delete) | Sesuai | Alur CRUD + guard ruleset terpakai sudah ada. |
 | UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API. |
-| Kontrak auth Bearer + RBAC | Sesuai | API sudah Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side. |
+| Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik instruktur dibatasi kebijakan. |
 | Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` dan halaman UI ruleset analytics tersedia. |
-| NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`. |
+| NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
 | Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
 
 ---
@@ -37,7 +37,7 @@ Acuan utama:
 ## 3. Daftar Gap Prioritas
 1. Menambah otomatisasi integration test untuk alur auth + RBAC lintas endpoint.
 2. Menambah observability lebih detail (dashboard metrics, tracing terstruktur).
-3. Menambah hardening keamanan produksi (rotasi key JWT, secret management).
+3. Menambah hardening keamanan produksi lanjutan (rotasi key JWT otomatis, vault/secret manager terkelola, audit log keamanan).
 
 ---
 

@@ -35,16 +35,6 @@ internal static class RateLimitPolicyHelper
             return $"user:{userId}";
         }
 
-        var xForwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(xForwardedFor))
-        {
-            var firstIp = xForwardedFor.Split(',', StringSplitOptions.RemoveEmptyEntries)[0].Trim();
-            if (!string.IsNullOrWhiteSpace(firstIp))
-            {
-                return $"ip:{firstIp}";
-            }
-        }
-
         var remoteIp = context.Connection.RemoteIpAddress?.ToString();
         return $"ip:{(string.IsNullOrWhiteSpace(remoteIp) ? "unknown" : remoteIp)}";
     }

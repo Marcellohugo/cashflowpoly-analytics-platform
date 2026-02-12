@@ -16,6 +16,7 @@
     </div>
 
     <form class="mt-6 flex flex-col gap-3 glass-surface p-4 md:flex-row md:items-end" method="post">
+        @Html.AntiForgeryToken()
         <div class="flex-1">
             <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.session_id")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"

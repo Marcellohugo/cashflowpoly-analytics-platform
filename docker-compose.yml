@@ -34,6 +34,13 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:${API_HTTP_PORT:-5041}
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:-cashflowpoly}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      Auth__AllowPublicInstructorRegistration: ${AUTH_ALLOW_PUBLIC_INSTRUCTOR_REGISTRATION:-false}
+      AuthBootstrap__SeedDefaultUsers: ${AUTH_BOOTSTRAP_SEED_DEFAULT_USERS:-false}
+      AuthBootstrap__InstructorUsername: ${AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME:-}
+      AuthBootstrap__InstructorPassword: ${AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD:-}
+      AuthBootstrap__PlayerUsername: ${AUTH_BOOTSTRAP_PLAYER_USERNAME:-}
+      AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}
     ports:
       - "${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}"
     depends_on:

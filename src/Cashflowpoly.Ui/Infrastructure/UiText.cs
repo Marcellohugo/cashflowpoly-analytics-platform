@@ -23,7 +23,7 @@ public static class UiText
         ["auth.username"] = ("Username", "Username"),
         ["auth.password"] = ("Password", "Password"),
         ["auth.submit"] = ("Masuk", "Sign In"),
-        ["auth.default_accounts"] = ("Akun default: instructor / instructor123 atau player / player123.", "Default accounts: instructor / instructor123 or player / player123."),
+        ["auth.default_accounts"] = ("Tidak ada akun default tetap. Daftarkan akun terlebih dahulu sesuai kebijakan auth.", "No fixed default accounts. Register accounts first based on auth policy."),
         ["auth.no_account"] = ("Belum punya akun?", "Don't have an account?"),
         ["auth.have_account"] = ("Sudah punya akun?", "Already have an account?"),
         ["auth.register"] = ("Daftar", "Register"),

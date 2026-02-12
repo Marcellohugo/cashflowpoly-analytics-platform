@@ -48,6 +48,22 @@ public sealed class UserRepository
         return result.HasValue;
     }
 
+    public async Task<bool> HasActiveInstructorAsync(CancellationToken ct)
+    {
+        const string sql = """
+            select 1
+            from app_users
+            where role = 'INSTRUCTOR'
+              and is_active = true
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var result = await conn.ExecuteScalarAsync<int?>(
+            new CommandDefinition(sql, cancellationToken: ct));
+        return result.HasValue;
+    }
+
     public async Task<AuthenticatedUserDb> CreateUserAsync(string username, string password, string role, CancellationToken ct)
     {
         const string sql = """

@@ -43,9 +43,11 @@
                     <a class="btn-primary" asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
                     <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">Analitika Ruleset</a>
                     <form method="post" asp-controller="Rulesets" asp-action="Archive" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                        @Html.AntiForgeryToken()
                         <button class="btn-ghost" type="submit">@Context.T("rulesets.archive")</button>
                     </form>
                     <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                        @Html.AntiForgeryToken()
                         <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
                     </form>
                 }
@@ -101,6 +103,7 @@
                                         @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
                                         {
                                             <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
+                                                @Html.AntiForgeryToken()
                                                 <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
                                             </form>
                                         }

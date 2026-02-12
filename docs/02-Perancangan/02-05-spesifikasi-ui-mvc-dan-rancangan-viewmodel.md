@@ -137,6 +137,10 @@ Entitas tampilan minimum:
 | Ruleset delete | `DELETE /api/v1/rulesets/{rulesetId}` |
 | Session ruleset activation | `POST /api/v1/sessions/{sessionId}/ruleset/activate` |
 
+Catatan:
+- `POST /api/v1/auth/register` publik untuk role `PLAYER`.
+- Registrasi `INSTRUCTOR` dapat dibatasi oleh kebijakan server (`Auth:AllowPublicInstructorRegistration`).
+
 ---
 
 ## 8. Aturan Otorisasi di UI

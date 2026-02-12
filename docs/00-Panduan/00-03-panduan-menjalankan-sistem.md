@@ -18,7 +18,8 @@ Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakse
 Pastikan setup lingkungan sudah selesai:
 - .NET 10 SDK terpasang,
 - PostgreSQL siap dan skema `database/00_create_schema.sql` sudah dijalankan,
-- connection string API dan `ApiBaseUrl` UI sudah benar.
+- connection string API dan `ApiBaseUrl` UI sudah benar,
+- `Jwt:SigningKey` sudah diisi (minimal 32 karakter, disarankan via environment).
 
 Lihat detailnya pada: `docs/00-Panduan/00-01-panduan-setup-lingkungan.md`.
 
@@ -36,7 +37,7 @@ Buka Chrome:
 - `https://localhost:7041/swagger` (HTTPS)
 - `http://localhost:5041/swagger` (HTTP)
 
-Jika `weatherforecast` bisa dibuka tetapi swagger gagal, penyebab yang paling sering:
+Jika API bisa jalan tetapi Swagger gagal dibuka, penyebab yang paling sering:
 1. middleware swagger belum diaktifkan untuk environment `Development`,
 2. URL salah (http vs https),
 3. port berbeda dari yang dibuka,
@@ -69,7 +70,10 @@ Buka:
 - `https://localhost:7203/sessions` (HTTPS)
 - `http://localhost:5203/sessions` (HTTP)
 
-Jika halaman masih kosong, itu normal jika endpoint `/api/v1/sessions` belum diimplementasikan.
+Jika halaman kosong atau redirect login terus-menerus, cek bahwa:
+1. login API berhasil dan token tersimpan di session UI,
+2. endpoint `/api/v1/sessions` mengembalikan `200`,
+3. `ApiBaseUrl` UI mengarah ke API yang benar.
 
 Catatan:
 - Jika styling belum muncul, pastikan Tailwind sudah dibuild sesuai panduan setup.

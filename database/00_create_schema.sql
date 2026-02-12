@@ -11,14 +11,6 @@ create table if not exists app_users (
 
 create index if not exists ix_app_users_role_active on app_users(role, is_active);
 
-insert into app_users (user_id, username, password_hash, role, is_active)
-select gen_random_uuid(), 'instructor', crypt('instructor123', gen_salt('bf', 10)), 'INSTRUCTOR', true
-where not exists (select 1 from app_users where username = 'instructor');
-
-insert into app_users (user_id, username, password_hash, role, is_active)
-select gen_random_uuid(), 'player', crypt('player123', gen_salt('bf', 10)), 'PLAYER', true
-where not exists (select 1 from app_users where username = 'player');
-
 create table if not exists players (
   player_id uuid primary key,
   display_name varchar(80) not null,

@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Rencana Implementasi dan Struktur Solution .NET
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 12 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -31,11 +31,14 @@ cashflowpoly-analytics-platform/
   postman/
   scripts/
     smoke.ps1
+    rbac-smoke.ps1
+    web-ui-smoke.ps1
   src/
     Cashflowpoly.Api/
     Cashflowpoly.Ui/
   tests/
     Cashflowpoly.Api.Tests/
+  Cashflowpoly.sln
   docker-compose.yml
 ```
 
@@ -124,8 +127,8 @@ Tanggung jawab:
 
 ### Tahap I - Pengujian dan Operasional
 1. `dotnet build` API dan UI,
-2. `dotnet test` API tests,
-3. jalankan smoke script,
+2. `dotnet test Cashflowpoly.sln`,
+3. jalankan smoke script (`smoke.ps1`, `rbac-smoke.ps1`, `web-ui-smoke.ps1`),
 4. jalankan Postman collection,
 5. jalankan `docker compose` untuk verifikasi integrasi.
 

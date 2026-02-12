@@ -192,8 +192,10 @@ Checklist ini dipakai untuk memastikan hasil uji fungsional selaras dengan kondi
 |---|---|---|---|
 | Build API | `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` | PASS/FAIL | |
 | Build UI | `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` | PASS/FAIL | |
+| Test solution | `dotnet test Cashflowpoly.sln` | PASS/FAIL | |
 | Unit test API | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | PASS/FAIL | |
 | RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS/FAIL | |
+| Web UI smoke | `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1` | PASS/FAIL | |
 | Compose run | `docker compose up --build -d` | PASS/FAIL | |
 | Smoke script | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS/FAIL | |
 

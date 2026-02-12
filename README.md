@@ -65,8 +65,9 @@ Catatan kontrak API:
 ```
 .
 +- .env
++- .env.example
 +- .github/
-+- Cashflowpoly.slnx
++- Cashflowpoly.sln
 +- Img/
 +- README.md
 +- docker-compose.yml
@@ -103,9 +104,16 @@ Jalankan perintah berikut dari root repositori:
 docker compose up -d --build
 ```
 
+Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY` (lihat template `.env.example`).
+
 Akses (sesuai `.env`):
 - API + Swagger: `http://localhost:5041/swagger`
 - UI MVC: `http://localhost:5203`
+
+Catatan keamanan lokal:
+- Set `JWT_SIGNING_KEY` di `.env` (minimal 32 karakter).
+- Secara default registrasi `INSTRUCTOR` publik hanya diizinkan saat belum ada instruktur aktif.
+- Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 
 Rute UI utama:
 - Analitika sesi: `/Analytics`
@@ -138,6 +146,7 @@ Buat database dan user, lalu jalankan skrip DDL dari `database/00_create_schema.
 ### 2) Atur konfigurasi API dan UI
 API memakai koneksi database dari `ConnectionStrings:Default`.
 UI memakai base URL API dari `ApiBaseUrl`.
+JWT API dibaca dari `Jwt:SigningKey` (gunakan environment variable `Jwt__SigningKey` atau `JWT_SIGNING_KEY` pada Docker Compose).
 
 Contoh lokal (sesuai `.env` dan launch settings):
 - API: `http://localhost:5041` atau `https://localhost:7041`
@@ -166,7 +175,6 @@ Endpoint tambahan yang tersedia:
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
 
 ## Catatan pengembangan
-- Hapus *template endpoint* `GET /weatherforecast` setelah menyiapkan *controller* sesuai kontrak API pada dokumen spesifikasi.
 - Gunakan Swagger untuk uji cepat *endpoint* dan gunakan Postman untuk skenario uji *black-box* yang terdokumentasi.
 
 ## Dokumen desain dan spesifikasi
@@ -183,6 +191,7 @@ Dokumen kunci:
 - Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
+- Jalankan seluruh test dari root: `dotnet test Cashflowpoly.sln`.
 - Jalankan unit test: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj`.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
@@ -190,6 +199,8 @@ Dokumen kunci:
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Smoke test cepat (butuh API berjalan): `powershell -File scripts/smoke.ps1`.
 - RBAC smoke test: `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1`.
+- Web UI smoke test: `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1`.
+- Jika kredensial default smoke tidak tersedia di environment Anda, jalankan script dengan parameter username/password sendiri.
 
 ## Operasional DB (Backup/Restore)
 - Backup database: `powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1`

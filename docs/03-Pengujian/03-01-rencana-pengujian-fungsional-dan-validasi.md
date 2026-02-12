@@ -344,11 +344,19 @@ Catatan:
   - Status: `401`
   - Error mengikuti format standar.
 
-**TC-API-20 — Register valid**
+**TC-API-20 — Register valid (PLAYER)**
 - Endpoint: `POST /api/v1/auth/register`
+- Input: role `PLAYER`.
 - Ekspektasi:
   - Status: `201`
   - User baru tersimpan.
+
+**TC-API-20B — Register INSTRUCTOR sesuai kebijakan**
+- Endpoint: `POST /api/v1/auth/register`
+- Input: role `INSTRUCTOR`.
+- Ekspektasi:
+  - Jika belum ada instruktur aktif atau `Auth:AllowPublicInstructorRegistration=true`: `201`.
+  - Jika instruktur aktif sudah ada dan kebijakan publik ditutup: `403`.
 
 **TC-API-21 — Endpoint terproteksi tanpa token**
 - Contoh endpoint: `POST /api/v1/rulesets`.
@@ -590,12 +598,17 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
    - endpoint read yang diizinkan player => `200`,
    - endpoint instruktur dipanggil token instruktur => sukses.
 
+### 14.2B Web UI smoke test
+1. Jalankan `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1`.
+2. Verifikasi login UI berhasil dan halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/analytics`, `/home/rulebook`) dapat diakses tanpa error.
+
 ### 14.3 Definition of Done (DoD)
 Fitur dinyatakan selesai jika:
 1. Build API dan UI lulus tanpa error.
 2. Unit test lulus.
 3. Smoke test lulus.
 4. RBAC smoke test lulus.
-5. Skenario Postman kritikal lulus.
-6. Tidak ada bug blocker (`S1`) pada modul terdampak.
+5. Web UI smoke test lulus.
+6. Skenario Postman kritikal lulus.
+7. Tidak ada bug blocker (`S1`) pada modul terdampak.
 

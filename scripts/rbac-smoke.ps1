@@ -1,5 +1,9 @@
 param(
     [string]$ApiBaseUrl = "http://localhost:5041",
+    [string]$InstructorUsername = "rbac_instructor",
+    [string]$InstructorPassword = "RbacInstructorPass!123",
+    [string]$PlayerUsername = "rbac_player",
+    [string]$PlayerPassword = "RbacPlayerPass!123",
     [switch]$CheckRateLimit
 )
 
@@ -120,21 +124,43 @@ function Assert-Status {
     Write-Host "$Label => $Actual"
 }
 
-function Get-Token {
+function Ensure-Token {
     param(
         [string]$Username,
-        [string]$Password
+        [string]$Password,
+        [string]$Role
     )
 
-    $payload = @{
+    $loginPayload = @{
         username = $Username
         password = $Password
     } | ConvertTo-Json
 
-    $login = Invoke-ApiRequest -Method Post -Url "$ApiBaseUrl/api/v1/auth/login" -Body $payload
-    Assert-Status -Actual $login.StatusCode -Expected 200 -Label "Login $Username"
+    $login = Invoke-ApiRequest -Method Post -Url "$ApiBaseUrl/api/v1/auth/login" -Body $loginPayload
+    if ($login.StatusCode -eq 200) {
+        Write-Host "Login $Username => 200"
+        return (ConvertFrom-Json $login.Body).access_token
+    }
 
-    return (ConvertFrom-Json $login.Body).access_token
+    Write-Host "Register $Username ($Role)..."
+    $registerPayload = @{
+        username = $Username
+        password = $Password
+        role = $Role
+    } | ConvertTo-Json
+    $register = Invoke-ApiRequest -Method Post -Url "$ApiBaseUrl/api/v1/auth/register" -Body $registerPayload
+    if ($register.StatusCode -eq 201) {
+        Write-Host "Register $Username => 201"
+        return (ConvertFrom-Json $register.Body).access_token
+    }
+
+    $retryLogin = Invoke-ApiRequest -Method Post -Url "$ApiBaseUrl/api/v1/auth/login" -Body $loginPayload
+    if ($retryLogin.StatusCode -eq 200) {
+        Write-Host "Login retry $Username => 200"
+        return (ConvertFrom-Json $retryLogin.Body).access_token
+    }
+
+    throw "Gagal memperoleh token untuk $Username. Login=$($login.StatusCode), Register=$($register.StatusCode), RetryLogin=$($retryLogin.StatusCode)."
 }
 
 Write-Host "RBAC smoke dimulai..."
@@ -191,8 +217,8 @@ $rulesetPayload = $rulesetPayloadObject | ConvertTo-Json -Depth 8
 $noToken = Invoke-ApiRequest -Method Get -Url "$ApiBaseUrl/api/v1/sessions"
 Assert-Status -Actual $noToken.StatusCode -Expected 401 -Label "Endpoint terproteksi tanpa token"
 
-$instructorToken = Get-Token -Username "instructor" -Password "instructor123"
-$playerToken = Get-Token -Username "player" -Password "player123"
+$instructorToken = Ensure-Token -Username $InstructorUsername -Password $InstructorPassword -Role "INSTRUCTOR"
+$playerToken = Ensure-Token -Username $PlayerUsername -Password $PlayerPassword -Role "PLAYER"
 $instructorHeaders = @{ Authorization = "Bearer $instructorToken" }
 $playerHeaders = @{ Authorization = "Bearer $playerToken" }
 

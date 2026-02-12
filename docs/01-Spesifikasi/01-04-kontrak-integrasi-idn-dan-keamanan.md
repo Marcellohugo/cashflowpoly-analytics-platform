@@ -34,6 +34,10 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 1. `POST /api/v1/auth/login`
 2. `POST /api/v1/auth/register`
 
+Kebijakan registrasi:
+- role `PLAYER` boleh register publik.
+- role `INSTRUCTOR` dibatasi untuk bootstrap awal (atau bisa dibuka eksplisit via konfigurasi server).
+
 Response login minimal:
 ```json
 {

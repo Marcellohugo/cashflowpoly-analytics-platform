@@ -20,7 +20,7 @@
                                                       "url":  "{{baseUrl}}/api/v1/auth/login",
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\"username\":\"instructor\",\"password\":\"instructor123\"}"
+                                                                   "raw":  "{\"username\":\"{{authUsername}}\",\"password\":\"{{authPassword}}\"}"
                                                                }
                                                   },
                                       "event":  [
@@ -53,7 +53,7 @@
                                                       "url":  "{{baseUrl}}/api/v1/auth/register",
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\"username\":\"newplayer\",\"password\":\"newplayer123\",\"role\":\"PLAYER\"}"
+                                                                   "raw":  "{\"username\":\"{{registerUsername}}\",\"password\":\"{{registerPassword}}\",\"role\":\"PLAYER\"}"
                                                                }
                                                   }
                                   }
@@ -801,6 +801,26 @@
                  }
              ],
     "variable":  [
+                     {
+                         "key":  "authUsername",
+                         "value":  "instructor",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "authPassword",
+                         "value":  "replace-with-your-password",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "registerUsername",
+                         "value":  "newplayer",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "registerPassword",
+                         "value":  "replace-with-player-password",
+                         "type":  "string"
+                     },
                      {
                          "key":  "accessToken",
                          "value":  "",

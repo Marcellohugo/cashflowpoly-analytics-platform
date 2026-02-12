@@ -3,6 +3,7 @@ using Cashflowpoly.Api.Models;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -14,11 +15,13 @@ public sealed class AuthController : ControllerBase
 {
     private readonly JwtTokenService _tokens;
     private readonly UserRepository _users;
+    private readonly AuthOptions _authOptions;
 
-    public AuthController(UserRepository users, JwtTokenService tokens)
+    public AuthController(UserRepository users, JwtTokenService tokens, IOptions<AuthOptions> authOptions)
     {
         _users = users;
         _tokens = tokens;
+        _authOptions = authOptions.Value;
     }
 
     [HttpPost("login")]
@@ -68,6 +71,21 @@ public sealed class AuthController : ControllerBase
             !string.Equals(normalizedRole, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Role tidak valid"));
+        }
+
+        if (string.Equals(normalizedRole, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) &&
+            !_authOptions.AllowPublicInstructorRegistration)
+        {
+            var hasInstructor = await _users.HasActiveInstructorAsync(ct);
+            if (hasInstructor)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(
+                        HttpContext,
+                        "FORBIDDEN",
+                        "Registrasi INSTRUCTOR publik ditutup. Gunakan akun instruktur yang sudah ada."));
+            }
         }
 
         var exists = await _users.UsernameExistsAsync(username, ct);

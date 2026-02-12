@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Net;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Http;
 using Xunit;
@@ -33,11 +34,23 @@ public class RateLimitPolicyHelperTests
     }
 
     [Fact]
-    public void BuildPartitionKey_uses_forwarded_ip_when_user_not_authenticated()
+    public void BuildPartitionKey_uses_remote_ip_when_user_not_authenticated()
     {
         var context = new DefaultHttpContext();
         context.Request.Path = "/api/v1/sessions";
-        context.Request.Headers["X-Forwarded-For"] = "10.0.0.7, 10.0.0.8";
+        context.Connection.RemoteIpAddress = IPAddress.Parse("10.0.0.7");
+
+        var partitionKey = RateLimitPolicyHelper.BuildPartitionKey(context);
+        Assert.Equal("default:ip:10.0.0.7", partitionKey);
+    }
+
+    [Fact]
+    public void BuildPartitionKey_ignores_spoofed_forwarded_header()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/api/v1/sessions";
+        context.Request.Headers["X-Forwarded-For"] = "203.0.113.10";
+        context.Connection.RemoteIpAddress = IPAddress.Parse("10.0.0.7");
 
         var partitionKey = RateLimitPolicyHelper.BuildPartitionKey(context);
         Assert.Equal("default:ip:10.0.0.7", partitionKey);

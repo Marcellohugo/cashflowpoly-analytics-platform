@@ -92,7 +92,7 @@ Struktur proyek yang dipakai:
 cashflowpoly-analytics-platform/
   .env
   .github/
-  Cashflowpoly.slnx
+  Cashflowpoly.sln
   Img/
   docker-compose.yml
   README.md
@@ -130,6 +130,19 @@ Contoh `src/Cashflowpoly.Api/appsettings.Development.json`:
 ```
 
 Jika API dijalankan pada port tertentu, URL dapat dikunci pada `Properties/launchSettings.json`.
+
+### 7.1 Konfigurasi JWT dan bootstrap auth
+API membutuhkan `Jwt:SigningKey` (minimal 32 karakter). Disarankan set lewat environment:
+
+```bash
+setx Jwt__SigningKey "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
+```
+
+Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `.env` (lihat `.env.example`).
+
+Catatan bootstrap auth:
+- `Auth:AllowPublicInstructorRegistration=false` (default) artinya registrasi instruktur publik akan ditutup setelah ada instruktur aktif.
+- Jika butuh seed user awal otomatis, aktifkan `AuthBootstrap:SeedDefaultUsers=true` dan isi kredensial bootstrap.
 
 ---
 

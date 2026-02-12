@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
 using Cashflowpoly.Api.Controllers;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -25,9 +27,40 @@ if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey))
 {
     throw new InvalidOperationException("Jwt:SigningKey belum dikonfigurasi.");
 }
+if (jwtOptions.SigningKey.Length < 32)
+{
+    throw new InvalidOperationException("Jwt:SigningKey minimal 32 karakter.");
+}
+if (string.Equals(jwtOptions.SigningKey, "change-this-jwt-signing-key-for-production-2026", StringComparison.Ordinal))
+{
+    throw new InvalidOperationException("Jwt:SigningKey masih placeholder. Set nilai rahasia yang kuat lewat environment/config aman.");
+}
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
+builder.Services.Configure<AuthBootstrapOptions>(builder.Configuration.GetSection("AuthBootstrap"));
 builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+
+    var trustedProxies = builder.Configuration.GetSection("Networking:TrustedProxies").Get<string[]>();
+    if (trustedProxies is null || trustedProxies.Length == 0)
+    {
+        return;
+    }
+
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+    foreach (var proxy in trustedProxies)
+    {
+        if (IPAddress.TryParse(proxy, out var ip))
+        {
+            options.KnownProxies.Add(ip);
+        }
+    }
+});
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -140,6 +173,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseForwardedHeaders();
 app.UseRouting();
 
 app.Use(async (context, next) =>

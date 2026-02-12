@@ -31,6 +31,7 @@
         </div>
 
     <form class="mt-4 space-y-5" method="post">
+        @Html.AntiForgeryToken()
         <div>
             <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.name")</label>
             <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"

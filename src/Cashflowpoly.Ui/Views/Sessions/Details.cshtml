@@ -65,6 +65,7 @@
                 @if (Model.IsDevelopment && string.Equals(Model.SessionStatus, "STARTED", System.StringComparison.OrdinalIgnoreCase))
                 {
                     <form asp-controller="Sessions" asp-action="End" asp-route-sessionId="@Model.SessionId" method="post">
+                        @Html.AntiForgeryToken()
                         <button class="btn-ghost" type="submit">@Context.T("sessions.end_dev")</button>
                     </form>
                 }

@@ -1,8 +1,9 @@
 param(
     [string]$UiBaseUrl = "http://localhost:5203",
     [string]$ApiBaseUrl = "http://localhost:5041",
-    [string]$Username = "instructor",
-    [string]$Password = "instructor123"
+    [string]$Username = "webui_instructor",
+    [string]$Password = "WebUiInstructorPass!123",
+    [string]$Role = "INSTRUCTOR"
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,6 +44,42 @@ function Get-AntiForgeryToken {
     return $match.Groups[1].Value
 }
 
+function Ensure-ApiUser {
+    param(
+        [string]$Username,
+        [string]$Password,
+        [string]$Role
+    )
+
+    $loginBody = @{
+        username = $Username
+        password = $Password
+    }
+
+    try {
+        $login = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/auth/login" -ContentType "application/json" -Body ($loginBody | ConvertTo-Json)
+        if (-not [string]::IsNullOrWhiteSpace($login.access_token)) {
+            return
+        }
+    }
+    catch {
+        # lanjut ke register
+    }
+
+    $registerBody = @{
+        username = $Username
+        password = $Password
+        role = $Role
+    }
+
+    try {
+        Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/auth/register" -ContentType "application/json" -Body ($registerBody | ConvertTo-Json) | Out-Null
+    }
+    catch {
+        # Bisa gagal jika user sudah ada atau registrasi role dibatasi.
+    }
+}
+
 Write-Host "Web UI smoke test dimulai..."
 
 $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
@@ -50,6 +87,8 @@ $results = New-Object System.Collections.Generic.List[object]
 $failedChecks = 0
 
 try {
+    Ensure-ApiUser -Username $Username -Password $Password -Role $Role
+
     $loginPage = Invoke-WebRequest -Uri "$UiBaseUrl/auth/login" -Method Get -WebSession $webSession -UseBasicParsing
     Assert-Status -Actual ([int]$loginPage.StatusCode) -Allowed @(200) -Label "GET /auth/login"
     $token = Get-AntiForgeryToken -Html $loginPage.Content

@@ -685,7 +685,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 - Path: `/api/v1/auth/login`
 - Request:
 ```json
-{ "username": "instructor", "password": "instructor123" }
+{ "username": "instructor", "password": "your-strong-password" }
 ```
 - Response 200 (minimum):
 ```json
@@ -705,7 +705,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ```json
 {
   "username": "player_a",
-  "password": "player123",
+  "password": "your-strong-password",
   "role": "PLAYER"
 }
 ```
@@ -719,6 +719,9 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
   "expires_at": "2026-02-08T12:00:00Z"
 }
 ```
+- Catatan kebijakan:
+  - Registrasi publik role `PLAYER` diperbolehkan.
+  - Registrasi publik role `INSTRUCTOR` ditutup jika sudah ada instruktur aktif, kecuali konfigurasi `Auth:AllowPublicInstructorRegistration` diaktifkan.
 
 ---
 

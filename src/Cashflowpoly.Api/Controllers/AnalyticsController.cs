@@ -59,11 +59,6 @@ public sealed class AnalyticsController : ControllerBase
         var summary = BuildSummary(events, projections, violations);
         var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
 
-        if (activeRulesetVersionId.HasValue)
-        {
-            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
-        }
-
         return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer));
     }
 

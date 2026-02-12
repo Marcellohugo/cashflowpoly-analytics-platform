@@ -147,7 +147,7 @@ Menampilkan:
 | Kebutuhan UI | Endpoint | Otorisasi |
 |---|---|---|
 | Login | `POST /api/v1/auth/login` | publik |
-| Register | `POST /api/v1/auth/register` | publik |
+| Register | `POST /api/v1/auth/register` | publik (PLAYER, INSTRUCTOR terbatas kebijakan server) |
 | Daftar sesi | `GET /api/v1/sessions` | Bearer |
 | Buat sesi | `POST /api/v1/sessions` | Bearer (`INSTRUCTOR`) |
 | Mulai sesi | `POST /api/v1/sessions/{sessionId}/start` | Bearer (`INSTRUCTOR`) |
