@@ -605,10 +605,9 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 ### 14.3 Definition of Done (DoD)
 Fitur dinyatakan selesai jika:
 1. Build API dan UI lulus tanpa error.
-2. Unit test lulus.
-3. Smoke test lulus.
-4. RBAC smoke test lulus.
-5. Web UI smoke test lulus.
-6. Skenario Postman kritikal lulus.
-7. Tidak ada bug blocker (`S1`) pada modul terdampak.
+2. Smoke test lulus.
+3. RBAC smoke test lulus.
+4. Web UI smoke test lulus.
+5. Skenario Postman kritikal lulus.
+6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 

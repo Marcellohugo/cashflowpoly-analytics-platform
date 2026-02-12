@@ -36,8 +36,6 @@ cashflowpoly-analytics-platform/
   src/
     Cashflowpoly.Api/
     Cashflowpoly.Ui/
-  tests/
-    Cashflowpoly.Api.Tests/
   Cashflowpoly.sln
   docker-compose.yml
 ```
@@ -127,10 +125,9 @@ Tanggung jawab:
 
 ### Tahap I - Pengujian dan Operasional
 1. `dotnet build` API dan UI,
-2. `dotnet test Cashflowpoly.sln`,
-3. jalankan smoke script (`smoke.ps1`, `rbac-smoke.ps1`, `web-ui-smoke.ps1`),
-4. jalankan Postman collection,
-5. jalankan `docker compose` untuk verifikasi integrasi.
+2. jalankan smoke script (`smoke.ps1`, `rbac-smoke.ps1`, `web-ui-smoke.ps1`),
+3. jalankan Postman collection,
+4. jalankan `docker compose` untuk verifikasi integrasi.
 
 ---
 
@@ -138,7 +135,7 @@ Tanggung jawab:
 1. fitur lulus test fungsional pada dokumen pengujian,
 2. kontrak API sesuai spesifikasi,
 3. docs dan implementasi sinkron,
-4. build/test lulus,
-5. smoke test lulus,
+4. build lulus,
+5. smoke test dan Postman collection lulus,
 6. tidak ada bug blocker terbuka untuk modul inti.
 

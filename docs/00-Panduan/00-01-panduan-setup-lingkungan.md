@@ -1,4 +1,4 @@
-﻿# Panduan Setup Lingkungan (Windows 11 + VS Code)
+# Panduan Setup Lingkungan (Windows 11 + VS Code)
 ## RESTful API + ASP.NET Core MVC (Razor Views) untuk Cashflowpoly
 
 ### Dokumen
@@ -135,10 +135,10 @@ Jika API dijalankan pada port tertentu, URL dapat dikunci pada `Properties/launc
 API membutuhkan `Jwt:SigningKey` (minimal 32 karakter). Disarankan set lewat environment:
 
 ```bash
-setx Jwt__SigningKey "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
+setx JWT_SIGNING_KEY "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
 ```
 
-Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `.env` (lihat `.env.example`).
+Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `.env`.
 
 Catatan bootstrap auth:
 - `Auth:AllowPublicInstructorRegistration=false` (default) artinya registrasi instruktur publik akan ditutup setelah ada instruktur aktif.
@@ -195,6 +195,7 @@ Setup selesai jika:
 5. dependensi Tailwind sudah terpasang (npm install) dan build CSS berhasil.
 
 Untuk menjalankan sistem, lanjutkan ke: `docs/00-Panduan/00-03-panduan-menjalankan-sistem.md`.
+
 
 
 

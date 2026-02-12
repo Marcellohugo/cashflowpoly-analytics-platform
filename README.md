@@ -1,4 +1,4 @@
-﻿# Cashflowpoly Dashboard & Manajemen *Ruleset*
+# Cashflowpoly Dashboard & Manajemen *Ruleset*
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada dasbor web. Modul manajemen *ruleset* berbasis konfigurasi dinamis disediakan agar instruktur dapat mengubah parameter permainan tanpa mengubah kode.
 
@@ -65,32 +65,31 @@ Catatan kontrak API:
 ```
 .
 +- .env
-+- .env.example
 +- .github/
 +- Cashflowpoly.sln
 +- Img/
 +- README.md
 +- docker-compose.yml
 +- database/
-¦  +- 00_create_schema.sql
+|  +- 00_create_schema.sql
 +- docs/
-¦  +- 00-Panduan/
-¦  ¦  +- 00-01-panduan-setup-lingkungan.md
-¦  ¦  +- 00-02-manual-pengguna-dan-skenario-operasional.md
-¦  ¦  +- 00-03-panduan-menjalankan-sistem.md
-¦  +- 01-Spesifikasi/
-¦  ¦  +- 01-01-spesifikasi-kebutuhan-sistem.md
-¦  ¦  +- 01-02-spesifikasi-event-dan-kontrak-api.md
-¦  ¦  +- 01-03-spesifikasi-ruleset-dan-validasi.md
-¦  +- 02-Perancangan/
-¦  ¦  +- 02-01-rancangan-model-data-dan-basis-data.md
-¦  ¦  +- 02-02-definisi-metrik-dan-agregasi.md
-¦  ¦  +- 02-03-rancangan-dashboard-analitika-mvc.md
-¦  ¦  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
-¦  ¦  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
-¦  +- 03-Pengujian/
-¦  ¦  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
-¦  ¦  +- 03-02-laporan-hasil-pengujian.md
+|  +- 00-Panduan/
+|  |  +- 00-01-panduan-setup-lingkungan.md
+|  |  +- 00-02-manual-pengguna-dan-skenario-operasional.md
+|  |  +- 00-03-panduan-menjalankan-sistem.md
+|  +- 01-Spesifikasi/
+|  |  +- 01-01-spesifikasi-kebutuhan-sistem.md
+|  |  +- 01-02-spesifikasi-event-dan-kontrak-api.md
+|  |  +- 01-03-spesifikasi-ruleset-dan-validasi.md
+|  +- 02-Perancangan/
+|  |  +- 02-01-rancangan-model-data-dan-basis-data.md
+|  |  +- 02-02-definisi-metrik-dan-agregasi.md
+|  |  +- 02-03-rancangan-dashboard-analitika-mvc.md
+|  |  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
+|  |  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
+|  +- 03-Pengujian/
+|  |  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
+|  |  +- 03-02-laporan-hasil-pengujian.md
 +- src/
    +- Cashflowpoly.Api/
    +- Cashflowpoly.Ui/
@@ -104,7 +103,7 @@ Jalankan perintah berikut dari root repositori:
 docker compose up -d --build
 ```
 
-Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY` (lihat template `.env.example`).
+Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY`.
 
 Akses (sesuai `.env`):
 - API + Swagger: `http://localhost:5041/swagger`
@@ -146,7 +145,7 @@ Buat database dan user, lalu jalankan skrip DDL dari `database/00_create_schema.
 ### 2) Atur konfigurasi API dan UI
 API memakai koneksi database dari `ConnectionStrings:Default`.
 UI memakai base URL API dari `ApiBaseUrl`.
-JWT API dibaca dari `Jwt:SigningKey` (gunakan environment variable `Jwt__SigningKey` atau `JWT_SIGNING_KEY` pada Docker Compose).
+JWT API dibaca dari `Jwt:SigningKey` dengan fallback ke environment variable `JWT_SIGNING_KEY`.
 
 Contoh lokal (sesuai `.env` dan launch settings):
 - API: `http://localhost:5041` atau `https://localhost:7041`
@@ -191,8 +190,6 @@ Dokumen kunci:
 - Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
-- Jalankan seluruh test dari root: `dotnet test Cashflowpoly.sln`.
-- Jalankan unit test: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj`.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
@@ -208,6 +205,7 @@ Dokumen kunci:
 
 ## Lisensi
 Lisensi akan ditentukan untuk repositori ini.
+
 
 
 

@@ -47,7 +47,7 @@ Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
 | Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | 0 warning, 0 error |
-| Test solution | `dotnet test Cashflowpoly.sln -c Debug --no-build` | PASS | 13 test lulus, 0 gagal |
+| Test solution | N/A | N/A | Proyek unit test API dihapus dari solution |
 | Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
 | Smoke API end-to-end | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS | ruleset/session/player/event/analytics sukses |
 | RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS | 401/403/200/201 sesuai ekspektasi |
@@ -88,7 +88,7 @@ Catatan residual:
 ## 7. Kesimpulan
 - Status akhir: **VALID (cakupan baseline otomatis)**
 - Ringkasan:
-  - build dan unit test lulus,
+  - build lulus,
   - verifikasi API/UI/RBAC/rate-limit lulus,
   - tidak ditemukan bug blocker pada jalur fitur inti.
 
