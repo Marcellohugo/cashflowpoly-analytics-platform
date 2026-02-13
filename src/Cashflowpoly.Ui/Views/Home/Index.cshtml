@@ -5,20 +5,20 @@
     var progressPercent = Model.TotalSessions == 0
         ? 0
         : (int)Math.Round((double)Model.ActiveSessions / Model.TotalSessions * 100);
-    var heroBadge = isInstructor ? Context.T("home.badge") : "Dashboard Player";
+    var heroBadge = isInstructor ? Context.T("home.badge") : Context.T("home.player_badge");
     var heroTitle = isInstructor
         ? Context.T("home.title")
-        : "Pantau progres permainanmu secara real-time.";
+        : Context.T("home.player_title");
     var heroSubtitle = isInstructor
         ? Context.T("home.subtitle")
-        : "Lihat status sesi, ruleset yang bisa kamu akses, dan ringkasan performa pribadi tanpa perlu membuka menu instructor.";
+        : Context.T("home.player_subtitle");
     var primaryCtaController = isInstructor ? "Sessions" : "Analytics";
-    var primaryCtaText = isInstructor ? Context.T("home.cta.sessions") : "Lihat progres saya";
+    var primaryCtaText = isInstructor ? Context.T("home.cta.sessions") : Context.T("home.cta.my_progress");
     var secondaryCtaController = isInstructor ? "Analytics" : "Rulesets";
-    var secondaryCtaText = isInstructor ? Context.T("home.cta.analytics") : "Buka ruleset";
-    var totalSessionsLabel = isInstructor ? "Total sesi" : "Sesi saya";
-    var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : "Teman satu sesi";
-    var totalRulesetsLabel = isInstructor ? Context.T("home.ruleset_active") : "Ruleset tersedia";
+    var secondaryCtaText = isInstructor ? Context.T("home.cta.analytics") : Context.T("home.cta.open_ruleset");
+    var totalSessionsLabel = isInstructor ? Context.T("home.total_sessions") : Context.T("home.my_sessions");
+    var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : Context.T("home.peers_in_session");
+    var totalRulesetsLabel = isInstructor ? Context.T("home.ruleset_active") : Context.T("home.available_rulesets");
 }
 
 <section class="section-shell home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
@@ -59,19 +59,19 @@
                 <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                     <li class="flex items-start gap-2">
                         <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
-                        <span>Pilih sesi dari menu Analitika tanpa input UUID manual.</span>
+                        <span>@Context.T("home.player.feature.1")</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span>Lihat metrik cashflow dan poinmu dalam satu dashboard.</span>
+                        <span>@Context.T("home.player.feature.2")</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
-                        <span>Cek ruleset aktif untuk memahami target skor dan penalti.</span>
+                        <span>@Context.T("home.player.feature.3")</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
-                        <span>Pantau pembaruan data otomatis setiap 10 detik.</span>
+                        <span>@Context.T("home.player.feature.4")</span>
                     </li>
                 </ul>
             }
@@ -83,12 +83,12 @@
                         <span class="live-dot"></span>
                         @Context.T("home.realtime")
                     </span>
-                    <span class="badge badge-emerald">LIVE</span>
+                    <span class="badge badge-emerald">@Context.T("home.live")</span>
                 </div>
                 <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Waktu server lokal</p>
+                    <p class="text-xs uppercase tracking-wider text-slate-500">@Context.T("home.server_time")</p>
                     <p id="home-live-time" class="text-3xl font-semibold text-slate-900">@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
-                    <p class="mt-1 text-xs text-slate-500">Sinkron data: <span id="home-last-synced">@Model.LastSyncedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span></p>
+                    <p class="mt-1 text-xs text-slate-500">@Context.T("home.sync_label"): <span id="home-last-synced">@Model.LastSyncedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span></p>
                 </div>
                 <div class="h-2 w-full rounded-full bg-slate-100">
                     <div id="home-progress-bar"
@@ -123,7 +123,7 @@
                         <p id="home-total-rulesets" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalRulesets</p>
                     </div>
                 </div>
-                <p class="text-xs text-slate-500">Data diperbarui otomatis setiap 10 detik.</p>
+                <p class="text-xs text-slate-500">@Context.T("home.auto_refresh_note")</p>
             </div>
         </div>
     </div>
@@ -133,42 +133,42 @@
 {
     <section class="section-shell mt-6">
         <div>
-            <p class="eyebrow">Panduan Menu</p>
-            <h2 class="headline text-3xl">Kumpulan cara penggunaan</h2>
-            <p class="subhead">Gunakan panduan cepat ini supaya alur kerja dari setup sampai analitik lebih rapi.</p>
+            <p class="eyebrow">@Context.T("home.guide.menu")</p>
+            <h2 class="headline text-3xl">@Context.T("home.guide.title")</h2>
+            <p class="subhead">@Context.T("home.guide.subtitle")</p>
         </div>
 
         <div class="mt-6 tips-grid">
             <article class="tip-card">
-                <h3>Sesi</h3>
-                <p>Buka daftar sesi, pilih sesi aktif, lalu masuk detail pemain untuk analitik per individu.</p>
-                <a asp-controller="Sessions" asp-action="Index">Buka menu Sesi</a>
+                <h3>@Context.T("home.guide.sessions.title")</h3>
+                <p>@Context.T("home.guide.sessions.desc")</p>
+                <a asp-controller="Sessions" asp-action="Index">@Context.T("home.guide.sessions.link")</a>
             </article>
             <article class="tip-card">
-                <h3>Ruleset</h3>
-                <p>Buat ruleset baru, cek versi, aktifkan versi yang tepat sebelum sesi dimulai.</p>
-                <a asp-controller="Rulesets" asp-action="Index">Buka menu Ruleset</a>
+                <h3>@Context.T("home.guide.ruleset.title")</h3>
+                <p>@Context.T("home.guide.ruleset.desc")</p>
+                <a asp-controller="Rulesets" asp-action="Index">@Context.T("home.guide.ruleset.link")</a>
             </article>
             <article class="tip-card">
-                <h3>Analitika</h3>
-                <p>Masukkan Session ID untuk melihat ringkasan cashflow, metrik misi, dan performa pemain.</p>
-                <a asp-controller="Analytics" asp-action="Index">Buka menu Analitika</a>
+                <h3>@Context.T("home.guide.analytics.title")</h3>
+                <p>@Context.T("home.guide.analytics.desc")</p>
+                <a asp-controller="Analytics" asp-action="Index">@Context.T("home.guide.analytics.link")</a>
             </article>
             <article class="tip-card">
-                <h3>Pemain</h3>
-                <p>Lihat direktori pemain untuk validasi identitas sebelum meninjau detail metrik.</p>
-                <a asp-controller="PlayerDirectory" asp-action="Index">Buka menu Pemain</a>
+                <h3>@Context.T("home.guide.players.title")</h3>
+                <p>@Context.T("home.guide.players.desc")</p>
+                <a asp-controller="PlayerDirectory" asp-action="Index">@Context.T("home.guide.players.link")</a>
             </article>
         </div>
 
         <div class="mt-6 metric-panel">
-            <h3>Alur Penggunaan Cepat</h3>
+            <h3>@Context.T("home.quick_flow.title")</h3>
             <div class="metric-list">
-                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">Setup ruleset yang dibutuhkan di menu Ruleset.</span></div>
-                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">Masuk menu Sesi, pilih sesi, lalu aktifkan ruleset.</span></div>
-                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">Ingest event gameplay dari IDN/simulator ke API.</span></div>
-                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">Cek Analitika untuk ringkasan sesi dan tren metrik.</span></div>
-                <div class="metric-row"><span class="metric-key">5</span><span class="metric-value">Buka detail pemain untuk evaluasi performa per individu.</span></div>
+                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">@Context.T("home.quick_flow.step1")</span></div>
+                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">@Context.T("home.quick_flow.step2")</span></div>
+                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">@Context.T("home.quick_flow.step3")</span></div>
+                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">@Context.T("home.quick_flow.step4")</span></div>
+                <div class="metric-row"><span class="metric-key">5</span><span class="metric-value">@Context.T("home.quick_flow.step5")</span></div>
             </div>
         </div>
     </section>
@@ -177,36 +177,36 @@ else
 {
     <section class="section-shell mt-6 player-guide">
         <div>
-            <p class="eyebrow">Panduan Pemain</p>
-            <h2 class="headline text-3xl">Langkah cepat melihat progres</h2>
-            <p class="subhead">Tampilan player difokuskan untuk membaca hasil permainanmu sendiri dengan cepat.</p>
+            <p class="eyebrow">@Context.T("home.player_guide.menu")</p>
+            <h2 class="headline text-3xl">@Context.T("home.player_guide.title")</h2>
+            <p class="subhead">@Context.T("home.player_guide.subtitle")</p>
         </div>
 
         <div class="mt-6 tips-grid">
             <article class="tip-card">
-                <h3>Analitika Saya</h3>
-                <p>Pilih sesi dari dropdown, lalu cek cashflow, poin, dan risiko pribadi di satu halaman.</p>
-                <a asp-controller="Analytics" asp-action="Index">Buka Analitika Saya</a>
+                <h3>@Context.T("home.player_guide.analytics.title")</h3>
+                <p>@Context.T("home.player_guide.analytics.desc")</p>
+                <a asp-controller="Analytics" asp-action="Index">@Context.T("home.player_guide.analytics.link")</a>
             </article>
             <article class="tip-card">
-                <h3>Ruleset Aktif</h3>
-                <p>Lihat daftar ruleset untuk memahami target poin, penalti, dan batasan aksi permainan.</p>
-                <a asp-controller="Rulesets" asp-action="Index">Buka Ruleset</a>
+                <h3>@Context.T("home.player_guide.ruleset.title")</h3>
+                <p>@Context.T("home.player_guide.ruleset.desc")</p>
+                <a asp-controller="Rulesets" asp-action="Index">@Context.T("home.player_guide.ruleset.link")</a>
             </article>
             <article class="tip-card">
-                <h3>Rulebook</h3>
-                <p>Buka rulebook kapan saja saat butuh klarifikasi aturan game.</p>
-                <a asp-controller="Home" asp-action="Rulebook">Buka Rulebook</a>
+                <h3>@Context.T("home.player_guide.rulebook.title")</h3>
+                <p>@Context.T("home.player_guide.rulebook.desc")</p>
+                <a asp-controller="Home" asp-action="Rulebook">@Context.T("home.player_guide.rulebook.link")</a>
             </article>
         </div>
 
         <div class="mt-6 metric-panel">
-            <h3>Alur Pemain yang Disarankan</h3>
+            <h3>@Context.T("home.player_flow.title")</h3>
             <div class="metric-list">
-                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">Masuk ke Analitika lalu pilih sesi yang sedang kamu ikuti.</span></div>
-                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">Pantau net cashflow dan poin kebutuhan untuk evaluasi keputusan harian.</span></div>
-                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">Periksa penalti misi dan status pinjaman untuk menghindari skor turun.</span></div>
-                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">Cocokkan progresmu dengan ruleset agar strategi berikutnya lebih tepat.</span></div>
+                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">@Context.T("home.player_flow.step1")</span></div>
+                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">@Context.T("home.player_flow.step2")</span></div>
+                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">@Context.T("home.player_flow.step3")</span></div>
+                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">@Context.T("home.player_flow.step4")</span></div>
             </div>
         </div>
     </section>
@@ -224,6 +224,8 @@ else
             const lastSyncedEl = document.getElementById("home-last-synced");
             const progressBarEl = document.getElementById("home-progress-bar");
             const realtimeErrorEl = document.getElementById("home-realtime-error");
+            const realtimeStatusTemplate = '@Context.T("home.error.realtime_status")';
+            const realtimeNetworkMessage = '@Context.T("home.error.realtime_network")';
 
             const tick = () => {
                 const now = new Date();
@@ -254,7 +256,7 @@ else
                     });
 
                     if (!response.ok) {
-                        setError(`Gagal sinkron realtime (${response.status}).`);
+                        setError(realtimeStatusTemplate.replace("{status}", `${response.status}`));
                         return;
                     }
 
@@ -278,7 +280,7 @@ else
 
                     setError(data.errorMessage);
                 } catch {
-                    setError("Gagal sinkron realtime (network error).");
+                    setError(realtimeNetworkMessage);
                 }
             };
 

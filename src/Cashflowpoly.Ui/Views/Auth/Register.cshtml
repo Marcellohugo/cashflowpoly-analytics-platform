@@ -8,9 +8,9 @@
 <div class="auth-split-shell">
     <div class="auth-split-card auth-mode-register">
             <aside class="auth-split-right" aria-hidden="true">
-                <h2>Sudah Punya Akun?</h2>
-                <p>Masuk dengan akun Anda untuk melanjutkan pekerjaan.</p>
-                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="right" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">MASUK</a>
+                <h2>@Context.T("auth.login_panel_title")</h2>
+                <p>@Context.T("auth.login_panel_desc")</p>
+                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="right" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.login_panel_cta")</a>
             </aside>
 
             <div class="auth-split-left">
@@ -29,7 +29,7 @@
                                asp-for="DisplayName"
                                autocomplete="name"
                                required
-                               placeholder="Nama Lengkap" />
+                               placeholder="@Context.T("auth.placeholder.full_name")" />
                     </div>
 
                     <div class="form-field">
@@ -39,7 +39,7 @@
                                asp-for="Username"
                                autocomplete="username"
                                required
-                               placeholder="player_baru" />
+                               placeholder="@Context.T("auth.placeholder.new_username")" />
                     </div>
 
                     <div class="form-field">

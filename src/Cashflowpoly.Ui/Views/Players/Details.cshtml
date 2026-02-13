@@ -52,16 +52,6 @@
         return value.HasValue ? value.Value.ToString(format) : "N/A";
     }
 
-    static string FormatBool(bool? value)
-    {
-        if (!value.HasValue)
-        {
-            return "N/A";
-        }
-
-        return value.Value ? "Yes" : "No";
-    }
-
     var netWorthIndex = TryGetNumber(Model.GameplayDerived, "net_worth_index");
     var incomeDiversificationRatio = TryGetNumber(Model.GameplayDerived, "income_diversification_ratio");
     var expenseEfficiency = TryGetNumber(Model.GameplayDerived, "expense_management_efficiency");
@@ -120,7 +110,7 @@
 
         <div class="mt-6 metric-panels">
             <article class="metric-panel">
-                <h3>Economy Snapshot</h3>
+                <h3>@Context.T("players.economy_snapshot")</h3>
                 <div class="metric-list">
                     <div class="metric-row"><span class="metric-key">@Context.T("metric.donation")</span><span class="metric-value">@Model.Summary.DonationTotal</span></div>
                     <div class="metric-row"><span class="metric-key">@Context.T("metric.gold_qty")</span><span class="metric-value">@Model.Summary.GoldQty</span></div>
@@ -130,7 +120,7 @@
             </article>
 
             <article class="metric-panel">
-                <h3>Mission & Risk</h3>
+                <h3>@Context.T("players.mission_risk")</h3>
                 <div class="metric-list">
                     <div class="metric-row"><span class="metric-key">@Context.T("metric.mission_penalty")</span><span class="metric-value">@Model.Summary.MissionPenaltyTotal</span></div>
                     <div class="metric-row"><span class="metric-key">@Context.T("metric.loan_penalty")</span><span class="metric-value">@Model.Summary.LoanPenaltyTotal</span></div>
@@ -142,7 +132,7 @@
     }
 
     <details class="mt-8 data-toggle" open>
-        <summary>Transaction History (@Model.Transactions.Count)</summary>
+        <summary>@Context.T("players.transaction_history") (@Model.Transactions.Count)</summary>
         <div class="mt-3 table-wrap">
             <table class="w-full text-left text-sm">
                 <thead class="table-head">
@@ -180,7 +170,7 @@
     <div class="mt-8">
         <div class="page-intro">
             <div class="page-intro-main">
-                <p class="eyebrow">Gameplay Metrics</p>
+                <p class="eyebrow">@Context.T("players.gameplay_metrics")</p>
                 <h2 class="headline text-2xl">@Context.T("gameplay.title")</h2>
                 @if (Model.GameplayComputedAt.HasValue)
                 {
@@ -200,36 +190,36 @@
         {
             <div class="mt-6 metric-panels metric-panels-wide">
                 <article class="metric-panel">
-                    <h3>Financial Performance</h3>
+                    <h3>@Context.T("players.financial_performance")</h3>
                     <div class="metric-list">
-                        <div class="metric-row"><span class="metric-key">Net Worth Index</span><span class="metric-value">@FormatNumber(netWorthIndex)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Income Diversification</span><span class="metric-value">@FormatNumber(incomeDiversificationRatio)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Expense Efficiency</span><span class="metric-value">@FormatNumber(expenseEfficiency)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Business Profit Margin</span><span class="metric-value">@FormatNumber(businessProfitMargin)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Growth Pattern Ratio</span><span class="metric-value">@FormatNumber(growthPatternRatio)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.net_worth_index")</span><span class="metric-value">@FormatNumber(netWorthIndex)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.income_diversification")</span><span class="metric-value">@FormatNumber(incomeDiversificationRatio)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.expense_efficiency")</span><span class="metric-value">@FormatNumber(expenseEfficiency)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.business_profit_margin")</span><span class="metric-value">@FormatNumber(businessProfitMargin)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.growth_pattern_ratio")</span><span class="metric-value">@FormatNumber(growthPatternRatio)</span></div>
                     </div>
                 </article>
 
                 <article class="metric-panel">
-                    <h3>Strategy & Execution</h3>
+                    <h3>@Context.T("players.strategy_execution")</h3>
                     <div class="metric-list">
-                        <div class="metric-row"><span class="metric-key">Risk Appetite (0-100)</span><span class="metric-value">@FormatNumber(riskAppetite)</span></div>
-                        <div class="metric-row"><span class="metric-key">Debt Leverage</span><span class="metric-value">@FormatNumber(debtLeverageRatio)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Goal Setting Ambition</span><span class="metric-value">@FormatNumber(goalSettingAmbition)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Meal Order Success</span><span class="metric-value">@FormatNumber(mealOrderSuccessRate)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Action Efficiency</span><span class="metric-value">@FormatNumber(actionEfficiencyPercent)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Planning Horizon</span><span class="metric-value">@FormatNumber(planningHorizonPercent)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.risk_appetite")</span><span class="metric-value">@FormatNumber(riskAppetite)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.debt_leverage")</span><span class="metric-value">@FormatNumber(debtLeverageRatio)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.goal_setting_ambition")</span><span class="metric-value">@FormatNumber(goalSettingAmbition)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.meal_order_success")</span><span class="metric-value">@FormatNumber(mealOrderSuccessRate)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.action_efficiency")</span><span class="metric-value">@FormatNumber(actionEfficiencyPercent)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.planning_horizon")</span><span class="metric-value">@FormatNumber(planningHorizonPercent)%</span></div>
                     </div>
                 </article>
 
                 <article class="metric-panel">
-                    <h3>Behavior Signals</h3>
+                    <h3>@Context.T("players.behavior_signals")</h3>
                     <div class="metric-list">
-                        <div class="metric-row"><span class="metric-key">Donation Aggressiveness</span><span class="metric-value">@FormatNumber(donationAggressivenessPercent)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Donation Stability (StdDev)</span><span class="metric-value">@FormatNumber(donationStabilityStdDev)</span></div>
-                        <div class="metric-row"><span class="metric-key">Basic Need Profile</span><span class="metric-value">@FormatBool(basicProfile)</span></div>
-                        <div class="metric-row"><span class="metric-key">Collector Need Profile</span><span class="metric-value">@FormatBool(collectorProfile)</span></div>
-                        <div class="metric-row"><span class="metric-key">Specialist Need Profile</span><span class="metric-value">@FormatBool(specialistProfile)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.donation_aggressiveness")</span><span class="metric-value">@FormatNumber(donationAggressivenessPercent)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.donation_stability")</span><span class="metric-value">@FormatNumber(donationStabilityStdDev)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.basic_need_profile")</span><span class="metric-value">@(basicProfile.HasValue ? (basicProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.collector_need_profile")</span><span class="metric-value">@(collectorProfile.HasValue ? (collectorProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.specialist_need_profile")</span><span class="metric-value">@(specialistProfile.HasValue ? (specialistProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
                     </div>
                 </article>
             </div>

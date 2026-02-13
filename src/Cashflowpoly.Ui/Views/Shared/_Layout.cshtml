@@ -36,11 +36,11 @@
     <link rel="stylesheet" href="~/Cashflowpoly.Ui.styles.css" asp-append-version="true" />
 </head>
 <body class="@roleThemeClass">
-    <a class="skip-link" href="#content">Skip to content</a>
+    <a class="skip-link" href="#content">@Context.T("layout.skip_to_content")</a>
     <header class="sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur">
         <nav class="nav-shell @(isLoggedIn ? "nav-shell-auth" : "nav-shell-guest") @(isAuthPage ? "nav-auth-page" : string.Empty)">
-            <a class="flex items-center gap-3 text-lg font-semibold text-slate-900" asp-area="" asp-controller="Home" asp-action="Index">
-                <img class="brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="Cashflowpoly logo" />
+            <a class="nav-brand flex items-center gap-3 text-lg font-semibold text-slate-900" asp-area="" asp-controller="Home" asp-action="Index">
+                <img class="brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.logo_alt")" />
                 <div class="leading-tight">
                     <span class="brand-title">Cashflowpoly</span>
                 </div>
@@ -51,7 +51,7 @@
                         type="button"
                         aria-expanded="false"
                         aria-controls="primary-nav-links"
-                        aria-label="Toggle navigation menu">
+                        aria-label="@Context.T("layout.toggle_nav")">
                     <span class="nav-mobile-toggle-line"></span>
                     <span class="nav-mobile-toggle-line"></span>
                     <span class="nav-mobile-toggle-line"></span>
@@ -96,7 +96,7 @@
 
                         <details class="nav-dropdown nav-dropdown-profile">
                             <summary class="nav-avatar-trigger" title="@activeUsername" aria-label="@activeUsername">
-                                <img class="nav-avatar" src="~/images/images.jpg" asp-append-version="true" alt="Profile" />
+                                <img class="nav-avatar" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.profile_alt")" />
                             </summary>
                             <div class="nav-menu profile-menu">
                                 <div class="profile-meta">

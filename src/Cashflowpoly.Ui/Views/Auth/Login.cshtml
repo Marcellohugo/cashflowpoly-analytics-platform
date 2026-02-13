@@ -53,16 +53,16 @@
                 </form>
 
                 <div class="auth-login-notes" aria-hidden="true">
-                    <span>Akses sesi lebih cepat</span>
-                    <span>Monitoring analytics real-time</span>
-                    <span>Manajemen ruleset terpusat</span>
+                    <span>@Context.T("auth.login_note.quick_access")</span>
+                    <span>@Context.T("auth.login_note.realtime_monitoring")</span>
+                    <span>@Context.T("auth.login_note.centralized_ruleset")</span>
                 </div>
             </div>
 
             <aside class="auth-split-right" aria-hidden="true">
-                <h2>Belum Punya Akun?</h2>
-                <p>Buat akun baru untuk mulai mengelola sesi dan analytics.</p>
-                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">DAFTAR</a>
+                <h2>@Context.T("auth.register_panel_title")</h2>
+                <p>@Context.T("auth.register_panel_desc")</p>
+                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.register_panel_cta")</a>
             </aside>
     </div>
 </div>

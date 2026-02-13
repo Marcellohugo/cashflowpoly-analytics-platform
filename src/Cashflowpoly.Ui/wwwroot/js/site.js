@@ -46,15 +46,24 @@
     return;
   }
 
+  const navDropdowns = Array.from(navShell.querySelectorAll(".nav-dropdown"));
+  const closeDropdowns = () => {
+    navDropdowns.forEach((dropdown) => dropdown.removeAttribute("open"));
+  };
+
   const closeMenu = () => {
     navShell.classList.remove("is-open");
     toggles.forEach((toggle) => toggle.setAttribute("aria-expanded", "false"));
+    closeDropdowns();
   };
 
   toggles.forEach((toggle) => {
     toggle.addEventListener("click", () => {
       const isOpen = navShell.classList.toggle("is-open");
       toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      if (!isOpen) {
+        closeDropdowns();
+      }
     });
   });
 
@@ -85,6 +94,22 @@
   if (!dropdowns.length) {
     return;
   }
+
+  dropdowns.forEach((dropdown) => {
+    dropdown.addEventListener("toggle", () => {
+      if (!dropdown.open) {
+        return;
+      }
+
+      dropdowns.forEach((otherDropdown) => {
+        if (otherDropdown === dropdown) {
+          return;
+        }
+
+        otherDropdown.removeAttribute("open");
+      });
+    });
+  });
 
   document.addEventListener("click", (event) => {
     const target = event.target;

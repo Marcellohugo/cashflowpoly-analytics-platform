@@ -25,9 +25,9 @@
 
     <div class="mt-6 ruleset-unified">
         <div class="ruleset-tipline">
-            <span>Versioning: atur draft dulu, lalu aktifkan.</span>
-            <span>Consistency: gunakan format JSON valid.</span>
-            <span>Safety: ubah ruleset sebelum sesi dimulai.</span>
+            <span>@Context.T("rulesets.tip.versioning_draft")</span>
+            <span>@Context.T("rulesets.tip.consistency")</span>
+            <span>@Context.T("rulesets.tip.safety_before_start")</span>
         </div>
 
         <form class="mt-4 form-grid" method="post">
@@ -47,78 +47,78 @@
             </div>
 
             <div class="ruleset-form-section">
-                <h3>Core Setup</h3>
+                <h3>@Context.T("rulesets.form.core_setup")</h3>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
-                        <label class="form-label" for="cfg-mode">Mode</label>
+                        <label class="form-label" for="cfg-mode">@Context.T("rulesets.form.mode")</label>
                         <select id="cfg-mode" class="form-input">
-                            <option value="PEMULA">PEMULA</option>
-                            <option value="MAHIR">MAHIR</option>
+                            <option value="PEMULA">@Context.T("rulesets.form.mode_beginner")</option>
+                            <option value="MAHIR">@Context.T("rulesets.form.mode_advanced")</option>
                         </select>
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-actions">Actions / Turn</label>
+                        <label class="form-label" for="cfg-actions">@Context.T("rulesets.form.actions_per_turn")</label>
                         <input id="cfg-actions" type="number" min="1" class="form-input" value="2" />
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-cash">Starting Cash</label>
+                        <label class="form-label" for="cfg-cash">@Context.T("rulesets.form.starting_cash")</label>
                         <input id="cfg-cash" type="number" min="0" class="form-input" value="20" />
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-freelance-income">Freelance Income</label>
+                        <label class="form-label" for="cfg-freelance-income">@Context.T("rulesets.form.freelance_income")</label>
                         <input id="cfg-freelance-income" type="number" min="0" class="form-input" value="1" />
                     </div>
                 </div>
             </div>
 
             <div class="ruleset-form-section">
-                <h3>Weekday Features</h3>
+                <h3>@Context.T("rulesets.form.weekday_features")</h3>
                 <div class="grid gap-3 md:grid-cols-3 mt-3">
-                    <label class="metric-row"><span class="metric-key">Friday Donation</span><input id="cfg-friday" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">Saturday Gold Trade</span><input id="cfg-saturday" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">Sunday Rest</span><input id="cfg-sunday" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input id="cfg-friday" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input id="cfg-saturday" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.sunday_rest")</span><input id="cfg-sunday" type="checkbox" checked /></label>
                 </div>
             </div>
 
             <div class="ruleset-form-section">
-                <h3>Constraints</h3>
+                <h3>@Context.T("rulesets.form.constraints")</h3>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
-                        <label class="form-label" for="cfg-cash-min">Cash Min</label>
+                        <label class="form-label" for="cfg-cash-min">@Context.T("rulesets.form.cash_min")</label>
                         <input id="cfg-cash-min" type="number" class="form-input" value="0" />
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-max-ing-total">Max Ingredient Total</label>
+                        <label class="form-label" for="cfg-max-ing-total">@Context.T("rulesets.form.max_ingredient_total")</label>
                         <input id="cfg-max-ing-total" type="number" min="1" class="form-input" value="6" />
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-max-same-ing">Max Same Ingredient</label>
+                        <label class="form-label" for="cfg-max-same-ing">@Context.T("rulesets.form.max_same_ingredient")</label>
                         <input id="cfg-max-same-ing" type="number" min="1" class="form-input" value="3" />
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-primary-max-day">Primary Need Max / Day</label>
+                        <label class="form-label" for="cfg-primary-max-day">@Context.T("rulesets.form.primary_need_max_day")</label>
                         <input id="cfg-primary-max-day" type="number" min="1" class="form-input" value="1" />
                     </div>
-                    <label class="metric-row md:col-span-2"><span class="metric-key">Require Primary Before Others</span><input id="cfg-require-primary" type="checkbox" checked /></label>
+                    <label class="metric-row md:col-span-2"><span class="metric-key">@Context.T("rulesets.form.require_primary_first")</span><input id="cfg-require-primary" type="checkbox" checked /></label>
                 </div>
             </div>
 
             <div class="ruleset-form-section">
-                <h3>Economy & Advanced</h3>
+                <h3>@Context.T("rulesets.form.economy_advanced")</h3>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
-                        <label class="form-label" for="cfg-donation-min">Donation Min</label>
+                        <label class="form-label" for="cfg-donation-min">@Context.T("rulesets.form.donation_min")</label>
                         <input id="cfg-donation-min" type="number" min="0" class="form-input" value="1" />
                     </div>
                     <div>
-                        <label class="form-label" for="cfg-donation-max">Donation Max</label>
+                        <label class="form-label" for="cfg-donation-max">@Context.T("rulesets.form.donation_max")</label>
                         <input id="cfg-donation-max" type="number" min="0" class="form-input" value="999999" />
                     </div>
-                    <label class="metric-row"><span class="metric-key">Gold Buy</span><input id="cfg-gold-buy" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">Gold Sell</span><input id="cfg-gold-sell" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">Loan Enabled</span><input id="cfg-adv-loan" type="checkbox" /></label>
-                    <label class="metric-row"><span class="metric-key">Insurance Enabled</span><input id="cfg-adv-insurance" type="checkbox" /></label>
-                    <label class="metric-row"><span class="metric-key">Saving Goal Enabled</span><input id="cfg-adv-saving-goal" type="checkbox" /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input id="cfg-gold-buy" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input id="cfg-gold-sell" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input id="cfg-adv-loan" type="checkbox" /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input id="cfg-adv-insurance" type="checkbox" /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input id="cfg-adv-saving-goal" type="checkbox" /></label>
                 </div>
             </div>
 

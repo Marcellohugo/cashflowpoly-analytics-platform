@@ -1,18 +1,18 @@
 @model Cashflowpoly.Ui.Models.RulesetAnalyticsViewModel
 
 @{
-    ViewData["Title"] = "Ruleset Analytics";
+    ViewData["Title"] = Context.T("rulesets.analytics.title");
 }
 
 <section class="section-shell">
     <div class="ruleset-hero">
         <div>
-            <p class="eyebrow text-emerald-700">Ruleset Analytics</p>
-            <h1 class="headline">Ringkasan Analitika per Ruleset</h1>
+            <p class="eyebrow text-emerald-700">@Context.T("rulesets.analytics.title")</p>
+            <h1 class="headline">@Context.T("rulesets.analytics.subtitle")</h1>
             <p class="mt-2 text-xs text-slate-500 font-mono">@Model.RulesetId</p>
         </div>
         <div class="ruleset-hero-meta">
-            <a class="btn-ghost" asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@Model.RulesetId">Kembali ke Ruleset</a>
+            <a class="btn-ghost" asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@Model.RulesetId">@Context.T("rulesets.analytics.back")</a>
         </div>
     </div>
 
@@ -39,15 +39,15 @@
 
         <div class="mt-6 grid gap-4 md:grid-cols-3">
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Session Count</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.session_count")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.SessionCount</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Learning Aggregate</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.learning_aggregate")</p>
                 <p class="mt-2 text-2xl font-semibold text-emerald-700">@(Model.Result.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Quest Aggregate</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.quest_aggregate")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@(Model.Result.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
             </div>
         </div>
@@ -56,19 +56,19 @@
             <table class="w-full text-left text-sm">
                 <thead class="table-head">
                     <tr>
-                        <th class="px-4 py-3">Session</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3 text-right">Events</th>
-                        <th class="px-4 py-3 text-right">Learning Aggregate</th>
-                        <th class="px-4 py-3 text-right">Quest Aggregate</th>
-                        <th class="px-4 py-3 text-right">Detail</th>
+                        <th class="px-4 py-3">@Context.T("rulesets.analytics.session")</th>
+                        <th class="px-4 py-3">@Context.T("common.status")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.events")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.learning_aggregate")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.quest_aggregate")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.detail")</th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (Model.Result.Sessions.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="6">Belum ada sesi yang memakai ruleset ini.</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="6">@Context.T("rulesets.analytics.empty_sessions")</td>
                     </tr>
                 }
                 else
@@ -94,7 +94,7 @@
                                 <a class="table-link"
                                    asp-controller="Sessions"
                                    asp-action="Details"
-                                   asp-route-sessionId="@item.SessionId">Lihat</a>
+                                   asp-route-sessionId="@item.SessionId">@Context.T("common.view")</a>
                             </td>
                         </tr>
                     }
@@ -107,17 +107,17 @@
             <table class="w-full text-left text-sm">
                 <thead class="table-head">
                     <tr>
-                        <th class="px-4 py-3">Session</th>
-                        <th class="px-4 py-3">Player ID</th>
-                        <th class="px-4 py-3 text-right">User Learning Performance</th>
-                        <th class="px-4 py-3 text-right">User Quest Performance</th>
+                        <th class="px-4 py-3">@Context.T("rulesets.analytics.session")</th>
+                        <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_learning")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_quest")</th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (flatUserScores.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="4">Belum ada user performance yang bisa ditampilkan.</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("rulesets.analytics.player_performance_empty")</td>
                     </tr>
                 }
                 else

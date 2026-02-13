@@ -35,8 +35,8 @@
         {
             JsonValueKind.String => v.GetString() ?? fallback,
             JsonValueKind.Number => v.ToString(),
-            JsonValueKind.True => "Aktif",
-            JsonValueKind.False => "Nonaktif",
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
             _ => v.ToString()
         };
     }
@@ -100,14 +100,14 @@
                 <div class="ruleset-hero-meta">
                     <span class="id-chip">@Model.Ruleset.RulesetId</span>
                     <span class="status-pill @(Model.Ruleset.IsArchived ? "status-retired" : "status-active")">
-                        @(Model.Ruleset.IsArchived ? "ARCHIVED" : "AVAILABLE")
+                        @(Model.Ruleset.IsArchived ? Context.T("rulesets.status.archived") : Context.T("rulesets.status.available"))
                     </span>
                 </div>
             </div>
 
             <div class="action-toolbar mt-4">
                 <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
-                <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">Analitika Ruleset</a>
+                <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">@Context.T("rulesets.analytics_link")</a>
                 @if (isInstructor)
                 {
                     <a class="btn-primary" asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
@@ -128,20 +128,20 @@
 
             <div class="ruleset-overview-grid mt-5">
                 <article class="ruleset-overview-card">
-                    <p class="ruleset-overview-label">Total Versi</p>
+                    <p class="ruleset-overview-label">@Context.T("rulesets.total_versions")</p>
                     <p class="ruleset-overview-value">@Model.Ruleset.Versions.Count</p>
                 </article>
                 <article class="ruleset-overview-card">
-                    <p class="ruleset-overview-label">Versi Aktif</p>
+                    <p class="ruleset-overview-label">@Context.T("rulesets.active_versions")</p>
                     <p class="ruleset-overview-value">@activeVersionCount</p>
                 </article>
                 <article class="ruleset-overview-card">
-                    <p class="ruleset-overview-label">Versi Terbaru</p>
+                    <p class="ruleset-overview-label">@Context.T("common.latest_version")</p>
                     <p class="ruleset-overview-value">@(latestVersion > 0 ? $"v{latestVersion}" : "-")</p>
                 </article>
                 <article class="ruleset-overview-card">
-                    <p class="ruleset-overview-label">Status Ruleset</p>
-                    <p class="ruleset-overview-value">@(Model.Ruleset.IsArchived ? "Archived" : "Available")</p>
+                    <p class="ruleset-overview-label">@Context.T("rulesets.status_label")</p>
+                    <p class="ruleset-overview-value">@(Model.Ruleset.IsArchived ? Context.T("rulesets.status.archived") : Context.T("rulesets.status.available"))</p>
                 </article>
             </div>
 
@@ -149,42 +149,42 @@
 
             <div class="ruleset-layout-grid mt-5">
                 <div>
-                    <p class="text-sm font-semibold text-slate-700">Ringkasan Konfigurasi Ruleset</p>
+                    <p class="text-sm font-semibold text-slate-700">@Context.T("rulesets.config_summary")</p>
                     @if (!hasConfig)
                     {
                         <div class="mt-2 alert alert-info">
-                            Konfigurasi belum tersedia.
+                            @Context.T("rulesets.config_unavailable")
                         </div>
                     }
                     else
                     {
                         <div class="mt-3 space-y-4">
                             <div class="ruleset-form-section">
-                                <h3>Core Setup</h3>
+                                <h3>@Context.T("rulesets.form.core_setup")</h3>
                                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                                     <div>
-                                        <label class="form-label">Mode</label>
+                                        <label class="form-label">@Context.T("rulesets.form.mode")</label>
                                         <input type="text"
                                                readonly
                                                value="@AsText(GetPath(cfg, "mode"), "PEMULA")"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Actions / Turn</label>
+                                        <label class="form-label">@Context.T("rulesets.form.actions_per_turn")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "actions_per_turn"), 2)"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Starting Cash</label>
+                                        <label class="form-label">@Context.T("rulesets.form.starting_cash")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "starting_cash"), 20)"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Freelance Income</label>
+                                        <label class="form-label">@Context.T("rulesets.form.freelance_income")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "freelance", "income"), 1)"
@@ -194,71 +194,71 @@
                             </div>
 
                             <div class="ruleset-form-section">
-                                <h3>Weekday Features</h3>
+                                <h3>@Context.T("rulesets.form.weekday_features")</h3>
                                 <div class="grid gap-3 md:grid-cols-3 mt-3">
-                                    <label class="metric-row"><span class="metric-key">Friday Donation</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "friday", "enabled"), true) ? "checked" : null) /></label>
-                                    <label class="metric-row"><span class="metric-key">Saturday Gold Trade</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "saturday", "enabled"), true) ? "checked" : null) /></label>
-                                    <label class="metric-row"><span class="metric-key">Sunday Rest</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "sunday", "enabled"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "friday", "enabled"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "saturday", "enabled"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.sunday_rest")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "sunday", "enabled"), true) ? "checked" : null) /></label>
                                 </div>
                             </div>
 
                             <div class="ruleset-form-section">
-                                <h3>Constraints</h3>
+                                <h3>@Context.T("rulesets.form.constraints")</h3>
                                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                                     <div>
-                                        <label class="form-label">Cash Min</label>
+                                        <label class="form-label">@Context.T("rulesets.form.cash_min")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "cash_min"), 0)"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Max Ingredient Total</label>
+                                        <label class="form-label">@Context.T("rulesets.form.max_ingredient_total")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "max_ingredient_total"), 6)"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Max Same Ingredient</label>
+                                        <label class="form-label">@Context.T("rulesets.form.max_same_ingredient")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "max_same_ingredient"), 3)"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Primary Need Max / Day</label>
+                                        <label class="form-label">@Context.T("rulesets.form.primary_need_max_day")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "primary_need_max_per_day"), 1)"
                                                class="form-input" />
                                     </div>
-                                    <label class="metric-row md:col-span-2"><span class="metric-key">Require Primary Before Others</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "constraints", "require_primary_before_others"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row md:col-span-2"><span class="metric-key">@Context.T("rulesets.form.require_primary_first")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "constraints", "require_primary_before_others"), true) ? "checked" : null) /></label>
                                 </div>
                             </div>
 
                             <div class="ruleset-form-section">
-                                <h3>Economy & Advanced</h3>
+                                <h3>@Context.T("rulesets.form.economy_advanced")</h3>
                                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                                     <div>
-                                        <label class="form-label">Donation Min</label>
+                                        <label class="form-label">@Context.T("rulesets.form.donation_min")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "donation", "min_amount"), 1)"
                                                class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="form-label">Donation Max</label>
+                                        <label class="form-label">@Context.T("rulesets.form.donation_max")</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "donation", "max_amount"), 999999)"
                                                class="form-input" />
                                     </div>
-                                    <label class="metric-row"><span class="metric-key">Gold Buy</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_buy"), true) ? "checked" : null) /></label>
-                                    <label class="metric-row"><span class="metric-key">Gold Sell</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_sell"), true) ? "checked" : null) /></label>
-                                    <label class="metric-row"><span class="metric-key">Loan Enabled</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "loan", "enabled"), false) ? "checked" : null) /></label>
-                                    <label class="metric-row"><span class="metric-key">Insurance Enabled</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "insurance", "enabled"), false) ? "checked" : null) /></label>
-                                    <label class="metric-row"><span class="metric-key">Saving Goal Enabled</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "saving_goal", "enabled"), false) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_buy"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_sell"), true) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "loan", "enabled"), false) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "insurance", "enabled"), false) ? "checked" : null) /></label>
+                                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "saving_goal", "enabled"), false) ? "checked" : null) /></label>
                                 </div>
                             </div>
                         </div>
@@ -267,7 +267,7 @@
 
                 <div>
                     <div class="table-wrap">
-                        <div class="px-4 pt-4 pb-2 text-sm font-semibold text-slate-700">Riwayat Versi</div>
+                        <div class="px-4 pt-4 pb-2 text-sm font-semibold text-slate-700">@Context.T("rulesets.version_history")</div>
                         <table class="w-full text-left text-sm">
                             <thead class="table-head">
                                 <tr>
@@ -311,7 +311,7 @@
                                                 {
                                                     <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
                                                         @Html.AntiForgeryToken()
-                                                        <button class="btn-ghost text-xs px-3 py-1" type="submit">Set Active</button>
+                                                        <button class="btn-ghost text-xs px-3 py-1" type="submit">@Context.T("rulesets.set_active")</button>
                                                     </form>
                                                 }
                                             </td>

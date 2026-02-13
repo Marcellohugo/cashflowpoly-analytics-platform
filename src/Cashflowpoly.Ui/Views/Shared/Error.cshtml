@@ -1,32 +1,32 @@
 @model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = Context.T("error.title");
 }
 
 <section class="section-shell">
     <div class="page-intro">
         <div class="page-intro-main">
-            <p class="eyebrow text-rose-700">System Notice</p>
-            <h1 class="headline">Terjadi kesalahan saat memproses permintaan.</h1>
-            <p class="subhead">Silakan coba lagi, atau cek detail request bila masalah berlanjut.</p>
+            <p class="eyebrow text-rose-700">@Context.T("error.notice")</p>
+            <h1 class="headline">@Context.T("error.message")</h1>
+            <p class="subhead">@Context.T("error.submessage")</p>
         </div>
     </div>
 
     @if (Model.ShowRequestId)
     {
         <div class="mt-4 alert alert-info">
-            <strong>Request ID:</strong> <code>@Model.RequestId</code>
+            <strong>@Context.T("error.request_id"):</strong> <code>@Model.RequestId</code>
         </div>
     }
 </section>
 
 <section class="section-shell mt-6">
-    <h2 class="headline text-2xl">Development Mode</h2>
+    <h2 class="headline text-2xl">@Context.T("error.dev_mode")</h2>
     <p class="subhead">
-        Mode <strong>Development</strong> menampilkan detail error untuk debugging lokal.
+        @Context.T("error.dev_desc")
     </p>
     <p class="mt-2 text-sm text-slate-600">
-        Jangan aktifkan Development di produksi karena bisa mengekspos informasi sensitif.
-        Untuk debugging lokal, set <strong>ASPNETCORE_ENVIRONMENT</strong> ke <strong>Development</strong>.
+        @Context.T("error.dev_warning")
+        @Context.T("error.dev_hint")
     </p>
 </section>

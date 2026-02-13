@@ -15,11 +15,11 @@
 <section class="section-shell w-full analytics-shell @(isInstructor ? "analytics-shell-instructor" : "analytics-shell-player")">
     <div class="page-intro">
         <div class="page-intro-main">
-            <p class="eyebrow text-emerald-700">@(isInstructor ? Context.T("analytics.dashboard") : "Dashboard Progres Player")</p>
-            <h1 class="headline">@(isInstructor ? Context.T("analytics.title") : "Analitika Sesi Saya")</h1>
+            <p class="eyebrow text-emerald-700">@(isInstructor ? Context.T("analytics.dashboard") : Context.T("analytics.player_dashboard"))</p>
+            <h1 class="headline">@(isInstructor ? Context.T("analytics.title") : Context.T("analytics.player_title"))</h1>
             <p class="subhead">@(isInstructor
                 ? Context.T("analytics.subtitle")
-                : "Pilih sesi yang kamu ikuti untuk melihat ringkasan performa dan metrik pribadimu.")</p>
+                : Context.T("analytics.player_subtitle"))</p>
         </div>
         <div class="page-intro-actions">
             <div class="badge @(isInstructor ? "badge-emerald" : "badge-amber")">@Context.T("home.realtime")</div>
@@ -57,7 +57,7 @@
                         asp-for="SessionId">
                     @if (Model.Sessions.Count == 0)
                     {
-                        <option value="">Belum ada sesi untuk akun player ini</option>
+                        <option value="">@Context.T("analytics.player_no_sessions")</option>
                     }
                     else
                     {
@@ -68,7 +68,7 @@
                     }
                 </select>
             </div>
-            <button class="btn-primary" type="submit">Lihat progres saya</button>
+            <button class="btn-primary" type="submit">@Context.T("analytics.player_button")</button>
         }
     </form>
 
@@ -87,20 +87,20 @@
     }
 
     <details class="mt-4 data-toggle">
-        <summary>@(isInstructor ? "Tips penggunaan menu Analitika" : "Tips membaca analitika pemain")</summary>
+        <summary>@(isInstructor ? Context.T("analytics.tips.instructor") : Context.T("analytics.tips.player"))</summary>
         <div class="mt-3 metric-panel">
             <div class="metric-list">
                 @if (isInstructor)
                 {
-                    <div class="metric-row"><span class="metric-key">Input</span><span class="metric-value">Masukkan Session ID yang valid.</span></div>
-                    <div class="metric-row"><span class="metric-key">Interpretasi</span><span class="metric-value">Baca ringkasan sesi dulu sebelum melihat chart per pemain.</span></div>
-                    <div class="metric-row"><span class="metric-key">Tindak lanjut</span><span class="metric-value">Buka detail sesi/pemain untuk investigasi metrik spesifik.</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.input")</span><span class="metric-value">@Context.T("analytics.tip.input")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.interpretation")</span><span class="metric-value">@Context.T("analytics.tip.interpretation")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.followup")</span><span class="metric-value">@Context.T("analytics.tip.followup")</span></div>
                 }
                 else
                 {
-                    <div class="metric-row"><span class="metric-key">Pilih Sesi</span><span class="metric-value">Gunakan dropdown sesi, tidak perlu input UUID manual.</span></div>
-                    <div class="metric-row"><span class="metric-key">Fokus Skor</span><span class="metric-value">Pantau net cashflow, need points, dan saving goal points.</span></div>
-                    <div class="metric-row"><span class="metric-key">Kontrol Risiko</span><span class="metric-value">Perhatikan penalti misi, penalti loan, dan status unpaid loan.</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.select_session")</span><span class="metric-value">@Context.T("analytics.tip.select_session")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.focus_score")</span><span class="metric-value">@Context.T("analytics.tip.focus_score")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.risk_control")</span><span class="metric-value">@Context.T("analytics.tip.risk_control")</span></div>
                 }
             </div>
         </div>
@@ -118,7 +118,7 @@
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.CashflowNetTotal</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Players</p>
+                <p class="text-xs uppercase text-slate-500">@Context.T("analytics.players")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.ByPlayer.Count</p>
             </div>
         </div>
@@ -157,11 +157,11 @@
         {
             <div class="mt-8 chart-grid">
                 <article class="chart-card md:col-span-2">
-                    <h3 class="chart-title">Ringkasan Sesi</h3>
+                    <h3 class="chart-title">@Context.T("analytics.chart.session_summary")</h3>
                     <canvas id="summaryLineChart" height="120"></canvas>
                 </article>
                 <article class="chart-card md:col-span-2">
-                    <h3 class="chart-title">Arus Kas Per Pemain</h3>
+                    <h3 class="chart-title">@Context.T("analytics.chart.cashflow_per_player")</h3>
                     <canvas id="cashflowLineChart" height="120"></canvas>
                 </article>
             </div>
@@ -236,15 +236,15 @@
         {
             <div class="mt-8 chart-grid">
                 <article class="chart-card">
-                    <h3 class="chart-title">Arus Kas Pribadi</h3>
+                    <h3 class="chart-title">@Context.T("analytics.chart.personal_cashflow")</h3>
                     <canvas id="playerFinanceChart" height="120"></canvas>
                 </article>
                 <article class="chart-card">
-                    <h3 class="chart-title">Poin Permainan</h3>
+                    <h3 class="chart-title">@Context.T("analytics.chart.game_points")</h3>
                     <canvas id="playerPointsChart" height="120"></canvas>
                 </article>
                 <article class="chart-card">
-                    <h3 class="chart-title">Kontrol Risiko</h3>
+                    <h3 class="chart-title">@Context.T("analytics.chart.risk_control")</h3>
                     <canvas id="playerRiskChart" height="120"></canvas>
                 </article>
             </div>
@@ -300,9 +300,9 @@
                     const netCash = (me.cash_in_total ?? 0) - (me.cash_out_total ?? 0);
 
                     makeChart("playerFinanceChart", "bar",
-                        ["Cash In", "Cash Out", "Net", "Donation"],
+                        ["@Context.T("analytics.chart.cash_in")", "@Context.T("analytics.chart.cash_out")", "@Context.T("analytics.chart.net")", "@Context.T("metric.donation")"],
                         [{
-                            label: "Nilai",
+                            label: "@Context.T("analytics.chart.value")",
                             data: [me.cash_in_total ?? 0, me.cash_out_total ?? 0, netCash, me.donation_total ?? 0],
                             backgroundColor: ["#2d7dd2", "#e95a4b", "#1ba784", "#f39c12"],
                             borderColor: ["#1f5aa0", "#b73f31", "#157f63", "#bf7608"],
@@ -313,9 +313,9 @@
                         });
 
                     makeChart("playerPointsChart", "bar",
-                        ["Happiness", "Need", "Need Bonus", "Donation", "Gold", "Pension", "Saving Goal"],
+                        ["@Context.T("metric.happiness")", "@Context.T("metric.need_points")", "@Context.T("metric.need_bonus")", "@Context.T("metric.donation")", "@Context.T("metric.gold_points")", "@Context.T("metric.pension_points")", "@Context.T("metric.saving_goal")"],
                         [{
-                            label: "Points",
+                            label: "@Context.T("analytics.chart.points")",
                             data: [
                                 me.happiness_points_total ?? 0,
                                 me.need_points_total ?? 0,
@@ -334,9 +334,9 @@
                         });
 
                     makeChart("playerRiskChart", "bar",
-                        ["Mission Penalty", "Loan Penalty", "Unpaid Loan"],
+                        ["@Context.T("metric.mission_penalty")", "@Context.T("metric.loan_penalty")", "@Context.T("metric.loan_unpaid")"],
                         [{
-                            label: "Risk",
+                            label: "@Context.T("analytics.chart.risk")",
                             data: [me.mission_penalty_total ?? 0, me.loan_penalty_total ?? 0, me.has_unpaid_loan ? 1 : 0],
                             backgroundColor: ["#ef4e4e99", "#d1495b99", "#37415199"],
                             borderColor: ["#bf2e2e", "#a53344", "#1f2937"],
@@ -350,9 +350,9 @@
                 }
 
                 makeChart("summaryLineChart", "line",
-                    ["Event", "Cash In", "Cash Out", "Net", "Violations"],
+                    ["@Context.T("analytics.chart.event")", "@Context.T("analytics.chart.cash_in")", "@Context.T("analytics.chart.cash_out")", "@Context.T("analytics.chart.net")", "@Context.T("metric.violations")"],
                     [{
-                        label: "Summary",
+                        label: "@Context.T("analytics.chart.summary")",
                         data: [
                             data.summary.event_count,
                             data.summary.cash_in_total,
@@ -369,7 +369,7 @@
 
                 makeChart("cashflowLineChart", "line", playerLabels, [
                     {
-                        label: "Cash In",
+                        label: "@Context.T("analytics.chart.cash_in")",
                         data: players.map((p) => p.cash_in_total),
                         borderColor: "#1ba784",
                         backgroundColor: "rgba(27, 167, 132, 0.15)",
@@ -377,7 +377,7 @@
                         pointRadius: 3
                     },
                     {
-                        label: "Cash Out",
+                        label: "@Context.T("analytics.chart.cash_out")",
                         data: players.map((p) => p.cash_out_total),
                         borderColor: "#e95a4b",
                         backgroundColor: "rgba(233, 90, 75, 0.15)",
@@ -385,7 +385,7 @@
                         pointRadius: 3
                     },
                     {
-                        label: "Donation",
+                        label: "@Context.T("metric.donation")",
                         data: players.map((p) => p.donation_total),
                         borderColor: "#3f74ff",
                         backgroundColor: "rgba(63, 116, 255, 0.15)",

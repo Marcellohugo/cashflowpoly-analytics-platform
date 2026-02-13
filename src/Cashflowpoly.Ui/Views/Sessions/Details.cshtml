@@ -119,9 +119,9 @@
         <div class="mt-8">
             <div class="page-intro">
                 <div class="page-intro-main">
-                    <p class="eyebrow">Timeline</p>
-                    <h2 class="headline text-2xl">Alur Permainan per Waktu</h2>
-                    <p class="subhead">Urutan aktivitas selama sesi berdasarkan waktu event dan sequence.</p>
+                    <p class="eyebrow">@Context.T("sessions.timeline")</p>
+                    <h2 class="headline text-2xl">@Context.T("sessions.timeline_title")</h2>
+                    <p class="subhead">@Context.T("sessions.timeline_subtitle")</p>
                 </div>
             </div>
 
@@ -136,11 +136,11 @@
             {
                 <div class="mt-4 chart-grid">
                     <article class="chart-card md:col-span-2">
-                        <h3 class="chart-title">Diagram Event dari Awal hingga Selesai</h3>
+                        <h3 class="chart-title">@Context.T("sessions.timeline_chart_progress")</h3>
                         <canvas id="sessionTimelineProgressChart" height="120"></canvas>
                     </article>
                     <article class="chart-card md:col-span-2">
-                        <h3 class="chart-title">Sebaran Event per Aktor terhadap Waktu</h3>
+                        <h3 class="chart-title">@Context.T("sessions.timeline_chart_actor")</h3>
                         <canvas id="sessionTimelineActorChart" height="120"></canvas>
                     </article>
                 </div>
@@ -151,18 +151,18 @@
                     <thead class="table-head">
                         <tr>
                             <th class="px-4 py-3">@Context.T("common.time")</th>
-                            <th class="px-4 py-3 text-right">Seq</th>
-                            <th class="px-4 py-3">Hari/Turn</th>
-                            <th class="px-4 py-3">Aktor</th>
-                            <th class="px-4 py-3">Alur</th>
-                            <th class="px-4 py-3">Penjelasan</th>
+                            <th class="px-4 py-3 text-right">@Context.T("sessions.timeline_seq")</th>
+                            <th class="px-4 py-3">@Context.T("sessions.timeline_day_turn")</th>
+                            <th class="px-4 py-3">@Context.T("sessions.timeline_actor")</th>
+                            <th class="px-4 py-3">@Context.T("sessions.timeline_flow")</th>
+                            <th class="px-4 py-3">@Context.T("sessions.timeline_description")</th>
                         </tr>
                     </thead>
                     <tbody>
                     @if (Model.Timeline.Count == 0)
                     {
                         <tr>
-                            <td class="px-4 py-4 text-slate-500" colspan="6">Belum ada event timeline pada sesi ini.</td>
+                            <td class="px-4 py-4 text-slate-500" colspan="6">@Context.T("sessions.timeline_empty")</td>
                         </tr>
                     }
                     else
@@ -213,6 +213,13 @@
                 if (!Array.isArray(timeline) || timeline.length === 0) {
                     return;
                 }
+                const cumulativeEventsLabel = '@Context.T("sessions.timeline_chart_cumulative_events")';
+                const minutesSinceFirstLabel = '@Context.T("sessions.timeline_chart_minutes_since_first")';
+                const cumulativeCountLabel = '@Context.T("sessions.timeline_chart_event_count")';
+                const turnNumberLabel = '@Context.T("sessions.timeline_chart_turn_number")';
+                const tooltipMinutesTemplate = '@Context.T("sessions.timeline_tooltip_minutes")';
+                const tooltipEventTemplate = '@Context.T("sessions.timeline_tooltip_event")';
+                const tooltipActorTemplate = '@Context.T("sessions.timeline_tooltip_actor")';
 
                 const sorted = [...timeline].sort((a, b) => {
                     const ta = new Date(a.Timestamp).getTime();
@@ -243,7 +250,7 @@
                         type: "line",
                         data: {
                             datasets: [{
-                                label: "Kumulatif Event",
+                                label: cumulativeEventsLabel,
                                 data: progressData,
                                 borderColor: "#2d7dd2",
                                 backgroundColor: "rgba(45, 125, 210, 0.14)",
@@ -264,14 +271,14 @@
                                     type: "linear",
                                     title: {
                                         display: true,
-                                        text: "Menit sejak event pertama"
+                                        text: minutesSinceFirstLabel
                                     }
                                 },
                                 y: {
                                     beginAtZero: true,
                                     title: {
                                         display: true,
-                                        text: "Jumlah event (kumulatif)"
+                                        text: cumulativeCountLabel
                                     }
                                 }
                             },
@@ -279,10 +286,14 @@
                                 legend: { display: false },
                                 tooltip: {
                                     callbacks: {
-                                        title: (items) => `+${items[0].parsed.x.toFixed(2)} menit`,
+                                        title: (items) => tooltipMinutesTemplate.replace("{value}", items[0].parsed.x.toFixed(2)),
                                         label: (item) => {
                                             const raw = item.raw ?? {};
-                                            return `Event #${raw.y} | seq ${raw.seq} | ${raw.actor} | ${raw.action}`;
+                                            return tooltipEventTemplate
+                                                .replace("{event}", `${raw.y}`)
+                                                .replace("{seq}", `${raw.seq}`)
+                                                .replace("{actor}", `${raw.actor}`)
+                                                .replace("{action}", `${raw.action}`);
                                         }
                                     }
                                 }
@@ -354,14 +365,14 @@
                                     type: "linear",
                                     title: {
                                         display: true,
-                                        text: "Menit sejak event pertama"
+                                        text: minutesSinceFirstLabel
                                     }
                                 },
                                 y: {
                                     beginAtZero: true,
                                     title: {
                                         display: true,
-                                        text: "Turn Number"
+                                        text: turnNumberLabel
                                     },
                                     ticks: {
                                         stepSize: 1
@@ -372,10 +383,16 @@
                                 legend: { display: true },
                                 tooltip: {
                                     callbacks: {
-                                        title: (items) => `+${items[0].parsed.x.toFixed(2)} menit`,
+                                        title: (items) => tooltipMinutesTemplate.replace("{value}", items[0].parsed.x.toFixed(2)),
                                         label: (item) => {
                                             const raw = item.raw ?? {};
-                                            return `${item.dataset.label} | day ${raw.day} (${raw.weekday}) | turn ${raw.y} | seq ${raw.seq} | ${raw.action}`;
+                                            return tooltipActorTemplate
+                                                .replace("{actor}", `${item.dataset.label}`)
+                                                .replace("{day}", `${raw.day}`)
+                                                .replace("{weekday}", `${raw.weekday}`)
+                                                .replace("{turn}", `${raw.y}`)
+                                                .replace("{seq}", `${raw.seq}`)
+                                                .replace("{action}", `${raw.action}`);
                                         }
                                     }
                                 }
