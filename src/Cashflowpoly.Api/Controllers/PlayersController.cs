@@ -13,6 +13,14 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/v1/players")]
 [Route("api/players")]
 [Authorize]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public sealed class PlayersController : ControllerBase
 {
     private readonly PlayerRepository _players;
@@ -28,6 +36,7 @@ public sealed class PlayersController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(PlayerResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -84,6 +93,7 @@ public sealed class PlayersController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(PlayerListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListPlayers(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -122,6 +132,7 @@ public sealed class PlayersController : ControllerBase
     [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]
     [HttpPost("/api/sessions/{sessionId:guid}/players")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))

@@ -13,6 +13,14 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/v1")]
 [Route("api")]
 [Authorize]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public sealed class EventsController : ControllerBase
 {
     private sealed record ValidationOutcome(bool IsValid, int StatusCode, ErrorResponse? Error);
@@ -53,6 +61,7 @@ public sealed class EventsController : ControllerBase
     private const int RulebookSavingMaxDeposit = 15;
 
     [HttpPost("events")]
+    [ProducesResponseType(typeof(EventStoredResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateEvent([FromBody] EventRequest request, CancellationToken ct)
     {
         var validation = await ValidateEventAsync(request, ct);
@@ -87,6 +96,7 @@ public sealed class EventsController : ControllerBase
     }
 
     [HttpPost("events/batch")]
+    [ProducesResponseType(typeof(EventBatchResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateEventsBatch([FromBody] EventBatchRequest request, CancellationToken ct)
     {
         var failed = new List<EventBatchFailed>();
@@ -126,6 +136,7 @@ public sealed class EventsController : ControllerBase
     }
 
     [HttpGet("sessions/{sessionId:guid}/events")]
+    [ProducesResponseType(typeof(EventsBySessionResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] long fromSeq = 0, [FromQuery] int limit = 200, CancellationToken ct = default)
     {
         var instructorScopeCheck = await ValidateInstructorSessionAccessAsync(sessionId, ct);

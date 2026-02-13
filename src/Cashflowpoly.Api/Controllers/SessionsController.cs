@@ -11,6 +11,14 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/v1/sessions")]
 [Route("api/sessions")]
 [Authorize]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public sealed class SessionsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
@@ -28,6 +36,7 @@ public sealed class SessionsController : ControllerBase
     /// Mengembalikan daftar sesi yang ada.
     /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(SessionListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListSessions(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -73,6 +82,7 @@ public sealed class SessionsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(CreateSessionResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateSession([FromBody] CreateSessionRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -118,6 +128,7 @@ public sealed class SessionsController : ControllerBase
 
     [HttpPost("{sessionId:guid}/start")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionStatusResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> StartSession(Guid sessionId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -144,6 +155,7 @@ public sealed class SessionsController : ControllerBase
 
     [HttpPost("{sessionId:guid}/end")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionStatusResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> EndSession(Guid sessionId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -170,6 +182,7 @@ public sealed class SessionsController : ControllerBase
 
     [HttpPost("{sessionId:guid}/ruleset/activate")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(ActivateRulesetResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))

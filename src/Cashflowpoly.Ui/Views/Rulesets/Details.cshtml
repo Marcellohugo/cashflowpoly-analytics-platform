@@ -68,14 +68,16 @@
 }
 
 <section class="section-shell">
-    <div>
-        <p class="eyebrow">@Context.T("rulesets.management")</p>
-        <h1 class="headline">@Context.T("rulesets.detail_title")</h1>
+    <div class="page-intro">
+        <div class="page-intro-main">
+            <p class="eyebrow">@Context.T("rulesets.management")</p>
+            <h1 class="headline">@Context.T("rulesets.detail_title")</h1>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mt-4 alert alert-error" aria-live="polite">
             @Model.ErrorMessage
         </div>
     }
@@ -105,10 +107,10 @@
 
             <div class="action-toolbar mt-4">
                 <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+                <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">Analitika Ruleset</a>
                 @if (isInstructor)
                 {
                     <a class="btn-primary" asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
-                    <a class="btn-ghost" asp-controller="Analytics" asp-action="Ruleset" asp-route-rulesetId="@Model.Ruleset.RulesetId">Analitika Ruleset</a>
                     <form method="post" asp-controller="Rulesets" asp-action="Archive" asp-route-rulesetId="@Model.Ruleset.RulesetId">
                         @Html.AntiForgeryToken()
                         <button class="btn-ghost" type="submit">@Context.T("rulesets.archive")</button>
@@ -150,7 +152,7 @@
                     <p class="text-sm font-semibold text-slate-700">Ringkasan Konfigurasi Ruleset</p>
                     @if (!hasConfig)
                     {
-                        <div class="mt-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-600">
+                        <div class="mt-2 alert alert-info">
                             Konfigurasi belum tersedia.
                         </div>
                     }
@@ -161,32 +163,32 @@
                                 <h3>Core Setup</h3>
                                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mode</label>
+                                        <label class="form-label">Mode</label>
                                         <input type="text"
                                                readonly
                                                value="@AsText(GetPath(cfg, "mode"), "PEMULA")"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Actions / Turn</label>
+                                        <label class="form-label">Actions / Turn</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "actions_per_turn"), 2)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Starting Cash</label>
+                                        <label class="form-label">Starting Cash</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "starting_cash"), 20)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Freelance Income</label>
+                                        <label class="form-label">Freelance Income</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "freelance", "income"), 1)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                 </div>
                             </div>
@@ -204,32 +206,32 @@
                                 <h3>Constraints</h3>
                                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Cash Min</label>
+                                        <label class="form-label">Cash Min</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "cash_min"), 0)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max Ingredient Total</label>
+                                        <label class="form-label">Max Ingredient Total</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "max_ingredient_total"), 6)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max Same Ingredient</label>
+                                        <label class="form-label">Max Same Ingredient</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "max_same_ingredient"), 3)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Primary Need Max / Day</label>
+                                        <label class="form-label">Primary Need Max / Day</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "constraints", "primary_need_max_per_day"), 1)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <label class="metric-row md:col-span-2"><span class="metric-key">Require Primary Before Others</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "constraints", "require_primary_before_others"), true) ? "checked" : null) /></label>
                                 </div>
@@ -239,18 +241,18 @@
                                 <h3>Economy & Advanced</h3>
                                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Donation Min</label>
+                                        <label class="form-label">Donation Min</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "donation", "min_amount"), 1)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Donation Max</label>
+                                        <label class="form-label">Donation Max</label>
                                         <input type="number"
                                                readonly
                                                value="@AsInt(GetPath(cfg, "donation", "max_amount"), 999999)"
-                                               class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" />
+                                               class="form-input" />
                                     </div>
                                     <label class="metric-row"><span class="metric-key">Gold Buy</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_buy"), true) ? "checked" : null) /></label>
                                     <label class="metric-row"><span class="metric-key">Gold Sell</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_sell"), true) ? "checked" : null) /></label>

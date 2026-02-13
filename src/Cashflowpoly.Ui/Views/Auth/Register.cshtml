@@ -22,33 +22,52 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ReturnUrl" />
 
-                    <div>
-                        <label class="auth-label">@Context.T("auth.display_name")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="register-display-name">@Context.T("auth.display_name")</label>
                         <input class="auth-input"
-                               asp-for="DisplayName" placeholder="Nama Lengkap" />
+                               id="register-display-name"
+                               asp-for="DisplayName"
+                               autocomplete="name"
+                               required
+                               placeholder="Nama Lengkap" />
                     </div>
 
-                    <div>
-                        <label class="auth-label">@Context.T("auth.username")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="register-username">@Context.T("auth.username")</label>
                         <input class="auth-input"
-                               asp-for="Username" placeholder="player_baru" />
+                               id="register-username"
+                               asp-for="Username"
+                               autocomplete="username"
+                               required
+                               placeholder="player_baru" />
                     </div>
 
-                    <div>
-                        <label class="auth-label">@Context.T("auth.password")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="register-password">@Context.T("auth.password")</label>
                         <input class="auth-input"
-                               asp-for="Password" type="password" placeholder="********" />
+                               id="register-password"
+                               asp-for="Password"
+                               type="password"
+                               autocomplete="new-password"
+                               required
+                               placeholder="********" />
                     </div>
 
-                    <div>
-                        <label class="auth-label">@Context.T("auth.confirm_password")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="register-confirm-password">@Context.T("auth.confirm_password")</label>
                         <input class="auth-input"
-                               asp-for="ConfirmPassword" type="password" placeholder="********" />
+                               id="register-confirm-password"
+                               asp-for="ConfirmPassword"
+                               type="password"
+                               autocomplete="new-password"
+                               required
+                               placeholder="********" />
                     </div>
 
-                    <div>
-                        <label class="auth-label">@Context.T("auth.role")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="register-role">@Context.T("auth.role")</label>
                         <select class="auth-input"
+                                id="register-role"
                                 asp-for="Role">
                             <option value="PLAYER">@Context.T("auth.role_player")</option>
                             <option value="INSTRUCTOR">@Context.T("auth.role_instructor")</option>
@@ -57,7 +76,7 @@
 
                     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
                     {
-                        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <div class="alert alert-error" aria-live="polite">
                             @Model.ErrorMessage
                         </div>
                     }

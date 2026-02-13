@@ -97,13 +97,13 @@
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
                 {
-                    <div id="home-realtime-error" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    <div id="home-realtime-error" class="alert alert-warning text-xs" aria-live="polite">
                         @Model.ErrorMessage
                     </div>
                 }
                 else
                 {
-                    <div id="home-realtime-error" class="hidden rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"></div>
+                    <div id="home-realtime-error" class="hidden alert alert-warning text-xs" aria-live="polite"></div>
                 }
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="stat-card">

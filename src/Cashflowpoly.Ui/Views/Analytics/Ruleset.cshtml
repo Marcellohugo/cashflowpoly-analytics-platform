@@ -18,13 +18,25 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mt-4 alert alert-error" aria-live="polite">
             @Model.ErrorMessage
         </div>
     }
 
     @if (Model.Result is not null)
     {
+        var flatUserScores = Model.Result.Sessions
+            .SelectMany(session => session.Players.Select(player => new
+            {
+                session.SessionId,
+                session.SessionName,
+                session.Status,
+                player.PlayerId,
+                player.LearningPerformanceIndividualScore,
+                player.MissionPerformanceIndividualScore
+            }))
+            .ToList();
+
         <div class="mt-6 grid gap-4 md:grid-cols-3">
             <div class="stat-card">
                 <p class="text-xs uppercase text-slate-500">Session Count</p>
@@ -35,7 +47,7 @@
                 <p class="mt-2 text-2xl font-semibold text-emerald-700">@(Model.Result.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">Mission Aggregate</p>
+                <p class="text-xs uppercase text-slate-500">Quest Aggregate</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@(Model.Result.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
             </div>
         </div>
@@ -48,7 +60,7 @@
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3 text-right">Events</th>
                         <th class="px-4 py-3 text-right">Learning Aggregate</th>
-                        <th class="px-4 py-3 text-right">Mission Aggregate</th>
+                        <th class="px-4 py-3 text-right">Quest Aggregate</th>
                         <th class="px-4 py-3 text-right">Detail</th>
                     </tr>
                 </thead>
@@ -79,11 +91,47 @@
                             <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
                             <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
                             <td class="px-4 py-3 text-right">
-                                <a class="text-sm font-semibold text-slate-900 hover:underline"
+                                <a class="table-link"
                                    asp-controller="Sessions"
                                    asp-action="Details"
                                    asp-route-sessionId="@item.SessionId">Lihat</a>
                             </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-8 table-wrap">
+            <table class="w-full text-left text-sm">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">Session</th>
+                        <th class="px-4 py-3">Player ID</th>
+                        <th class="px-4 py-3 text-right">User Learning Performance</th>
+                        <th class="px-4 py-3 text-right">User Quest Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (flatUserScores.Count == 0)
+                {
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500" colspan="4">Belum ada user performance yang bisa ditampilkan.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in flatUserScores)
+                    {
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3 text-slate-700">
+                                <div class="font-semibold">@item.SessionName</div>
+                                <div class="mt-1 text-xs text-slate-500 font-mono">@item.SessionId</div>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
+                            <td class="px-4 py-3 text-right">@(item.LearningPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
+                            <td class="px-4 py-3 text-right">@(item.MissionPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
                         </tr>
                     }
                 }

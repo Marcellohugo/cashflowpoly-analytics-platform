@@ -12,6 +12,13 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/v1/analytics")]
 [Route("api/analytics")]
 [Authorize]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public sealed class AnalyticsController : ControllerBase
 {
     private readonly SessionRepository _sessions;
@@ -42,6 +49,7 @@ public sealed class AnalyticsController : ControllerBase
     /// </summary>
     [HttpPost("sessions/{sessionId:guid}/recompute")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(AnalyticsSessionResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Recompute(Guid sessionId, CancellationToken ct)
     {
         var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
@@ -80,6 +88,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     [HttpGet("sessions/{sessionId:guid}")]
+    [ProducesResponseType(typeof(AnalyticsSessionResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSessionAnalytics(Guid sessionId, CancellationToken ct)
     {
         var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
@@ -133,6 +142,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     [HttpGet("sessions/{sessionId:guid}/transactions")]
+    [ProducesResponseType(typeof(TransactionHistoryResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? playerId = null, CancellationToken ct = default)
     {
         var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
@@ -166,6 +176,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     [HttpGet("sessions/{sessionId:guid}/players/{playerId:guid}/gameplay")]
+    [ProducesResponseType(typeof(GameplayMetricsResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetGameplayMetrics(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, ct);
@@ -206,6 +217,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     [HttpGet("rulesets/{rulesetId:guid}/summary")]
+    [ProducesResponseType(typeof(RulesetAnalyticsSummaryResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRulesetAnalyticsSummary(Guid rulesetId, CancellationToken ct)
     {
         var role = User.FindFirstValue(ClaimTypes.Role);

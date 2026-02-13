@@ -18,7 +18,7 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mt-4 alert alert-error" aria-live="polite">
             @Model.ErrorMessage
         </div>
     }
@@ -34,11 +34,12 @@
         </div>
     </div>
 
-    <form class="mt-6 space-y-4 glass-surface p-4" method="post">
+    <form class="mt-6 form-panel form-grid" method="post">
         @Html.AntiForgeryToken()
-        <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.ruleset")</label>
-            <select class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
+        <div class="form-field">
+            <label class="form-label" for="session-ruleset-id">@Context.T("common.ruleset")</label>
+            <select class="form-input"
+                    id="session-ruleset-id"
                     asp-for="SelectedRulesetId">
                 <option value="">@Context.T("sessions.ruleset_title")</option>
                 @foreach (var item in Model.Rulesets)
@@ -47,16 +48,17 @@
                 }
             </select>
         </div>
-        <div>
-            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">@Context.T("common.version")</label>
-            <input class="mt-2 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"
+        <div class="form-field">
+            <label class="form-label" for="session-ruleset-version">@Context.T("common.version")</label>
+            <input class="form-input"
+                   id="session-ruleset-version"
                    asp-for="SelectedVersion" type="number" min="1" />
-            <p class="mt-1 text-xs text-slate-500">@Context.T("sessions.ruleset_hint")</p>
+            <p class="form-help">@Context.T("sessions.ruleset_hint")</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="form-actions">
             <button class="btn-primary"
                     type="submit">@Context.T("sessions.activate")</button>
-            <a class="text-sm text-slate-600 hover:text-slate-900" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">@Context.T("common.cancel")</a>
+            <a class="text-link" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">@Context.T("common.cancel")</a>
         </div>
     </form>
 </section>

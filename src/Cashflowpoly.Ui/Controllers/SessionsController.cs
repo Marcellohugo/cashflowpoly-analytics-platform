@@ -24,11 +24,6 @@ public sealed class SessionsController : Controller
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction("Index", "Analytics");
-        }
-
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/v1/sessions", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -192,6 +187,13 @@ public sealed class SessionsController : Controller
 
         var analytics = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
         var (timeline, timelineError) = await LoadTimelineAsync(client, sessionId, ct);
+        if (!HttpContext.Session.IsInstructor() && analytics is not null && analytics.ByPlayer.Count > 0)
+        {
+            var scopedPlayerIds = analytics.ByPlayer.Select(item => item.PlayerId).ToHashSet();
+            timeline = timeline
+                .Where(item => !item.PlayerId.HasValue || scopedPlayerIds.Contains(item.PlayerId.Value))
+                .ToList();
+        }
 
         return (new SessionDetailViewModel
         {

@@ -16,21 +16,30 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ReturnUrl" />
 
-                    <div>
-                        <label class="auth-label">@Context.T(key: "auth.username")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="login-username">@Context.T(key: "auth.username")</label>
                         <input class="auth-input"
-                               asp-for="Username" placeholder="Username" />
+                               id="login-username"
+                               asp-for="Username"
+                               autocomplete="username"
+                               required
+                               placeholder="Username" />
                     </div>
 
-                    <div>
-                        <label class="auth-label">@Context.T(key: "auth.password")</label>
+                    <div class="form-field">
+                        <label class="auth-label" for="login-password">@Context.T(key: "auth.password")</label>
                         <input class="auth-input"
-                               asp-for="Password" type="password" placeholder="********" />
+                               id="login-password"
+                               asp-for="Password"
+                               type="password"
+                               autocomplete="current-password"
+                               required
+                               placeholder="********" />
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
                     {
-                        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <div class="alert alert-error" aria-live="polite">
                             @Model.ErrorMessage
                         </div>
                     }

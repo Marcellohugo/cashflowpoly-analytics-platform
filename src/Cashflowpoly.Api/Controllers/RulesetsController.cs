@@ -12,6 +12,14 @@ namespace Cashflowpoly.Api.Controllers;
 [Route("api/v1/rulesets")]
 [Route("api/rulesets")]
 [Authorize]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 public sealed class RulesetsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
@@ -29,6 +37,7 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateRuleset([FromBody] CreateRulesetRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -60,6 +69,7 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpPut("{rulesetId:guid}")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -97,6 +107,7 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ActivateRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -130,6 +141,7 @@ public sealed class RulesetsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(RulesetListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListRulesets(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -165,6 +177,7 @@ public sealed class RulesetsController : ControllerBase
     }
 
     [HttpGet("{rulesetId:guid}")]
+    [ProducesResponseType(typeof(RulesetDetailResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRulesetDetail(Guid rulesetId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -231,6 +244,7 @@ public sealed class RulesetsController : ControllerBase
     /// </summary>
     [HttpPost("{rulesetId:guid}/archive")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ArchiveRuleset(Guid rulesetId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -253,6 +267,7 @@ public sealed class RulesetsController : ControllerBase
     /// </summary>
     [HttpDelete("{rulesetId:guid}")]
     [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteRuleset(Guid rulesetId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))

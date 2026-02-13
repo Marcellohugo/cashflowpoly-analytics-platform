@@ -1,4 +1,5 @@
 @model Cashflowpoly.Ui.Models.SessionDetailViewModel
+@using System.Text.Json
 
 @{
     ViewData["Title"] = Context.T("sessions.detail_title");
@@ -27,7 +28,7 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mt-4 alert alert-error" aria-live="polite">
             @Model.ErrorMessage
         </div>
     }
@@ -104,7 +105,7 @@
                             <td class="px-4 py-3 text-right">@item.GoldQty</td>
                             <td class="px-4 py-3 text-right">@item.HappinessPointsTotal</td>
                             <td class="px-4 py-3 text-right">
-                                <a class="text-sm font-semibold text-slate-900 hover:underline"
+                                <a class="table-link"
                                    asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
                                    asp-route-playerId="@item.PlayerId">@Context.T("common.view")</a>
                             </td>
@@ -116,8 +117,8 @@
         </div>
 
         <div class="mt-8">
-            <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                <div>
+            <div class="page-intro">
+                <div class="page-intro-main">
                     <p class="eyebrow">Timeline</p>
                     <h2 class="headline text-2xl">Alur Permainan per Waktu</h2>
                     <p class="subhead">Urutan aktivitas selama sesi berdasarkan waktu event dan sequence.</p>
@@ -126,8 +127,22 @@
 
             @if (!string.IsNullOrWhiteSpace(Model.TimelineErrorMessage))
             {
-                <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                <div class="mt-4 alert alert-warning" aria-live="polite">
                     @Model.TimelineErrorMessage
+                </div>
+            }
+
+            @if (Model.Timeline.Count > 0)
+            {
+                <div class="mt-4 chart-grid">
+                    <article class="chart-card md:col-span-2">
+                        <h3 class="chart-title">Diagram Event dari Awal hingga Selesai</h3>
+                        <canvas id="sessionTimelineProgressChart" height="120"></canvas>
+                    </article>
+                    <article class="chart-card md:col-span-2">
+                        <h3 class="chart-title">Sebaran Event per Aktor terhadap Waktu</h3>
+                        <canvas id="sessionTimelineActorChart" height="120"></canvas>
+                    </article>
                 </div>
             }
 
@@ -183,3 +198,192 @@
         </div>
     }
 </section>
+
+@section Scripts {
+    @if (Model.Timeline.Count > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+        <script>
+            (() => {
+                if (typeof Chart === "undefined") {
+                    return;
+                }
+
+                const timeline = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
+                if (!Array.isArray(timeline) || timeline.length === 0) {
+                    return;
+                }
+
+                const sorted = [...timeline].sort((a, b) => {
+                    const ta = new Date(a.Timestamp).getTime();
+                    const tb = new Date(b.Timestamp).getTime();
+                    if (ta !== tb) {
+                        return ta - tb;
+                    }
+                    return (a.SequenceNumber ?? 0) - (b.SequenceNumber ?? 0);
+                });
+
+                const startMs = new Date(sorted[0].Timestamp).getTime();
+                const toMinutes = (timestamp) => {
+                    const current = new Date(timestamp).getTime();
+                    return Math.max(0, (current - startMs) / 60000);
+                };
+
+                const progressData = sorted.map((item, index) => ({
+                    x: Number(toMinutes(item.Timestamp).toFixed(2)),
+                    y: index + 1,
+                    seq: item.SequenceNumber,
+                    action: item.ActionType,
+                    actor: item.ActorType
+                }));
+
+                const progressCanvas = document.getElementById("sessionTimelineProgressChart");
+                if (progressCanvas) {
+                    new Chart(progressCanvas, {
+                        type: "line",
+                        data: {
+                            datasets: [{
+                                label: "Kumulatif Event",
+                                data: progressData,
+                                borderColor: "#2d7dd2",
+                                backgroundColor: "rgba(45, 125, 210, 0.14)",
+                                pointRadius: 2.4,
+                                pointHoverRadius: 4.4,
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.22
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            aspectRatio: 2.25,
+                            parsing: false,
+                            scales: {
+                                x: {
+                                    type: "linear",
+                                    title: {
+                                        display: true,
+                                        text: "Menit sejak event pertama"
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: "Jumlah event (kumulatif)"
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (items) => `+${items[0].parsed.x.toFixed(2)} menit`,
+                                        label: (item) => {
+                                            const raw = item.raw ?? {};
+                                            return `Event #${raw.y} | seq ${raw.seq} | ${raw.actor} | ${raw.action}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                const actorBuckets = {
+                    PLAYER: [],
+                    SYSTEM: [],
+                    INSTRUCTOR: [],
+                    OTHER: []
+                };
+
+                sorted.forEach((item) => {
+                    const actor = (item.ActorType ?? "").toUpperCase();
+                    const point = {
+                        x: Number(toMinutes(item.Timestamp).toFixed(2)),
+                        y: item.TurnNumber ?? 0,
+                        seq: item.SequenceNumber,
+                        action: item.ActionType,
+                        day: item.DayIndex,
+                        weekday: item.Weekday
+                    };
+
+                    if (actorBuckets[actor]) {
+                        actorBuckets[actor].push(point);
+                    } else {
+                        actorBuckets.OTHER.push(point);
+                    }
+                });
+
+                const actorCanvas = document.getElementById("sessionTimelineActorChart");
+                if (actorCanvas) {
+                    new Chart(actorCanvas, {
+                        type: "scatter",
+                        data: {
+                            datasets: [
+                                {
+                                    label: "PLAYER",
+                                    data: actorBuckets.PLAYER,
+                                    backgroundColor: "#1ba784"
+                                },
+                                {
+                                    label: "SYSTEM",
+                                    data: actorBuckets.SYSTEM,
+                                    backgroundColor: "#f39c12"
+                                },
+                                {
+                                    label: "INSTRUCTOR",
+                                    data: actorBuckets.INSTRUCTOR,
+                                    backgroundColor: "#ef4e4e"
+                                },
+                                {
+                                    label: "OTHER",
+                                    data: actorBuckets.OTHER,
+                                    backgroundColor: "#6b7280"
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            aspectRatio: 2.25,
+                            parsing: false,
+                            scales: {
+                                x: {
+                                    type: "linear",
+                                    title: {
+                                        display: true,
+                                        text: "Menit sejak event pertama"
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: "Turn Number"
+                                    },
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: true },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (items) => `+${items[0].parsed.x.toFixed(2)} menit`,
+                                        label: (item) => {
+                                            const raw = item.raw ?? {};
+                                            return `${item.dataset.label} | day ${raw.day} (${raw.weekday}) | turn ${raw.y} | seq ${raw.seq} | ${raw.action}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            })();
+        </script>
+    }
+}

@@ -3,8 +3,12 @@
     ViewData["Title"] = Context.T("privacy.title");
 }
 <section class="section-shell">
-    <h1 class="headline">@ViewData["Title"]</h1>
-    <p class="subhead">@Model.Subtitle</p>
+    <div class="page-intro">
+        <div class="page-intro-main">
+            <h1 class="headline">@ViewData["Title"]</h1>
+            <p class="subhead">@Model.Subtitle</p>
+        </div>
+    </div>
 
     <div class="rulebook-unified mt-6">
         <div class="rulebook-stream">

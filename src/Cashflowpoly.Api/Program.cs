@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
 using Cashflowpoly.Api.Controllers;
+using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
@@ -99,6 +100,8 @@ builder.Services.AddSwaggerGen(options =>
     {
         [new OpenApiSecuritySchemeReference("Bearer", document, null)] = new List<string>()
     });
+
+    options.OperationFilter<StandardResponseOperationFilter>();
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -186,6 +189,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseForwardedHeaders();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseRouting();
 
 app.Use(async (context, next) =>
