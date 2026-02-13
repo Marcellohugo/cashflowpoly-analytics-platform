@@ -64,7 +64,9 @@ public sealed record AnalyticsByPlayerItemDto(
 public sealed record AnalyticsSessionResponseDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,
     [property: JsonPropertyName("summary")] AnalyticsSessionSummaryDto Summary,
-    [property: JsonPropertyName("by_player")] List<AnalyticsByPlayerItemDto> ByPlayer);
+    [property: JsonPropertyName("by_player")] List<AnalyticsByPlayerItemDto> ByPlayer,
+    [property: JsonPropertyName("ruleset_id")] Guid? RulesetId,
+    [property: JsonPropertyName("ruleset_name")] string? RulesetName);
 
 public sealed record GameplayMetricsResponseDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,

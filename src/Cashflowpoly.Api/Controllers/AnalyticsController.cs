@@ -70,13 +70,21 @@ public sealed class AnalyticsController : ControllerBase
 
         var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
         RulesetConfig? config = null;
+        Guid? activeRulesetId = null;
+        string? activeRulesetName = null;
         if (activeRulesetVersionId.HasValue)
         {
             var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
-            if (rulesetVersion is not null &&
-                RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+            if (rulesetVersion is not null)
             {
-                config = parsed;
+                activeRulesetId = rulesetVersion.RulesetId;
+                var ruleset = await _rulesets.GetRulesetAsync(rulesetVersion.RulesetId, ct);
+                activeRulesetName = ruleset?.Name;
+
+                if (RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+                {
+                    config = parsed;
+                }
             }
         }
 
@@ -84,7 +92,7 @@ public sealed class AnalyticsController : ControllerBase
         var summary = BuildSummary(events, projections, violations);
         var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
 
-        return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer));
+        return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName));
     }
 
     [HttpGet("sessions/{sessionId:guid}")]
@@ -115,13 +123,21 @@ public sealed class AnalyticsController : ControllerBase
 
         var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
         RulesetConfig? config = null;
+        Guid? activeRulesetId = null;
+        string? activeRulesetName = null;
         if (activeRulesetVersionId.HasValue)
         {
             var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
-            if (rulesetVersion is not null &&
-                RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+            if (rulesetVersion is not null)
             {
-                config = parsed;
+                activeRulesetId = rulesetVersion.RulesetId;
+                var ruleset = await _rulesets.GetRulesetAsync(rulesetVersion.RulesetId, ct);
+                activeRulesetName = ruleset?.Name;
+
+                if (RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+                {
+                    config = parsed;
+                }
             }
         }
 
@@ -138,7 +154,7 @@ public sealed class AnalyticsController : ControllerBase
             await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
         }
 
-        return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer));
+        return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName));
     }
 
     [HttpGet("sessions/{sessionId:guid}/transactions")]

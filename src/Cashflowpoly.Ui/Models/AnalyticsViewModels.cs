@@ -8,15 +8,10 @@ public sealed class AnalyticsSearchViewModel
     public bool IsInstructor { get; set; } = true;
     public List<SessionListItemDto> Sessions { get; set; } = new();
     public AnalyticsSessionResponseDto? Result { get; set; }
+    public RulesetAnalyticsSummaryResponseDto? RulesetResult { get; set; }
     public string? ErrorMessage { get; set; }
+    public string? RulesetErrorMessage { get; set; }
     public string? SessionLookupErrorMessage { get; set; }
-}
-
-public sealed class RulesetAnalyticsViewModel
-{
-    public string RulesetId { get; set; } = string.Empty;
-    public RulesetAnalyticsSummaryResponseDto? Result { get; set; }
-    public string? ErrorMessage { get; set; }
 }
 
 public sealed class SessionListViewModel

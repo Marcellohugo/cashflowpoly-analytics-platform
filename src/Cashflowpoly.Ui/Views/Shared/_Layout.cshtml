@@ -16,11 +16,17 @@
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
     var isAuthPage = string.Equals(currentController, "Auth", StringComparison.OrdinalIgnoreCase);
-    Func<string, string, string> navClass = (controller, action) =>
-        string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) &&
-        string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)
-            ? "nav-link is-active"
-            : "nav-link";
+    var isRulebookSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
+        && (string.Equals(currentAction, "Rulebook", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(currentAction, "Privacy", StringComparison.OrdinalIgnoreCase));
+    var isHomeSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
+        && !isRulebookSection;
+    var isSessionsSection = string.Equals(currentController, "Sessions", StringComparison.OrdinalIgnoreCase);
+    var isPlayersSection = string.Equals(currentController, "PlayerDirectory", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(currentController, "Players", StringComparison.OrdinalIgnoreCase);
+    var isRulesetsSection = string.Equals(currentController, "Rulesets", StringComparison.OrdinalIgnoreCase);
+    var isAnalyticsSection = string.Equals(currentController, "Analytics", StringComparison.OrdinalIgnoreCase);
+    Func<bool, string> navClass = isActive => isActive ? "nav-link is-active" : "nav-link";
     var hideFooter = ViewData["HideFooter"] as bool? ?? false;
 }
 <!DOCTYPE html>
@@ -32,7 +38,6 @@
     <script type="importmap"></script>
     <link rel="icon" type="image/x-icon" href="~/images/cashflowpoly-favicon.ico" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Cashflowpoly.Ui.styles.css" asp-append-version="true" />
 </head>
 <body class="@roleThemeClass">
@@ -60,15 +65,15 @@
             @if (isLoggedIn)
             {
                 <div id="primary-nav-links" class="nav-pill nav-center">
-                    <a class="@navClass("Home", "Index")" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
+                    <a class="@navClass(isHomeSection)" aria-current="@(isHomeSection ? "page" : null)" data-nav="home" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
                     @if (isInstructor)
                     {
-                        <a class="@navClass("Sessions", "Index")" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
-                        <a class="@navClass("PlayerDirectory", "Index")" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
+                        <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
+                        <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
                     }
-                    <a class="@navClass("Rulesets", "Index")" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
-                    <a class="@navClass("Analytics", "Index")" asp-area="" asp-controller="Analytics" asp-action="Index">@Context.T("nav.analytics")</a>
-                    <a class="@navClass("Home", "Rulebook")" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
+                    <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
+                    <a class="@navClass(isAnalyticsSection)" aria-current="@(isAnalyticsSection ? "page" : null)" data-nav="analytics" asp-area="" asp-controller="Analytics" asp-action="Index">@Context.T("nav.analytics")</a>
+                    <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
                 </div>
 
                 <div class="nav-pill nav-right">

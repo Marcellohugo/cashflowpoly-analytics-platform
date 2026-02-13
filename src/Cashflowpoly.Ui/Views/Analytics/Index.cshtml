@@ -10,9 +10,11 @@
     var playerNetCashflow = playerSummary is null
         ? 0
         : playerSummary.CashInTotal - playerSummary.CashOutTotal;
+    var rulesetResult = Model.RulesetResult;
+    string F(double value) => value.ToString("0.##");
 }
 
-<section class="section-shell w-full analytics-shell @(isInstructor ? "analytics-shell-instructor" : "analytics-shell-player")">
+<section class="section-shell w-full analytics-shell analytics-page @(isInstructor ? "analytics-shell-instructor" : "analytics-shell-player")">
     <div class="page-intro">
         <div class="page-intro-main">
             <p class="eyebrow text-emerald-700">@(isInstructor ? Context.T("analytics.dashboard") : Context.T("analytics.player_dashboard"))</p>
@@ -23,33 +25,62 @@
         </div>
         <div class="page-intro-actions">
             <div class="badge @(isInstructor ? "badge-emerald" : "badge-amber")">@Context.T("home.realtime")</div>
+            <div class="cute-orbit" aria-hidden="true">
+                <svg viewBox="0 0 120 120" role="presentation">
+                    <defs>
+                        <linearGradient id="analyticsCuteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#6fe7da" />
+                            <stop offset="100%" stop-color="#f6c96b" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="60" cy="60" r="48" fill="url(#analyticsCuteGrad)" opacity="0.2" />
+                    <circle cx="60" cy="60" r="28" fill="#ffffff" opacity="0.88" />
+                    <circle cx="50" cy="55" r="4" fill="#126b81" />
+                    <circle cx="70" cy="55" r="4" fill="#126b81" />
+                    <path d="M45 69c4 7 10 10 15 10s11-3 15-10" fill="none" stroke="#13a08f" stroke-width="4" stroke-linecap="round" />
+                    <circle cx="33" cy="34" r="8" fill="#ffcc64" opacity="0.82" />
+                </svg>
+            </div>
         </div>
     </div>
 
-    <form class="mt-6 form-panel flex flex-col gap-3 md:flex-row md:items-end" method="post">
-        @Html.AntiForgeryToken()
-        @if (isInstructor)
-        {
-            <div class="form-field flex-1">
-                <label class="form-label" for="analytics-session-id">@Context.T("common.session_id")</label>
-                <input class="form-input"
-                       id="analytics-session-id"
-                       asp-for="SessionId"
-                       list="analytics-session-options"
-                       autocomplete="off"
-                       required
-                       placeholder="UUID" />
-                <datalist id="analytics-session-options">
-                    @foreach (var item in Model.Sessions)
-                    {
-                        <option value="@item.SessionId">@item.SessionName (@item.Status)</option>
-                    }
-                </datalist>
+    @if (isInstructor)
+    {
+        <div class="mt-6 analytics-workbench">
+            <div class="analytics-workbench-header">
+                <h2>@Context.T("analytics.section.session_title")</h2>
+                <p>@Context.T("analytics.section.session_desc")</p>
             </div>
-            <button class="btn-primary" type="submit">@Context.T("analytics.button")</button>
-        }
-        else
-        {
+
+            <form class="analytics-session-form" method="post" asp-controller="Analytics" asp-action="Index">
+                @Html.AntiForgeryToken()
+                <select class="form-input"
+                        id="analytics-session-id"
+                        asp-for="SessionId"
+                        aria-label="@Context.T("common.session")"
+                        required>
+                    @if (Model.Sessions.Count == 0)
+                    {
+                        <option value="">@Context.T("state.no_sessions")</option>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Sessions)
+                        {
+                            <option value="@item.SessionId">@item.SessionName (@item.Status)</option>
+                        }
+                    }
+                </select>
+                <div class="form-actions">
+                    <button class="btn-primary" type="submit">@Context.T("analytics.button")</button>
+                </div>
+            </form>
+        </div>
+    }
+    else
+    {
+        <form class="mt-6 form-panel flex flex-col gap-3 md:flex-row md:items-end" method="post" asp-controller="Analytics" asp-action="Index">
+            @Html.AntiForgeryToken()
             <div class="form-field flex-1">
                 <label class="form-label" for="analytics-session-id">@Context.T("common.session_id")</label>
                 <select class="form-input"
@@ -69,13 +100,20 @@
                 </select>
             </div>
             <button class="btn-primary" type="submit">@Context.T("analytics.player_button")</button>
-        }
-    </form>
+        </form>
+    }
 
     @if (!string.IsNullOrWhiteSpace(Model.SessionLookupErrorMessage))
     {
         <div class="mt-4 alert alert-warning" aria-live="polite">
             @Model.SessionLookupErrorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.RulesetErrorMessage))
+    {
+        <div class="mt-4 alert alert-error" aria-live="polite">
+            @Model.RulesetErrorMessage
         </div>
     }
 
@@ -86,7 +124,7 @@
         </div>
     }
 
-    <details class="mt-4 data-toggle">
+    <details class="mt-4 data-toggle analytics-tips">
         <summary>@(isInstructor ? Context.T("analytics.tips.instructor") : Context.T("analytics.tips.player"))</summary>
         <div class="mt-3 metric-panel">
             <div class="metric-list">
@@ -108,14 +146,14 @@
 
     @if (Model.Result is not null)
     {
-        <div class="mt-6 ruleset-stats">
-            <div class="stat-card">
+        <div class="mt-6 session-stats-grid analytics-session-stats">
+            <div class="stat-card session-total-card">
                 <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.EventCount</p>
             </div>
             <div class="stat-card">
                 <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.CashflowNetTotal</p>
+                <p class="mt-2 text-2xl font-semibold text-slate-900">@F(Model.Result.Summary.CashflowNetTotal)</p>
             </div>
             <div class="stat-card">
                 <p class="text-xs uppercase text-slate-500">@Context.T("analytics.players")</p>
@@ -128,27 +166,27 @@
             <div class="mt-6 player-kpi-grid">
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.CashInTotal</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.CashInTotal)</p>
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.CashOutTotal</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.CashOutTotal)</p>
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerNetCashflow</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerNetCashflow)</p>
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.happiness")</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.HappinessPointsTotal</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.HappinessPointsTotal)</p>
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.need_points")</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.NeedPointsTotal</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.NeedPointsTotal)</p>
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.saving_goal")</p>
-                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.SavingGoalPointsTotal</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.SavingGoalPointsTotal)</p>
                 </div>
             </div>
         }
@@ -249,6 +287,140 @@
                 </article>
             </div>
         }
+    }
+
+    @if (rulesetResult is not null)
+    {
+        var flatUserScores = rulesetResult.Sessions
+            .SelectMany(session => session.Players.Select(player => new
+            {
+                session.SessionId,
+                session.SessionName,
+                session.Status,
+                player.PlayerId,
+                player.LearningPerformanceIndividualScore,
+                player.MissionPerformanceIndividualScore
+            }))
+            .ToList();
+
+        <section class="mt-10 analytics-result-shell">
+            <div class="analytics-result-head">
+                <div>
+                    <p class="eyebrow">@Context.T("analytics.section.ruleset_title")</p>
+                    <h2 class="headline text-2xl">@rulesetResult.RulesetName</h2>
+                    <p class="subhead font-mono text-xs">@rulesetResult.RulesetId</p>
+                </div>
+                <div class="cute-medal" aria-hidden="true">
+                    <svg viewBox="0 0 90 90" role="presentation">
+                        <circle cx="45" cy="45" r="34" fill="#ffe28c" stroke="#12a89a" stroke-width="4" />
+                        <circle cx="45" cy="45" r="20" fill="#fff" />
+                        <path d="M33 56l12-24 12 24-12-6z" fill="#f59e0b" opacity="0.85" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="mt-5 ruleset-stats">
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.session_count")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@rulesetResult.SessionCount</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.learning_aggregate")</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700">@(rulesetResult.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.quest_aggregate")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@(rulesetResult.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
+                </div>
+            </div>
+
+            <div class="mt-6 table-wrap analytics-table-block">
+                <table class="w-full text-left text-sm">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3">@Context.T("rulesets.analytics.session")</th>
+                            <th class="px-4 py-3">@Context.T("common.status")</th>
+                            <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.events")</th>
+                            <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.learning_aggregate")</th>
+                            <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.quest_aggregate")</th>
+                            <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.detail")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (rulesetResult.Sessions.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500" colspan="6">@Context.T("rulesets.analytics.empty_sessions")</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in rulesetResult.Sessions)
+                        {
+                            <tr class="border-t border-slate-200">
+                                <td class="px-4 py-3 text-slate-700">@item.SessionName</td>
+                                <td class="px-4 py-3 text-slate-700">
+                                    @{
+                                        var statusClass = string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase)
+                                            ? "status-active"
+                                            : string.Equals(item.Status, "CREATED", StringComparison.OrdinalIgnoreCase)
+                                                ? "status-draft"
+                                                : "status-retired";
+                                    }
+                                    <span class="status-pill @statusClass">@item.Status</span>
+                                </td>
+                                <td class="px-4 py-3 text-right">@item.EventCount</td>
+                                <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
+                                <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
+                                <td class="px-4 py-3 text-right">
+                                    <a class="table-link"
+                                       asp-controller="Sessions"
+                                       asp-action="Details"
+                                       asp-route-sessionId="@item.SessionId">@Context.T("common.view")</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6 table-wrap analytics-table-block">
+                <table class="w-full text-left text-sm">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3">@Context.T("rulesets.analytics.session")</th>
+                            <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                            <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_learning")</th>
+                            <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_quest")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (flatUserScores.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("rulesets.analytics.player_performance_empty")</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in flatUserScores)
+                        {
+                            <tr class="border-t border-slate-200">
+                                <td class="px-4 py-3 text-slate-700">
+                                    <div class="font-semibold">@item.SessionName</div>
+                                    <div class="mt-1 text-xs text-slate-500 font-mono">@item.SessionId</div>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
+                                <td class="px-4 py-3 text-right">@(item.LearningPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
+                                <td class="px-4 py-3 text-right">@(item.MissionPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     }
 </section>
 

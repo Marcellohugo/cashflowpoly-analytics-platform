@@ -183,34 +183,6 @@ public sealed class RulesetsController : Controller
         });
     }
 
-    [HttpPost("{rulesetId:guid}/archive")]
-    public async Task<IActionResult> Archive(Guid rulesetId, CancellationToken ct)
-    {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { rulesetId });
-        }
-
-        var client = _clientFactory.CreateClient("Api");
-        var response = await client.PostAsync($"api/v1/rulesets/{rulesetId}/archive", null, ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
-                response,
-                "Gagal arsip ruleset",
-                ct);
-            return RedirectToAction(nameof(Details), new { rulesetId });
-        }
-
-        return RedirectToAction(nameof(Details), new { rulesetId });
-    }
-
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
     public async Task<IActionResult> ActivateVersion(Guid rulesetId, int version, CancellationToken ct)
     {

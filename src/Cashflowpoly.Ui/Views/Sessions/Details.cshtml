@@ -35,6 +35,12 @@
 
     @if (Model.Analytics is not null)
     {
+        var winner = Model.Analytics.ByPlayer
+            .OrderByDescending(item => item.CashInTotal - item.CashOutTotal)
+            .ThenByDescending(item => item.HappinessPointsTotal)
+            .FirstOrDefault();
+        var winnerNetCashflow = winner is null ? 0 : winner.CashInTotal - winner.CashOutTotal;
+
         <div class="mt-6 grid gap-4 md:grid-cols-5">
             <div class="stat-card">
                 <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
@@ -57,6 +63,34 @@
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
             </div>
         </div>
+
+        @if (winner is not null)
+        {
+            <div class="mt-6 winner-card">
+                <div class="winner-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 120 120" role="presentation">
+                        <circle cx="60" cy="60" r="52" fill="#fff4c2" />
+                        <path d="M40 25h40v18c0 11-9 20-20 20s-20-9-20-20V25z" fill="#f59e0b" />
+                        <path d="M45 63h30v12H45z" fill="#12a89a" />
+                        <path d="M42 75h36v14H42z" fill="#0d857a" />
+                        <circle cx="60" cy="43" r="9" fill="#fff" />
+                        <circle cx="56" cy="41" r="2" fill="#1f3f5a" />
+                        <circle cx="64" cy="41" r="2" fill="#1f3f5a" />
+                        <path d="M54 48c2 3 4 4 6 4s4-1 6-4" fill="none" stroke="#1f3f5a" stroke-width="2.5" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="eyebrow">@Context.T("sessions.winner.title")</p>
+                    <h2 class="text-2xl font-semibold text-slate-900">@Context.T("sessions.winner.subtitle")</h2>
+                    <p class="mt-2 font-mono text-xs text-slate-600">@winner.PlayerId</p>
+                    <div class="winner-meta mt-3">
+                        <span>@Context.T("sessions.winner.net"): @winnerNetCashflow</span>
+                        <span>@Context.T("sessions.winner.happiness"): @winner.HappinessPointsTotal</span>
+                        <span>@Context.T("sessions.winner.cash_in"): @winner.CashInTotal</span>
+                    </div>
+                </div>
+            </div>
+        }
 
         @if (isInstructor)
         {
@@ -97,7 +131,10 @@
                 {
                     foreach (var item in Model.Analytics.ByPlayer)
                     {
-                        <tr class="border-t border-slate-200">
+                        var winnerRowClass = winner is not null && item.PlayerId == winner.PlayerId
+                            ? "winner-row"
+                            : string.Empty;
+                        <tr class="border-t border-slate-200 @winnerRowClass">
                             <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
                             <td class="px-4 py-3 text-right">@item.CashInTotal</td>
                             <td class="px-4 py-3 text-right">@item.CashOutTotal</td>

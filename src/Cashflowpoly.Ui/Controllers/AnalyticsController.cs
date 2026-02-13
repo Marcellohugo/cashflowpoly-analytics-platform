@@ -80,35 +80,6 @@ public sealed class AnalyticsController : Controller
         return View(viewModel);
     }
 
-    [HttpGet("/analytics/rulesets/{rulesetId:guid}")]
-    public async Task<IActionResult> Ruleset(Guid rulesetId, CancellationToken ct)
-    {
-        var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/v1/analytics/rulesets/{rulesetId}/summary", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            return View(new RulesetAnalyticsViewModel
-            {
-                RulesetId = rulesetId.ToString(),
-                ErrorMessage = error?.Message ?? $"Gagal memuat analitika ruleset. Status: {(int)response.StatusCode}"
-            });
-        }
-
-        var result = await response.Content.ReadFromJsonAsync<RulesetAnalyticsSummaryResponseDto>(cancellationToken: ct);
-        return View(new RulesetAnalyticsViewModel
-        {
-            RulesetId = rulesetId.ToString(),
-            Result = result
-        });
-    }
-
     private async Task<(AnalyticsSearchViewModel Model, IActionResult? Result)> BuildInitialModelAsync(CancellationToken ct)
     {
         var model = new AnalyticsSearchViewModel
@@ -117,24 +88,25 @@ public sealed class AnalyticsController : Controller
         };
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/v1/sessions", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        var sessionResponse = await client.GetAsync("api/v1/sessions", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(sessionResponse);
         if (unauthorized is not null)
         {
             return (model, unauthorized);
         }
 
-        if (!response.IsSuccessStatusCode)
+        if (!sessionResponse.IsSuccessStatusCode)
         {
-            model.SessionLookupErrorMessage = $"Gagal memuat daftar sesi. Status: {(int)response.StatusCode}";
-            return (model, null);
+            model.SessionLookupErrorMessage = $"Gagal memuat daftar sesi. Status: {(int)sessionResponse.StatusCode}";
         }
-
-        var sessions = await response.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
-        model.Sessions = (sessions?.Items ?? new List<SessionListItemDto>())
-            .OrderByDescending(item => string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(item => item.StartedAt ?? item.CreatedAt)
-            .ToList();
+        else
+        {
+            var sessions = await sessionResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+            model.Sessions = (sessions?.Items ?? new List<SessionListItemDto>())
+                .OrderByDescending(item => string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(item => item.StartedAt ?? item.CreatedAt)
+                .ToList();
+        }
 
         return (model, null);
     }
@@ -145,6 +117,8 @@ public sealed class AnalyticsController : Controller
         CancellationToken ct)
     {
         model.SessionId = sessionId.ToString();
+        model.RulesetResult = null;
+        model.RulesetErrorMessage = null;
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
@@ -164,6 +138,42 @@ public sealed class AnalyticsController : Controller
 
         var result = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
         model.Result = result;
+
+        if (result?.RulesetId is Guid rulesetId)
+        {
+            var loadRulesetResult = await PopulateRulesetSummaryAsync(model, rulesetId, ct);
+            if (loadRulesetResult is not null)
+            {
+                return loadRulesetResult;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<IActionResult?> PopulateRulesetSummaryAsync(
+        AnalyticsSearchViewModel model,
+        Guid rulesetId,
+        CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/v1/analytics/rulesets/{rulesetId}/summary", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            model.RulesetErrorMessage = error?.Message ?? $"Gagal memuat analitika ruleset. Status: {(int)response.StatusCode}";
+            model.RulesetResult = null;
+            return null;
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<RulesetAnalyticsSummaryResponseDto>(cancellationToken: ct);
+        model.RulesetResult = result;
         return null;
     }
 }
