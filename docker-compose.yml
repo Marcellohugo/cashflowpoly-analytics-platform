@@ -31,7 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${API_ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:${API_HTTP_PORT:-5041}
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:-cashflowpoly}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
@@ -43,6 +43,12 @@ services:
       AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}
     ports:
       - "${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:${API_HTTP_PORT:-5041}/health/ready > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     depends_on:
       db:
         condition: service_healthy
@@ -58,13 +64,20 @@ services:
     env_file:
       - .env
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${UI_ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:${UI_HTTP_PORT:-5203}
       ApiBaseUrl: http://api:${API_HTTP_PORT:-5041}
     ports:
       - "${UI_HTTP_PORT:-5203}:${UI_HTTP_PORT:-5203}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:${UI_HTTP_PORT:-5203}/health/ready > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - cashflowpoly-net
 

@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <!-- Biar warning lebih jelas -->
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Jadikan warning sebagai gate kualitas -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

@@ -3,7 +3,7 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 1.7
+- Versi: 1.8
 - Tanggal: 15 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
@@ -38,7 +38,6 @@ Acuan utama:
 1. Menambah otomatisasi integration test untuk alur auth + RBAC lintas endpoint.
 2. Menambah observability lebih detail (dashboard metrics, tracing terstruktur).
 3. Menambah hardening keamanan produksi lanjutan (rotasi key JWT otomatis, vault/secret manager terkelola, audit log keamanan).
-4. Menambahkan pipeline CI/CD (`.github/workflows`) agar build/test berjalan otomatis pada setiap perubahan.
 
 ---
 

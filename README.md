@@ -172,6 +172,8 @@ Endpoint tambahan yang tersedia:
 - `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
 - `GET /api/v1/rulesets/{rulesetId}` detail ruleset + versi
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
+- `GET /health/live` liveness API/UI
+- `GET /health/ready` readiness API/UI
 
 ## Catatan pengembangan
 - Gunakan Swagger untuk uji cepat *endpoint* dan gunakan Postman untuk skenario uji *black-box* yang terdokumentasi.
@@ -199,6 +201,7 @@ Dokumen kunci:
 - RBAC smoke test: `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1`.
 - Web UI smoke test: `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1`.
 - Jika kredensial default smoke tidak tersedia di environment Anda, jalankan script dengan parameter username/password sendiri.
+- CI pipeline build+test tersedia di `.github/workflows/ci.yml`.
 
 ## Operasional DB (Backup/Restore)
 - Backup database: `powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1`

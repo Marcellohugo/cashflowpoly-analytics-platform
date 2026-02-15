@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,8 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromHours(8);
 });
 builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live", "ready"]);
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5041";
 
@@ -43,6 +47,7 @@ app.Use(async (context, next) =>
     var isLoginPath = path.StartsWithSegments("/auth/login", StringComparison.OrdinalIgnoreCase);
     var isRegisterPath = path.StartsWithSegments("/auth/register", StringComparison.OrdinalIgnoreCase);
     var isLanguagePath = path.StartsWithSegments("/language", StringComparison.OrdinalIgnoreCase);
+    var isHealthPath = path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
     var hasRole = !string.IsNullOrWhiteSpace(
         context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey));
     var hasAccessToken = !string.IsNullOrWhiteSpace(
@@ -69,7 +74,7 @@ app.Use(async (context, next) =>
         hasAccessToken = false;
     }
 
-    if (!isLoginPath && !isRegisterPath && !isLanguagePath && (!hasRole || !hasAccessToken))
+    if (!isLoginPath && !isRegisterPath && !isLanguagePath && !isHealthPath && (!hasRole || !hasAccessToken))
     {
         var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
         context.Response.Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
@@ -81,6 +86,14 @@ app.Use(async (context, next) =>
 
 app.UseAuthorization();
 
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live")
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

@@ -3,7 +3,7 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.3
+- Versi: 1.4
 - Tanggal: 15 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
@@ -56,7 +56,7 @@ Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan
 
 Catatan:
 - Otomatisasi pada tabel di atas adalah otomatisasi lokal berbasis CLI/script.
-- Workflow CI/CD GitHub Actions belum diaktifkan pada repository (`.github/workflows` belum tersedia).
+- Pipeline CI build+test telah tersedia di `.github/workflows/ci.yml`.
 
 Tambahan cek endpoint analitika:
 - `GET /api/v1/analytics/rulesets/{rulesetId}/summary` -> `200`
