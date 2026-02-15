@@ -92,27 +92,16 @@ public sealed class SessionsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/v1/rulesets", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
+        var rulesetOptions = await LoadRulesetOptionsAsync(client, ct);
+        if (rulesetOptions.UnauthorizedResult is not null)
         {
-            return unauthorized;
+            return rulesetOptions.UnauthorizedResult;
         }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return View(new SessionRulesetViewModel
-            {
-                SessionId = sessionId,
-                ErrorMessage = $"Gagal memuat ruleset. Status: {(int)response.StatusCode}"
-            });
-        }
-
-        var data = await response.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
         return View(new SessionRulesetViewModel
         {
             SessionId = sessionId,
-            Rulesets = data?.Items ?? new List<RulesetListItemDto>()
+            Rulesets = rulesetOptions.Rulesets,
+            ErrorMessage = rulesetOptions.ErrorMessage
         });
     }
 
@@ -124,10 +113,15 @@ public sealed class SessionsController : Controller
             return RedirectToAction(nameof(Details), new { sessionId });
         }
 
+        model.SessionId = sessionId;
+
         if (model.SelectedRulesetId is null || model.SelectedVersion is null)
         {
-            model.ErrorMessage = "Ruleset dan versi wajib dipilih.";
-            return View(model);
+            return await BuildRulesetFormErrorResult(
+                sessionId,
+                model,
+                "Ruleset dan versi wajib dipilih.",
+                ct);
         }
 
         var client = _clientFactory.CreateClient("Api");
@@ -147,11 +141,41 @@ public sealed class SessionsController : Controller
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            model.ErrorMessage = error?.Message ?? $"Gagal aktivasi ruleset. Status: {(int)response.StatusCode}";
-            return View(model);
+            return await BuildRulesetFormErrorResult(
+                sessionId,
+                model,
+                error?.Message ?? $"Gagal aktivasi ruleset. Status: {(int)response.StatusCode}",
+                ct);
         }
 
         return RedirectToAction(nameof(Details), new { sessionId });
+    }
+
+    private async Task<IActionResult> BuildRulesetFormErrorResult(
+        Guid sessionId,
+        SessionRulesetViewModel model,
+        string errorMessage,
+        CancellationToken ct)
+    {
+        model.SessionId = sessionId;
+        model.ErrorMessage = errorMessage;
+
+        var client = _clientFactory.CreateClient("Api");
+        var rulesetOptions = await LoadRulesetOptionsAsync(client, ct);
+        if (rulesetOptions.UnauthorizedResult is not null)
+        {
+            return rulesetOptions.UnauthorizedResult;
+        }
+
+        model.Rulesets = rulesetOptions.Rulesets;
+        if (!string.IsNullOrWhiteSpace(rulesetOptions.ErrorMessage))
+        {
+            model.ErrorMessage = string.IsNullOrWhiteSpace(model.ErrorMessage)
+                ? rulesetOptions.ErrorMessage
+                : $"{model.ErrorMessage} {rulesetOptions.ErrorMessage}";
+        }
+
+        return View(model);
     }
 
     private async Task<(SessionDetailViewModel Model, IActionResult? Result)> BuildSessionDetailViewModel(
@@ -260,6 +284,26 @@ public sealed class SessionsController : Controller
             .ToList();
 
         return (timeline, null);
+    }
+
+    private async Task<(List<RulesetListItemDto> Rulesets, IActionResult? UnauthorizedResult, string? ErrorMessage)> LoadRulesetOptionsAsync(
+        HttpClient client,
+        CancellationToken ct)
+    {
+        var response = await client.GetAsync("api/v1/rulesets", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return (new List<RulesetListItemDto>(), unauthorized, null);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return (new List<RulesetListItemDto>(), null, $"Gagal memuat ruleset. Status: {(int)response.StatusCode}");
+        }
+
+        var data = await response.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
+        return (data?.Items ?? new List<RulesetListItemDto>(), null, null);
     }
 
     private static string ResolveFlowLabel(string actionType)

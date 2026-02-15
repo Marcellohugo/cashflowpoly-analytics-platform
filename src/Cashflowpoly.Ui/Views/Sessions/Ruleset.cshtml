@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = Context.T("sessions.activate_ruleset");
+    var hasRulesets = Model.Rulesets.Count > 0;
 }
 
 <section class="section-shell">
@@ -23,42 +24,54 @@
         </div>
     }
 
-    <div class="mt-6 metric-panels">
-        <div class="metric-panel">
+    <div class="mt-6 ruleset-activation-layout">
+        <aside class="metric-panel ruleset-activation-guide">
             <h3>@Context.T("sessions.ruleset_guide")</h3>
             <div class="metric-list">
                 <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("sessions.ruleset_step1")</span></div>
                 <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("sessions.ruleset_step2")</span></div>
                 <div class="metric-row"><span class="metric-key">@Context.T("sessions.note")</span><span class="metric-value">@Context.T("sessions.ruleset_note")</span></div>
             </div>
-        </div>
-    </div>
+            @if (!hasRulesets)
+            {
+                <div class="alert alert-info">
+                    @Context.T("state.no_rulesets")
+                </div>
+            }
+        </aside>
 
-    <form class="mt-6 form-panel form-grid" method="post">
-        @Html.AntiForgeryToken()
-        <div class="form-field">
-            <label class="form-label" for="session-ruleset-id">@Context.T("common.ruleset")</label>
-            <select class="form-input"
-                    id="session-ruleset-id"
-                    asp-for="SelectedRulesetId">
-                <option value="">@Context.T("sessions.ruleset_title")</option>
-                @foreach (var item in Model.Rulesets)
-                {
-                    <option value="@item.RulesetId">@item.Name</option>
-                }
-            </select>
-        </div>
-        <div class="form-field">
-            <label class="form-label" for="session-ruleset-version">@Context.T("common.version")</label>
-            <input class="form-input"
-                   id="session-ruleset-version"
-                   asp-for="SelectedVersion" type="number" min="1" />
-            <p class="form-help">@Context.T("sessions.ruleset_hint")</p>
-        </div>
-        <div class="form-actions">
-            <button class="btn-primary"
-                    type="submit">@Context.T("sessions.activate")</button>
-            <a class="text-link" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">@Context.T("common.cancel")</a>
-        </div>
-    </form>
+        <form class="form-panel form-grid ruleset-activation-form" method="post">
+            @Html.AntiForgeryToken()
+            <div class="form-field">
+                <label class="form-label" for="session-ruleset-id">@Context.T("common.ruleset")</label>
+                <select class="form-input"
+                        id="session-ruleset-id"
+                        asp-for="SelectedRulesetId"
+                        disabled="@(!hasRulesets)">
+                    <option value="">@Context.T("sessions.ruleset_title")</option>
+                    @foreach (var item in Model.Rulesets)
+                    {
+                        <option value="@item.RulesetId">@item.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="session-ruleset-version">@Context.T("common.version")</label>
+                <input class="form-input"
+                       id="session-ruleset-version"
+                       asp-for="SelectedVersion"
+                       type="number"
+                       min="1"
+                       required
+                       aria-describedby="session-ruleset-version-help" />
+                <p class="form-help" id="session-ruleset-version-help">@Context.T("sessions.ruleset_hint")</p>
+            </div>
+            <div class="form-actions">
+                <button class="btn-primary"
+                        type="submit"
+                        disabled="@(!hasRulesets)">@Context.T("sessions.activate")</button>
+                <a class="text-link" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@Model.SessionId">@Context.T("common.cancel")</a>
+            </div>
+        </form>
+    </div>
 </section>

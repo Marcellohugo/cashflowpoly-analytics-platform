@@ -60,8 +60,8 @@ public sealed class PlayerDetailViewModel
 
 public sealed class SessionRulesetViewModel
 {
-    public Guid SessionId { get; init; }
-    public List<RulesetListItemDto> Rulesets { get; init; } = new();
+    public Guid SessionId { get; set; }
+    public List<RulesetListItemDto> Rulesets { get; set; } = new();
     public Guid? SelectedRulesetId { get; set; }
     public int? SelectedVersion { get; set; }
     public string? ErrorMessage { get; set; }

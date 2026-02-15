@@ -140,6 +140,12 @@ public static class UiText
 
         ["privacy.title"] = ("Rulebook Permainan", "Game Rulebook"),
         ["privacy.subtitle"] = ("", ""),
+        ["privacy.outline_title"] = ("Daftar Isi", "Contents"),
+        ["privacy.total_sections"] = ("Total bagian", "Total sections"),
+        ["privacy.total_points"] = ("Total poin aturan", "Total rule points"),
+        ["privacy.back_to_top"] = ("Kembali ke atas", "Back to top"),
+        ["privacy.empty_sections"] = ("Bagian rulebook belum tersedia.", "Rulebook sections are not available yet."),
+        ["privacy.empty_scoring"] = ("Ringkasan poin belum tersedia.", "Scoring summary is not available yet."),
         ["privacy.happiness_summary"] = ("Ringkasan Poin Kebahagiaan", "Happiness Points Summary"),
         ["privacy.category"] = ("Kategori", "Category"),
         ["privacy.rule"] = ("Aturan", "Rule"),

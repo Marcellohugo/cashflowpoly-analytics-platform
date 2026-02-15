@@ -1,53 +1,113 @@
 @model Cashflowpoly.Ui.Models.RulebookPageViewModel
 @{
     ViewData["Title"] = Context.T("privacy.title");
+    var sections = Model.Sections ?? new System.Collections.Generic.List<Cashflowpoly.Ui.Models.RulebookSectionViewModel>();
+    var scoring = Model.Scoring ?? new System.Collections.Generic.List<Cashflowpoly.Ui.Models.RulebookScoreItemViewModel>();
+    var totalPoints = 0;
+    foreach (var section in sections)
+    {
+        totalPoints += section.Points.Count;
+    }
 }
-<section class="section-shell">
+<section class="section-shell" id="rb-top">
     <div class="page-intro">
         <div class="page-intro-main">
             <h1 class="headline">@ViewData["Title"]</h1>
             <p class="subhead">@Model.Subtitle</p>
         </div>
+        <div class="page-intro-actions">
+            <span class="hint-chip">@Context.T("privacy.total_sections"): @sections.Count</span>
+            <span class="hint-chip">@Context.T("privacy.total_points"): @totalPoints</span>
+        </div>
     </div>
 
-    <div class="rulebook-unified mt-6">
-        <div class="rulebook-stream">
-            @foreach (var section in Model.Sections)
+    <div class="rulebook-shell mt-6">
+        <aside class="rulebook-outline">
+            <h2>@Context.T("privacy.outline_title")</h2>
+            @if (sections.Count == 0)
             {
-                <article class="rulebook-stream-item">
-                    <h2 class="rulebook-heading">@(section.Heading)</h2>
-                    <p class="rulebook-desc">@(section.Description)</p>
-                    <ul class="rulebook-list">
-                        @foreach (var point in section.Points)
-                        {
-                            <li>@point</li>
-                        }
-                    </ul>
-                </article>
+                <p class="rulebook-outline-empty">@Context.T("privacy.empty_sections")</p>
             }
-        </div>
+            else
+            {
+                <ol class="rulebook-outline-list">
+                    @for (var index = 0; index < sections.Count; index++)
+                    {
+                        var sectionItem = sections[index];
+                        var anchor = $"rb-section-{index + 1}";
+                        <li>
+                            <a href="#@anchor">
+                                <span class="rulebook-outline-index">@(index + 1)</span>
+                                <span>@sectionItem.Heading</span>
+                            </a>
+                        </li>
+                    }
+                </ol>
+            }
+        </aside>
 
-        <div class="rulebook-stream-divider"></div>
+        <div class="rulebook-main">
+            <div class="rulebook-unified">
+                <div class="rulebook-stream">
+                    @if (sections.Count == 0)
+                    {
+                        <div class="alert alert-info">
+                            @Context.T("privacy.empty_sections")
+                        </div>
+                    }
+                    else
+                    {
+                        @for (var index = 0; index < sections.Count; index++)
+                        {
+                            var sectionItem = sections[index];
+                            var anchor = $"rb-section-{index + 1}";
+                            <article class="rulebook-stream-item" id="@anchor">
+                                <div class="rulebook-stream-head">
+                                    <h2 class="rulebook-heading">@sectionItem.Heading</h2>
+                                    <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
+                                </div>
+                                <p class="rulebook-desc">@sectionItem.Description</p>
+                                <ul class="rulebook-list">
+                                    @foreach (var point in sectionItem.Points)
+                                    {
+                                        <li>@point</li>
+                                    }
+                                </ul>
+                            </article>
+                        }
+                    }
+                </div>
+            </div>
 
-        <div class="table-wrap">
-            <h2 class="rulebook-heading px-4 pt-4">@Context.T("privacy.happiness_summary")</h2>
-            <table class="w-full text-left text-sm">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3">@Context.T("privacy.category")</th>
-                        <th class="px-4 py-3">@Context.T("privacy.rule")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var item in Model.Scoring)
-                {
-                    <tr class="border-t border-slate-200">
-                        <td class="px-4 py-3 font-semibold text-slate-900">@item.Category</td>
-                        <td class="px-4 py-3 text-slate-700">@item.Rule</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+            <div class="table-wrap mt-6">
+                <h2 class="rulebook-heading px-4 pt-4">@Context.T("privacy.happiness_summary")</h2>
+                <table class="w-full text-left text-sm">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3">@Context.T("privacy.category")</th>
+                            <th class="px-4 py-3">@Context.T("privacy.rule")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (scoring.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500" colspan="2">@Context.T("privacy.empty_scoring")</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in scoring)
+                        {
+                            <tr class="border-t border-slate-200">
+                                <td class="px-4 py-3 font-semibold text-slate-900">@item.Category</td>
+                                <td class="px-4 py-3 text-slate-700">@item.Rule</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </section>
