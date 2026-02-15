@@ -2,7 +2,9 @@ namespace Cashflowpoly.Ui.Models;
 
 public static class AuthConstants
 {
+    public const string SessionUserIdKey = "current_user_id";
     public const string SessionRoleKey = "current_role";
+    public const string SessionDisplayNameKey = "current_display_name";
     public const string SessionUsernameKey = "current_username";
     public const string SessionAccessTokenKey = "current_access_token";
     public const string SessionTokenExpiresAtKey = "current_token_expires_at";

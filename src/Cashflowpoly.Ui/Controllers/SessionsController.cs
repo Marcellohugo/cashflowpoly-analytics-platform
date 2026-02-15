@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
@@ -34,6 +35,14 @@ public sealed class SessionsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                return View(new SessionListViewModel
+                {
+                    ErrorMessage = "Terlalu banyak request ke API. Tunggu sebentar lalu coba lagi."
+                });
+            }
+
             return View(new SessionListViewModel
             {
                 ErrorMessage = $"Gagal mengambil daftar sesi. Status: {(int)response.StatusCode}"
@@ -210,7 +219,16 @@ public sealed class SessionsController : Controller
         }
 
         var analytics = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, ct);
         var (timeline, timelineError) = await LoadTimelineAsync(client, sessionId, ct);
+        foreach (var item in timeline.Where(item => item.PlayerId.HasValue))
+        {
+            if (item.PlayerId.HasValue && playerDisplayNames.TryGetValue(item.PlayerId.Value, out var displayName))
+            {
+                item.PlayerDisplayName = displayName;
+            }
+        }
+
         if (!HttpContext.Session.IsInstructor() && analytics is not null && analytics.ByPlayer.Count > 0)
         {
             var scopedPlayerIds = analytics.ByPlayer.Select(item => item.PlayerId).ToHashSet();
@@ -225,6 +243,7 @@ public sealed class SessionsController : Controller
             SessionStatus = sessionStatus,
             IsDevelopment = _environment.IsDevelopment(),
             Analytics = analytics,
+            PlayerDisplayNames = playerDisplayNames,
             Timeline = timeline,
             TimelineErrorMessage = timelineError,
             ErrorMessage = overrideErrorMessage
@@ -304,6 +323,23 @@ public sealed class SessionsController : Controller
 
         var data = await response.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
         return (data?.Items ?? new List<RulesetListItemDto>(), null, null);
+    }
+
+    private static async Task<Dictionary<Guid, string>> LoadPlayerDisplayNameMapAsync(
+        HttpClient client,
+        CancellationToken ct)
+    {
+        var response = await client.GetAsync("api/v1/players", ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var data = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+        return (data?.Items ?? new List<PlayerResponseDto>())
+            .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
+            .GroupBy(item => item.PlayerId)
+            .ToDictionary(group => group.Key, group => group.First().DisplayName);
     }
 
     private static string ResolveFlowLabel(string actionType)

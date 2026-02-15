@@ -108,6 +108,22 @@ public sealed class AnalyticsController : Controller
                 .ToList();
         }
 
+        var playersResponse = await client.GetAsync("api/v1/players", ct);
+        unauthorized = this.HandleUnauthorizedApiResponse(playersResponse);
+        if (unauthorized is not null)
+        {
+            return (model, unauthorized);
+        }
+
+        if (playersResponse.IsSuccessStatusCode)
+        {
+            var players = await playersResponse.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+            model.PlayerDisplayNames = (players?.Items ?? new List<PlayerResponseDto>())
+                .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
+                .GroupBy(item => item.PlayerId)
+                .ToDictionary(group => group.Key, group => group.First().DisplayName);
+        }
+
         return (model, null);
     }
 

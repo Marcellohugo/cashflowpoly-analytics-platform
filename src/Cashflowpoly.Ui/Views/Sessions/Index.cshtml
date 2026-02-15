@@ -62,7 +62,7 @@
     </details>
 
     <div class="mt-6 table-wrap">
-        <table class="w-full text-left text-sm">
+        <table class="w-full text-left text-sm mobile-card-table">
             <thead class="table-head">
                 <tr>
                     <th class="px-4 py-3">@Context.T("common.name")</th>
@@ -76,7 +76,7 @@
             @if (Model.Items.Count == 0)
             {
                 <tr>
-                    <td class="px-4 py-4 text-slate-500" colspan="5">@Context.T("state.no_sessions")</td>
+                    <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="5">@Context.T("state.no_sessions")</td>
                 </tr>
             }
             else
@@ -84,9 +84,9 @@
                 foreach (var item in Model.Items)
                 {
                     <tr class="border-t border-slate-200">
-                        <td class="px-4 py-3 font-medium text-slate-900">@item.SessionName</td>
-                        <td class="px-4 py-3 text-slate-600">@item.Mode</td>
-                        <td class="px-4 py-3 text-slate-600">
+                        <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.SessionName</td>
+                        <td class="px-4 py-3 text-slate-600" data-label="@Context.T("common.mode")">@item.Mode</td>
+                        <td class="px-4 py-3 text-slate-600" data-label="@Context.T("common.status")">
                             @{
                                 var statusClass = string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase)
                                     ? "status-active"
@@ -96,8 +96,8 @@
                             }
                             <span class="status-pill @statusClass">@item.Status</span>
                         </td>
-                        <td class="px-4 py-3 text-slate-600">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="px-4 py-3 text-slate-600" data-label="@Context.T("common.created")">@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="px-4 py-3 text-right" data-label="@Context.T("common.action")">
                             <a class="table-link"
                                asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@item.SessionId">@(isInstructor ? Context.T("common.detail") : Context.T("sessions.view_progress"))</a>
                         </td>

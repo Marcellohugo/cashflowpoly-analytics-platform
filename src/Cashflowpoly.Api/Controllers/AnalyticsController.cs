@@ -90,7 +90,7 @@ public sealed class AnalyticsController : ControllerBase
 
         var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
         var summary = BuildSummary(events, projections, violations);
-        var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, ct);
 
         return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName));
     }
@@ -143,7 +143,7 @@ public sealed class AnalyticsController : ControllerBase
 
         var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
         var summary = BuildSummary(events, projections, violations);
-        var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, ct);
         if (scope.PlayerId.HasValue)
         {
             byPlayer = byPlayer.Where(item => item.PlayerId == scope.PlayerId.Value).ToList();
@@ -310,7 +310,7 @@ public sealed class AnalyticsController : ControllerBase
             }
 
             var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
-            var byPlayer = BuildByPlayer(events, projections, happinessByPlayer);
+            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, ct);
             var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
 
             foreach (var player in byPlayer)
@@ -520,10 +520,13 @@ public sealed class AnalyticsController : ControllerBase
         return doc.RootElement.Clone();
     }
 
-    private static List<AnalyticsByPlayerItem> BuildByPlayer(
+    private async Task<List<AnalyticsByPlayerItem>> BuildByPlayerAsync(
+        Guid sessionId,
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
-        Dictionary<Guid, HappinessBreakdown> happinessByPlayer)
+        Dictionary<Guid, HappinessBreakdown> happinessByPlayer,
+        RulesetConfig? config,
+        CancellationToken ct)
     {
         var cashTotals = projections
             .GroupBy(p => p.PlayerId)
@@ -562,6 +565,14 @@ public sealed class AnalyticsController : ControllerBase
                 })
                 .Sum();
 
+            var ordersCompletedCount = playerEvents.Count(e => e.ActionType == "order.claimed");
+            var inventoryIngredientTotal = BuildIngredientInventory(playerEvents).Total;
+            var actionsUsedTotal = playerEvents.Where(e => e.ActionType == "turn.action.used")
+                .Select(e => TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
+                .Sum();
+            var compliancePrimaryNeedRate = EvaluatePrimaryNeedCompliance(playerEvents, config).Rate;
+            var rulesViolationsCount = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
+
             var happiness = happinessByPlayer.TryGetValue(playerId, out var breakdown)
                 ? breakdown
                 : ComputeHappinessBreakdown(playerEvents, 0, 0, 0);
@@ -572,6 +583,11 @@ public sealed class AnalyticsController : ControllerBase
                 totals.Out,
                 donationTotal,
                 goldQty,
+                ordersCompletedCount,
+                inventoryIngredientTotal,
+                actionsUsedTotal,
+                compliancePrimaryNeedRate,
+                rulesViolationsCount,
                 happiness.Total,
                 happiness.NeedPoints,
                 happiness.NeedSetBonusPoints,
@@ -837,6 +853,31 @@ public sealed class AnalyticsController : ControllerBase
             return (0, null);
         }
 
+        var evaluation = EvaluatePrimaryNeedCompliance(playerEvents, config);
+        if (evaluation.EvaluatedDays == 0)
+        {
+            return (0, null);
+        }
+
+        var json = JsonSerializer.Serialize(new
+        {
+            days = evaluation.Details,
+            evaluated_days = evaluation.EvaluatedDays,
+            compliant_days = evaluation.CompliantDays
+        });
+
+        return (evaluation.Rate, json);
+    }
+
+    private static (double Rate, List<object> Details, int EvaluatedDays, int CompliantDays) EvaluatePrimaryNeedCompliance(
+        List<EventDb> playerEvents,
+        RulesetConfig? config)
+    {
+        if (config is null)
+        {
+            return (0, new List<object>(), 0, 0);
+        }
+
         var days = playerEvents
             .Select(e => e.DayIndex)
             .Distinct()
@@ -845,7 +886,7 @@ public sealed class AnalyticsController : ControllerBase
 
         if (days.Count == 0)
         {
-            return (0, null);
+            return (0, new List<object>(), 0, 0);
         }
 
         var details = new List<object>();
@@ -857,7 +898,7 @@ public sealed class AnalyticsController : ControllerBase
             var primaryCount = dayEvents.Count(e => e.ActionType == "need.primary.purchased");
             var violationReasons = new List<string>();
 
-            if (primaryCount > config!.PrimaryNeedMaxPerDay)
+            if (primaryCount > config.PrimaryNeedMaxPerDay)
             {
                 violationReasons.Add("PRIMARY_NEED_MAX_EXCEEDED");
             }
@@ -896,14 +937,7 @@ public sealed class AnalyticsController : ControllerBase
         }
 
         var rate = (double)compliantDays / days.Count;
-        var json = JsonSerializer.Serialize(new
-        {
-            days = details,
-            evaluated_days = days.Count,
-            compliant_days = compliantDays
-        });
-
-        return (rate, json);
+        return (rate, details, days.Count, compliantDays);
     }
 
     private static IngredientInventory BuildIngredientInventory(List<EventDb> events)

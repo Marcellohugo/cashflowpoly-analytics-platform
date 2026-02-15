@@ -22,6 +22,7 @@ public sealed class PlayersController : Controller
     public async Task<IActionResult> Details(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
+        var playerDisplayName = await ResolvePlayerDisplayNameAsync(client, playerId, ct);
         var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(analyticsResponse);
         if (unauthorized is not null)
@@ -36,6 +37,7 @@ public sealed class PlayersController : Controller
             {
                 SessionId = sessionId,
                 PlayerId = playerId,
+                PlayerDisplayName = playerDisplayName,
                 ErrorMessage = error?.Message ?? $"Gagal memuat analitika sesi. Status: {(int)analyticsResponse.StatusCode}"
             });
         }
@@ -57,6 +59,7 @@ public sealed class PlayersController : Controller
             {
                 SessionId = sessionId,
                 PlayerId = playerId,
+                PlayerDisplayName = playerDisplayName,
                 Summary = summary,
                 ErrorMessage = error?.Message ?? $"Gagal memuat transaksi. Status: {(int)txResponse.StatusCode}"
             });
@@ -86,6 +89,7 @@ public sealed class PlayersController : Controller
         {
             SessionId = sessionId,
             PlayerId = playerId,
+            PlayerDisplayName = playerDisplayName,
             Summary = summary,
             Transactions = tx?.Items ?? new List<TransactionHistoryItemDto>(),
             GameplayRaw = gameplay?.Raw,
@@ -93,6 +97,18 @@ public sealed class PlayersController : Controller
             GameplayComputedAt = gameplay?.ComputedAt,
             GameplayErrorMessage = gameplayError
         });
+    }
+
+    private static async Task<string?> ResolvePlayerDisplayNameAsync(HttpClient client, Guid playerId, CancellationToken ct)
+    {
+        var response = await client.GetAsync("api/v1/players", ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var players = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+        return players?.Items.FirstOrDefault(item => item.PlayerId == playerId)?.DisplayName;
     }
 }
 

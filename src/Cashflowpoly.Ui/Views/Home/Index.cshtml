@@ -226,6 +226,8 @@ else
             const realtimeErrorEl = document.getElementById("home-realtime-error");
             const realtimeStatusTemplate = '@Context.T("home.error.realtime_status")';
             const realtimeNetworkMessage = '@Context.T("home.error.realtime_network")';
+            const realtimePollIntervalMs = 30000;
+            let realtimeTimerId = null;
 
             const tick = () => {
                 const now = new Date();
@@ -284,10 +286,35 @@ else
                 }
             };
 
+            const stopRealtimeSync = () => {
+                if (realtimeTimerId !== null) {
+                    clearInterval(realtimeTimerId);
+                    realtimeTimerId = null;
+                }
+            };
+
+            const startRealtimeSync = () => {
+                if (realtimeTimerId !== null) {
+                    return;
+                }
+
+                syncRealtimeStats();
+                realtimeTimerId = setInterval(syncRealtimeStats, realtimePollIntervalMs);
+            };
+
+            const handleVisibilityChange = () => {
+                if (document.visibilityState === "visible") {
+                    startRealtimeSync();
+                    return;
+                }
+
+                stopRealtimeSync();
+            };
+
             tick();
-            syncRealtimeStats();
             setInterval(tick, 1000);
-            setInterval(syncRealtimeStats, 10000);
+            document.addEventListener("visibilitychange", handleVisibilityChange);
+            handleVisibilityChange();
         })();
     </script>
 }

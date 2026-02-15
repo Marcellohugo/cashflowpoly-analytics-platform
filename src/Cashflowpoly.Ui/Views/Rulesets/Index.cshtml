@@ -56,7 +56,7 @@
         </div>
 
         <div class="mt-6 table-wrap">
-            <table class="w-full text-left text-sm">
+            <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
                         <th class="px-4 py-3">@Context.T("common.name")</th>
@@ -69,7 +69,7 @@
                 @if (Model.Items.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="4">
+                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="4">
                             @Context.T("state.no_rulesets")
                         </td>
                     </tr>
@@ -79,10 +79,10 @@
                     foreach (var item in Model.Items)
                     {
                         <tr class="border-t border-slate-200">
-                            <td class="px-4 py-3 font-medium text-slate-900">@item.Name</td>
-                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.RulesetId</td>
-                            <td class="px-4 py-3 text-right text-slate-700"><span class="version-pill">v@item.LatestVersion</span></td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.Name</td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.ruleset_id")">@item.RulesetId</td>
+                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">v@item.LatestVersion</span></td>
+                            <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
                                 <a class="table-link"
                                    asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
                             </td>

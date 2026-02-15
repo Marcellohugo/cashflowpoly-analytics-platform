@@ -1,12 +1,44 @@
-@Cashflowpoly.Api_HostAddress = http://localhost:5041
+@api_host = http://localhost:5041
+@auth_username = instructor_demo_20260215
+@auth_password = DevPassw0rd!2026
+@auth_role = INSTRUCTOR
+@auth_display_name = Instructor Demo
 
-POST {{Cashflowpoly.Api_HostAddress}}/api/v1/auth/login
+### Health check (harus 200 sebelum test auth)
+GET {{api_host}}/health/ready
+Accept: text/plain
+
+###
+
+### Register (jalankan sekali; jika 409 berarti user sudah ada)
+# Jika 409 lalu login 401, ganti suffix username di @auth_username lalu jalankan register ulang.
+POST {{api_host}}/api/v1/auth/register
 Accept: application/json
 Content-Type: application/json
 
 {
-  "username": "instructor",
-  "password": "replace-with-your-password"
+  "username": "{{auth_username}}",
+  "password": "{{auth_password}}",
+  "role": "{{auth_role}}",
+  "display_name": "{{auth_display_name}}"
 }
+
+###
+
+# @name login
+POST {{api_host}}/api/v1/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "username": "{{auth_username}}",
+  "password": "{{auth_password}}"
+}
+
+###
+
+GET {{api_host}}/api/v1/sessions
+Accept: application/json
+Authorization: Bearer {{login.response.body.$.access_token}}
 
 ###

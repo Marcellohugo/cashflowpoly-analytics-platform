@@ -1039,6 +1039,10 @@ body.role-player .section-shell {
   color: #4f6e83;
 }
 
+.visible{
+  visibility: visible;
+}
+
 .static{
   position: static;
 }
@@ -1401,6 +1405,10 @@ body.role-player .section-shell {
 .text-slate-900{
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
+}
+
+.filter{
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
 .backdrop-blur{
@@ -3718,6 +3726,7 @@ body > footer .footer-shell {
   width: 100%;
   margin: 0;
   min-height: clamp(38rem, calc(100vh - 7rem), 52rem);
+  min-height: clamp(38rem, calc(100dvh - 7rem), 52rem);
   display: grid;
   align-items: center;
 }
@@ -4281,6 +4290,7 @@ select.auth-input {
     grid-template-columns: 1fr;
     min-height: 0;
     border-radius: 1.45rem;
+    overflow: visible;
   }
 
   .auth-split-card.auth-mode-register .auth-split-right,
@@ -4288,12 +4298,20 @@ select.auth-input {
     grid-column: auto;
   }
 
-  .auth-split-card.auth-mode-register .auth-split-right {
+  .auth-split-left {
     order: 1;
+  }
+
+  .auth-split-right {
+    order: 2;
   }
 
   .auth-split-card.auth-mode-register .auth-split-left {
     order: 2;
+  }
+
+  .auth-split-card.auth-mode-register .auth-split-right {
+    order: 1;
   }
 
   .auth-split-left {
@@ -4316,7 +4334,7 @@ select.auth-input {
 
   .auth-split-right {
     gap: 0.9rem;
-    padding: 3.2rem 1.25rem 1.8rem;
+    padding: 2.45rem 1.25rem 1.35rem;
   }
 
   .auth-panel-lang-corner {
@@ -4340,6 +4358,17 @@ select.auth-input {
 
   .auth-panel-content {
     max-width: 28rem;
+  }
+
+  .auth-split-shell {
+    align-items: start;
+    min-height: 100dvh;
+    padding-top: max(0.45rem, env(safe-area-inset-top));
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+  }
+
+  .auth-input {
+    font-size: 1rem;
   }
 }
 
@@ -4395,7 +4424,7 @@ select.auth-input {
   }
 
   .auth-split-shell {
-    min-height: 0;
+    min-height: 100dvh;
   }
 
   .auth-form {
@@ -4415,6 +4444,11 @@ select.auth-input {
     font-size: 0.7rem;
   }
 
+  .auth-panel-content p {
+    font-size: 0.92rem;
+    line-height: 1.4;
+  }
+
   .analytics-session-form .form-actions {
     justify-content: stretch;
   }
@@ -4423,6 +4457,69 @@ select.auth-input {
     .analytics-session-form .btn-ghost {
     width: 100%;
     min-width: 0;
+  }
+
+  .table-wrap .mobile-card-table {
+    min-width: 0;
+  }
+
+  .table-wrap .mobile-card-table thead {
+    display: none;
+  }
+
+  .table-wrap .mobile-card-table tbody {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.55rem;
+  }
+
+  .table-wrap .mobile-card-table tr {
+    display: block;
+    border: 1px solid #b4e8e2;
+    border-radius: 0.78rem;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 18px rgba(20, 99, 134, 0.08);
+    overflow: hidden;
+  }
+
+  .table-wrap .mobile-card-table td {
+    display: grid;
+    grid-template-columns: minmax(0, 44%) minmax(0, 56%);
+    align-items: start;
+    gap: 0.6rem;
+    border-top: 1px dashed #caece8;
+    padding: 0.52rem 0.68rem !important;
+    text-align: left !important;
+  }
+
+  .table-wrap .mobile-card-table td:first-child {
+    border-top: none;
+  }
+
+  .table-wrap .mobile-card-table td::before {
+    content: attr(data-label);
+    color: #557385;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+
+  .table-wrap .mobile-card-table td.mobile-card-empty,
+    .table-wrap .mobile-card-table td.mobile-card-empty::before {
+    content: none;
+  }
+
+  .table-wrap .mobile-card-table td.mobile-card-empty {
+    display: block;
+    border-top: none;
+    text-align: left !important;
+    padding: 0.72rem 0.8rem !important;
+  }
+
+  .table-wrap .mobile-card-table .table-link {
+    white-space: normal;
   }
 }
 
@@ -4495,6 +4592,11 @@ select.auth-input {
     font-size: clamp(1.5rem, 8vw, 2rem);
   }
 
+  .auth-panel-content p {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
   .auth-signup-cta {
     width: 100%;
     min-width: 0;
@@ -4508,6 +4610,22 @@ select.auth-input {
   .auth-login-notes li {
     width: 100%;
     justify-content: center;
+  }
+
+  .table-wrap .mobile-card-table tbody {
+    gap: 0.55rem;
+    padding: 0.45rem;
+  }
+
+  .table-wrap .mobile-card-table td {
+    grid-template-columns: 1fr;
+    gap: 0.18rem;
+    padding: 0.48rem 0.6rem !important;
+  }
+
+  .table-wrap .mobile-card-table td::before {
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
   }
 
   .rulebook-stream {

@@ -29,6 +29,11 @@
                            id="login-username"
                            asp-for="Username"
                            autocomplete="username"
+                           autocapitalize="none"
+                           autocorrect="off"
+                           spellcheck="false"
+                           inputmode="text"
+                           enterkeyhint="next"
                            required
                            placeholder="Username" />
                 </div>
@@ -40,6 +45,7 @@
                            asp-for="Password"
                            type="password"
                            autocomplete="current-password"
+                           enterkeyhint="go"
                            required
                            placeholder="********" />
                 </div>

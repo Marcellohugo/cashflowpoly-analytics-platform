@@ -9,6 +9,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
 });
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Cashflowpoly.Ui.Session";

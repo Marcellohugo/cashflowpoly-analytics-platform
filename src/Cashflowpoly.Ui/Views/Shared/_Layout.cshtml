@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Http
 @{
     var activeRole = Context.Session.GetString(AuthConstants.SessionRoleKey);
+    var activeDisplayName = Context.Session.GetString(AuthConstants.SessionDisplayNameKey);
     var activeUsername = Context.Session.GetString(AuthConstants.SessionUsernameKey);
     var activeToken = Context.Session.GetString(AuthConstants.SessionAccessTokenKey);
     var isLoggedIn = !string.IsNullOrWhiteSpace(activeRole) && !string.IsNullOrWhiteSpace(activeToken);
@@ -108,7 +109,8 @@
                                 </summary>
                                 <div class="nav-menu profile-menu">
                                     <div class="profile-meta">
-                                        <div class="profile-name">@activeUsername</div>
+                                        <div class="profile-name">@(string.IsNullOrWhiteSpace(activeDisplayName) ? activeUsername : activeDisplayName)</div>
+                                        <div class="profile-role">@Context.T("auth.username"): @activeUsername</div>
                                         <div class="profile-role">@Context.T("profile.role"): @activeRole</div>
                                     </div>
                                     <form method="post" asp-controller="Auth" asp-action="Logout">

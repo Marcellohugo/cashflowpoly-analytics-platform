@@ -1,9 +1,11 @@
 @model Cashflowpoly.Ui.Models.AnalyticsSearchViewModel
+@using System.Linq
 @using System.Text.Json
 
 @{
     ViewData["Title"] = Context.T("nav.analytics");
     var isInstructor = Model.IsInstructor;
+    var playerDisplayNames = Model.PlayerDisplayNames;
     var playerSummary = !isInstructor && Model.Result is not null && Model.Result.ByPlayer.Count > 0
         ? Model.Result.ByPlayer[0]
         : null;
@@ -12,6 +14,15 @@
         : playerSummary.CashInTotal - playerSummary.CashOutTotal;
     var rulesetResult = Model.RulesetResult;
     string F(double value) => value.ToString("0.##");
+    string ResolvePlayerName(Guid playerId)
+    {
+        if (playerDisplayNames.TryGetValue(playerId, out var displayName) && !string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName;
+        }
+
+        return playerId.ToString()[..8];
+    }
 }
 
 <section class="section-shell w-full analytics-shell analytics-page @(isInstructor ? "analytics-shell-instructor" : "analytics-shell-player")">
@@ -188,6 +199,26 @@
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.saving_goal")</p>
                     <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.SavingGoalPointsTotal)</p>
                 </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.orders_completed")</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.OrdersCompletedCount</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.inventory_ingredient")</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.InventoryIngredientTotal</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.actions_used")</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.ActionsUsedTotal</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.primary_need_compliance")</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@F(playerSummary.CompliancePrimaryNeedRate * 100)%</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
+                    <p class="mt-2 text-xl font-semibold text-slate-900">@playerSummary.RulesViolationsCount</p>
+                </div>
             </div>
         }
 
@@ -261,6 +292,26 @@
                         <h3 class="chart-title">@Context.T("metric.loan_unpaid")</h3>
                         <canvas id="loanUnpaidLineChart" height="110"></canvas>
                     </article>
+                    <article class="chart-card">
+                        <h3 class="chart-title">@Context.T("metric.orders_completed")</h3>
+                        <canvas id="ordersCompletedLineChart" height="110"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3 class="chart-title">@Context.T("metric.inventory_ingredient")</h3>
+                        <canvas id="inventoryIngredientLineChart" height="110"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3 class="chart-title">@Context.T("metric.actions_used")</h3>
+                        <canvas id="actionsUsedLineChart" height="110"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3 class="chart-title">@Context.T("metric.primary_need_compliance")</h3>
+                        <canvas id="compliancePrimaryNeedLineChart" height="110"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3 class="chart-title">@Context.T("metric.violations")</h3>
+                        <canvas id="rulesViolationsLineChart" height="110"></canvas>
+                    </article>
                 </div>
             }
         }
@@ -285,8 +336,91 @@
                     <h3 class="chart-title">@Context.T("analytics.chart.risk_control")</h3>
                     <canvas id="playerRiskChart" height="120"></canvas>
                 </article>
+                <article class="chart-card">
+                    <h3 class="chart-title">@Context.T("analytics.chart.operations")</h3>
+                    <canvas id="playerOperationsChart" height="120"></canvas>
+                </article>
             </div>
         }
+
+        var matrixPlayers = (isInstructor
+                ? Model.Result.ByPlayer
+                : Model.Result.ByPlayer.Where(item => playerSummary is not null && item.PlayerId == playerSummary.PlayerId))
+            .ToList();
+        <section class="mt-10 analytics-result-shell">
+            <div class="analytics-workbench-header">
+                <h2>@Context.T("analytics.section.minimum_matrix_title")</h2>
+                <p>@Context.T("analytics.section.minimum_matrix_desc")</p>
+            </div>
+
+            <div class="mt-4 table-wrap analytics-table-block">
+                <table class="w-full min-w-[1440px] text-left text-sm mobile-card-table">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3 whitespace-nowrap">@Context.T("common.player")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.cash_in")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.cash_out")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.net_cashflow")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.donation")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.gold_qty")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.orders_completed")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.inventory_ingredient")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.actions_used")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.primary_need_compliance")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.violations")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.happiness")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.need_points")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.need_bonus")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.donation_points")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.gold_points")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.pension_points")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.saving_goal")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.mission_penalty")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.loan_penalty")</th>
+                            <th class="px-4 py-3 text-right whitespace-nowrap">@Context.T("metric.loan_unpaid")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (matrixPlayers.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="21">@Context.T("state.no_player_data")</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in matrixPlayers)
+                        {
+                            var netCash = item.CashInTotal - item.CashOutTotal;
+                            <tr class="border-t border-slate-200">
+                                <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.player")">@ResolvePlayerName(item.PlayerId)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@F(item.CashInTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_out")">@F(item.CashOutTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.net_cashflow")">@F(netCash)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.donation")">@F(item.DonationTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.gold_qty")">@item.GoldQty</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.orders_completed")">@item.OrdersCompletedCount</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.inventory_ingredient")">@item.InventoryIngredientTotal</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.actions_used")">@item.ActionsUsedTotal</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.primary_need_compliance")">@F(item.CompliancePrimaryNeedRate * 100)%</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.violations")">@item.RulesViolationsCount</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.happiness")">@F(item.HappinessPointsTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.need_points")">@F(item.NeedPointsTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.need_bonus")">@F(item.NeedSetBonusPoints)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.donation_points")">@F(item.DonationPointsTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.gold_points")">@F(item.GoldPointsTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.pension_points")">@F(item.PensionPointsTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.saving_goal")">@F(item.SavingGoalPointsTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.mission_penalty")">@F(item.MissionPenaltyTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.loan_penalty")">@F(item.LoanPenaltyTotal)</td>
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("metric.loan_unpaid")">@((item.HasUnpaidLoan) ? Context.T("state.true") : Context.T("state.false"))</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     }
 
     @if (rulesetResult is not null)
@@ -390,7 +524,7 @@
                     <thead class="table-head">
                         <tr>
                             <th class="px-4 py-3">@Context.T("rulesets.analytics.session")</th>
-                            <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                            <th class="px-4 py-3">@Context.T("common.player")</th>
                             <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_learning")</th>
                             <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_quest")</th>
                         </tr>
@@ -411,7 +545,7 @@
                                     <div class="font-semibold">@item.SessionName</div>
                                     <div class="mt-1 text-xs text-slate-500 font-mono">@item.SessionId</div>
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-slate-600">@item.PlayerId</td>
+                                <td class="px-4 py-3 text-slate-700">@ResolvePlayerName(item.PlayerId)</td>
                                 <td class="px-4 py-3 text-right">@(item.LearningPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
                                 <td class="px-4 py-3 text-right">@(item.MissionPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
                             </tr>
@@ -436,7 +570,11 @@
 
                 const data = @Html.Raw(JsonSerializer.Serialize(Model.Result));
                 const players = data.by_player ?? [];
-                const playerLabels = players.map((p, idx) => `P${idx + 1}`);
+                const playerNameLookup = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value)));
+                const playerLabels = players.map((p, idx) => {
+                    const playerId = `${p.player_id ?? ""}`;
+                    return playerNameLookup[playerId] ?? `P${idx + 1}`;
+                });
                 const isPlayerDashboard = @((!Model.IsInstructor).ToString().ToLowerInvariant());
 
                 const makeChart = (canvasId, type, labels, datasets, options = {}) => {
@@ -485,7 +623,7 @@
                         });
 
                     makeChart("playerPointsChart", "bar",
-                        ["@Context.T("metric.happiness")", "@Context.T("metric.need_points")", "@Context.T("metric.need_bonus")", "@Context.T("metric.donation")", "@Context.T("metric.gold_points")", "@Context.T("metric.pension_points")", "@Context.T("metric.saving_goal")"],
+                        ["@Context.T("metric.happiness")", "@Context.T("metric.need_points")", "@Context.T("metric.need_bonus")", "@Context.T("metric.donation_points")", "@Context.T("metric.gold_points")", "@Context.T("metric.pension_points")", "@Context.T("metric.saving_goal")"],
                         [{
                             label: "@Context.T("analytics.chart.points")",
                             data: [
@@ -512,6 +650,25 @@
                             data: [me.mission_penalty_total ?? 0, me.loan_penalty_total ?? 0, me.has_unpaid_loan ? 1 : 0],
                             backgroundColor: ["#ef4e4e99", "#d1495b99", "#37415199"],
                             borderColor: ["#bf2e2e", "#a53344", "#1f2937"],
+                            borderWidth: 1.2
+                        }],
+                        {
+                            plugins: { legend: { display: false } }
+                        });
+
+                    makeChart("playerOperationsChart", "bar",
+                        ["@Context.T("metric.orders_completed")", "@Context.T("metric.inventory_ingredient")", "@Context.T("metric.actions_used")", "@Context.T("metric.primary_need_compliance")", "@Context.T("metric.violations")"],
+                        [{
+                            label: "@Context.T("analytics.chart.value")",
+                            data: [
+                                me.orders_completed_count ?? 0,
+                                me.inventory_ingredient_total ?? 0,
+                                me.actions_used_total ?? 0,
+                                (me.compliance_primary_need_rate ?? 0) * 100,
+                                me.rules_violations_count ?? 0
+                            ],
+                            backgroundColor: ["#2563eb99", "#0ea5e999", "#7c3aed99", "#16a34a99", "#dc262699"],
+                            borderColor: ["#1d4ed8", "#0284c7", "#6d28d9", "#15803d", "#b91c1c"],
                             borderWidth: 1.2
                         }],
                         {
@@ -578,7 +735,12 @@
                     { id: "savingGoalLineChart", key: "saving_goal_points_total", color: "#00a6a6" },
                     { id: "missionPenaltyLineChart", key: "mission_penalty_total", color: "#c64f40" },
                     { id: "loanPenaltyLineChart", key: "loan_penalty_total", color: "#d1495b" },
-                    { id: "loanUnpaidLineChart", key: "has_unpaid_loan", color: "#374151", boolToNum: true }
+                    { id: "loanUnpaidLineChart", key: "has_unpaid_loan", color: "#374151", boolToNum: true },
+                    { id: "ordersCompletedLineChart", key: "orders_completed_count", color: "#2563eb" },
+                    { id: "inventoryIngredientLineChart", key: "inventory_ingredient_total", color: "#0ea5e9" },
+                    { id: "actionsUsedLineChart", key: "actions_used_total", color: "#7c3aed" },
+                    { id: "compliancePrimaryNeedLineChart", key: "compliance_primary_need_rate", color: "#16a34a", multiply: 100 },
+                    { id: "rulesViolationsLineChart", key: "rules_violations_count", color: "#dc2626" }
                 ];
 
                 metricCharts.forEach((metric) => {
@@ -586,7 +748,8 @@
                         if (metric.boolToNum) {
                             return p[metric.key] ? 1 : 0;
                         }
-                        return p[metric.key] ?? 0;
+                        const numericValue = p[metric.key] ?? 0;
+                        return metric.multiply ? numericValue * metric.multiply : numericValue;
                     });
 
                     makeChart(metric.id, "line", playerLabels, [{

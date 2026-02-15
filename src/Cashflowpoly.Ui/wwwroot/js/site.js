@@ -14,8 +14,18 @@
     el.style.setProperty("--delay", `${delay}ms`);
   });
 
+  const sectionShells = targets.filter((el) => el.classList.contains("section-shell"));
+  const observedTargets = targets.filter((el) => !el.classList.contains("section-shell"));
+
+  // Keep primary page containers visible from first paint.
+  sectionShells.forEach((el) => el.classList.add("is-visible"));
+
   if (reduceMotion) {
     targets.forEach((el) => el.classList.add("is-visible"));
+    return;
+  }
+
+  if (!observedTargets.length) {
     return;
   }
 
@@ -29,10 +39,22 @@
         observer.unobserve(entry.target);
       });
     },
-    { threshold: 0.15 }
+    { threshold: 0.01 }
   );
 
-  targets.forEach((el) => observer.observe(el));
+  observedTargets.forEach((el) => observer.observe(el));
+
+  // Failsafe: never leave elements hidden if observer callback misses.
+  window.setTimeout(() => {
+    observedTargets.forEach((el) => {
+      if (el.classList.contains("is-visible")) {
+        return;
+      }
+
+      el.classList.add("is-visible");
+      observer.unobserve(el);
+    });
+  }, 1200);
 })();
 
 (() => {
@@ -162,6 +184,89 @@
       window.setTimeout(() => {
         window.location.assign(href);
       }, 240);
+    });
+  });
+})();
+
+(() => {
+  const forms = Array.from(document.querySelectorAll("form.auth-form"));
+  if (!forms.length) {
+    return;
+  }
+
+  const focusableSelector = "input, select, textarea";
+  const isNavigableField = (field) => {
+    if (!(field instanceof HTMLElement)) {
+      return false;
+    }
+
+    if (field.hasAttribute("disabled")) {
+      return false;
+    }
+
+    if (field.getAttribute("type") === "hidden") {
+      return false;
+    }
+
+    if (field.getAttribute("readonly") !== null) {
+      return false;
+    }
+
+    return true;
+  };
+
+  forms.forEach((form) => {
+    form.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      if (target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      const fields = Array.from(form.querySelectorAll(focusableSelector)).filter(isNavigableField);
+      if (!fields.length) {
+        return;
+      }
+
+      const currentIndex = fields.indexOf(target);
+      if (currentIndex < 0) {
+        return;
+      }
+
+      const isLastField = currentIndex >= fields.length - 1;
+      if (isLastField) {
+        const submitButton = form.querySelector("button[type='submit'], input[type='submit']");
+        if (!(submitButton instanceof HTMLElement)) {
+          return;
+        }
+
+        const enterLastSelectMode = (form.dataset.enterLastSelect ?? "").toLowerCase();
+        const isSelectField = target.tagName === "SELECT";
+        if (isSelectField && enterLastSelectMode === "focus-submit") {
+          event.preventDefault();
+          submitButton.focus();
+          return;
+        }
+
+        event.preventDefault();
+        submitButton.click();
+        return;
+      }
+
+      const nextField = fields[currentIndex + 1];
+      if (!(nextField instanceof HTMLElement)) {
+        return;
+      }
+
+      event.preventDefault();
+      nextField.focus();
     });
   });
 })();

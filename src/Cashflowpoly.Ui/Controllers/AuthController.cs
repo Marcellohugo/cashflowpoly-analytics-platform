@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
@@ -68,7 +69,10 @@ public sealed class AuthController : Controller
         }
 
         HttpContext.Session.SetString(AuthConstants.SessionRoleKey, data.Role.ToUpperInvariant());
+        HttpContext.Session.SetString(AuthConstants.SessionUserIdKey, data.UserId.ToString());
         HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, data.Username);
+        var displayName = await ResolveDisplayNameAsync(data.AccessToken, data.UserId, data.Username, HttpContext.RequestAborted);
+        HttpContext.Session.SetString(AuthConstants.SessionDisplayNameKey, displayName);
         HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, data.AccessToken);
         HttpContext.Session.SetString(
             AuthConstants.SessionTokenExpiresAtKey,
@@ -149,7 +153,10 @@ public sealed class AuthController : Controller
         }
 
         HttpContext.Session.SetString(AuthConstants.SessionRoleKey, created.Role.ToUpperInvariant());
+        HttpContext.Session.SetString(AuthConstants.SessionUserIdKey, created.UserId.ToString());
         HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, created.Username);
+        var displayName = await ResolveDisplayNameAsync(created.AccessToken, created.UserId, created.Username, HttpContext.RequestAborted);
+        HttpContext.Session.SetString(AuthConstants.SessionDisplayNameKey, displayName);
         HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, created.AccessToken);
         HttpContext.Session.SetString(
             AuthConstants.SessionTokenExpiresAtKey,
@@ -167,11 +174,30 @@ public sealed class AuthController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Logout()
     {
+        HttpContext.Session.Remove(AuthConstants.SessionUserIdKey);
         HttpContext.Session.Remove(AuthConstants.SessionRoleKey);
+        HttpContext.Session.Remove(AuthConstants.SessionDisplayNameKey);
         HttpContext.Session.Remove(AuthConstants.SessionUsernameKey);
         HttpContext.Session.Remove(AuthConstants.SessionAccessTokenKey);
         HttpContext.Session.Remove(AuthConstants.SessionTokenExpiresAtKey);
         return RedirectToAction(nameof(Login));
+    }
+
+    private async Task<string> ResolveDisplayNameAsync(string accessToken, Guid userId, string fallback, CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/players");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            return fallback;
+        }
+
+        var players = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+        var displayName = players?.Items.FirstOrDefault(item => item.PlayerId == userId)?.DisplayName;
+        return string.IsNullOrWhiteSpace(displayName) ? fallback : displayName;
     }
 }
 

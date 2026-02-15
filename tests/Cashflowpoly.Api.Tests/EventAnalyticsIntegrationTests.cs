@@ -205,6 +205,11 @@ public sealed class EventAnalyticsIntegrationTests
         var byPlayer = analytics.ByPlayer.Single(p => p.PlayerId == createdPlayer.PlayerId);
         Assert.Equal(10d, byPlayer.CashInTotal, 6);
         Assert.Equal(3d, byPlayer.CashOutTotal, 6);
+        Assert.Equal(0, byPlayer.OrdersCompletedCount);
+        Assert.Equal(0, byPlayer.InventoryIngredientTotal);
+        Assert.Equal(0, byPlayer.ActionsUsedTotal);
+        Assert.Equal(1d, byPlayer.CompliancePrimaryNeedRate, 6);
+        Assert.Equal(0, byPlayer.RulesViolationsCount);
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,

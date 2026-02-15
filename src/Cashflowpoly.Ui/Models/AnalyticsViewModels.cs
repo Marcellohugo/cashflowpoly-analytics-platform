@@ -7,6 +7,7 @@ public sealed class AnalyticsSearchViewModel
     public string SessionId { get; set; } = string.Empty;
     public bool IsInstructor { get; set; } = true;
     public List<SessionListItemDto> Sessions { get; set; } = new();
+    public Dictionary<Guid, string> PlayerDisplayNames { get; set; } = new();
     public AnalyticsSessionResponseDto? Result { get; set; }
     public RulesetAnalyticsSummaryResponseDto? RulesetResult { get; set; }
     public string? ErrorMessage { get; set; }
@@ -24,6 +25,7 @@ public sealed class SessionDetailViewModel
 {
     public Guid SessionId { get; init; }
     public AnalyticsSessionResponseDto? Analytics { get; init; }
+    public Dictionary<Guid, string> PlayerDisplayNames { get; init; } = new();
     public List<SessionTimelineEventViewModel> Timeline { get; init; } = new();
     public string? TimelineErrorMessage { get; init; }
     public string? SessionStatus { get; init; }
@@ -40,6 +42,7 @@ public sealed class SessionTimelineEventViewModel
     public int TurnNumber { get; init; }
     public string ActorType { get; init; } = string.Empty;
     public Guid? PlayerId { get; init; }
+    public string? PlayerDisplayName { get; set; }
     public string ActionType { get; init; } = string.Empty;
     public string FlowLabel { get; init; } = string.Empty;
     public string FlowDescription { get; init; } = string.Empty;
@@ -49,6 +52,7 @@ public sealed class PlayerDetailViewModel
 {
     public Guid SessionId { get; init; }
     public Guid PlayerId { get; init; }
+    public string? PlayerDisplayName { get; init; }
     public AnalyticsByPlayerItemDto? Summary { get; init; }
     public List<TransactionHistoryItemDto> Transactions { get; init; } = new();
     public JsonElement? GameplayRaw { get; init; }

@@ -47,7 +47,7 @@
                 <p class="auth-copy">@Context.T("auth.register_subtitle")</p>
             </div>
 
-            <form class="auth-form" method="post" asp-controller="Auth" asp-action="Register">
+            <form class="auth-form" method="post" asp-controller="Auth" asp-action="Register" data-enter-last-select="focus-submit">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="ReturnUrl" />
 
@@ -68,6 +68,11 @@
                                id="register-username"
                                asp-for="Username"
                                autocomplete="username"
+                               autocapitalize="none"
+                               autocorrect="off"
+                               spellcheck="false"
+                               inputmode="text"
+                               enterkeyhint="next"
                                required
                                placeholder="@Context.T("auth.placeholder.new_username")" />
                     </div>
@@ -81,6 +86,7 @@
                                asp-for="Password"
                                type="password"
                                autocomplete="new-password"
+                               enterkeyhint="next"
                                required
                                placeholder="********" />
                     </div>
@@ -92,6 +98,7 @@
                                asp-for="ConfirmPassword"
                                type="password"
                                autocomplete="new-password"
+                               enterkeyhint="done"
                                required
                                placeholder="********" />
                     </div>

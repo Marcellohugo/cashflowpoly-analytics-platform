@@ -1,18 +1,23 @@
 using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using Cashflowpoly.Ui.Models;
 using Cashflowpoly.Ui.Infrastructure;
+using Cashflowpoly.Ui.Models;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Cashflowpoly.Ui.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly IHttpClientFactory _clientFactory;
+    private static readonly TimeSpan RealtimeStatsCacheDuration = TimeSpan.FromSeconds(20);
 
-    public HomeController(IHttpClientFactory clientFactory)
+    private readonly IHttpClientFactory _clientFactory;
+    private readonly IMemoryCache _memoryCache;
+
+    public HomeController(IHttpClientFactory clientFactory, IMemoryCache memoryCache)
     {
         _clientFactory = clientFactory;
+        _memoryCache = memoryCache;
     }
 
     public async Task<IActionResult> Index(CancellationToken ct)
@@ -67,6 +72,12 @@ public class HomeController : Controller
 
     private async Task<(HomeIndexViewModel Model, IActionResult? UnauthorizedResult)> GetRealtimeStatsInternal(CancellationToken ct)
     {
+        var cacheKey = BuildRealtimeStatsCacheKey();
+        if (_memoryCache.TryGetValue(cacheKey, out HomeIndexViewModel? cachedModel) && cachedModel is not null)
+        {
+            return (cachedModel, null);
+        }
+
         var client = _clientFactory.CreateClient("Api");
 
         var sessionsTask = client.GetAsync("api/v1/sessions", ct);
@@ -131,6 +142,16 @@ public class HomeController : Controller
             ErrorMessage = errorMessages.Count == 0 ? null : $"Sebagian data realtime gagal dimuat ({string.Join(", ", errorMessages)})."
         };
 
+        _memoryCache.Set(cacheKey, model, RealtimeStatsCacheDuration);
+
         return (model, null);
+    }
+
+    private string BuildRealtimeStatsCacheKey()
+    {
+        var sessionId = HttpContext.Session.Id;
+        return string.IsNullOrWhiteSpace(sessionId)
+            ? "home:realtime:anonymous"
+            : $"home:realtime:{sessionId}";
     }
 }
