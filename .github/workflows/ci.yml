@@ -23,5 +23,8 @@ jobs:
       - name: Build
         run: dotnet build Cashflowpoly.sln -c Release --no-restore /warnaserror
 
-      - name: Test
-        run: dotnet test Cashflowpoly.sln -c Release --no-build --verbosity normal
+      - name: Test (Non-Integration)
+        run: dotnet test Cashflowpoly.sln -c Release --no-build --filter "Category!=Integration" --verbosity normal
+
+      - name: Test (Integration)
+        run: dotnet test Cashflowpoly.sln -c Release --no-build --filter "Category=Integration" --verbosity normal

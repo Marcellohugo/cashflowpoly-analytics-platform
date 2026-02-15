@@ -231,3 +231,5 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapControllers().RequireRateLimiting("api");
 
 app.Run();
+
+public partial class Program { }

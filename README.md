@@ -193,6 +193,9 @@ Dokumen kunci:
 
 ## Pengujian
 - Unit test API: `dotnet test Cashflowpoly.sln`.
+- Integration test API (auth + RBAC + ruleset + analytics flow) dijalankan via xUnit + Testcontainers, jadi Docker daemon wajib aktif saat `dotnet test`.
+- Jalankan hanya integration test: `dotnet test Cashflowpoly.sln --filter "Category=Integration"`.
+- Jalankan test non-integration (lebih cepat): `dotnet test Cashflowpoly.sln --filter "Category!=Integration"`.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.

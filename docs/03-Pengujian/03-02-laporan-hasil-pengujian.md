@@ -3,7 +3,7 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.4
+- Versi: 1.6
 - Tanggal: 15 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
@@ -47,7 +47,7 @@ Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
 | Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
-| Test solution | `dotnet test Cashflowpoly.sln` | PASS | 3 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`) |
+| Test solution | `dotnet test Cashflowpoly.sln` | PASS | 18 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`, termasuk integration test auth+RBAC+ruleset+analytics) |
 | Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
 | Smoke API end-to-end | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS | ruleset/session/player/event/analytics sukses |
 | RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS | 401/403/200/201 sesuai ekspektasi |

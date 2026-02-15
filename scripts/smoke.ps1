@@ -156,8 +156,11 @@ $sessionBody = @{
 $session = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/sessions" -Headers $bearerHeaders -ContentType "application/json" -Body ($sessionBody | ConvertTo-Json)
 
 Write-Host "Create player..."
+$playerStamp = [guid]::NewGuid().ToString("N").Substring(0, 8)
 $playerBody = @{
     display_name = "Player Smoke"
+    username = "smoke_player_$playerStamp"
+    password = "SmokePlayerPass!123"
 }
 $player = Invoke-RestMethod -Method Post -Uri "$ApiBaseUrl/api/v1/players" -Headers $bearerHeaders -ContentType "application/json" -Body ($playerBody | ConvertTo-Json)
 
