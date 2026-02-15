@@ -3,14 +3,14 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.2
-- Tanggal: 12 Februari 2026
+- Versi: 1.3
+- Tanggal: 15 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 12 Februari 2026.
+Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 15 Februari 2026.
 
 Cakupan laporan ini:
 - verifikasi teknis otomatis (build, test, compose, smoke),
@@ -22,8 +22,8 @@ Cakupan laporan ini:
 
 ## 2. Identitas Pengujian
 - Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
-- Tanggal pengujian: 12 Februari 2026
-- Versi aplikasi (git commit): `187c89b`
+- Tanggal pengujian: 15 Februari 2026
+- Versi aplikasi (git commit): working tree lokal (terdapat perubahan belum di-commit)
 - Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
 - URL API: `http://localhost:5041`
@@ -46,13 +46,17 @@ Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan
 ## 4. Detail Verifikasi Otomatis
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
-| Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | 0 warning, 0 error |
-| Test solution | N/A | N/A | Proyek unit test API dihapus dari solution |
+| Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
+| Test solution | `dotnet test Cashflowpoly.sln` | PASS | 3 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`) |
 | Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
 | Smoke API end-to-end | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS | ruleset/session/player/event/analytics sukses |
 | RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS | 401/403/200/201 sesuai ekspektasi |
 | Rate-limit smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1 -CheckRateLimit` | PASS | respons `429` terdeteksi |
 | Web UI smoke | `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1` | PASS | login + halaman utama + Swagger terverifikasi |
+
+Catatan:
+- Otomatisasi pada tabel di atas adalah otomatisasi lokal berbasis CLI/script.
+- Workflow CI/CD GitHub Actions belum diaktifkan pada repository (`.github/workflows` belum tersedia).
 
 Tambahan cek endpoint analitika:
 - `GET /api/v1/analytics/rulesets/{rulesetId}/summary` -> `200`

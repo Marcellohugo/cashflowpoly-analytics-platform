@@ -67,12 +67,12 @@ Catatan kontrak API:
 +- .env
 +- .github/
 +- Cashflowpoly.sln
-+- Img/
 +- README.md
 +- docker-compose.yml
 +- database/
 |  +- 00_create_schema.sql
 +- docs/
+|  +- Img/
 |  +- 00-Panduan/
 |  |  +- 00-01-panduan-setup-lingkungan.md
 |  |  +- 00-02-manual-pengguna-dan-skenario-operasional.md
@@ -190,6 +190,7 @@ Dokumen kunci:
 - Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
+- Unit test API: `dotnet test Cashflowpoly.sln`.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.

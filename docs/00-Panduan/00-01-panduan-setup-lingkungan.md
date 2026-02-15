@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Setup Lingkungan
-- Versi: 1.0
-- Tanggal: 29 Januari 2026
+- Versi: 1.1
+- Tanggal: 15 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -93,10 +93,10 @@ cashflowpoly-analytics-platform/
   .env
   .github/
   Cashflowpoly.sln
-  Img/
   docker-compose.yml
   README.md
   docs/
+    Img/
   database/
   src/
     Cashflowpoly.Api/
