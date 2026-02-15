@@ -1,27 +1,57 @@
 @model Cashflowpoly.Ui.Models.RegisterViewModel
+@using Microsoft.AspNetCore.Http
 
 @{
     ViewData["Title"] = Context.T("auth.register_title");
     ViewData["HideFooter"] = true;
+    ViewData["HideHeader"] = true;
+    var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
+    var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="auth-split-shell">
-    <div class="auth-split-card auth-mode-register">
-            <aside class="auth-split-right" aria-hidden="true">
+    <section class="auth-split-card auth-mode-register" aria-labelledby="auth-register-heading">
+        <aside class="auth-split-right">
+            <div class="auth-panel-lang-corner">
+                <div class="auth-panel-lang" role="group" aria-label="@Context.T("lang.label")">
+                    <form method="post" asp-controller="Language" asp-action="Set">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="language" value="@AuthConstants.LanguageId" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button class="auth-panel-lang-btn @(isEnglish ? string.Empty : "active")" type="submit">ID</button>
+                    </form>
+                    <form method="post" asp-controller="Language" asp-action="Set">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="language" value="@AuthConstants.LanguageEn" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button class="auth-panel-lang-btn @(isEnglish ? "active" : string.Empty)" type="submit">EN</button>
+                    </form>
+                </div>
+            </div>
+            <a class="auth-panel-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <img class="auth-panel-brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.logo_alt")" />
+                <span class="auth-panel-brand-text">Cashflowpoly</span>
+            </a>
+            <div class="auth-panel-content">
                 <h2>@Context.T("auth.login_panel_title")</h2>
                 <p>@Context.T("auth.login_panel_desc")</p>
-                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="right" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.login_panel_cta")</a>
-            </aside>
+            </div>
+            <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="right" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.login_panel_cta")</a>
+        </aside>
 
-            <div class="auth-split-left">
+        <div class="auth-split-left">
+            <div class="auth-content-head">
                 <p class="auth-kicker">@Context.T("auth.access")</p>
-                <h1 class="auth-heading">@Context.T("auth.register_title")</h1>
+                <h1 class="auth-heading" id="auth-register-heading">@Context.T("auth.register_title")</h1>
                 <p class="auth-copy">@Context.T("auth.register_subtitle")</p>
+            </div>
 
-                <form class="auth-form" method="post" asp-controller="Auth" asp-action="Register">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" asp-for="ReturnUrl" />
+            <form class="auth-form" method="post" asp-controller="Auth" asp-action="Register">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
 
+                <div class="auth-form-grid auth-form-grid-2">
                     <div class="form-field">
                         <label class="auth-label" for="register-display-name">@Context.T("auth.display_name")</label>
                         <input class="auth-input"
@@ -41,7 +71,9 @@
                                required
                                placeholder="@Context.T("auth.placeholder.new_username")" />
                     </div>
+                </div>
 
+                <div class="auth-form-grid auth-form-grid-2">
                     <div class="form-field">
                         <label class="auth-label" for="register-password">@Context.T("auth.password")</label>
                         <input class="auth-input"
@@ -63,30 +95,31 @@
                                required
                                placeholder="********" />
                     </div>
+                </div>
 
-                    <div class="form-field">
-                        <label class="auth-label" for="register-role">@Context.T("auth.role")</label>
-                        <select class="auth-input"
-                                id="register-role"
-                                asp-for="Role">
-                            <option value="PLAYER">@Context.T("auth.role_player")</option>
-                            <option value="INSTRUCTOR">@Context.T("auth.role_instructor")</option>
-                        </select>
+                <div class="form-field">
+                    <label class="auth-label" for="register-role">@Context.T("auth.role")</label>
+                    <select class="auth-input"
+                            id="register-role"
+                            asp-for="Role">
+                        <option value="PLAYER">@Context.T("auth.role_player")</option>
+                        <option value="INSTRUCTOR">@Context.T("auth.role_instructor")</option>
+                    </select>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                {
+                    <div class="alert alert-error" aria-live="polite">
+                        @Model.ErrorMessage
                     </div>
+                }
 
-                    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-                    {
-                        <div class="alert alert-error" aria-live="polite">
-                            @Model.ErrorMessage
-                        </div>
-                    }
-
-                    <button class="auth-login-btn" type="submit">@Context.T("auth.submit_register")</button>
-                    <p class="auth-register-copy">
-                        @Context.T("auth.have_account")
-                        <a class="js-auth-switch" data-auth-switch-direction="right" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.login")</a>
-                    </p>
-                </form>
-            </div>
-    </div>
+                <button class="auth-login-btn" type="submit">@Context.T("auth.submit_register")</button>
+                <p class="auth-register-copy">
+                    @Context.T("auth.have_account")
+                    <a class="js-auth-switch" data-auth-switch-direction="right" asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.login")</a>
+                </p>
+            </form>
+        </div>
+    </section>
 </div>

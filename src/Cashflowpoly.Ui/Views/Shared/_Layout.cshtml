@@ -28,6 +28,7 @@
     var isAnalyticsSection = string.Equals(currentController, "Analytics", StringComparison.OrdinalIgnoreCase);
     Func<bool, string> navClass = isActive => isActive ? "nav-link is-active" : "nav-link";
     var hideFooter = ViewData["HideFooter"] as bool? ?? false;
+    var hideHeader = ViewData["HideHeader"] as bool? ?? false;
 }
 <!DOCTYPE html>
 <html lang="@activeLanguage">
@@ -42,110 +43,113 @@
 </head>
 <body class="@roleThemeClass">
     <a class="skip-link" href="#content">@Context.T("layout.skip_to_content")</a>
-    <header class="sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur">
-        <nav class="nav-shell @(isLoggedIn ? "nav-shell-auth" : "nav-shell-guest") @(isAuthPage ? "nav-auth-page" : string.Empty)">
-            <a class="nav-brand flex items-center gap-3 text-lg font-semibold text-slate-900" asp-area="" asp-controller="Home" asp-action="Index">
-                <img class="brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.logo_alt")" />
-                <div class="leading-tight">
-                    <span class="brand-title">Cashflowpoly</span>
-                </div>
-            </a>
-            @if (!isAuthPage)
-            {
-                <button class="nav-mobile-toggle js-nav-toggle"
-                        type="button"
-                        aria-expanded="false"
-                        aria-controls="primary-nav-links"
-                        aria-label="@Context.T("layout.toggle_nav")">
-                    <span class="nav-mobile-toggle-line"></span>
-                    <span class="nav-mobile-toggle-line"></span>
-                    <span class="nav-mobile-toggle-line"></span>
-                </button>
-            }
-            @if (isLoggedIn)
-            {
-                <div id="primary-nav-links" class="nav-pill nav-center">
-                    <a class="@navClass(isHomeSection)" aria-current="@(isHomeSection ? "page" : null)" data-nav="home" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
-                    @if (isInstructor)
-                    {
-                        <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
-                        <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
-                    }
-                    <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
-                    <a class="@navClass(isAnalyticsSection)" aria-current="@(isAnalyticsSection ? "page" : null)" data-nav="analytics" asp-area="" asp-controller="Analytics" asp-action="Index">@Context.T("nav.analytics")</a>
-                    <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
-                </div>
+    @if (!hideHeader)
+    {
+        <header class="sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur">
+            <nav class="nav-shell @(isLoggedIn ? "nav-shell-auth" : "nav-shell-guest") @(isAuthPage ? "nav-auth-page" : string.Empty)">
+                <a class="nav-brand flex items-center gap-3 text-lg font-semibold text-slate-900" asp-area="" asp-controller="Home" asp-action="Index">
+                    <img class="brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.logo_alt")" />
+                    <div class="leading-tight">
+                        <span class="brand-title">Cashflowpoly</span>
+                    </div>
+                </a>
+                @if (!isAuthPage)
+                {
+                    <button class="nav-mobile-toggle js-nav-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="primary-nav-links"
+                            aria-label="@Context.T("layout.toggle_nav")">
+                        <span class="nav-mobile-toggle-line"></span>
+                        <span class="nav-mobile-toggle-line"></span>
+                        <span class="nav-mobile-toggle-line"></span>
+                    </button>
+                }
+                @if (isLoggedIn)
+                {
+                    <div id="primary-nav-links" class="nav-pill nav-center">
+                        <a class="@navClass(isHomeSection)" aria-current="@(isHomeSection ? "page" : null)" data-nav="home" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
+                        @if (isInstructor)
+                        {
+                            <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
+                            <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
+                        }
+                        <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
+                        <a class="@navClass(isAnalyticsSection)" aria-current="@(isAnalyticsSection ? "page" : null)" data-nav="analytics" asp-area="" asp-controller="Analytics" asp-action="Index">@Context.T("nav.analytics")</a>
+                        <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
+                    </div>
 
-                <div class="nav-pill nav-right">
-                    <div class="nav-right-cluster">
-                        <details class="nav-dropdown nav-dropdown-lang">
-                            <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
-                                <span>@languageCode</span>
-                                <span class="nav-caret">&#9662;</span>
-                            </summary>
-                            <div class="nav-menu lang-menu">
-                                <form method="post" asp-controller="Language" asp-action="Set">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="language" value="@AuthConstants.LanguageId" />
-                                    <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                    <button class="nav-menu-item @(isEnglish ? string.Empty : "active")" type="submit">@Context.T("lang.option.id")</button>
-                                </form>
-                                <form method="post" asp-controller="Language" asp-action="Set">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="language" value="@AuthConstants.LanguageEn" />
-                                    <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                    <button class="nav-menu-item @(isEnglish ? "active" : string.Empty)" type="submit">@Context.T("lang.option.en")</button>
-                                </form>
-                            </div>
-                        </details>
-
-                        <details class="nav-dropdown nav-dropdown-profile">
-                            <summary class="nav-avatar-trigger" title="@activeUsername" aria-label="@activeUsername">
-                                <img class="nav-avatar" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.profile_alt")" />
-                            </summary>
-                            <div class="nav-menu profile-menu">
-                                <div class="profile-meta">
-                                    <div class="profile-name">@activeUsername</div>
-                                    <div class="profile-role">@Context.T("profile.role"): @activeRole</div>
+                    <div class="nav-pill nav-right">
+                        <div class="nav-right-cluster">
+                            <details class="nav-dropdown nav-dropdown-lang">
+                                <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
+                                    <span>@languageCode</span>
+                                    <span class="nav-caret">&#9662;</span>
+                                </summary>
+                                <div class="nav-menu lang-menu">
+                                    <form method="post" asp-controller="Language" asp-action="Set">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="language" value="@AuthConstants.LanguageId" />
+                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                        <button class="nav-menu-item @(isEnglish ? string.Empty : "active")" type="submit">@Context.T("lang.option.id")</button>
+                                    </form>
+                                    <form method="post" asp-controller="Language" asp-action="Set">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="language" value="@AuthConstants.LanguageEn" />
+                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                        <button class="nav-menu-item @(isEnglish ? "active" : string.Empty)" type="submit">@Context.T("lang.option.en")</button>
+                                    </form>
                                 </div>
-                                <form method="post" asp-controller="Auth" asp-action="Logout">
-                                    @Html.AntiForgeryToken()
-                                    <button class="nav-menu-item nav-danger" type="submit">@Context.T("auth.logout")</button>
-                                </form>
-                            </div>
-                        </details>
+                            </details>
+
+                            <details class="nav-dropdown nav-dropdown-profile">
+                                <summary class="nav-avatar-trigger" title="@activeUsername" aria-label="@activeUsername">
+                                    <img class="nav-avatar" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.profile_alt")" />
+                                </summary>
+                                <div class="nav-menu profile-menu">
+                                    <div class="profile-meta">
+                                        <div class="profile-name">@activeUsername</div>
+                                        <div class="profile-role">@Context.T("profile.role"): @activeRole</div>
+                                    </div>
+                                    <form method="post" asp-controller="Auth" asp-action="Logout">
+                                        @Html.AntiForgeryToken()
+                                        <button class="nav-menu-item nav-danger" type="submit">@Context.T("auth.logout")</button>
+                                    </form>
+                                </div>
+                            </details>
+                        </div>
                     </div>
-                </div>
-            }
-            else
-            {
-                <div id="primary-nav-links" class="nav-pill nav-right">
-                    <div class="nav-right-cluster">
-                        <details class="nav-dropdown nav-dropdown-lang">
-                            <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
-                                <span>@languageCode</span>
-                                <span class="nav-caret">&#9662;</span>
-                            </summary>
-                            <div class="nav-menu lang-menu">
-                                <form method="post" asp-controller="Language" asp-action="Set">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="language" value="@AuthConstants.LanguageId" />
-                                    <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                    <button class="nav-menu-item @(isEnglish ? string.Empty : "active")" type="submit">@Context.T("lang.option.id")</button>
-                                </form>
-                                <form method="post" asp-controller="Language" asp-action="Set">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="language" value="@AuthConstants.LanguageEn" />
-                                    <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                    <button class="nav-menu-item @(isEnglish ? "active" : string.Empty)" type="submit">@Context.T("lang.option.en")</button>
-                                </form>
-                            </div>
-                        </details>
+                }
+                else
+                {
+                    <div id="primary-nav-links" class="nav-pill nav-right">
+                        <div class="nav-right-cluster">
+                            <details class="nav-dropdown nav-dropdown-lang">
+                                <summary class="nav-trigger" title="@(Context.T("lang.label"))" aria-label="@(Context.T("lang.label"))">
+                                    <span>@languageCode</span>
+                                    <span class="nav-caret">&#9662;</span>
+                                </summary>
+                                <div class="nav-menu lang-menu">
+                                    <form method="post" asp-controller="Language" asp-action="Set">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="language" value="@AuthConstants.LanguageId" />
+                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                        <button class="nav-menu-item @(isEnglish ? string.Empty : "active")" type="submit">@Context.T("lang.option.id")</button>
+                                    </form>
+                                    <form method="post" asp-controller="Language" asp-action="Set">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="language" value="@AuthConstants.LanguageEn" />
+                                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                        <button class="nav-menu-item @(isEnglish ? "active" : string.Empty)" type="submit">@Context.T("lang.option.en")</button>
+                                    </form>
+                                </div>
+                            </details>
+                        </div>
                     </div>
-                </div>
-            }
-        </nav>
-    </header>
+                }
+            </nav>
+        </header>
+    }
     <div class="page-shell">
         <main id="content" role="main" class="space-y-6">
             @RenderBody()

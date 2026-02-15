@@ -194,7 +194,7 @@
                                         {
                                             <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
                                                 @Html.AntiForgeryToken()
-                                                <button class="btn-ghost text-xs px-3 py-1" type="submit">@Context.T("rulesets.set_active")</button>
+                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
                                             </form>
                                         }
                                     </td>

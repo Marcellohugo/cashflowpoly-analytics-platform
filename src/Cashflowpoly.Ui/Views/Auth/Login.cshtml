@@ -1,68 +1,97 @@
 @model Cashflowpoly.Ui.Models.LoginViewModel
+@using Microsoft.AspNetCore.Http
 
 @{
     ViewData["Title"] = Context.T("auth.title");
     ViewData["HideFooter"] = true;
+    ViewData["HideHeader"] = true;
+    var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
+    var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="auth-split-shell">
-    <div class="auth-split-card auth-mode-login">
-            <div class="auth-split-left">
+    <section class="auth-split-card auth-mode-login" aria-labelledby="auth-login-heading">
+        <div class="auth-split-left">
+            <div class="auth-content-head">
                 <p class="auth-kicker">@Context.T(key: "auth.access")</p>
-                <h1 class="auth-heading">@Context.T(key: "auth.title")</h1>
+                <h1 class="auth-heading" id="auth-login-heading">@Context.T(key: "auth.title")</h1>
                 <p class="auth-copy">@Context.T(key: "auth.subtitle")</p>
-
-                <form class="auth-form" method="post" asp-controller="Auth" asp-action="Login">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" asp-for="ReturnUrl" />
-
-                    <div class="form-field">
-                        <label class="auth-label" for="login-username">@Context.T(key: "auth.username")</label>
-                        <input class="auth-input"
-                               id="login-username"
-                               asp-for="Username"
-                               autocomplete="username"
-                               required
-                               placeholder="Username" />
-                    </div>
-
-                    <div class="form-field">
-                        <label class="auth-label" for="login-password">@Context.T(key: "auth.password")</label>
-                        <input class="auth-input"
-                               id="login-password"
-                               asp-for="Password"
-                               type="password"
-                               autocomplete="current-password"
-                               required
-                               placeholder="********" />
-                    </div>
-
-                    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-                    {
-                        <div class="alert alert-error" aria-live="polite">
-                            @Model.ErrorMessage
-                        </div>
-                    }
-
-                    <button class="auth-login-btn" type="submit">@Context.T(key: "auth.submit")</button>
-
-                    <p class="auth-register-copy">
-                        @Context.T(key: "auth.no_account")
-                        <a class="js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T(key: "auth.register")</a>
-                    </p>
-                </form>
-
-                <div class="auth-login-notes" aria-hidden="true">
-                    <span>@Context.T("auth.login_note.quick_access")</span>
-                    <span>@Context.T("auth.login_note.realtime_monitoring")</span>
-                    <span>@Context.T("auth.login_note.centralized_ruleset")</span>
-                </div>
             </div>
 
-            <aside class="auth-split-right" aria-hidden="true">
+            <form class="auth-form" method="post" asp-controller="Auth" asp-action="Login">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div class="form-field">
+                    <label class="auth-label" for="login-username">@Context.T(key: "auth.username")</label>
+                    <input class="auth-input"
+                           id="login-username"
+                           asp-for="Username"
+                           autocomplete="username"
+                           required
+                           placeholder="Username" />
+                </div>
+
+                <div class="form-field">
+                    <label class="auth-label" for="login-password">@Context.T(key: "auth.password")</label>
+                    <input class="auth-input"
+                           id="login-password"
+                           asp-for="Password"
+                           type="password"
+                           autocomplete="current-password"
+                           required
+                           placeholder="********" />
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                {
+                    <div class="alert alert-error" aria-live="polite">
+                        @Model.ErrorMessage
+                    </div>
+                }
+
+                <button class="auth-login-btn" type="submit">@Context.T(key: "auth.submit")</button>
+
+                <p class="auth-register-copy">
+                    @Context.T(key: "auth.no_account")
+                    <a class="js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T(key: "auth.register")</a>
+                </p>
+            </form>
+
+            <ul class="auth-login-notes" aria-hidden="true">
+                <li>@Context.T("auth.login_note.quick_access")</li>
+                <li>@Context.T("auth.login_note.realtime_monitoring")</li>
+                <li>@Context.T("auth.login_note.centralized_ruleset")</li>
+            </ul>
+        </div>
+
+        <aside class="auth-split-right">
+            <div class="auth-panel-lang-corner">
+                <div class="auth-panel-lang" role="group" aria-label="@Context.T("lang.label")">
+                    <form method="post" asp-controller="Language" asp-action="Set">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="language" value="@AuthConstants.LanguageId" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button class="auth-panel-lang-btn @(isEnglish ? string.Empty : "active")" type="submit">ID</button>
+                    </form>
+                    <form method="post" asp-controller="Language" asp-action="Set">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="language" value="@AuthConstants.LanguageEn" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button class="auth-panel-lang-btn @(isEnglish ? "active" : string.Empty)" type="submit">EN</button>
+                    </form>
+                </div>
+            </div>
+            <a class="auth-panel-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <img class="auth-panel-brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.logo_alt")" />
+                <span class="auth-panel-brand-text">Cashflowpoly</span>
+            </a>
+            <div class="auth-panel-content">
                 <h2>@Context.T("auth.register_panel_title")</h2>
                 <p>@Context.T("auth.register_panel_desc")</p>
-                <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.register_panel_cta")</a>
-            </aside>
-    </div>
+            </div>
+            <a class="auth-signup-cta js-auth-switch" data-auth-switch-direction="left" asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">@Context.T("auth.register_panel_cta")</a>
+        </aside>
+    </section>
 </div>
