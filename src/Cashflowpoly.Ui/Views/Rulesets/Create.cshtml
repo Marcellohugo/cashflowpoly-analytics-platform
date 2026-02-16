@@ -44,6 +44,15 @@
             <span>@Context.T("rulesets.tip.safety_before_start")</span>
         </div>
 
+        <div class="mt-4 alert alert-info">
+            <p class="text-sm font-semibold text-slate-800">@Context.T("rulesets.quick_guide_title")</p>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+                <li>@Context.T("rulesets.quick_guide_beginner")</li>
+                <li>@Context.T("rulesets.quick_guide_advanced")</li>
+                <li>@Context.T("rulesets.quick_guide_activation")</li>
+            </ul>
+        </div>
+
         <form class="mt-4 form-grid" method="post" action="@formActionUrl">
             @Html.AntiForgeryToken()
             <div class="form-field">
@@ -62,6 +71,7 @@
 
             <div class="ruleset-form-section">
                 <h3>@Context.T("rulesets.form.core_setup")</h3>
+                <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.core_setup")</p>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
                         <label class="form-label" for="cfg-mode">@Context.T("rulesets.form.mode")</label>
@@ -95,6 +105,7 @@
 
             <div class="ruleset-form-section">
                 <h3>@Context.T("rulesets.form.weekday_features")</h3>
+                <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.weekday_features")</p>
                 <div class="grid gap-3 md:grid-cols-3 mt-3">
                     <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input id="cfg-friday" type="checkbox" checked /></label>
                     <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input id="cfg-saturday" type="checkbox" checked /></label>
@@ -104,6 +115,7 @@
 
             <div class="ruleset-form-section">
                 <h3>@Context.T("rulesets.form.constraints")</h3>
+                <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.constraints")</p>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
                         <label class="form-label" for="cfg-cash-min">@Context.T("rulesets.form.cash_min")</label>
@@ -127,14 +139,15 @@
 
             <div class="ruleset-form-section">
                 <h3>@Context.T("rulesets.form.economy_advanced")</h3>
+                <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.economy_advanced")</p>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
                         <label class="form-label" for="cfg-donation-min">@Context.T("rulesets.form.donation_min")</label>
-                        <input id="cfg-donation-min" type="number" min="0" class="form-input" value="1" />
+                        <input id="cfg-donation-min" type="number" min="1" class="form-input" value="1" />
                     </div>
                     <div>
                         <label class="form-label" for="cfg-donation-max">@Context.T("rulesets.form.donation_max")</label>
-                        <input id="cfg-donation-max" type="number" min="0" class="form-input" value="999999" />
+                        <input id="cfg-donation-max" type="number" min="1" class="form-input" value="999999" />
                     </div>
                     <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input id="cfg-gold-buy" type="checkbox" checked /></label>
                     <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input id="cfg-gold-sell" type="checkbox" checked /></label>
@@ -174,6 +187,20 @@
             };
             const toBool = (id) => !!getEl(id)?.checked;
             const configTextArea = getEl("ConfigJson");
+            const modePresets = {
+                PEMULA: {
+                    starting_cash: 20,
+                    loan_enabled: false,
+                    insurance_enabled: false,
+                    saving_goal_enabled: false
+                },
+                MAHIR: {
+                    starting_cash: 10,
+                    loan_enabled: true,
+                    insurance_enabled: true,
+                    saving_goal_enabled: true
+                }
+            };
 
             const scoreDefaults = {
                 donation_rank_points: [{ rank: 1, points: 7 }, { rank: 2, points: 5 }, { rank: 3, points: 2 }],
@@ -242,6 +269,15 @@
                 getEl("cfg-adv-saving-goal").checked = !!cfg.advanced?.saving_goal?.enabled;
             };
 
+            const applyModePreset = (mode) => {
+                const preset = modePresets[`${mode ?? ""}`.toUpperCase()];
+                if (!preset) return;
+                getEl("cfg-cash").value = preset.starting_cash;
+                getEl("cfg-adv-loan").checked = preset.loan_enabled;
+                getEl("cfg-adv-insurance").checked = preset.insurance_enabled;
+                getEl("cfg-adv-saving-goal").checked = preset.saving_goal_enabled;
+            };
+
             const refreshConfig = () => {
                 const cfg = readForm();
                 const json = JSON.stringify(cfg, null, 2);
@@ -257,6 +293,12 @@
             document.querySelectorAll("input, select").forEach((el) => {
                 el.addEventListener("input", refreshConfig);
                 el.addEventListener("change", refreshConfig);
+            });
+
+            getEl("cfg-mode")?.addEventListener("change", (event) => {
+                const modeValue = event.target?.value ?? "PEMULA";
+                applyModePreset(modeValue);
+                refreshConfig();
             });
 
             refreshConfig();

@@ -42,8 +42,7 @@
 }
 
 <style>
-    .session-board-node[data-seq],
-    .session-journey-feed-item[data-seq] {
+    .session-board-node[data-seq] {
         cursor: pointer;
     }
 
@@ -53,9 +52,15 @@
         transform: translateY(-4px);
     }
 
-    .session-journey-feed-item.is-focused {
-        border-color: #2d7dd2;
-        box-shadow: 0 10px 20px rgba(45, 125, 210, 0.2);
+    .session-journey-title {
+        max-width: 18ch;
+        line-height: 1.15;
+        text-wrap: balance;
+    }
+
+    .session-board-node {
+        grid-template-rows: auto auto auto auto minmax(0, 1fr);
+        min-height: 10.4rem;
     }
 
     .session-board-detail {
@@ -63,13 +68,70 @@
         font-size: 0.75rem;
         line-height: 1.35;
         color: #475569;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
     }
 
-    .session-journey-feed-detail {
-        margin-top: 0.45rem;
-        font-size: 0.75rem;
-        line-height: 1.35;
-        color: #475569;
+    .session-board-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+
+    .session-journey-insight-grid {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .session-journey-insight-card {
+        border: 1px solid #a8e5de;
+        border-radius: 0.85rem;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 0.62rem 0.7rem;
+        min-width: 0;
+        min-height: 4.45rem;
+        display: grid;
+        align-content: start;
+    }
+
+    .session-journey-insight-label {
+        margin: 0;
+        font-size: 0.68rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: #547286;
+        font-weight: 800;
+    }
+
+    .session-journey-insight-value {
+        margin: 0.32rem 0 0;
+        color: #15394f;
+        font-size: 0.92rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    @@media (max-width: 640px) {
+        .session-journey-title {
+            max-width: none;
+        }
+
+        .session-board-node {
+            min-height: 9.2rem;
+        }
+
+        .session-journey-insight-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .session-journey-insight-card:last-child {
+            grid-column: 1 / -1;
+        }
     }
 </style>
 
@@ -114,11 +176,27 @@
                    asp-controller="Rulesets"
                    asp-action="Details"
                    asp-route-rulesetId="@activeRulesetId">@Context.T("common.view")</a>
+                @if (isInstructor)
+                {
+                    <a class="btn-primary"
+                       asp-controller="Sessions"
+                       asp-action="Ruleset"
+                       asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+                }
             </div>
         }
         else
         {
             <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.empty")</p>
+            @if (isInstructor)
+            {
+                <div class="mt-3 action-toolbar">
+                    <a class="btn-primary"
+                       asp-controller="Sessions"
+                       asp-action="Ruleset"
+                       asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+                </div>
+            }
         }
     </div>
 
@@ -229,14 +307,6 @@
             <div class="mt-6 alert alert-info">@Context.T("sessions.champion.none")</div>
         }
 
-        @if (isInstructor)
-        {
-            <div class="mt-6 action-toolbar">
-                <a class="btn-ghost"
-                   asp-controller="Sessions" asp-action="Ruleset" asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
-            </div>
-        }
-
         <div class="mt-8 table-wrap">
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
@@ -276,10 +346,6 @@
                             <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.rank")">@(rank > 0 ? rank : "-")</td>
                             <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">
                                 @ResolvePlayerName(item.PlayerId)
-                                @if (rank > 0 && rank <= 3)
-                                {
-                                    <span class="winner-chip">@Context.T("sessions.rank_label") @rank</span>
-                                }
                             </td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@item.CashInTotal</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_out")">@item.CashOutTotal</td>
@@ -306,7 +372,7 @@
         <div class="session-journey-head">
             <div>
                 <p class="eyebrow">@Context.T("sessions.timeline")</p>
-                <h2 class="text-2xl font-semibold text-slate-900">@Context.T("sessions.timeline_title")</h2>
+                <h2 class="text-2xl font-semibold text-slate-900 session-journey-title">@Context.T("sessions.timeline_title")</h2>
                 <p class="subhead">@Context.T("sessions.timeline_subtitle")</p>
                 <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.journey.board_subtitle")</p>
             </div>
@@ -338,31 +404,40 @@
             <span class="session-journey-legend-item actor-other">@Context.T("sessions.actor.other")</span>
         </div>
 
-        <div class="mt-5 chart-card">
-            <h3 class="chart-title">@Context.T("sessions.journey.graph_title")</h3>
-            <p class="text-sm text-slate-600">@Context.T("sessions.journey.graph_subtitle")</p>
-            <canvas id="session-journey-graph" height="120"></canvas>
-            <p id="session-journey-graph-fallback" class="mt-2 hidden text-sm text-slate-500"></p>
+        <div class="session-journey-insight-grid">
+            <article class="session-journey-insight-card">
+                <p class="session-journey-insight-label">@Context.T("metric.total_event")</p>
+                <p id="session-journey-insight-total" class="session-journey-insight-value">0</p>
+            </article>
+            <article class="session-journey-insight-card">
+                <p class="session-journey-insight-label">@Context.T("sessions.timeline_day_turn")</p>
+                <p id="session-journey-insight-day-turn" class="session-journey-insight-value">-</p>
+            </article>
+            <article class="session-journey-insight-card">
+                <p class="session-journey-insight-label">@Context.T("sessions.timeline_actor")</p>
+                <p id="session-journey-insight-actor" class="session-journey-insight-value">-</p>
+            </article>
+            <article class="session-journey-insight-card">
+                <p class="session-journey-insight-label">@Context.T("sessions.journey.latest_activity")</p>
+                <p id="session-journey-insight-action" class="session-journey-insight-value">-</p>
+            </article>
         </div>
 
-        <div class="mt-5">
-            <h3 class="chart-title">@Context.T("sessions.journey.latest_activity")</h3>
-            <ol id="session-journey-feed" class="session-journey-feed"></ol>
-        </div>
     </div>
 </section>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
     <script>
         (() => {
             const boardTrackEl = document.getElementById("session-board-track");
-            const feedEl = document.getElementById("session-journey-feed");
             const errorEl = document.getElementById("session-journey-error");
             const syncedEl = document.getElementById("session-journey-synced");
-            const graphCanvas = document.getElementById("session-journey-graph");
-            const graphFallbackEl = document.getElementById("session-journey-graph-fallback");
-            if (!boardTrackEl || !feedEl || !errorEl || !syncedEl) {
+            const insightTotalEl = document.getElementById("session-journey-insight-total");
+            const insightDayTurnEl = document.getElementById("session-journey-insight-day-turn");
+            const insightActorEl = document.getElementById("session-journey-insight-actor");
+            const insightActionEl = document.getElementById("session-journey-insight-action");
+
+            if (!boardTrackEl || !errorEl || !syncedEl) {
                 return;
             }
 
@@ -372,10 +447,6 @@
             const emptyMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.no_events")));
             const realtimeStatusTemplate = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.realtime_status")));
             const realtimeNetworkMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.realtime_network")));
-            const graphUnavailableMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.graph_unavailable")));
-            const graphEmptyMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.graph_empty")));
-            const graphAxisSequence = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.graph_axis_seq")));
-            const graphAxisOrder = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.graph_axis_order")));
             const activityFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.activity_default")));
             const dayLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.day_label")));
             const turnLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.turn_label")));
@@ -390,8 +461,6 @@
             const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
             const pollIntervalMs = 10000;
             const maxBoardNodes = 24;
-            const maxFeedItems = 16;
-            const maxGraphPoints = 40;
 
             const playerLookup = Object.fromEntries(
                 Object.entries(playerLookupRaw ?? {}).map(([key, value]) => [String(key).toLowerCase(), value])
@@ -399,7 +468,6 @@
             let timeline = [];
             let pollingTimerId = null;
             let lastSequence = 0;
-            let journeyGraph = null;
 
             const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
             const toNumber = (value, fallback = 0) => {
@@ -506,27 +574,8 @@
                     second: "2-digit"
                 });
             };
-            const setGraphFallback = (message) => {
-                if (!graphFallbackEl || !graphCanvas) {
-                    return;
-                }
-
-                if (!message) {
-                    graphFallbackEl.textContent = "";
-                    graphFallbackEl.classList.add("hidden");
-                    graphCanvas.classList.remove("hidden");
-                    return;
-                }
-
-                graphFallbackEl.textContent = message;
-                graphFallbackEl.classList.remove("hidden");
-                graphCanvas.classList.add("hidden");
-            };
             const clearFocusedItems = () => {
                 boardTrackEl.querySelectorAll(".session-board-node.is-focused").forEach((node) => {
-                    node.classList.remove("is-focused");
-                });
-                feedEl.querySelectorAll(".session-journey-feed-item.is-focused").forEach((node) => {
                     node.classList.remove("is-focused");
                 });
             };
@@ -538,25 +587,14 @@
 
                 clearFocusedItems();
                 const boardNode = boardTrackEl.querySelector(`.session-board-node[data-seq="${normalizedSeq}"]`);
-                const feedNode = feedEl.querySelector(`.session-journey-feed-item[data-seq="${normalizedSeq}"]`);
 
                 if (boardNode) {
                     boardNode.classList.add("is-focused");
                     boardNode.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
                 }
-
-                if (feedNode) {
-                    feedNode.classList.add("is-focused");
-                    feedNode.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                }
             };
             const bindJourneyInteractions = () => {
                 boardTrackEl.querySelectorAll(".session-board-node[data-seq]").forEach((node) => {
-                    node.addEventListener("click", () => {
-                        focusBySequence(node.getAttribute("data-seq"));
-                    });
-                });
-                feedEl.querySelectorAll(".session-journey-feed-item[data-seq]").forEach((node) => {
                     node.addEventListener("click", () => {
                         focusBySequence(node.getAttribute("data-seq"));
                     });
@@ -609,141 +647,28 @@
                         </article>`;
                 }).join("");
             };
-            const renderJourneyFeed = () => {
-                const feedEvents = [...timeline].slice(-maxFeedItems).reverse();
-                if (feedEvents.length === 0) {
-                    feedEl.innerHTML = `<li class="session-journey-empty">${escapeHtml(emptyMessage)}</li>`;
+            const renderJourneyInsights = () => {
+                if (!insightTotalEl || !insightDayTurnEl || !insightActorEl || !insightActionEl) {
                     return;
                 }
 
-                feedEl.innerHTML = feedEvents.map((item) => `
-                    <li class="session-journey-feed-item" data-seq="${item.sequenceNumber}">
-                        <div class="session-journey-feed-head">
-                            <span class="session-journey-feed-seq">${escapeHtml(seqLabel)} ${item.sequenceNumber}</span>
-                            <span class="session-journey-feed-time">${escapeHtml(formatDateTime(item.timestamp))}</span>
-                        </div>
-                        <p class="session-journey-feed-title">${escapeHtml(actionLabel(item))}</p>
-                        <p class="session-journey-feed-subtitle">${escapeHtml(actorLabel(item))} | ${dayLabel} ${item.dayIndex + 1} | ${turnLabel} ${item.turnNumber}</p>
-                        <p class="session-journey-feed-detail">${escapeHtml(item.flowDescription || activityFallbackLabel)}</p>
-                    </li>`).join("");
-            };
-            const renderJourneyGraph = () => {
-                if (!graphCanvas) {
+                if (timeline.length === 0) {
+                    insightTotalEl.textContent = "0";
+                    insightDayTurnEl.textContent = "-";
+                    insightActorEl.textContent = "-";
+                    insightActionEl.textContent = "-";
                     return;
                 }
 
-                if (typeof Chart === "undefined") {
-                    if (journeyGraph) {
-                        journeyGraph.destroy();
-                        journeyGraph = null;
-                    }
-                    setGraphFallback(graphUnavailableMessage);
-                    return;
-                }
-
-                const playerMovements = timeline.filter((item) => actorBucket(item.actorType) === "PLAYER");
-                const graphEvents = (playerMovements.length > 0 ? playerMovements : timeline).slice(-maxGraphPoints);
-                if (graphEvents.length === 0) {
-                    if (journeyGraph) {
-                        journeyGraph.destroy();
-                        journeyGraph = null;
-                    }
-                    setGraphFallback(graphEmptyMessage);
-                    return;
-                }
-
-                setGraphFallback("");
-                const graphLabels = graphEvents.map((item) => `${seqLabel} ${item.sequenceNumber}`);
-                const graphPoints = graphEvents.map((item, index) => ({
-                    y: index + 1,
-                    sequenceNumber: item.sequenceNumber,
-                    actor: actorLabel(item),
-                    action: actionLabel(item),
-                    timestamp: item.timestamp,
-                    dayIndex: item.dayIndex,
-                    turnNumber: item.turnNumber
-                }));
-
-                if (journeyGraph) {
-                    journeyGraph.destroy();
-                }
-
-                journeyGraph = new Chart(graphCanvas, {
-                    type: "line",
-                    data: {
-                        labels: graphLabels,
-                        datasets: [{
-                            label: graphAxisOrder,
-                            data: graphPoints.map((item) => item.y),
-                            borderColor: "#2d7dd2",
-                            backgroundColor: "rgba(45, 125, 210, 0.14)",
-                            pointBackgroundColor: "#2d7dd2",
-                            pointBorderColor: "#ffffff",
-                            pointBorderWidth: 1.2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        aspectRatio: 2.2,
-                        interaction: {
-                            mode: "nearest",
-                            intersect: true
-                        },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: graphAxisSequence
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: graphAxisOrder
-                                },
-                                ticks: {
-                                    stepSize: 1
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    title: (items) => {
-                                        const index = items[0].dataIndex;
-                                        const entry = graphPoints[index];
-                                        return `${graphLabels[index]} | ${formatDateTime(entry.timestamp)}`;
-                                    },
-                                    label: (ctx) => {
-                                        const entry = graphPoints[ctx.dataIndex];
-                                        return `${entry.actor} | ${dayLabel} ${entry.dayIndex + 1} | ${turnLabel} ${entry.turnNumber} | ${entry.action}`;
-                                    }
-                                }
-                            }
-                        },
-                        onClick: (_, elements) => {
-                            if (!Array.isArray(elements) || elements.length === 0) {
-                                return;
-                            }
-
-                            const index = elements[0].index;
-                            focusBySequence(graphPoints[index]?.sequenceNumber);
-                        }
-                    }
-                });
+                const latestItem = timeline[timeline.length - 1];
+                insightTotalEl.textContent = `${timeline.length}`;
+                insightDayTurnEl.textContent = `${dayLabel} ${latestItem.dayIndex + 1} | ${turnLabel} ${latestItem.turnNumber}`;
+                insightActorEl.textContent = actorLabel(latestItem);
+                insightActionEl.textContent = actionLabel(latestItem);
             };
             const renderAll = () => {
                 renderJourneyBoard();
-                renderJourneyFeed();
-                renderJourneyGraph();
+                renderJourneyInsights();
                 bindJourneyInteractions();
                 lastSequence = timeline.length > 0
                     ? Math.max(...timeline.map((item) => item.sequenceNumber))

@@ -161,18 +161,6 @@
                                     <td class="px-4 py-3 text-right text-slate-700">@(pensionRank > 0 ? pensionRank : "-")</td>
                                     <td class="px-4 py-3">
                                         <span class="font-medium text-slate-900">@player.DisplayName</span>
-                                        @if (rank > 0 && rank <= 3)
-                                        {
-                                            <span class="winner-chip">@Context.T("sessions.rank_label") @rank</span>
-                                        }
-                                        @if (donationRank > 0)
-                                        {
-                                            <span class="winner-chip">@Context.T("players.champion.donation_short") @donationRank</span>
-                                        }
-                                        @if (pensionRank > 0)
-                                        {
-                                            <span class="winner-chip">@Context.T("players.champion.pension_short") @pensionRank</span>
-                                        }
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
                                     <td class="px-4 py-3 text-right">@netCashflow</td>

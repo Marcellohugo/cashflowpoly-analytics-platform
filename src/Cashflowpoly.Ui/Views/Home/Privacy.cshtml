@@ -15,6 +15,31 @@
     string L(string id, string en) => isEnglish ? en : id;
 }
 <style>
+    .rulebook-quick-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .rulebook-quick-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.26rem 0.62rem;
+        border-radius: 999px;
+        border: 1px solid #9fddd6;
+        background: rgba(255, 255, 255, 0.88);
+        color: #2a637f;
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .rulebook-quick-link:hover {
+        color: #194960;
+        border-color: #83d4cb;
+        background: rgba(235, 251, 248, 0.96);
+    }
+
     .rulebook-visual-guide {
         border-color: #f0b9a7 !important;
         background:
@@ -99,9 +124,81 @@
         transform: rotate(45deg);
     }
 
+    .rulebook-main-intro {
+        margin-bottom: 0.75rem;
+        border: 1px solid #b4e8e2;
+        border-radius: 0.85rem;
+        background: rgba(255, 255, 255, 0.88);
+        padding: 0.62rem 0.75rem;
+    }
+
+    .rulebook-main-intro p {
+        margin: 0;
+        color: #45677e;
+        font-size: 0.84rem;
+        line-height: 1.35;
+    }
+
+    .rulebook-heading-wrap {
+        min-width: 0;
+        display: grid;
+        gap: 0.3rem;
+    }
+
+    .rulebook-section-chip {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 0.15rem 0.52rem;
+        border-radius: 999px;
+        border: 1px solid #88d8ce;
+        background: #ebfffb;
+        color: #1d7f75;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .rulebook-outline-list a span:last-child {
+        line-height: 1.3;
+    }
+
+    .rulebook-stream-item {
+        padding: 0.92rem 0.95rem;
+    }
+
+    .analytics-table-block tbody tr:nth-child(even),
+    .rulebook-scoring-table tbody tr:nth-child(even) {
+        background: rgba(236, 251, 248, 0.62);
+    }
+
+    .analytics-table-block th,
+    .analytics-table-block td,
+    .rulebook-scoring-table th,
+    .rulebook-scoring-table td {
+        vertical-align: top;
+        line-height: 1.35;
+    }
+
+    .rulebook-table-shell {
+        border: 2px solid #9adfd7;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+        overflow: hidden;
+    }
+
     @@media (max-width: 768px) {
         .rulebook-bridge-grid {
             grid-template-columns: 1fr;
+        }
+
+        .rulebook-quick-links {
+            gap: 0.42rem;
+        }
+
+        .rulebook-quick-link {
+            font-size: 0.72rem;
         }
     }
 </style>
@@ -109,7 +206,10 @@
     <div class="page-intro">
         <div class="page-intro-main">
             <h1 class="headline">@ViewData["Title"]</h1>
-            <p class="subhead">@Model.Subtitle</p>
+            @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+            {
+                <p class="subhead">@Model.Subtitle</p>
+            }
         </div>
         <div class="page-intro-actions">
             <span class="hint-chip">@Context.T("privacy.total_sections"): @sections.Count</span>
@@ -117,7 +217,13 @@
         </div>
     </div>
 
-    <section class="mt-6 analytics-result-shell rulebook-visual-guide">
+    <div class="mt-4 rulebook-quick-links">
+        <a class="rulebook-quick-link" href="#rb-visual">@L("Panduan Visual", "Visual Guide")</a>
+        <a class="rulebook-quick-link" href="#rb-outline">@Context.T("privacy.outline_title")</a>
+        <a class="rulebook-quick-link" href="#rb-scoring">@Context.T("privacy.happiness_summary")</a>
+    </div>
+
+    <section id="rb-visual" class="mt-6 analytics-result-shell rulebook-visual-guide">
         <div class="analytics-workbench-header">
             <h2>@L("Panduan Visual Buku Aturan", "Rulebook Visual Guide")</h2>
             <p>@L("Galeri ini mengambil cuplikan halaman buku aturan agar pembacaan metrik analitika sejalan dengan alur permainan di meja.", "This gallery captures rulebook pages so analytics metrics stay aligned with gameplay flow at the table.")</p>
@@ -183,7 +289,7 @@
         </div>
 
         <div class="mt-5 table-wrap analytics-table-block">
-            <table class="w-full text-left text-sm">
+            <table class="w-full text-left text-sm rulebook-scoring-table">
                 <thead class="table-head">
                     <tr>
                         <th class="px-4 py-3">@L("Metrik Analitika", "Analytics Metrics")</th>
@@ -243,7 +349,7 @@
     </section>
 
     <div class="rulebook-shell mt-6">
-        <aside class="rulebook-outline">
+        <aside id="rb-outline" class="rulebook-outline">
             <h2>@Context.T("privacy.outline_title")</h2>
             @if (sections.Count == 0)
             {
@@ -268,6 +374,9 @@
         </aside>
 
         <div class="rulebook-main">
+            <div class="rulebook-main-intro">
+                <p>@L("Baca per bagian sesuai urutan alfabet A-M agar setup, alur aksi, dan perhitungan poin tetap konsisten saat sesi berlangsung.", "Read sections in A-M order so setup, action flow, and scoring remain consistent during live sessions.")</p>
+            </div>
             <div class="rulebook-unified">
                 <div class="rulebook-stream">
                     @if (sections.Count == 0)
@@ -284,7 +393,10 @@
                             var anchor = $"rb-section-{index + 1}";
                             <article class="rulebook-stream-item" id="@anchor">
                                 <div class="rulebook-stream-head">
-                                    <h2 class="rulebook-heading">@sectionItem.Heading</h2>
+                                    <div class="rulebook-heading-wrap">
+                                        <span class="rulebook-section-chip">@L($"Bagian {index + 1}", $"Section {index + 1}")</span>
+                                        <h2 class="rulebook-heading">@sectionItem.Heading</h2>
+                                    </div>
                                     <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
                                 </div>
                                 <p class="rulebook-desc">@sectionItem.Description</p>
@@ -300,9 +412,9 @@
                 </div>
             </div>
 
-            <div class="table-wrap mt-6">
+            <div id="rb-scoring" class="table-wrap mt-6 rulebook-table-shell">
                 <h2 class="rulebook-heading px-4 pt-4">@Context.T("privacy.happiness_summary")</h2>
-                <table class="w-full text-left text-sm">
+                <table class="w-full text-left text-sm rulebook-scoring-table">
                     <thead class="table-head">
                         <tr>
                             <th class="px-4 py-3">@Context.T("privacy.category")</th>

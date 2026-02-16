@@ -222,15 +222,32 @@
                 }
                 else
                 {
+                    var modeRaw = AsText(GetPath(cfg, "mode"), "PEMULA");
+                    var modeLabel = string.Equals(modeRaw, "MAHIR", StringComparison.OrdinalIgnoreCase)
+                        ? Context.T("rulesets.form.mode_advanced")
+                        : Context.T("rulesets.form.mode_beginner");
+                    var playerOrderingRaw = AsText(GetPath(cfg, "player_ordering"), "JOIN_ORDER");
+                    var playerOrderingLabel = playerOrderingRaw.ToUpperInvariant() switch
+                    {
+                        "EVENT_SEQUENCE" => Context.T("rulesets.form.player_ordering_event_sequence"),
+                        "PLAYER_ID" => Context.T("rulesets.form.player_ordering_player_id"),
+                        _ => Context.T("rulesets.form.player_ordering_join_order")
+                    };
+
                     <div class="mt-3 space-y-4">
+                        <div class="alert alert-info text-sm text-slate-700">
+                            @Context.T("rulesets.config_read_guide")
+                        </div>
+
                         <div class="ruleset-form-section">
                             <h3>@Context.T("rulesets.form.core_setup")</h3>
+                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.core_setup")</p>
                             <div class="grid gap-3 md:grid-cols-2 mt-3">
                                 <div>
                                     <label class="form-label">@Context.T("rulesets.form.mode")</label>
                                     <input type="text"
                                            readonly
-                                           value="@AsText(GetPath(cfg, "mode"), "PEMULA")"
+                                           value="@modeLabel"
                                            class="form-input" />
                                 </div>
                                 <div>
@@ -251,7 +268,7 @@
                                     <label class="form-label">@Context.T("rulesets.form.player_ordering")</label>
                                     <input type="text"
                                            readonly
-                                           value="@AsText(GetPath(cfg, "player_ordering"), "JOIN_ORDER")"
+                                           value="@($"{playerOrderingLabel} ({playerOrderingRaw})")"
                                            class="form-input" />
                                 </div>
                                 <div>
@@ -266,6 +283,7 @@
 
                         <div class="ruleset-form-section">
                             <h3>@Context.T("rulesets.form.weekday_features")</h3>
+                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.weekday_features")</p>
                             <div class="grid gap-3 md:grid-cols-3 mt-3">
                                 <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "friday", "enabled"), true) ? "checked" : null) /></label>
                                 <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "saturday", "enabled"), true) ? "checked" : null) /></label>
@@ -275,6 +293,7 @@
 
                         <div class="ruleset-form-section">
                             <h3>@Context.T("rulesets.form.constraints")</h3>
+                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.constraints")</p>
                             <div class="grid gap-3 md:grid-cols-2 mt-3">
                                 <div>
                                     <label class="form-label">@Context.T("rulesets.form.cash_min")</label>
@@ -310,6 +329,7 @@
 
                         <div class="ruleset-form-section">
                             <h3>@Context.T("rulesets.form.economy_advanced")</h3>
+                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.economy_advanced")</p>
                             <div class="grid gap-3 md:grid-cols-2 mt-3">
                                 <div>
                                     <label class="form-label">@Context.T("rulesets.form.donation_min")</label>
