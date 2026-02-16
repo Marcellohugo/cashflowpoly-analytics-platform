@@ -392,6 +392,7 @@ public static class UiText
         ["common.latest_version"] = ("Versi Terbaru", "Latest Version"),
         ["common.player"] = ("Pemain", "Player"),
         ["common.player_id"] = ("Player ID", "Player ID"),
+        ["common.turn_order"] = ("Urutan Giliran", "Turn Order"),
         ["common.session_id"] = ("Session ID", "Session ID"),
         ["common.ruleset_id"] = ("Ruleset ID", "Ruleset ID"),
         ["common.ruleset"] = ("Ruleset", "Ruleset"),

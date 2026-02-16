@@ -117,24 +117,64 @@ public sealed class PlayerRepository
         return items.ToList();
     }
 
-    public async Task AddPlayerToSessionAsync(Guid sessionId, Guid playerId, string role, int joinOrder, CancellationToken ct)
+    public async Task<int> AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync(
+        Guid sessionId,
+        Guid playerId,
+        string role,
+        CancellationToken ct)
     {
-        const string sql = """
+        const string insertSql = """
             insert into session_players (session_player_id, session_id, player_id, join_order, role, created_at)
-            values (@sessionPlayerId, @sessionId, @playerId, @joinOrder, @role, @createdAt)
+            values (@sessionPlayerId, @sessionId, @playerId, 0, @role, @createdAt)
             on conflict (session_id, player_id) do nothing
             """;
 
+        const string reorderSql = """
+            with ranked as (
+                select session_player_id,
+                       row_number() over (order by player_id asc)::int as new_join_order
+                from session_players
+                where session_id = @sessionId
+            )
+            update session_players sp
+            set join_order = ranked.new_join_order
+            from ranked
+            where sp.session_player_id = ranked.session_player_id
+            """;
+
+        const string selectSql = """
+            select join_order
+            from session_players
+            where session_id = @sessionId
+              and player_id = @playerId
+            limit 1
+            """;
+
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(sql, new
+        await using var tx = await conn.BeginTransactionAsync(ct);
+
+        await conn.ExecuteAsync(new CommandDefinition(insertSql, new
         {
             sessionPlayerId = Guid.NewGuid(),
             sessionId,
             playerId,
-            joinOrder,
             role,
             createdAt = DateTimeOffset.UtcNow
-        }, cancellationToken: ct));
+        }, tx, cancellationToken: ct));
+
+        await conn.ExecuteAsync(new CommandDefinition(reorderSql, new { sessionId }, tx, cancellationToken: ct));
+
+        var joinOrder = await conn.QuerySingleOrDefaultAsync<int?>(
+            new CommandDefinition(selectSql, new { sessionId, playerId }, tx, cancellationToken: ct));
+
+        await tx.CommitAsync(ct);
+
+        if (!joinOrder.HasValue)
+        {
+            throw new InvalidOperationException("Pemain gagal terdaftar pada sesi.");
+        }
+
+        return joinOrder.Value;
     }
 
     public async Task<Dictionary<Guid, int>> GetSessionPlayerJoinOrderMapAsync(Guid sessionId, CancellationToken ct)

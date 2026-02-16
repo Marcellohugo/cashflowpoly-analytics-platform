@@ -25,8 +25,11 @@ public sealed record PlayerListResponse([property: JsonPropertyName("items")] Li
 
 public sealed record AddSessionPlayerRequest(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
-    [property: JsonPropertyName("role")] string? Role,
-    [property: JsonPropertyName("join_order")] int? JoinOrder);
+    [property: JsonPropertyName("role")] string? Role);
+
+public sealed record AddSessionPlayerResponse(
+    [property: JsonPropertyName("player_id")] Guid PlayerId,
+    [property: JsonPropertyName("join_order")] int JoinOrder);
 
 public sealed record SessionListItem(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -124,6 +127,7 @@ public sealed record AnalyticsSessionSummary(
 
 public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
+    [property: JsonPropertyName("join_order")] int JoinOrder,
     [property: JsonPropertyName("cash_in_total")] double CashInTotal,
     [property: JsonPropertyName("cash_out_total")] double CashOutTotal,
     [property: JsonPropertyName("donation_total")] double DonationTotal,

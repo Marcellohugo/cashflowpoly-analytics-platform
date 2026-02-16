@@ -174,6 +174,7 @@
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
+                        <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
                         <th class="px-4 py-3">@Context.T("common.name")</th>
                         <th class="px-4 py-3 text-right">@Context.T("metric.cash_in")</th>
                         <th class="px-4 py-3 text-right">@Context.T("metric.cash_out")</th>
@@ -187,7 +188,7 @@
                 @if (Model.Analytics.ByPlayer.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="7">@Context.T("state.no_player_data")</td>
+                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="8">@Context.T("state.no_player_data")</td>
                     </tr>
                 }
                 else
@@ -198,6 +199,7 @@
                             ? "winner-row"
                             : string.Empty;
                         <tr class="border-t border-slate-200 @winnerRowClass">
+                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@(item.JoinOrder > 0 ? item.JoinOrder : "-")</td>
                             <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">@ResolvePlayerName(item.PlayerId)</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@item.CashInTotal</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_out")">@item.CashOutTotal</td>

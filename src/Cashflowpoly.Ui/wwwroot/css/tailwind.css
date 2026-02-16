@@ -2554,6 +2554,7 @@ a:hover {
 }
 
 .analytics-minimum-matrix .analytics-minimum-matrix-table {
+  width: -moz-max-content;
   width: max-content;
   min-width: 1440px;
 }

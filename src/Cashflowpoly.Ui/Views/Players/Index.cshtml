@@ -102,6 +102,7 @@
                         <table class="w-full text-left text-sm">
                             <thead class="table-head">
                                 <tr>
+                                    <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
                                     <th class="px-4 py-3">@Context.T("common.name")</th>
                                     <th class="px-4 py-3">@Context.T("common.player_id")</th>
                                     <th class="px-4 py-3 text-right">@Context.T("metric.net_cashflow")</th>
@@ -114,6 +115,7 @@
                             {
                                 var netCashflow = player.CashInTotal - player.CashOutTotal;
                                 <tr class="border-t border-slate-200">
+                                    <td class="px-4 py-3 text-right text-slate-700">@(player.JoinOrder > 0 ? player.JoinOrder : "-")</td>
                                     <td class="px-4 py-3">
                                         <span class="font-medium text-slate-900">@player.DisplayName</span>
                                     </td>

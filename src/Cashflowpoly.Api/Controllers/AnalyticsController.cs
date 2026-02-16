@@ -554,6 +554,7 @@ public sealed class AnalyticsController : ControllerBase
         {
             var playerId = group.Key;
             var playerEvents = group.ToList();
+            var joinOrder = playerJoinOrders.TryGetValue(playerId, out var assignedJoinOrder) ? assignedJoinOrder : 0;
 
             var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };
             var donationTotal = playerEvents.Where(e => e.ActionType == "day.friday.donation")
@@ -586,6 +587,7 @@ public sealed class AnalyticsController : ControllerBase
 
             result.Add(new AnalyticsByPlayerItem(
                 playerId,
+                joinOrder,
                 totals.In,
                 totals.Out,
                 donationTotal,

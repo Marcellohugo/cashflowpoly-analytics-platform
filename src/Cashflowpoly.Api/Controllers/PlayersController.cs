@@ -132,7 +132,7 @@ public sealed class PlayersController : ControllerBase
     [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]
     [HttpPost("/api/sessions/{sessionId:guid}/players")]
     [Authorize(Roles = "INSTRUCTOR")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AddSessionPlayerResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -153,10 +153,13 @@ public sealed class PlayersController : ControllerBase
         }
 
         var role = string.IsNullOrWhiteSpace(request.Role) ? "PLAYER" : request.Role;
-        var joinOrder = request.JoinOrder ?? 0;
+        var joinOrder = await _players.AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync(
+            sessionId,
+            request.PlayerId,
+            role,
+            ct);
 
-        await _players.AddPlayerToSessionAsync(sessionId, request.PlayerId, role, joinOrder, ct);
-        return Ok();
+        return Ok(new AddSessionPlayerResponse(request.PlayerId, joinOrder));
     }
 
     private bool TryGetCurrentUserId(out Guid userId)

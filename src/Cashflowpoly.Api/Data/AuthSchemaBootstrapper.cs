@@ -69,6 +69,21 @@ public sealed class AuthSchemaBootstrapper : IHostedService
               end if;
             end $$;
 
+            do $$
+            begin
+              if to_regclass('public.session_players') is not null then
+                with ranked as (
+                  select session_player_id,
+                         row_number() over (partition by session_id order by player_id asc)::int as new_join_order
+                  from session_players
+                )
+                update session_players sp
+                set join_order = ranked.new_join_order
+                from ranked
+                where sp.session_player_id = ranked.session_player_id;
+              end if;
+            end $$;
+
             update players p
             set instructor_user_id = upl.user_id
             from user_player_links upl

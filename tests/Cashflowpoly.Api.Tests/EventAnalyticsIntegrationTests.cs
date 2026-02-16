@@ -232,6 +232,156 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(HttpStatusCode.OK, recomputeResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task AddPlayersWithoutJoinOrder_AssignsPlayerTurnOrderByPlayerId()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorUsername = $"it_evt_order_instructor_{suffix}";
+        const string instructorPassword = "IntegrationOrderInstructorPass!123";
+
+        var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+
+        var createRulesetPayload = new
+        {
+            name = $"Ruleset Order IT {suffix}",
+            description = "Integration player order assignment",
+            config = BuildRulesetConfig(startingCash: 20)
+        };
+
+        var createRulesetResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/rulesets",
+            createRulesetPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+
+        var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(createdRuleset);
+
+        var createSessionPayload = new
+        {
+            session_name = $"Session Order IT {suffix}",
+            mode = "PEMULA",
+            ruleset_id = createdRuleset.RulesetId
+        };
+
+        var createSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            createSessionPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+
+        var createdSession = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
+        Assert.NotNull(createdSession);
+
+        var players = new List<PlayerResponse>();
+        for (var i = 1; i <= 3; i++)
+        {
+            var createPlayerPayload = new
+            {
+                display_name = $"Player Order {i} {suffix}",
+                username = $"it_evt_order_player_{i}_{suffix}",
+                password = "IntegrationOrderPlayerPass!123"
+            };
+
+            var createPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                "/api/v1/players",
+                createPlayerPayload,
+                instructorToken);
+            Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+
+            var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+            Assert.NotNull(createdPlayer);
+            players.Add(createdPlayer);
+
+            var addPlayerPayload = new
+            {
+                player_id = createdPlayer.PlayerId,
+                role = "PLAYER"
+            };
+
+            var addPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                $"/api/v1/sessions/{createdSession.SessionId}/players",
+                addPlayerPayload,
+                instructorToken);
+            Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
+        }
+
+        var startSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/start",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, startSessionResponse.StatusCode);
+
+        var rulesetDetailResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, rulesetDetailResponse.StatusCode);
+
+        var rulesetDetail = await rulesetDetailResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(rulesetDetail);
+
+        var activeVersion = rulesetDetail.Versions
+            .Where(v => string.Equals(v.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(v => v.Version)
+            .First();
+
+        var orderedByPlayerId = players.OrderBy(x => x.PlayerId).ToList();
+        var now = DateTimeOffset.UtcNow;
+        long sequence = 1;
+        foreach (var player in orderedByPlayerId.AsEnumerable().Reverse())
+        {
+            var eventPayload = new
+            {
+                event_id = Guid.NewGuid(),
+                session_id = createdSession.SessionId,
+                player_id = player.PlayerId,
+                actor_type = "PLAYER",
+                timestamp = now.AddSeconds(sequence).ToString("O"),
+                day_index = 0,
+                weekday = "MON",
+                turn_number = 1,
+                sequence_number = sequence,
+                action_type = "transaction.recorded",
+                ruleset_version_id = activeVersion.RulesetVersionId,
+                payload = new
+                {
+                    direction = "IN",
+                    amount = 5,
+                    category = "NEED_PRIMARY",
+                    counterparty = "BANK"
+                }
+            };
+
+            var eventResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", eventPayload, instructorToken);
+            Assert.Equal(HttpStatusCode.Created, eventResponse.StatusCode);
+            sequence += 1;
+        }
+
+        var analyticsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/analytics/sessions/{createdSession.SessionId}",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, analyticsResponse.StatusCode);
+
+        var analytics = await analyticsResponse.Content.ReadFromJsonAsync<AnalyticsSessionResponse>();
+        Assert.NotNull(analytics);
+        Assert.Equal(3, analytics.ByPlayer.Count);
+
+        var expectedPlayerOrder = orderedByPlayerId.Select(item => item.PlayerId).ToList();
+        var actualPlayerOrder = analytics.ByPlayer.Select(item => item.PlayerId).ToList();
+        var actualJoinOrders = analytics.ByPlayer.Select(item => item.JoinOrder).ToList();
+        Assert.Equal(expectedPlayerOrder, actualPlayerOrder);
+        Assert.Equal(new[] { 1, 2, 3 }, actualJoinOrders);
+    }
+
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
         var payload = new RegisterRequest(username, password, role, null);

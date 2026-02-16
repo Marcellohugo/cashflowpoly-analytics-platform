@@ -46,6 +46,7 @@ public sealed record AnalyticsSessionSummaryDto(
 
 public sealed record AnalyticsByPlayerItemDto(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
+    [property: JsonPropertyName("join_order")] int JoinOrder,
     [property: JsonPropertyName("cash_in_total")] double CashInTotal,
     [property: JsonPropertyName("cash_out_total")] double CashOutTotal,
     [property: JsonPropertyName("donation_total")] double DonationTotal,

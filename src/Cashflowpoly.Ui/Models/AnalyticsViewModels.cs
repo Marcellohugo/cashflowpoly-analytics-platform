@@ -91,6 +91,7 @@ public sealed class PlayerSessionGroupViewModel
 public sealed class PlayerSessionEntryViewModel
 {
     public Guid PlayerId { get; init; }
+    public int JoinOrder { get; init; }
     public string DisplayName { get; init; } = string.Empty;
     public double CashInTotal { get; init; }
     public double CashOutTotal { get; init; }
