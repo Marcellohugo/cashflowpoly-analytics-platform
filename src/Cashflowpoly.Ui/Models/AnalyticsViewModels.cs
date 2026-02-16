@@ -29,7 +29,6 @@ public sealed class SessionDetailViewModel
     public List<SessionTimelineEventViewModel> Timeline { get; init; } = new();
     public string? TimelineErrorMessage { get; init; }
     public string? SessionStatus { get; init; }
-    public bool IsDevelopment { get; init; }
     public string? ErrorMessage { get; init; }
 }
 
@@ -96,6 +95,8 @@ public sealed class PlayerSessionEntryViewModel
     public double CashInTotal { get; init; }
     public double CashOutTotal { get; init; }
     public double DonationTotal { get; init; }
+    public double DonationPointsTotal { get; init; }
+    public double PensionPointsTotal { get; init; }
     public int GoldQty { get; init; }
     public double HappinessPointsTotal { get; init; }
 }

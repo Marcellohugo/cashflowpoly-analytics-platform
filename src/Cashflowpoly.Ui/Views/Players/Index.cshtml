@@ -87,7 +87,7 @@
                     </summary>
                     <div class="mt-3 alert alert-info text-xs">
                         <span class="font-semibold">@Context.T("common.session_id"):</span> <span class="font-mono">@session.SessionId</span>
-                        <span class="ml-3 font-semibold">@Context.T("common.status"):</span> @session.Status
+                        <span class="ml-3 font-semibold">@Context.T("common.status"):</span> @Context.TSessionStatus(session.Status)
                         @if (session.StartedAt.HasValue)
                         {
                             <span class="ml-3 font-semibold">@Context.T("common.start"):</span> @session.StartedAt.Value.ToString("dd/MM/yyyy HH:mm")
@@ -103,6 +103,9 @@
                             <thead class="table-head">
                                 <tr>
                                     <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
+                                    <th class="px-4 py-3 text-right">@Context.T("common.rank")</th>
+                                    <th class="px-4 py-3 text-right">@Context.T("sessions.champion.donation")</th>
+                                    <th class="px-4 py-3 text-right">@Context.T("sessions.champion.pension")</th>
                                     <th class="px-4 py-3">@Context.T("common.name")</th>
                                     <th class="px-4 py-3">@Context.T("common.player_id")</th>
                                     <th class="px-4 py-3 text-right">@Context.T("metric.net_cashflow")</th>
@@ -112,22 +115,63 @@
                             </thead>
                             <tbody>
                             @{
-                                var sessionWinner = session.Players
-                                    .OrderByDescending(p => p.CashInTotal - p.CashOutTotal)
-                                    .ThenByDescending(p => p.HappinessPointsTotal)
-                                    .FirstOrDefault();
+                                var rankedPlayers = session.Players
+                                    .OrderByDescending(p => p.HappinessPointsTotal)
+                                    .ThenByDescending(p => p.CashInTotal - p.CashOutTotal)
+                                    .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
+                                    .ThenBy(p => p.PlayerId)
+                                    .ToList();
+                                var sessionRankLookup = rankedPlayers
+                                    .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
+                                    .ToDictionary(item => item.PlayerId, item => item.Rank);
+                                var donationChampionLookup = session.Players
+                                    .OrderByDescending(p => p.DonationPointsTotal)
+                                    .ThenByDescending(p => p.DonationTotal)
+                                    .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
+                                    .ThenBy(p => p.PlayerId)
+                                    .Take(3)
+                                    .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
+                                    .ToDictionary(item => item.PlayerId, item => item.Rank);
+                                var pensionChampionLookup = session.Players
+                                    .OrderByDescending(p => p.PensionPointsTotal)
+                                    .ThenByDescending(p => p.CashInTotal - p.CashOutTotal)
+                                    .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
+                                    .ThenBy(p => p.PlayerId)
+                                    .Take(3)
+                                    .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
+                                    .ToDictionary(item => item.PlayerId, item => item.Rank);
                             }
                             @foreach (var player in session.Players)
                             {
                                 var netCashflow = player.CashInTotal - player.CashOutTotal;
-                                var isSessionWinner = sessionWinner is not null && sessionWinner.PlayerId == player.PlayerId;
+                                var rank = sessionRankLookup.TryGetValue(player.PlayerId, out var resolvedRank)
+                                    ? resolvedRank
+                                    : 0;
+                                var donationRank = donationChampionLookup.TryGetValue(player.PlayerId, out var donationResolvedRank)
+                                    ? donationResolvedRank
+                                    : 0;
+                                var pensionRank = pensionChampionLookup.TryGetValue(player.PlayerId, out var pensionResolvedRank)
+                                    ? pensionResolvedRank
+                                    : 0;
+                                var isSessionWinner = rank == 1;
                                 <tr class="border-t border-slate-200 @(isSessionWinner ? "winner-row" : string.Empty)">
                                     <td class="px-4 py-3 text-right text-slate-700">@(player.JoinOrder > 0 ? player.JoinOrder : "-")</td>
+                                    <td class="px-4 py-3 text-right text-slate-700">@(rank > 0 ? rank : "-")</td>
+                                    <td class="px-4 py-3 text-right text-slate-700">@(donationRank > 0 ? donationRank : "-")</td>
+                                    <td class="px-4 py-3 text-right text-slate-700">@(pensionRank > 0 ? pensionRank : "-")</td>
                                     <td class="px-4 py-3">
                                         <span class="font-medium text-slate-900">@player.DisplayName</span>
-                                        @if (isSessionWinner)
+                                        @if (rank > 0 && rank <= 3)
                                         {
-                                            <span class="winner-chip">@Context.T("players.winner_badge")</span>
+                                            <span class="winner-chip">@Context.T("sessions.rank_label") @rank</span>
+                                        }
+                                        @if (donationRank > 0)
+                                        {
+                                            <span class="winner-chip">@Context.T("players.champion.donation_short") @donationRank</span>
+                                        }
+                                        @if (pensionRank > 0)
+                                        {
+                                            <span class="winner-chip">@Context.T("players.champion.pension_short") @pensionRank</span>
                                         }
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>

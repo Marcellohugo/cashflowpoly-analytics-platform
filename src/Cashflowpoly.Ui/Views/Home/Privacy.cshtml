@@ -1,14 +1,110 @@
 @model Cashflowpoly.Ui.Models.RulebookPageViewModel
+@using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = Context.T("privacy.title");
     var sections = Model.Sections ?? new System.Collections.Generic.List<Cashflowpoly.Ui.Models.RulebookSectionViewModel>();
     var scoring = Model.Scoring ?? new System.Collections.Generic.List<Cashflowpoly.Ui.Models.RulebookScoreItemViewModel>();
+    var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
+    var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
     var totalPoints = 0;
     foreach (var section in sections)
     {
         totalPoints += section.Points.Count;
     }
+
+    string L(string id, string en) => isEnglish ? en : id;
 }
+<style>
+    .rulebook-visual-guide {
+        border-color: #f0b9a7 !important;
+        background:
+            radial-gradient(circle at 100% 0%, rgba(239, 78, 78, 0.14), transparent 42%),
+            linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 246, 240, 0.94));
+    }
+
+    .rulebook-bridge-grid {
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .rulebook-bridge-card {
+        border: 2px solid #f2c2b2;
+        border-radius: 0.95rem;
+        background: rgba(255, 255, 255, 0.88);
+        padding: 0.7rem;
+        box-shadow: 0 12px 24px rgba(143, 59, 46, 0.1);
+    }
+
+    .rulebook-bridge-shot {
+        display: block;
+        width: 100%;
+        border-radius: 0.75rem;
+        border: 2px solid #f2baaa;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        background: #fff7f4;
+    }
+
+    .rulebook-bridge-meta {
+        margin-top: 0.58rem;
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    .rulebook-page-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 0.15rem 0.48rem;
+        border-radius: 999px;
+        border: 1px solid #f09f87;
+        background: #fff0ea;
+        color: #a33f2d;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .rulebook-bridge-title {
+        margin: 0;
+        color: #6f2a1d;
+        font-family: "Baloo 2", cursive;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .rulebook-bridge-text {
+        margin: 0;
+        color: #5b4a45;
+        font-size: 0.84rem;
+        line-height: 1.32;
+    }
+
+    .rulebook-callout {
+        position: relative;
+        padding-left: 1rem;
+    }
+
+    .rulebook-callout::before {
+        content: "";
+        position: absolute;
+        left: 0.1rem;
+        top: 0.46rem;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-top: 2px solid #ef4e4e;
+        border-right: 2px solid #ef4e4e;
+        transform: rotate(45deg);
+    }
+
+    @@media (max-width: 768px) {
+        .rulebook-bridge-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 <section class="section-shell" id="rb-top">
     <div class="page-intro">
         <div class="page-intro-main">
@@ -20,6 +116,131 @@
             <span class="hint-chip">@Context.T("privacy.total_points"): @totalPoints</span>
         </div>
     </div>
+
+    <section class="mt-6 analytics-result-shell rulebook-visual-guide">
+        <div class="analytics-workbench-header">
+            <h2>@L("Panduan Visual Buku Aturan", "Rulebook Visual Guide")</h2>
+            <p>@L("Galeri ini mengambil cuplikan halaman buku aturan agar pembacaan metrik analitika sejalan dengan alur permainan di meja.", "This gallery captures rulebook pages so analytics metrics stay aligned with gameplay flow at the table.")</p>
+        </div>
+
+        <div class="mt-4 rulebook-bridge-grid">
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/setup-mode-pemula.jpg" asp-append-version="true" alt='@L("Buku Aturan persiapan mode pemula", "Rulebook beginner setup mode")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 5", "Pg. 5")</span>
+                    <h3 class="rulebook-bridge-title">@L("Persiapan Mode Pemula", "Beginner Mode Setup")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Susunan papan aksi, kartu awal, dan bank koin menjadi acuan pembacaan transaksi.", "The action board setup, starter cards, and coin bank form the baseline for reading transactions.")</p>
+                </div>
+            </article>
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/setup-mode-mahir.jpg" asp-append-version="true" alt='@L("Buku Aturan persiapan mode mahir", "Rulebook advanced setup mode")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 7", "Pg. 7")</span>
+                    <h3 class="rulebook-bridge-title">@L("Persiapan Mode Mahir", "Advanced Mode Setup")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Menambahkan risiko, asuransi, target tabungan, dan pinjaman syariah untuk metrik lanjutan.", "Adds risk, insurance, saving goals, and sharia loans for advanced metrics.")</p>
+                </div>
+            </article>
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/alur-giliran.jpg" asp-append-version="true" alt='@L("Buku Aturan alur giliran", "Rulebook turn flow")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 11", "Pg. 11")</span>
+                    <h3 class="rulebook-bridge-title">@L("Alur Giliran", "Turn Flow")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Setiap putaran berisi 2 aksi per pemain, lalu token tanggal bergerak. Ini terlihat di linimasa aktivitas.", "Each round has 2 actions per player, then the date token moves. This appears clearly in the activity timeline.")</p>
+                </div>
+            </article>
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/aksi-kebutuhan-freelance.jpg" asp-append-version="true" alt='@L("Buku Aturan aksi kebutuhan dan kerja lepas", "Rulebook needs and freelance actions")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 17", "Pg. 17")</span>
+                    <h3 class="rulebook-bridge-title">@L("Aksi Kebutuhan dan Kerja Lepas", "Needs and Freelance Actions")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Kebutuhan memengaruhi poin kebutuhan dan bonus set, sedangkan kerja lepas mendorong kas masuk harian.", "Needs affect need points and set bonuses, while freelance actions drive daily cash-in.")</p>
+                </div>
+            </article>
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/aksi-risiko-asuransi.jpg" asp-append-version="true" alt='@L("Buku Aturan aksi risiko dan asuransi", "Rulebook risk and insurance actions")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 19", "Pg. 19")</span>
+                    <h3 class="rulebook-bridge-title">@L("Risiko dan Asuransi", "Risk and Insurance")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Dampak risiko dan asuransi terlihat pada penalti misi, penalti pinjaman, dan status pinjaman belum lunas.", "Risk and insurance impacts are reflected in mission penalty, loan penalty, and unpaid-loan status.")</p>
+                </div>
+            </article>
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/aksi-donasi-emas.jpg" asp-append-version="true" alt='@L("Buku Aturan aksi donasi dan emas", "Rulebook donation and gold actions")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 23", "Pg. 23")</span>
+                    <h3 class="rulebook-bridge-title">@L("Donasi dan Investasi Emas", "Donation and Gold Investment")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Donasi hari Jumat dan emas hari Sabtu menjadi sumber poin donasi, jumlah emas, dan poin emas.", "Friday donations and Saturday gold actions drive donation points, gold quantity, and gold points.")</p>
+                </div>
+            </article>
+            <article class="rulebook-bridge-card">
+                <img class="rulebook-bridge-shot" src="~/images/rulebook/perhitungan-poin.jpg" asp-append-version="true" alt='@L("Buku Aturan perhitungan poin kebahagiaan", "Rulebook happiness point calculation")' loading="lazy" />
+                <div class="rulebook-bridge-meta">
+                    <span class="rulebook-page-chip">@L("Hal. 27", "Pg. 27")</span>
+                    <h3 class="rulebook-bridge-title">@L("Perhitungan Poin Kebahagiaan", "Happiness Point Calculation")</h3>
+                    <p class="rulebook-bridge-text rulebook-callout">@L("Formula akhir poin, bonus set, penalti misi, dan penalti pinjaman ditampilkan ringkas.", "Final point formula, set bonuses, mission penalties, and loan penalties are summarized clearly.")</p>
+                </div>
+            </article>
+        </div>
+
+        <div class="mt-5 table-wrap analytics-table-block">
+            <table class="w-full text-left text-sm">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">@L("Metrik Analitika", "Analytics Metrics")</th>
+                        <th class="px-4 py-3">@L("Makna di Permainan", "Meaning in Gameplay")</th>
+                        <th class="px-4 py-3">@L("Rujukan Buku Aturan", "Rulebook Reference")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Kas Masuk / Kas Keluar / Arus Kas Bersih", "Cash In / Cash Out / Net Cashflow")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Rekap pemasukan vs pengeluaran transaksi selama permainan dan saldo bersih akhir.", "Summary of transaction inflow vs outflow during gameplay and final net balance.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Catatan Arus Kas (Hal. 25)", "Cashflow Notes (Pg. 25)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Total Donasi / Poin Donasi", "Donation Total / Donation Points")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Total donasi hari Jumat dan konversi poin juara donasi (7/5/2).", "Total Friday donations and conversion to donation champion points (7/5/2).")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Aksi Bebas Donasi (Hal. 23), Perhitungan Poin (Hal. 27)", "Donation Free Action (Pg. 23), Point Calculation (Pg. 27)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Jumlah Emas / Poin Emas", "Gold Qty / Gold Points")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Akumulasi beli-jual emas dan konversi poin berdasarkan jumlah kartu emas.", "Accumulated gold buy/sell actions and point conversion based on total gold cards.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Aksi Investasi Emas (Hal. 23), Perhitungan Poin (Hal. 27)", "Gold Investment Action (Pg. 23), Point Calculation (Pg. 27)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Poin Kebutuhan / Bonus Kebutuhan", "Need Points / Need Bonus")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Poin dari kartu kebutuhan ditambah bonus set kebutuhan (3 beda +4, 3 sama +2).", "Points from need cards plus need-set bonus (3 different +4, 3 same +2).")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Aksi Beli Kebutuhan (Hal. 17), Perhitungan Poin (Hal. 27)", "Buy Need Action (Pg. 17), Point Calculation (Pg. 27)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Poin Target Tabungan", "Saving Goal Points")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Poin dari target keuangan, berlaku jika pinjaman syariah telah lunas.", "Points from financial goals, valid when sharia loan has been fully repaid.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Aksi Menabung (Hal. 21), Perhitungan Poin (Hal. 27)", "Saving Action (Pg. 21), Point Calculation (Pg. 27)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Penalti Misi / Penalti Pinjaman / Pinjaman Belum Lunas", "Mission Penalty / Loan Penalty / Loan Unpaid")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Pengurang poin saat misi gagal atau pinjaman belum lunas sampai akhir permainan.", "Point deductions when missions fail or loans remain unpaid until game end.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Pilihan Aksi Mode Mahir (Hal. 19-21), Perhitungan Poin (Hal. 27)", "Advanced Mode Actions (Pg. 19-21), Point Calculation (Pg. 27)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Pesanan Selesai / Persediaan Bahan", "Orders Completed / Inventory Ingredient")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Produktivitas dapur dari aksi klaim pesanan dan efisiensi stok bahan.", "Kitchen productivity from order-claim actions and ingredient stock efficiency.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Aksi Bahan Masakan (Hal. 13), Aksi Klaim Pesanan (Hal. 15)", "Ingredient Action (Pg. 13), Order Claim Action (Pg. 15)")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Kepatuhan Kebutuhan Primer / Pelanggaran Aturan", "Primary Need Compliance / Rules Violations")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Kepatuhan urutan kebutuhan primer dan catatan pelanggaran aturan permainan.", "Compliance to primary-need order and records of gameplay rule violations.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Batasan Kebutuhan Primer (Hal. 17), aturan mode per set aturan", "Primary Need Constraints (Pg. 17), per-ruleset mode rules")</td>
+                    </tr>
+                    <tr class="border-t border-slate-200">
+                        <td class="px-4 py-3 font-semibold text-slate-800">@L("Linimasa Aktivitas", "Event Timeline")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Jejak urutan aksi per giliran untuk audit strategi, konsistensi, dan debugging sesi.", "Trace of per-turn action order for strategy audits, consistency checks, and session debugging.")</td>
+                        <td class="px-4 py-3 text-slate-700">@L("Cara Bermain dan Alur Putaran (Hal. 11)", "How to Play and Round Flow (Pg. 11)")</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <div class="rulebook-shell mt-6">
         <aside class="rulebook-outline">
@@ -108,6 +329,11 @@
                     </tbody>
                 </table>
             </div>
+
+            <article id="rulebook-copyright" class="mt-6 metric-panel">
+                <h2>@Context.T("privacy.copyright_title")</h2>
+                <p class="mt-2 text-sm text-slate-600">@Context.T("privacy.copyright_desc")</p>
+            </article>
         </div>
     </div>
 </section>

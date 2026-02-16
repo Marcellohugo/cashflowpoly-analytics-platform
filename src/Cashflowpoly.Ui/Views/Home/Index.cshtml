@@ -1,4 +1,5 @@
 @model Cashflowpoly.Ui.Models.HomeIndexViewModel
+@using System.Text.Json
 @{
     ViewData["Title"] = Context.T("nav.home");
     var isInstructor = Context.Session.IsInstructor();
@@ -224,8 +225,8 @@ else
             const lastSyncedEl = document.getElementById("home-last-synced");
             const progressBarEl = document.getElementById("home-progress-bar");
             const realtimeErrorEl = document.getElementById("home-realtime-error");
-            const realtimeStatusTemplate = '@Context.T("home.error.realtime_status")';
-            const realtimeNetworkMessage = '@Context.T("home.error.realtime_network")';
+            const realtimeStatusTemplate = @Html.Raw(JsonSerializer.Serialize(Context.T("home.error.realtime_status")));
+            const realtimeNetworkMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("home.error.realtime_network")));
             const realtimePollIntervalMs = 30000;
             let realtimeTimerId = null;
 

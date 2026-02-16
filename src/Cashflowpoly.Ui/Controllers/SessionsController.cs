@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using System.Net;
@@ -14,12 +13,10 @@ namespace Cashflowpoly.Ui.Controllers;
 public sealed class SessionsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
-    private readonly IWebHostEnvironment _environment;
 
-    public SessionsController(IHttpClientFactory clientFactory, IWebHostEnvironment environment)
+    public SessionsController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
-        _environment = environment;
     }
 
     [HttpGet("")]
@@ -63,33 +60,44 @@ public sealed class SessionsController : Controller
         return detail.Result ?? View(detail.Model);
     }
 
-    [HttpPost("{sessionId:guid}/end")]
-    public async Task<IActionResult> End(Guid sessionId, CancellationToken ct)
+    [HttpGet("{sessionId:guid}/timeline")]
+    public async Task<IActionResult> Timeline(
+        Guid sessionId,
+        [FromQuery] long fromSeq = 0,
+        [FromQuery] int limit = 300,
+        CancellationToken ct = default)
     {
-        if (!_environment.IsDevelopment() || !HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { sessionId });
-        }
-
+        var normalizedLimit = Math.Clamp(limit, 1, 1000);
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.PostAsync($"api/v1/sessions/{sessionId}/end", null, ct);
+        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq={fromSeq}&limit={normalizedLimit}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
             return unauthorized;
         }
 
-        if (response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
-            return RedirectToAction(nameof(Details), new { sessionId });
+            return Json(new
+            {
+                timeline = Array.Empty<SessionTimelineEventViewModel>(),
+                errorMessage = $"Gagal memuat alur event sesi. Status: {(int)response.StatusCode}",
+                lastSyncedAt = DateTimeOffset.UtcNow
+            });
         }
 
-        var apiError = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-        var detail = await BuildSessionDetailViewModel(
-            sessionId,
-            ct,
-            apiError?.Message ?? $"Gagal menyelesaikan sesi. Status: {(int)response.StatusCode}");
-        return detail.Result ?? View("Details", detail.Model);
+        var data = await response.Content.ReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);
+        var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
+        var timeline = SessionTimelineMapper.MapTimeline(data?.Events, language);
+        var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, ct);
+        SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
+
+        return Json(new
+        {
+            timeline,
+            errorMessage = (string?)null,
+            lastSyncedAt = DateTimeOffset.UtcNow
+        });
     }
 
     [HttpGet("{sessionId:guid}/ruleset")]
@@ -195,57 +203,50 @@ public sealed class SessionsController : Controller
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
         if (unauthorized is not null)
         {
             return (new SessionDetailViewModel
             {
-                SessionId = sessionId,
-                IsDevelopment = _environment.IsDevelopment()
+                SessionId = sessionId
             }, unauthorized);
         }
 
         var sessionStatus = await GetSessionStatusAsync(client, sessionId, ct);
+        var playerDisplayNamesTask = LoadPlayerDisplayNameMapAsync(client, ct);
+        var timelineTask = LoadTimelineAsync(client, sessionId, language, ct);
 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var fallbackPlayerDisplayNames = await playerDisplayNamesTask;
+            var (fallbackTimeline, fallbackTimelineError) = await timelineTask;
+            SessionTimelineMapper.ApplyPlayerDisplayNames(fallbackTimeline, fallbackPlayerDisplayNames);
+
             return (new SessionDetailViewModel
             {
                 SessionId = sessionId,
                 SessionStatus = sessionStatus,
-                IsDevelopment = _environment.IsDevelopment(),
+                Timeline = fallbackTimeline,
+                TimelineErrorMessage = fallbackTimelineError,
+                PlayerDisplayNames = fallbackPlayerDisplayNames,
                 ErrorMessage = overrideErrorMessage ?? error?.Message ?? $"Gagal memuat detail sesi. Status: {(int)response.StatusCode}"
             }, null);
         }
 
         var analytics = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
-        var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, ct);
-        var (timeline, timelineError) = await LoadTimelineAsync(client, sessionId, ct);
-        foreach (var item in timeline.Where(item => item.PlayerId.HasValue))
-        {
-            if (item.PlayerId.HasValue && playerDisplayNames.TryGetValue(item.PlayerId.Value, out var displayName))
-            {
-                item.PlayerDisplayName = displayName;
-            }
-        }
-
-        if (!HttpContext.Session.IsInstructor() && analytics is not null && analytics.ByPlayer.Count > 0)
-        {
-            var scopedPlayerIds = analytics.ByPlayer.Select(item => item.PlayerId).ToHashSet();
-            timeline = timeline
-                .Where(item => !item.PlayerId.HasValue || scopedPlayerIds.Contains(item.PlayerId.Value))
-                .ToList();
-        }
+        var playerDisplayNames = await playerDisplayNamesTask;
+        var (timeline, timelineError) = await timelineTask;
+        SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
 
         return (new SessionDetailViewModel
         {
             SessionId = sessionId,
             SessionStatus = sessionStatus,
-            IsDevelopment = _environment.IsDevelopment(),
             Analytics = analytics,
-            PlayerDisplayNames = playerDisplayNames,
             Timeline = timeline,
             TimelineErrorMessage = timelineError,
+            PlayerDisplayNames = playerDisplayNames,
             ErrorMessage = overrideErrorMessage
         }, null);
     }
@@ -260,49 +261,6 @@ public sealed class SessionsController : Controller
 
         var data = await sessionResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
         return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
-    }
-
-    private static async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
-        HttpClient client,
-        Guid sessionId,
-        CancellationToken ct)
-    {
-        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq=0&limit=1000", ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            return (new List<SessionTimelineEventViewModel>(), $"Gagal memuat alur event sesi. Status: {(int)response.StatusCode}");
-        }
-
-        var data = await response.Content.ReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);
-        if (data?.Events is null || data.Events.Count == 0)
-        {
-            return (new List<SessionTimelineEventViewModel>(), null);
-        }
-
-        var timeline = data.Events
-            .OrderBy(x => x.Timestamp)
-            .ThenBy(x => x.SequenceNumber)
-            .Select(x =>
-            {
-                var flowLabel = ResolveFlowLabel(x.ActionType);
-                var flowDescription = BuildFlowDescription(x.ActionType, x.Payload);
-                return new SessionTimelineEventViewModel
-                {
-                    Timestamp = x.Timestamp,
-                    SequenceNumber = x.SequenceNumber,
-                    DayIndex = x.DayIndex,
-                    Weekday = x.Weekday,
-                    TurnNumber = x.TurnNumber < 1 ? 1 : x.TurnNumber,
-                    ActorType = x.ActorType,
-                    PlayerId = x.PlayerId,
-                    ActionType = x.ActionType,
-                    FlowLabel = flowLabel,
-                    FlowDescription = flowDescription
-                };
-            })
-            .ToList();
-
-        return (timeline, null);
     }
 
     private async Task<(List<RulesetListItemDto> Rulesets, IActionResult? UnauthorizedResult, string? ErrorMessage)> LoadRulesetOptionsAsync(
@@ -342,138 +300,27 @@ public sealed class SessionsController : Controller
             .ToDictionary(group => group.Key, group => group.First().DisplayName);
     }
 
-    private static string ResolveFlowLabel(string actionType)
+    private static async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
+        HttpClient client,
+        Guid sessionId,
+        string language,
+        CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(actionType))
+        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq=0&limit=1000", ct);
+        if (!response.IsSuccessStatusCode)
         {
-            return "Aktivitas";
+            return (new List<SessionTimelineEventViewModel>(), $"Gagal memuat alur event sesi. Status: {(int)response.StatusCode}");
         }
 
-        var lower = actionType.ToLowerInvariant();
-        if (lower.StartsWith("setup."))
+        var data = await response.Content.ReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);
+        if (data?.Events is null || data.Events.Count == 0)
         {
-            return "Setup";
+            return (new List<SessionTimelineEventViewModel>(), null);
         }
 
-        if (lower.StartsWith("day."))
-        {
-            return "Event Harian";
-        }
-
-        if (lower.StartsWith("risk."))
-        {
-            return "Risiko";
-        }
-
-        if (lower.StartsWith("loan."))
-        {
-            return "Pembiayaan";
-        }
-
-        if (lower.StartsWith("saving."))
-        {
-            return "Tabungan";
-        }
-
-        if (lower.StartsWith("mission."))
-        {
-            return "Misi";
-        }
-
-        if (lower.Contains("order"))
-        {
-            return "Order";
-        }
-
-        if (lower.Contains("purchased"))
-        {
-            return "Belanja";
-        }
-
-        return "Aktivitas";
+        var timeline = SessionTimelineMapper.MapTimeline(data.Events, language);
+        return (timeline, null);
     }
 
-    private static string BuildFlowDescription(string actionType, JsonElement payload)
-    {
-        var text = actionType switch
-        {
-            "transaction.recorded" => "Transaksi kas pemain dicatat.",
-            "day.friday.donation" => "Pemain melakukan donasi khusus hari Jumat.",
-            "day.saturday.gold_trade" => "Pemain melakukan jual/beli emas saat event Sabtu.",
-            "ingredient.purchased" => "Pemain membeli bahan untuk kebutuhan/order.",
-            "order.claimed" => "Pemain menyelesaikan order dan menerima hasil.",
-            "work.freelance.completed" => "Pemain menyelesaikan kerja freelance dan mendapat pemasukan.",
-            "need.primary.purchased" => "Pemain membeli kebutuhan primer.",
-            "need.secondary.purchased" => "Pemain membeli kebutuhan sekunder.",
-            "need.tertiary.purchased" => "Pemain membeli kebutuhan tersier.",
-            "saving.deposit.created" => "Pemain menaruh dana ke tabungan tujuan.",
-            "saving.deposit.withdrawn" => "Pemain menarik dana dari tabungan tujuan.",
-            "saving.goal.achieved" => "Pemain mencapai target tabungan.",
-            "loan.syariah.taken" => "Pemain mengambil pinjaman syariah.",
-            "loan.syariah.repaid" => "Pemain melakukan cicilan/pelunasan pinjaman.",
-            "risk.life.drawn" => "Pemain terkena efek kartu risiko.",
-            "risk.emergency.used" => "Pemain menggunakan opsi mitigasi risiko darurat.",
-            "insurance.multirisk.purchased" => "Pemain membeli proteksi asuransi.",
-            "insurance.multirisk.used" => "Pemain mengaktifkan proteksi asuransi.",
-            _ => $"Aksi `{actionType}` dieksekusi pada sesi."
-        };
-
-        var payloadSummary = BuildPayloadSummary(payload);
-        return string.IsNullOrWhiteSpace(payloadSummary) ? text : $"{text} Detail: {payloadSummary}";
-    }
-
-    private static string BuildPayloadSummary(JsonElement payload)
-    {
-        if (payload.ValueKind != JsonValueKind.Object)
-        {
-            return string.Empty;
-        }
-
-        var keyOrder = new[]
-        {
-            "amount",
-            "direction",
-            "category",
-            "trade_type",
-            "qty",
-            "unit_price",
-            "card_id",
-            "goal_id",
-            "loan_id",
-            "risk_id",
-            "points"
-        };
-
-        var parts = new List<string>();
-        foreach (var key in keyOrder)
-        {
-            if (!payload.TryGetProperty(key, out var value))
-            {
-                continue;
-            }
-
-            parts.Add($"{key}: {JsonElementToInlineText(value)}");
-            if (parts.Count == 4)
-            {
-                break;
-            }
-        }
-
-        return string.Join(", ", parts);
-    }
-
-    private static string JsonElementToInlineText(JsonElement value)
-    {
-        return value.ValueKind switch
-        {
-            JsonValueKind.String => value.GetString() ?? string.Empty,
-            JsonValueKind.Number => value.ToString(),
-            JsonValueKind.True => "true",
-            JsonValueKind.False => "false",
-            JsonValueKind.Array => $"[{value.GetArrayLength()} item]",
-            JsonValueKind.Object => "{...}",
-            _ => string.Empty
-        };
-    }
 }
 

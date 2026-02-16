@@ -270,3 +270,123 @@
     });
   });
 })();
+
+(() => {
+  const forms = Array.from(document.querySelectorAll("form")).filter((form) => {
+    if (!(form instanceof HTMLFormElement)) {
+      return false;
+    }
+
+    if (form.classList.contains("js-no-submit-lock")) {
+      return false;
+    }
+
+    if (form.closest(".nav-menu")) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (!forms.length) {
+    return;
+  }
+
+  const defaultLoadingText = document.documentElement.lang.toLowerCase().startsWith("en")
+    ? "Processing..."
+    : "Memproses...";
+
+  forms.forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      if (form.dataset.submitting === "true") {
+        event.preventDefault();
+        return;
+      }
+
+      const submitButtons = Array.from(
+        form.querySelectorAll("button[type='submit'], input[type='submit']")
+      );
+      if (!submitButtons.length) {
+        return;
+      }
+
+      form.dataset.submitting = "true";
+      form.classList.add("is-submitting");
+
+      submitButtons.forEach((submitButton) => {
+        if (!(submitButton instanceof HTMLButtonElement || submitButton instanceof HTMLInputElement)) {
+          return;
+        }
+
+        if (submitButton.disabled) {
+          return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.classList.add("is-loading");
+        submitButton.setAttribute("aria-disabled", "true");
+
+        const loadingText = submitButton.dataset.loadingText?.trim() || defaultLoadingText;
+        if (submitButton instanceof HTMLButtonElement) {
+          if (!submitButton.dataset.originalText) {
+            submitButton.dataset.originalText = submitButton.textContent ?? "";
+          }
+          submitButton.textContent = loadingText;
+        } else if (submitButton instanceof HTMLInputElement) {
+          if (!submitButton.dataset.originalText) {
+            submitButton.dataset.originalText = submitButton.value;
+          }
+          submitButton.value = loadingText;
+        }
+      });
+    });
+  });
+})();
+
+(() => {
+  const tableWraps = Array.from(document.querySelectorAll(".table-wrap"));
+  if (!tableWraps.length) {
+    return;
+  }
+
+  const updateShadowState = (wrap) => {
+    if (!(wrap instanceof HTMLElement)) {
+      return;
+    }
+
+    const isScrollable = wrap.scrollWidth > wrap.clientWidth + 1;
+    wrap.classList.toggle("is-scrollable", isScrollable);
+    if (!isScrollable) {
+      wrap.classList.remove("is-scrolled-start");
+      wrap.classList.remove("is-scrolled-end");
+      return;
+    }
+
+    const maxScrollLeft = Math.max(0, wrap.scrollWidth - wrap.clientWidth);
+    const currentScrollLeft = Math.max(0, wrap.scrollLeft);
+    wrap.classList.toggle("is-scrolled-start", currentScrollLeft > 2);
+    wrap.classList.toggle("is-scrolled-end", currentScrollLeft >= maxScrollLeft - 2);
+  };
+
+  tableWraps.forEach((wrap) => {
+    updateShadowState(wrap);
+    wrap.addEventListener("scroll", () => updateShadowState(wrap), { passive: true });
+  });
+
+  let resizeFrameId = 0;
+  const onResize = () => {
+    if (resizeFrameId !== 0) {
+      window.cancelAnimationFrame(resizeFrameId);
+    }
+
+    resizeFrameId = window.requestAnimationFrame(() => {
+      tableWraps.forEach((wrap) => updateShadowState(wrap));
+      resizeFrameId = 0;
+    });
+  };
+
+  window.addEventListener("resize", onResize);
+  window.setTimeout(() => {
+    tableWraps.forEach((wrap) => updateShadowState(wrap));
+  }, 280);
+})();

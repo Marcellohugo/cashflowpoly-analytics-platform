@@ -63,9 +63,9 @@
         return element.Value.GetBoolean();
     }
 
-    static string FormatNumber(double? value, string format = "0.##")
+    string FormatNumber(double? value, string format = "0.##")
     {
-        return value.HasValue ? value.Value.ToString(format) : "N/A";
+        return value.HasValue ? value.Value.ToString(format) : Context.T("common.na");
     }
 
     var netWorthIndex = TryGetNumber(Model.GameplayDerived, "net_worth_index");
@@ -259,8 +259,8 @@
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.expense_efficiency")</span><span class="metric-value">@FormatNumber(expenseEfficiency)%</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.business_profit_margin")</span><span class="metric-value">@FormatNumber(businessProfitMargin)%</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.growth_pattern_ratio")</span><span class="metric-value">@FormatNumber(growthPatternRatio)</span></div>
-                        <div class="metric-row"><span class="metric-key">Business Efficiency Ratio</span><span class="metric-value">@FormatNumber(businessEfficiencyRatio)</span></div>
-                        <div class="metric-row"><span class="metric-key">Gold ROI</span><span class="metric-value">@FormatNumber(goldRoiPercent)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.business_efficiency_ratio")</span><span class="metric-value">@FormatNumber(businessEfficiencyRatio)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.gold_roi")</span><span class="metric-value">@FormatNumber(goldRoiPercent)%</span></div>
                     </div>
                 </article>
 
@@ -273,8 +273,8 @@
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.meal_order_success")</span><span class="metric-value">@FormatNumber(mealOrderSuccessRate)%</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.action_efficiency")</span><span class="metric-value">@FormatNumber(actionEfficiencyPercent)%</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.planning_horizon")</span><span class="metric-value">@FormatNumber(planningHorizonPercent)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Mission Achievement</span><span class="metric-value">@FormatNumber(missionAchievement)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Fulfillment Diversity</span><span class="metric-value">@FormatNumber(fulfillmentDiversity)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.mission_achievement")</span><span class="metric-value">@FormatNumber(missionAchievement)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.fulfillment_diversity")</span><span class="metric-value">@FormatNumber(fulfillmentDiversity)</span></div>
                     </div>
                 </article>
 
@@ -283,11 +283,11 @@
                     <div class="metric-list">
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.donation_aggressiveness")</span><span class="metric-value">@FormatNumber(donationAggressivenessPercent)%</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.donation_stability")</span><span class="metric-value">@FormatNumber(donationStabilityStdDev)</span></div>
-                        <div class="metric-row"><span class="metric-key">Donation Commitment</span><span class="metric-value">@FormatNumber(donationCommitmentScore)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Debt Ratio</span><span class="metric-value">@FormatNumber(debtRatio)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Risk Exposure</span><span class="metric-value">@FormatNumber(riskExposurePercent)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Risk Mitigation</span><span class="metric-value">@FormatNumber(riskMitigationEffectiveness)%</span></div>
-                        <div class="metric-row"><span class="metric-key">Loan Repayment Discipline</span><span class="metric-value">@FormatNumber(loanRepaymentDiscipline)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.donation_commitment")</span><span class="metric-value">@FormatNumber(donationCommitmentScore)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.debt_ratio")</span><span class="metric-value">@FormatNumber(debtRatio)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.risk_exposure")</span><span class="metric-value">@FormatNumber(riskExposurePercent)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.risk_mitigation")</span><span class="metric-value">@FormatNumber(riskMitigationEffectiveness)%</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.metric.loan_repayment_discipline")</span><span class="metric-value">@FormatNumber(loanRepaymentDiscipline)%</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.basic_need_profile")</span><span class="metric-value">@(basicProfile.HasValue ? (basicProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.collector_need_profile")</span><span class="metric-value">@(collectorProfile.HasValue ? (collectorProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
                         <div class="metric-row"><span class="metric-key">@Context.T("players.metric.specialist_need_profile")</span><span class="metric-value">@(specialistProfile.HasValue ? (specialistProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
@@ -297,39 +297,39 @@
 
             <div class="mt-6 metric-panels metric-panels-wide">
                 <article class="metric-panel">
-                    <h3>@Context.T("gameplay.raw"): Ekonomi</h3>
+                    <h3>@Context.T("gameplay.raw"): @Context.T("players.raw.economy")</h3>
                     <div class="metric-list">
-                        <div class="metric-row"><span class="metric-key">Starting Coins</span><span class="metric-value">@FormatNumber(startingCoins)</span></div>
-                        <div class="metric-row"><span class="metric-key">Coins Held (Current)</span><span class="metric-value">@FormatNumber(coinsHeldCurrent)</span></div>
-                        <div class="metric-row"><span class="metric-key">Coins Saved</span><span class="metric-value">@FormatNumber(coinsSaved)</span></div>
-                        <div class="metric-row"><span class="metric-key">Coins Donated</span><span class="metric-value">@FormatNumber(coinsDonated)</span></div>
-                        <div class="metric-row"><span class="metric-key">Coins Net End Game</span><span class="metric-value">@FormatNumber(coinsNetEndGame)</span></div>
-                        <div class="metric-row"><span class="metric-key">Meal Order Income Total</span><span class="metric-value">@FormatNumber(mealOrderIncomeTotal)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.starting_coins")</span><span class="metric-value">@FormatNumber(startingCoins)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.coins_held_current")</span><span class="metric-value">@FormatNumber(coinsHeldCurrent)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.coins_saved")</span><span class="metric-value">@FormatNumber(coinsSaved)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.coins_donated")</span><span class="metric-value">@FormatNumber(coinsDonated)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.coins_net_end")</span><span class="metric-value">@FormatNumber(coinsNetEndGame)</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.meal_order_income_total")</span><span class="metric-value">@FormatNumber(mealOrderIncomeTotal)</span></div>
                     </div>
                 </article>
 
                 <article class="metric-panel">
-                    <h3>@Context.T("gameplay.raw"): Aktivitas</h3>
+                    <h3>@Context.T("gameplay.raw"): @Context.T("players.raw.activity")</h3>
                     <div class="metric-list">
-                        <div class="metric-row"><span class="metric-key">Ingredients Collected</span><span class="metric-value">@(ingredientsCollected?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Ingredients Held (Current)</span><span class="metric-value">@(ingredientsHeldCurrent?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Ingredients Wasted</span><span class="metric-value">@(ingredientsWasted?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Meal Orders Claimed</span><span class="metric-value">@(mealOrdersClaimed?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Meal Orders Passed</span><span class="metric-value">@(mealOrdersPassed?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Need Cards Purchased</span><span class="metric-value">@(needCardsPurchased?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Primary / Secondary / Tertiary Needs</span><span class="metric-value">@(primaryNeedsOwned?.ToString() ?? "-") / @(secondaryNeedsOwned?.ToString() ?? "-") / @(tertiaryNeedsOwned?.ToString() ?? "-")</span></div>
-                        <div class="metric-row"><span class="metric-key">Gold Cards Held End</span><span class="metric-value">@(goldCardsHeldEnd?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Actions Skipped</span><span class="metric-value">@(actionsSkipped?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.ingredients_collected")</span><span class="metric-value">@(ingredientsCollected?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.ingredients_held_current")</span><span class="metric-value">@(ingredientsHeldCurrent?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.ingredients_wasted")</span><span class="metric-value">@(ingredientsWasted?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.meal_orders_claimed")</span><span class="metric-value">@(mealOrdersClaimed?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.meal_orders_passed")</span><span class="metric-value">@(mealOrdersPassed?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.need_cards_purchased")</span><span class="metric-value">@(needCardsPurchased?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.needs_breakdown")</span><span class="metric-value">@(primaryNeedsOwned?.ToString() ?? "-") / @(secondaryNeedsOwned?.ToString() ?? "-") / @(tertiaryNeedsOwned?.ToString() ?? "-")</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.gold_cards_held_end")</span><span class="metric-value">@(goldCardsHeldEnd?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.actions_skipped")</span><span class="metric-value">@(actionsSkipped?.ToString() ?? Context.T("common.na"))</span></div>
                     </div>
                 </article>
 
                 <article class="metric-panel">
-                    <h3>@Context.T("gameplay.raw"): Komitmen</h3>
+                    <h3>@Context.T("gameplay.raw"): @Context.T("players.raw.commitment")</h3>
                     <div class="metric-list">
-                        <div class="metric-row"><span class="metric-key">Loans Taken</span><span class="metric-value">@(loansTaken?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Loans Repaid</span><span class="metric-value">@(loansRepaid?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Loans Unpaid End</span><span class="metric-value">@(loansUnpaidEnd?.ToString() ?? Context.T("common.na"))</span></div>
-                        <div class="metric-row"><span class="metric-key">Collection Mission Complete</span><span class="metric-value">@(collectionMissionComplete.HasValue ? (collectionMissionComplete.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.loans_taken")</span><span class="metric-value">@(loansTaken?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.loans_repaid")</span><span class="metric-value">@(loansRepaid?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.loans_unpaid_end")</span><span class="metric-value">@(loansUnpaidEnd?.ToString() ?? Context.T("common.na"))</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.raw.collection_mission_complete")</span><span class="metric-value">@(collectionMissionComplete.HasValue ? (collectionMissionComplete.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span></div>
                     </div>
                 </article>
             </div>

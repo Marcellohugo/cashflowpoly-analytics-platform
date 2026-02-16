@@ -13,6 +13,23 @@
         ? 0
         : playerSummary.CashInTotal - playerSummary.CashOutTotal;
     var rulesetResult = Model.RulesetResult;
+    var fallbackPlayerNames = new Dictionary<Guid, string>();
+    var fallbackPlayerIndex = 1;
+    var knownPlayerIds = (Model.Result?.ByPlayer.Select(item => item.PlayerId) ?? Enumerable.Empty<Guid>())
+        .Distinct()
+        .ToList();
+
+    foreach (var playerId in knownPlayerIds)
+    {
+        if (playerDisplayNames.TryGetValue(playerId, out var displayName) && !string.IsNullOrWhiteSpace(displayName))
+        {
+            continue;
+        }
+
+        fallbackPlayerNames[playerId] = $"{Context.T("common.player")} {fallbackPlayerIndex}";
+        fallbackPlayerIndex++;
+    }
+
     string F(double value) => value.ToString("0.##");
     string ResolvePlayerName(Guid playerId)
     {
@@ -21,12 +38,17 @@
             return displayName;
         }
 
-        return playerId.ToString()[..8];
+        if (fallbackPlayerNames.TryGetValue(playerId, out var fallbackName))
+        {
+            return fallbackName;
+        }
+
+        return Context.T("common.player");
     }
 }
 
 <section class="section-shell w-full analytics-shell analytics-page @(isInstructor ? "analytics-shell-instructor" : "analytics-shell-player")">
-    <div class="page-intro">
+    <div class="page-intro analytics-hero">
         <div class="page-intro-main">
             <p class="eyebrow text-emerald-700">@(isInstructor ? Context.T("analytics.dashboard") : Context.T("analytics.player_dashboard"))</p>
             <h1 class="headline">@(isInstructor ? Context.T("analytics.title") : Context.T("analytics.player_title"))</h1>
@@ -78,7 +100,7 @@
                     {
                         @foreach (var item in Model.Sessions)
                         {
-                            <option value="@item.SessionId">@item.SessionName (@item.Status)</option>
+                            <option value="@item.SessionId">@item.SessionName (@Context.TSessionStatus(item.Status))</option>
                         }
                     }
                 </select>
@@ -105,7 +127,7 @@
                     {
                         @foreach (var item in Model.Sessions)
                         {
-                            <option value="@item.SessionId">@item.SessionName (@item.Status)</option>
+                            <option value="@item.SessionId">@item.SessionName (@Context.TSessionStatus(item.Status))</option>
                         }
                     }
                 </select>
@@ -157,7 +179,7 @@
 
     @if (Model.Result is not null)
     {
-        <div class="mt-6 session-stats-grid analytics-session-stats">
+        <div class="mt-6 session-stats-grid analytics-session-stats analytics-session-stats-fix">
             <div class="stat-card session-total-card">
                 <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
                 <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Result.Summary.EventCount</p>
@@ -353,8 +375,8 @@
                 <p>@Context.T("analytics.section.minimum_matrix_desc")</p>
             </div>
 
-            <div class="mt-4 table-wrap analytics-table-block analytics-minimum-matrix">
-                <table class="w-full min-w-[1440px] text-left text-sm analytics-minimum-matrix-table">
+            <div class="mt-4 table-wrap analytics-table-block analytics-minimum-matrix analytics-minimum-matrix-fix">
+                <table class="w-full min-w-[1440px] text-left text-sm analytics-minimum-matrix-table analytics-minimum-matrix-table-fix">
                     <thead class="table-head">
                         <tr>
                             <th class="px-4 py-3 whitespace-nowrap">@Context.T("common.player")</th>
@@ -453,6 +475,20 @@
                 </div>
             </div>
 
+            <div class="mt-4 action-toolbar analytics-ruleset-actions">
+                <a class="btn-ghost"
+                   asp-controller="Rulesets"
+                   asp-action="Details"
+                   asp-route-rulesetId="@rulesetResult.RulesetId">@Context.T("common.view")</a>
+                @if (isInstructor)
+                {
+                    <a class="btn-primary"
+                       asp-controller="Rulesets"
+                       asp-action="Edit"
+                       asp-route-rulesetId="@rulesetResult.RulesetId">@Context.T("rulesets.edit")</a>
+                }
+            </div>
+
             <div class="mt-5 ruleset-stats">
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.session_count")</p>
@@ -460,11 +496,11 @@
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.learning_aggregate")</p>
-                    <p class="mt-2 text-2xl font-semibold text-emerald-700">@(rulesetResult.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700">@(rulesetResult.LearningPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na"))</p>
                 </div>
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.analytics.quest_aggregate")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@(rulesetResult.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@(rulesetResult.MissionPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na"))</p>
                 </div>
             </div>
 
@@ -501,11 +537,11 @@
                                                 ? "status-draft"
                                                 : "status-retired";
                                     }
-                                    <span class="status-pill @statusClass">@item.Status</span>
+                                    <span class="status-pill @statusClass">@Context.TSessionStatus(item.Status)</span>
                                 </td>
                                 <td class="px-4 py-3 text-right">@item.EventCount</td>
-                                <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
-                                <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? "N/A")</td>
+                                <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na"))</td>
+                                <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na"))</td>
                                 <td class="px-4 py-3 text-right">
                                     <a class="table-link"
                                        asp-controller="Sessions"
@@ -546,8 +582,8 @@
                                     <div class="mt-1 text-xs text-slate-500 font-mono">@item.SessionId</div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-700">@ResolvePlayerName(item.PlayerId)</td>
-                                <td class="px-4 py-3 text-right">@(item.LearningPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
-                                <td class="px-4 py-3 text-right">@(item.MissionPerformanceIndividualScore?.ToString("0.00") ?? "N/A")</td>
+                                <td class="px-4 py-3 text-right">@(item.LearningPerformanceIndividualScore?.ToString("0.00") ?? Context.T("common.na"))</td>
+                                <td class="px-4 py-3 text-right">@(item.MissionPerformanceIndividualScore?.ToString("0.00") ?? Context.T("common.na"))</td>
                             </tr>
                         }
                     }
@@ -564,18 +600,156 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
         <script>
             (() => {
+                const chartUnavailableMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.unavailable")));
+                const chartNoDataMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.no_data")));
+                try {
+                const renderChartMessage = (canvas, message) => {
+                    if (!canvas) {
+                        return;
+                    }
+
+                    const chartCard = canvas.closest(".chart-card");
+                    if (!chartCard) {
+                        return;
+                    }
+
+                    canvas.style.display = "none";
+                    if (chartCard.querySelector(".chart-fallback-text")) {
+                        return;
+                    }
+
+                    const helperText = document.createElement("p");
+                    helperText.className = "chart-fallback-text mt-2 text-sm text-slate-500";
+                    helperText.textContent = message;
+                    chartCard.appendChild(helperText);
+                };
+
                 if (typeof Chart === "undefined") {
+                    document.querySelectorAll(".chart-card canvas").forEach((canvas) => {
+                        renderChartMessage(canvas, chartUnavailableMessage);
+                    });
                     return;
                 }
 
-                const data = @Html.Raw(JsonSerializer.Serialize(Model.Result));
-                const players = data.by_player ?? [];
-                const playerNameLookup = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value)));
-                const playerLabels = players.map((p, idx) => {
-                    const playerId = `${p.player_id ?? ""}`;
-                    return playerNameLookup[playerId] ?? `P${idx + 1}`;
-                });
+                const rawData = @Html.Raw(JsonSerializer.Serialize(Model.Result));
+                const playerNameLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value)));
                 const isPlayerDashboard = @((!Model.IsInstructor).ToString().ToLowerInvariant());
+                const playerLabelPrefix = @Html.Raw(JsonSerializer.Serialize(Context.T("common.player")));
+                const chartText = {
+                    event: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.event"))),
+                    cashIn: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.cash_in"))),
+                    cashOut: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.cash_out"))),
+                    net: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.net"))),
+                    summary: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.summary"))),
+                    value: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.value"))),
+                    points: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.points"))),
+                    risk: @Html.Raw(JsonSerializer.Serialize(Context.T("analytics.chart.risk"))),
+                    donation: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.donation"))),
+                    happiness: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.happiness"))),
+                    needPoints: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.need_points"))),
+                    needBonus: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.need_bonus"))),
+                    donationPoints: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.donation_points"))),
+                    goldPoints: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.gold_points"))),
+                    pensionPoints: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.pension_points"))),
+                    savingGoal: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.saving_goal"))),
+                    missionPenalty: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.mission_penalty"))),
+                    loanPenalty: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.loan_penalty"))),
+                    loanUnpaid: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.loan_unpaid"))),
+                    ordersCompleted: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.orders_completed"))),
+                    inventoryIngredient: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.inventory_ingredient"))),
+                    actionsUsed: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.actions_used"))),
+                    primaryNeedCompliance: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.primary_need_compliance"))),
+                    violations: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.violations")))
+                };
+
+                const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+                const toCamel = (key) => key.replace(/_([a-z])/g, (_, character) => character.toUpperCase());
+                const toPascal = (key) => key.length === 0 ? key : `${key[0].toUpperCase()}${key.slice(1)}`;
+                const getProp = (obj, snakeKey, explicitPascalKey = null) => {
+                    if (!obj || typeof obj !== "object") {
+                        return undefined;
+                    }
+
+                    if (hasOwn(obj, snakeKey)) {
+                        return obj[snakeKey];
+                    }
+
+                    const camelKey = toCamel(snakeKey);
+                    if (hasOwn(obj, camelKey)) {
+                        return obj[camelKey];
+                    }
+
+                    const pascalKey = explicitPascalKey ?? toPascal(camelKey);
+                    if (hasOwn(obj, pascalKey)) {
+                        return obj[pascalKey];
+                    }
+
+                    return undefined;
+                };
+                const toNumber = (value, fallback = 0) => {
+                    const numericValue = Number(value);
+                    return Number.isFinite(numericValue) ? numericValue : fallback;
+                };
+                const toBoolean = (value) => {
+                    if (typeof value === "boolean") {
+                        return value;
+                    }
+
+                    if (typeof value === "number") {
+                        return value !== 0;
+                    }
+
+                    if (typeof value === "string") {
+                        const normalizedValue = value.trim().toLowerCase();
+                        return normalizedValue === "true" || normalizedValue === "1";
+                    }
+
+                    return false;
+                };
+
+                const summarySource = getProp(rawData, "summary", "Summary") ?? {};
+                const rawPlayers = getProp(rawData, "by_player", "ByPlayer");
+                const players = Array.isArray(rawPlayers)
+                    ? rawPlayers.map((player) => ({
+                        player_id: `${getProp(player, "player_id", "PlayerId") ?? ""}`,
+                        cash_in_total: toNumber(getProp(player, "cash_in_total", "CashInTotal")),
+                        cash_out_total: toNumber(getProp(player, "cash_out_total", "CashOutTotal")),
+                        donation_total: toNumber(getProp(player, "donation_total", "DonationTotal")),
+                        gold_qty: toNumber(getProp(player, "gold_qty", "GoldQty")),
+                        happiness_points_total: toNumber(getProp(player, "happiness_points_total", "HappinessPointsTotal")),
+                        need_points_total: toNumber(getProp(player, "need_points_total", "NeedPointsTotal")),
+                        need_set_bonus_points: toNumber(getProp(player, "need_set_bonus_points", "NeedSetBonusPoints")),
+                        donation_points_total: toNumber(getProp(player, "donation_points_total", "DonationPointsTotal")),
+                        gold_points_total: toNumber(getProp(player, "gold_points_total", "GoldPointsTotal")),
+                        pension_points_total: toNumber(getProp(player, "pension_points_total", "PensionPointsTotal")),
+                        saving_goal_points_total: toNumber(getProp(player, "saving_goal_points_total", "SavingGoalPointsTotal")),
+                        mission_penalty_total: toNumber(getProp(player, "mission_penalty_total", "MissionPenaltyTotal")),
+                        loan_penalty_total: toNumber(getProp(player, "loan_penalty_total", "LoanPenaltyTotal")),
+                        has_unpaid_loan: toBoolean(getProp(player, "has_unpaid_loan", "HasUnpaidLoan")),
+                        orders_completed_count: toNumber(getProp(player, "orders_completed_count", "OrdersCompletedCount")),
+                        inventory_ingredient_total: toNumber(getProp(player, "inventory_ingredient_total", "InventoryIngredientTotal")),
+                        actions_used_total: toNumber(getProp(player, "actions_used_total", "ActionsUsedTotal")),
+                        compliance_primary_need_rate: toNumber(getProp(player, "compliance_primary_need_rate", "CompliancePrimaryNeedRate")),
+                        rules_violations_count: toNumber(getProp(player, "rules_violations_count", "RulesViolationsCount"))
+                    }))
+                    : [];
+                const summary = {
+                    event_count: toNumber(getProp(summarySource, "event_count", "EventCount")),
+                    cash_in_total: toNumber(getProp(summarySource, "cash_in_total", "CashInTotal")),
+                    cash_out_total: toNumber(getProp(summarySource, "cash_out_total", "CashOutTotal")),
+                    cashflow_net_total: toNumber(getProp(summarySource, "cashflow_net_total", "CashflowNetTotal")),
+                    rules_violations_count: toNumber(getProp(summarySource, "rules_violations_count", "RulesViolationsCount"))
+                };
+
+                const playerNameLookup = Object.fromEntries(
+                    Object.entries(playerNameLookupRaw ?? {}).map(([key, value]) => [key.toLowerCase(), value])
+                );
+                const playerLabels = players.map((player, idx) => {
+                    const playerId = `${player.player_id ?? ""}`.toLowerCase();
+                    return playerNameLookup[playerId] ?? `${playerLabelPrefix} ${idx + 1}`;
+                });
+                const metricPlayerSlots = [0, 1, 2, 3];
+                const metricPlayerLabels = metricPlayerSlots.map((idx) => `${playerLabelPrefix} ${idx + 1}`);
 
                 const makeChart = (canvasId, type, labels, datasets, options = {}) => {
                     const el = document.getElementById(canvasId);
@@ -583,36 +757,57 @@
                         return;
                     }
 
-                    new Chart(el, {
-                        type,
-                        data: { labels, datasets },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            aspectRatio: 2.2,
-                            scales: {
-                                y: { beginAtZero: true }
-                            },
-                            plugins: {
-                                legend: { display: datasets.length > 1 }
-                            },
-                            ...options
-                        }
-                    });
+                    if (!Array.isArray(labels) || labels.length === 0 || !Array.isArray(datasets) || datasets.length === 0) {
+                        renderChartMessage(el, chartNoDataMessage);
+                        return;
+                    }
+
+                    const hasDatasetValue = datasets.some((dataset) =>
+                        Array.isArray(dataset?.data) && dataset.data.some((value) => Number.isFinite(Number(value)))
+                    );
+                    if (!hasDatasetValue) {
+                        renderChartMessage(el, chartNoDataMessage);
+                        return;
+                    }
+
+                    try {
+                        new Chart(el, {
+                            type,
+                            data: { labels, datasets },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                aspectRatio: 2.2,
+                                scales: {
+                                    y: { beginAtZero: true }
+                                },
+                                plugins: {
+                                    legend: { display: datasets.length > 1 }
+                                },
+                                ...options
+                            }
+                        });
+                    } catch (error) {
+                        console.error("Failed to render chart", canvasId, error);
+                        renderChartMessage(el, chartUnavailableMessage);
+                    }
                 };
 
                 if (isPlayerDashboard) {
                     const me = players[0];
                     if (!me) {
+                        document.querySelectorAll(".chart-card canvas").forEach((canvas) => {
+                            renderChartMessage(canvas, chartNoDataMessage);
+                        });
                         return;
                     }
 
                     const netCash = (me.cash_in_total ?? 0) - (me.cash_out_total ?? 0);
 
                     makeChart("playerFinanceChart", "bar",
-                        ["@Context.T("analytics.chart.cash_in")", "@Context.T("analytics.chart.cash_out")", "@Context.T("analytics.chart.net")", "@Context.T("metric.donation")"],
+                        [chartText.cashIn, chartText.cashOut, chartText.net, chartText.donation],
                         [{
-                            label: "@Context.T("analytics.chart.value")",
+                            label: chartText.value,
                             data: [me.cash_in_total ?? 0, me.cash_out_total ?? 0, netCash, me.donation_total ?? 0],
                             backgroundColor: ["#2d7dd2", "#e95a4b", "#1ba784", "#f39c12"],
                             borderColor: ["#1f5aa0", "#b73f31", "#157f63", "#bf7608"],
@@ -623,9 +818,9 @@
                         });
 
                     makeChart("playerPointsChart", "bar",
-                        ["@Context.T("metric.happiness")", "@Context.T("metric.need_points")", "@Context.T("metric.need_bonus")", "@Context.T("metric.donation_points")", "@Context.T("metric.gold_points")", "@Context.T("metric.pension_points")", "@Context.T("metric.saving_goal")"],
+                        [chartText.happiness, chartText.needPoints, chartText.needBonus, chartText.donationPoints, chartText.goldPoints, chartText.pensionPoints, chartText.savingGoal],
                         [{
-                            label: "@Context.T("analytics.chart.points")",
+                            label: chartText.points,
                             data: [
                                 me.happiness_points_total ?? 0,
                                 me.need_points_total ?? 0,
@@ -644,9 +839,9 @@
                         });
 
                     makeChart("playerRiskChart", "bar",
-                        ["@Context.T("metric.mission_penalty")", "@Context.T("metric.loan_penalty")", "@Context.T("metric.loan_unpaid")"],
+                        [chartText.missionPenalty, chartText.loanPenalty, chartText.loanUnpaid],
                         [{
-                            label: "@Context.T("analytics.chart.risk")",
+                            label: chartText.risk,
                             data: [me.mission_penalty_total ?? 0, me.loan_penalty_total ?? 0, me.has_unpaid_loan ? 1 : 0],
                             backgroundColor: ["#ef4e4e99", "#d1495b99", "#37415199"],
                             borderColor: ["#bf2e2e", "#a53344", "#1f2937"],
@@ -657,9 +852,9 @@
                         });
 
                     makeChart("playerOperationsChart", "bar",
-                        ["@Context.T("metric.orders_completed")", "@Context.T("metric.inventory_ingredient")", "@Context.T("metric.actions_used")", "@Context.T("metric.primary_need_compliance")", "@Context.T("metric.violations")"],
+                        [chartText.ordersCompleted, chartText.inventoryIngredient, chartText.actionsUsed, chartText.primaryNeedCompliance, chartText.violations],
                         [{
-                            label: "@Context.T("analytics.chart.value")",
+                            label: chartText.value,
                             data: [
                                 me.orders_completed_count ?? 0,
                                 me.inventory_ingredient_total ?? 0,
@@ -679,15 +874,15 @@
                 }
 
                 makeChart("summaryLineChart", "line",
-                    ["@Context.T("analytics.chart.event")", "@Context.T("analytics.chart.cash_in")", "@Context.T("analytics.chart.cash_out")", "@Context.T("analytics.chart.net")", "@Context.T("metric.violations")"],
+                    [chartText.event, chartText.cashIn, chartText.cashOut, chartText.net, chartText.violations],
                     [{
-                        label: "@Context.T("analytics.chart.summary")",
+                        label: chartText.summary,
                         data: [
-                            data.summary.event_count,
-                            data.summary.cash_in_total,
-                            data.summary.cash_out_total,
-                            data.summary.cashflow_net_total,
-                            data.summary.rules_violations_count
+                            summary.event_count,
+                            summary.cash_in_total,
+                            summary.cash_out_total,
+                            summary.cashflow_net_total,
+                            summary.rules_violations_count
                         ],
                         borderColor: "#e95a4b",
                         backgroundColor: "rgba(233, 90, 75, 0.18)",
@@ -698,7 +893,7 @@
 
                 makeChart("cashflowLineChart", "line", playerLabels, [
                     {
-                        label: "@Context.T("analytics.chart.cash_in")",
+                        label: chartText.cashIn,
                         data: players.map((p) => p.cash_in_total),
                         borderColor: "#1ba784",
                         backgroundColor: "rgba(27, 167, 132, 0.15)",
@@ -706,7 +901,7 @@
                         pointRadius: 3
                     },
                     {
-                        label: "@Context.T("analytics.chart.cash_out")",
+                        label: chartText.cashOut,
                         data: players.map((p) => p.cash_out_total),
                         borderColor: "#e95a4b",
                         backgroundColor: "rgba(233, 90, 75, 0.15)",
@@ -714,7 +909,7 @@
                         pointRadius: 3
                     },
                     {
-                        label: "@Context.T("metric.donation")",
+                        label: chartText.donation,
                         data: players.map((p) => p.donation_total),
                         borderColor: "#3f74ff",
                         backgroundColor: "rgba(63, 116, 255, 0.15)",
@@ -724,27 +919,32 @@
                 ]);
 
                 const metricCharts = [
-                    { id: "donationLineChart", key: "donation_total", color: "#18a8a0" },
-                    { id: "goldQtyLineChart", key: "gold_qty", color: "#f39c12" },
-                    { id: "happinessLineChart", key: "happiness_points_total", color: "#ef4e4e" },
-                    { id: "needPointsLineChart", key: "need_points_total", color: "#2a9d8f" },
-                    { id: "needBonusLineChart", key: "need_set_bonus_points", color: "#2fa56e" },
-                    { id: "donationPointsLineChart", key: "donation_points_total", color: "#2d7dd2" },
-                    { id: "goldPointsLineChart", key: "gold_points_total", color: "#dd9f00" },
-                    { id: "pensionPointsLineChart", key: "pension_points_total", color: "#ff7f50" },
-                    { id: "savingGoalLineChart", key: "saving_goal_points_total", color: "#00a6a6" },
-                    { id: "missionPenaltyLineChart", key: "mission_penalty_total", color: "#c64f40" },
-                    { id: "loanPenaltyLineChart", key: "loan_penalty_total", color: "#d1495b" },
-                    { id: "loanUnpaidLineChart", key: "has_unpaid_loan", color: "#374151", boolToNum: true },
-                    { id: "ordersCompletedLineChart", key: "orders_completed_count", color: "#2563eb" },
-                    { id: "inventoryIngredientLineChart", key: "inventory_ingredient_total", color: "#0ea5e9" },
-                    { id: "actionsUsedLineChart", key: "actions_used_total", color: "#7c3aed" },
-                    { id: "compliancePrimaryNeedLineChart", key: "compliance_primary_need_rate", color: "#16a34a", multiply: 100 },
-                    { id: "rulesViolationsLineChart", key: "rules_violations_count", color: "#dc2626" }
+                    { id: "donationLineChart", key: "donation_total", color: "#18a8a0", label: chartText.donation },
+                    { id: "goldQtyLineChart", key: "gold_qty", color: "#f39c12", label: @Html.Raw(JsonSerializer.Serialize(Context.T("metric.gold_qty"))) },
+                    { id: "happinessLineChart", key: "happiness_points_total", color: "#ef4e4e", label: chartText.happiness },
+                    { id: "needPointsLineChart", key: "need_points_total", color: "#2a9d8f", label: chartText.needPoints },
+                    { id: "needBonusLineChart", key: "need_set_bonus_points", color: "#2fa56e", label: chartText.needBonus },
+                    { id: "donationPointsLineChart", key: "donation_points_total", color: "#2d7dd2", label: chartText.donationPoints },
+                    { id: "goldPointsLineChart", key: "gold_points_total", color: "#dd9f00", label: chartText.goldPoints },
+                    { id: "pensionPointsLineChart", key: "pension_points_total", color: "#ff7f50", label: chartText.pensionPoints },
+                    { id: "savingGoalLineChart", key: "saving_goal_points_total", color: "#00a6a6", label: chartText.savingGoal },
+                    { id: "missionPenaltyLineChart", key: "mission_penalty_total", color: "#c64f40", label: chartText.missionPenalty },
+                    { id: "loanPenaltyLineChart", key: "loan_penalty_total", color: "#d1495b", label: chartText.loanPenalty },
+                    { id: "loanUnpaidLineChart", key: "has_unpaid_loan", color: "#374151", boolToNum: true, label: chartText.loanUnpaid },
+                    { id: "ordersCompletedLineChart", key: "orders_completed_count", color: "#2563eb", label: chartText.ordersCompleted },
+                    { id: "inventoryIngredientLineChart", key: "inventory_ingredient_total", color: "#0ea5e9", label: chartText.inventoryIngredient },
+                    { id: "actionsUsedLineChart", key: "actions_used_total", color: "#7c3aed", label: chartText.actionsUsed },
+                    { id: "compliancePrimaryNeedLineChart", key: "compliance_primary_need_rate", color: "#16a34a", multiply: 100, label: chartText.primaryNeedCompliance },
+                    { id: "rulesViolationsLineChart", key: "rules_violations_count", color: "#dc2626", label: chartText.violations }
                 ];
 
                 metricCharts.forEach((metric) => {
-                    const values = players.map((p) => {
+                    const values = metricPlayerSlots.map((slotIndex) => {
+                        const p = players[slotIndex];
+                        if (!p) {
+                            return 0;
+                        }
+
                         if (metric.boolToNum) {
                             return p[metric.key] ? 1 : 0;
                         }
@@ -752,8 +952,8 @@
                         return metric.multiply ? numericValue * metric.multiply : numericValue;
                     });
 
-                    makeChart(metric.id, "line", playerLabels, [{
-                        label: metric.key,
+                    makeChart(metric.id, "line", metricPlayerLabels, [{
+                        label: metric.label,
                         data: values,
                         borderColor: metric.color,
                         backgroundColor: `${metric.color}33`,
@@ -762,7 +962,23 @@
                         fill: true
                     }]);
                 });
+                } catch (error) {
+                    console.error("Failed to initialize analytics charts", error);
+                    document.querySelectorAll(".chart-card canvas").forEach((canvas) => {
+                        const chartCard = canvas.closest(".chart-card");
+                        if (!chartCard || chartCard.querySelector(".chart-fallback-text")) {
+                            return;
+                        }
+
+                        canvas.style.display = "none";
+                        const helperText = document.createElement("p");
+                        helperText.className = "chart-fallback-text mt-2 text-sm text-slate-500";
+                        helperText.textContent = chartUnavailableMessage;
+                        chartCard.appendChild(helperText);
+                    });
+                }
             })();
         </script>
+
     }
 }

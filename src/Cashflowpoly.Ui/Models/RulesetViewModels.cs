@@ -8,6 +8,8 @@ public sealed class RulesetListViewModel
 
 public sealed class CreateRulesetViewModel
 {
+    public Guid? RulesetId { get; set; }
+    public bool IsEditMode { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string ConfigJson { get; set; } = "{}";

@@ -163,7 +163,7 @@
         <footer class="border-t border-white/70">
             <div class="footer-shell">
                 <span>&copy; 2026 - Cashflowpoly</span>
-                <a class="hover:text-slate-700" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
+                <a class="hover:text-slate-700" href="@($"{Url.Action("Rulebook", "Home")}#rulebook-copyright")">@Context.T("footer.rulebook_copyright")</a>
             </div>
         </footer>
     }

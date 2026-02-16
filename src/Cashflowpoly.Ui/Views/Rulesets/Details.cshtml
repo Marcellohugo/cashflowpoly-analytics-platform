@@ -117,6 +117,10 @@
                 <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
                 @if (isInstructor)
                 {
+                    <a class="btn-ghost"
+                       asp-controller="Rulesets"
+                       asp-action="Edit"
+                       asp-route-rulesetId="@Model.Ruleset.RulesetId">@Context.T("rulesets.edit")</a>
                     <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
                         @Html.AntiForgeryToken()
                         <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
@@ -184,7 +188,7 @@
                                                 ? "status-draft"
                                                 : "status-retired";
                                     }
-                                    <span class="status-pill @statusClass">@version.Status</span>
+                                    <span class="status-pill @statusClass">@Context.TRulesetStatus(version.Status)</span>
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                                 @if (isInstructor)

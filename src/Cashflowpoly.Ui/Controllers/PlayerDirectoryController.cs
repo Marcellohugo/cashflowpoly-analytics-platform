@@ -94,6 +94,8 @@ public sealed class PlayerDirectoryController : Controller
                             CashInTotal = p.CashInTotal,
                             CashOutTotal = p.CashOutTotal,
                             DonationTotal = p.DonationTotal,
+                            DonationPointsTotal = p.DonationPointsTotal,
+                            PensionPointsTotal = p.PensionPointsTotal,
                             GoldQty = p.GoldQty,
                             HappinessPointsTotal = p.HappinessPointsTotal
                         })

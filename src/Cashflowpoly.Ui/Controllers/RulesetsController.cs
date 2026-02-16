@@ -65,6 +65,7 @@ public sealed class RulesetsController : Controller
 
         return View(new CreateRulesetViewModel
         {
+            IsEditMode = false,
             ConfigJson = """
             {
               "mode": "PEMULA",
@@ -123,6 +124,7 @@ public sealed class RulesetsController : Controller
 
         if (string.IsNullOrWhiteSpace(model.Name))
         {
+            model.IsEditMode = false;
             model.ErrorMessage = "Nama ruleset wajib diisi.";
             return View(model);
         }
@@ -134,6 +136,7 @@ public sealed class RulesetsController : Controller
         }
         catch (JsonException)
         {
+            model.IsEditMode = false;
             model.ErrorMessage = "Config JSON tidak valid.";
             return View(model);
         }
@@ -156,11 +159,113 @@ public sealed class RulesetsController : Controller
         if (!response.IsSuccessStatusCode)
         {
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            model.IsEditMode = false;
             model.ErrorMessage = error?.Message ?? $"Gagal membuat ruleset. Status: {(int)response.StatusCode}";
             return View(model);
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet("{rulesetId:guid}/edit")]
+    public async Task<IActionResult> Edit(Guid rulesetId, CancellationToken ct)
+    {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            return View("Create", new CreateRulesetViewModel
+            {
+                RulesetId = rulesetId,
+                IsEditMode = true,
+                ErrorMessage = error?.Message ?? $"Gagal memuat ruleset untuk diedit. Status: {(int)response.StatusCode}"
+            });
+        }
+
+        var data = await TryReadJsonAsync<RulesetDetailResponseDto>(response.Content, ct);
+        if (data is null)
+        {
+            return View("Create", new CreateRulesetViewModel
+            {
+                RulesetId = rulesetId,
+                IsEditMode = true,
+                ErrorMessage = "Respon detail ruleset tidak valid."
+            });
+        }
+
+        return View("Create", new CreateRulesetViewModel
+        {
+            RulesetId = rulesetId,
+            IsEditMode = true,
+            Name = data.Name,
+            Description = data.Description,
+            ConfigJson = SerializeIndentedJson(data.ConfigJson)
+        });
+    }
+
+    [HttpPost("{rulesetId:guid}/edit")]
+    public async Task<IActionResult> Edit(Guid rulesetId, CreateRulesetViewModel model, CancellationToken ct)
+    {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        model.RulesetId = rulesetId;
+        model.IsEditMode = true;
+
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            model.ErrorMessage = "Nama ruleset wajib diisi.";
+            return View("Create", model);
+        }
+
+        JsonNode? configNode;
+        try
+        {
+            configNode = JsonNode.Parse(model.ConfigJson);
+        }
+        catch (JsonException)
+        {
+            model.ErrorMessage = "Config JSON tidak valid.";
+            return View("Create", model);
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var payload = new
+        {
+            name = model.Name,
+            description = model.Description,
+            config = configNode
+        };
+
+        var response = await client.PutAsJsonAsync($"api/v1/rulesets/{rulesetId}", payload, ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            model.ErrorMessage = error?.Message ?? $"Gagal mengubah ruleset. Status: {(int)response.StatusCode}";
+            return View("Create", model);
+        }
+
+        return RedirectToAction(nameof(Details), new { rulesetId });
     }
 
     [HttpGet("{rulesetId:guid}")]
@@ -259,6 +364,26 @@ public sealed class RulesetsController : Controller
         var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
 
         return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
+    }
+
+    private static string SerializeIndentedJson(JsonElement? configJson)
+    {
+        if (!configJson.HasValue)
+        {
+            return "{}";
+        }
+
+        try
+        {
+            return JsonSerializer.Serialize(configJson.Value, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+        }
+        catch (JsonException)
+        {
+            return "{}";
+        }
     }
 
     private static async Task<T?> TryReadJsonAsync<T>(HttpContent content, CancellationToken ct)

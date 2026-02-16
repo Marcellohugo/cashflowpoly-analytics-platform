@@ -1,18 +1,32 @@
 @model Cashflowpoly.Ui.Models.CreateRulesetViewModel
 
 @{
-    ViewData["Title"] = Context.T("rulesets.create");
+    var isEditMode = Model.IsEditMode && Model.RulesetId.HasValue;
+    var formActionUrl = isEditMode
+        ? Url.Action("Edit", "Rulesets", new { rulesetId = Model.RulesetId })
+        : Url.Action("Create", "Rulesets");
+    ViewData["Title"] = isEditMode ? Context.T("rulesets.edit_title") : Context.T("rulesets.create");
 }
 
 <section class="section-shell">
     <div class="page-intro">
         <div class="page-intro-main">
             <p class="eyebrow">@Context.T("rulesets.management")</p>
-            <h1 class="headline">@Context.T("rulesets.create_title")</h1>
-            <p class="subhead">@Context.T("rulesets.create_subtitle")</p>
+            <h1 class="headline">@(isEditMode ? Context.T("rulesets.edit_title") : Context.T("rulesets.create_title"))</h1>
+            <p class="subhead">@(isEditMode ? Context.T("rulesets.edit_subtitle") : Context.T("rulesets.create_subtitle"))</p>
         </div>
         <div class="page-intro-actions">
-            <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+            @if (isEditMode)
+            {
+                <a class="btn-ghost"
+                   asp-controller="Rulesets"
+                   asp-action="Details"
+                   asp-route-rulesetId="@Model.RulesetId">@Context.T("rulesets.back_to_list")</a>
+            }
+            else
+            {
+                <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+            }
         </div>
     </div>
 
@@ -30,7 +44,7 @@
             <span>@Context.T("rulesets.tip.safety_before_start")</span>
         </div>
 
-        <form class="mt-4 form-grid" method="post">
+        <form class="mt-4 form-grid" method="post" action="@formActionUrl">
             @Html.AntiForgeryToken()
             <div class="form-field">
                 <label class="form-label" for="ruleset-name">@Context.T("common.name")</label>
@@ -133,8 +147,18 @@
             <textarea asp-for="ConfigJson" class="hidden"></textarea>
             <div class="form-actions">
                 <button class="btn-primary"
-                        type="submit">@Context.T("rulesets.save")</button>
-                <a class="text-link" asp-controller="Rulesets" asp-action="Index">@Context.T("common.cancel")</a>
+                        type="submit">@(isEditMode ? Context.T("rulesets.update") : Context.T("rulesets.save"))</button>
+                @if (isEditMode)
+                {
+                    <a class="text-link"
+                       asp-controller="Rulesets"
+                       asp-action="Details"
+                       asp-route-rulesetId="@Model.RulesetId">@Context.T("common.cancel")</a>
+                }
+                else
+                {
+                    <a class="text-link" asp-controller="Rulesets" asp-action="Index">@Context.T("common.cancel")</a>
+                }
             </div>
         </form>
     </div>
