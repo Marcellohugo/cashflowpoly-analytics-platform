@@ -292,7 +292,7 @@ public sealed class SessionsController : Controller
                     SequenceNumber = x.SequenceNumber,
                     DayIndex = x.DayIndex,
                     Weekday = x.Weekday,
-                    TurnNumber = x.TurnNumber,
+                    TurnNumber = x.TurnNumber < 1 ? 1 : x.TurnNumber,
                     ActorType = x.ActorType,
                     PlayerId = x.PlayerId,
                     ActionType = x.ActionType,

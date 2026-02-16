@@ -194,6 +194,12 @@ public sealed class EventsController : ControllerBase
                 new ErrorDetail("weekday", "INVALID_ENUM"));
         }
 
+        if (request.TurnNumber < 1)
+        {
+            return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Turn number minimal 1",
+                new ErrorDetail("turn_number", "OUT_OF_RANGE"));
+        }
+
         if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) && request.PlayerId is null)
         {
             return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi untuk actor PLAYER",

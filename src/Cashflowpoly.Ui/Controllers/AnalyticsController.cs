@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -101,7 +102,13 @@ public sealed class AnalyticsController : Controller
         }
         else
         {
-            var sessions = await sessionResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+            var sessions = await TryReadJsonAsync<SessionListResponseDto>(sessionResponse.Content, ct);
+            if (sessions is null)
+            {
+                model.SessionLookupErrorMessage = "Respon daftar sesi tidak valid.";
+                return (model, null);
+            }
+
             model.Sessions = (sessions?.Items ?? new List<SessionListItemDto>())
                 .OrderByDescending(item => string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(item => item.StartedAt ?? item.CreatedAt)
@@ -117,7 +124,7 @@ public sealed class AnalyticsController : Controller
 
         if (playersResponse.IsSuccessStatusCode)
         {
-            var players = await playersResponse.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+            var players = await TryReadJsonAsync<PlayerListResponseDto>(playersResponse.Content, ct);
             model.PlayerDisplayNames = (players?.Items ?? new List<PlayerResponseDto>())
                 .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
                 .GroupBy(item => item.PlayerId)
@@ -146,13 +153,20 @@ public sealed class AnalyticsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
             model.ErrorMessage = error?.Message ?? $"Gagal memuat analitika. Status: {(int)response.StatusCode}";
             model.Result = null;
             return null;
         }
 
-        var result = await response.Content.ReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        var result = await TryReadJsonAsync<AnalyticsSessionResponseDto>(response.Content, ct);
+        if (result is null)
+        {
+            model.ErrorMessage = "Respon analitika sesi tidak valid.";
+            model.Result = null;
+            return null;
+        }
+
         model.Result = result;
 
         if (result?.RulesetId is Guid rulesetId)
@@ -182,15 +196,38 @@ public sealed class AnalyticsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
             model.RulesetErrorMessage = error?.Message ?? $"Gagal memuat analitika ruleset. Status: {(int)response.StatusCode}";
             model.RulesetResult = null;
             return null;
         }
 
-        var result = await response.Content.ReadFromJsonAsync<RulesetAnalyticsSummaryResponseDto>(cancellationToken: ct);
+        var result = await TryReadJsonAsync<RulesetAnalyticsSummaryResponseDto>(response.Content, ct);
+        if (result is null)
+        {
+            model.RulesetErrorMessage = "Respon analitika ruleset tidak valid.";
+            model.RulesetResult = null;
+            return null;
+        }
+
         model.RulesetResult = result;
         return null;
+    }
+
+    private static async Task<T?> TryReadJsonAsync<T>(HttpContent content, CancellationToken ct)
+    {
+        try
+        {
+            return await content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+        catch (NotSupportedException)
+        {
+            return default;
+        }
     }
 }
 

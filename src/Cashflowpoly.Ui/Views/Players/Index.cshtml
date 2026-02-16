@@ -111,13 +111,24 @@
                                 </tr>
                             </thead>
                             <tbody>
+                            @{
+                                var sessionWinner = session.Players
+                                    .OrderByDescending(p => p.CashInTotal - p.CashOutTotal)
+                                    .ThenByDescending(p => p.HappinessPointsTotal)
+                                    .FirstOrDefault();
+                            }
                             @foreach (var player in session.Players)
                             {
                                 var netCashflow = player.CashInTotal - player.CashOutTotal;
-                                <tr class="border-t border-slate-200">
+                                var isSessionWinner = sessionWinner is not null && sessionWinner.PlayerId == player.PlayerId;
+                                <tr class="border-t border-slate-200 @(isSessionWinner ? "winner-row" : string.Empty)">
                                     <td class="px-4 py-3 text-right text-slate-700">@(player.JoinOrder > 0 ? player.JoinOrder : "-")</td>
                                     <td class="px-4 py-3">
                                         <span class="font-medium text-slate-900">@player.DisplayName</span>
+                                        @if (isSessionWinner)
+                                        {
+                                            <span class="winner-chip">@Context.T("players.winner_badge")</span>
+                                        }
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
                                     <td class="px-4 py-3 text-right">@netCashflow</td>

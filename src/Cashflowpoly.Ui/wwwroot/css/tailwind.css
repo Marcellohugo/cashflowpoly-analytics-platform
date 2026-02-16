@@ -3449,6 +3449,21 @@ body > footer .footer-shell {
   border-left: 4px solid #f4be4e;
 }
 
+.winner-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.45rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #efc56a;
+  background: rgba(255, 248, 220, 0.95);
+  color: #7a5510;
+  font-size: 0.69rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .hint-chip {
   display: inline-flex;
   align-items: center;

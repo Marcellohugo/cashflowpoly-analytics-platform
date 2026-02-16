@@ -543,17 +543,24 @@ public sealed class AnalyticsController : ControllerBase
                 });
 
         var result = new List<AnalyticsByPlayerItem>();
-        var grouped = events.Where(e => e.PlayerId.HasValue)
+        var eventsByPlayer = events.Where(e => e.PlayerId.HasValue)
             .GroupBy(e => e.PlayerId!.Value)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var playerIds = playerJoinOrders.Keys
+            .Union(eventsByPlayer.Keys)
+            .Distinct()
             .ToList();
-        var firstEventSequenceByPlayer = grouped.ToDictionary(
-            group => group.Key,
-            group => group.Min(item => item.SequenceNumber));
+        var firstEventSequenceByPlayer = playerIds.ToDictionary(
+            playerId => playerId,
+            playerId => eventsByPlayer.TryGetValue(playerId, out var items) && items.Count > 0
+                ? items.Min(item => item.SequenceNumber)
+                : long.MaxValue);
 
-        foreach (var group in grouped)
+        foreach (var playerId in playerIds)
         {
-            var playerId = group.Key;
-            var playerEvents = group.ToList();
+            var playerEvents = eventsByPlayer.TryGetValue(playerId, out var items)
+                ? items
+                : new List<EventDb>();
             var joinOrder = playerJoinOrders.TryGetValue(playerId, out var assignedJoinOrder) ? assignedJoinOrder : 0;
 
             var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };

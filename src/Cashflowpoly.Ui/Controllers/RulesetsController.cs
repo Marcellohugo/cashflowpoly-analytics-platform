@@ -40,7 +40,15 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await response.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
+        var data = await TryReadJsonAsync<RulesetListResponseDto>(response.Content, ct);
+        if (data is null)
+        {
+            return View(new RulesetListViewModel
+            {
+                ErrorMessage = "Respon daftar ruleset tidak valid."
+            });
+        }
+
         return View(new RulesetListViewModel
         {
             Items = data?.Items ?? new List<RulesetListItemDto>()
@@ -147,7 +155,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
             model.ErrorMessage = error?.Message ?? $"Gagal membuat ruleset. Status: {(int)response.StatusCode}";
             return View(model);
         }
@@ -168,14 +176,22 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
             return View(new RulesetDetailViewModel
             {
                 ErrorMessage = error?.Message ?? $"Gagal memuat ruleset. Status: {(int)response.StatusCode}"
             });
         }
 
-        var data = await response.Content.ReadFromJsonAsync<RulesetDetailResponseDto>(cancellationToken: ct);
+        var data = await TryReadJsonAsync<RulesetDetailResponseDto>(response.Content, ct);
+        if (data is null)
+        {
+            return View(new RulesetDetailViewModel
+            {
+                ErrorMessage = "Respon detail ruleset tidak valid."
+            });
+        }
+
         return View(new RulesetDetailViewModel
         {
             Ruleset = data,
@@ -240,17 +256,25 @@ public sealed class RulesetsController : Controller
 
     private static async Task<string> BuildRulesetApiErrorMessage(HttpResponseMessage response, string prefix, CancellationToken ct)
     {
-        ApiErrorResponseDto? error = null;
+        var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+
+        return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
+    }
+
+    private static async Task<T?> TryReadJsonAsync<T>(HttpContent content, CancellationToken ct)
+    {
         try
         {
-            error = await response.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            return await content.ReadFromJsonAsync<T>(cancellationToken: ct);
         }
         catch (JsonException)
         {
-            // Fallback to generic text when API body is not JSON.
+            return default;
         }
-
-        return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
+        catch (NotSupportedException)
+        {
+            return default;
+        }
     }
 }
 

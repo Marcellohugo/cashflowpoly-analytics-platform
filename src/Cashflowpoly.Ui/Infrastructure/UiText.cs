@@ -278,6 +278,7 @@ public static class UiText
         ["players.tip.tracking"] = ("Gunakan Player ID untuk tracing event/transaksi.", "Use Player ID to trace events/transactions."),
         ["players.tip.analysis"] = ("Masuk detail sesi untuk membuka metrik pemain per sesi.", "Open session details to view per-session player metrics."),
         ["players.count_suffix"] = ("pemain", "players"),
+        ["players.winner_badge"] = ("Juara 1", "Winner 1"),
         ["players.add"] = ("Tambah", "Add"),
         ["players.name_placeholder"] = ("Nama pemain", "Player name"),
         ["players.detail_title"] = ("Detail pemain", "Player details"),
