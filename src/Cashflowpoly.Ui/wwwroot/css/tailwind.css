@@ -1123,16 +1123,16 @@ body.role-player .section-shell {
   height: 0.5rem;
 }
 
-.max-h-96{
-  max-height: 24rem;
-}
-
 .w-2{
   width: 0.5rem;
 }
 
 .w-full{
   width: 100%;
+}
+
+.min-w-\[1440px\]{
+  min-width: 1440px;
 }
 
 .flex-1{
@@ -1191,20 +1191,12 @@ body.role-player .section-shell {
   margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
 }
 
-.overflow-auto{
-  overflow: auto;
-}
-
-.rounded-2xl{
-  border-radius: 1rem;
+.whitespace-nowrap{
+  white-space: nowrap;
 }
 
 .rounded-full{
   border-radius: 9999px;
-}
-
-.border{
-  border-width: 1px;
 }
 
 .border-b{
@@ -1253,21 +1245,8 @@ body.role-player .section-shell {
   background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
 }
 
-.bg-slate-50{
-  --tw-bg-opacity: 1;
-  background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1));
-}
-
 .bg-white\/70{
   background-color: rgb(255 255 255 / 0.7);
-}
-
-.p-3{
-  padding: 0.75rem;
-}
-
-.p-4{
-  padding: 1rem;
 }
 
 .p-5{
@@ -1328,8 +1307,9 @@ body.role-player .section-shell {
   line-height: 2.5rem;
 }
 
-.text-\[11px\]{
-  font-size: 11px;
+.text-base{
+  font-size: 1rem;
+  line-height: 1.5rem;
 }
 
 .text-lg{
@@ -2566,6 +2546,28 @@ a:hover {
 .analytics-table-block {
   border-color: #8fdad3 !important;
   box-shadow: 0 14px 28px rgba(20, 99, 134, 0.1) !important;
+}
+
+.analytics-minimum-matrix {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.analytics-minimum-matrix .analytics-minimum-matrix-table {
+  width: max-content;
+  min-width: 1440px;
+}
+
+.analytics-minimum-matrix .analytics-minimum-matrix-table th,
+.analytics-minimum-matrix .analytics-minimum-matrix-table td {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.analytics-minimum-matrix .analytics-minimum-matrix-table th:first-child,
+.analytics-minimum-matrix .analytics-minimum-matrix-table td:first-child {
+  min-width: 220px;
 }
 
 .chart-grid {
@@ -4722,16 +4724,18 @@ select.auth-input {
 }
 
 @media (min-width: 1024px){
-  .lg\:grid-cols-2{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .lg\:grid-cols-\[1\.1fr_0\.9fr\]{
     grid-template-columns: 1.1fr 0.9fr;
   }
 
   .lg\:items-center{
     align-items: center;
+  }
+}
+
+@media (min-width: 1280px){
+  .xl\:grid-cols-4{
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

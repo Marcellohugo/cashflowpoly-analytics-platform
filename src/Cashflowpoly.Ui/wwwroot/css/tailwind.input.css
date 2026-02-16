@@ -1343,6 +1343,28 @@ a:hover {
     box-shadow: 0 14px 28px rgba(20, 99, 134, 0.1) !important;
 }
 
+.analytics-minimum-matrix {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.analytics-minimum-matrix .analytics-minimum-matrix-table {
+    width: max-content;
+    min-width: 1440px;
+}
+
+.analytics-minimum-matrix .analytics-minimum-matrix-table th,
+.analytics-minimum-matrix .analytics-minimum-matrix-table td {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.analytics-minimum-matrix .analytics-minimum-matrix-table th:first-child,
+.analytics-minimum-matrix .analytics-minimum-matrix-table td:first-child {
+    min-width: 220px;
+}
+
 .chart-grid {
     display: grid;
     gap: 1rem;

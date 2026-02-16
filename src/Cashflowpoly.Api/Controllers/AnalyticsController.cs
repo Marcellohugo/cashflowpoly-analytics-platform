@@ -90,7 +90,8 @@ public sealed class AnalyticsController : ControllerBase
 
         var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
         var summary = BuildSummary(events, projections, violations);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, ct);
+        var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
 
         return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName));
     }
@@ -143,7 +144,8 @@ public sealed class AnalyticsController : ControllerBase
 
         var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
         var summary = BuildSummary(events, projections, violations);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, ct);
+        var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
         if (scope.PlayerId.HasValue)
         {
             byPlayer = byPlayer.Where(item => item.PlayerId == scope.PlayerId.Value).ToList();
@@ -310,7 +312,8 @@ public sealed class AnalyticsController : ControllerBase
             }
 
             var happinessByPlayer = ComputeHappinessByPlayer(events, projections, config);
-            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, ct);
+            var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(session.SessionId, ct);
+            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
             var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
 
             foreach (var player in byPlayer)
@@ -526,6 +529,7 @@ public sealed class AnalyticsController : ControllerBase
         List<CashflowProjectionDb> projections,
         Dictionary<Guid, HappinessBreakdown> happinessByPlayer,
         RulesetConfig? config,
+        Dictionary<Guid, int> playerJoinOrders,
         CancellationToken ct)
     {
         var cashTotals = projections
@@ -542,6 +546,9 @@ public sealed class AnalyticsController : ControllerBase
         var grouped = events.Where(e => e.PlayerId.HasValue)
             .GroupBy(e => e.PlayerId!.Value)
             .ToList();
+        var firstEventSequenceByPlayer = grouped.ToDictionary(
+            group => group.Key,
+            group => group.Min(item => item.SequenceNumber));
 
         foreach (var group in grouped)
         {
@@ -600,7 +607,31 @@ public sealed class AnalyticsController : ControllerBase
                 happiness.HasUnpaidLoan));
         }
 
-        return result;
+        return OrderPlayersByRulesetConfig(result, config, playerJoinOrders, firstEventSequenceByPlayer);
+    }
+
+    private static List<AnalyticsByPlayerItem> OrderPlayersByRulesetConfig(
+        List<AnalyticsByPlayerItem> players,
+        RulesetConfig? config,
+        Dictionary<Guid, int> playerJoinOrders,
+        Dictionary<Guid, long> firstEventSequenceByPlayer)
+    {
+        return (config?.PlayerOrdering ?? PlayerOrdering.JoinOrder) switch
+        {
+            PlayerOrdering.EventSequence => players
+                .OrderBy(player => firstEventSequenceByPlayer.TryGetValue(player.PlayerId, out var firstSeq) ? firstSeq : long.MaxValue)
+                .ThenBy(player => playerJoinOrders.TryGetValue(player.PlayerId, out var joinOrder) ? joinOrder : int.MaxValue)
+                .ThenBy(player => player.PlayerId)
+                .ToList(),
+            PlayerOrdering.PlayerId => players
+                .OrderBy(player => player.PlayerId)
+                .ToList(),
+            _ => players
+                .OrderBy(player => playerJoinOrders.TryGetValue(player.PlayerId, out var joinOrder) ? joinOrder : int.MaxValue)
+                .ThenBy(player => firstEventSequenceByPlayer.TryGetValue(player.PlayerId, out var firstSeq) ? firstSeq : long.MaxValue)
+                .ThenBy(player => player.PlayerId)
+                .ToList()
+        };
     }
 
     private static bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category)

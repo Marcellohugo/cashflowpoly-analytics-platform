@@ -5,6 +5,23 @@
     ViewData["Title"] = Context.T("sessions.detail_title");
     var isInstructor = Context.Session.IsInstructor();
     var playerDisplayNames = Model.PlayerDisplayNames;
+    var fallbackPlayerNames = new Dictionary<Guid, string>();
+    var fallbackPlayerIndex = 1;
+    var knownPlayerIds = (Model.Analytics?.ByPlayer.Select(item => item.PlayerId) ?? Enumerable.Empty<Guid>())
+        .Concat(Model.Timeline.Where(item => item.PlayerId.HasValue).Select(item => item.PlayerId!.Value))
+        .Distinct()
+        .ToList();
+
+    foreach (var playerId in knownPlayerIds)
+    {
+        if (playerDisplayNames.TryGetValue(playerId, out var displayName) && !string.IsNullOrWhiteSpace(displayName))
+        {
+            continue;
+        }
+
+        fallbackPlayerNames[playerId] = $"{Context.T("common.player")} {fallbackPlayerIndex}";
+        fallbackPlayerIndex++;
+    }
 
     string ResolvePlayerName(Guid playerId)
     {
@@ -13,7 +30,12 @@
             return displayName;
         }
 
-        return playerId.ToString()[..8];
+        if (fallbackPlayerNames.TryGetValue(playerId, out var fallbackName))
+        {
+            return fallbackName;
+        }
+
+        return Context.T("common.player");
     }
 
     string ResolveActorLabel(Cashflowpoly.Ui.Models.SessionTimelineEventViewModel item)
@@ -152,7 +174,7 @@
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
-                        <th class="px-4 py-3">@Context.T("common.player")</th>
+                        <th class="px-4 py-3">@Context.T("common.name")</th>
                         <th class="px-4 py-3 text-right">@Context.T("metric.cash_in")</th>
                         <th class="px-4 py-3 text-right">@Context.T("metric.cash_out")</th>
                         <th class="px-4 py-3 text-right">@Context.T("metric.donation")</th>
@@ -176,7 +198,7 @@
                             ? "winner-row"
                             : string.Empty;
                         <tr class="border-t border-slate-200 @winnerRowClass">
-                            <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.player")">@ResolvePlayerName(item.PlayerId)</td>
+                            <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">@ResolvePlayerName(item.PlayerId)</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@item.CashInTotal</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_out")">@item.CashOutTotal</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.donation")">@item.DonationTotal</td>
@@ -433,6 +455,7 @@
                     new Chart(actorCanvas, {
                         type: "bar",
                         data: {
+                            labels: turnNumbers.map((turn) => `T${turn}`),
                             datasets: [
                                 {
                                     label: actorLabels.PLAYER,
@@ -460,10 +483,8 @@
                             responsive: true,
                             maintainAspectRatio: true,
                             aspectRatio: 2.25,
-                            parsing: false,
                             scales: {
                                 x: {
-                                    labels: turnNumbers.map((turn) => `T${turn}`),
                                     stacked: true,
                                     title: {
                                         display: true,

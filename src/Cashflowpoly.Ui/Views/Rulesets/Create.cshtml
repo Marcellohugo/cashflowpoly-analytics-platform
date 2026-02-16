@@ -65,6 +65,14 @@
                         <input id="cfg-cash" type="number" min="0" class="form-input" value="20" />
                     </div>
                     <div>
+                        <label class="form-label" for="cfg-player-ordering">@Context.T("rulesets.form.player_ordering")</label>
+                        <select id="cfg-player-ordering" class="form-input">
+                            <option value="JOIN_ORDER">@Context.T("rulesets.form.player_ordering_join_order")</option>
+                            <option value="EVENT_SEQUENCE">@Context.T("rulesets.form.player_ordering_event_sequence")</option>
+                            <option value="PLAYER_ID">@Context.T("rulesets.form.player_ordering_player_id")</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="form-label" for="cfg-freelance-income">@Context.T("rulesets.form.freelance_income")</label>
                         <input id="cfg-freelance-income" type="number" min="0" class="form-input" value="1" />
                     </div>
@@ -153,6 +161,7 @@
                 mode: getEl("cfg-mode")?.value ?? "PEMULA",
                 actions_per_turn: toInt("cfg-actions", 2),
                 starting_cash: toInt("cfg-cash", 20),
+                player_ordering: getEl("cfg-player-ordering")?.value ?? "JOIN_ORDER",
                 weekday_rules: {
                     friday: { feature: "DONATION", enabled: toBool("cfg-friday") },
                     saturday: { feature: "GOLD_TRADE", enabled: toBool("cfg-saturday") },
@@ -187,6 +196,10 @@
                 getEl("cfg-mode").value = cfg.mode ?? "PEMULA";
                 getEl("cfg-actions").value = cfg.actions_per_turn ?? 2;
                 getEl("cfg-cash").value = cfg.starting_cash ?? 20;
+                const playerOrdering = `${cfg.player_ordering ?? "JOIN_ORDER"}`.toUpperCase();
+                getEl("cfg-player-ordering").value = ["JOIN_ORDER", "EVENT_SEQUENCE", "PLAYER_ID"].includes(playerOrdering)
+                    ? playerOrdering
+                    : "JOIN_ORDER";
                 getEl("cfg-freelance-income").value = cfg.freelance?.income ?? 1;
                 getEl("cfg-friday").checked = !!cfg.weekday_rules?.friday?.enabled;
                 getEl("cfg-saturday").checked = !!cfg.weekday_rules?.saturday?.enabled;

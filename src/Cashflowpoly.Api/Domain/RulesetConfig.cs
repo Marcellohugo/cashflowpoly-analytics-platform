@@ -7,6 +7,7 @@ internal sealed record RulesetConfig(
     string Mode,
     int ActionsPerTurn,
     int StartingCash,
+    PlayerOrdering PlayerOrdering,
     int CashMin,
     int MaxIngredientTotal,
     int MaxSameIngredient,
@@ -33,6 +34,13 @@ internal sealed record RulesetScoringConfig(
 internal sealed record RankPoint(int Rank, int Points);
 
 internal sealed record QtyPoint(int Qty, int Points);
+
+internal enum PlayerOrdering
+{
+    JoinOrder,
+    EventSequence,
+    PlayerId
+}
 
 internal static class RulesetConfigParser
 {
@@ -61,6 +69,21 @@ internal static class RulesetConfigParser
         if (!TryGetString(root, "mode", out var mode, errors)) return false;
         if (!TryGetInt(root, "actions_per_turn", out var actionsPerTurn, errors)) return false;
         if (!TryGetInt(root, "starting_cash", out var startingCash, errors)) return false;
+        var playerOrdering = PlayerOrdering.JoinOrder;
+        if (root.TryGetProperty("player_ordering", out var playerOrderingElement))
+        {
+            if (playerOrderingElement.ValueKind != JsonValueKind.String)
+            {
+                errors.Add(new ErrorDetail("config.player_ordering", "INVALID_TYPE"));
+                return false;
+            }
+
+            var playerOrderingRaw = playerOrderingElement.GetString() ?? string.Empty;
+            if (!TryParsePlayerOrdering(playerOrderingRaw, out playerOrdering))
+            {
+                errors.Add(new ErrorDetail("config.player_ordering", "INVALID_ENUM"));
+            }
+        }
 
         if (!TryGetObject(root, "weekday_rules", out var weekdayRules, errors)) return false;
         if (!TryGetObject(weekdayRules, "friday", out var fridayRules, errors)) return false;
@@ -301,6 +324,7 @@ internal static class RulesetConfigParser
             upperMode,
             actionsPerTurn,
             startingCash,
+            playerOrdering,
             cashMin,
             maxIngredientTotal,
             maxSameIngredient,
@@ -320,6 +344,30 @@ internal static class RulesetConfigParser
             scoring);
 
         return true;
+    }
+
+    private static bool TryParsePlayerOrdering(string rawValue, out PlayerOrdering ordering)
+    {
+        ordering = PlayerOrdering.JoinOrder;
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return false;
+        }
+
+        switch (rawValue.Trim().ToUpperInvariant())
+        {
+            case "JOIN_ORDER":
+                ordering = PlayerOrdering.JoinOrder;
+                return true;
+            case "EVENT_SEQUENCE":
+                ordering = PlayerOrdering.EventSequence;
+                return true;
+            case "PLAYER_ID":
+                ordering = PlayerOrdering.PlayerId;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool TryGetObject(JsonElement root, string name, out JsonElement element, List<ErrorDetail> errors)

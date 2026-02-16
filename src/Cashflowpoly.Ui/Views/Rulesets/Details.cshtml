@@ -244,6 +244,13 @@
                                            class="form-input" />
                                 </div>
                                 <div>
+                                    <label class="form-label">@Context.T("rulesets.form.player_ordering")</label>
+                                    <input type="text"
+                                           readonly
+                                           value="@AsText(GetPath(cfg, "player_ordering"), "JOIN_ORDER")"
+                                           class="form-input" />
+                                </div>
+                                <div>
                                     <label class="form-label">@Context.T("rulesets.form.freelance_income")</label>
                                     <input type="number"
                                            readonly

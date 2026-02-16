@@ -137,6 +137,21 @@ public sealed class PlayerRepository
         }, cancellationToken: ct));
     }
 
+    public async Task<Dictionary<Guid, int>> GetSessionPlayerJoinOrderMapAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select player_id, join_order
+            from session_players
+            where session_id = @sessionId
+            order by join_order asc, created_at asc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var rows = await conn.QueryAsync<SessionPlayerJoinOrderDb>(
+            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+        return rows.ToDictionary(row => row.PlayerId, row => row.JoinOrder);
+    }
+
     public async Task<bool> IsPlayerInSessionAsync(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -148,5 +163,11 @@ public sealed class PlayerRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var result = await conn.ExecuteScalarAsync<int?>(new CommandDefinition(sql, new { sessionId, playerId }, cancellationToken: ct));
         return result.HasValue;
+    }
+
+    private sealed class SessionPlayerJoinOrderDb
+    {
+        public Guid PlayerId { get; init; }
+        public int JoinOrder { get; init; }
     }
 }
