@@ -139,10 +139,29 @@ Sistem berjalan baik jika:
 3. endpoint sample dapat dipanggil,
 4. MVC bisa jalan dan menampilkan halaman,
 5. login API mengembalikan token Bearer dan endpoint terproteksi bisa diakses dengan token tersebut.
+6. endpoint observability (`/api/v1/observability/metrics`) dan security audit (`/api/v1/security/audit-logs`) dapat diakses oleh role `INSTRUCTOR`.
 
 ---
 
-## 8. Menjalankan dengan Docker Compose
+## 8. Menjalankan Load Test Baseline
+Setelah API dan DB aktif, jalankan:
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041
+```
+
+Hasil default tersimpan pada folder `docs/evidence/<tanggal>/load-test-summary.md`.
+
+---
+
+## 9. Lokasi Evidence Formal
+Artefak formal verifikasi (build/test/compose/load/security/observability) disimpan di:
+```text
+docs/evidence/
+```
+
+---
+
+## 10. Menjalankan dengan Docker Compose
 Jalankan dari root repository:
 ```bash
 docker compose up --build

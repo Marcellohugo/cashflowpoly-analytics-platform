@@ -140,6 +140,11 @@ setx JWT_SIGNING_KEY "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
 
 Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `.env`.
 
+Untuk hardening produksi, API mendukung opsi tambahan:
+1. `JWT_SIGNING_KEYS_JSON` untuk multi-key rotation (format array JSON berisi `keyId`, `signingKey`, `activateAtUtc`, `retireAtUtc`).
+2. `Jwt:SigningKeysFile` atau `Jwt:SigningKeyFile` untuk membaca secret dari file mount (contoh: `/run/secrets/...` dari vault/secret manager).
+3. Header token otomatis membawa `kid` dan API memvalidasi token berdasarkan daftar key aktif/retired grace-period.
+
 Catatan bootstrap auth:
 - `Auth:AllowPublicInstructorRegistration` mengatur registrasi publik `INSTRUCTOR` secara langsung (`true` diizinkan, `false` ditolak `403`).
 - Pada repositori ini, `appsettings*.json` menetapkan `true`, sedangkan konfigurasi Docker Compose (`.env`) default ke `false` kecuali dioverride.
@@ -194,6 +199,7 @@ Setup selesai jika:
 3. connection string PostgreSQL sudah benar di `Cashflowpoly.Api/appsettings.Development.json`,
 4. `ApiBaseUrl` sudah sesuai di `Cashflowpoly.Ui/appsettings.Development.json`,
 5. dependensi Tailwind sudah terpasang (npm install) dan build CSS berhasil.
+6. jika memakai secret manager, path secret file JWT dapat diakses container/proses API.
 
 Untuk menjalankan sistem, lanjutkan ke: `docs/00-Panduan/00-03-panduan-menjalankan-sistem.md`.
 

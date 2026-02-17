@@ -151,6 +151,26 @@ public sealed class AuthSchemaBootstrapper : IHostedService
                   and r.instructor_user_id is null;
               end if;
             end $$;
+
+            create table if not exists security_audit_logs (
+              security_audit_log_id uuid primary key,
+              occurred_at timestamptz not null default now(),
+              trace_id varchar(64) not null,
+              event_type varchar(80) not null,
+              outcome varchar(20) not null check (outcome in ('SUCCESS','FAILURE','DENIED')),
+              user_id uuid null references app_users(user_id) on delete set null,
+              username varchar(80) null,
+              role varchar(20) null,
+              ip_address varchar(64) null,
+              user_agent varchar(300) null,
+              method varchar(16) not null,
+              path varchar(240) not null,
+              status_code int not null check (status_code >= 100 and status_code <= 599),
+              detail_json jsonb null
+            );
+            create index if not exists ix_security_audit_logs_occurred on security_audit_logs(occurred_at desc);
+            create index if not exists ix_security_audit_logs_event on security_audit_logs(event_type, occurred_at desc);
+            create index if not exists ix_security_audit_logs_user on security_audit_logs(user_id, occurred_at desc);
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);

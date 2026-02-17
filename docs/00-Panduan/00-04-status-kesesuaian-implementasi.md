@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 1.9
-- Tanggal: 15 Februari 2026
+- Versi: 2.0
+- Tanggal: 17 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -31,12 +31,19 @@ Acuan utama:
 | Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman `/analytics`. |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
 | Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
+| Observability operasional | Sesuai | Endpoint observability (`GET /api/v1/observability/metrics`) tersedia dengan metrik jumlah request, error rate, avg/p95 latency per endpoint; trace ID diseragamkan pada header/log. |
+| Hardening keamanan produksi (baseline) | Sesuai | Rotasi JWT multi-key berbasis `kid` + window aktivasi/retire, dukungan secret env/file untuk integrasi vault/secret manager, dan audit log keamanan persisten tersedia. |
+| Baseline uji performa | Sesuai | Script load test repeatable tersedia di `scripts/perf/run-load-test.ps1` dan menghasilkan laporan evidence markdown. |
 
 ---
 
 ## 3. Daftar Gap Prioritas
-1. Menambah observability lebih detail (dashboard metrics, tracing terstruktur).
-2. Menambah hardening keamanan produksi lanjutan (rotasi key JWT otomatis, vault/secret manager terkelola, audit log keamanan).
+Gap prioritas sebelumnya telah ditutup pada baseline implementasi.
+
+Pekerjaan lanjutan yang masih direkomendasikan (non-blocker):
+1. Integrasikan exporter tracing/metrics ke platform observability eksternal (Grafana/OTel collector) untuk environment produksi.
+2. Aktifkan rotasi secret terjadwal melalui secret manager yang dipakai environment deploy (misalnya KV/Secrets Manager) dengan SOP operasional.
+3. Tambahkan uji performa skenario beban paralel jangka panjang (durasi > 30 menit) untuk uji stabilitas.
 
 ---
 
@@ -46,5 +53,6 @@ Implementasi dianggap siap ketika:
 2. role check instruktur/player tervalidasi API (bukan UI saja),
 3. endpoint grouped-by-ruleset tersedia dan tervalidasi,
 4. docs, smoke, postman, dan implementasi konsisten,
-5. hasil build/test/smoke/compose lulus tanpa bug blocker.
+5. hasil build/test/smoke/compose/load-test baseline lulus tanpa bug blocker,
+6. observability operasional + audit log keamanan aktif dan dapat diverifikasi.
 

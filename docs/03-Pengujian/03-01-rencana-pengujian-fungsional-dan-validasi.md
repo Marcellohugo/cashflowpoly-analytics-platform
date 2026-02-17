@@ -613,3 +613,16 @@ Fitur dinyatakan selesai jika:
 5. Skenario Postman kritikal lulus.
 6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 
+### 14.4 Baseline uji performa dan evidence formal
+1. Jalankan script load test baseline:
+   - `powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041`
+2. Verifikasi target minimum:
+   - P95 ingest event <= 500 ms,
+   - P95 analytics sesi <= 1500 ms,
+   - error rate 0% pada skenario baseline.
+3. Simpan artefak ke folder `docs/evidence/<tanggal>/`:
+   - output build/test,
+   - status compose/health,
+   - ringkasan load test,
+   - sampel SQL/security audit/observability.
+

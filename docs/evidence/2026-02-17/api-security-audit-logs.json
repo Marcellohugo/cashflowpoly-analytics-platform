@@ -1,0 +1,64 @@
+﻿{
+    "items":  [
+                  {
+                      "security_audit_log_id":  "eaf62225-d416-4cde-ba26-4848867466fe",
+                      "occurred_at":  "2026-02-17T03:41:04.153424+00:00",
+                      "trace_id":  "58ceb4006894e8eabdd6410af624b539",
+                      "event_type":  "LOGIN_SUCCESS",
+                      "outcome":  "SUCCESS",
+                      "user_id":  null,
+                      "username":  null,
+                      "role":  null,
+                      "ip_address":  "::ffff:172.20.0.1",
+                      "user_agent":  "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-GB) WindowsPowerShell/5.1.26100.7705",
+                      "method":  "POST",
+                      "path":  "/api/v1/auth/login",
+                      "status_code":  200,
+                      "detail":  {
+                                     "role":  "INSTRUCTOR",
+                                     "user_id":  "66c875c2-f20a-41c9-9c6c-fc3ef8d2fe34",
+                                     "username":  "perf_instr_49fd4f9b31"
+                                 }
+                  },
+                  {
+                      "security_audit_log_id":  "0c192429-f23d-4753-bce7-407c413e559d",
+                      "occurred_at":  "2026-02-17T03:35:55.420784+00:00",
+                      "trace_id":  "719877ebbebd62e4ba2b28186e0b05eb",
+                      "event_type":  "LOGIN_SUCCESS",
+                      "outcome":  "SUCCESS",
+                      "user_id":  null,
+                      "username":  null,
+                      "role":  null,
+                      "ip_address":  "::ffff:172.20.0.1",
+                      "user_agent":  "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-GB) WindowsPowerShell/5.1.26100.7705",
+                      "method":  "POST",
+                      "path":  "/api/v1/auth/login",
+                      "status_code":  200,
+                      "detail":  {
+                                     "role":  "INSTRUCTOR",
+                                     "user_id":  "66c875c2-f20a-41c9-9c6c-fc3ef8d2fe34",
+                                     "username":  "perf_instr_49fd4f9b31"
+                                 }
+                  },
+                  {
+                      "security_audit_log_id":  "2fb5076c-f573-482d-a69d-da8b5f323843",
+                      "occurred_at":  "2026-02-17T03:34:37.212738+00:00",
+                      "trace_id":  "783a361e332fe5840146135653307358",
+                      "event_type":  "REGISTER_SUCCESS",
+                      "outcome":  "SUCCESS",
+                      "user_id":  null,
+                      "username":  null,
+                      "role":  null,
+                      "ip_address":  "::ffff:172.20.0.1",
+                      "user_agent":  null,
+                      "method":  "POST",
+                      "path":  "/api/v1/auth/register",
+                      "status_code":  201,
+                      "detail":  {
+                                     "role":  "INSTRUCTOR",
+                                     "user_id":  "66c875c2-f20a-41c9-9c6c-fc3ef8d2fe34",
+                                     "username":  "perf_instr_49fd4f9b31"
+                                 }
+                  }
+              ]
+}

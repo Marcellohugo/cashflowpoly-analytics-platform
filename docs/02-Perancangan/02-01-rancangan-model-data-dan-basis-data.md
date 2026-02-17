@@ -472,6 +472,49 @@ create index if not exists ix_validation_valid on validation_logs(is_valid);
 
 ---
 
+## 6.4 Tabel `security_audit_logs`
+Sistem menyimpan jejak audit keamanan aplikasi (auth challenge/forbidden/login/register/rate-limit).
+
+Kolom utama:
+- `security_audit_log_id` UUID
+- `occurred_at`
+- `trace_id`
+- `event_type`
+- `outcome` (`SUCCESS`/`FAILURE`/`DENIED`)
+- `user_id` (opsional)
+- `username` (opsional)
+- `role` (opsional)
+- `ip_address`
+- `user_agent`
+- `method`, `path`, `status_code`
+- `detail_json`
+
+SQL:
+```sql
+create table if not exists security_audit_logs (
+  security_audit_log_id uuid primary key,
+  occurred_at timestamptz not null default now(),
+  trace_id varchar(64) not null,
+  event_type varchar(80) not null,
+  outcome varchar(20) not null check (outcome in ('SUCCESS','FAILURE','DENIED')),
+  user_id uuid null references app_users(user_id) on delete set null,
+  username varchar(80) null,
+  role varchar(20) null,
+  ip_address varchar(64) null,
+  user_agent varchar(300) null,
+  method varchar(16) not null,
+  path varchar(240) not null,
+  status_code int not null check (status_code >= 100 and status_code <= 599),
+  detail_json jsonb null
+);
+
+create index if not exists ix_security_audit_logs_occurred on security_audit_logs(occurred_at desc);
+create index if not exists ix_security_audit_logs_event on security_audit_logs(event_type, occurred_at desc);
+create index if not exists ix_security_audit_logs_user on security_audit_logs(user_id, occurred_at desc);
+```
+
+---
+
 ## 7. Aturan Integritas Data
 Sistem menerapkan aturan integritas berikut:
 1. Sistem menjaga urutan event dalam sesi melalui `unique(session_id, sequence_number)` pada `events`.

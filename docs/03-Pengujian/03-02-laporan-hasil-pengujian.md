@@ -3,26 +3,27 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.6
-- Tanggal: 15 Februari 2026
+- Versi: 1.7
+- Tanggal: 17 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 15 Februari 2026.
+Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 17 Februari 2026.
 
 Cakupan laporan ini:
-- verifikasi teknis otomatis (build, test, compose, smoke),
+- verifikasi teknis otomatis (build, test, compose, smoke, load-test baseline),
 - verifikasi API black-box utama,
 - verifikasi RBAC dan rate limiting,
-- verifikasi UI MVC halaman inti.
+- verifikasi UI MVC halaman inti,
+- verifikasi observability dan security audit endpoint.
 
 ---
 
 ## 2. Identitas Pengujian
 - Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
-- Tanggal pengujian: 15 Februari 2026
+- Tanggal pengujian: 17 Februari 2026
 - Versi aplikasi (git commit): working tree lokal (terdapat perubahan belum di-commit)
 - Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
@@ -38,6 +39,8 @@ Cakupan laporan ini:
 | Uji Integrasi | Alur end-to-end: login/register -> ruleset -> session -> player -> event -> analytics | PASS |
 | Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
 | Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
+| Verifikasi observability + audit keamanan | Endpoint operasional metrics + security audit logs | PASS |
+| Uji performa baseline | Skrip load test ingest + analytics sesuai target P95 | PASS |
 
 Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan pada seluruh rangkaian verifikasi.
 
@@ -47,12 +50,15 @@ Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
 | Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
-| Test solution | `dotnet test Cashflowpoly.sln` | PASS | 18 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`, termasuk integration test auth+RBAC+ruleset+analytics) |
+| Test solution | `dotnet test Cashflowpoly.sln` | PASS | 23 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`) |
 | Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
 | Smoke API end-to-end | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
 | RBAC smoke | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
 | Rate-limit smoke | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
 | Web UI smoke | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |
+| Load test baseline | `scripts/perf/run-load-test.ps1` | PASS | Ingest P95 18.72 ms, Analytics P95 867.26 ms, error rate 0% |
+| Observability API | `GET /api/v1/observability/metrics` | PASS | respons `200`, metrik endpoint tersedia |
+| Security audit API | `GET /api/v1/security/audit-logs` | PASS | respons `200`, jejak event keamanan tersedia |
 
 Catatan:
 - Verifikasi pada tabel di atas dijalankan secara lokal berbasis CLI, koleksi Postman, dan browser.
@@ -63,6 +69,10 @@ Tambahan cek endpoint analitika:
 - `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` -> `200`
 - `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` -> `200`
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` -> `200`
+
+Tambahan cek endpoint observability & security:
+- `GET /api/v1/observability/metrics?top=15` -> `200`
+- `GET /api/v1/security/audit-logs?limit=20` -> `200`
 
 ---
 
@@ -84,8 +94,8 @@ Tambahan cek endpoint analitika:
 Temuan blocker: **tidak ada**.
 
 Catatan residual:
-1. Uji performa beban tinggi (volume event besar) belum dieksekusi pada sesi ini.
-2. Bukti screenshot/sql lampiran formal belum dikurasi ke folder `docs/evidence/` pada laporan ini.
+1. Uji beban jangka panjang (durasi > 30 menit, concurrency tinggi) belum dieksekusi pada sesi ini.
+2. Evidence screenshot UI khusus sidang belum ditambahkan; evidence teknis CLI/API/SQL sudah tersedia di `docs/evidence/2026-02-17/`.
 
 ---
 
@@ -97,5 +107,5 @@ Catatan residual:
   - tidak ditemukan bug blocker pada jalur fitur inti.
 
 Tindak lanjut yang direkomendasikan:
-1. Tambahkan pengujian performa terukur (P95 endpoint analitika).
-2. Lengkapi artefak bukti formal (screenshot UI, hasil query DB, export Postman) bila dibutuhkan untuk lampiran sidang.
+1. Tambahkan skenario stress test paralel berdurasi panjang untuk validasi stabilitas.
+2. Lengkapi screenshot UI terkurasi bila dibutuhkan untuk lampiran sidang.

@@ -111,6 +111,9 @@ Akses (sesuai `.env`):
 
 Catatan keamanan lokal:
 - Set `JWT_SIGNING_KEY` di `.env` (minimal 32 karakter).
+- Untuk rotasi key JWT, bisa pakai:
+  - `JWT_SIGNING_KEYS_JSON` (array JSON key + `kid` + window aktivasi), atau
+  - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
 - Registrasi publik `INSTRUCTOR` dikontrol langsung oleh `Auth:AllowPublicInstructorRegistration` (`true` = diizinkan, `false` = ditolak `403`).
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 
@@ -146,6 +149,7 @@ Buat database dan user, lalu jalankan skrip DDL dari `database/00_create_schema.
 API memakai koneksi database dari `ConnectionStrings:Default`.
 UI memakai base URL API dari `ApiBaseUrl`.
 JWT API dibaca dari `Jwt:SigningKey` dengan fallback ke environment variable `JWT_SIGNING_KEY`.
+Untuk production hardening, API juga mendukung multi-key rotation via `Jwt:SigningKeys` / `JWT_SIGNING_KEYS_JSON` serta secret file (`Jwt:SigningKeysFile` / `Jwt:SigningKeyFile`).
 
 Contoh lokal (sesuai `.env` dan launch settings):
 - API: `http://localhost:5041` atau `https://localhost:7041`
@@ -172,6 +176,8 @@ Endpoint tambahan yang tersedia:
 - `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
 - `GET /api/v1/rulesets/{rulesetId}` detail ruleset + versi
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
+- `GET /api/v1/observability/metrics` ringkasan metrik operasional endpoint (request count, error rate, latency)
+- `GET /api/v1/security/audit-logs` ringkasan audit log keamanan
 - `GET /health/live` liveness API/UI
 - `GET /health/ready` readiness API/UI
 
@@ -196,11 +202,13 @@ Dokumen kunci:
 - Integration test API (auth + RBAC + ruleset + analytics flow) dijalankan via xUnit + Testcontainers, jadi Docker daemon wajib aktif saat `dotnet test`.
 - Jalankan hanya integration test: `dotnet test Cashflowpoly.sln --filter "Category=Integration"`.
 - Jalankan test non-integration (lebih cepat): `dotnet test Cashflowpoly.sln --filter "Category!=Integration"`.
+- Jalankan load test baseline: `powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041`.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md`.
+- Artefak bukti formal tersimpan pada `docs/evidence/`.
 - CI pipeline build+test tersedia di `.github/workflows/ci.yml`.
 
 ## Operasional DB (Backup/Restore)

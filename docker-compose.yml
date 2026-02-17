@@ -35,6 +35,10 @@ services:
       ASPNETCORE_URLS: http://+:${API_HTTP_PORT:-5041}
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:-cashflowpoly}
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      Jwt__SigningKeyFile: ${JWT_SIGNING_KEY_FILE:-}
+      Jwt__SigningKeysFile: ${JWT_SIGNING_KEYS_FILE:-}
+      Jwt__SigningKeysJson: ${JWT_SIGNING_KEYS_JSON:-}
+      Jwt__ActiveKeyId: ${JWT_ACTIVE_KEY_ID:-legacy}
       Auth__AllowPublicInstructorRegistration: ${AUTH_ALLOW_PUBLIC_INSTRUCTOR_REGISTRATION:-false}
       AuthBootstrap__SeedDefaultUsers: ${AUTH_BOOTSTRAP_SEED_DEFAULT_USERS:-false}
       AuthBootstrap__InstructorUsername: ${AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME:-}

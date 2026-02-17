@@ -92,6 +92,13 @@ Catatan:
 2. Endpoint ruleset memvalidasi struktur/tipe/rentang nilai konfigurasi sebelum disimpan atau diaktifkan.
 3. Endpoint event memvalidasi urutan (`sequence_number`), idempotensi (`session_id + event_id`), dan kesesuaian `ruleset_version_id`.
 
+### 3.7 Rotasi key JWT dan integrasi secret manager
+1. API mendukung multi-key JWT (`kid`) melalui konfigurasi `Jwt:SigningKeys` atau `JWT_SIGNING_KEYS_JSON`.
+2. Setiap key dapat memiliki window `ActivateAtUtc` dan `RetireAtUtc`; key aktif dipilih otomatis berdasarkan waktu server.
+3. API mendukung pembacaan secret dari file (`Jwt:SigningKeysFile`/`Jwt:SigningKeyFile`) agar dapat diintegrasikan dengan vault/secret manager berbasis mount.
+4. Token lama tetap tervalidasi selama key masih dalam grace period validasi.
+5. Konfigurasi key placeholder atau key di bawah batas minimum ditolak saat startup.
+
 ---
 
 ## 4. Idempotency, Retry, dan Timeout
@@ -191,8 +198,10 @@ Catatan:
 
 ### 8.3 Observability
 1. Log request terstruktur minimum: `trace_id`, `method`, `path`, `status_code`, `duration_ms`.
-2. Audit validasi event masuk ke `validation_logs`.
-3. Error tak terduga harus direkam ke log server dan dikembalikan sebagai respons error standar.
+2. API menyediakan endpoint observability `GET /api/v1/observability/metrics` (request count, error rate, latency avg/p95 per endpoint).
+3. Audit validasi event masuk ke `validation_logs`.
+4. Audit keamanan disimpan pada tabel `security_audit_logs` dan tersedia via `GET /api/v1/security/audit-logs` (role `INSTRUCTOR`).
+5. Error tak terduga harus direkam ke log server dan dikembalikan sebagai respons error standar.
 
 ### 8.4 Backup dan restore
 1. Backup database harian.

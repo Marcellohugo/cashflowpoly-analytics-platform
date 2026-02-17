@@ -1025,6 +1025,57 @@ Catatan:
 
 ---
 
+### 9.5 Ambil metrik operasional observability
+- Method: `GET`
+- Path: `/api/v1/observability/metrics?top=20`
+- Otorisasi: `INSTRUCTOR`
+- Response 200 (ringkas):
+```json
+{
+  "generated_at": "2026-02-17T10:30:00Z",
+  "total_requests": 1200,
+  "total_errors": 12,
+  "error_rate_percent": 1.0,
+  "endpoints": [
+    {
+      "method": "GET",
+      "route_pattern": "api/v1/analytics/sessions/{sessionId:guid}",
+      "request_count": 320,
+      "error_count": 0,
+      "error_rate_percent": 0,
+      "average_duration_ms": 210.6,
+      "p95_duration_ms": 842.1
+    }
+  ]
+}
+```
+
+---
+
+### 9.6 Ambil audit log keamanan
+- Method: `GET`
+- Path: `/api/v1/security/audit-logs?limit=100&eventType=AUTH_FORBIDDEN`
+- Otorisasi: `INSTRUCTOR`
+- Response 200:
+```json
+{
+  "items": [
+    {
+      "security_audit_log_id": "uuid",
+      "occurred_at": "2026-02-17T10:31:00Z",
+      "trace_id": "trace-id",
+      "event_type": "AUTH_FORBIDDEN",
+      "outcome": "DENIED",
+      "status_code": 403,
+      "path": "/api/v1/rulesets",
+      "method": "POST"
+    }
+  ]
+}
+```
+
+---
+
 ## 10. Status Code dan Makna
 | Status | Makna |
 |---:|---|

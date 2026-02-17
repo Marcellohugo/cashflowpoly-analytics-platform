@@ -80,6 +80,7 @@ Tanggung jawab:
    - `events`, `event_cashflow_projections`,
    - `metric_snapshots`,
    - `validation_logs`,
+   - `security_audit_logs`,
    - `app_users`.
 
 ### Tahap C - Auth dan RBAC
@@ -125,6 +126,13 @@ Tanggung jawab:
 3. jalankan Postman collection,
 4. jalankan `docker compose` untuk verifikasi integrasi.
 
+### Tahap J - Observability dan Hardening Keamanan
+1. aktifkan metrik operasional endpoint (`request count`, `error rate`, `latency avg/p95`),
+2. aktifkan trace context terstruktur (`trace_id`, `span_id`) pada log + header response,
+3. aktifkan JWT multi-key rotation berbasis `kid`,
+4. aktifkan source secret env/file untuk integrasi vault/secret manager,
+5. simpan audit keamanan ke `security_audit_logs` + endpoint audit.
+
 ---
 
 ## 6. Checklist Definition of Done
@@ -133,5 +141,7 @@ Tanggung jawab:
 3. docs dan implementasi sinkron,
 4. build lulus,
 5. verifikasi end-to-end/RBAC/Web UI dan Postman collection lulus,
-6. tidak ada bug blocker terbuka untuk modul inti.
+6. load-test baseline lulus (target P95 ingest/analytics tercapai),
+7. observability + security audit endpoint tervalidasi,
+8. tidak ada bug blocker terbuka untuk modul inti.
 

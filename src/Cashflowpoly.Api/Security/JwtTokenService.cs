@@ -1,38 +1,33 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Cashflowpoly.Api.Data;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Cashflowpoly.Api.Security;
 
 public sealed class JwtTokenService
 {
-    private readonly JwtOptions _options;
-    private readonly SigningCredentials _signingCredentials;
+    private readonly IOptions<JwtOptions> _options;
+    private readonly JwtSigningKeyProvider _signingKeyProvider;
 
-    public JwtTokenService(IOptions<JwtOptions> options)
+    public JwtTokenService(IOptions<JwtOptions> options, JwtSigningKeyProvider signingKeyProvider)
     {
-        _options = options.Value;
-        if (string.IsNullOrWhiteSpace(_options.SigningKey))
-        {
-            throw new InvalidOperationException("Jwt:SigningKey belum dikonfigurasi.");
-        }
-
-        if (_options.SigningKey.Length < 32)
-        {
-            throw new InvalidOperationException("Jwt:SigningKey minimal 32 karakter.");
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
-        _signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        _options = options;
+        _signingKeyProvider = signingKeyProvider;
+        _signingKeyProvider.ValidateConfiguration();
     }
 
     public IssuedToken IssueToken(AuthenticatedUserDb user)
     {
+        var options = _options.Value;
+        if (options.AccessTokenMinutes <= 0)
+        {
+            throw new InvalidOperationException("Jwt:AccessTokenMinutes harus lebih besar dari 0.");
+        }
+
+        var signing = _signingKeyProvider.GetActiveSigningMaterial();
         var now = DateTimeOffset.UtcNow;
-        var expiresAt = now.AddMinutes(_options.AccessTokenMinutes);
+        var expiresAt = now.AddMinutes(options.AccessTokenMinutes);
 
         var claims = new List<Claim>
         {
@@ -44,12 +39,13 @@ public sealed class JwtTokenService
         };
 
         var descriptor = new JwtSecurityToken(
-            issuer: _options.Issuer,
-            audience: _options.Audience,
+            issuer: options.Issuer,
+            audience: options.Audience,
             claims: claims,
             notBefore: now.UtcDateTime,
             expires: expiresAt.UtcDateTime,
-            signingCredentials: _signingCredentials);
+            signingCredentials: signing.SigningCredentials);
+        descriptor.Header["kid"] = signing.KeyId;
 
         var token = new JwtSecurityTokenHandler().WriteToken(descriptor);
         return new IssuedToken(token, expiresAt);

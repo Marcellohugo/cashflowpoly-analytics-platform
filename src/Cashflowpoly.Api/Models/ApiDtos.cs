@@ -216,3 +216,22 @@ public sealed record RegisterResponse(
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("access_token")] string AccessToken,
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
+
+public sealed record SecurityAuditLogItem(
+    [property: JsonPropertyName("security_audit_log_id")] Guid SecurityAuditLogId,
+    [property: JsonPropertyName("occurred_at")] DateTimeOffset OccurredAt,
+    [property: JsonPropertyName("trace_id")] string TraceId,
+    [property: JsonPropertyName("event_type")] string EventType,
+    [property: JsonPropertyName("outcome")] string Outcome,
+    [property: JsonPropertyName("user_id")] Guid? UserId,
+    [property: JsonPropertyName("username")] string? Username,
+    [property: JsonPropertyName("role")] string? Role,
+    [property: JsonPropertyName("ip_address")] string? IpAddress,
+    [property: JsonPropertyName("user_agent")] string? UserAgent,
+    [property: JsonPropertyName("method")] string Method,
+    [property: JsonPropertyName("path")] string Path,
+    [property: JsonPropertyName("status_code")] int StatusCode,
+    [property: JsonPropertyName("detail")] JsonElement? Detail);
+
+public sealed record SecurityAuditLogResponse(
+    [property: JsonPropertyName("items")] List<SecurityAuditLogItem> Items);
