@@ -333,8 +333,9 @@
                 }
                 else
                 {
-                    foreach (var item in Model.Analytics.ByPlayer)
+                    for (var playerIndex = 0; playerIndex < Model.Analytics.ByPlayer.Count; playerIndex++)
                     {
+                        var item = Model.Analytics.ByPlayer[playerIndex];
                         var rank = playerRankLookup.TryGetValue(item.PlayerId, out var resolvedRank)
                             ? resolvedRank
                             : 0;
@@ -342,7 +343,7 @@
                             ? "winner-row"
                             : string.Empty;
                         <tr class="border-t border-slate-200 @winnerRowClass">
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@(item.JoinOrder > 0 ? item.JoinOrder : "-")</td>
+                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@(playerIndex + 1)</td>
                             <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.rank")">@(rank > 0 ? rank : "-")</td>
                             <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">
                                 @ResolvePlayerName(item.PlayerId)

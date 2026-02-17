@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Security.Claims;
+using System.Globalization;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
@@ -27,6 +28,7 @@ public sealed class AnalyticsController : ControllerBase
     private readonly MetricsRepository _metrics;
     private readonly PlayerRepository _players;
     private readonly UserRepository _users;
+    private static readonly StringComparer UsernameOrderingComparer = StringComparer.Create(new CultureInfo("id-ID"), true);
 
     public AnalyticsController(
         SessionRepository sessions,
@@ -555,6 +557,7 @@ public sealed class AnalyticsController : ControllerBase
             playerId => eventsByPlayer.TryGetValue(playerId, out var items) && items.Count > 0
                 ? items.Min(item => item.SequenceNumber)
                 : long.MaxValue);
+        var usernamesByPlayer = await _users.GetUsernamesByPlayerIdsAsync(playerIds, ct);
 
         foreach (var playerId in playerIds)
         {
@@ -616,17 +619,24 @@ public sealed class AnalyticsController : ControllerBase
                 happiness.HasUnpaidLoan));
         }
 
-        return OrderPlayersByRulesetConfig(result, config, playerJoinOrders, firstEventSequenceByPlayer);
+        return OrderPlayersByRulesetConfig(result, config, playerJoinOrders, firstEventSequenceByPlayer, usernamesByPlayer);
     }
 
     private static List<AnalyticsByPlayerItem> OrderPlayersByRulesetConfig(
         List<AnalyticsByPlayerItem> players,
         RulesetConfig? config,
         Dictionary<Guid, int> playerJoinOrders,
-        Dictionary<Guid, long> firstEventSequenceByPlayer)
+        Dictionary<Guid, long> firstEventSequenceByPlayer,
+        Dictionary<Guid, string> usernamesByPlayer)
     {
         return (config?.PlayerOrdering ?? PlayerOrdering.JoinOrder) switch
         {
+            PlayerOrdering.Username => players
+                .OrderBy(player => ResolveOrderingUsername(usernamesByPlayer, player.PlayerId), UsernameOrderingComparer)
+                .ThenBy(player => playerJoinOrders.TryGetValue(player.PlayerId, out var joinOrder) ? joinOrder : int.MaxValue)
+                .ThenBy(player => firstEventSequenceByPlayer.TryGetValue(player.PlayerId, out var firstSeq) ? firstSeq : long.MaxValue)
+                .ThenBy(player => player.PlayerId)
+                .ToList(),
             PlayerOrdering.EventSequence => players
                 .OrderBy(player => firstEventSequenceByPlayer.TryGetValue(player.PlayerId, out var firstSeq) ? firstSeq : long.MaxValue)
                 .ThenBy(player => playerJoinOrders.TryGetValue(player.PlayerId, out var joinOrder) ? joinOrder : int.MaxValue)
@@ -641,6 +651,16 @@ public sealed class AnalyticsController : ControllerBase
                 .ThenBy(player => player.PlayerId)
                 .ToList()
         };
+    }
+
+    private static string ResolveOrderingUsername(Dictionary<Guid, string> usernamesByPlayer, Guid playerId)
+    {
+        if (usernamesByPlayer.TryGetValue(playerId, out var username) && !string.IsNullOrWhiteSpace(username))
+        {
+            return username.Trim();
+        }
+
+        return "~~~";
     }
 
     private static bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category)

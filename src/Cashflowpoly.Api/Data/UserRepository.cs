@@ -122,6 +122,39 @@ public sealed class UserRepository
         return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
     }
 
+    public async Task<Dictionary<Guid, string>> GetUsernamesByPlayerIdsAsync(IReadOnlyCollection<Guid> playerIds, CancellationToken ct)
+    {
+        if (playerIds.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var normalizedPlayerIds = playerIds
+            .Where(playerId => playerId != Guid.Empty)
+            .Distinct()
+            .ToArray();
+        if (normalizedPlayerIds.Length == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        const string sql = """
+            select upl.player_id as PlayerId, u.username as Username
+            from user_player_links upl
+            join app_users u on u.user_id = upl.user_id
+            where upl.player_id = any(@playerIds)
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var rows = await conn.QueryAsync<PlayerUsernameRow>(
+            new CommandDefinition(sql, new { playerIds = normalizedPlayerIds }, cancellationToken: ct));
+
+        return rows
+            .Where(row => row.PlayerId != Guid.Empty && !string.IsNullOrWhiteSpace(row.Username))
+            .GroupBy(row => row.PlayerId)
+            .ToDictionary(group => group.Key, group => group.First().Username.Trim());
+    }
+
     public async Task<Guid> EnsurePlayerLinkAsync(Guid userId, string username, CancellationToken ct)
     {
         const string lockUserSql = """
@@ -181,5 +214,11 @@ public sealed class UserRepository
 
         await tx.CommitAsync(ct);
         return playerId;
+    }
+
+    private sealed class PlayerUsernameRow
+    {
+        public Guid PlayerId { get; init; }
+        public string Username { get; init; } = string.Empty;
     }
 }

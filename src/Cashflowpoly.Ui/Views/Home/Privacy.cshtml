@@ -219,7 +219,6 @@
 
     <div class="mt-4 rulebook-quick-links">
         <a class="rulebook-quick-link" href="#rb-visual">@L("Panduan Visual", "Visual Guide")</a>
-        <a class="rulebook-quick-link" href="#rb-outline">@Context.T("privacy.outline_title")</a>
         <a class="rulebook-quick-link" href="#rb-scoring">@Context.T("privacy.happiness_summary")</a>
     </div>
 
@@ -348,31 +347,7 @@
         </div>
     </section>
 
-    <div class="rulebook-shell mt-6">
-        <aside id="rb-outline" class="rulebook-outline">
-            <h2>@Context.T("privacy.outline_title")</h2>
-            @if (sections.Count == 0)
-            {
-                <p class="rulebook-outline-empty">@Context.T("privacy.empty_sections")</p>
-            }
-            else
-            {
-                <ol class="rulebook-outline-list">
-                    @for (var index = 0; index < sections.Count; index++)
-                    {
-                        var sectionItem = sections[index];
-                        var anchor = $"rb-section-{index + 1}";
-                        <li>
-                            <a href="#@anchor">
-                                <span class="rulebook-outline-index">@(index + 1)</span>
-                                <span>@sectionItem.Heading</span>
-                            </a>
-                        </li>
-                    }
-                </ol>
-            }
-        </aside>
-
+    <div class="rulebook-shell rulebook-shell-no-outline mt-6">
         <div class="rulebook-main">
             <div class="rulebook-main-intro">
                 <p>@L("Baca per bagian sesuai urutan alfabet A-M agar setup, alur aksi, dan perhitungan poin tetap konsisten saat sesi berlangsung.", "Read sections in A-M order so setup, action flow, and scoring remain consistent during live sessions.")</p>

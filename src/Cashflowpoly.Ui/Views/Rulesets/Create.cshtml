@@ -94,6 +94,7 @@
                             <option value="JOIN_ORDER">@Context.T("rulesets.form.player_ordering_join_order")</option>
                             <option value="EVENT_SEQUENCE">@Context.T("rulesets.form.player_ordering_event_sequence")</option>
                             <option value="PLAYER_ID">@Context.T("rulesets.form.player_ordering_player_id")</option>
+                            <option value="USERNAME">@Context.T("rulesets.form.player_ordering_username")</option>
                         </select>
                     </div>
                     <div>
@@ -248,7 +249,7 @@
                 getEl("cfg-actions").value = cfg.actions_per_turn ?? 2;
                 getEl("cfg-cash").value = cfg.starting_cash ?? 20;
                 const playerOrdering = `${cfg.player_ordering ?? "JOIN_ORDER"}`.toUpperCase();
-                getEl("cfg-player-ordering").value = ["JOIN_ORDER", "EVENT_SEQUENCE", "PLAYER_ID"].includes(playerOrdering)
+                getEl("cfg-player-ordering").value = ["JOIN_ORDER", "EVENT_SEQUENCE", "PLAYER_ID", "USERNAME"].includes(playerOrdering)
                     ? playerOrdering
                     : "JOIN_ORDER";
                 getEl("cfg-freelance-income").value = cfg.freelance?.income ?? 1;

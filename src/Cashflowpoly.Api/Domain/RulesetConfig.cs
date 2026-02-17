@@ -39,7 +39,8 @@ internal enum PlayerOrdering
 {
     JoinOrder,
     EventSequence,
-    PlayerId
+    PlayerId,
+    Username
 }
 
 internal static class RulesetConfigParser
@@ -364,6 +365,11 @@ internal static class RulesetConfigParser
                 return true;
             case "PLAYER_ID":
                 ordering = PlayerOrdering.PlayerId;
+                return true;
+            case "USERNAME":
+            case "IDN":
+            case "USERNAME_IDN":
+                ordering = PlayerOrdering.Username;
                 return true;
             default:
                 return false;

@@ -417,6 +417,7 @@ public static class UiText
         ["rulesets.form.player_ordering_join_order"] = ("Urutan Bergabung (Sesi)", "Join Order (Session)"),
         ["rulesets.form.player_ordering_event_sequence"] = ("Aktivitas Pertama", "First Event"),
         ["rulesets.form.player_ordering_player_id"] = ("ID Pemain", "Player ID"),
+        ["rulesets.form.player_ordering_username"] = ("Username (A-Z)", "Username (A-Z)"),
         ["rulesets.form.freelance_income"] = ("Pendapatan Kerja Lepas", "Freelance Income"),
         ["rulesets.form.weekday_features"] = ("Fitur Hari", "Weekday Features"),
         ["rulesets.form.friday_donation"] = ("Donasi Jumat", "Friday Donation"),
