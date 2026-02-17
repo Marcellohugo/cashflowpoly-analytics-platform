@@ -111,7 +111,7 @@ Akses (sesuai `.env`):
 
 Catatan keamanan lokal:
 - Set `JWT_SIGNING_KEY` di `.env` (minimal 32 karakter).
-- Secara default registrasi `INSTRUCTOR` publik hanya diizinkan saat belum ada instruktur aktif.
+- Registrasi publik `INSTRUCTOR` dikontrol langsung oleh `Auth:AllowPublicInstructorRegistration` (`true` = diizinkan, `false` = ditolak `403`).
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 
 Rute UI utama:
@@ -200,15 +200,12 @@ Dokumen kunci:
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
-- Smoke test cepat (butuh API berjalan): `powershell -File scripts/smoke.ps1`.
-- RBAC smoke test: `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1`.
-- Web UI smoke test: `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1`.
-- Jika kredensial default smoke tidak tersedia di environment Anda, jalankan script dengan parameter username/password sendiri.
+- Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md`.
 - CI pipeline build+test tersedia di `.github/workflows/ci.yml`.
 
 ## Operasional DB (Backup/Restore)
-- Backup database: `powershell -ExecutionPolicy Bypass -File scripts/db-backup.ps1`
-- Restore database: `powershell -ExecutionPolicy Bypass -File scripts/db-restore.ps1 -InputFile backups/<nama_file>.sql`
+- Backup database dilakukan dengan mekanisme native PostgreSQL sesuai environment deployment.
+- Uji restore tetap wajib dilakukan berkala untuk memastikan backup dapat dipulihkan.
 
 ## Lisensi
 Lisensi akan ditentukan untuk repositori ini.

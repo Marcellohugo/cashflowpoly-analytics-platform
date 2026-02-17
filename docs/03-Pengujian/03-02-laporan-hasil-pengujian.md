@@ -39,7 +39,7 @@ Cakupan laporan ini:
 | Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
 | Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
 
-Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan pada seluruh skrip verifikasi.
+Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan pada seluruh rangkaian verifikasi.
 
 ---
 
@@ -49,13 +49,13 @@ Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan
 | Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
 | Test solution | `dotnet test Cashflowpoly.sln` | PASS | 18 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`, termasuk integration test auth+RBAC+ruleset+analytics) |
 | Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
-| Smoke API end-to-end | `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1` | PASS | ruleset/session/player/event/analytics sukses |
-| RBAC smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1` | PASS | 401/403/200/201 sesuai ekspektasi |
-| Rate-limit smoke | `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1 -CheckRateLimit` | PASS | respons `429` terdeteksi |
-| Web UI smoke | `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1` | PASS | login + halaman utama + Swagger terverifikasi |
+| Smoke API end-to-end | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
+| RBAC smoke | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
+| Rate-limit smoke | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
+| Web UI smoke | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |
 
 Catatan:
-- Otomatisasi pada tabel di atas adalah otomatisasi lokal berbasis CLI/script.
+- Verifikasi pada tabel di atas dijalankan secara lokal berbasis CLI, koleksi Postman, dan browser.
 - Pipeline CI build+test telah tersedia di `.github/workflows/ci.yml`.
 
 Tambahan cek endpoint analitika:

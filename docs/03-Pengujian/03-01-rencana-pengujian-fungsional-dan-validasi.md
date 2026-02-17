@@ -355,8 +355,8 @@ Catatan:
 - Endpoint: `POST /api/v1/auth/register`
 - Input: role `INSTRUCTOR`.
 - Ekspektasi:
-  - Jika belum ada instruktur aktif atau `Auth:AllowPublicInstructorRegistration=true`: `201`.
-  - Jika instruktur aktif sudah ada dan kebijakan publik ditutup: `403`.
+  - Jika `Auth:AllowPublicInstructorRegistration=true`: `201`.
+  - Jika `Auth:AllowPublicInstructorRegistration=false`: `403`.
 
 **TC-API-21 — Endpoint terproteksi tanpa token**
 - Contoh endpoint: `POST /api/v1/rulesets`.
@@ -579,8 +579,9 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 
 ### 14.1 Smoke test otomatis
 1. Jalankan `docker compose up --build -d`.
-2. Jalankan `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1`.
-3. Verifikasi semua langkah smoke berstatus sukses tanpa exception.
+2. Jalankan `dotnet build Cashflowpoly.sln` dan `dotnet test Cashflowpoly.sln`.
+3. Jalankan skenario end-to-end API (auth -> ruleset -> session -> player -> event -> analytics) melalui Postman collection.
+4. Verifikasi semua langkah smoke berstatus sukses tanpa exception.
 
 ### 14.2 Verifikasi API collection
 1. Jalankan collection `postman/Cashflowpoly.postman_collection.json`.
@@ -591,7 +592,7 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
    - ingest event dan analytics.
 
 ### 14.2A RBAC smoke test
-1. Jalankan `powershell -ExecutionPolicy Bypass -File scripts/rbac-smoke.ps1`.
+1. Jalankan skenario RBAC pada Postman collection atau HTTP client setara.
 2. Verifikasi skenario minimum:
    - endpoint terproteksi tanpa token => `401`,
    - endpoint instruktur dipanggil token player => `403`,
@@ -599,15 +600,16 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
    - endpoint instruktur dipanggil token instruktur => sukses.
 
 ### 14.2B Web UI smoke test
-1. Jalankan `powershell -ExecutionPolicy Bypass -File scripts/web-ui-smoke.ps1`.
-2. Verifikasi login UI berhasil dan halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/analytics`, `/home/rulebook`) dapat diakses tanpa error.
+1. Login ke UI menggunakan akun valid.
+2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/analytics`, `/home/rulebook`) dapat diakses tanpa error.
+3. Verifikasi Swagger API (`/swagger`) dapat diakses.
 
 ### 14.3 Definition of Done (DoD)
 Fitur dinyatakan selesai jika:
 1. Build API dan UI lulus tanpa error.
-2. Smoke test lulus.
-3. RBAC smoke test lulus.
-4. Web UI smoke test lulus.
+2. Verifikasi end-to-end API lulus.
+3. Verifikasi RBAC lulus.
+4. Verifikasi Web UI lulus.
 5. Skenario Postman kritikal lulus.
 6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 

@@ -197,9 +197,7 @@ Catatan:
 ### 8.4 Backup dan restore
 1. Backup database harian.
 2. Uji restore minimal bulanan.
-3. Prosedur operasional lokal memakai skrip:
-   - `scripts/db-backup.ps1`
-   - `scripts/db-restore.ps1`
+3. Prosedur operasional lokal memakai utilitas native PostgreSQL (`pg_dump`, `pg_restore`, atau `psql`) sesuai environment.
 
 ---
 

@@ -29,10 +29,6 @@ cashflowpoly-analytics-platform/
     02-Perancangan/
     03-Pengujian/
   postman/
-  scripts/
-    smoke.ps1
-    rbac-smoke.ps1
-    web-ui-smoke.ps1
   src/
     Cashflowpoly.Api/
     Cashflowpoly.Ui/
@@ -125,7 +121,7 @@ Tanggung jawab:
 
 ### Tahap I - Pengujian dan Operasional
 1. `dotnet build` API dan UI,
-2. jalankan smoke script (`smoke.ps1`, `rbac-smoke.ps1`, `web-ui-smoke.ps1`),
+2. jalankan verifikasi end-to-end API, RBAC, dan Web UI sesuai dokumen pengujian,
 3. jalankan Postman collection,
 4. jalankan `docker compose` untuk verifikasi integrasi.
 
@@ -136,6 +132,6 @@ Tanggung jawab:
 2. kontrak API sesuai spesifikasi,
 3. docs dan implementasi sinkron,
 4. build lulus,
-5. smoke test dan Postman collection lulus,
+5. verifikasi end-to-end/RBAC/Web UI dan Postman collection lulus,
 6. tidak ada bug blocker terbuka untuk modul inti.
 
