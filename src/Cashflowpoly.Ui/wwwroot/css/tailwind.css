@@ -1694,22 +1694,29 @@ a:hover {
 }
 
 .nav-shell-auth .nav-center {
-  justify-self: center;
+  justify-self: stretch;
   display: flex;
   flex-wrap: nowrap;
+  justify-content: center;
   gap: 0.34rem;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-shell-auth .nav-center .nav-link {
   width: auto;
   min-width: 0;
-  flex: 1 1 0;
-  white-space: normal;
-  padding-inline: 0.56rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding-right: 0.74rem;
+  padding-left: 1.48rem;
+  min-height: 2.4rem;
 }
 
 .nav-shell-auth .nav-right {
@@ -2564,17 +2571,6 @@ button:disabled {
   min-height: 2.6rem;
 }
 
-.cute-medal {
-  width: 3.6rem;
-  height: 3.6rem;
-}
-
-.cute-medal svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
 .form-grid {
   display: grid;
   gap: 0.9rem;
@@ -2880,6 +2876,10 @@ textarea::placeholder {
   align-items: start;
 }
 
+.rulebook-shell.rulebook-shell-no-outline {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .rulebook-outline {
   position: sticky;
   top: 6.2rem;
@@ -3090,13 +3090,14 @@ body > footer .footer-shell {
   }
 
   .nav-shell-auth .nav-center {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
     grid-row: 2;
     grid-column: 1 / -1;
     width: 100%;
     justify-self: stretch;
-    overflow-x: visible;
+    overflow-x: auto;
     gap: 0.38rem;
     padding: 0.34rem 0.4rem !important;
   }
@@ -3108,9 +3109,9 @@ body > footer .footer-shell {
   }
 
   .nav-shell-auth .nav-center .nav-link {
-    flex: initial;
-    width: 100%;
-    white-space: normal;
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
     min-width: 0;
     min-height: 2.3rem;
     padding-left: 1.34rem;
