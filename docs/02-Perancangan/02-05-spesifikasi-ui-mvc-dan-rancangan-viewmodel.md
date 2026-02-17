@@ -45,14 +45,18 @@ Cashflowpoly.Ui/
     RulesetsController.cs
     SessionsController.cs
   Infrastructure/
+    ApiAuthHelper.cs
     AuthSessionExtensions.cs
-    RoleHeaderHandler.cs
+    BearerTokenHandler.cs
     RulebookContent.cs
+    SessionTimelineMapper.cs
     UiText.cs
   Models/
     AnalyticsViewModels.cs
     ApiDtos.cs
     AuthViewModels.cs
+    ErrorViewModel.cs
+    HomeViewModels.cs
     RulebookViewModels.cs
     RulesetViewModels.cs
   Views/
@@ -80,12 +84,12 @@ Cashflowpoly.Ui/
 | Sessions | `/sessions` | `SessionsController` | Login |
 | Session details | `/sessions/{sessionId}` | `SessionsController` | Login |
 | Session ruleset | `/sessions/{sessionId}/ruleset` | `SessionsController` | Instruktur |
-| Players | `/players` | `PlayerDirectoryController` | Login |
+| Players | `/players` | `PlayerDirectoryController` | Instruktur |
 | Player details | `/sessions/{sessionId}/players/{playerId}` | `PlayersController` | Login |
 | Rulesets | `/rulesets` | `RulesetsController` | Login |
 | Ruleset details | `/rulesets/{rulesetId}` | `RulesetsController` | Login |
 | Analytics | `/analytics` | `AnalyticsController` | Login |
-| Rulebook | `/rulebook` | `HomeController` | Login |
+| Rulebook | `/home/rulebook` | `HomeController` | Login |
 
 ---
 
@@ -139,7 +143,7 @@ Entitas tampilan minimum:
 
 Catatan:
 - `POST /api/v1/auth/register` publik untuk role `PLAYER`.
-- Registrasi `INSTRUCTOR` dapat dibatasi oleh kebijakan server (`Auth:AllowPublicInstructorRegistration`).
+- Registrasi `INSTRUCTOR` ditentukan oleh kebijakan server (`Auth:AllowPublicInstructorRegistration`: `true` diizinkan, `false` ditolak `403`).
 
 ---
 

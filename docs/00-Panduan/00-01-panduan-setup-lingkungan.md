@@ -141,7 +141,8 @@ setx JWT_SIGNING_KEY "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
 Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `.env`.
 
 Catatan bootstrap auth:
-- `Auth:AllowPublicInstructorRegistration=false` (default) artinya registrasi instruktur publik akan ditutup setelah ada instruktur aktif.
+- `Auth:AllowPublicInstructorRegistration` mengatur registrasi publik `INSTRUCTOR` secara langsung (`true` diizinkan, `false` ditolak `403`).
+- Pada repositori ini, `appsettings*.json` menetapkan `true`, sedangkan konfigurasi Docker Compose (`.env`) default ke `false` kecuali dioverride.
 - Jika butuh seed user awal otomatis, aktifkan `AuthBootstrap:SeedDefaultUsers=true` dan isi kredensial bootstrap.
 
 ---

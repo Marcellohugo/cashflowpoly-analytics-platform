@@ -101,8 +101,8 @@ Tujuan aturan ini adalah mencegah bug grafik memanjang tanpa batas.
 | Ruleset Details | `RulesetsController` | `Details` | `/rulesets/{rulesetId}` | Detail ruleset dan versi. |
 | Session Ruleset | `SessionsController` | `Ruleset` | `/sessions/{sessionId}/ruleset` | Aktivasi ruleset pada sesi. |
 | Analytics | `AnalyticsController` | `Index` | `/analytics` | Pencarian analitika per session id. |
-| Ruleset Analytics | `AnalyticsController` | `Ruleset` | `/analytics/rulesets/{rulesetId}` | Agregasi learning/mission berdasarkan ruleset. |
-| Rulebook | `HomeController` | `Rulebook` | `/rulebook` | Konten rulebook permainan. |
+| Ruleset Analytics | `AnalyticsController` | `Index` | `/analytics` | Ringkasan learning/mission per ruleset dimuat dari sesi yang dipilih. |
+| Rulebook | `HomeController` | `Rulebook` | `/home/rulebook` | Konten rulebook permainan. |
 
 ---
 
@@ -135,11 +135,15 @@ Menampilkan:
 2. detail versi ruleset,
 3. aksi archive/delete (instruktur saja).
 
-### 6.5 Ruleset analytics (`/analytics/rulesets/{rulesetId}`)
+### 6.5 Ruleset analytics (embedded di `/analytics`)
 Menampilkan:
 1. agregasi performa learning per ruleset,
 2. agregasi performa misi per ruleset,
 3. pemecahan berdasarkan sesi dan pemain.
+
+Catatan implementasi:
+- UI tidak memiliki route terpisah `/analytics/rulesets/{rulesetId}`.
+- Ringkasan ruleset dipanggil dari endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` setelah analitika sesi berhasil dimuat.
 
 ---
 

@@ -28,7 +28,7 @@ Acuan utama:
 | Manajemen ruleset (create/list/detail/archive/delete) | Sesuai | Alur CRUD + guard ruleset terpakai sudah ada. |
 | UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API. |
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik instruktur dibatasi kebijakan. |
-| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` dan halaman UI ruleset analytics tersedia. |
+| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman `/analytics`. |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
 | Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
 

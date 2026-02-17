@@ -12,9 +12,10 @@
 ## 1. Tujuan Dokumen
 Dokumen ini disusun untuk mendefinisikan model data dan rancangan skema PostgreSQL untuk:
 1. menyimpan *ruleset* beserta versinya,
-2. menyimpan sesi dan pemain,
-3. menyimpan event terurut sebagai sumber histori,
-4. menyajikan data proyeksi dan agregasi metrik untuk dasbor.
+2. menyimpan akun pengguna aplikasi dan relasi user-player,
+3. menyimpan sesi dan pemain,
+4. menyimpan event terurut sebagai sumber histori,
+5. menyajikan data proyeksi dan agregasi metrik untuk dasbor.
 
 Dokumen ini menjadi acuan implementasi skema PostgreSQL berbasis skrip SQL (tanpa ORM) dan acuan pembuatan indeks untuk kinerja query analitika.
 
@@ -55,15 +56,44 @@ Sistem melayani dasbor dengan tabel proyeksi dan agregasi (`event_cashflow_proje
 
 ## 4. Diagram Entitas dan Relasi (deskripsi)
 Skema memuat relasi inti berikut:
-1. `rulesets` memiliki banyak `ruleset_versions`.
-2. `sessions` mereferensikan satu `ruleset_version` aktif melalui `session_ruleset_activations`.
-3. `sessions` memiliki banyak `session_players`.
-4. `events` mereferensikan `sessions`, opsional mereferensikan `players`, dan wajib mereferensikan `ruleset_versions`.
-5. `metric_snapshots` mereferensikan `sessions` dan opsional mereferensikan `players`.
+1. `app_users` menyimpan akun autentikasi (`INSTRUCTOR`, `PLAYER`).
+2. `user_player_links` mengikat akun ke profil pemain secara 1:1.
+3. `players`, `sessions`, dan `rulesets` dapat membawa `instructor_user_id` untuk scope data instruktur.
+4. `rulesets` memiliki banyak `ruleset_versions`.
+5. `sessions` mereferensikan satu `ruleset_version` aktif melalui `session_ruleset_activations`.
+6. `sessions` memiliki banyak `session_players`.
+7. `events` mereferensikan `sessions`, opsional mereferensikan `players`, dan wajib mereferensikan `ruleset_versions`.
+8. `metric_snapshots` mereferensikan `sessions` dan opsional mereferensikan `players`.
 
 ---
 
 ## 5. Definisi Tabel Inti
+
+## 5.0 Tabel autentikasi (`app_users`)
+Sistem menyimpan akun login aplikasi pada tabel ini.
+
+### `app_users`
+Kolom utama:
+- `user_id` UUID
+- `username` unik
+- `password_hash`
+- `role` (`INSTRUCTOR`, `PLAYER`)
+- `is_active`
+- `created_at`
+
+SQL:
+```sql
+create table if not exists app_users (
+  user_id uuid primary key,
+  username varchar(80) not null unique,
+  password_hash text not null,
+  role varchar(20) not null check (role in ('INSTRUCTOR','PLAYER')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ix_app_users_role_active on app_users(role, is_active);
+```
 
 ## 5.1 Tabel `players`
 Sistem menyimpan data identitas pemain pada tabel ini.
@@ -71,6 +101,7 @@ Sistem menyimpan data identitas pemain pada tabel ini.
 Kolom utama:
 - `player_id` UUID
 - `display_name` nama tampil
+- `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
 - `created_at` waktu pencatatan
 
 SQL:
@@ -78,12 +109,34 @@ SQL:
 create table if not exists players (
   player_id uuid primary key,
   display_name varchar(80) not null,
+  instructor_user_id uuid null references app_users(user_id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
 ```
 
-Indeks:
-- Sistem tidak butuh indeks tambahan pada tahap awal.
+### Relasi akun-pemain (`user_player_links`)
+Sistem mengikat akun login ke profil pemain secara 1:1.
+
+Kolom utama:
+- `link_id` UUID
+- `user_id` (unik, FK ke `app_users.user_id`)
+- `player_id` (unik, FK ke `players.player_id`)
+- `created_at`
+
+SQL:
+```sql
+create table if not exists user_player_links (
+  link_id uuid primary key,
+  user_id uuid not null unique references app_users(user_id) on delete cascade,
+  player_id uuid not null unique references players(player_id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ix_user_player_links_user on user_player_links(user_id);
+create index if not exists ix_user_player_links_player on user_player_links(player_id);
+```
 
 ---
 
@@ -96,6 +149,7 @@ Kolom utama:
 - `mode` mode permainan (`PEMULA`, `MAHIR`)
 - `status` status sesi (`CREATED`, `STARTED`, `ENDED`)
 - `started_at`, `ended_at`
+- `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
 - `created_at`
 
 SQL:
@@ -107,11 +161,13 @@ create table if not exists sessions (
   status varchar(10) not null check (status in ('CREATED','STARTED','ENDED')),
   started_at timestamptz null,
   ended_at timestamptz null,
+  instructor_user_id uuid null references app_users(user_id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 create index if not exists ix_sessions_status on sessions(status);
 create index if not exists ix_sessions_created_at on sessions(created_at desc);
+create index if not exists ix_sessions_instructor_user on sessions(instructor_user_id, created_at desc);
 ```
 
 ---
@@ -151,6 +207,7 @@ Kolom utama:
 - `ruleset_id` UUID
 - `name`
 - `description`
+- `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
 - `is_archived`
 - `created_at`
 - `created_by`
@@ -161,6 +218,7 @@ create table if not exists rulesets (
   ruleset_id uuid primary key,
   name varchar(120) not null,
   description text null,
+  instructor_user_id uuid null references app_users(user_id) on delete set null,
   is_archived boolean not null default false,
   created_at timestamptz not null default now(),
   created_by varchar(80) null
@@ -168,6 +226,7 @@ create table if not exists rulesets (
 
 create index if not exists ix_rulesets_archived on rulesets(is_archived);
 create index if not exists ix_rulesets_created_at on rulesets(created_at desc);
+create index if not exists ix_rulesets_instructor_user on rulesets(instructor_user_id, created_at desc);
 ```
 
 ---

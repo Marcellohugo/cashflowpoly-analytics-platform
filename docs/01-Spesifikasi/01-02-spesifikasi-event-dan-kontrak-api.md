@@ -721,7 +721,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ```
 - Catatan kebijakan:
   - Registrasi publik role `PLAYER` diperbolehkan.
-  - Registrasi publik role `INSTRUCTOR` ditutup jika sudah ada instruktur aktif, kecuali konfigurasi `Auth:AllowPublicInstructorRegistration` diaktifkan.
+  - Registrasi publik role `INSTRUCTOR` ditentukan langsung oleh `Auth:AllowPublicInstructorRegistration` (`true` = diizinkan, `false` = ditolak `403`).
 
 ---
 
@@ -999,12 +999,27 @@ Catatan:
 ```json
 {
   "ruleset_id": "uuid",
-  "sessions_count": 4,
-  "event_count_total": 420,
-  "cash_in_total": 910,
-  "cash_out_total": 700,
-  "cashflow_net_total": 210,
-  "rules_violations_count": 12
+  "ruleset_name": "Ruleset Default",
+  "session_count": 4,
+  "learning_performance_aggregate_score": 72.5,
+  "mission_performance_aggregate_score": 65.0,
+  "sessions": [
+    {
+      "session_id": "uuid",
+      "session_name": "Kelas A - Pertemuan 1",
+      "status": "ENDED",
+      "event_count": 120,
+      "learning_performance_aggregate_score": 70.0,
+      "mission_performance_aggregate_score": 66.0,
+      "players": [
+        {
+          "player_id": "uuid",
+          "learning_performance_individual_score": 74.0,
+          "mission_performance_individual_score": 68.0
+        }
+      ]
+    }
+  ]
 }
 ```
 
