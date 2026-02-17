@@ -38,7 +38,7 @@ Instruktur menguji API melalui Swagger:
 
 Catatan:
 - URL dapat berbeda tergantung konfigurasi `launchSettings.json`.
-- UI menggunakan Tailwind CSS. Jika baru setup atau ada perubahan tampilan, jalankan build CSS Tailwind sesuai panduan setup.
+- UI menggunakan Tailwind CSS. Jika baru menyiapkan lingkungan atau ada perubahan tampilan, jalankan build CSS Tailwind sesuai panduan setup.
 - Endpoint API selain login/register mensyaratkan token Bearer.
 
 ### 3.1 Alur autentikasi API (ringkas)
@@ -237,13 +237,13 @@ Jika sistem menyediakan endpoint `recompute`, instruktur menjalankan fitur ini s
 Instruktur menyiapkan bukti uji dan bukti tampilan untuk laporan.
 
 ### Bukti yang instruktur siapkan
-1. Screenshot Swagger untuk uji endpoint utama:
+1. Tangkapan layar Swagger untuk uji endpoint utama:
    - create session,
    - activate ruleset,
    - ingest event,
    - analytics summary.
-2. Screenshot Postman untuk skenario validasi input.
-3. Screenshot halaman Web:
+2. Tangkapan layar Postman untuk skenario validasi input.
+3. Tangkapan layar halaman Web:
    - daftar sesi,
    - detail sesi,
    - detail pemain,
@@ -266,7 +266,7 @@ docs/evidence/
 ---
 
 ## 14. Masalah Umum dan Solusi Cepat
-### 14.1 Web menampilkan error `API tidak dapat diakses`
+### 14.1 Web menampilkan kesalahan `API tidak dapat diakses`
 Instruktur melakukan:
 1. cek API berjalan pada URL yang benar,
 2. cek `ApiBaseUrl` pada `Cashflowpoly.Ui/appsettings.Development.json`,
