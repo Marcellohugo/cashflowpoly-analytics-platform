@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan
-Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakses Swagger UI, menjalankan dua proyek sekaligus, serta langkah troubleshooting yang paling sering terjadi.
+Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakses Swagger UI, menjalankan dua proyek sekaligus, serta langkah pemecahan masalah yang paling sering terjadi.
 
 ---
 
@@ -19,7 +19,7 @@ Pastikan setup lingkungan sudah selesai:
 - .NET 10 SDK terpasang,
 - PostgreSQL siap dan skema `database/00_create_schema.sql` sudah dijalankan,
 - connection string API dan `ApiBaseUrl` UI sudah benar,
-- `Jwt:SigningKey` sudah diisi (minimal 32 karakter, disarankan via environment).
+- `Jwt:SigningKey` sudah diisi (minimal 32 karakter, disarankan via variabel lingkungan).
 
 Lihat detailnya pada: `docs/00-Panduan/00-01-panduan-setup-lingkungan.md`.
 
@@ -38,13 +38,13 @@ Buka Chrome:
 - `http://localhost:5041/swagger` (HTTP)
 
 Jika API bisa jalan tetapi Swagger gagal dibuka, penyebab yang paling sering:
-1. middleware swagger belum diaktifkan untuk environment `Development`,
+1. middleware swagger belum diaktifkan untuk lingkungan `Development`,
 2. URL salah (http vs https),
 3. port berbeda dari yang dibuka,
 4. browser blokir sertifikat dev (untuk https).
 
 Sistem menyelesaikan dengan:
-- cek output console API untuk URL listen,
+- cek keluaran console API untuk URL listen,
 - pakai URL itu pada Chrome,
 - jika pakai https dan sertifikat ditolak, tekan "Advanced" lalu "Proceed".
 
@@ -70,7 +70,7 @@ Buka:
 - `https://localhost:7203/sessions` (HTTPS)
 - `http://localhost:5203/sessions` (HTTP)
 
-Jika halaman kosong atau redirect login terus-menerus, cek bahwa:
+Jika halaman kosong atau terus-menerus diarahkan ke login, cek bahwa:
 1. login API berhasil dan token tersimpan di session UI,
 2. endpoint `/api/v1/sessions` mengembalikan `200`,
 3. `ApiBaseUrl` UI mengarah ke API yang benar.
@@ -91,16 +91,16 @@ dotnet run --project src/Cashflowpoly.Api
 dotnet run --project src/Cashflowpoly.Ui
 ```
 
-### 5.2 Cara *debug* dengan `launch.json`
-Sistem bisa membuat `.vscode/launch.json` untuk dua konfigurasi. Keduanya dapat dijalankan keduanya melalui "Run and Debug".
+### 5.2 Cara men-debug dengan `launch.json`
+Sistem bisa membuat `.vscode/launch.json` untuk dua konfigurasi. Keduanya dapat dijalankan melalui menu "Run and Debug".
 
 Catatan:
 - Dokumen ini tidak mewajibkan penggunaan `launch.json` karena setup tiap mesin berbeda.
 
 ---
 
-## 6. Troubleshooting Umum
-### 6.1 PostgreSQL connection error
+## 6. Pemecahan Masalah Umum
+### 6.1 Kesalahan koneksi PostgreSQL
 Penyebab umum:
 - username/password salah,
 - service PostgreSQL tidak berjalan,
@@ -115,7 +115,7 @@ Langkah cek:
 ### 6.2 Swagger tidak bisa dibuka
 Penyebab umum:
 - `app.UseSwagger()` atau `app.UseSwaggerUI()` belum dipanggil,
-- environment bukan Development,
+- lingkungan bukan Development,
 - port/URL salah.
 
 Solusi:
@@ -132,7 +132,7 @@ Dokumen rancangan UI memakai pendekatan server-side call via `HttpClient`, sehin
 
 ---
 
-## 7. Checklist Menjalankan Sistem
+## 7. Daftar Periksa Menjalankan Sistem
 Sistem berjalan baik jika:
 1. `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` dan `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` sukses,
 2. Swagger UI dapat diakses,
@@ -143,7 +143,7 @@ Sistem berjalan baik jika:
 
 ---
 
-## 8. Menjalankan Load Test Baseline
+## 8. Menjalankan Uji Beban Dasar
 Setelah API dan DB aktif, jalankan:
 ```bash
 powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041

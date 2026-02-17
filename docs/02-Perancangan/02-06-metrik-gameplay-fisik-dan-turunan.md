@@ -32,11 +32,11 @@ Konvensi pengelompokan:
 
 ---
 
-## Part 1: Physical Gameplay Variables
+## Bagian 1: Variabel Gameplay Fisik
 Variabel berikut dapat diamati dari komponen game dan diturunkan dari event.
 
-### 1.1 Coin-Based Financial Variables
-**Raw Gameplay Variables (Observable):**
+### 1.1 Variabel Finansial Berbasis Koin
+**Variabel Gameplay Mentah (Teramati):**
 - `starting_coins`: modal awal pada awal permainan.
 - `coins_held_current`: koin yang dimiliki pemain pada saat tertentu.
 - `coins_spent_per_turn`: koin yang dikeluarkan dalam satu aksi.
@@ -54,18 +54,18 @@ Variabel berikut dapat diamati dari komponen game dan diturunkan dari event.
 - `coins_saved` dari `saving.deposit.created` minus `saving.deposit.withdrawn`.
 - `coins_net_end_game` dari saldo akhir (net cashflow + starting).
 
-**Calculation:**
+**Perhitungan:**
 ```
 coins_net_end_game = starting_coins + total_income - total_expenses
-Where:
+Keterangan:
   total_income = freelance_work_coins + meal_order_income + loan_received + gold_sales
   total_expenses = ingredients_purchases + needs_purchases + donations + insurance_payments + loan_repayment + life_risk_payments
 ```
 
 ---
 
-### 1.2 Ingredient Card Variables
-**Raw Gameplay Variables (Observable):**
+### 1.2 Variabel Kartu Bahan
+**Variabel Gameplay Mentah (Teramati):**
 - `ingredients_collected`: total kartu bahan yang dibeli.
 - `ingredients_held_current`: kartu bahan yang tersisa (maks 6 total, 3 jenis sama).
 - `ingredient_types_held`: distribusi jenis bahan.
@@ -83,8 +83,8 @@ Where:
 
 ---
 
-### 1.3 Meal Order Variables
-**Raw Gameplay Variables (Observable):**
+### 1.3 Variabel Order Makanan
+**Variabel Gameplay Mentah (Teramati):**
 - `meal_orders_claimed`: jumlah order masakan yang berhasil diklaim.
 - `meal_orders_available_passed`: order yang tersedia tetapi tidak diambil.
 - `meal_order_income_per_order`: pendapatan per order.
@@ -98,18 +98,18 @@ Where:
 - `meal_order_income_total` dari penjumlahan `order.claimed.income`.
 - `meal_orders_per_turn_average` dari `order.claimed` per `turn_number`.
 
-**Business Efficiency Pattern:**
+**Pola Efisiensi Bisnis:**
 ```
 business_efficiency_ratio = meal_order_income_total / ingredient_investment_coins_total
 
-High ratio (> 2.0): profitable business
-Low ratio (< 1.5): inefficient business
+rasio tinggi (> 2.0): bisnis menguntungkan
+rasio rendah (< 1.5): bisnis kurang efisien
 ```
 
 ---
 
-### 1.4 Need Card Variables
-**Raw Gameplay Variables (Observable):**
+### 1.4 Variabel Kartu Kebutuhan
+**Variabel Gameplay Mentah (Teramati):**
 - `need_cards_purchased`: total kartu kebutuhan.
 - `primary_needs_owned`: jumlah kebutuhan primer.
 - `secondary_needs_owned`: jumlah kebutuhan sekunder.
@@ -123,15 +123,15 @@ Low ratio (< 1.5): inefficient business
 - `need_cards_coins_spent` dari `event_cashflow_projections` kategori kebutuhan.
 - `specific_tertiary_need` dan `collection_mission_complete` dari `mission.assigned` dan kartu kebutuhan yang dibeli.
 
-**Categorization:**
-- Basic Profile: memiliki semua kategori kebutuhan.
-- Collector Profile: variasi kebutuhan tinggi.
-- Specialist Profile: terkonsentrasi pada satu kategori.
+**Kategorisasi:**
+- Profil Dasar: memiliki semua kategori kebutuhan.
+- Profil Kolektor: variasi kebutuhan tinggi.
+- Profil Spesialis: terkonsentrasi pada satu kategori.
 
 ---
 
-### 1.5 Donation Variables (Friday Actions)
-**Raw Gameplay Variables (Observable):**
+### 1.5 Variabel Donasi (Aksi Hari Jumat)
+**Variabel Gameplay Mentah (Teramati):**
 - `donation_amount_per_friday`: jumlah donasi per hari Jumat.
 - `donation_rank_per_friday`: peringkat donasi tiap Jumat.
 - `donation_total_coins`: total donasi sepanjang sesi.
@@ -145,20 +145,20 @@ Low ratio (< 1.5): inefficient business
 - `donation_champion_cards_earned` dari jumlah event `donation.rank.awarded`.
 - `donation_happiness_points` dari `donation.rank.awarded.points`.
 
-**Donation Strategy Pattern:**
+**Pola Strategi Donasi:**
 ```
 donation_aggressiveness = donation_total_coins / coins_net_end_game
 
-High (> 30%): aggressive donor
-Low (< 10%): conservative donor
+tinggi (> 30%): donatur agresif
+rendah (< 10%): donatur konservatif
 
 stability = std_deviation(donation_amount_per_friday)
 ```
 
 ---
 
-### 1.6 Gold Investment Variables
-**Raw Gameplay Variables (Observable):**
+### 1.6 Variabel Investasi Emas
+**Variabel Gameplay Mentah (Teramati):**
 - `gold_cards_purchased`: total kartu emas dibeli.
 - `gold_cards_sold`: total kartu emas dijual.
 - `gold_cards_held_end`: emas tersisa pada akhir permainan.
@@ -173,7 +173,7 @@ stability = std_deviation(donation_amount_per_friday)
 - `gold_prices_per_purchase` dari `unit_price`.
 - `gold_investment_coins_spent/earned` dari `amount` (BUY/SELL).
 
-**Investment Efficiency:**
+**Efisiensi Investasi:**
 ```
 gold_roi_percentage = (gold_investment_coins_earned - gold_investment_coins_spent)
                      / gold_investment_coins_spent * 100%
@@ -181,8 +181,8 @@ gold_roi_percentage = (gold_investment_coins_earned - gold_investment_coins_spen
 
 ---
 
-### 1.7 Pension Fund Variables (End-Game Scoring)
-**Raw Gameplay Variables (Observable):**
+### 1.7 Variabel Dana Pensiun (Skor Akhir Permainan)
+**Variabel Gameplay Mentah (Teramati):**
 - `leftover_coins_end_game`: koin tersisa di akhir permainan.
 - `ingredient_cards_value_end`: nilai bahan sisa (1 koin per kartu).
 - `coins_in_savings_goal`: koin yang masih tersimpan di tujuan keuangan.
@@ -198,8 +198,8 @@ gold_roi_percentage = (gold_investment_coins_earned - gold_investment_coins_spen
 
 ---
 
-### 1.8 Life Risk Variables (Advanced Mode Only)
-**Raw Gameplay Variables (Observable):**
+### 1.8 Variabel Risiko Kehidupan (Khusus Mode Mahir)
+**Variabel Gameplay Mentah (Teramati):**
 - `life_risk_cards_drawn`: total event risiko kehidupan.
 - `life_risk_costs_per_card`: penalti per kartu risiko.
 - `life_risk_costs_total`: total penalti risiko.
@@ -214,7 +214,7 @@ gold_roi_percentage = (gold_investment_coins_earned - gold_investment_coins_spen
 - `insurance_payments_made` dari `insurance.multirisk.purchased`.
 - `emergency_options_used` dari `risk.emergency.used`.
 
-**Risk Resilience Pattern:**
+**Pola Ketahanan terhadap Risiko:**
 ```
 risk_exposure_percentage = life_risk_costs_total / total_income * 100%
 
@@ -223,8 +223,8 @@ risk_mitigation_effectiveness = life_risk_mitigated_with_insurance / life_risk_c
 
 ---
 
-### 1.9 Financial Goal Variables (Advanced Mode Only)
-**Raw Gameplay Variables (Observable):**
+### 1.9 Variabel Tujuan Keuangan (Khusus Mode Mahir)
+**Variabel Gameplay Mentah (Teramati):**
 - `financial_goals_attempted`: jumlah goal yang dikejar.
 - `financial_goals_completed`: goal yang selesai.
 - `financial_goals_coins_per_goal`: biaya tiap goal.
@@ -244,15 +244,15 @@ Catatan perhitungan:
 - `financial_goals_coins_per_goal` dihitung sebagai saldo tabungan per goal (deposit - withdraw - cost goal tercapai).
 - `financial_goals_incomplete_coins_wasted` dihitung dari saldo goal yang belum tercapai.
 
-**Debt Management Pattern:**
+**Pola Pengelolaan Utang:**
 ```
 debt_ratio = sharia_loans_unpaid_end / sharia_loans_taken
 ```
 
 ---
 
-### 1.10 Action Token Usage Variables
-**Raw Gameplay Variables (Observable):**
+### 1.10 Variabel Penggunaan Token Aksi
+**Variabel Gameplay Mentah (Teramati):**
 - `actions_per_turn`: jumlah aksi per giliran (ruleset).
 - `action_repetitions_per_turn`: aksi yang sama diulang dalam satu giliran.
 - `action_sequence`: urutan aksi per giliran.
@@ -265,15 +265,15 @@ debt_ratio = sharia_loans_unpaid_end / sharia_loans_taken
 **Catatan implementasi:**
 - `actions_skipped` membutuhkan event atau indikator khusus untuk giliran kosong.
 
-**Action Pattern Analysis:**
+**Analisis Pola Aksi:**
 ```
 action_diversity_score = distinct_action_types / 2
 ```
 
 ---
 
-### 1.11 Turn-by-Turn Progression Variables
-**Raw Gameplay Variables (Observable):**
+### 1.11 Variabel Progresi per Giliran
+**Variabel Gameplay Mentah (Teramati):**
 - `coins_per_turn_progression`: saldo koin per giliran.
 - `net_income_per_turn`: pemasukan dikurangi pengeluaran per giliran.
 - `turn_number_when_debt_introduced`: giliran pertama pinjaman diambil.
@@ -286,102 +286,102 @@ action_diversity_score = distinct_action_types / 2
 - `turn_number_when_first_risk_hit` dari `risk.life.drawn` pertama.
 - `turn_number_game_completion` dari `turn_number` maksimum di event sesi.
 
-**Economic Trajectory Pattern:**
+**Pola Trajektori Ekonomi:**
 ```
 growth_pattern = coins_end / coins_start
 ```
 
 ---
 
-## Part 2: Derived Analytics Metrics from Physical Variables
+## Bagian 2: Metrik Analitika Turunan dari Variabel Fisik
 Metrik turunan di bawah dihitung dari variabel fisik di atas.
 
-### 2.1 Financial Performance Metrics
-**Metric 1: Net Worth Index**
+### 2.1 Metrik Kinerja Finansial
+**Metrik 1: Indeks Kekayaan Bersih**
 ```
 net_worth_index = coins_net_end_game / starting_coins * 100%
 ```
 
-**Metric 2: Income Diversification Ratio**
+**Metrik 2: Rasio Diversifikasi Pendapatan**
 ```
 income_diversification = (freelance_income + meal_income + gold_income + donations_received)
                          / total_income * 100%
 ```
 
-**Metric 3: Expense Management Efficiency**
+**Metrik 3: Efisiensi Pengelolaan Pengeluaran**
 ```
 expense_efficiency = essential_expenses / total_expenses * 100%
 
-essential = ingredients necessary for meal orders
-non-essential = donations, insurance, financial goals
+esensial = bahan yang diperlukan untuk klaim order makanan
+non-esensial = donasi, asuransi, tujuan keuangan
 ```
 
-**Metric 4: Profit Margin on Business Operations**
+**Metrik 4: Margin Laba Operasi Bisnis**
 ```
 business_profit_margin = (meal_income - ingredient_costs) / meal_income * 100%
 ```
 
 ---
 
-### 2.2 Strategic Decision Metrics
-**Metric 5: Risk Appetite Score (Advanced Mode)**
+### 2.2 Metrik Keputusan Strategis
+**Metrik 5: Skor Risk Appetite (Mode Mahir)**
 ```
 risk_appetite = (life_risks_accepted / life_risks_available)
                 * average_risk_cost
                 * insurance_activation_rate
 ```
 
-**Metric 6: Debt Leverage Ratio**
+**Metrik 6: Rasio Leverage Utang**
 ```
 debt_leverage = total_loans_outstanding / net_worth * 100%
 
 loan_repayment_discipline = loans_repaid / loans_taken * 100%
 ```
 
-**Metric 7: Goal-Setting Ambition**
+**Metrik 7: Ambisi Penetapan Tujuan**
 ```
 goal_ambition = financial_goals_attempted + financial_goals_coins_invested / net_worth * 100%
 ```
 
 ---
 
-### 2.3 Player Behavior Metrics
-**Metric 8: Action Efficiency per Turn**
+### 2.3 Metrik Perilaku Pemain
+**Metrik 8: Efisiensi Aksi per Giliran**
 ```
 action_efficiency = income_actions_per_turn / total_actions_per_turn
 ```
 
-**Metric 9: Meal Order Success Rate**
+**Metrik 9: Tingkat Keberhasilan Order Makanan**
 ```
 meal_order_success_rate = meal_orders_completed / meal_orders_attempted * 100%
 ```
 
-**Metric 10: Long-term Planning Indicator**
+**Metrik 10: Indikator Perencanaan Jangka Panjang**
 ```
 planning_horizon = (savings_invested + goals_pursued + insurance_purchases) / total_actions
 ```
 
 ---
 
-### 2.4 Flourishing-Related Metrics (Physical Components)
-**Metric 11: Need Fulfillment Diversity Index**
+### 2.4 Metrik Terkait Flourishing (Komponen Fisik)
+**Metrik 11: Indeks Keberagaman Pemenuhan Kebutuhan**
 ```
 fulfillment_diversity = sqrt((primary_needs^2 + secondary_needs^2 + tertiary_needs^2)) / total_needs_owned
 
 mission_achievement = specific_tertiary_acquired * complete_primary * complete_secondary
 ```
 
-**Metric 12: Donation Consistency & Commitment**
+**Metrik 12: Konsistensi dan Komitmen Donasi**
 ```
 donation_commitment_score = (donation_stability * donation_ratio) * friday_participation_rate
 
-Where:
+Keterangan:
   donation_stability = 100 - std_deviation(donation_amounts)
   donation_ratio = total_donations / net_worth
   friday_participation_rate = fridays_donated / total_fridays
 ```
 
-**Metric 13: Happiness Points Composition Analysis**
+**Metrik 13: Analisis Komposisi Poin Kebahagiaan**
 ```
 happiness_portfolio = [need_cards_pts, donations_pts, gold_pts, pension_pts, financial_goals_pts, mission_bonus_pts]
 ```

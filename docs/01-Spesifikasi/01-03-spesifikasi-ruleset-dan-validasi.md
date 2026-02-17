@@ -203,7 +203,7 @@ Catatan:
 ---
 
 ## 6. Aturan Validasi Konfigurasi
-Sistem menjalankan validasi berikut sebelum sistem menyimpan versi baru dan sebelum instruktur mengaktifkan versi untuk sesi.
+Sistem menjalankan validasi berikut sebelum menyimpan versi baru dan sebelum instruktur mengaktifkan versi untuk sesi.
 
 ### 6.1 Validasi struktur
 Sistem memeriksa:

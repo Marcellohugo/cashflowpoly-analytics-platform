@@ -450,7 +450,7 @@ Efek data:
 
 ---
 
-## 4.7 Event Misi dan Skor
+### 4.7 Event Misi dan Skor
 #### 4.7.1 `mission.assigned`
 Payload:
 ```json
@@ -562,7 +562,7 @@ Efek data:
 
 ---
 
-## 4.8 Event Tabungan dan Risiko
+### 4.8 Event Tabungan dan Risiko
 #### 4.8.1 `saving.deposit.created`
 Payload:
 ```json

@@ -62,16 +62,16 @@ Response login minimal:
 | Endpoint | INSTRUCTOR | PLAYER |
 |---|---:|---:|
 | `POST /api/v1/sessions` | Ya | Tidak |
-| `POST /api/v1/sessions/{id}/start` | Ya | Tidak |
-| `POST /api/v1/sessions/{id}/end` | Ya | Tidak |
-| `POST /api/v1/sessions/{id}/ruleset/activate` | Ya | Tidak |
+| `POST /api/v1/sessions/{sessionId}/start` | Ya | Tidak |
+| `POST /api/v1/sessions/{sessionId}/end` | Ya | Tidak |
+| `POST /api/v1/sessions/{sessionId}/ruleset/activate` | Ya | Tidak |
 | `POST /api/v1/rulesets` | Ya | Tidak |
-| `PUT /api/v1/rulesets/{id}` | Ya | Tidak |
-| `POST /api/v1/rulesets/{id}/versions/{version}/activate` | Ya | Tidak |
-| `POST /api/v1/rulesets/{id}/archive` | Ya | Tidak |
-| `DELETE /api/v1/rulesets/{id}` | Ya | Tidak |
+| `PUT /api/v1/rulesets/{rulesetId}` | Ya | Tidak |
+| `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate` | Ya | Tidak |
+| `POST /api/v1/rulesets/{rulesetId}/archive` | Ya | Tidak |
+| `DELETE /api/v1/rulesets/{rulesetId}` | Ya | Tidak |
 | `POST /api/v1/players` | Ya | Tidak |
-| `POST /api/v1/sessions/{id}/players` | Ya | Tidak |
+| `POST /api/v1/sessions/{sessionId}/players` | Ya | Tidak |
 | `GET /api/v1/sessions` | Ya | Ya |
 | `GET /api/v1/analytics/...` | Ya | Ya |
 | `POST /api/v1/events` | Ya | Ya |

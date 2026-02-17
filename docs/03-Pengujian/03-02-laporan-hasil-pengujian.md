@@ -13,8 +13,8 @@
 Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 17 Februari 2026.
 
 Cakupan laporan ini:
-- verifikasi teknis otomatis (build, test, compose, smoke, load-test baseline),
-- verifikasi API black-box utama,
+- verifikasi teknis otomatis (build, test, docker compose, uji asap, uji beban dasar),
+- verifikasi API kotak-hitam utama,
 - verifikasi RBAC dan rate limiting,
 - verifikasi UI MVC halaman inti,
 - verifikasi observability dan security audit endpoint.
@@ -24,7 +24,7 @@ Cakupan laporan ini:
 ## 2. Identitas Pengujian
 - Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
 - Tanggal pengujian: 17 Februari 2026
-- Versi aplikasi (git commit): working tree lokal (terdapat perubahan belum di-commit)
+- Versi aplikasi (git commit): area kerja Git lokal (terdapat perubahan belum di-commit)
 - Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
 - URL API: `http://localhost:5041`
@@ -35,28 +35,28 @@ Cakupan laporan ini:
 ## 3. Ringkasan Hasil Uji
 | Jenis Uji | Cakupan | Status |
 |---|---|---|
-| Uji REST API (black-box) | Alur auth, ruleset, sessions, players, ingest event, analytics | PASS |
-| Uji Integrasi | Alur end-to-end: login/register -> ruleset -> session -> player -> event -> analytics | PASS |
+| Uji REST API (kotak-hitam) | Alur auth, ruleset, sessions, players, ingest event, analytics | PASS |
+| Uji Integrasi | Alur ujung-ke-ujung: login/register -> ruleset -> session -> player -> event -> analytics | PASS |
 | Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
 | Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
 | Verifikasi observability + audit keamanan | Endpoint operasional metrics + security audit logs | PASS |
-| Uji performa baseline | Skrip load test ingest + analytics sesuai target P95 | PASS |
+| Uji performa dasar | Skrip load test ingest + analytics sesuai target P95 | PASS |
 
-Kriteria kelulusan tercapai untuk cakupan baseline otomatis: tidak ada kegagalan pada seluruh rangkaian verifikasi.
+Kriteria kelulusan tercapai untuk cakupan dasar otomatis: tidak ada kegagalan pada seluruh rangkaian verifikasi.
 
 ---
 
 ## 4. Detail Verifikasi Otomatis
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
-| Build solution | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
-| Test solution | `dotnet test Cashflowpoly.sln` | PASS | 23 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`) |
-| Compose run | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
-| Smoke API end-to-end | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
-| RBAC smoke | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
-| Rate-limit smoke | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
-| Web UI smoke | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |
-| Load test baseline | `scripts/perf/run-load-test.ps1` | PASS | Ingest P95 18.72 ms, Analytics P95 867.26 ms, error rate 0% |
+| Build solusi | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
+| Uji solusi | `dotnet test Cashflowpoly.sln` | PASS | 23 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`) |
+| Menjalankan compose | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
+| Uji asap API ujung-ke-ujung | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
+| Uji asap RBAC | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
+| Uji asap rate-limit | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
+| Uji asap UI Web | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |
+| Uji beban dasar | `scripts/perf/run-load-test.ps1` | PASS | Ingest P95 18.72 ms, Analytics P95 867.26 ms, error rate 0% |
 | Observability API | `GET /api/v1/observability/metrics` | PASS | respons `200`, metrik endpoint tersedia |
 | Security audit API | `GET /api/v1/security/audit-logs` | PASS | respons `200`, jejak event keamanan tersedia |
 
@@ -79,14 +79,14 @@ Tambahan cek endpoint observability & security:
 ## 5. Rekap Hasil Uji Per Modul
 | Kode Modul | Modul | Status | Bukti Ringkas |
 |---|---|---|---|
-| M1 | Manajemen Sesi | PASS | create/list/start sesi pada smoke + rbac smoke |
+| M1 | Manajemen Sesi | PASS | create/list/start sesi pada uji asap + uji asap RBAC |
 | M2 | Manajemen Ruleset | PASS | create/update/activate/detail ruleset |
 | M3 | Ingest Event | PASS | `POST /api/v1/events` sukses (`201`) |
 | M4 | Proyeksi Arus Kas | PASS | endpoint transaksi sesi/pemain terbaca (`200`) |
 | M5 | Agregasi Metrik | PASS | analitika sesi mengembalikan ringkasan dan by-player |
-| M6 | Analitika (Endpoint) | PASS | session analytics, ruleset summary, gameplay, recompute |
+| M6 | Analitika (Endpoint) | PASS | analitika sesi, ringkasan ruleset, gameplay, recompute |
 | M7 | UI MVC Dasbor | PASS | halaman Home/Sessions/Players/Rulesets/Analytics/Rulebook |
-| M8 | Logging dan Error Handling | PASS (baseline) | log `request_completed` + `trace_id` tampil; rate limit `429` tervalidasi |
+| M8 | Logging dan Error Handling | PASS (dasar) | log `request_completed` + `trace_id` tampil; rate limit `429` tervalidasi |
 
 ---
 
@@ -100,7 +100,7 @@ Catatan residual:
 ---
 
 ## 7. Kesimpulan
-- Status akhir: **VALID (cakupan baseline otomatis)**
+- Status akhir: **VALID (cakupan dasar otomatis)**
 - Ringkasan:
   - build lulus,
   - verifikasi API/UI/RBAC/rate-limit lulus,
