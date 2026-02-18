@@ -1,0 +1,10 @@
+# SSL Certificates
+# Karena folder ini kosong, file .gitkeep digunakan agar folder ter-track di Git.
+# Letakkan file SSL certificate di sini:
+#   - fullchain.pem
+#   - privkey.pem
+#
+# Untuk generate self-signed (development):
+#   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#     -keyout privkey.pem -out fullchain.pem \
+#     -subj "/CN=localhost"

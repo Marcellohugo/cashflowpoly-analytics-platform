@@ -3,10 +3,186 @@
                  "name":  "Cashflowpoly API",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
+    "event":  [
+                  {
+                      "listen":  "prerequest",
+                      "script":  {
+                                     "type":  "text/javascript",
+                                     "exec":  [
+                                                  "const now = new Date().toISOString();",
+                                                  "pm.collectionVariables.set('timestamp', now);",
+                                                  "",
+                                                  "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                                                  "  const r = Math.random() * 16 | 0;",
+                                                  "  const v = c === 'x' ? r : (r & 0x3 | 0x8);",
+                                                  "  return v.toString(16);",
+                                                  "});",
+                                                  "",
+                                                  "const ensure = (key, value) => {",
+                                                  "  const current = pm.collectionVariables.get(key);",
+                                                  "  if (!current || String(current).trim() === '' || String(current).startsWith('replace-with-')) {",
+                                                  "    pm.collectionVariables.set(key, value);",
+                                                  "  }",
+                                                  "};",
+                                                  "",
+                                                  "const suffix = Date.now().toString().slice(-8);",
+                                                  "ensure('registerUsername', `instructor_${suffix}`);",
+                                                  "ensure('registerPassword', 'Pass123!Aa');",
+                                                  "ensure('playerUsername', `player_${suffix}`);",
+                                                  "ensure('playerPassword', 'Pass123!Aa');",
+                                                  "",
+                                                  "if (!pm.collectionVariables.get('authPassword') || String(pm.collectionVariables.get('authPassword')).startsWith('replace-with-')) {",
+                                                  "  pm.collectionVariables.set('authUsername', pm.collectionVariables.get('registerUsername'));",
+                                                  "  pm.collectionVariables.set('authPassword', pm.collectionVariables.get('registerPassword'));",
+                                                  "}",
+                                                  "",
+                                                  "if (!pm.collectionVariables.get('rulesetVersionId')) {",
+                                                  "  pm.collectionVariables.set('rulesetVersionId', '1');",
+                                                  "}",
+                                                  "",
+                                                  "[",
+                                                  "  'eventId','eventIdNeedPrimary','eventIdNeedSecondary','eventIdNeedTertiary','eventIdOrder',",
+                                                  "  'eventIdRisk','eventIdInsuranceUsed','eventIdTurnEnd','eventIdMission','eventIdInsurance',",
+                                                  "  'eventIdSavingDeposit','eventIdSavingWithdraw','eventIdSavingGoal','eventIdLoanTaken',",
+                                                  "  'eventIdLoanRepaid','eventIdOrderPassed','eventIdIngredientDiscarded','eventIdRiskEmergency',",
+                                                  "  'eventIdBatch1','eventIdBatch2'",
+                                                  "].forEach(function(key) {",
+                                                  "  if (!pm.collectionVariables.get(key)) {",
+                                                  "    pm.collectionVariables.set(key, uuid());",
+                                                  "  }",
+                                                  "});"
+                                              ]
+                                 }
+                  },
+                  {
+                      "listen":  "test",
+                      "script":  {
+                                     "type":  "text/javascript",
+                                     "exec":  [
+                                                  "const expectedByRequest = {",
+                                                  "  'Register': [201, 409, 403],",
+                                                  "  'Login': [200, 401],",
+                                                  "  'Create Ruleset': [201],",
+                                                  "  'Update Ruleset': [200],",
+                                                  "  'Create Ruleset (MAHIR)': [201],",
+                                                  "  'List Rulesets': [200],",
+                                                  "  'Get Ruleset Detail': [200],",
+                                                  "  'Create Session': [201],",
+                                                  "  'List Sessions': [200],",
+                                                  "  'Start Session': [200],",
+                                                  "  'Add Player To Session': [200],",
+                                                  "  'Create Player': [201],",
+                                                  "  'List Players': [200],",
+                                                  "  'Recompute': [200],",
+                                                  "  'Get Session Analytics': [200],",
+                                                  "  'Get Transactions': [200],",
+                                                  "  'Get Gameplay Metrics': [200]",
+                                                  "};",
+                                                  "",
+                                                  "const current = pm.info.requestName;",
+                                                  "const expected = expectedByRequest[current];",
+                                                  "const protectedRequests = [",
+                                                  "  'Create Ruleset','Update Ruleset','Create Ruleset (MAHIR)','List Rulesets','Get Ruleset Detail',",
+                                                  "  'Create Session','List Sessions','Start Session','Add Player To Session','Create Player','List Players',",
+                                                  "  'Recompute','Get Session Analytics','Get Transactions','Get Gameplay Metrics'",
+                                                  "];",
+                                                  "const hasToken = !!pm.collectionVariables.get('accessToken');",
+                                                  "if (expected) {",
+                                                  "  pm.test(`${current} status is expected`, function () {",
+                                                  "    if (!hasToken && protectedRequests.includes(current)) {",
+                                                  "      pm.expect([401, 404, 405]).to.include(pm.response.code);",
+                                                  "      return;",
+                                                  "    }",
+                                                  "    pm.expect(expected).to.include(pm.response.code);",
+                                                  "  });",
+                                                  "}",
+                                                  "",
+                                                  "const tryJson = () => {",
+                                                  "  try { return pm.response.json(); } catch (e) { return null; }",
+                                                  "};",
+                                                  "",
+                                                  "const findUuid = (text) => {",
+                                                  "  if (!text) return null;",
+                                                  "  const m = String(text).match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);",
+                                                  "  return m ? m[0] : null;",
+                                                  "};",
+                                                  "",
+                                                  "const pickId = (obj, keys) => {",
+                                                  "  if (!obj || typeof obj !== 'object') return null;",
+                                                  "  for (const key of keys) {",
+                                                  "    if (obj[key]) return obj[key];",
+                                                  "  }",
+                                                  "  if (obj.data && typeof obj.data === 'object') {",
+                                                  "    for (const key of keys) {",
+                                                  "      if (obj.data[key]) return obj.data[key];",
+                                                  "    }",
+                                                  "  }",
+                                                  "  return null;",
+                                                  "};",
+                                                  "",
+                                                  "if (current === 'Register' && pm.response.code === 201) {",
+                                                  "  pm.collectionVariables.set('authUsername', pm.collectionVariables.get('registerUsername'));",
+                                                  "  pm.collectionVariables.set('authPassword', pm.collectionVariables.get('registerPassword'));",
+                                                  "}",
+                                                  "",
+                                                  "if (current === 'Login' && pm.response.code === 200) {",
+                                                  "  const data = tryJson();",
+                                                  "  if (data && data.access_token) {",
+                                                  "    pm.collectionVariables.set('accessToken', data.access_token);",
+                                                  "  }",
+                                                  "  pm.test('Login returns access token', function () {",
+                                                  "    pm.expect(pm.collectionVariables.get('accessToken')).to.be.a('string').and.not.empty;",
+                                                  "  });",
+                                                  "}",
+                                                  "",
+                                                  "if (current === 'Create Ruleset' && pm.response.code === 201) {",
+                                                  "  const data = tryJson();",
+                                                  "  const rulesetId = pickId(data, ['ruleset_id', 'rulesetId', 'id']) || findUuid(pm.response.text());",
+                                                  "  if (rulesetId) pm.collectionVariables.set('rulesetId', rulesetId);",
+                                                  "",
+                                                  "  const rulesetVersionId =",
+                                                  "    (data && (data.ruleset_version_id || data.rulesetVersionId || (data.active_version && (data.active_version.version || data.active_version.id)))) ||",
+                                                  "    pm.collectionVariables.get('rulesetVersionId') ||",
+                                                  "    '1';",
+                                                  "  pm.collectionVariables.set('rulesetVersionId', String(rulesetVersionId));",
+                                                  "}",
+                                                  "",
+                                                  "if (current === 'Create Session' && pm.response.code === 201) {",
+                                                  "  const data = tryJson();",
+                                                  "  const sessionId = pickId(data, ['session_id', 'sessionId', 'id']) || findUuid(pm.response.text());",
+                                                  "  if (sessionId) pm.collectionVariables.set('sessionId', sessionId);",
+                                                  "}",
+                                                  "",
+                                                  "if (current === 'Create Player' && pm.response.code === 201) {",
+                                                  "  const data = tryJson();",
+                                                  "  const playerId = pickId(data, ['player_id', 'playerId', 'id']) || findUuid(pm.response.text());",
+                                                  "  if (playerId) pm.collectionVariables.set('playerId', playerId);",
+                                                  "}"
+                                              ]
+                                 }
+                  }
+              ],
     "item":  [
                  {
                      "name":  "Auth",
                      "item":  [
+                                  {
+                                      "name":  "Register",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{baseUrl}}/api/v1/auth/register",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"username\":\"{{registerUsername}}\",\"password\":\"{{registerPassword}}\",\"role\":\"INSTRUCTOR\"}"
+                                                               }
+                                                  }
+                                  },
                                   {
                                       "name":  "Login",
                                       "request":  {
@@ -21,39 +197,6 @@
                                                       "body":  {
                                                                    "mode":  "raw",
                                                                    "raw":  "{\"username\":\"{{authUsername}}\",\"password\":\"{{authPassword}}\"}"
-                                                               }
-                                                  },
-                                      "event":  [
-                                                    {
-                                                        "listen":  "test",
-                                                        "script":  {
-                                                                       "type":  "text/javascript",
-                                                                       "exec":  [
-                                                                                    "if (pm.response.code === 200) {",
-                                                                                    "  const data = pm.response.json();",
-                                                                                    "  if (data.access_token) {",
-                                                                                    "    pm.collectionVariables.set(\"accessToken\", data.access_token);",
-                                                                                    "  }",
-                                                                                    "}"
-                                                                                ]
-                                                                   }
-                                                    }
-                                                ]
-                                  },
-                                  {
-                                      "name":  "Register",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Content-Type",
-                                                                         "value":  "application/json"
-                                                                     }
-                                                                 ],
-                                                      "url":  "{{baseUrl}}/api/v1/auth/register",
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\"username\":\"{{registerUsername}}\",\"password\":\"{{registerPassword}}\",\"role\":\"PLAYER\"}"
                                                                }
                                                   }
                                   }
@@ -306,7 +449,7 @@
                                                       "url":  "{{baseUrl}}/api/v1/players",
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\"display_name\":\"Player A\"}"
+                                                                   "raw":  "{\"username\":\"{{playerUsername}}\",\"password\":\"{{playerPassword}}\",\"display_name\":\"Player A\"}"
                                                                }
                                                   }
                                   },
@@ -802,6 +945,11 @@
              ],
     "variable":  [
                      {
+                         "key":  "baseUrl",
+                         "value":  "http://localhost:5041",
+                         "type":  "string"
+                     },
+                     {
                          "key":  "authUsername",
                          "value":  "instructor",
                          "type":  "string"
@@ -824,6 +972,41 @@
                      {
                          "key":  "accessToken",
                          "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "rulesetId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "sessionId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "playerId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "timestamp",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "rulesetVersionId",
+                         "value":  "1",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "playerUsername",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "playerPassword",
+                         "value":  "Pass123!Aa",
                          "type":  "string"
                      }
                  ]

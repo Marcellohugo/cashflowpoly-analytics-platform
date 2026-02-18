@@ -248,14 +248,11 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
+});
 
 app.UseForwardedHeaders();
 app.UseDefaultFiles();

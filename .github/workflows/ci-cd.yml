@@ -1,0 +1,166 @@
+# ============================================================
+# Cashflowpoly Analytics Platform – CI/CD Pipeline
+# ============================================================
+# Trigger: push/PR ke main, dan manual dispatch
+# Jobs:
+#   1. build-and-test  → restore, build, unit test
+#   2. docker-build    → build image, push ke GHCR
+#   3. deploy          → SSH ke mesin target, pull & restart
+# ============================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository }}/api
+  UI_IMAGE: ghcr.io/${{ github.repository }}/ui
+
+jobs:
+  # ─────────────── Build & Test ───────────────
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cashflowpoly_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d cashflowpoly_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore Cashflowpoly.sln
+
+      - name: Build
+        run: dotnet build Cashflowpoly.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test Cashflowpoly.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+        env:
+          ConnectionStrings__Default: "Host=localhost;Port=5432;Database=cashflowpoly_test;Username=test;Password=test"
+          JWT_SIGNING_KEY: "ci-test-signing-key-minimum-32-characters-long"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: "**/test-results.trx"
+          retention-days: 30
+
+  # ─────────────── Docker Build & Push ───────────────
+  docker-build:
+    name: Docker Build & Push
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Cashflowpoly.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.API_IMAGE }}:latest
+            ${{ env.API_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push UI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Cashflowpoly.Ui/Dockerfile
+          push: true
+          tags: |
+            ${{ env.UI_IMAGE }}:latest
+            ${{ env.UI_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────── Deploy ke Mesin Target ───────────────
+  deploy:
+    name: Deploy
+    needs: docker-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH || '~/cashflowpoly-analytics-platform' }}
+            
+            # Pull latest code
+            git pull origin main
+            
+            # Login ke GHCR
+            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull latest images
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+            
+            # Restart services (zero-downtime: recreate satu per satu)
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps api
+            sleep 10
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps ui
+            sleep 5
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps nginx
+            
+            # Cleanup old images
+            docker image prune -f
+            
+            echo "✅ Deploy selesai: $(date)"
