@@ -7,7 +7,6 @@ namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/observability")]
-[Route("api/observability")]
 [Authorize(Roles = "INSTRUCTOR")]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]

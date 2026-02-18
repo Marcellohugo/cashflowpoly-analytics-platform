@@ -8,7 +8,6 @@ namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/security")]
-[Route("api/security")]
 [Authorize(Roles = "INSTRUCTOR")]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]

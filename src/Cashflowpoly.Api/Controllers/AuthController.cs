@@ -9,7 +9,6 @@ namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
-[Route("api/auth")]
 [AllowAnonymous]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]

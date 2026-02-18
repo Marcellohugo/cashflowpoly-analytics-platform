@@ -10,7 +10,6 @@ namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/rulesets")]
-[Route("api/rulesets")]
 [Authorize]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
