@@ -19,7 +19,7 @@ Dokumen ini menetapkan:
 Dokumen ini mengikuti:
 - `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
 - `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
-- `docs/02-Perancangan/02-03-rancangan-dashboard-analitika-mvc.md`
+- `docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md`
 
 ---
 
@@ -128,22 +128,7 @@ Entitas tampilan minimum:
 ---
 
 ## 7. Pemetaan API ke Halaman
-| Halaman | Endpoint API |
-|---|---|
-| Login | `POST /api/v1/auth/login` |
-| Register | `POST /api/v1/auth/register` |
-| Sessions list | `GET /api/v1/sessions` |
-| Session details | `GET /api/v1/analytics/sessions/{sessionId}` |
-| Player details | `GET /api/v1/analytics/sessions/{sessionId}` + `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` + `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` |
-| Rulesets list | `GET /api/v1/rulesets` |
-| Ruleset create | `POST /api/v1/rulesets` |
-| Ruleset archive | `POST /api/v1/rulesets/{rulesetId}/archive` |
-| Ruleset delete | `DELETE /api/v1/rulesets/{rulesetId}` |
-| Session ruleset activation | `POST /api/v1/sessions/{sessionId}/ruleset/activate` |
-
-Catatan:
-- `POST /api/v1/auth/register` publik untuk role `PLAYER`.
-- Registrasi `INSTRUCTOR` ditentukan oleh kebijakan server (`Auth:AllowPublicInstructorRegistration`: `true` diizinkan, `false` ditolak `403`).
+Tabel pemetaan endpoint API ke halaman UI mengikuti `docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md` bagian 7.
 
 ---
 
@@ -156,12 +141,7 @@ Catatan:
 ---
 
 ## 9. Standar Error UI
-1. `401`: redirect ke login dan hapus session auth.
-2. `403`: tampilkan pesan akses ditolak.
-3. `404`: tampilkan data tidak ditemukan.
-4. `422`: tampilkan detail validasi dari API.
-5. `429`: tampilkan notifikasi rate limit.
-6. `500`: tampilkan pesan umum dan `trace_id` jika tersedia.
+Standar penanganan error UI mengikuti `docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md` bagian 9.
 
 ---
 

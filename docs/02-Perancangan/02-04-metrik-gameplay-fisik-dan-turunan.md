@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini mendefinisikan variabel gameplay fisik (observable) dan metrik turunan yang relevan untuk analitika pembelajaran Cashflowpoly. Dokumen ini melengkapi definisi metrik minimum pada `docs/02-Perancangan/02-02-definisi-metrik-dan-agregasi.md` dan menjadi referensi untuk perluasan metrik di masa depan.
+Dokumen ini mendefinisikan variabel gameplay fisik (observable) dan metrik turunan yang relevan untuk analitika pembelajaran Cashflowpoly. Dokumen ini melengkapi definisi metrik minimum pada `docs/02-Perancangan/02-03-definisi-metrik-dan-agregasi.md` dan menjadi referensi untuk perluasan metrik di masa depan.
 
 Catatan:
 - Variabel pada dokumen ini bersifat konseptual dan diturunkan dari log event.
@@ -391,7 +391,7 @@ happiness_portfolio = [need_cards_pts, donations_pts, gold_pts, pension_pts, fin
 ## 3. Catatan Implementasi
 - Variabel yang membutuhkan event tambahan (contoh: `actions_skipped`) dapat dimasukkan ke backlog event jika ingin menghitung metrik turunan secara lebih detail.
 - UI hanya menampilkan metrik yang tersedia dari API (`/api/v1/analytics/...`). UI tidak menghitung ulang rumus di sisi klien.
-- Jika metrik turunan ini diimplementasikan, pastikan `metric_name` mengikuti konvensi pada dokumen `02-02-definisi-metrik-dan-agregasi`.
+- Jika metrik turunan ini diimplementasikan, pastikan `metric_name` mengikuti konvensi pada dokumen `02-03-definisi-metrik-dan-agregasi`.
 
 ### 3.1 Nama metrik snapshot JSON
 Implementasi saat ini menyimpan variabel dan metrik turunan pada:

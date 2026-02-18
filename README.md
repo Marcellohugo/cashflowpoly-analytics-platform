@@ -82,11 +82,12 @@ Catatan kontrak API:
 |  |  +- 01-02-spesifikasi-event-dan-kontrak-api.md
 |  |  +- 01-03-spesifikasi-ruleset-dan-validasi.md
 |  +- 02-Perancangan/
-|  |  +- 02-01-rancangan-model-data-dan-basis-data.md
-|  |  +- 02-02-definisi-metrik-dan-agregasi.md
-|  |  +- 02-03-rancangan-dashboard-analitika-mvc.md
-|  |  +- 02-04-rencana-implementasi-dan-struktur-solution-dotnet.md
-|  |  +- 02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
+|  |  +- 02-01-rencana-implementasi-dan-struktur-solution-dotnet.md
+|  |  +- 02-02-rancangan-model-data-dan-basis-data.md
+|  |  +- 02-03-definisi-metrik-dan-agregasi.md
+|  |  +- 02-04-metrik-gameplay-fisik-dan-turunan.md
+|  |  +- 02-05-rancangan-dashboard-analitika-mvc.md
+|  |  +- 02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
 |  +- 03-Pengujian/
 |  |  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
 |  |  +- 03-02-laporan-hasil-pengujian.md
@@ -191,11 +192,12 @@ Dokumen kunci:
 - Spesifikasi kebutuhan sistem (SRS): `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
 - Kontrak API: `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
 - Spesifikasi *ruleset*: `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
-- Model data dan basis data: `docs/02-Perancangan/02-01-rancangan-model-data-dan-basis-data.md`
-- Definisi metrik dan agregasi: `docs/02-Perancangan/02-02-definisi-metrik-dan-agregasi.md`
-- Rancangan dasbor MVC: `docs/02-Perancangan/02-03-rancangan-dashboard-analitika-mvc.md`
-- Rencana implementasi dan struktur solusi: `docs/02-Perancangan/02-04-rencana-implementasi-dan-struktur-solution-dotnet.md`
-- Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-05-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
+- Rencana implementasi dan struktur solusi: `docs/02-Perancangan/02-01-rencana-implementasi-dan-struktur-solution-dotnet.md`
+- Model data dan basis data: `docs/02-Perancangan/02-02-rancangan-model-data-dan-basis-data.md`
+- Definisi metrik dan agregasi: `docs/02-Perancangan/02-03-definisi-metrik-dan-agregasi.md`
+- Variabel gameplay fisik dan metrik turunan: `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`
+- Rancangan dasbor MVC: `docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md`
+- Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
 - Unit test API: `dotnet test Cashflowpoly.sln`.

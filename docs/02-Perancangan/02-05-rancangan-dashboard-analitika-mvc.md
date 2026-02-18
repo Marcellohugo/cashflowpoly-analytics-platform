@@ -19,7 +19,7 @@ Dokumen ini harus dibaca bersama:
 - `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
 - `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
 - `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
-- `docs/02-Perancangan/02-02-definisi-metrik-dan-agregasi.md`
+- `docs/02-Perancangan/02-03-definisi-metrik-dan-agregasi.md`
 
 Jika ada konflik antar dokumen, prioritas kontrak mengikuti `01-04` lalu `01-02`.
 

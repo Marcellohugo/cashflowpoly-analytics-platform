@@ -143,24 +143,14 @@ Kode status domain utama:
 ---
 
 ## 6. Lifecycle Ruleset
-### 6.1 Lifecycle level ruleset
-1. `ACTIVE_RECORD` (ruleset dapat dipakai)
-2. `ARCHIVED` (`is_archived = true`)
-3. `DELETED` (hard delete, hanya jika belum pernah dipakai sesi)
+Definisi state dan aturan transisi lifecycle mengikuti `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` bagian 3.3.
 
-### 6.2 Lifecycle level ruleset version
-1. `DRAFT` (dipakai pada versi hasil update sebelum aktivasi)
-2. `ACTIVE` (dipakai saat ini)
-3. `RETIRED` (versi lama, tidak aktif)
-
-Aturan aktivasi:
+Aturan tambahan untuk konteks integrasi IDN:
 1. Aktivasi versi dilakukan eksplisit via `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`.
 2. Saat satu versi diaktifkan, versi `ACTIVE` lain pada ruleset yang sama otomatis menjadi `RETIRED`.
 3. Pembuatan sesi baru mengambil versi `ACTIVE` terbaru dari ruleset yang dipilih.
-
-### 6.3 Aturan penghapusan
-1. Ruleset tidak boleh dihapus jika sudah muncul pada `session_ruleset_activations`.
-2. Ruleset yang sudah dipakai hanya boleh diarsipkan.
+4. Ruleset tidak boleh dihapus jika sudah muncul pada `session_ruleset_activations`.
+5. Ruleset yang sudah dipakai hanya boleh diarsipkan.
 
 ---
 
@@ -184,6 +174,7 @@ Catatan:
 
 ## 8. NFR Operasional
 ### 8.1 Performa
+Target performa mengikuti NFR pada `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md` bagian 9.3.
 1. P95 ingest event tunggal <= 500 ms.
 2. P95 analitika sesi <= 1500 ms (<= 2000 event per sesi).
 

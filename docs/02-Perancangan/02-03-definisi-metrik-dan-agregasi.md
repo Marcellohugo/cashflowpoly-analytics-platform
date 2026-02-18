@@ -13,7 +13,7 @@
 Dokumen ini disusun untuk mendefinisikan metrik yang sistem hitung dari log event, beserta aturan agregasi, frekuensi perhitungan, dan format penyimpanan pada tabel `metric_snapshots`. Dokumen ini menjadi acuan implementasi modul analitika dan validasi tampilan dasbor.
 
 Dokumen pendamping yang berisi variabel gameplay fisik dan metrik turunan:
-- `docs/02-Perancangan/02-06-metrik-gameplay-fisik-dan-turunan.md`
+- `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`
 
 ---
 
@@ -146,7 +146,7 @@ Sistem menyimpan snapshot variabel gameplay fisik dan metrik turunan pada metrik
 | gameplay.derived.metrics | pemain | jsonb | Metrik turunan (net worth index, efisiensi, ROI, risk appetite, dll). |
 
 Catatan:
-- Isi JSON mengikuti dokumen `docs/02-Perancangan/02-06-metrik-gameplay-fisik-dan-turunan.md`.
+- Isi JSON mengikuti dokumen `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`.
 
 ---
 

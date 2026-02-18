@@ -832,51 +832,12 @@ Catatan akses:
 {
   "name": "Ruleset Default",
   "description": "Konfigurasi awal",
-  "config": {
-    "mode": "PEMULA",
-    "actions_per_turn": 2,
-    "starting_cash": 20,
-    "weekday_rules": {
-      "friday": { "feature": "DONATION", "enabled": true },
-      "saturday": { "feature": "GOLD_TRADE", "enabled": true },
-      "sunday": { "feature": "REST", "enabled": true }
-    },
-    "constraints": {
-      "cash_min": 0,
-      "max_ingredient_total": 6,
-      "max_same_ingredient": 3,
-      "primary_need_max_per_day": 1,
-      "require_primary_before_others": true
-    },
-    "donation": { "min_amount": 1, "max_amount": 999999 },
-    "gold_trade": { "allow_buy": true, "allow_sell": true },
-    "advanced": {
-      "loan": { "enabled": false },
-      "insurance": { "enabled": false },
-      "saving_goal": { "enabled": false }
-    },
-    "freelance": { "income": 1 },
-    "scoring": {
-      "donation_rank_points": [
-        { "rank": 1, "points": 7 },
-        { "rank": 2, "points": 5 },
-        { "rank": 3, "points": 2 }
-      ],
-      "gold_points_by_qty": [
-        { "qty": 1, "points": 3 },
-        { "qty": 2, "points": 5 },
-        { "qty": 3, "points": 8 },
-        { "qty": 4, "points": 12 }
-      ],
-      "pension_rank_points": [
-        { "rank": 1, "points": 5 },
-        { "rank": 2, "points": 3 },
-        { "rank": 3, "points": 1 }
-      ]
-    }
-  }
+  "config": { "..." }
 }
 ```
+
+Isi field `config` mengikuti struktur `config_json` pada `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` bagian 4.1. Contoh lengkap mode pemula dan mahir tersedia pada bagian 9 dokumen yang sama.
+
 - Response 201:
 ```json
 { "ruleset_id": "uuid", "version": 1 }
@@ -988,7 +949,7 @@ Catatan akses:
 Catatan:
 - `raw` berisi variabel gameplay fisik.
 - `derived` berisi metrik turunan dari variabel fisik.
-- Struktur lengkap mengikuti dokumen `docs/02-Perancangan/02-06-metrik-gameplay-fisik-dan-turunan.md`.
+- Struktur lengkap mengikuti dokumen `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`.
 
 ---
 
