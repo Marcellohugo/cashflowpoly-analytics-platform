@@ -35,6 +35,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 03-01-rencana-pengujian-fungsional-dan-validasi.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | docs/03-Pengujian/03-02-laporan-hasil-pengujian.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 03-02-laporan-hasil-pengujian.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | docs/evidence/README.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file README.md. | Dokumen tidak diubah inline sesuai kebijakan. |
+| docs/file-function-manifest.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file file-function-manifest.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | docs/Img/RuleBook/hal-01.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-01.png. | Aset biner. |
 | docs/Img/RuleBook/hal-05.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-05.png. | Aset biner. |
 | docs/Img/RuleBook/hal-07.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-07.png. | Aset biner. |
@@ -54,6 +55,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | postman/Cashflowpoly.local.postman_environment.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.local.postman_environment.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | postman/Cashflowpoly.postman_collection.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.postman_collection.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | README.md | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file README.md. | Dokumen tidak diubah inline sesuai kebijakan. |
+| scripts/audit/verify-file-function-coverage.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file verify-file-function-coverage.ps1. | - |
 | scripts/perf/run-load-test.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file run-load-test.ps1. | - |
 | src/Cashflowpoly.Api/appsettings.Development.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.Development.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | src/Cashflowpoly.Api/appsettings.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
