@@ -48,7 +48,6 @@ jobs:
         run: dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-build --filter "Category!=Integration" --verbosity normal
         env:
           ConnectionStrings__Default: Host=localhost;Port=5432;Database=cashflowpoly_test;Username=test;Password=test
-          JWT_SIGNING_KEY: ci-test-signing-key-minimum-32-characters-long
 
       - name: Test (Integration)
         run: dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-build --filter "Category=Integration" --verbosity normal
