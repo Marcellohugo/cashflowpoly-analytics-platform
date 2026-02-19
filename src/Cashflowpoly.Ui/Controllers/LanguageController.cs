@@ -22,20 +22,4 @@ public sealed class LanguageController : Controller
 
         return RedirectToAction("Index", "Home");
     }
-
-    [HttpPost("toggle")]
-    [ValidateAntiForgeryToken]
-    public IActionResult Toggle([FromForm] string? returnUrl = null)
-    {
-        var current = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
-        var next = current == AuthConstants.LanguageEn ? AuthConstants.LanguageId : AuthConstants.LanguageEn;
-        HttpContext.Session.SetString(AuthConstants.SessionLanguageKey, next);
-
-        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-        {
-            return Redirect(returnUrl);
-        }
-
-        return RedirectToAction("Index", "Home");
-    }
 }

@@ -36,7 +36,9 @@ public sealed class RulesetsController : Controller
         {
             return View(new RulesetListViewModel
             {
-                ErrorMessage = $"Gagal mengambil ruleset. Status: {(int)response.StatusCode}"
+                ErrorMessage = HttpContext
+                    .T("rulesets.error.load_list_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString())
             });
         }
 
@@ -45,7 +47,7 @@ public sealed class RulesetsController : Controller
         {
             return View(new RulesetListViewModel
             {
-                ErrorMessage = "Respon daftar ruleset tidak valid."
+                ErrorMessage = HttpContext.T("rulesets.error.invalid_list_response")
             });
         }
 
@@ -125,7 +127,7 @@ public sealed class RulesetsController : Controller
         if (string.IsNullOrWhiteSpace(model.Name))
         {
             model.IsEditMode = false;
-            model.ErrorMessage = "Nama ruleset wajib diisi.";
+            model.ErrorMessage = HttpContext.T("rulesets.error.name_required");
             return View(model);
         }
 
@@ -137,7 +139,7 @@ public sealed class RulesetsController : Controller
         catch (JsonException)
         {
             model.IsEditMode = false;
-            model.ErrorMessage = "Config JSON tidak valid.";
+            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_config_json");
             return View(model);
         }
 
@@ -160,7 +162,9 @@ public sealed class RulesetsController : Controller
         {
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
             model.IsEditMode = false;
-            model.ErrorMessage = error?.Message ?? $"Gagal membuat ruleset. Status: {(int)response.StatusCode}";
+            model.ErrorMessage = error?.Message ?? HttpContext
+                .T("rulesets.error.create_failed")
+                .Replace("{status}", ((int)response.StatusCode).ToString());
             return View(model);
         }
 
@@ -190,7 +194,9 @@ public sealed class RulesetsController : Controller
             {
                 RulesetId = rulesetId,
                 IsEditMode = true,
-                ErrorMessage = error?.Message ?? $"Gagal memuat ruleset untuk diedit. Status: {(int)response.StatusCode}"
+                ErrorMessage = error?.Message ?? HttpContext
+                    .T("rulesets.error.load_for_edit_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString())
             });
         }
 
@@ -201,7 +207,7 @@ public sealed class RulesetsController : Controller
             {
                 RulesetId = rulesetId,
                 IsEditMode = true,
-                ErrorMessage = "Respon detail ruleset tidak valid."
+                ErrorMessage = HttpContext.T("rulesets.error.invalid_detail_response")
             });
         }
 
@@ -228,7 +234,7 @@ public sealed class RulesetsController : Controller
 
         if (string.IsNullOrWhiteSpace(model.Name))
         {
-            model.ErrorMessage = "Nama ruleset wajib diisi.";
+            model.ErrorMessage = HttpContext.T("rulesets.error.name_required");
             return View("Create", model);
         }
 
@@ -239,7 +245,7 @@ public sealed class RulesetsController : Controller
         }
         catch (JsonException)
         {
-            model.ErrorMessage = "Config JSON tidak valid.";
+            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_config_json");
             return View("Create", model);
         }
 
@@ -261,7 +267,9 @@ public sealed class RulesetsController : Controller
         if (!response.IsSuccessStatusCode)
         {
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
-            model.ErrorMessage = error?.Message ?? $"Gagal mengubah ruleset. Status: {(int)response.StatusCode}";
+            model.ErrorMessage = error?.Message ?? HttpContext
+                .T("rulesets.error.update_failed")
+                .Replace("{status}", ((int)response.StatusCode).ToString());
             return View("Create", model);
         }
 
@@ -284,7 +292,9 @@ public sealed class RulesetsController : Controller
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
             return View(new RulesetDetailViewModel
             {
-                ErrorMessage = error?.Message ?? $"Gagal memuat ruleset. Status: {(int)response.StatusCode}"
+                ErrorMessage = error?.Message ?? HttpContext
+                    .T("rulesets.error.load_detail_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString())
             });
         }
 
@@ -293,7 +303,7 @@ public sealed class RulesetsController : Controller
         {
             return View(new RulesetDetailViewModel
             {
-                ErrorMessage = "Respon detail ruleset tidak valid."
+                ErrorMessage = HttpContext.T("rulesets.error.invalid_detail_response")
             });
         }
 
@@ -324,7 +334,7 @@ public sealed class RulesetsController : Controller
         {
             TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
                 response,
-                "Gagal mengaktifkan versi ruleset",
+                HttpContext.T("rulesets.error.activate_version_failed"),
                 ct);
         }
 
@@ -351,7 +361,7 @@ public sealed class RulesetsController : Controller
         {
             TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
                 response,
-                "Gagal hapus ruleset",
+                HttpContext.T("rulesets.error.delete_failed"),
                 ct);
             return RedirectToAction(nameof(Details), new { rulesetId });
         }

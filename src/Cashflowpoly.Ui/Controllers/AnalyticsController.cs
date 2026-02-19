@@ -60,7 +60,7 @@ public sealed class AnalyticsController : Controller
 
         if (!Guid.TryParse(viewModel.SessionId, out var sessionId))
         {
-            viewModel.ErrorMessage = "Session ID tidak valid.";
+            viewModel.ErrorMessage = HttpContext.T("analytics.error.invalid_session_id");
             return View(viewModel);
         }
 
@@ -68,7 +68,7 @@ public sealed class AnalyticsController : Controller
             viewModel.Sessions.Count > 0 &&
             viewModel.Sessions.All(item => item.SessionId != sessionId))
         {
-            viewModel.ErrorMessage = "Session tidak tersedia untuk akun player ini.";
+            viewModel.ErrorMessage = HttpContext.T("analytics.error.session_not_available_for_player");
             return View(viewModel);
         }
 
@@ -98,14 +98,16 @@ public sealed class AnalyticsController : Controller
 
         if (!sessionResponse.IsSuccessStatusCode)
         {
-            model.SessionLookupErrorMessage = $"Gagal memuat daftar sesi. Status: {(int)sessionResponse.StatusCode}";
+            model.SessionLookupErrorMessage = HttpContext
+                .T("analytics.error.load_sessions_failed")
+                .Replace("{status}", ((int)sessionResponse.StatusCode).ToString());
         }
         else
         {
             var sessions = await TryReadJsonAsync<SessionListResponseDto>(sessionResponse.Content, ct);
             if (sessions is null)
             {
-                model.SessionLookupErrorMessage = "Respon daftar sesi tidak valid.";
+                model.SessionLookupErrorMessage = HttpContext.T("analytics.error.invalid_sessions_response");
                 return (model, null);
             }
 
@@ -154,7 +156,9 @@ public sealed class AnalyticsController : Controller
         if (!response.IsSuccessStatusCode)
         {
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
-            model.ErrorMessage = error?.Message ?? $"Gagal memuat analitika. Status: {(int)response.StatusCode}";
+            model.ErrorMessage = error?.Message ?? HttpContext
+                .T("analytics.error.load_session_analytics_failed")
+                .Replace("{status}", ((int)response.StatusCode).ToString());
             model.Result = null;
             return null;
         }
@@ -162,7 +166,7 @@ public sealed class AnalyticsController : Controller
         var result = await TryReadJsonAsync<AnalyticsSessionResponseDto>(response.Content, ct);
         if (result is null)
         {
-            model.ErrorMessage = "Respon analitika sesi tidak valid.";
+            model.ErrorMessage = HttpContext.T("analytics.error.invalid_session_analytics_response");
             model.Result = null;
             return null;
         }
@@ -197,7 +201,9 @@ public sealed class AnalyticsController : Controller
         if (!response.IsSuccessStatusCode)
         {
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
-            model.RulesetErrorMessage = error?.Message ?? $"Gagal memuat analitika ruleset. Status: {(int)response.StatusCode}";
+            model.RulesetErrorMessage = error?.Message ?? HttpContext
+                .T("analytics.error.load_ruleset_analytics_failed")
+                .Replace("{status}", ((int)response.StatusCode).ToString());
             model.RulesetResult = null;
             return null;
         }
@@ -205,7 +211,7 @@ public sealed class AnalyticsController : Controller
         var result = await TryReadJsonAsync<RulesetAnalyticsSummaryResponseDto>(response.Content, ct);
         if (result is null)
         {
-            model.RulesetErrorMessage = "Respon analitika ruleset tidak valid.";
+            model.RulesetErrorMessage = HttpContext.T("analytics.error.invalid_ruleset_analytics_response");
             model.RulesetResult = null;
             return null;
         }

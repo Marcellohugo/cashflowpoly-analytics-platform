@@ -56,7 +56,8 @@ public class HomeController : Controller
 
     public IActionResult Rulebook()
     {
-        return View("Privacy", model: RulebookContent.Build());
+        var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
+        return View("Privacy", model: RulebookContent.Build(language));
     }
 
     public IActionResult Privacy()
@@ -139,7 +140,10 @@ public class HomeController : Controller
             TotalPlayers = players.Count,
             TotalRulesets = rulesets.Count,
             LastSyncedAt = DateTimeOffset.UtcNow,
-            ErrorMessage = errorMessages.Count == 0 ? null : $"Sebagian data realtime gagal dimuat ({string.Join(", ", errorMessages)})."
+            ErrorMessage = errorMessages.Count == 0
+                ? null
+                : HttpContext.T("home.error.partial_realtime_failed")
+                    .Replace("{details}", string.Join(", ", errorMessages))
         };
 
         _memoryCache.Set(cacheKey, model, RealtimeStatsCacheDuration);

@@ -383,25 +383,31 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
-    public async Task LegacyApiRoute_RewritesToV1_AndAuthWorks()
+    public async Task LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var username = $"it_legacy_{suffix}";
         const string password = "LegacyRoutePass!123";
 
         var registerPayload = new RegisterRequest(username, password, "INSTRUCTOR", null);
-        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerPayload);
+        var legacyRegisterResponse = await _client.PostAsJsonAsync("/api/auth/register", registerPayload);
+        Assert.Equal(HttpStatusCode.NotFound, legacyRegisterResponse.StatusCode);
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/v1/auth/register", registerPayload);
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
 
         var loginPayload = new LoginRequest(username, password);
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginPayload);
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", loginPayload);
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
 
         var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(login);
         Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
 
-        var sessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/sessions", null, login.AccessToken);
+        var legacySessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/sessions", null, login.AccessToken);
+        Assert.Equal(HttpStatusCode.NotFound, legacySessionsResponse.StatusCode);
+
+        var sessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/v1/sessions", null, login.AccessToken);
         Assert.Equal(HttpStatusCode.OK, sessionsResponse.StatusCode);
     }
 

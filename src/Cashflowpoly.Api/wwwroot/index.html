@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/x-icon" href="/images/cashflowpoly-favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="/api-assets/cashflowpoly-favicon.ico" />
     <title>Cashflowpoly API</title>
     <style>
         :root {
@@ -53,6 +53,37 @@
         .left {
             padding: clamp(24px, 6vw, 56px);
             position: relative;
+        }
+
+        .lang-switch {
+            position: absolute;
+            right: clamp(16px, 2vw, 22px);
+            top: clamp(16px, 2vw, 22px);
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .lang-button {
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+            min-width: 44px;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--ink);
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+        }
+
+        .lang-button:hover {
+            transform: translateY(-1px);
+            opacity: 0.92;
+        }
+
+        .lang-button.is-active {
+            background: rgba(53, 208, 255, 0.18);
+            border-color: rgba(53, 208, 255, 0.6);
         }
 
         .badge {
@@ -168,6 +199,11 @@
                 padding: 20px 16px;
             }
 
+            .lang-switch {
+                right: 12px;
+                top: 12px;
+            }
+
             .badge {
                 margin-bottom: 10px;
                 padding: 6px 11px;
@@ -211,51 +247,107 @@
                 width: min(360px, 100%);
             }
         }
-
-        @media (max-width: 420px) {
-            .left {
-                padding: 18px 14px;
-            }
-
-            .chip {
-                font-size: 0.72rem;
-            }
-        }
-
-        @media (max-height: 620px) {
-            body {
-                place-items: start center;
-            }
-
-            .right {
-                min-height: 180px;
-            }
-        }
     </style>
 </head>
 <body>
     <main class="hero">
         <section class="left">
-            <span class="badge">Backend Service</span>
-            <h1>Cashflowpoly API</h1>
-            <p class="subtitle">Layanan API untuk autentikasi, event ingestion, manajemen ruleset, sesi permainan, dan perhitungan analitika Cashflowpoly.</p>
+            <div class="lang-switch" role="group" aria-label="Language">
+                <button type="button" class="lang-button js-lang" data-lang="id">ID</button>
+                <button type="button" class="lang-button js-lang" data-lang="en">EN</button>
+            </div>
+            <span class="badge" data-t="badge"></span>
+            <h1 data-t="title"></h1>
+            <p class="subtitle" data-t="subtitle"></p>
             <div class="chips">
-                <span class="chip">REST /api/v1</span>
-                <span class="chip">JWT Auth</span>
-                <span class="chip">Rate Limited</span>
+                <span class="chip" data-t="chip_api"></span>
+                <span class="chip" data-t="chip_jwt"></span>
+                <span class="chip" data-t="chip_rate"></span>
             </div>
             <div class="actions">
-                <a class="button button-main" href="/swagger">Open Swagger</a>
-                <a class="button button-ghost" href="/swagger/v1/swagger.json">OpenAPI JSON</a>
+                <a class="button button-main" href="/swagger" data-t="cta_swagger"></a>
+                <a class="button button-ghost" href="/swagger/v1/swagger.json" data-t="cta_openapi"></a>
             </div>
         </section>
 
         <section class="right">
             <img
                 class="art"
-                src="/images/cashflowpoly.jpg"
-                alt="Cashflowpoly board illustration">
+                src="/api-assets/cashflowpoly.jpg"
+                alt="Cashflowpoly board illustration"
+                data-alt-id="Ilustrasi papan Cashflowpoly"
+                data-alt-en="Cashflowpoly board illustration">
         </section>
     </main>
+
+    <script>
+        (() => {
+            const lexicon = {
+                id: {
+                    badge: "Layanan Backend",
+                    title: "Cashflowpoly API",
+                    subtitle: "Layanan API untuk autentikasi, event ingestion, manajemen ruleset, sesi permainan, dan perhitungan analitika Cashflowpoly.",
+                    chip_api: "REST /api/v1",
+                    chip_jwt: "Autentikasi JWT",
+                    chip_rate: "Rate Limit Aktif",
+                    cta_swagger: "Buka Swagger",
+                    cta_openapi: "Lihat OpenAPI JSON"
+                },
+                en: {
+                    badge: "Backend Service",
+                    title: "Cashflowpoly API",
+                    subtitle: "API service for authentication, event ingestion, ruleset management, gameplay sessions, and Cashflowpoly analytics computation.",
+                    chip_api: "REST /api/v1",
+                    chip_jwt: "JWT Authentication",
+                    chip_rate: "Rate Limit Enabled",
+                    cta_swagger: "Open Swagger",
+                    cta_openapi: "View OpenAPI JSON"
+                }
+            };
+
+            const buttons = Array.from(document.querySelectorAll(".js-lang"));
+            const image = document.querySelector(".art");
+
+            const detectInitialLanguage = () => {
+                const lang = navigator.languages && navigator.languages.length > 0
+                    ? navigator.languages[0]
+                    : navigator.language || "id";
+                return String(lang).toLowerCase().startsWith("en") ? "en" : "id";
+            };
+
+            const render = (lang) => {
+                const activeLanguage = lang === "en" ? "en" : "id";
+                const dictionary = lexicon[activeLanguage];
+
+                document.documentElement.lang = activeLanguage;
+                Object.entries(dictionary).forEach(([key, value]) => {
+                    document.querySelectorAll(`[data-t="${key}"]`).forEach((node) => {
+                        node.textContent = value;
+                    });
+                });
+
+                if (image) {
+                    image.alt = activeLanguage === "en"
+                        ? image.dataset.altEn
+                        : image.dataset.altId;
+                }
+
+                buttons.forEach((button) => {
+                    const isActive = button.dataset.lang === activeLanguage;
+                    button.classList.toggle("is-active", isActive);
+                    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+                });
+            };
+
+            const initialLanguage = detectInitialLanguage();
+            render(initialLanguage);
+
+            buttons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    render(button.dataset.lang || "id");
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

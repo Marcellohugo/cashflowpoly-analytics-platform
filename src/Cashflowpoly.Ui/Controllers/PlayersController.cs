@@ -38,7 +38,9 @@ public sealed class PlayersController : Controller
                 SessionId = sessionId,
                 PlayerId = playerId,
                 PlayerDisplayName = playerDisplayName,
-                ErrorMessage = error?.Message ?? $"Gagal memuat analitika sesi. Status: {(int)analyticsResponse.StatusCode}"
+                ErrorMessage = error?.Message ?? HttpContext
+                    .T("players.error.load_session_analytics_failed")
+                    .Replace("{status}", ((int)analyticsResponse.StatusCode).ToString())
             });
         }
 
@@ -61,7 +63,9 @@ public sealed class PlayersController : Controller
                 PlayerId = playerId,
                 PlayerDisplayName = playerDisplayName,
                 Summary = summary,
-                ErrorMessage = error?.Message ?? $"Gagal memuat transaksi. Status: {(int)txResponse.StatusCode}"
+                ErrorMessage = error?.Message ?? HttpContext
+                    .T("players.error.load_transactions_failed")
+                    .Replace("{status}", ((int)txResponse.StatusCode).ToString())
             });
         }
 
@@ -82,7 +86,9 @@ public sealed class PlayersController : Controller
         else
         {
             var error = await gameplayResponse.Content.ReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
-            gameplayError = error?.Message ?? $"Gagal memuat metrik gameplay. Status: {(int)gameplayResponse.StatusCode}";
+            gameplayError = error?.Message ?? HttpContext
+                .T("players.error.load_gameplay_failed")
+                .Replace("{status}", ((int)gameplayResponse.StatusCode).ToString());
         }
 
         return View(new PlayerDetailViewModel

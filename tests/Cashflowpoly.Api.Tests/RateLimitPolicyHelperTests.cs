@@ -10,8 +10,8 @@ public sealed class RateLimitPolicyHelperTests
 {
     [Theory]
     [InlineData("/api/v1/events", 120)]
-    [InlineData("/api/events", 120)]
     [InlineData("/api/v1/sessions", 60)]
+    [InlineData("/api/events", 60)]
     [InlineData("/api/v1/auth/login", 60)]
     public void ResolvePermitLimit_ReturnsExpectedValue(string path, int expectedLimit)
     {

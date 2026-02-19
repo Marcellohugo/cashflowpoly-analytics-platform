@@ -27,6 +27,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException("ConnectionStrings:Default belum dikonfigurasi.");
 }
+var enableLegacyApiCompatibility = builder.Configuration.GetValue<bool>("FeatureFlags:EnableLegacyApiCompatibility");
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
@@ -247,31 +248,27 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
+});
 
 app.UseForwardedHeaders();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.Use(async (context, next) =>
+if (enableLegacyApiCompatibility)
 {
-    var path = context.Request.Path.Value;
-    if (!string.IsNullOrWhiteSpace(path) &&
-        path.Length > "/api/".Length &&
-        path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) &&
-        !path.StartsWith("/api/v1/", StringComparison.OrdinalIgnoreCase))
+    app.Use(async (context, next) =>
     {
-        context.Request.Path = $"/api/v1{path["/api".Length..]}";
-    }
+        if (LegacyApiCompatibilityHelper.TryRewritePath(context.Request.Path, out var rewrittenPath))
+        {
+            context.Request.Path = rewrittenPath;
+        }
 
-    await next();
-});
+        await next();
+    });
+}
 app.UseRouting();
 
 app.Use(async (context, next) =>

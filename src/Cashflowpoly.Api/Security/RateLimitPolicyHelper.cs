@@ -21,8 +21,7 @@ internal static class RateLimitPolicyHelper
 
     private static bool IsIngestPath(PathString path)
     {
-        return path.StartsWithSegments("/api/v1/events", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWithSegments("/api/events", StringComparison.OrdinalIgnoreCase);
+        return path.StartsWithSegments("/api/v1/events", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ResolveClientKey(HttpContext context)

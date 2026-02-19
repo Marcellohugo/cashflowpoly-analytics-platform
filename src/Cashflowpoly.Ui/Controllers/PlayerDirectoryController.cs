@@ -38,7 +38,9 @@ public sealed class PlayerDirectoryController : Controller
         {
             return View("~/Views/Players/Index.cshtml", new PlayerDirectoryViewModel
             {
-                ErrorMessage = $"Gagal memuat daftar pemain. Status: {(int)response.StatusCode}"
+                ErrorMessage = HttpContext
+                    .T("players.error.load_player_directory_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString())
             });
         }
 
@@ -105,7 +107,9 @@ public sealed class PlayerDirectoryController : Controller
         }
         else
         {
-            groupError = $"Gagal memuat daftar sesi untuk grouping pemain. Status: {(int)sessionsResponse.StatusCode}";
+            groupError = HttpContext
+                .T("players.error.load_sessions_grouping_failed")
+                .Replace("{status}", ((int)sessionsResponse.StatusCode).ToString());
         }
 
         return View("~/Views/Players/Index.cshtml", new PlayerDirectoryViewModel

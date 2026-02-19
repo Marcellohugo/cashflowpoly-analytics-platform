@@ -129,7 +129,6 @@ public sealed class PlayersController : ControllerBase
     }
 
     [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]
-    [HttpPost("/api/sessions/{sessionId:guid}/players")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(AddSessionPlayerResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)

@@ -1,0 +1,58 @@
+@model Cashflowpoly.Ui.Models.SessionDetailViewModel
+
+<div class="mt-8 session-journey-shell">
+    <div class="session-journey-head">
+        <div>
+            <p class="eyebrow">@Context.T("sessions.timeline")</p>
+            <h2 class="text-2xl font-semibold text-slate-900 session-journey-title">@Context.T("sessions.timeline_title")</h2>
+            <p class="subhead">@Context.T("sessions.timeline_subtitle")</p>
+            <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.journey.board_subtitle")</p>
+        </div>
+        <div class="session-journey-sync">
+            <span>@Context.T("sessions.journey.last_sync")</span>
+            <strong id="session-journey-synced">@DateTimeOffset.Now.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</strong>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.TimelineErrorMessage))
+    {
+        <div id="session-journey-error" class="mt-4 alert alert-warning" aria-live="polite">
+            @Model.TimelineErrorMessage
+        </div>
+    }
+    else
+    {
+        <div id="session-journey-error" class="mt-4 alert alert-warning hidden" aria-live="polite"></div>
+    }
+
+    <div class="session-board-wrap">
+        <div id="session-board-track" class="session-board-track"></div>
+    </div>
+
+    <div class="session-journey-legend">
+        <span class="session-journey-legend-item actor-player">@Context.T("sessions.actor.player")</span>
+        <span class="session-journey-legend-item actor-system">@Context.T("sessions.actor.system")</span>
+        <span class="session-journey-legend-item actor-instructor">@Context.T("sessions.actor.instructor")</span>
+        <span class="session-journey-legend-item actor-other">@Context.T("sessions.actor.other")</span>
+    </div>
+
+    <div class="session-journey-insight-grid">
+        <article class="session-journey-insight-card">
+            <p class="session-journey-insight-label">@Context.T("metric.total_event")</p>
+            <p id="session-journey-insight-total" class="session-journey-insight-value">0</p>
+        </article>
+        <article class="session-journey-insight-card">
+            <p class="session-journey-insight-label">@Context.T("sessions.timeline_day_turn")</p>
+            <p id="session-journey-insight-day-turn" class="session-journey-insight-value">-</p>
+        </article>
+        <article class="session-journey-insight-card">
+            <p class="session-journey-insight-label">@Context.T("sessions.timeline_actor")</p>
+            <p id="session-journey-insight-actor" class="session-journey-insight-value">-</p>
+        </article>
+        <article class="session-journey-insight-card">
+            <p class="session-journey-insight-label">@Context.T("sessions.journey.latest_activity")</p>
+            <p id="session-journey-insight-action" class="session-journey-insight-value">-</p>
+        </article>
+    </div>
+
+</div>

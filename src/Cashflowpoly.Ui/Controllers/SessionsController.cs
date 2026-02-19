@@ -36,13 +36,15 @@ public sealed class SessionsController : Controller
             {
                 return View(new SessionListViewModel
                 {
-                    ErrorMessage = "Terlalu banyak request ke API. Tunggu sebentar lalu coba lagi."
+                    ErrorMessage = HttpContext.T("sessions.error.too_many_requests")
                 });
             }
 
             return View(new SessionListViewModel
             {
-                ErrorMessage = $"Gagal mengambil daftar sesi. Status: {(int)response.StatusCode}"
+                ErrorMessage = HttpContext
+                    .T("sessions.error.load_sessions_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString())
             });
         }
 
@@ -81,7 +83,9 @@ public sealed class SessionsController : Controller
             return Json(new
             {
                 timeline = Array.Empty<SessionTimelineEventViewModel>(),
-                errorMessage = $"Gagal memuat alur event sesi. Status: {(int)response.StatusCode}",
+                errorMessage = HttpContext
+                    .T("sessions.error.load_timeline_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString()),
                 lastSyncedAt = DateTimeOffset.UtcNow
             });
         }
@@ -137,7 +141,7 @@ public sealed class SessionsController : Controller
             return await BuildRulesetFormErrorResult(
                 sessionId,
                 model,
-                "Ruleset dan versi wajib dipilih.",
+                HttpContext.T("sessions.error.ruleset_version_required"),
                 ct);
         }
 
@@ -161,7 +165,9 @@ public sealed class SessionsController : Controller
             return await BuildRulesetFormErrorResult(
                 sessionId,
                 model,
-                error?.Message ?? $"Gagal aktivasi ruleset. Status: {(int)response.StatusCode}",
+                error?.Message ?? HttpContext
+                    .T("sessions.error.activate_ruleset_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString()),
                 ct);
         }
 
@@ -230,7 +236,9 @@ public sealed class SessionsController : Controller
                 Timeline = fallbackTimeline,
                 TimelineErrorMessage = fallbackTimelineError,
                 PlayerDisplayNames = fallbackPlayerDisplayNames,
-                ErrorMessage = overrideErrorMessage ?? error?.Message ?? $"Gagal memuat detail sesi. Status: {(int)response.StatusCode}"
+                ErrorMessage = overrideErrorMessage ?? error?.Message ?? HttpContext
+                    .T("sessions.error.load_detail_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString())
             }, null);
         }
 
@@ -276,7 +284,11 @@ public sealed class SessionsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            return (new List<RulesetListItemDto>(), null, $"Gagal memuat ruleset. Status: {(int)response.StatusCode}");
+            return (
+                new List<RulesetListItemDto>(),
+                null,
+                HttpContext.T("sessions.error.load_rulesets_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString()));
         }
 
         var data = await response.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
@@ -300,7 +312,7 @@ public sealed class SessionsController : Controller
             .ToDictionary(group => group.Key, group => group.First().DisplayName);
     }
 
-    private static async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
+    private async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
         HttpClient client,
         Guid sessionId,
         string language,
@@ -309,7 +321,10 @@ public sealed class SessionsController : Controller
         var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq=0&limit=1000", ct);
         if (!response.IsSuccessStatusCode)
         {
-            return (new List<SessionTimelineEventViewModel>(), $"Gagal memuat alur event sesi. Status: {(int)response.StatusCode}");
+            return (
+                new List<SessionTimelineEventViewModel>(),
+                HttpContext.T("sessions.error.load_timeline_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString()));
         }
 
         var data = await response.Content.ReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);

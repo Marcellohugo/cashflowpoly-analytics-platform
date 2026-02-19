@@ -44,7 +44,7 @@ UI tidak mengakses database secara langsung. UI membaca data dari REST API agar 
 
 Catatan kontrak API:
 - Prefix endpoint aktif: `/api/v1/...`.
-- Route `/api/...` tetap tersedia sementara untuk kompatibilitas mundur.
+- Opsi transisi (default nonaktif): set `FeatureFlags__EnableLegacyApiCompatibility=true` bila sementara perlu rewrite `/api/*` ke `/api/v1/*`.
 
 ## Teknologi dan alat
 | No | Perangkat lunak | Fungsi penggunaan |

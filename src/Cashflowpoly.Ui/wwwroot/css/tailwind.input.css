@@ -1543,7 +1543,9 @@ button:disabled {
     border: 2px solid #95ded6;
     border-radius: 1rem;
     padding: 0.9rem;
-    min-height: 220px;
+    min-height: 230px;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     box-shadow: 0 14px 30px rgba(20, 99, 134, 0.14);
 }
@@ -1555,13 +1557,15 @@ button:disabled {
     font-size: 1rem;
     font-weight: 800;
     line-height: 1.3;
+    min-height: 2.6em;
 }
 
 .chart-card canvas {
     display: block;
     width: 100% !important;
-    height: 190px !important;
-    max-height: 190px;
+    height: clamp(176px, 18vw, 210px) !important;
+    max-height: 210px;
+    flex: 1 1 auto;
 }
 
 .border-slate-200,
@@ -1913,16 +1917,24 @@ body > footer .footer-shell {
 
     .chart-grid {
         grid-template-columns: 1fr;
+        gap: 0.85rem;
     }
 
     .chart-card {
-        min-height: 200px;
-        padding: 0.8rem;
+        min-height: 214px;
+        padding: 0.78rem;
+        border-radius: 0.95rem;
+    }
+
+    .chart-title {
+        font-size: 0.95rem;
+        margin-bottom: 0.45rem;
+        min-height: auto;
     }
 
     .chart-card canvas {
-        height: 170px !important;
-        max-height: 170px;
+        height: clamp(154px, 45vw, 190px) !important;
+        max-height: 190px;
     }
 
     .winner-card {
@@ -3845,6 +3857,16 @@ select.auth-input {
 }
 
 @media (max-width: 480px) {
+    .chart-card {
+        padding: 0.72rem;
+        min-height: 205px;
+    }
+
+    .chart-card canvas {
+        height: clamp(146px, 48vw, 176px) !important;
+        max-height: 176px;
+    }
+
     .nav-brand .brand-title {
         display: none;
     }
