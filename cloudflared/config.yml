@@ -1,0 +1,11 @@
+tunnel: c3d4164e-e1c9-4de3-a4c3-c30a6e157a04
+credentials-file: /etc/cloudflared/credentials.json
+loglevel: debug
+
+ingress:
+  - hostname: tugasakhirmarco.my.id
+    service: http://nginx:80
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 10s
+  - service: http_status:404
