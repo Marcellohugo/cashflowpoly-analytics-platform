@@ -11,8 +11,8 @@ on:
 env:
   DOTNET_VERSION: "10.0.x"
   REGISTRY: ghcr.io
-  API_IMAGE: ghcr.io/${{ github.repository }}/api
-  UI_IMAGE: ghcr.io/${{ github.repository }}/ui
+  API_IMAGE: ghcr.io/marcellohugo/cashflowpoly-analytics-platform/api
+  UI_IMAGE: ghcr.io/marcellohugo/cashflowpoly-analytics-platform/ui
 
 jobs:
   build-and-test:
