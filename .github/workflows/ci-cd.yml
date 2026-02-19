@@ -3,9 +3,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -94,7 +94,7 @@ jobs:
     name: Docker Build & Push
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     timeout-minutes: 15
 
     permissions:
@@ -143,7 +143,7 @@ jobs:
     name: Deploy
     needs: docker-build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     timeout-minutes: 10
     environment: production
 
@@ -157,9 +157,12 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
             set -e
+            BRANCH="${{ github.ref_name }}"
             cd ${{ secrets.DEPLOY_PATH || '~/cashflowpoly-analytics-platform' }}
 
-            git pull origin main
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH" || git checkout -b "$BRANCH" "origin/$BRANCH"
+            git pull origin "$BRANCH"
             docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /tmp/cashflowpoly-compose.effective.yml
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
