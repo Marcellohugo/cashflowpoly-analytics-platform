@@ -157,10 +157,34 @@ jobs:
           script: |
             set -e
             BRANCH="${{ github.ref_name }}"
-            cd ${{ secrets.DEPLOY_PATH || '~/cashflowpoly-analytics-platform' }}
+            DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_DIR" ]; then
+              if [ -d "$HOME/cashflowpoly-analytics-platform" ]; then
+                DEPLOY_DIR="$HOME/cashflowpoly-analytics-platform"
+              elif [ -d "$HOME/TugasAkhir" ]; then
+                DEPLOY_DIR="$HOME/TugasAkhir"
+              else
+                echo "Direktori deploy tidak ditemukan. Set secret DEPLOY_PATH."
+                exit 1
+              fi
+            fi
+            cd "$DEPLOY_DIR"
 
             git fetch origin "$BRANCH"
-            git checkout "$BRANCH" || git checkout -b "$BRANCH" "origin/$BRANCH"
+            if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+              git checkout "$BRANCH"
+            elif git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+              git checkout -b "$BRANCH" "origin/$BRANCH"
+            elif git show-ref --verify --quiet "refs/heads/master"; then
+              BRANCH="master"
+              git checkout "$BRANCH"
+            elif git show-ref --verify --quiet "refs/heads/main"; then
+              BRANCH="main"
+              git checkout "$BRANCH"
+            else
+              echo "Branch deploy tidak ditemukan (master/main)."
+              exit 1
+            fi
             git pull origin "$BRANCH"
             docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /tmp/cashflowpoly-compose.effective.yml
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
