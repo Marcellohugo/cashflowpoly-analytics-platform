@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain PlayerDirectoryController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -13,12 +14,18 @@ public sealed class PlayerDirectoryController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
+    /// <summary>
+    /// Menjalankan fungsi PlayerDirectoryController sebagai bagian dari alur file ini.
+    /// </summary>
     public PlayerDirectoryController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("")]
+    /// <summary>
+    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())

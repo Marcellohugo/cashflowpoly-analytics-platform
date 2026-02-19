@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ResponseMetadataTests.
 using System.Reflection;
 using Cashflowpoly.Api.Controllers;
 using Microsoft.AspNetCore.Http;
@@ -7,9 +8,15 @@ using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
 
+/// <summary>
+/// Menyatakan peran utama tipe ResponseMetadataTests pada modul ini.
+/// </summary>
 public sealed class ResponseMetadataTests
 {
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Every_Api_Action_Defines_Success_Response_Metadata sebagai bagian dari alur file ini.
+    /// </summary>
     public void Every_Api_Action_Defines_Success_Response_Metadata()
     {
         var missing = GetActionResponseMetadata()
@@ -23,6 +30,9 @@ public sealed class ResponseMetadataTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Every_Api_Action_Defines_Error_Response_Metadata sebagai bagian dari alur file ini.
+    /// </summary>
     public void Every_Api_Action_Defines_Error_Response_Metadata()
     {
         var missing = GetActionResponseMetadata()
@@ -36,6 +46,9 @@ public sealed class ResponseMetadataTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Every_Api_Action_Exposes_More_Than_200_Status sebagai bagian dari alur file ini.
+    /// </summary>
     public void Every_Api_Action_Exposes_More_Than_200_Status()
     {
         var missing = GetActionResponseMetadata()
@@ -48,6 +61,9 @@ public sealed class ResponseMetadataTests
             $"Action masih hanya 200: {string.Join(", ", missing)}");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetActionResponseMetadata sebagai bagian dari alur file ini.
+    /// </summary>
     private static IReadOnlyList<ActionMetadata> GetActionResponseMetadata()
     {
         var assembly = typeof(AuthController).Assembly;
@@ -92,5 +108,8 @@ public sealed class ResponseMetadataTests
         return result;
     }
 
+    /// <summary>
+    /// Menyatakan peran utama tipe ActionMetadata pada modul ini.
+    /// </summary>
     private sealed record ActionMetadata(string ActionDisplayName, IReadOnlyList<int> StatusCodes);
 }

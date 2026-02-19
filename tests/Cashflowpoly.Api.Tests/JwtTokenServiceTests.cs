@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain JwtTokenServiceTests.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Cashflowpoly.Api.Data;
@@ -8,9 +9,15 @@ using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
 
+/// <summary>
+/// Menyatakan peran utama tipe JwtTokenServiceTests pada modul ini.
+/// </summary>
 public sealed class JwtTokenServiceTests
 {
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Ctor_Throws_WhenSigningKeyMissing sebagai bagian dari alur file ini.
+    /// </summary>
     public void Ctor_Throws_WhenSigningKeyMissing()
     {
         var options = new JwtOptions
@@ -23,6 +30,9 @@ public sealed class JwtTokenServiceTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Ctor_Throws_WhenSigningKeyTooShort sebagai bagian dari alur file ini.
+    /// </summary>
     public void Ctor_Throws_WhenSigningKeyTooShort()
     {
         var options = new JwtOptions
@@ -35,6 +45,9 @@ public sealed class JwtTokenServiceTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi IssueToken_ContainsExpectedClaims_AndExpiry sebagai bagian dari alur file ini.
+    /// </summary>
     public void IssueToken_ContainsExpectedClaims_AndExpiry()
     {
         var options = new JwtOptions
@@ -70,6 +83,9 @@ public sealed class JwtTokenServiceTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi IssueToken_UsesActiveKeyId_WhenMultipleKeysConfigured sebagai bagian dari alur file ini.
+    /// </summary>
     public void IssueToken_UsesActiveKeyId_WhenMultipleKeysConfigured()
     {
         var now = DateTimeOffset.UtcNow;
@@ -105,6 +121,9 @@ public sealed class JwtTokenServiceTests
         Assert.Equal("k-2026", token.Header.Kid);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreateSut sebagai bagian dari alur file ini.
+    /// </summary>
     private static JwtTokenService CreateSut(JwtOptions options)
     {
         var optionsWrapper = Options.Create(options);

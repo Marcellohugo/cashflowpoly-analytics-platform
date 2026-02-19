@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola endpoint API untuk domain SecurityAuditController termasuk validasi request dan respons standar.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
@@ -13,10 +14,16 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+/// <summary>
+/// Menyatakan peran utama tipe SecurityAuditController pada modul ini.
+/// </summary>
 public sealed class SecurityAuditController : ControllerBase
 {
     private readonly SecurityAuditRepository _securityAudit;
 
+    /// <summary>
+    /// Menjalankan fungsi SecurityAuditController sebagai bagian dari alur file ini.
+    /// </summary>
     public SecurityAuditController(SecurityAuditRepository securityAudit)
     {
         _securityAudit = securityAudit;
@@ -24,6 +31,9 @@ public sealed class SecurityAuditController : ControllerBase
 
     [HttpGet("audit-logs")]
     [ProducesResponseType(typeof(SecurityAuditLogResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi GetAuditLogs sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> GetAuditLogs(
         [FromQuery] int limit = 100,
         [FromQuery] string? eventType = null,
@@ -57,6 +67,9 @@ public sealed class SecurityAuditController : ControllerBase
         return Ok(new SecurityAuditLogResponse(items));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ParseJsonElement sebagai bagian dari alur file ini.
+    /// </summary>
     private static JsonElement? ParseJsonElement(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))

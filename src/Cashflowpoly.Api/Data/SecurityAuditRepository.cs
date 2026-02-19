@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain SecurityAuditRepository melalui query dan command terenkapsulasi.
 using Dapper;
 using Npgsql;
 
@@ -10,11 +11,17 @@ public sealed class SecurityAuditRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi SecurityAuditRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public SecurityAuditRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi InsertAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task InsertAsync(SecurityAuditLogDb log, CancellationToken ct)
     {
         const string sql = """
@@ -56,6 +63,9 @@ public sealed class SecurityAuditRepository
         await conn.ExecuteAsync(new CommandDefinition(sql, log, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListRecentAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<SecurityAuditLogDb>> ListRecentAsync(int limit, string? eventType, Guid? userId, CancellationToken ct)
     {
         const string sql = """

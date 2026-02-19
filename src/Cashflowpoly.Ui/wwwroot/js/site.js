@@ -1,3 +1,4 @@
+/* Fungsi file: Menyediakan skrip frontend global untuk perilaku interaktif umum pada UI. */
 (() => {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const targets = Array.from(

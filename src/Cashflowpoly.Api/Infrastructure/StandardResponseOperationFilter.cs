@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan komponen infrastruktur API untuk kebutuhan StandardResponseOperationFilter.
 using System.Reflection;
 using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -6,8 +7,14 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Cashflowpoly.Api.Infrastructure;
 
+/// <summary>
+/// Menyatakan peran utama tipe StandardResponseOperationFilter pada modul ini.
+/// </summary>
 public sealed class StandardResponseOperationFilter : IOperationFilter
 {
+    /// <summary>
+    /// Menjalankan fungsi Apply sebagai bagian dari alur file ini.
+    /// </summary>
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var httpMethod = context.ApiDescription.HttpMethod?.ToUpperInvariant() ?? "GET";
@@ -43,6 +50,9 @@ public sealed class StandardResponseOperationFilter : IOperationFilter
         AddErrorResponse(operation, context, "500", "Terjadi kesalahan pada server.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi EnsureSuccessResponse sebagai bagian dari alur file ini.
+    /// </summary>
     private static void EnsureSuccessResponse(OpenApiOperation operation, string httpMethod)
     {
         operation.Responses ??= new OpenApiResponses();
@@ -62,6 +72,9 @@ public sealed class StandardResponseOperationFilter : IOperationFilter
         operation.Responses[successCode] = new OpenApiResponse { Description = "Berhasil." };
     }
 
+    /// <summary>
+    /// Menjalankan fungsi AddErrorResponse sebagai bagian dari alur file ini.
+    /// </summary>
     private static void AddErrorResponse(
         OpenApiOperation operation,
         OperationFilterContext context,
@@ -89,6 +102,9 @@ public sealed class StandardResponseOperationFilter : IOperationFilter
         };
     }
 
+    /// <summary>
+    /// Mengecek apakah anggota refleksi memiliki atribut tertentu.
+    /// </summary>
     private static bool HasAttribute<T>(MemberInfo? memberInfo) where T : Attribute
     {
         return memberInfo?.GetCustomAttributes(typeof(T), true).Any() == true;

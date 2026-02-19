@@ -1,3 +1,4 @@
+<!-- Fungsi file: Mengatur konfigurasi build, dependency, dan properti proyek API. -->
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>

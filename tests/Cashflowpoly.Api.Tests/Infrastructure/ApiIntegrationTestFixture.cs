@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ApiIntegrationTestFixture.
 using Microsoft.AspNetCore.Mvc.Testing;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -5,6 +6,9 @@ using Xunit;
 
 namespace Cashflowpoly.Api.Tests.Infrastructure;
 
+/// <summary>
+/// Menyatakan peran utama tipe ApiIntegrationTestFixture pada modul ini.
+/// </summary>
 public sealed class ApiIntegrationTestFixture : IAsyncLifetime
 {
     private static readonly string JwtSigningKey = "integration-test-signing-key-with-min-32-char";
@@ -16,6 +20,9 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     private string? _previousJwtSigningKey;
     private string? _previousJwtSectionSigningKey;
 
+    /// <summary>
+    /// Menjalankan fungsi ApiIntegrationTestFixture sebagai bagian dari alur file ini.
+    /// </summary>
     public ApiIntegrationTestFixture()
     {
         _dbContainer = new PostgreSqlBuilder("postgres:16")
@@ -25,8 +32,14 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
             .Build();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi InvalidOperationException sebagai bagian dari alur file ini.
+    /// </summary>
     public HttpClient Client => _client ?? throw new InvalidOperationException("HTTP client belum terinisialisasi.");
 
+    /// <summary>
+    /// Menjalankan fungsi InitializeAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
@@ -46,6 +59,9 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
         });
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DisposeAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task DisposeAsync()
     {
         _client?.Dispose();
@@ -56,6 +72,9 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
         await _dbContainer.DisposeAsync();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ApplySchemaAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task ApplySchemaAsync(string connectionString)
     {
         var schemaPath = Path.Combine(AppContext.BaseDirectory, "database", "00_create_schema.sql");

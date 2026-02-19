@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain EventRepository melalui query dan command terenkapsulasi.
 using Dapper;
 using Npgsql;
 
@@ -10,11 +11,17 @@ public sealed class EventRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi EventRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public EventRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi EventIdExistsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> EventIdExistsAsync(Guid sessionId, Guid eventId, CancellationToken ct)
     {
         const string sql = """
@@ -28,6 +35,9 @@ public sealed class EventRepository
         return result.HasValue;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi SequenceNumberExistsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> SequenceNumberExistsAsync(Guid sessionId, long sequenceNumber, CancellationToken ct)
     {
         const string sql = """
@@ -41,6 +51,9 @@ public sealed class EventRepository
         return result.HasValue;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetMaxSequenceNumberAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<long?> GetMaxSequenceNumberAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
@@ -96,6 +109,9 @@ public sealed class EventRepository
         await conn.ExecuteAsync(new CommandDefinition(sql, record, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi InsertValidationLogAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task InsertValidationLogAsync(
         Guid sessionId,
         Guid eventId,
@@ -147,6 +163,9 @@ public sealed class EventRepository
         }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi InsertCashflowProjectionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task InsertCashflowProjectionAsync(CashflowProjectionDb projection, CancellationToken ct)
     {
         const string sql = """
@@ -185,6 +204,9 @@ public sealed class EventRepository
         await conn.ExecuteAsync(new CommandDefinition(sql, projection, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetCashflowProjectionsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<CashflowProjectionDb>> GetCashflowProjectionsAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
@@ -209,6 +231,9 @@ public sealed class EventRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetEventsBySessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<EventDb>> GetEventsBySessionAsync(Guid sessionId, long fromSeq, int limit, CancellationToken ct)
     {
         const string sql = """
@@ -239,6 +264,9 @@ public sealed class EventRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetAllEventsBySessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<EventDb>> GetAllEventsBySessionAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
@@ -267,6 +295,9 @@ public sealed class EventRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetEventByIdAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<EventDb?> GetEventByIdAsync(Guid sessionId, Guid eventId, CancellationToken ct)
     {
         const string sql = """

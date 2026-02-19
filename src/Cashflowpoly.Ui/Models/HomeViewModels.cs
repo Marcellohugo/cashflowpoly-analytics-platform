@@ -1,5 +1,9 @@
+// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain HomeViewModels.
 namespace Cashflowpoly.Ui.Models;
 
+/// <summary>
+/// Menyatakan peran utama tipe HomeIndexViewModel pada modul ini.
+/// </summary>
 public sealed class HomeIndexViewModel
 {
     public int ActiveSessions { get; init; }

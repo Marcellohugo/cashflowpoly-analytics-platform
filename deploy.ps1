@@ -1,3 +1,4 @@
+# Fungsi file: Menjalankan otomasi deployment aplikasi melalui skrip PowerShell.
 # ============================================================
 # deploy.ps1 - Script deployment Cashflowpoly Analytics Platform
 # ============================================================

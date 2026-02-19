@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola endpoint API untuk domain RulesetsController termasuk validasi request dan respons standar.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
@@ -19,11 +20,17 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+/// <summary>
+/// Menyatakan peran utama tipe RulesetsController pada modul ini.
+/// </summary>
 public sealed class RulesetsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
     private readonly UserRepository _users;
 
+    /// <summary>
+    /// Menjalankan fungsi RulesetsController sebagai bagian dari alur file ini.
+    /// </summary>
     public RulesetsController(RulesetRepository rulesets, UserRepository users)
     {
         _rulesets = rulesets;
@@ -69,6 +76,9 @@ public sealed class RulesetsController : ControllerBase
     [HttpPut("{rulesetId:guid}")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi UpdateRuleset sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -107,6 +117,9 @@ public sealed class RulesetsController : ControllerBase
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi ActivateRulesetVersion sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> ActivateRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -141,6 +154,9 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(RulesetListResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi ListRulesets sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> ListRulesets(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -177,6 +193,9 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpGet("{rulesetId:guid}")]
     [ProducesResponseType(typeof(RulesetDetailResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi GetRulesetDetail sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> GetRulesetDetail(Guid rulesetId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -290,12 +309,18 @@ public sealed class RulesetsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetActorName sebagai bagian dari alur file ini.
+    /// </summary>
     private string? GetActorName()
     {
         return User.FindFirstValue(ClaimTypes.Name) ??
                User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TryGetCurrentUserId sebagai bagian dari alur file ini.
+    /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);

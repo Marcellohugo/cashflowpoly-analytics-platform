@@ -1,9 +1,16 @@
+// Fungsi file: Mengelola endpoint API untuk domain ApiErrorHelper termasuk validasi request dan respons standar.
 using Cashflowpoly.Api.Models;
 
 namespace Cashflowpoly.Api.Controllers;
 
+/// <summary>
+/// Menyatakan peran utama tipe ApiErrorHelper pada modul ini.
+/// </summary>
 internal static class ApiErrorHelper
 {
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Dictionary<string, string> IdToEnMessages = new(StringComparer.Ordinal)
     {
         ["Action type wajib diisi"] = "Action type is required",
@@ -144,12 +151,18 @@ internal static class ApiErrorHelper
         ["Terjadi kesalahan pada server"] = "An internal server error occurred"
     };
 
+    /// <summary>
+    /// Menjalankan fungsi BuildError sebagai bagian dari alur file ini.
+    /// </summary>
     internal static ErrorResponse BuildError(HttpContext httpContext, string code, string message, params ErrorDetail[] details)
     {
         var localizedMessage = ResolveMessage(httpContext, message);
         return new ErrorResponse(code, localizedMessage, details.ToList(), httpContext.TraceIdentifier);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveMessage sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveMessage(HttpContext context, string message)
     {
         if (!PrefersEnglish(context))
@@ -162,6 +175,9 @@ internal static class ApiErrorHelper
             : message;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi PrefersEnglish sebagai bagian dari alur file ini.
+    /// </summary>
     private static bool PrefersEnglish(HttpContext context)
     {
         var acceptLanguage = context.Request.Headers.AcceptLanguage.ToString();

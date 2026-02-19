@@ -1,3 +1,4 @@
+-- Fungsi file: Mendefinisikan pembuatan skema database awal aplikasi.
 create extension if not exists pgcrypto;
 
 create table if not exists app_users (

@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain AuthRbacRulesetIntegrationTests.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -9,16 +10,25 @@ namespace Cashflowpoly.Api.Tests;
 
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
+/// <summary>
+/// Menyatakan peran utama tipe AuthRbacRulesetIntegrationTests pada modul ini.
+/// </summary>
 public sealed class AuthRbacRulesetIntegrationTests
 {
     private readonly HttpClient _client;
 
+    /// <summary>
+    /// Menjalankan fungsi AuthRbacRulesetIntegrationTests sebagai bagian dari alur file ini.
+    /// </summary>
     public AuthRbacRulesetIntegrationTests(ApiIntegrationTestFixture fixture)
     {
         _client = fixture.Client;
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Auth_Rbac_And_RulesetFlow_Work_EndToEnd sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task Auth_Rbac_And_RulesetFlow_Work_EndToEnd()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -145,6 +155,9 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.Equal("STARTED", startResponse.Status);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi RegisterAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
         var payload = new RegisterRequest(username, password, role, null);
@@ -156,6 +169,9 @@ public sealed class AuthRbacRulesetIntegrationTests
         return body;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi LoginAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<LoginResponse> LoginAsync(string username, string password)
     {
         var payload = new LoginRequest(username, password);
@@ -167,6 +183,9 @@ public sealed class AuthRbacRulesetIntegrationTests
         return body;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi SendJsonAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<HttpResponseMessage> SendJsonAsync(
         HttpMethod method,
         string path,
@@ -183,6 +202,9 @@ public sealed class AuthRbacRulesetIntegrationTests
         return await _client.SendAsync(request);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildRulesetConfig sebagai bagian dari alur file ini.
+    /// </summary>
     private static object BuildRulesetConfig(int startingCash)
     {
         return new

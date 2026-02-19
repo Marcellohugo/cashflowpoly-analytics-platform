@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain AuthSchemaBootstrapper melalui query dan command terenkapsulasi.
 using Dapper;
 using Cashflowpoly.Api.Security;
 using Microsoft.Extensions.Hosting;
@@ -14,12 +15,18 @@ public sealed class AuthSchemaBootstrapper : IHostedService
     private readonly NpgsqlDataSource _dataSource;
     private readonly AuthBootstrapOptions _options;
 
+    /// <summary>
+    /// Menjalankan fungsi AuthSchemaBootstrapper sebagai bagian dari alur file ini.
+    /// </summary>
     public AuthSchemaBootstrapper(NpgsqlDataSource dataSource, IOptions<AuthBootstrapOptions> options)
     {
         _dataSource = dataSource;
         _options = options.Value;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi StartAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         const string sql = """
@@ -185,8 +192,14 @@ public sealed class AuthSchemaBootstrapper : IHostedService
         await SeedUserAsync(conn, _options.PlayerUsername, _options.PlayerPassword, "PLAYER", cancellationToken);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi StopAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
+    /// <summary>
+    /// Menjalankan fungsi SeedUserAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task SeedUserAsync(
         NpgsqlConnection conn,
         string? username,

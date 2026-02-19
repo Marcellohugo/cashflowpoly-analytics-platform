@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain SecurityAuditService (JWT, audit, atau rate limiting).
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;
@@ -5,6 +6,9 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Security;
 
+/// <summary>
+/// Menyatakan peran utama tipe SecurityAuditEventTypes pada modul ini.
+/// </summary>
 public static class SecurityAuditEventTypes
 {
     public const string LoginSuccess = "LOGIN_SUCCESS";
@@ -17,6 +21,9 @@ public static class SecurityAuditEventTypes
     public const string RateLimited = "RATE_LIMITED";
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe SecurityAuditOutcomes pada modul ini.
+/// </summary>
 public static class SecurityAuditOutcomes
 {
     public const string Success = "SUCCESS";
@@ -29,17 +36,26 @@ public static class SecurityAuditOutcomes
 /// </summary>
 public sealed class SecurityAuditService
 {
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly SecurityAuditRepository _repository;
     private readonly ILogger<SecurityAuditService> _logger;
 
+    /// <summary>
+    /// Menjalankan fungsi SecurityAuditService sebagai bagian dari alur file ini.
+    /// </summary>
     public SecurityAuditService(SecurityAuditRepository repository, ILogger<SecurityAuditService> logger)
     {
         _repository = repository;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi LogAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task LogAsync(
         HttpContext context,
         string eventType,
@@ -99,6 +115,9 @@ public sealed class SecurityAuditService
         }
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveTraceId sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveTraceId(HttpContext context)
     {
         var traceId = context.TraceIdentifier;

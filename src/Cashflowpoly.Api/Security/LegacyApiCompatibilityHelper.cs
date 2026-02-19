@@ -1,9 +1,16 @@
+// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain LegacyApiCompatibilityHelper (JWT, audit, atau rate limiting).
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Security;
 
+/// <summary>
+/// Menyatakan peran utama tipe LegacyApiCompatibilityHelper pada modul ini.
+/// </summary>
 internal static class LegacyApiCompatibilityHelper
 {
+    /// <summary>
+    /// Menjalankan fungsi TryRewritePath sebagai bagian dari alur file ini.
+    /// </summary>
     internal static bool TryRewritePath(PathString path, out PathString rewrittenPath)
     {
         rewrittenPath = path;

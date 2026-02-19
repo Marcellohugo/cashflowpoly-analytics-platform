@@ -1,11 +1,18 @@
+// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan ApiAuthHelper.
 using System.Net;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
+/// <summary>
+/// Menyatakan peran utama tipe ApiAuthHelper pada modul ini.
+/// </summary>
 public static class ApiAuthHelper
 {
+    /// <summary>
+    /// Menjalankan fungsi HandleUnauthorizedApiResponse sebagai bagian dari alur file ini.
+    /// </summary>
     public static IActionResult? HandleUnauthorizedApiResponse(this Controller controller, HttpResponseMessage response)
     {
         if (response.StatusCode != HttpStatusCode.Unauthorized)

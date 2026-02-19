@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola endpoint API untuk domain PlayersController termasuk validasi request dan respons standar.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -20,12 +21,18 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+/// <summary>
+/// Menyatakan peran utama tipe PlayersController pada modul ini.
+/// </summary>
 public sealed class PlayersController : ControllerBase
 {
     private readonly PlayerRepository _players;
     private readonly SessionRepository _sessions;
     private readonly UserRepository _users;
 
+    /// <summary>
+    /// Menjalankan fungsi PlayersController sebagai bagian dari alur file ini.
+    /// </summary>
     public PlayersController(PlayerRepository players, SessionRepository sessions, UserRepository users)
     {
         _players = players;
@@ -36,6 +43,9 @@ public sealed class PlayersController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(PlayerResponse), StatusCodes.Status201Created)]
+    /// <summary>
+    /// Menjalankan fungsi CreatePlayer sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -93,6 +103,9 @@ public sealed class PlayersController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(PlayerListResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi ListPlayers sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> ListPlayers(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -131,6 +144,9 @@ public sealed class PlayersController : ControllerBase
     [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(AddSessionPlayerResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi AddPlayerToSession sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -160,6 +176,9 @@ public sealed class PlayersController : ControllerBase
         return Ok(new AddSessionPlayerResponse(request.PlayerId, joinOrder));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TryGetCurrentUserId sebagai bagian dari alur file ini.
+    /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -1,8 +1,12 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain UserRepository melalui query dan command terenkapsulasi.
 using Dapper;
 using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
+/// <summary>
+/// Menyatakan peran utama tipe AuthenticatedUserDb pada modul ini.
+/// </summary>
 public sealed record AuthenticatedUserDb(Guid UserId, string Username, string Role, bool IsActive);
 
 /// <summary>
@@ -12,11 +16,17 @@ public sealed class UserRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi UserRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public UserRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi AuthenticateAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<AuthenticatedUserDb?> AuthenticateAsync(string username, string password, CancellationToken ct)
     {
         const string sql = """
@@ -33,6 +43,9 @@ public sealed class UserRepository
             new CommandDefinition(sql, new { username, password }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi UsernameExistsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> UsernameExistsAsync(string username, CancellationToken ct)
     {
         const string sql = """
@@ -48,6 +61,9 @@ public sealed class UserRepository
         return result.HasValue;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreateUserAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<AuthenticatedUserDb> CreateUserAsync(
         string username,
         string password,
@@ -109,6 +125,9 @@ public sealed class UserRepository
         return created;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetLinkedPlayerIdAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Guid?> GetLinkedPlayerIdAsync(Guid userId, CancellationToken ct)
     {
         const string sql = """
@@ -122,6 +141,9 @@ public sealed class UserRepository
         return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetUsernamesByPlayerIdsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Dictionary<Guid, string>> GetUsernamesByPlayerIdsAsync(IReadOnlyCollection<Guid> playerIds, CancellationToken ct)
     {
         if (playerIds.Count == 0)
@@ -155,6 +177,9 @@ public sealed class UserRepository
             .ToDictionary(group => group.Key, group => group.First().Username.Trim());
     }
 
+    /// <summary>
+    /// Menjalankan fungsi EnsurePlayerLinkAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Guid> EnsurePlayerLinkAsync(Guid userId, string username, CancellationToken ct)
     {
         const string lockUserSql = """
@@ -216,6 +241,9 @@ public sealed class UserRepository
         return playerId;
     }
 
+    /// <summary>
+    /// Menyatakan peran utama tipe PlayerUsernameRow pada modul ini.
+    /// </summary>
     private sealed class PlayerUsernameRow
     {
         public Guid PlayerId { get; init; }

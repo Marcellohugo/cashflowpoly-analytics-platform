@@ -1,3 +1,4 @@
+# Fungsi file: Menyediakan koleksi request HTTP manual untuk pengujian endpoint API.
 @api_host = http://localhost:5041
 @auth_username = instructor_demo_20260215
 @auth_password = DevPassw0rd!2026

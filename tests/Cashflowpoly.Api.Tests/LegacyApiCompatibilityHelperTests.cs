@@ -1,9 +1,13 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain LegacyApiCompatibilityHelperTests.
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
 
+/// <summary>
+/// Menyatakan peran utama tipe LegacyApiCompatibilityHelperTests pada modul ini.
+/// </summary>
 public sealed class LegacyApiCompatibilityHelperTests
 {
     [Theory]
@@ -13,6 +17,9 @@ public sealed class LegacyApiCompatibilityHelperTests
     [InlineData("/api", false, "/api")]
     [InlineData("/api/", false, "/api/")]
     [InlineData("/swagger", false, "/swagger")]
+    /// <summary>
+    /// Menjalankan fungsi TryRewritePath_ReturnsExpectedResult sebagai bagian dari alur file ini.
+    /// </summary>
     public void TryRewritePath_ReturnsExpectedResult(string rawPath, bool expectedRewrite, string expectedPath)
     {
         var rewritten = LegacyApiCompatibilityHelper.TryRewritePath(new PathString(rawPath), out var rewrittenPath);

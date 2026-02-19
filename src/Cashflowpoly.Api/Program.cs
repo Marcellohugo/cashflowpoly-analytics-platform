@@ -1,3 +1,4 @@
+// Fungsi file: Mengonfigurasi bootstrap service, middleware, endpoint, dan keamanan untuk aplikasi API.
 using System.Security.Claims;
 using System.Diagnostics;
 using System.Net;
@@ -317,4 +318,7 @@ app.MapControllers().RequireRateLimiting("api");
 
 app.Run();
 
+/// <summary>
+/// Menyatakan peran utama tipe Program pada modul ini.
+/// </summary>
 public partial class Program { }

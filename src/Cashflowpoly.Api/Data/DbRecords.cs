@@ -1,5 +1,9 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain DbRecords melalui query dan command terenkapsulasi.
 namespace Cashflowpoly.Api.Data;
 
+/// <summary>
+/// Menyatakan peran utama tipe RulesetDb pada modul ini.
+/// </summary>
 public sealed class RulesetDb
 {
     public Guid RulesetId { get; set; }
@@ -11,6 +15,9 @@ public sealed class RulesetDb
     public string? CreatedBy { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe RulesetVersionDb pada modul ini.
+/// </summary>
 public sealed class RulesetVersionDb
 {
     public Guid RulesetVersionId { get; set; }
@@ -23,6 +30,9 @@ public sealed class RulesetVersionDb
     public string? CreatedBy { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe SessionDb pada modul ini.
+/// </summary>
 public sealed class SessionDb
 {
     public Guid SessionId { get; set; }
@@ -35,6 +45,9 @@ public sealed class SessionDb
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe PlayerDb pada modul ini.
+/// </summary>
 public sealed class PlayerDb
 {
     public Guid PlayerId { get; set; }
@@ -43,6 +56,9 @@ public sealed class PlayerDb
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe EventDb pada modul ini.
+/// </summary>
 public sealed class EventDb
 {
     public Guid EventPk { get; set; }
@@ -62,6 +78,9 @@ public sealed class EventDb
     public string? ClientRequestId { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe CashflowProjectionDb pada modul ini.
+/// </summary>
 public sealed class CashflowProjectionDb
 {
     public Guid ProjectionId { get; set; }
@@ -78,6 +97,9 @@ public sealed class CashflowProjectionDb
     public string? Note { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe MetricSnapshotDb pada modul ini.
+/// </summary>
 public sealed class MetricSnapshotDb
 {
     public Guid MetricSnapshotId { get; set; }
@@ -90,6 +112,9 @@ public sealed class MetricSnapshotDb
     public Guid RulesetVersionId { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe MetricSnapshotJsonDb pada modul ini.
+/// </summary>
 public sealed class MetricSnapshotJsonDb
 {
     public string MetricName { get; set; } = string.Empty;
@@ -97,6 +122,9 @@ public sealed class MetricSnapshotJsonDb
     public DateTimeOffset ComputedAt { get; set; }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe SecurityAuditLogDb pada modul ini.
+/// </summary>
 public sealed class SecurityAuditLogDb
 {
     public Guid SecurityAuditLogId { get; set; }

@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain EventAnalyticsIntegrationTests.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -9,16 +10,25 @@ namespace Cashflowpoly.Api.Tests;
 
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
+/// <summary>
+/// Menyatakan peran utama tipe EventAnalyticsIntegrationTests pada modul ini.
+/// </summary>
 public sealed class EventAnalyticsIntegrationTests
 {
     private readonly HttpClient _client;
 
+    /// <summary>
+    /// Menjalankan fungsi EventAnalyticsIntegrationTests sebagai bagian dari alur file ini.
+    /// </summary>
     public EventAnalyticsIntegrationTests(ApiIntegrationTestFixture fixture)
     {
         _client = fixture.Client;
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi IngestEvents_Then_AnalyticsAndTransactions_ReturnExpectedData sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task IngestEvents_Then_AnalyticsAndTransactions_ReturnExpectedData()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -233,6 +243,9 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi AddPlayersWithoutJoinOrder_AssignsPlayerTurnOrderByPlayerId sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task AddPlayersWithoutJoinOrder_AssignsPlayerTurnOrderByPlayerId()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -383,6 +396,9 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -412,6 +428,9 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi IngestEvent_InvalidPayloadAndQuery_ReturnsBadRequest sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task IngestEvent_InvalidPayloadAndQuery_ReturnsBadRequest()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -477,6 +496,9 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, invalidQueryResponse.StatusCode);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreateReadySessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<(Guid SessionId, Guid PlayerId, Guid RulesetVersionId)> CreateReadySessionAsync(
         string instructorToken,
         string suffix)
@@ -569,6 +591,9 @@ public sealed class EventAnalyticsIntegrationTests
         return (createdSession.SessionId, createdPlayer.PlayerId, activeVersion.RulesetVersionId);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi RegisterAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
         var payload = new RegisterRequest(username, password, role, null);
@@ -580,6 +605,9 @@ public sealed class EventAnalyticsIntegrationTests
         return body;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi SendJsonAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<HttpResponseMessage> SendJsonAsync(
         HttpMethod method,
         string path,
@@ -596,6 +624,9 @@ public sealed class EventAnalyticsIntegrationTests
         return await _client.SendAsync(request);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildRulesetConfig sebagai bagian dari alur file ini.
+    /// </summary>
     private static object BuildRulesetConfig(int startingCash)
     {
         return new

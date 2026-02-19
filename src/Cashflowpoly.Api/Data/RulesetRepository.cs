@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain RulesetRepository melalui query dan command terenkapsulasi.
 using System.Security.Cryptography;
 using System.Text;
 using Cashflowpoly.Api.Models;
@@ -13,11 +14,17 @@ public sealed class RulesetRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi RulesetRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public RulesetRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetRulesetAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetDb?> GetRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
@@ -30,6 +37,9 @@ public sealed class RulesetRepository
         return await conn.QuerySingleOrDefaultAsync<RulesetDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetRulesetForInstructorAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetDb?> GetRulesetForInstructorAsync(Guid rulesetId, Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -44,6 +54,9 @@ public sealed class RulesetRepository
             new CommandDefinition(sql, new { rulesetId, instructorUserId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetLatestVersionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetVersionDb?> GetLatestVersionAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
@@ -58,6 +71,9 @@ public sealed class RulesetRepository
         return await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetLatestActiveVersionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetVersionDb?> GetLatestActiveVersionAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
@@ -73,6 +89,9 @@ public sealed class RulesetRepository
         return await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetVersionDb?> GetRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
         const string sql = """
@@ -85,6 +104,9 @@ public sealed class RulesetRepository
         return await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId, version }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetRulesetVersionByIdAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetVersionDb?> GetRulesetVersionByIdAsync(Guid rulesetVersionId, CancellationToken ct)
     {
         const string sql = """
@@ -97,6 +119,9 @@ public sealed class RulesetRepository
         return await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetVersionId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreateRulesetAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<(Guid RulesetId, int Version)> CreateRulesetAsync(
         string name,
         string? description,
@@ -148,6 +173,9 @@ public sealed class RulesetRepository
         return (rulesetId, 1);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreateRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<int> CreateRulesetVersionAsync(
         Guid rulesetId,
         string? name,
@@ -205,6 +233,9 @@ public sealed class RulesetRepository
         return nextVersion;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ActivateRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> ActivateRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
         const string targetSql = """
@@ -244,6 +275,9 @@ public sealed class RulesetRepository
         return true;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListRulesetsByInstructorAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<RulesetListItem>> ListRulesetsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -264,6 +298,9 @@ public sealed class RulesetRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListRulesetsByPlayerAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<RulesetListItem>> ListRulesetsByPlayerAsync(Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -291,6 +328,9 @@ public sealed class RulesetRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetRulesetForPlayerAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -312,6 +352,9 @@ public sealed class RulesetRepository
             new CommandDefinition(sql, new { rulesetId, playerId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListRulesetVersionsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<RulesetVersionDb>> ListRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
@@ -326,6 +369,9 @@ public sealed class RulesetRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi SetArchiveAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task SetArchiveAsync(Guid rulesetId, bool isArchived, CancellationToken ct)
     {
         const string sql = """
@@ -338,6 +384,9 @@ public sealed class RulesetRepository
         await conn.ExecuteAsync(new CommandDefinition(sql, new { rulesetId, isArchived }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi IsRulesetUsedAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> IsRulesetUsedAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
@@ -353,6 +402,9 @@ public sealed class RulesetRepository
         return result.HasValue;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DeleteRulesetAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task DeleteRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
@@ -364,6 +416,9 @@ public sealed class RulesetRepository
         await conn.ExecuteAsync(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ComputeHash sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ComputeHash(string input)
     {
         using var sha = SHA256.Create();

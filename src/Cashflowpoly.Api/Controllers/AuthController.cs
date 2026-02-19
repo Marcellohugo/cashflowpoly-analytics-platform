@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola endpoint API untuk domain AuthController termasuk validasi request dan respons standar.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
 using Cashflowpoly.Api.Security;
@@ -14,12 +15,18 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+/// <summary>
+/// Menyatakan peran utama tipe AuthController pada modul ini.
+/// </summary>
 public sealed class AuthController : ControllerBase
 {
     private readonly JwtTokenService _tokens;
     private readonly UserRepository _users;
     private readonly SecurityAuditService _securityAudit;
 
+    /// <summary>
+    /// Menjalankan fungsi AuthController sebagai bagian dari alur file ini.
+    /// </summary>
     public AuthController(
         UserRepository users,
         JwtTokenService tokens,
@@ -32,6 +39,9 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi Login sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -91,6 +101,9 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("register")]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
+    /// <summary>
+    /// Menjalankan fungsi Register sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))

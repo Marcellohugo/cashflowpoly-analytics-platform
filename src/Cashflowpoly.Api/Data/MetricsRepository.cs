@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain MetricsRepository melalui query dan command terenkapsulasi.
 using Dapper;
 using Npgsql;
 
@@ -10,11 +11,17 @@ public sealed class MetricsRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi MetricsRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public MetricsRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi InsertSnapshotsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task InsertSnapshotsAsync(IEnumerable<MetricSnapshotDb> snapshots, CancellationToken ct)
     {
         const string sql = """
@@ -44,6 +51,9 @@ public sealed class MetricsRepository
         await conn.ExecuteAsync(new CommandDefinition(sql, snapshots, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CountValidationViolationsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<int> CountValidationViolationsAsync(Guid sessionId, Guid? playerId, CancellationToken ct)
     {
         var sql = """
@@ -62,6 +72,9 @@ public sealed class MetricsRepository
         return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId, playerId = playerId?.ToString() }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetLatestGameplaySnapshotsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<MetricSnapshotJsonDb>> GetLatestGameplaySnapshotsAsync(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -83,6 +96,9 @@ public sealed class MetricsRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetLatestMetricNumericAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<double?> GetLatestMetricNumericAsync(Guid sessionId, Guid playerId, string metricName, CancellationToken ct)
     {
         const string sql = """

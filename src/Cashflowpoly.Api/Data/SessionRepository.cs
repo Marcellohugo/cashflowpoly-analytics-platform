@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain SessionRepository melalui query dan command terenkapsulasi.
 using Dapper;
 using Npgsql;
 
@@ -10,11 +11,17 @@ public sealed class SessionRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi SessionRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public SessionRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetSessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<SessionDb?> GetSessionAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
@@ -27,6 +34,9 @@ public sealed class SessionRepository
         return await conn.QuerySingleOrDefaultAsync<SessionDb>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetSessionForInstructorAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<SessionDb?> GetSessionForInstructorAsync(Guid sessionId, Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -41,6 +51,9 @@ public sealed class SessionRepository
             new CommandDefinition(sql, new { sessionId, instructorUserId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreateSessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Guid> CreateSessionAsync(
         string sessionName,
         string mode,
@@ -82,6 +95,9 @@ public sealed class SessionRepository
         return sessionId;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi UpdateStatusAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> UpdateStatusAsync(Guid sessionId, string status, DateTimeOffset? startedAt, DateTimeOffset? endedAt, CancellationToken ct)
     {
         const string sql = """
@@ -97,6 +113,9 @@ public sealed class SessionRepository
         return rows > 0;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetActiveRulesetVersionIdAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Guid?> GetActiveRulesetVersionIdAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
@@ -111,6 +130,9 @@ public sealed class SessionRepository
         return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListSessionsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<SessionDb>> ListSessionsAsync(CancellationToken ct)
     {
         const string sql = """
@@ -124,6 +146,9 @@ public sealed class SessionRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListSessionsByInstructorAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<SessionDb>> ListSessionsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -138,6 +163,9 @@ public sealed class SessionRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListSessionsByPlayerAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -153,6 +181,9 @@ public sealed class SessionRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ActivateRulesetAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task ActivateRulesetAsync(Guid sessionId, Guid rulesetVersionId, string? activatedBy, CancellationToken ct)
     {
         const string sql = """

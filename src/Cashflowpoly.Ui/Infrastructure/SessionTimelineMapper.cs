@@ -1,11 +1,18 @@
+// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan SessionTimelineMapper.
 using System.Text.Json;
 using System.Globalization;
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
+/// <summary>
+/// Menyatakan peran utama tipe SessionTimelineMapper pada modul ini.
+/// </summary>
 public static class SessionTimelineMapper
 {
+    /// <summary>
+    /// Menjalankan fungsi MapTimeline sebagai bagian dari alur file ini.
+    /// </summary>
     public static List<SessionTimelineEventViewModel> MapTimeline(List<EventRequestDto>? events, string? language = null)
     {
         if (events is null || events.Count == 0)
@@ -34,6 +41,9 @@ public static class SessionTimelineMapper
             .ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ApplyPlayerDisplayNames sebagai bagian dari alur file ini.
+    /// </summary>
     public static void ApplyPlayerDisplayNames(
         IEnumerable<SessionTimelineEventViewModel> timeline,
         IReadOnlyDictionary<Guid, string> playerDisplayNames)
@@ -49,6 +59,9 @@ public static class SessionTimelineMapper
         }
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveFlowLabel sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveFlowLabel(string actionType, string language)
     {
         if (string.IsNullOrWhiteSpace(actionType))
@@ -100,6 +113,9 @@ public static class SessionTimelineMapper
         return L(language, "Aktivitas", "Activity");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildFlowDescription sebagai bagian dari alur file ini.
+    /// </summary>
     private static string BuildFlowDescription(string actionType, JsonElement payload, string language)
     {
         var text = actionType switch
@@ -134,6 +150,9 @@ public static class SessionTimelineMapper
         return text;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeTransaction sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeTransaction(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "direction", out var direction))
@@ -165,6 +184,9 @@ public static class SessionTimelineMapper
             $"{directionLabel} {amountText} in category {categoryText}{counterpartyText}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeFridayDonation sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeFridayDonation(JsonElement payload, string language)
     {
         if (!TryGetNumber(payload, "amount", out var amount))
@@ -178,6 +200,9 @@ public static class SessionTimelineMapper
             $"Made a Friday donation of {FormatNumber(amount)}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeGoldTrade sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeGoldTrade(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "trade_type", out var tradeType) ||
@@ -202,6 +227,9 @@ public static class SessionTimelineMapper
             $"{action} {qty} gold unit(s) x {FormatNumber(unitPrice)} (total {FormatNumber(amount)}).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeIngredientPurchase sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeIngredientPurchase(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "card_id", out var cardId))
@@ -219,6 +247,9 @@ public static class SessionTimelineMapper
             $"Purchased ingredient {cardId} with cost {amountText}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeIngredientDiscard sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeIngredientDiscard(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "card_id", out var cardId))
@@ -236,6 +267,9 @@ public static class SessionTimelineMapper
             $"Discarded ingredient {cardId} with quantity {amountText}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeOrderClaim sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeOrderClaim(JsonElement payload, string language)
     {
         var incomeText = TryGetNumber(payload, "income", out var income)
@@ -251,6 +285,9 @@ public static class SessionTimelineMapper
             $"Claimed an order using {ingredientCountText} ingredient(s) and received {incomeText} income.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeOrderPassed sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeOrderPassed(JsonElement payload, string language)
     {
         var ingredientCountText = TryGetArrayCount(payload, "required_ingredient_card_ids", out var count)
@@ -266,6 +303,9 @@ public static class SessionTimelineMapper
             $"Passed an order requiring {ingredientCountText} ingredient(s) (potential income {incomeText}).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeFreelance sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeFreelance(JsonElement payload, string language)
     {
         if (!TryGetNumber(payload, "amount", out var amount))
@@ -279,6 +319,9 @@ public static class SessionTimelineMapper
             $"Completed freelance work and earned {FormatNumber(amount)}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeNeedPurchase sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeNeedPurchase(JsonElement payload, string language, string needTypeId, string needTypeEn)
     {
         if (!TryGetString(payload, "card_id", out var cardId))
@@ -299,6 +342,9 @@ public static class SessionTimelineMapper
             $"Purchased {needTypeEn} card {cardId} (cost {amountText}, points {pointsText}).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeSavingDeposit sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeSavingDeposit(JsonElement payload, string language, bool isWithdrawn)
     {
         if (!TryGetString(payload, "goal_id", out var goalId) || !TryGetNumber(payload, "amount", out var amount))
@@ -317,6 +363,9 @@ public static class SessionTimelineMapper
                 $"Deposited {FormatNumber(amount)} to saving goal {goalId}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeSavingGoalAchieved sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeSavingGoalAchieved(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "goal_id", out var goalId))
@@ -337,6 +386,9 @@ public static class SessionTimelineMapper
             $"Saving goal {goalId} was achieved (points {pointsText}, cost {costText}).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeLoanTaken sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeLoanTaken(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "loan_id", out var loanId))
@@ -360,6 +412,9 @@ public static class SessionTimelineMapper
             $"Took loan {loanId} (principal {principalText}, installment {installmentText}, duration {durationText} turns).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeLoanRepaid sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeLoanRepaid(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "loan_id", out var loanId) || !TryGetNumber(payload, "amount", out var amount))
@@ -373,6 +428,9 @@ public static class SessionTimelineMapper
             $"Repaid loan {loanId} by {FormatNumber(amount)}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeRiskLife sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeRiskLife(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "risk_id", out var riskId) ||
@@ -394,6 +452,9 @@ public static class SessionTimelineMapper
             $"Risk card {riskId} triggered with {directionText} of {FormatNumber(amount)}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeRiskEmergency sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeRiskEmergency(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "option_type", out var optionType) ||
@@ -415,6 +476,9 @@ public static class SessionTimelineMapper
             $"Used emergency option {optionType} ({directionText} {FormatNumber(amount)}).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeInsurancePurchase sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeInsurancePurchase(JsonElement payload, string language)
     {
         if (!TryGetNumber(payload, "premium", out var premium))
@@ -428,6 +492,9 @@ public static class SessionTimelineMapper
             $"Purchased multirisk insurance with premium {FormatNumber(premium)}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeInsuranceUse sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeInsuranceUse(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "risk_event_id", out var riskEventId))
@@ -441,6 +508,9 @@ public static class SessionTimelineMapper
             $"Activated insurance protection for risk event {riskEventId}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeRankAward sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeRankAward(JsonElement payload, string language, string topicId, string topicEn)
     {
         if (!TryGetInt(payload, "rank", out var rank) || !TryGetNumber(payload, "points", out var points))
@@ -454,6 +524,9 @@ public static class SessionTimelineMapper
             $"Received rank {rank} in {topicEn} category (points {FormatNumber(points)}).");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribePointsAward sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribePointsAward(JsonElement payload, string language, string topicId, string topicEn)
     {
         if (!TryGetNumber(payload, "points", out var points))
@@ -467,6 +540,9 @@ public static class SessionTimelineMapper
             $"Received {topicEn} bonus points of {FormatNumber(points)}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi DescribeTurnAction sebagai bagian dari alur file ini.
+    /// </summary>
     private static string DescribeTurnAction(JsonElement payload, string language)
     {
         if (!TryGetInt(payload, "used", out var used) || !TryGetInt(payload, "remaining", out var remaining))
@@ -480,6 +556,9 @@ public static class SessionTimelineMapper
             $"Used {used} action(s), remaining actions this turn: {remaining}.");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildGenericDescription sebagai bagian dari alur file ini.
+    /// </summary>
     private static string BuildGenericDescription(string actionType, JsonElement payload, string language)
     {
         var actionLabel = string.IsNullOrWhiteSpace(actionType) ? L(language, "aktivitas", "activity") : actionType;
@@ -496,6 +575,9 @@ public static class SessionTimelineMapper
         return L(language, $"{baseText} Detail: {payloadSummary}", $"{baseText} Details: {payloadSummary}");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildPayloadSummary sebagai bagian dari alur file ini.
+    /// </summary>
     private static string BuildPayloadSummary(JsonElement payload, string language)
     {
         if (payload.ValueKind != JsonValueKind.Object)
@@ -539,6 +621,9 @@ public static class SessionTimelineMapper
         return string.Join(", ", parts);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolvePayloadKeyLabel sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolvePayloadKeyLabel(string key, string language)
     {
         return key switch
@@ -561,6 +646,9 @@ public static class SessionTimelineMapper
         };
     }
 
+    /// <summary>
+    /// Menjalankan fungsi JsonElementToInlineText sebagai bagian dari alur file ini.
+    /// </summary>
     private static string JsonElementToInlineText(JsonElement value, string key, string language)
     {
         if (key == "direction" && value.ValueKind == JsonValueKind.String)
@@ -603,6 +691,9 @@ public static class SessionTimelineMapper
         };
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TryGetString sebagai bagian dari alur file ini.
+    /// </summary>
     private static bool TryGetString(JsonElement payload, string propertyName, out string value)
     {
         value = string.Empty;
@@ -617,6 +708,9 @@ public static class SessionTimelineMapper
         return !string.IsNullOrWhiteSpace(value);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TryGetInt sebagai bagian dari alur file ini.
+    /// </summary>
     private static bool TryGetInt(JsonElement payload, string propertyName, out int value)
     {
         value = 0;
@@ -636,6 +730,9 @@ public static class SessionTimelineMapper
         return true;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TryGetNumber sebagai bagian dari alur file ini.
+    /// </summary>
     private static bool TryGetNumber(JsonElement payload, string propertyName, out double value)
     {
         value = 0;
@@ -650,6 +747,9 @@ public static class SessionTimelineMapper
         return true;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TryGetArrayCount sebagai bagian dari alur file ini.
+    /// </summary>
     private static bool TryGetArrayCount(JsonElement payload, string propertyName, out int count)
     {
         count = 0;
@@ -664,9 +764,15 @@ public static class SessionTimelineMapper
         return true;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi FormatNumber sebagai bagian dari alur file ini.
+    /// </summary>
     private static string FormatNumber(double value)
         => value.ToString("0.##", CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// Menjalankan fungsi L sebagai bagian dari alur file ini.
+    /// </summary>
     private static string L(string language, string id, string en)
         => string.Equals(language, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase) ? en : id;
 }

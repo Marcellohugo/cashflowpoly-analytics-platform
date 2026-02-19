@@ -1,3 +1,4 @@
+# Fungsi file: Menjalankan otomasi deployment aplikasi melalui skrip shell Linux.
 #!/usr/bin/env bash
 # ============================================================
 # deploy.sh - Script deployment Cashflowpoly Analytics Platform

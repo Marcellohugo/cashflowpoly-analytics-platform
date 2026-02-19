@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain HomeController termasuk komunikasi ke API backend.
 using System.Diagnostics;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -7,19 +8,31 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Cashflowpoly.Ui.Controllers;
 
+/// <summary>
+/// Menyatakan peran utama tipe HomeController pada modul ini.
+/// </summary>
 public class HomeController : Controller
 {
+    /// <summary>
+    /// Menjalankan fungsi FromSeconds sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly TimeSpan RealtimeStatsCacheDuration = TimeSpan.FromSeconds(20);
 
     private readonly IHttpClientFactory _clientFactory;
     private readonly IMemoryCache _memoryCache;
 
+    /// <summary>
+    /// Menjalankan fungsi HomeController sebagai bagian dari alur file ini.
+    /// </summary>
     public HomeController(IHttpClientFactory clientFactory, IMemoryCache memoryCache)
     {
         _clientFactory = clientFactory;
         _memoryCache = memoryCache;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var statsResult = await GetRealtimeStatsInternal(ct);
@@ -34,6 +47,9 @@ public class HomeController : Controller
     }
 
     [HttpGet]
+    /// <summary>
+    /// Menjalankan fungsi RealtimeStats sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> RealtimeStats(CancellationToken ct)
     {
         var statsResult = await GetRealtimeStatsInternal(ct);
@@ -54,23 +70,35 @@ public class HomeController : Controller
         });
     }
 
+    /// <summary>
+    /// Menjalankan fungsi Rulebook sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Rulebook()
     {
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
         return View("Privacy", model: RulebookContent.Build(language));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi Privacy sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Privacy()
     {
         return RedirectToAction(nameof(Rulebook));
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    /// <summary>
+    /// Menjalankan fungsi Error sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetRealtimeStatsInternal sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<(HomeIndexViewModel Model, IActionResult? UnauthorizedResult)> GetRealtimeStatsInternal(CancellationToken ct)
     {
         var cacheKey = BuildRealtimeStatsCacheKey();
@@ -151,6 +179,9 @@ public class HomeController : Controller
         return (model, null);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildRealtimeStatsCacheKey sebagai bagian dari alur file ini.
+    /// </summary>
     private string BuildRealtimeStatsCacheKey()
     {
         var sessionId = HttpContext.Session.Id;

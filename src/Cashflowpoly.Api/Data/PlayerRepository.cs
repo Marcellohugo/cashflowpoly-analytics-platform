@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan akses data PostgreSQL untuk domain PlayerRepository melalui query dan command terenkapsulasi.
 using Dapper;
 using Npgsql;
 
@@ -10,11 +11,17 @@ public sealed class PlayerRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    /// <summary>
+    /// Menjalankan fungsi PlayerRepository sebagai bagian dari alur file ini.
+    /// </summary>
     public PlayerRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetPlayerAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<PlayerDb?> GetPlayerAsync(Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -27,6 +34,9 @@ public sealed class PlayerRepository
         return await conn.QuerySingleOrDefaultAsync<PlayerDb>(new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetPlayerForInstructorAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<PlayerDb?> GetPlayerForInstructorAsync(Guid playerId, Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -41,6 +51,9 @@ public sealed class PlayerRepository
             new CommandDefinition(sql, new { playerId, instructorUserId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi CreatePlayerAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Guid> CreatePlayerAsync(string displayName, Guid instructorUserId, CancellationToken ct)
     {
         var playerId = Guid.NewGuid();
@@ -62,6 +75,9 @@ public sealed class PlayerRepository
         return playerId;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi UpdatePlayerProfileAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> UpdatePlayerProfileAsync(Guid playerId, string displayName, Guid? instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -82,6 +98,9 @@ public sealed class PlayerRepository
         return rows > 0;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListPlayersAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<PlayerDb>> ListPlayersAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
@@ -96,6 +115,9 @@ public sealed class PlayerRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ListPlayersByPlayerScopeAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<List<PlayerDb>> ListPlayersByPlayerScopeAsync(Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -117,6 +139,9 @@ public sealed class PlayerRepository
         return items.ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<int> AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync(
         Guid sessionId,
         Guid playerId,
@@ -177,6 +202,9 @@ public sealed class PlayerRepository
         return joinOrder.Value;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetSessionPlayerJoinOrderMapAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<Dictionary<Guid, int>> GetSessionPlayerJoinOrderMapAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
@@ -192,6 +220,9 @@ public sealed class PlayerRepository
         return rows.ToDictionary(row => row.PlayerId, row => row.JoinOrder);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi IsPlayerInSessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<bool> IsPlayerInSessionAsync(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         const string sql = """
@@ -205,6 +236,9 @@ public sealed class PlayerRepository
         return result.HasValue;
     }
 
+    /// <summary>
+    /// Menyatakan peran utama tipe SessionPlayerJoinOrderDb pada modul ini.
+    /// </summary>
     private sealed class SessionPlayerJoinOrderDb
     {
         public Guid PlayerId { get; init; }

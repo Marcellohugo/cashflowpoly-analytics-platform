@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain RateLimitPolicyHelperTests.
 using System.Net;
 using System.Security.Claims;
 using Cashflowpoly.Api.Security;
@@ -6,6 +7,9 @@ using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
 
+/// <summary>
+/// Menyatakan peran utama tipe RateLimitPolicyHelperTests pada modul ini.
+/// </summary>
 public sealed class RateLimitPolicyHelperTests
 {
     [Theory]
@@ -13,6 +17,9 @@ public sealed class RateLimitPolicyHelperTests
     [InlineData("/api/v1/sessions", 60)]
     [InlineData("/api/events", 60)]
     [InlineData("/api/v1/auth/login", 60)]
+    /// <summary>
+    /// Menjalankan fungsi ResolvePermitLimit_ReturnsExpectedValue sebagai bagian dari alur file ini.
+    /// </summary>
     public void ResolvePermitLimit_ReturnsExpectedValue(string path, int expectedLimit)
     {
         var result = RateLimitPolicyHelper.ResolvePermitLimit(new PathString(path));
@@ -20,6 +27,9 @@ public sealed class RateLimitPolicyHelperTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi BuildPartitionKey_UsesUserId_WhenAuthenticated sebagai bagian dari alur file ini.
+    /// </summary>
     public void BuildPartitionKey_UsesUserId_WhenAuthenticated()
     {
         var context = new DefaultHttpContext();
@@ -34,6 +44,9 @@ public sealed class RateLimitPolicyHelperTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi BuildPartitionKey_FallsBackToSubClaim_WhenNameIdentifierMissing sebagai bagian dari alur file ini.
+    /// </summary>
     public void BuildPartitionKey_FallsBackToSubClaim_WhenNameIdentifierMissing()
     {
         var context = new DefaultHttpContext();
@@ -48,6 +61,9 @@ public sealed class RateLimitPolicyHelperTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi BuildPartitionKey_UsesRemoteIp_ForAnonymousRequest sebagai bagian dari alur file ini.
+    /// </summary>
     public void BuildPartitionKey_UsesRemoteIp_ForAnonymousRequest()
     {
         var context = new DefaultHttpContext();
@@ -60,6 +76,9 @@ public sealed class RateLimitPolicyHelperTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi BuildPartitionKey_UsesUnknown_WhenRemoteIpMissing sebagai bagian dari alur file ini.
+    /// </summary>
     public void BuildPartitionKey_UsesUnknown_WhenRemoteIpMissing()
     {
         var context = new DefaultHttpContext();

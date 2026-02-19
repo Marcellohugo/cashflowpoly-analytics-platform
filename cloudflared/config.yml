@@ -1,3 +1,4 @@
+# Fungsi file: Mengatur konfigurasi tunnel Cloudflare untuk publikasi layanan internal.
 tunnel: c3d4164e-e1c9-4de3-a4c3-c30a6e157a04
 credentials-file: /etc/cloudflared/credentials.json
 loglevel: debug

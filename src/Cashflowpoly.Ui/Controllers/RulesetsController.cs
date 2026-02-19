@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain RulesetsController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -16,12 +17,18 @@ public sealed class RulesetsController : Controller
     private readonly IHttpClientFactory _clientFactory;
     private const string RulesetErrorTempDataKey = "ruleset_error";
 
+    /// <summary>
+    /// Menjalankan fungsi RulesetsController sebagai bagian dari alur file ini.
+    /// </summary>
     public RulesetsController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("")]
+    /// <summary>
+    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
@@ -58,6 +65,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpGet("create")]
+    /// <summary>
+    /// Menjalankan fungsi Create sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Create()
     {
         if (!HttpContext.Session.IsInstructor())
@@ -117,6 +127,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("create")]
+    /// <summary>
+    /// Menjalankan fungsi Create sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -172,6 +185,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpGet("{rulesetId:guid}/edit")]
+    /// <summary>
+    /// Menjalankan fungsi Edit sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Edit(Guid rulesetId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -222,6 +238,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/edit")]
+    /// <summary>
+    /// Menjalankan fungsi Edit sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Edit(Guid rulesetId, CreateRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -277,6 +296,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpGet("{rulesetId:guid}")]
+    /// <summary>
+    /// Menjalankan fungsi Details sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Details(Guid rulesetId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
@@ -315,6 +337,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
+    /// <summary>
+    /// Menjalankan fungsi ActivateVersion sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> ActivateVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -342,6 +367,9 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/delete")]
+    /// <summary>
+    /// Menjalankan fungsi Delete sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -369,6 +397,9 @@ public sealed class RulesetsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildRulesetApiErrorMessage sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task<string> BuildRulesetApiErrorMessage(HttpResponseMessage response, string prefix, CancellationToken ct)
     {
         var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
@@ -376,6 +407,9 @@ public sealed class RulesetsController : Controller
         return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
     }
 
+    /// <summary>
+    /// Menjalankan fungsi SerializeIndentedJson sebagai bagian dari alur file ini.
+    /// </summary>
     private static string SerializeIndentedJson(JsonElement? configJson)
     {
         if (!configJson.HasValue)
@@ -396,6 +430,9 @@ public sealed class RulesetsController : Controller
         }
     }
 
+    /// <summary>
+    /// Membaca JSON dari konten HTTP dengan fallback default saat payload tidak kompatibel.
+    /// </summary>
     private static async Task<T?> TryReadJsonAsync<T>(HttpContent content, CancellationToken ct)
     {
         try

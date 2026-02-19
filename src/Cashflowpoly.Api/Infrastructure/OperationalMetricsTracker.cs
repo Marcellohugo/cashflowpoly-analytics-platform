@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan komponen infrastruktur API untuk kebutuhan OperationalMetricsTracker.
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Routing;
 
@@ -32,6 +33,9 @@ public sealed class OperationalMetricsTracker
         }
     }
 
+    /// <summary>
+    /// Menjalankan fungsi Snapshot sebagai bagian dari alur file ini.
+    /// </summary>
     public OperationalMetricsSnapshot Snapshot(int maxEndpoints)
     {
         var endpoints = _endpoints.Values
@@ -52,6 +56,9 @@ public sealed class OperationalMetricsTracker
             endpoints);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveRoutePattern sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveRoutePattern(HttpContext context)
     {
         if (context.GetEndpoint() is RouteEndpoint routeEndpoint &&
@@ -68,11 +75,20 @@ public sealed class OperationalMetricsTracker
         return "/";
     }
 
+    /// <summary>
+    /// Menyatakan peran utama tipe EndpointMetricsAccumulator pada modul ini.
+    /// </summary>
     private sealed class EndpointMetricsAccumulator
     {
         private const int DurationSamplesLimit = 4096;
 
+        /// <summary>
+        /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+        /// </summary>
         private readonly object _gate = new();
+        /// <summary>
+        /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+        /// </summary>
         private readonly Queue<double> _durationSamples = new();
 
         private readonly string _method;
@@ -83,6 +99,9 @@ public sealed class OperationalMetricsTracker
         private int _lastStatusCode;
         private DateTimeOffset _lastSeenAt;
 
+        /// <summary>
+        /// Menjalankan fungsi EndpointMetricsAccumulator sebagai bagian dari alur file ini.
+        /// </summary>
         public EndpointMetricsAccumulator(string method, string routePattern)
         {
             _method = method;
@@ -111,6 +130,9 @@ public sealed class OperationalMetricsTracker
             }
         }
 
+        /// <summary>
+        /// Menjalankan fungsi Snapshot sebagai bagian dari alur file ini.
+        /// </summary>
         public EndpointOperationalMetric Snapshot()
         {
             lock (_gate)
@@ -134,6 +156,9 @@ public sealed class OperationalMetricsTracker
             }
         }
 
+        /// <summary>
+        /// Menjalankan fungsi ComputePercentile sebagai bagian dari alur file ini.
+        /// </summary>
         private static double ComputePercentile(IEnumerable<double> values, int percentile)
         {
             var ordered = values.OrderBy(value => value).ToArray();
@@ -150,6 +175,9 @@ public sealed class OperationalMetricsTracker
     }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe OperationalMetricsSnapshot pada modul ini.
+/// </summary>
 public sealed record OperationalMetricsSnapshot(
     DateTimeOffset GeneratedAt,
     long TotalRequests,
@@ -157,6 +185,9 @@ public sealed record OperationalMetricsSnapshot(
     double ErrorRatePercent,
     List<EndpointOperationalMetric> Endpoints);
 
+/// <summary>
+/// Menyatakan peran utama tipe EndpointOperationalMetric pada modul ini.
+/// </summary>
 public sealed record EndpointOperationalMetric(
     string Method,
     string RoutePattern,

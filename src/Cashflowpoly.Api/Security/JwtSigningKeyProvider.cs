@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain JwtSigningKeyProvider (JWT, audit, atau rate limiting).
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -16,12 +17,18 @@ public sealed class JwtSigningKeyProvider
     private readonly ILogger<JwtSigningKeyProvider> _logger;
     private string _lastActiveKeyId = string.Empty;
 
+    /// <summary>
+    /// Menjalankan fungsi JwtSigningKeyProvider sebagai bagian dari alur file ini.
+    /// </summary>
     public JwtSigningKeyProvider(IOptions<JwtOptions> options, ILogger<JwtSigningKeyProvider> logger)
     {
         _options = options;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetActiveSigningMaterial sebagai bagian dari alur file ini.
+    /// </summary>
     public JwtSigningMaterial GetActiveSigningMaterial()
     {
         var now = DateTimeOffset.UtcNow;
@@ -52,6 +59,9 @@ public sealed class JwtSigningKeyProvider
         return new JwtSigningMaterial(active.KeyId, securityKey, signingCredentials);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveValidationKeys sebagai bagian dari alur file ini.
+    /// </summary>
     public IReadOnlyCollection<SecurityKey> ResolveValidationKeys(string? keyId)
     {
         var now = DateTimeOffset.UtcNow;
@@ -74,12 +84,18 @@ public sealed class JwtSigningKeyProvider
             .ToArray();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ValidateConfiguration sebagai bagian dari alur file ini.
+    /// </summary>
     public void ValidateConfiguration()
     {
         _ = GetActiveSigningMaterial();
         _ = ResolveValidationKeys(null);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi IsActiveAt sebagai bagian dari alur file ini.
+    /// </summary>
     private static bool IsActiveAt(ResolvedJwtSigningKey key, DateTimeOffset now)
     {
         var activateAt = key.ActivateAtUtc ?? DateTimeOffset.MinValue;
@@ -87,6 +103,9 @@ public sealed class JwtSigningKeyProvider
         return activateAt <= now && notRetired;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildSymmetricSecurityKey sebagai bagian dari alur file ini.
+    /// </summary>
     private static SymmetricSecurityKey BuildSymmetricSecurityKey(string keyId, string signingKey)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey))
@@ -96,6 +115,9 @@ public sealed class JwtSigningKeyProvider
         return key;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveConfiguredKeys sebagai bagian dari alur file ini.
+    /// </summary>
     private static List<ResolvedJwtSigningKey> ResolveConfiguredKeys(JwtOptions options)
     {
         var configuredKeys = new List<JwtSigningKeyOptions>();
@@ -179,6 +201,9 @@ public sealed class JwtSigningKeyProvider
             .ToList();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi AppendKeysFromJson sebagai bagian dari alur file ini.
+    /// </summary>
     private static void AppendKeysFromJson(List<JwtSigningKeyOptions> target, string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -204,6 +229,9 @@ public sealed class JwtSigningKeyProvider
         }
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveFallbackSigningKey sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveFallbackSigningKey(JwtOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.SigningKey))
@@ -220,6 +248,9 @@ public sealed class JwtSigningKeyProvider
         return ReadEnvironmentVariable(options.SigningKeyEnvironmentVariable, "JWT_SIGNING_KEY");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveSigningKey sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveSigningKey(JwtSigningKeyOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.SigningKey))
@@ -230,12 +261,18 @@ public sealed class JwtSigningKeyProvider
         return ReadSecretFile(options.SigningKeyFile);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ReadEnvironmentVariable sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ReadEnvironmentVariable(string configuredName, string fallbackName)
     {
         var envName = string.IsNullOrWhiteSpace(configuredName) ? fallbackName : configuredName.Trim();
         return (Environment.GetEnvironmentVariable(envName) ?? string.Empty).Trim();
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ReadSecretFile sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ReadSecretFile(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -252,6 +289,9 @@ public sealed class JwtSigningKeyProvider
         return File.ReadAllText(normalizedPath).Trim();
     }
 
+    /// <summary>
+    /// Menyatakan peran utama tipe ResolvedJwtSigningKey pada modul ini.
+    /// </summary>
     private sealed record ResolvedJwtSigningKey(
         string KeyId,
         string SigningKey,
@@ -259,6 +299,9 @@ public sealed class JwtSigningKeyProvider
         DateTimeOffset? RetireAtUtc);
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe JwtSigningMaterial pada modul ini.
+/// </summary>
 public sealed record JwtSigningMaterial(
     string KeyId,
     SecurityKey SecurityKey,

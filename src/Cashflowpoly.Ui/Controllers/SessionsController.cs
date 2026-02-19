@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain SessionsController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -14,12 +15,18 @@ public sealed class SessionsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
+    /// <summary>
+    /// Menjalankan fungsi SessionsController sebagai bagian dari alur file ini.
+    /// </summary>
     public SessionsController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("")]
+    /// <summary>
+    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
@@ -56,6 +63,9 @@ public sealed class SessionsController : Controller
     }
 
     [HttpGet("{sessionId:guid}")]
+    /// <summary>
+    /// Menjalankan fungsi Details sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Details(Guid sessionId, CancellationToken ct)
     {
         var detail = await BuildSessionDetailViewModel(sessionId, ct);
@@ -63,6 +73,9 @@ public sealed class SessionsController : Controller
     }
 
     [HttpGet("{sessionId:guid}/timeline")]
+    /// <summary>
+    /// Menjalankan fungsi Timeline sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Timeline(
         Guid sessionId,
         [FromQuery] long fromSeq = 0,
@@ -105,6 +118,9 @@ public sealed class SessionsController : Controller
     }
 
     [HttpGet("{sessionId:guid}/ruleset")]
+    /// <summary>
+    /// Menjalankan fungsi Ruleset sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Ruleset(Guid sessionId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -127,6 +143,9 @@ public sealed class SessionsController : Controller
     }
 
     [HttpPost("{sessionId:guid}/ruleset")]
+    /// <summary>
+    /// Menjalankan fungsi Ruleset sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Ruleset(Guid sessionId, SessionRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -174,6 +193,9 @@ public sealed class SessionsController : Controller
         return RedirectToAction(nameof(Details), new { sessionId });
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildRulesetFormErrorResult sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<IActionResult> BuildRulesetFormErrorResult(
         Guid sessionId,
         SessionRulesetViewModel model,
@@ -201,6 +223,9 @@ public sealed class SessionsController : Controller
         return View(model);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildSessionDetailViewModel sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<(SessionDetailViewModel Model, IActionResult? Result)> BuildSessionDetailViewModel(
         Guid sessionId,
         CancellationToken ct,
@@ -259,6 +284,9 @@ public sealed class SessionsController : Controller
         }, null);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi GetSessionStatusAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task<string?> GetSessionStatusAsync(HttpClient client, Guid sessionId, CancellationToken ct)
     {
         var sessionResponse = await client.GetAsync("api/v1/sessions", ct);
@@ -271,6 +299,9 @@ public sealed class SessionsController : Controller
         return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi LoadRulesetOptionsAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<(List<RulesetListItemDto> Rulesets, IActionResult? UnauthorizedResult, string? ErrorMessage)> LoadRulesetOptionsAsync(
         HttpClient client,
         CancellationToken ct)
@@ -295,6 +326,9 @@ public sealed class SessionsController : Controller
         return (data?.Items ?? new List<RulesetListItemDto>(), null, null);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi LoadPlayerDisplayNameMapAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task<Dictionary<Guid, string>> LoadPlayerDisplayNameMapAsync(
         HttpClient client,
         CancellationToken ct)
@@ -312,6 +346,9 @@ public sealed class SessionsController : Controller
             .ToDictionary(group => group.Key, group => group.First().DisplayName);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi LoadTimelineAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
         HttpClient client,
         Guid sessionId,

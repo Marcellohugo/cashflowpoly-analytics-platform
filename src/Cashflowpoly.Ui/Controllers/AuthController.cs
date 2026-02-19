@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain AuthController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Cashflowpoly.Ui.Infrastructure;
@@ -8,16 +9,25 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Ui.Controllers;
 
 [Route("auth")]
+/// <summary>
+/// Menyatakan peran utama tipe AuthController pada modul ini.
+/// </summary>
 public sealed class AuthController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
+    /// <summary>
+    /// Menjalankan fungsi AuthController sebagai bagian dari alur file ini.
+    /// </summary>
     public AuthController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("login")]
+    /// <summary>
+    /// Menjalankan fungsi Login sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
         var existingRole = HttpContext.Session.GetString(AuthConstants.SessionRoleKey);
@@ -37,6 +47,9 @@ public sealed class AuthController : Controller
 
     [HttpPost("login")]
     [ValidateAntiForgeryToken]
+    /// <summary>
+    /// Menjalankan fungsi Login sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
@@ -87,6 +100,9 @@ public sealed class AuthController : Controller
     }
 
     [HttpGet("register")]
+    /// <summary>
+    /// Menjalankan fungsi Register sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Register([FromQuery] string? returnUrl = null)
     {
         return View(new RegisterViewModel
@@ -97,6 +113,9 @@ public sealed class AuthController : Controller
 
     [HttpPost("register")]
     [ValidateAntiForgeryToken]
+    /// <summary>
+    /// Menjalankan fungsi Register sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (string.IsNullOrWhiteSpace(model.DisplayName) ||
@@ -172,6 +191,9 @@ public sealed class AuthController : Controller
 
     [HttpPost("logout")]
     [ValidateAntiForgeryToken]
+    /// <summary>
+    /// Menjalankan fungsi Logout sebagai bagian dari alur file ini.
+    /// </summary>
     public IActionResult Logout()
     {
         HttpContext.Session.Remove(AuthConstants.SessionUserIdKey);
@@ -183,6 +205,9 @@ public sealed class AuthController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveDisplayNameAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<string> ResolveDisplayNameAsync(string accessToken, Guid userId, string fallback, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");

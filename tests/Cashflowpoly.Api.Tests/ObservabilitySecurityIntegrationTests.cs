@@ -1,3 +1,4 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ObservabilitySecurityIntegrationTests.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -10,16 +11,25 @@ namespace Cashflowpoly.Api.Tests;
 
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
+/// <summary>
+/// Menyatakan peran utama tipe ObservabilitySecurityIntegrationTests pada modul ini.
+/// </summary>
 public sealed class ObservabilitySecurityIntegrationTests
 {
     private readonly HttpClient _client;
 
+    /// <summary>
+    /// Menjalankan fungsi ObservabilitySecurityIntegrationTests sebagai bagian dari alur file ini.
+    /// </summary>
     public ObservabilitySecurityIntegrationTests(ApiIntegrationTestFixture fixture)
     {
         _client = fixture.Client;
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi Observability_And_SecurityAudit_RespectRoleAccess sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task Observability_And_SecurityAudit_RespectRoleAccess()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -61,6 +71,9 @@ public sealed class ObservabilitySecurityIntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, playerAudit.StatusCode);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi RegisterAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
         var payload = new RegisterRequest(username, password, role, null);
@@ -72,6 +85,9 @@ public sealed class ObservabilitySecurityIntegrationTests
         return body;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi LoginAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<LoginResponse> LoginAsync(string username, string password)
     {
         var payload = new LoginRequest(username, password);
@@ -83,6 +99,9 @@ public sealed class ObservabilitySecurityIntegrationTests
         return body;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi SendAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string accessToken)
     {
         var request = new HttpRequestMessage(method, path);
@@ -90,6 +109,9 @@ public sealed class ObservabilitySecurityIntegrationTests
         return await _client.SendAsync(request);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi AssertJsonHasPropertyAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task AssertJsonHasPropertyAsync(HttpResponseMessage response, string propertyName)
     {
         var raw = await response.Content.ReadAsStringAsync();

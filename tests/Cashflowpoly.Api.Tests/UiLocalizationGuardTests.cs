@@ -1,22 +1,44 @@
+// Fungsi file: Menguji perilaku dan kontrak komponen pada domain UiLocalizationGuardTests.
 using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
 
+/// <summary>
+/// Menyatakan peran utama tipe UiLocalizationGuardTests pada modul ini.
+/// </summary>
 public sealed class UiLocalizationGuardTests
 {
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Regex LexiconKeyRegex = new(@"\[""(?<key>[^""]+)""\]\s*=", RegexOptions.Compiled);
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Regex TranslationCallRegex = new(@"(?:Context|HttpContext)\.T\(""(?<key>[^""]+)""\)", RegexOptions.Compiled);
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Regex LiteralTextNodeRegex = new(
         @"<[^!/][^>]*>\s*(?<text>[A-Za-z][A-Za-z0-9\s\.,'""/&()\-:]{0,120})\s*</[^>]+>",
         RegexOptions.Compiled);
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Regex HardcodedErrorAssignmentRegex = new(
         @"\b(?:ErrorMessage|SessionLookupErrorMessage|RulesetErrorMessage|groupError|gameplayError|timelineErrorMessage|errorMessage)\s*=\s*\$?""",
         RegexOptions.Compiled);
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Regex HardcodedTempDataAssignmentRegex = new(
         @"TempData\[[^\]]+\]\s*=\s*\$?""",
         RegexOptions.Compiled);
 
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly HashSet<string> AllowedLiteralViewTextNodes = new(StringComparer.Ordinal)
     {
         "Cashflowpoly",
@@ -24,9 +46,15 @@ public sealed class UiLocalizationGuardTests
         "EN"
     };
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveRepositoryRoot sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly string RepoRoot = ResolveRepositoryRoot();
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi TranslationKeys_UsedByUiControllersAndViews_MustExistInUiTextLexicon sebagai bagian dari alur file ini.
+    /// </summary>
     public void TranslationKeys_UsedByUiControllersAndViews_MustExistInUiTextLexicon()
     {
         var uiRoot = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui");
@@ -63,6 +91,9 @@ public sealed class UiLocalizationGuardTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi UiControllers_ShouldNotUseHardcodedUserFacingErrorMessages sebagai bagian dari alur file ini.
+    /// </summary>
     public void UiControllers_ShouldNotUseHardcodedUserFacingErrorMessages()
     {
         var controllerRoot = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Controllers");
@@ -82,6 +113,9 @@ public sealed class UiLocalizationGuardTests
     }
 
     [Fact]
+    /// <summary>
+    /// Menjalankan fungsi UiViews_ShouldNotContainUnexpectedHardcodedLiteralTextNodes sebagai bagian dari alur file ini.
+    /// </summary>
     public void UiViews_ShouldNotContainUnexpectedHardcodedLiteralTextNodes()
     {
         var viewsRoot = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Views");
@@ -115,6 +149,9 @@ public sealed class UiLocalizationGuardTests
             $"Ditemukan literal text node hardcoded pada Razor view:{Environment.NewLine}{string.Join(Environment.NewLine, violations)}");
     }
 
+    /// <summary>
+    /// Menjalankan fungsi FindViolations sebagai bagian dari alur file ini.
+    /// </summary>
     private static IEnumerable<string> FindViolations(string filePath, string content, Regex pattern)
     {
         foreach (Match match in pattern.Matches(content))
@@ -124,6 +161,9 @@ public sealed class UiLocalizationGuardTests
         }
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolveRepositoryRoot sebagai bagian dari alur file ini.
+    /// </summary>
     private static string ResolveRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

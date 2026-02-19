@@ -1,9 +1,16 @@
+// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan RulebookContent.
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
+/// <summary>
+/// Menyatakan peran utama tipe RulebookContent pada modul ini.
+/// </summary>
 public static class RulebookContent
 {
+    /// <summary>
+    /// Menjalankan fungsi Build sebagai bagian dari alur file ini.
+    /// </summary>
     public static RulebookPageViewModel Build(string? language = null)
     {
         var normalizedLanguage = UiText.NormalizeLanguage(language);

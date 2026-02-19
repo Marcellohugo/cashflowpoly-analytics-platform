@@ -1,3 +1,4 @@
+# Fungsi file: Menjalankan skenario uji beban untuk mengukur performa endpoint API.
 param(
     [string]$BaseUrl = "http://localhost:5041",
     [int]$IngestRequests = 120,

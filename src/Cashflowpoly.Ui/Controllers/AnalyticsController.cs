@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain AnalyticsController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
 using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
@@ -6,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
 
+/// <summary>
+/// Menyatakan peran utama tipe AnalyticsController pada modul ini.
+/// </summary>
 public sealed class AnalyticsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
@@ -19,6 +23,9 @@ public sealed class AnalyticsController : Controller
     }
 
     [HttpGet]
+    /// <summary>
+    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var setup = await BuildInitialModelAsync(ct);
@@ -47,6 +54,9 @@ public sealed class AnalyticsController : Controller
     }
 
     [HttpPost]
+    /// <summary>
+    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Index(AnalyticsSearchViewModel model, CancellationToken ct)
     {
         var setup = await BuildInitialModelAsync(ct);
@@ -81,6 +91,9 @@ public sealed class AnalyticsController : Controller
         return View(viewModel);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi BuildInitialModelAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<(AnalyticsSearchViewModel Model, IActionResult? Result)> BuildInitialModelAsync(CancellationToken ct)
     {
         var model = new AnalyticsSearchViewModel
@@ -136,6 +149,9 @@ public sealed class AnalyticsController : Controller
         return (model, null);
     }
 
+    /// <summary>
+    /// Menjalankan fungsi PopulateAnalyticsResultAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<IActionResult?> PopulateAnalyticsResultAsync(
         AnalyticsSearchViewModel model,
         Guid sessionId,
@@ -185,6 +201,9 @@ public sealed class AnalyticsController : Controller
         return null;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi PopulateRulesetSummaryAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private async Task<IActionResult?> PopulateRulesetSummaryAsync(
         AnalyticsSearchViewModel model,
         Guid rulesetId,
@@ -220,6 +239,9 @@ public sealed class AnalyticsController : Controller
         return null;
     }
 
+    /// <summary>
+    /// Membaca JSON dari respons HTTP dengan fallback aman saat format tidak valid.
+    /// </summary>
     private static async Task<T?> TryReadJsonAsync<T>(HttpContent content, CancellationToken ct)
     {
         try

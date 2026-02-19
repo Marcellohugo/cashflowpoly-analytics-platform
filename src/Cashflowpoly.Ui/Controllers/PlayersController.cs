@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola alur halaman UI untuk domain PlayersController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -13,12 +14,18 @@ public sealed class PlayersController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
+    /// <summary>
+    /// Menjalankan fungsi PlayersController sebagai bagian dari alur file ini.
+    /// </summary>
     public PlayersController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("{playerId:guid}")]
+    /// <summary>
+    /// Menjalankan fungsi Details sebagai bagian dari alur file ini.
+    /// </summary>
     public async Task<IActionResult> Details(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
@@ -105,6 +112,9 @@ public sealed class PlayersController : Controller
         });
     }
 
+    /// <summary>
+    /// Menjalankan fungsi ResolvePlayerDisplayNameAsync sebagai bagian dari alur file ini.
+    /// </summary>
     private static async Task<string?> ResolvePlayerDisplayNameAsync(HttpClient client, Guid playerId, CancellationToken ct)
     {
         var response = await client.GetAsync("api/v1/players", ct);

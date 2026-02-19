@@ -1,9 +1,16 @@
+// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan UiText.
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
+/// <summary>
+/// Menyatakan peran utama tipe UiText pada modul ini.
+/// </summary>
 public static class UiText
 {
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     private static readonly Dictionary<string, (string Id, string En)> Lexicon = new(StringComparer.OrdinalIgnoreCase)
     {
         ["brand.chip"] = ("Lembar Petualang", "Adventurer's Ledger"),
@@ -569,6 +576,9 @@ public static class UiText
         ["state.false"] = ("Tidak", "No")
     };
 
+    /// <summary>
+    /// Menjalankan fungsi NormalizeLanguage sebagai bagian dari alur file ini.
+    /// </summary>
     public static string NormalizeLanguage(string? language)
     {
         return string.Equals(language, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase)
@@ -576,6 +586,9 @@ public static class UiText
             : AuthConstants.LanguageId;
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TranslateSessionStatus sebagai bagian dari alur file ini.
+    /// </summary>
     public static string TranslateSessionStatus(HttpContext context, string? status)
     {
         var normalized = status?.Trim().ToUpperInvariant();
@@ -590,6 +603,9 @@ public static class UiText
         };
     }
 
+    /// <summary>
+    /// Menjalankan fungsi TranslateRulesetStatus sebagai bagian dari alur file ini.
+    /// </summary>
     public static string TranslateRulesetStatus(HttpContext context, string? status)
     {
         var normalized = status?.Trim().ToUpperInvariant();
@@ -603,6 +619,9 @@ public static class UiText
         };
     }
 
+    /// <summary>
+    /// Menjalankan fungsi Translate sebagai bagian dari alur file ini.
+    /// </summary>
     public static string Translate(HttpContext context, string key)
     {
         var lang = NormalizeLanguage(context.Session.GetString(AuthConstants.SessionLanguageKey));
@@ -615,10 +634,22 @@ public static class UiText
     }
 }
 
+/// <summary>
+/// Menyatakan peran utama tipe UiTextHttpContextExtensions pada modul ini.
+/// </summary>
 public static class UiTextHttpContextExtensions
 {
+    /// <summary>
+    /// Menjalankan fungsi Translate sebagai bagian dari alur file ini.
+    /// </summary>
     public static string T(this HttpContext context, string key) => UiText.Translate(context, key);
+    /// <summary>
+    /// Menjalankan fungsi TranslateSessionStatus sebagai bagian dari alur file ini.
+    /// </summary>
     public static string TSessionStatus(this HttpContext context, string? status) => UiText.TranslateSessionStatus(context, status);
+    /// <summary>
+    /// Menjalankan fungsi TranslateRulesetStatus sebagai bagian dari alur file ini.
+    /// </summary>
     public static string TRulesetStatus(this HttpContext context, string? status) => UiText.TranslateRulesetStatus(context, status);
 }
 
