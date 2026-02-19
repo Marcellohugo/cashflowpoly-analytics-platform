@@ -721,7 +721,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ```
 - Catatan kebijakan:
   - Registrasi publik role `PLAYER` diperbolehkan.
-  - Registrasi publik role `INSTRUCTOR` ditentukan langsung oleh `Auth:AllowPublicInstructorRegistration` (`true` = diizinkan, `false` = ditolak `403`).
+  - Registrasi publik role `INSTRUCTOR` diperbolehkan.
 
 ---
 
@@ -1059,7 +1059,6 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
-
 
 
 

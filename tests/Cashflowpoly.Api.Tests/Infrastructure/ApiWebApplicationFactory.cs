@@ -25,8 +25,7 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
                 ["ConnectionStrings:Default"] = _connectionString,
                 ["Jwt:SigningKey"] = _jwtSigningKey,
                 ["JWT_SIGNING_KEY"] = _jwtSigningKey,
-                ["AuthBootstrap:SeedDefaultUsers"] = "false",
-                ["Auth:AllowPublicInstructorRegistration"] = "true"
+                ["AuthBootstrap:SeedDefaultUsers"] = "false"
             });
         });
     }

@@ -382,6 +382,187 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(new[] { 1, 2, 3 }, actualJoinOrders);
     }
 
+    [Fact]
+    public async Task LegacyApiRoute_RewritesToV1_AndAuthWorks()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var username = $"it_legacy_{suffix}";
+        const string password = "LegacyRoutePass!123";
+
+        var registerPayload = new RegisterRequest(username, password, "INSTRUCTOR", null);
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", registerPayload);
+        Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
+
+        var loginPayload = new LoginRequest(username, password);
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginPayload);
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(login);
+        Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
+
+        var sessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/sessions", null, login.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, sessionsResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task IngestEvent_InvalidPayloadAndQuery_ReturnsBadRequest()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorUsername = $"it_evt_invalid_instr_{suffix}";
+        const string instructorPassword = "IntegrationInvalidInstructorPass!123";
+        var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(instructorToken, suffix);
+
+        var now = DateTimeOffset.UtcNow;
+        var invalidAmountPayload = new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            player_id = setup.PlayerId,
+            actor_type = "PLAYER",
+            timestamp = now.ToString("O"),
+            day_index = 0,
+            weekday = "MON",
+            turn_number = 1,
+            sequence_number = 1,
+            action_type = "transaction.recorded",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                direction = "IN",
+                amount = "invalid-number",
+                category = "NEED_PRIMARY"
+            }
+        };
+
+        var invalidAmountResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", invalidAmountPayload, instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidAmountResponse.StatusCode);
+
+        var invalidDayIndexPayload = new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            player_id = setup.PlayerId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(1).ToString("O"),
+            day_index = -1,
+            weekday = "MON",
+            turn_number = 1,
+            sequence_number = 1,
+            action_type = "transaction.recorded",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                direction = "IN",
+                amount = 1,
+                category = "NEED_PRIMARY"
+            }
+        };
+
+        var invalidDayResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", invalidDayIndexPayload, instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidDayResponse.StatusCode);
+
+        var invalidQueryResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=-1",
+            null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidQueryResponse.StatusCode);
+    }
+
+    private async Task<(Guid SessionId, Guid PlayerId, Guid RulesetVersionId)> CreateReadySessionAsync(
+        string instructorToken,
+        string suffix)
+    {
+        var createRulesetPayload = new
+        {
+            name = $"Ruleset Invalid IT {suffix}",
+            description = "Integration invalid event validation",
+            config = BuildRulesetConfig(startingCash: 50)
+        };
+
+        var createRulesetResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/rulesets",
+            createRulesetPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+
+        var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(createdRuleset);
+
+        var createSessionPayload = new
+        {
+            session_name = $"Session Invalid IT {suffix}",
+            mode = "PEMULA",
+            ruleset_id = createdRuleset.RulesetId
+        };
+
+        var createSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            createSessionPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+
+        var createdSession = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
+        Assert.NotNull(createdSession);
+
+        var createPlayerPayload = new
+        {
+            display_name = $"Player Invalid {suffix}",
+            username = $"it_evt_invalid_player_{suffix}",
+            password = "IntegrationInvalidPlayerPass!123"
+        };
+
+        var createPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            createPlayerPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+
+        var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+        Assert.NotNull(createdPlayer);
+
+        var addPlayerPayload = new
+        {
+            player_id = createdPlayer.PlayerId,
+            role = "PLAYER"
+        };
+
+        var addPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            addPlayerPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
+
+        var startSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/start",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, startSessionResponse.StatusCode);
+
+        var rulesetDetailResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, rulesetDetailResponse.StatusCode);
+
+        var rulesetDetail = await rulesetDetailResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(rulesetDetail);
+        var activeVersion = rulesetDetail.Versions
+            .Where(v => string.Equals(v.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(v => v.Version)
+            .First();
+
+        return (createdSession.SessionId, createdPlayer.PlayerId, activeVersion.RulesetVersionId);
+    }
+
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
         var payload = new RegisterRequest(username, password, role, null);

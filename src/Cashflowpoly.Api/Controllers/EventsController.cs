@@ -98,6 +98,12 @@ public sealed class EventsController : ControllerBase
     [ProducesResponseType(typeof(EventBatchResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateEventsBatch([FromBody] EventBatchRequest request, CancellationToken ct)
     {
+        if (request.Events is null || request.Events.Count == 0)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Daftar event batch wajib diisi",
+                new ErrorDetail("events", "REQUIRED")));
+        }
+
         var failed = new List<EventBatchFailed>();
         var storedCount = 0;
 
@@ -150,6 +156,18 @@ public sealed class EventsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
+        if (fromSeq < 0)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "fromSeq tidak boleh negatif",
+                new ErrorDetail("fromSeq", "OUT_OF_RANGE")));
+        }
+
+        if (limit is < 1 or > 1000)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "limit harus antara 1 sampai 1000",
+                new ErrorDetail("limit", "OUT_OF_RANGE")));
+        }
+
         var events = await _events.GetEventsBySessionAsync(sessionId, fromSeq, limit, ct);
         var responseEvents = events.Select(ToEventRequest).ToList();
         return Ok(new EventsBySessionResponse(sessionId, responseEvents));
@@ -197,6 +215,18 @@ public sealed class EventsController : ControllerBase
         {
             return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Turn number minimal 1",
                 new ErrorDetail("turn_number", "OUT_OF_RANGE"));
+        }
+
+        if (request.DayIndex < 0)
+        {
+            return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Day index minimal 0",
+                new ErrorDetail("day_index", "OUT_OF_RANGE"));
+        }
+
+        if (request.SequenceNumber < 0)
+        {
+            return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Sequence number minimal 0",
+                new ErrorDetail("sequence_number", "OUT_OF_RANGE"));
         }
 
         if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) && request.PlayerId is null)
@@ -1473,6 +1503,72 @@ public sealed class EventsController : ControllerBase
         return Valid;
     }
 
+    private static bool TryGetString(JsonElement payload, string propertyName, out string value)
+    {
+        value = string.Empty;
+        if (!payload.TryGetProperty(propertyName, out var property))
+        {
+            return false;
+        }
+
+        if (property.ValueKind is JsonValueKind.String or JsonValueKind.Null)
+        {
+            value = property.GetString() ?? string.Empty;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetOptionalString(JsonElement payload, string propertyName, out string? value)
+    {
+        value = null;
+        if (!payload.TryGetProperty(propertyName, out var property))
+        {
+            return true;
+        }
+
+        if (property.ValueKind is JsonValueKind.String or JsonValueKind.Null)
+        {
+            value = property.GetString();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetInt32(JsonElement payload, string propertyName, out int value, bool required = true)
+    {
+        value = 0;
+        if (!payload.TryGetProperty(propertyName, out var property))
+        {
+            return !required;
+        }
+
+        if (property.ValueKind != JsonValueKind.Number || !property.TryGetInt32(out value))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryGetDouble(JsonElement payload, string propertyName, out double value, bool required = true)
+    {
+        value = 0;
+        if (!payload.TryGetProperty(propertyName, out var property))
+        {
+            return !required;
+        }
+
+        if (property.ValueKind != JsonValueKind.Number || !property.TryGetDouble(out value))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool TryReadTransaction(JsonElement payload, out string direction, out double amount, out string category, out string? counterparty)
     {
         direction = string.Empty;
@@ -1480,19 +1576,16 @@ public sealed class EventsController : ControllerBase
         counterparty = null;
         amount = 0;
 
-        if (!payload.TryGetProperty("direction", out var directionProp) ||
-            !payload.TryGetProperty("amount", out var amountProp) ||
-            !payload.TryGetProperty("category", out var categoryProp))
+        if (!TryGetString(payload, "direction", out direction) ||
+            !TryGetDouble(payload, "amount", out amount) ||
+            !TryGetString(payload, "category", out category))
         {
             return false;
         }
 
-        direction = directionProp.GetString() ?? string.Empty;
-        category = categoryProp.GetString() ?? string.Empty;
-        amount = amountProp.GetDouble();
-        if (payload.TryGetProperty("counterparty", out var counterpartyProp))
+        if (!TryGetOptionalString(payload, "counterparty", out counterparty))
         {
-            counterparty = counterpartyProp.GetString();
+            return false;
         }
 
         return true;
@@ -1500,14 +1593,7 @@ public sealed class EventsController : ControllerBase
 
     private static bool TryReadAmount(JsonElement payload, out double amount)
     {
-        amount = 0;
-        if (!payload.TryGetProperty("amount", out var amountProp))
-        {
-            return false;
-        }
-
-        amount = amountProp.GetDouble();
-        return true;
+        return TryGetDouble(payload, "amount", out amount);
     }
 
     private static bool TryReadGoldTrade(JsonElement payload, out string tradeType, out int qty, out int unitPrice, out int amount)
@@ -1517,18 +1603,14 @@ public sealed class EventsController : ControllerBase
         unitPrice = 0;
         amount = 0;
 
-        if (!payload.TryGetProperty("trade_type", out var tradeTypeProp) ||
-            !payload.TryGetProperty("qty", out var qtyProp) ||
-            !payload.TryGetProperty("unit_price", out var unitPriceProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "trade_type", out tradeType) ||
+            !TryGetInt32(payload, "qty", out qty) ||
+            !TryGetInt32(payload, "unit_price", out unitPrice) ||
+            !TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
-        tradeType = tradeTypeProp.GetString() ?? string.Empty;
-        qty = qtyProp.GetInt32();
-        unitPrice = unitPriceProp.GetInt32();
-        amount = amountProp.GetInt32();
         return true;
     }
 
@@ -1536,14 +1618,12 @@ public sealed class EventsController : ControllerBase
     {
         used = 0;
         remaining = 0;
-        if (!payload.TryGetProperty("used", out var usedProp) ||
-            !payload.TryGetProperty("remaining", out var remainingProp))
+        if (!TryGetInt32(payload, "used", out used) ||
+            !TryGetInt32(payload, "remaining", out remaining))
         {
             return false;
         }
 
-        used = usedProp.GetInt32();
-        remaining = remainingProp.GetInt32();
         return true;
     }
 
@@ -1552,14 +1632,12 @@ public sealed class EventsController : ControllerBase
         cardId = string.Empty;
         amount = 0;
 
-        if (!payload.TryGetProperty("card_id", out var cardIdProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "card_id", out cardId) ||
+            !TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
-        cardId = cardIdProp.GetString() ?? string.Empty;
-        amount = amountProp.GetInt32();
         return !string.IsNullOrWhiteSpace(cardId);
     }
 
@@ -1570,14 +1648,18 @@ public sealed class EventsController : ControllerBase
 
         if (!payload.TryGetProperty("required_ingredient_card_ids", out var cardsProp) ||
             cardsProp.ValueKind != JsonValueKind.Array ||
-            !payload.TryGetProperty("income", out var incomeProp))
+            !TryGetInt32(payload, "income", out income))
         {
             return false;
         }
 
-        income = incomeProp.GetInt32();
         foreach (var item in cardsProp.EnumerateArray())
         {
+            if (item.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
             var cardId = item.GetString();
             if (!string.IsNullOrWhiteSpace(cardId))
             {
@@ -1594,17 +1676,11 @@ public sealed class EventsController : ControllerBase
         amount = 0;
         points = 0;
 
-        if (!payload.TryGetProperty("card_id", out var cardIdProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "card_id", out cardId) ||
+            !TryGetInt32(payload, "amount", out amount) ||
+            !TryGetInt32(payload, "points", out points, required: false))
         {
             return false;
-        }
-
-        cardId = cardIdProp.GetString() ?? string.Empty;
-        amount = amountProp.GetInt32();
-        if (payload.TryGetProperty("points", out var pointsProp))
-        {
-            points = pointsProp.GetInt32();
         }
 
         return !string.IsNullOrWhiteSpace(cardId);
@@ -1616,70 +1692,49 @@ public sealed class EventsController : ControllerBase
         targetCardId = string.Empty;
         penaltyPoints = 0;
 
-        if (!payload.TryGetProperty("mission_id", out var missionIdProp) ||
-            !payload.TryGetProperty("target_tertiary_card_id", out var targetProp) ||
-            !payload.TryGetProperty("penalty_points", out var penaltyProp))
+        if (!TryGetString(payload, "mission_id", out missionId) ||
+            !TryGetString(payload, "target_tertiary_card_id", out targetCardId) ||
+            !TryGetInt32(payload, "penalty_points", out penaltyPoints))
         {
             return false;
         }
 
-        missionId = missionIdProp.GetString() ?? string.Empty;
-        targetCardId = targetProp.GetString() ?? string.Empty;
-        penaltyPoints = penaltyProp.GetInt32();
         return !string.IsNullOrWhiteSpace(missionId);
     }
 
     private static bool TryReadTieBreaker(JsonElement payload, out int number)
     {
-        number = 0;
-        if (!payload.TryGetProperty("number", out var numberProp))
-        {
-            return false;
-        }
-
-        number = numberProp.GetInt32();
-        return true;
+        return TryGetInt32(payload, "number", out number);
     }
 
     private static bool TryReadRankAwarded(JsonElement payload, out int rank, out int points)
     {
         rank = 0;
         points = 0;
-        if (!payload.TryGetProperty("rank", out var rankProp) ||
-            !payload.TryGetProperty("points", out var pointsProp))
+        if (!TryGetInt32(payload, "rank", out rank) ||
+            !TryGetInt32(payload, "points", out points))
         {
             return false;
         }
 
-        rank = rankProp.GetInt32();
-        points = pointsProp.GetInt32();
         return true;
     }
 
     private static bool TryReadPointsAwarded(JsonElement payload, out int points)
     {
-        points = 0;
-        if (!payload.TryGetProperty("points", out var pointsProp))
-        {
-            return false;
-        }
-
-        points = pointsProp.GetInt32();
-        return true;
+        return TryGetInt32(payload, "points", out points);
     }
 
     private static bool TryReadSavingDeposit(JsonElement payload, out string goalId, out int amount)
     {
         goalId = string.Empty;
         amount = 0;
-        if (!payload.TryGetProperty("goal_id", out var goalProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "goal_id", out goalId) ||
+            !TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
-        goalId = goalProp.GetString() ?? string.Empty;
-        amount = amountProp.GetInt32();
         return true;
     }
 
@@ -1688,17 +1743,11 @@ public sealed class EventsController : ControllerBase
         goalId = string.Empty;
         points = 0;
         cost = 0;
-        if (!payload.TryGetProperty("goal_id", out var goalProp) ||
-            !payload.TryGetProperty("points", out var pointsProp))
+        if (!TryGetString(payload, "goal_id", out goalId) ||
+            !TryGetInt32(payload, "points", out points) ||
+            !TryGetInt32(payload, "cost", out cost, required: false))
         {
             return false;
-        }
-
-        goalId = goalProp.GetString() ?? string.Empty;
-        points = pointsProp.GetInt32();
-        if (payload.TryGetProperty("cost", out var costProp))
-        {
-            cost = costProp.GetInt32();
         }
 
         return !string.IsNullOrWhiteSpace(goalId);
@@ -1709,16 +1758,13 @@ public sealed class EventsController : ControllerBase
         riskId = string.Empty;
         direction = string.Empty;
         amount = 0;
-        if (!payload.TryGetProperty("risk_id", out var riskProp) ||
-            !payload.TryGetProperty("direction", out var directionProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "risk_id", out riskId) ||
+            !TryGetString(payload, "direction", out direction) ||
+            !TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
-        riskId = riskProp.GetString() ?? string.Empty;
-        direction = directionProp.GetString() ?? string.Empty;
-        amount = amountProp.GetInt32();
         return direction.Equals("IN", StringComparison.OrdinalIgnoreCase) ||
                direction.Equals("OUT", StringComparison.OrdinalIgnoreCase);
     }
@@ -1726,12 +1772,11 @@ public sealed class EventsController : ControllerBase
     private static bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId)
     {
         riskEventId = string.Empty;
-        if (!payload.TryGetProperty("risk_event_id", out var riskProp))
+        if (!TryGetString(payload, "risk_event_id", out riskEventId))
         {
             return false;
         }
 
-        riskEventId = riskProp.GetString() ?? string.Empty;
         return !string.IsNullOrWhiteSpace(riskEventId);
     }
 
@@ -1747,18 +1792,14 @@ public sealed class EventsController : ControllerBase
         direction = string.Empty;
         amount = 0;
 
-        if (!payload.TryGetProperty("risk_event_id", out var riskProp) ||
-            !payload.TryGetProperty("option_type", out var optionProp) ||
-            !payload.TryGetProperty("direction", out var directionProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "risk_event_id", out riskEventId) ||
+            !TryGetString(payload, "option_type", out optionType) ||
+            !TryGetString(payload, "direction", out direction) ||
+            !TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
-        riskEventId = riskProp.GetString() ?? string.Empty;
-        optionType = optionProp.GetString() ?? string.Empty;
-        direction = directionProp.GetString() ?? string.Empty;
-        amount = amountProp.GetInt32();
         return !string.IsNullOrWhiteSpace(riskEventId);
     }
 
@@ -1776,20 +1817,15 @@ public sealed class EventsController : ControllerBase
         duration = 0;
         penaltyPoints = 0;
 
-        if (!payload.TryGetProperty("loan_id", out var loanIdProp) ||
-            !payload.TryGetProperty("principal", out var principalProp) ||
-            !payload.TryGetProperty("installment", out var installmentProp) ||
-            !payload.TryGetProperty("duration_turn", out var durationProp) ||
-            !payload.TryGetProperty("penalty_points", out var penaltyProp))
+        if (!TryGetString(payload, "loan_id", out loanId) ||
+            !TryGetInt32(payload, "principal", out principal) ||
+            !TryGetInt32(payload, "installment", out installment) ||
+            !TryGetInt32(payload, "duration_turn", out duration) ||
+            !TryGetInt32(payload, "penalty_points", out penaltyPoints))
         {
             return false;
         }
 
-        loanId = loanIdProp.GetString() ?? string.Empty;
-        principal = principalProp.GetInt32();
-        installment = installmentProp.GetInt32();
-        duration = durationProp.GetInt32();
-        penaltyPoints = penaltyProp.GetInt32();
         return !string.IsNullOrWhiteSpace(loanId);
     }
 
@@ -1797,27 +1833,18 @@ public sealed class EventsController : ControllerBase
     {
         loanId = string.Empty;
         amount = 0;
-        if (!payload.TryGetProperty("loan_id", out var loanIdProp) ||
-            !payload.TryGetProperty("amount", out var amountProp))
+        if (!TryGetString(payload, "loan_id", out loanId) ||
+            !TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
-        loanId = loanIdProp.GetString() ?? string.Empty;
-        amount = amountProp.GetInt32();
         return !string.IsNullOrWhiteSpace(loanId);
     }
 
     private static bool TryReadInsurance(JsonElement payload, out int premium)
     {
-        premium = 0;
-        if (!payload.TryGetProperty("premium", out var premiumProp))
-        {
-            return false;
-        }
-
-        premium = premiumProp.GetInt32();
-        return true;
+        return TryGetInt32(payload, "premium", out premium);
     }
 
     private static IngredientInventory BuildIngredientInventory(IEnumerable<EventDb> events, Guid playerId)

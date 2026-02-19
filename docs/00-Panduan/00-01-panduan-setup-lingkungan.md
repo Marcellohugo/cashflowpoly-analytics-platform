@@ -146,8 +146,7 @@ Untuk hardening produksi, API mendukung opsi tambahan:
 3. Header token otomatis membawa `kid` dan API memvalidasi token berdasarkan daftar key aktif/retired grace-period.
 
 Catatan bootstrap auth:
-- `Auth:AllowPublicInstructorRegistration` mengatur registrasi publik `INSTRUCTOR` secara langsung (`true` diizinkan, `false` ditolak `403`).
-- Pada repositori ini, `appsettings*.json` menetapkan `true`, sedangkan konfigurasi Docker Compose (`.env`) default ke `false` kecuali dioverride.
+- Registrasi publik untuk role `INSTRUCTOR` dan `PLAYER` tersedia melalui endpoint `POST /api/v1/auth/register`.
 - Jika butuh seed user awal otomatis, aktifkan `AuthBootstrap:SeedDefaultUsers=true` dan isi kredensial bootstrap.
 
 ---

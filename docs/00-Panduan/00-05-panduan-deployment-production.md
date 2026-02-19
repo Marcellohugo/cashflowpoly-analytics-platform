@@ -18,22 +18,20 @@ Dokumen ini disusun untuk memandu proses deployment Cashflowpoly Analytics Platf
 
 ```
 Internet
-    │
-    ▼
+    |
+    v
 Cloudflare Edge (SSL termination)
-    │
-    ▼ https://tugasakhirmarco.my.id
-    │
-┌───┴───────────────── Docker Host ─────────────────────┐
-│                                                        │
-│  cloudflared ──► nginx:80 ──┬──► api:5041 (REST API)  │
-│                              │                         │
-│                              ├──► ui:5203 (MVC Web)   │
-│                              │                         │
-│                              └──► swagger, health, dll │
-│                                                        │
-│  db (PostgreSQL 16) ◄──── api                         │
-└────────────────────────────────────────────────────────┘
+    v https://tugasakhirmarco.my.id
+    |
++----------------------------------------------------------+
+| Docker Host                                              |
+|                                                          |
+| cloudflared -> nginx:80 -> api:5041 (REST API)          |
+|                      |-> ui:5203 (MVC Web)              |
+|                      `-> swagger, health, dll           |
+|                                                          |
+| db (PostgreSQL 16) <- api                               |
++----------------------------------------------------------+
 ```
 
 ### Komponen Utama
@@ -44,7 +42,7 @@ Cloudflare Edge (SSL termination)
 | **Cashflowpoly.Api** | REST API (.NET 10) | 5041 |
 | **Cashflowpoly.Ui** | Dashboard MVC (.NET 10) | 5203 |
 | **Nginx** | Reverse proxy, routing, rate limiting | 80, 443 |
-| **Cloudflared** | Tunnel ke Cloudflare edge network | — |
+| **Cloudflared** | Tunnel ke Cloudflare edge network | - |
 
 ### Routing Nginx
 
@@ -166,7 +164,7 @@ Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun 
 
 2. **Tambahkan domain ke Cloudflare**:
    - Login ke [Cloudflare Dashboard](https://dash.cloudflare.com)
-   - Klik **"Add a site"** → masukkan `tugasakhirmarco.my.id`
+   - Klik **"Add a site"** -> masukkan `tugasakhirmarco.my.id`
    - Pilih plan **Free**
    - Cloudflare memberikan 2 nameserver:
      ```
@@ -175,22 +173,22 @@ Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun 
      ```
 
 3. **Ganti nameserver di MyDomaiNesia**:
-   - Login ke [MyDomaiNesia](https://my.domainesia.com) → **Domains** → `tugasakhirmarco.my.id` → **Nameservers**
+   - Login ke [MyDomaiNesia](https://my.domainesia.com) -> **Domains** -> `tugasakhirmarco.my.id` -> **Nameservers**
    - Ganti nameserver default ke:
      - Nameserver 1: `liv.ns.cloudflare.com`
      - Nameserver 2: `quinton.ns.cloudflare.com`
    - Klik **"Change Nameservers"**
-   - Tunggu propagasi DNS (5 menit – 24 jam, tergantung registry `.my.id`/PANDI)
+   - Tunggu propagasi DNS (5 menit - 24 jam, tergantung registry `.my.id`/PANDI)
    - Status di Cloudflare Overview akan berubah ke **"Active"** setelah propagasi selesai
 
 4. **Buat tunnel di Cloudflare**:
-   - Cloudflare Dashboard → **Networking** → **Tunnels**
-   - Klik **"Create a tunnel"** → pilih **Cloudflared** → beri nama: `cashflowpoly`
+   - Cloudflare Dashboard -> **Networking** -> **Tunnels**
+   - Klik **"Create a tunnel"** -> pilih **Cloudflared** -> beri nama: `cashflowpoly`
    - Cloudflare akan menampilkan **Tunnel Token** (string panjang `eyJ...`)
    - Copy token tersebut
 
 5. **Tambahkan route**:
-   - Di halaman tunnel → tab **Routes** → **"+ Add route"**
+   - Di halaman tunnel -> tab **Routes** -> **"+ Add route"**
    - Pilih **"Published application"**
    - Isi:
      - **Subdomain**: *(kosongkan)*
@@ -211,7 +209,7 @@ Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun 
      container_name: cashflowpoly-tunnel
      restart: unless-stopped
      profiles: ["tunnel"]
-     command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+     command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARE_TUNNEL_TOKEN}
      depends_on:
        nginx:
          condition: service_healthy
@@ -287,7 +285,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --
 # Hentikan semua (data database tetap aman)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
-# Hentikan semua DAN hapus volume database (⚠ data hilang!)
+# Hentikan semua DAN hapus volume database (perhatian: data hilang!)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml down -v
 ```
 
@@ -320,8 +318,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 
 | Aspek | Dampak |
 |---|---|
-| **URL `tugasakhirmarco.my.id`** | Tetap sama — tidak berubah, selama tunnel token dan route sama |
-| **URL Quick Tunnel (jika dipakai)** | Berubah — URL random baru setiap restart |
+| **URL `tugasakhirmarco.my.id`** | Tetap sama - tidak berubah, selama tunnel token dan route sama |
+| **URL Quick Tunnel (jika dipakai)** | Berubah - URL random baru setiap restart |
 | **Data database** | Database dibuat ulang (kosong). Jika perlu data lama, backup dulu dengan `pg_dump` |
 | **File `.env`** | Harus di-copy manual (tidak ada di Git) |
 | **Konfigurasi lainnya** | Semua ikut di Git |
@@ -345,18 +343,18 @@ Repository ini menyertakan pipeline CI/CD di `.github/workflows/ci-cd.yml`.
 ### 7.1 Pipeline Jobs
 
 ```
-push ke main → [Build & Test] → [Docker Build & Push] → [Deploy]
+push ke main -> [Build & Test] -> [Docker Build & Push] -> [Deploy]
 ```
 
 | Job | Fungsi | Trigger |
 |---|---|---|
-| **Build & Test** | Restore, build, unit test + integration test dengan PostgreSQL | push & PR ke `main` |
-| **Docker Build & Push** | Build Docker image → push ke GitHub Container Registry (GHCR) | push ke `main` saja |
-| **Deploy** | SSH ke mesin target → pull image → restart container | push ke `main` saja |
+| **Build & Test** | Restore/build per-`csproj`, validasi `docker compose config` (dev+prod), lalu test non-integration + integration | push & PR ke `main` |
+| **Docker Build & Push** | Build image API/UI lalu push ke GitHub Container Registry (GHCR) | push ke `main` saja |
+| **Deploy** | SSH ke mesin target, `git pull`, validasi compose, lalu `docker compose up -d --build` | push ke `main` saja |
 
 ### 7.2 Setup GitHub Secrets
 
-Untuk mengaktifkan CI/CD, tambahkan secrets di GitHub Repository → Settings → Secrets and variables → Actions:
+Untuk mengaktifkan CI/CD, tambahkan secrets di GitHub Repository -> Settings -> Secrets and variables -> Actions:
 
 | Secret | Nilai | Keterangan |
 |---|---|---|
@@ -364,13 +362,13 @@ Untuk mengaktifkan CI/CD, tambahkan secrets di GitHub Repository → Settings �
 | `DEPLOY_USER` | Username SSH | User di mesin target |
 | `DEPLOY_SSH_KEY` | Private key SSH | Generate dengan `ssh-keygen` |
 | `DEPLOY_PATH` | `/home/user/cashflowpoly-analytics-platform` | Path project di mesin target |
-| `GHCR_TOKEN` | GitHub Personal Access Token | Untuk pull image dari GHCR |
+| `DEPLOY_PORT` | `22` | Port SSH mesin target (opsional, default 22) |
 
 ### 7.3 Monitoring CI/CD
 
 - Buka tab **Actions** di repository GitHub
 - Setiap push ke `main` akan memicu pipeline
-- Status pipeline: ✅ (sukses) atau ❌ (gagal)
+- Status pipeline: sukses atau gagal
 - Klik job yang gagal untuk melihat log error
 
 ---
@@ -447,12 +445,12 @@ docker logs cashflowpoly-nginx --tail 50
 | `DNS_PROBE_FINISHED_NXDOMAIN` | Nameserver belum propagasi. Tunggu 1-24 jam |
 | `502 Bad Gateway` | Nginx sudah jalan tapi API/UI belum ready. Cek log API |
 | `522 Connection timed out` | Cloudflared container mati. Restart: `docker restart cashflowpoly-tunnel` |
-| Halaman Cloudflare error | Cek SSL/TLS mode di Cloudflare → set ke **Flexible** atau **Full** |
+| Halaman Cloudflare error | Cek SSL/TLS mode di Cloudflare -> set ke **Flexible** atau **Full** |
 
 ### 9.3 Swagger Halaman Kosong (Blank)
 
 Jika Swagger UI blank (putih):
-1. Buka Developer Tools (F12) → tab Network
+1. Buka Developer Tools (F12) -> tab Network
 2. Cek apakah file `.js` dan `.css` Swagger return 200 dengan ukuran besar (>100KB)
 3. Jika ukurannya kecil (~5KB), artinya static assets diarahkan ke UI, bukan API
 4. Pastikan `nginx/default.conf` memiliki rule khusus untuk Swagger static assets:
@@ -543,3 +541,4 @@ Sistem terdeploy dengan benar jika:
 - [ ] Login API (`/api/v1/auth/login`) mengembalikan JWT token
 - [ ] Domain `https://tugasakhirmarco.my.id` dapat diakses dari perangkat lain (HP, PC lain)
 - [ ] SSL/HTTPS aktif (disediakan otomatis oleh Cloudflare)
+

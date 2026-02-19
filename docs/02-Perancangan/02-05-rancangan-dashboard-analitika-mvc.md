@@ -151,7 +151,7 @@ Catatan implementasi:
 | Kebutuhan UI | Endpoint | Otorisasi |
 |---|---|---|
 | Login | `POST /api/v1/auth/login` | publik |
-| Register | `POST /api/v1/auth/register` | publik (PLAYER, INSTRUCTOR terbatas kebijakan server) |
+| Register | `POST /api/v1/auth/register` | publik (PLAYER dan INSTRUCTOR) |
 | Daftar sesi | `GET /api/v1/sessions` | Bearer |
 | Buat sesi | `POST /api/v1/sessions` | Bearer (`INSTRUCTOR`) |
 | Mulai sesi | `POST /api/v1/sessions/{sessionId}/start` | Bearer (`INSTRUCTOR`) |
@@ -211,4 +211,3 @@ UI dinyatakan siap jika:
 3. halaman analitika sesi dan per-ruleset berjalan,
 4. grafik garis tidak mengalami stretch horizontal tak terbatas,
 5. error state 401/403/422/429 tampil sesuai standar.
-

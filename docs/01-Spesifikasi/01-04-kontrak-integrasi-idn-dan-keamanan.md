@@ -36,7 +36,7 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 
 Kebijakan registrasi:
 - role `PLAYER` boleh register publik.
-- role `INSTRUCTOR` dibatasi untuk bootstrap awal (atau bisa dibuka eksplisit via konfigurasi server).
+- role `INSTRUCTOR` boleh register publik.
 
 Response login minimal:
 ```json

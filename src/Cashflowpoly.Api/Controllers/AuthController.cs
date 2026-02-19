@@ -3,7 +3,6 @@ using Cashflowpoly.Api.Models;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -19,18 +18,15 @@ public sealed class AuthController : ControllerBase
 {
     private readonly JwtTokenService _tokens;
     private readonly UserRepository _users;
-    private readonly AuthOptions _authOptions;
     private readonly SecurityAuditService _securityAudit;
 
     public AuthController(
         UserRepository users,
         JwtTokenService tokens,
-        IOptions<AuthOptions> authOptions,
         SecurityAuditService securityAudit)
     {
         _users = users;
         _tokens = tokens;
-        _authOptions = authOptions.Value;
         _securityAudit = securityAudit;
     }
 
@@ -136,26 +132,6 @@ public sealed class AuthController : ControllerBase
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Role tidak valid"));
         }
 
-        if (string.Equals(normalizedRole, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) &&
-            !_authOptions.AllowPublicInstructorRegistration)
-        {
-            await _securityAudit.LogAsync(
-                HttpContext,
-                SecurityAuditEventTypes.RegisterDenied,
-                SecurityAuditOutcomes.Denied,
-                StatusCodes.Status403Forbidden,
-                new
-                {
-                    reason = "INSTRUCTOR_PUBLIC_REGISTRATION_DISABLED",
-                    username,
-                    role = normalizedRole
-                },
-                ct);
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Registrasi INSTRUCTOR tidak dibuka untuk publik."));
-        }
-
         var exists = await _users.UsernameExistsAsync(username, ct);
         if (exists)
         {
@@ -197,8 +173,8 @@ public sealed class AuthController : ControllerBase
                 role = created.Role
             },
             ct);
-        return Created(
-            $"/api/v1/auth/users/{created.UserId}",
+        return StatusCode(
+            StatusCodes.Status201Created,
             new RegisterResponse(created.UserId, created.Username, created.Role, issued.AccessToken, issued.ExpiresAt));
     }
 }

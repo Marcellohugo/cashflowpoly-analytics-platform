@@ -49,8 +49,8 @@ Kriteria kelulusan tercapai untuk cakupan dasar otomatis: tidak ada kegagalan pa
 ## 4. Detail Verifikasi Otomatis
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
-| Build solusi | `dotnet build Cashflowpoly.sln -c Debug` | PASS | Build proyek API/UI/Test berhasil |
-| Uji solusi | `dotnet test Cashflowpoly.sln` | PASS | 23 test lulus, 0 gagal (`Cashflowpoly.Api.Tests`) |
+| Build solusi | `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` + `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` + `dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | PASS | Build proyek API/UI/Test berhasil |
+| Uji solusi | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | PASS | seluruh test pada `Cashflowpoly.Api.Tests` lulus |
 | Menjalankan compose | `docker compose up -d --build` | PASS | service `db`, `api`, `ui` aktif |
 | Uji asap API ujung-ke-ujung | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
 | Uji asap RBAC | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
@@ -95,7 +95,7 @@ Temuan blocker: **tidak ada**.
 
 Catatan residual:
 1. Uji beban jangka panjang (durasi > 30 menit, concurrency tinggi) belum dieksekusi pada sesi ini.
-2. Evidence screenshot UI khusus sidang belum ditambahkan; evidence teknis CLI/API/SQL sudah tersedia di `docs/evidence/2026-02-17/`.
+2. Evidence screenshot UI khusus sidang belum ditambahkan; artefak teknis disimpan terstruktur pada `docs/evidence/<tanggal>/`.
 
 ---
 

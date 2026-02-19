@@ -115,7 +115,7 @@ Catatan keamanan lokal:
 - Untuk rotasi key JWT, bisa pakai:
   - `JWT_SIGNING_KEYS_JSON` (array JSON key + `kid` + window aktivasi), atau
   - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
-- Registrasi publik `INSTRUCTOR` dikontrol langsung oleh `Auth:AllowPublicInstructorRegistration` (`true` = diizinkan, `false` = ditolak `403`).
+- Registrasi publik untuk semua role (`INSTRUCTOR` dan `PLAYER`) tersedia melalui endpoint `POST /api/v1/auth/register`.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 
 Rute UI utama:
@@ -200,10 +200,14 @@ Dokumen kunci:
 - Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
 
 ## Pengujian
-- Unit test API: `dotnet test Cashflowpoly.sln`.
+- Build verifikasi:
+  - `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release`
+  - `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release`
+  - `dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release`
+- Jalankan seluruh test API: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release`.
 - Integration test API (auth + RBAC + ruleset + analytics flow) dijalankan via xUnit + Testcontainers, jadi Docker daemon wajib aktif saat `dotnet test`.
-- Jalankan hanya integration test: `dotnet test Cashflowpoly.sln --filter "Category=Integration"`.
-- Jalankan test non-integration (lebih cepat): `dotnet test Cashflowpoly.sln --filter "Category!=Integration"`.
+- Jalankan hanya integration test: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category=Integration"`.
+- Jalankan test non-integration (lebih cepat): `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"`.
 - Jalankan load test baseline: `powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041`.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.

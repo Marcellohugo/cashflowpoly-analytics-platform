@@ -30,7 +30,6 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
-builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<AuthBootstrapOptions>(builder.Configuration.GetSection("AuthBootstrap"));
 builder.Services.AddSingleton<JwtSigningKeyProvider>();
 builder.Services.AddSingleton<JwtTokenService>();
@@ -248,15 +247,31 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
+    });
+}
 
 app.UseForwardedHeaders();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (!string.IsNullOrWhiteSpace(path) &&
+        path.Length > "/api/".Length &&
+        path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) &&
+        !path.StartsWith("/api/v1/", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Request.Path = $"/api/v1{path["/api".Length..]}";
+    }
+
+    await next();
+});
 app.UseRouting();
 
 app.Use(async (context, next) =>

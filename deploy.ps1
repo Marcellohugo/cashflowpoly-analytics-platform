@@ -1,13 +1,13 @@
 # ============================================================
-# deploy.ps1 – Script deployment Cashflowpoly Analytics Platform
+# deploy.ps1 - Script deployment Cashflowpoly Analytics Platform
 # ============================================================
 # Penggunaan:
-#   .\deploy.ps1              → deploy production
-#   .\deploy.ps1 -Mode dev    → deploy development
-#   .\deploy.ps1 -Mode status → cek status container
-#   .\deploy.ps1 -Mode logs   → tail logs
-#   .\deploy.ps1 -Mode down   → stop semua
-#   .\deploy.ps1 -Mode restart→ restart semua
+#   .\deploy.ps1               -> deploy production
+#   .\deploy.ps1 -Mode dev     -> deploy development
+#   .\deploy.ps1 -Mode status  -> cek status container
+#   .\deploy.ps1 -Mode logs    -> tail logs
+#   .\deploy.ps1 -Mode down    -> stop semua
+#   .\deploy.ps1 -Mode restart -> restart semua
 # ============================================================
 
 param(
@@ -28,56 +28,85 @@ function Test-Dependencies {
         Write-Err "Docker tidak ditemukan. Install Docker Desktop terlebih dahulu."
         exit 1
     }
-    $composeCheck = docker compose version 2>&1
+
+    docker compose version | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Docker Compose V2 tidak tersedia."
         exit 1
     }
+
     Write-Log "Docker & Docker Compose tersedia."
 }
 
 function Test-EnvFile {
     if (-not (Test-Path ".env")) {
-        Write-Warn "File .env belum ada!"
+        Write-Warn "File .env belum ada."
         if (Test-Path ".env.example") {
             Write-Info "Membuat .env dari .env.example..."
             Copy-Item ".env.example" ".env"
-            Write-Warn "PENTING: Edit file .env dan ganti nilai default sebelum deploy!"
+            Write-Warn "PENTING: Edit file .env dan ganti nilai default sebelum deploy."
             Write-Warn "  notepad .env"
             exit 1
         }
-        else {
-            Write-Err ".env.example tidak ditemukan."
-            exit 1
-        }
+
+        Write-Err ".env.example tidak ditemukan."
+        exit 1
     }
+
     Write-Log "File .env ditemukan."
 
-    # Validasi variabel kritis
     $envContent = Get-Content ".env" -Raw
     if ($envContent -match "GANTI_DENGAN_PASSWORD_KUAT" -or $envContent -match "GANTI_DENGAN_SIGNING_KEY") {
-        Write-Err "Variabel .env masih menggunakan nilai default!"
+        Write-Err "Variabel .env masih menggunakan nilai default."
         Write-Err "Edit .env dan ganti POSTGRES_PASSWORD, JWT_SIGNING_KEY, dll."
         exit 1
     }
+
     Write-Log "Variabel .env tervalidasi."
+}
+
+function Validate-ComposeFiles {
+    param([switch]$Production)
+
+    if ($Production) {
+        docker compose -f docker-compose.yml -f docker-compose.prod.yml config | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "Validasi compose production gagal."
+            exit 1
+        }
+
+        Write-Log "Compose production tervalidasi."
+        return
+    }
+
+    docker compose config | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Validasi compose development gagal."
+        exit 1
+    }
+
+    Write-Log "Compose development tervalidasi."
 }
 
 function Deploy-Production {
     Write-Info "Deploying Cashflowpoly (PRODUCTION)..."
     Test-Dependencies
     Test-EnvFile
+    Validate-ComposeFiles -Production
 
     Write-Info "Building & starting semua service..."
     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-    if ($LASTEXITCODE -ne 0) { Write-Err "Build gagal!"; exit 1 }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Build/deploy production gagal."
+        exit 1
+    }
 
     Write-Info "Menunggu health check (15 detik)..."
     Start-Sleep -Seconds 15
 
     Show-Status
     Write-Host ""
-    Write-Log "Deploy production selesai!"
+    Write-Log "Deploy production selesai."
     Write-Info "Akses dashboard: http://localhost"
     Write-Info "Akses API:       http://localhost/api/"
 }
@@ -91,15 +120,20 @@ function Deploy-Dev {
         Write-Warn "File .env dibuat dari template."
     }
 
+    Validate-ComposeFiles
+
     docker compose up -d --build
-    if ($LASTEXITCODE -ne 0) { Write-Err "Build gagal!"; exit 1 }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Build/deploy development gagal."
+        exit 1
+    }
 
     Write-Info "Menunggu health check (15 detik)..."
     Start-Sleep -Seconds 15
 
     Show-Status
     Write-Host ""
-    Write-Log "Deploy development selesai!"
+    Write-Log "Deploy development selesai."
     Write-Info "Akses UI:      http://localhost:5203"
     Write-Info "Akses API:     http://localhost:5041"
     Write-Info "Swagger:       http://localhost:5041/swagger"
@@ -110,32 +144,39 @@ function Show-Status {
     Write-Info "Status Container:"
     Write-Host ("=" * 55)
     docker compose -f docker-compose.yml -f docker-compose.prod.yml ps 2>$null
-    if ($LASTEXITCODE -ne 0) { docker compose ps }
+    if ($LASTEXITCODE -ne 0) {
+        docker compose ps
+    }
     Write-Host ("=" * 55)
 }
 
 function Show-Logs {
     docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=100 2>$null
-    if ($LASTEXITCODE -ne 0) { docker compose logs -f --tail=100 }
+    if ($LASTEXITCODE -ne 0) {
+        docker compose logs -f --tail=100
+    }
 }
 
 function Stop-All {
     Write-Warn "Menghentikan semua service..."
     docker compose -f docker-compose.yml -f docker-compose.prod.yml down 2>$null
-    if ($LASTEXITCODE -ne 0) { docker compose down }
+    if ($LASTEXITCODE -ne 0) {
+        docker compose down
+    }
     Write-Log "Semua service dihentikan."
 }
 
 function Restart-All {
     Write-Info "Restart semua service..."
     docker compose -f docker-compose.yml -f docker-compose.prod.yml restart 2>$null
-    if ($LASTEXITCODE -ne 0) { docker compose restart }
+    if ($LASTEXITCODE -ne 0) {
+        docker compose restart
+    }
     Start-Sleep -Seconds 10
     Show-Status
     Write-Log "Restart selesai."
 }
 
-# ---------- Main ----------
 switch ($Mode) {
     "prod"    { Deploy-Production }
     "dev"     { Deploy-Dev }

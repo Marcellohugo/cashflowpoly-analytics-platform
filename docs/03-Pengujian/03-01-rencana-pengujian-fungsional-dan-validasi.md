@@ -355,8 +355,7 @@ Catatan:
 - Endpoint: `POST /api/v1/auth/register`
 - Input: role `INSTRUCTOR`.
 - Ekspektasi:
-  - Jika `Auth:AllowPublicInstructorRegistration=true`: `201`.
-  - Jika `Auth:AllowPublicInstructorRegistration=false`: `403`.
+  - Status: `201`.
 
 **TC-API-21 — Endpoint terproteksi tanpa token**
 - Contoh endpoint: `POST /api/v1/rulesets`.
@@ -579,9 +578,15 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 
 ### 14.1 Smoke test otomatis
 1. Jalankan `docker compose up --build -d`.
-2. Jalankan `dotnet build Cashflowpoly.sln` dan `dotnet test Cashflowpoly.sln`.
-3. Jalankan skenario end-to-end API (auth -> ruleset -> session -> player -> event -> analytics) melalui Postman collection.
-4. Verifikasi semua langkah smoke berstatus sukses tanpa exception.
+2. Jalankan build per proyek:
+   - `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj`
+   - `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj`
+   - `dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj`
+3. Jalankan test per proyek:
+   - `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --filter "Category!=Integration"`
+   - `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --filter "Category=Integration"`
+4. Jalankan skenario end-to-end API (auth -> ruleset -> session -> player -> event -> analytics) melalui Postman collection.
+5. Verifikasi semua langkah smoke berstatus sukses tanpa exception.
 
 ### 14.2 Verifikasi API collection
 1. Jalankan collection `postman/Cashflowpoly.postman_collection.json`.
