@@ -876,6 +876,68 @@ a:hover {
     white-space: nowrap;
 }
 
+.metric-head-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.32rem;
+}
+
+.metric-head-info > span {
+    line-height: 1.25;
+}
+
+.score-info {
+    width: min(22rem, 100%);
+}
+
+.score-info > summary {
+    list-style: none;
+}
+
+.score-info > summary::-webkit-details-marker {
+    display: none;
+}
+
+.score-info__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.22rem 0.6rem;
+    border: 1px solid #88d8cf;
+    border-radius: 999px;
+    background: linear-gradient(145deg, #ffffff, #eefcf9);
+    color: #1c6d7d;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    text-decoration: none;
+    user-select: none;
+}
+
+.score-info[open] .score-info__button {
+    border-color: #3bbdb0;
+    background: linear-gradient(145deg, #e9fbf8, #dff8f3);
+    color: #0f7168;
+}
+
+.score-info__panel {
+    margin-top: 0.34rem;
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid #9adfd8;
+    border-radius: 0.72rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 199, 71, 0.14), transparent 46%),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(241, 253, 250, 0.95));
+    color: #345469;
+    font-size: 0.74rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
 .chart-grid {
     display: grid;
     gap: 1rem;
@@ -1385,6 +1447,54 @@ body > footer .footer-shell {
 
 .data-toggle[open] > summary::after {
     content: " -";
+}
+
+.players-unified-metrics {
+    border: 2px solid #95ded6;
+    border-radius: 1rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 199, 71, 0.14), transparent 38%),
+        linear-gradient(158deg, rgba(255, 255, 255, 0.96), rgba(240, 255, 251, 0.94));
+    padding: 1rem;
+    box-shadow: 0 12px 28px rgba(20, 99, 134, 0.12);
+}
+
+.players-unified-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.players-unified-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.players-unified-divider {
+    height: 2px;
+    margin-top: 1.2rem;
+    background: linear-gradient(90deg, rgba(46, 166, 155, 0.4), rgba(255, 190, 46, 0.45), rgba(239, 78, 78, 0.35));
+}
+
+.players-unified-domain-head {
+    margin-top: 1rem;
+}
+
+.players-unified-domain-head h3 {
+    margin: 0;
+    color: #1f4863;
+    font-family: "Baloo 2", cursive;
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.players-unified-domain-head .subhead {
+    margin-top: 0.34rem;
 }
 
 .metric-domain-layout {

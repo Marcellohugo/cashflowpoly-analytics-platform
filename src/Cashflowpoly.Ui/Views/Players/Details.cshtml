@@ -437,13 +437,19 @@
 
         @if (Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue)
         {
-            <div class="page-intro mt-6">
-                <div class="page-intro-main">
-                    <p class="eyebrow">@Context.T("players.player_focus_badge")</p>
-                    <h3 class="headline text-xl">@Context.T("players.player_focus_title")</h3>
-                    <p class="subhead text-sm">@Context.T("players.player_focus_desc")</p>
+            <div class="players-unified-metrics mt-6">
+                <div class="players-unified-head">
+                    <div class="page-intro-main">
+                        <p class="eyebrow">@Context.T("players.player_focus_badge")</p>
+                        <h3 class="headline text-xl">@Context.T("players.player_focus_title")</h3>
+                        <p class="subhead text-sm">@Context.T("players.player_focus_desc")</p>
+                    </div>
+                    <div class="players-unified-badges">
+                        <span class="hint-chip">@Context.T("players.player_focus_badge")</span>
+                        <span class="hint-chip">@Context.T("players.analytics_focus_badge")</span>
+                    </div>
                 </div>
-            </div>
+            
 
             <div class="mt-6 metric-panels metric-panels-wide">
                 <article class="metric-panel">
@@ -529,12 +535,10 @@
                 </article>
             </div>
 
-            <div class="page-intro mt-8">
-                <div class="page-intro-main">
-                    <p class="eyebrow">@Context.T("players.analytics_focus_badge")</p>
-                    <h3 class="headline text-xl">@Context.T("players.analytics_focus_title")</h3>
-                    <p class="subhead text-sm">@Context.T("players.analytics_focus_desc")</p>
-                </div>
+            <div class="players-unified-divider"></div>
+            <div class="players-unified-domain-head">
+                <h3>@Context.T("players.analytics_focus_title")</h3>
+                <p class="subhead text-sm">@Context.T("players.analytics_focus_desc")</p>
             </div>
 
             <div class="mt-6 metric-domain-layout">
@@ -603,6 +607,7 @@
                         </div>
                     }
                 </article>
+            </div>
             </div>
         }
     </div>

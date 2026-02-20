@@ -85,6 +85,12 @@
             player.MissionPerformanceIndividualScore
         }))
         .ToList();
+    var userLearningInfo = L(
+        "Performa pembelajaran pengguna dihitung dari 40% arus kas bersih, 35% kepatuhan kebutuhan primer, dan 25% poin kebahagiaan.",
+        "User learning performance is computed from 40% net cashflow, 35% primary-need compliance, and 25% happiness points.");
+    var userMissionInfo = L(
+        "Performa misi pengguna dihitung dengan rumus 100 - (penalti misi + penalti pinjaman), lalu dibatasi pada rentang 0 sampai 100.",
+        "User mission performance is computed as 100 - (mission penalty + loan penalty), then clamped to 0-100.");
 
     <section class="mt-10 analytics-result-shell">
         <div class="analytics-result-head">
@@ -200,36 +206,37 @@
                     <tr>
                         <th class="px-4 py-3">@Context.T("rulesets.analytics.session")</th>
                         <th class="px-4 py-3">@Context.T("common.player")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_learning")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("rulesets.analytics.user_quest")</th>
-                        <th class="px-4 py-3">@L("Alasan Nilai Pengguna", "User Score Reason")</th>
+                        <th class="px-4 py-3 text-right">
+                            <div class="metric-head-info">
+                                <span>@Context.T("rulesets.analytics.user_learning")</span>
+                                <details class="score-info">
+                                    <summary class="score-info__button">@L("Info", "Info")</summary>
+                                    <div class="score-info__panel">@userLearningInfo</div>
+                                </details>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 text-right">
+                            <div class="metric-head-info">
+                                <span>@Context.T("rulesets.analytics.user_quest")</span>
+                                <details class="score-info">
+                                    <summary class="score-info__button">@L("Info", "Info")</summary>
+                                    <div class="score-info__panel">@userMissionInfo</div>
+                                </details>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (flatUserScores.Count == 0)
                 {
                     <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="5">@Context.T("rulesets.analytics.player_performance_empty")</td>
+                        <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("rulesets.analytics.player_performance_empty")</td>
                     </tr>
                 }
                 else
                 {
                     foreach (var item in flatUserScores)
                     {
-                        var userLearningReason = item.LearningPerformanceIndividualScore.HasValue
-                            ? L(
-                                $"Dihitung dari 40% arus kas bersih, 35% kepatuhan kebutuhan primer, dan 25% poin kebahagiaan. Nilai ini ikut dirata-ratakan ke agregat sesi ({item.LearningPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na")}).",
-                                $"Computed from 40% net cashflow, 35% primary-need compliance, and 25% happiness points. This score contributes to the session aggregate ({item.LearningPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na")}).")
-                            : L(
-                                "Belum ada komponen data yang cukup untuk menghitung performa pembelajaran pengguna.",
-                                "There are not enough data components yet to compute user learning performance.");
-                        var userMissionReason = item.MissionPerformanceIndividualScore.HasValue
-                            ? L(
-                                $"Dihitung dari 100 - (penalti misi + penalti pinjaman), lalu dibatasi 0 sampai 100. Nilai ini ikut dirata-ratakan ke agregat sesi ({item.MissionPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na")}).",
-                                $"Computed as 100 - (mission penalty + loan penalty), then clamped to 0-100. This score contributes to the session aggregate ({item.MissionPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na")}).")
-                            : L(
-                                "Belum ada komponen penalti yang cukup untuk menghitung performa misi pengguna.",
-                                "There are not enough penalty components yet to compute user mission performance.");
                         <tr class="border-t border-slate-200">
                             <td class="px-4 py-3 text-slate-700">
                                 <div class="font-semibold">@item.SessionName</div>
@@ -238,12 +245,6 @@
                             <td class="px-4 py-3 text-slate-700">@ResolvePlayerName(item.PlayerId)</td>
                             <td class="px-4 py-3 text-right">@(item.LearningPerformanceIndividualScore?.ToString("0.00") ?? Context.T("common.na"))</td>
                             <td class="px-4 py-3 text-right">@(item.MissionPerformanceIndividualScore?.ToString("0.00") ?? Context.T("common.na"))</td>
-                            <td class="px-4 py-3 text-xs text-slate-600">
-                                <div class="space-y-1">
-                                    <p><span class="font-semibold text-slate-700">@Context.T("rulesets.analytics.user_learning"):</span> @userLearningReason</p>
-                                    <p><span class="font-semibold text-slate-700">@Context.T("rulesets.analytics.user_quest"):</span> @userMissionReason</p>
-                                </div>
-                            </td>
                         </tr>
                     }
                 }
