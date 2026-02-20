@@ -19,9 +19,7 @@ public sealed class AnalyticsSearchViewModel
     /// </summary>
     public Dictionary<Guid, string> PlayerDisplayNames { get; set; } = new();
     public AnalyticsSessionResponseDto? Result { get; set; }
-    public RulesetAnalyticsSummaryResponseDto? RulesetResult { get; set; }
     public string? ErrorMessage { get; set; }
-    public string? RulesetErrorMessage { get; set; }
     public string? SessionLookupErrorMessage { get; set; }
 }
 

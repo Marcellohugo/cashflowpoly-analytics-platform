@@ -158,8 +158,6 @@ public sealed class AnalyticsController : Controller
         CancellationToken ct)
     {
         model.SessionId = sessionId.ToString();
-        model.RulesetResult = null;
-        model.RulesetErrorMessage = null;
 
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
@@ -189,53 +187,6 @@ public sealed class AnalyticsController : Controller
 
         model.Result = result;
 
-        if (result?.RulesetId is Guid rulesetId)
-        {
-            var loadRulesetResult = await PopulateRulesetSummaryAsync(model, rulesetId, ct);
-            if (loadRulesetResult is not null)
-            {
-                return loadRulesetResult;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Menjalankan fungsi PopulateRulesetSummaryAsync sebagai bagian dari alur file ini.
-    /// </summary>
-    private async Task<IActionResult?> PopulateRulesetSummaryAsync(
-        AnalyticsSearchViewModel model,
-        Guid rulesetId,
-        CancellationToken ct)
-    {
-        var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/v1/analytics/rulesets/{rulesetId}/summary", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
-            model.RulesetErrorMessage = error?.Message ?? HttpContext
-                .T("analytics.error.load_ruleset_analytics_failed")
-                .Replace("{status}", ((int)response.StatusCode).ToString());
-            model.RulesetResult = null;
-            return null;
-        }
-
-        var result = await TryReadJsonAsync<RulesetAnalyticsSummaryResponseDto>(response.Content, ct);
-        if (result is null)
-        {
-            model.RulesetErrorMessage = HttpContext.T("analytics.error.invalid_ruleset_analytics_response");
-            model.RulesetResult = null;
-            return null;
-        }
-
-        model.RulesetResult = result;
         return null;
     }
 

@@ -1,83 +1,15 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Players/Details.cshtml beserta interaksi presentasinya. *@
 @using System.Text.Json
+@using Microsoft.AspNetCore.Http
+@using Cashflowpoly.Ui.Infrastructure
 @model Cashflowpoly.Ui.Models.PlayerDetailViewModel
 
 @{
     ViewData["Title"] = Context.T("players.detail_title");
 
-    static JsonElement? TryGetPath(JsonElement? root, params string[] path)
-    {
-        if (!root.HasValue)
-        {
-            return null;
-        }
-
-        var current = root.Value;
-        foreach (var key in path)
-        {
-            if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(key, out var next))
-            {
-                return null;
-            }
-
-            current = next;
-        }
-
-        return current;
-    }
-
-    static double? TryGetNumber(JsonElement? root, params string[] path)
-    {
-        var element = TryGetPath(root, path);
-        if (!element.HasValue || element.Value.ValueKind != JsonValueKind.Number)
-        {
-            return null;
-        }
-
-        return element.Value.GetDouble();
-    }
-
-    static int? TryGetInt(JsonElement? root, params string[] path)
-    {
-        var element = TryGetPath(root, path);
-        if (!element.HasValue || element.Value.ValueKind != JsonValueKind.Number)
-        {
-            return null;
-        }
-
-        if (element.Value.TryGetInt32(out var intValue))
-        {
-            return intValue;
-        }
-
-        return (int)Math.Round(element.Value.GetDouble());
-    }
-
-    static bool? TryGetBool(JsonElement? root, params string[] path)
-    {
-        var element = TryGetPath(root, path);
-        if (!element.HasValue || (element.Value.ValueKind != JsonValueKind.True && element.Value.ValueKind != JsonValueKind.False))
-        {
-            return null;
-        }
-
-        return element.Value.GetBoolean();
-    }
-
-    string FormatNumber(double? value, string format = "0.##")
-    {
-        return value.HasValue ? value.Value.ToString(format) : Context.T("common.na");
-    }
-
-    string FormatPercent(double? value, string format = "0.##")
-    {
-        return value.HasValue ? $"{value.Value.ToString(format)}%" : Context.T("common.na");
-    }
-
-    string FormatInt(int? value)
-    {
-        return value?.ToString() ?? Context.T("common.na");
-    }
+    var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
+    var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
+    string L(string id, string en) => isEnglish ? en : id;
 
     static string FormatJsonLeafValue(JsonElement element)
     {
@@ -138,8 +70,6 @@
                     break;
                 }
                 case JsonValueKind.String:
-                    output.Add((string.IsNullOrWhiteSpace(path) ? "value" : path, FormatJsonLeafValue(element)));
-                    break;
                 case JsonValueKind.True:
                 case JsonValueKind.False:
                 case JsonValueKind.Number:
@@ -260,71 +190,38 @@
             .ToList();
     }
 
-    var netWorthIndex = TryGetNumber(Model.GameplayDerived, "net_worth_index");
-    var incomeDiversificationRatio = TryGetNumber(Model.GameplayDerived, "income_diversification_ratio");
-    var expenseEfficiency = TryGetNumber(Model.GameplayDerived, "expense_management_efficiency");
-    var businessProfitMargin = TryGetNumber(Model.GameplayDerived, "business_profit_margin");
-    var riskAppetite = TryGetNumber(Model.GameplayDerived, "risk_appetite_score_normalized");
-    var debtLeverageRatio = TryGetNumber(Model.GameplayDerived, "debt_leverage_ratio");
-    var goalSettingAmbition = TryGetNumber(Model.GameplayDerived, "goal_setting_ambition");
-    var mealOrderSuccessRate = TryGetNumber(Model.GameplayDerived, "meal_order_success_rate");
-    var planningHorizonPercent = TryGetNumber(Model.GameplayDerived, "planning_horizon_percent");
-    var growthPatternRatio = TryGetNumber(Model.GameplayDerived, "growth_pattern_ratio");
-    var donationAggressivenessPercent = TryGetNumber(Model.GameplayDerived, "donation_aggressiveness_percent");
-    var donationStabilityStdDev = TryGetNumber(Model.GameplayDerived, "donation_stability_std_deviation");
-    var actionEfficiencyPercent = TryGetNumber(Model.GameplayDerived, "action_efficiency_percent");
-    var businessEfficiencyRatio = TryGetNumber(Model.GameplayDerived, "business_efficiency_ratio");
-    var goldRoiPercent = TryGetNumber(Model.GameplayDerived, "gold_roi_percentage");
-    var riskExposurePercent = TryGetNumber(Model.GameplayDerived, "risk_exposure_percentage");
-    var riskMitigationEffectiveness = TryGetNumber(Model.GameplayDerived, "risk_mitigation_effectiveness");
-    var loanRepaymentDiscipline = TryGetNumber(Model.GameplayDerived, "loan_repayment_discipline");
-    var debtRatio = TryGetNumber(Model.GameplayDerived, "debt_ratio");
-    var donationCommitmentScore = TryGetNumber(Model.GameplayDerived, "donation_commitment_score");
-    var fulfillmentDiversity = TryGetNumber(Model.GameplayDerived, "fulfillment_diversity");
-    var missionAchievement = TryGetNumber(Model.GameplayDerived, "mission_achievement");
-
-    var startingCoins = TryGetNumber(Model.GameplayRaw, "coins", "starting_coins");
-    var coinsHeldCurrent = TryGetNumber(Model.GameplayRaw, "coins", "coins_held_current");
-    var coinsDonated = TryGetNumber(Model.GameplayRaw, "coins", "coins_donated");
-    var coinsSaved = TryGetNumber(Model.GameplayRaw, "coins", "coins_saved");
-    var coinsNetEndGame = TryGetNumber(Model.GameplayRaw, "coins", "coins_net_end_game");
-    var ingredientsCollected = TryGetInt(Model.GameplayRaw, "ingredients", "ingredients_collected");
-    var ingredientsHeldCurrent = TryGetInt(Model.GameplayRaw, "ingredients", "ingredients_held_current");
-    var ingredientsWasted = TryGetInt(Model.GameplayRaw, "ingredients", "ingredients_wasted");
-    var mealOrdersClaimed = TryGetInt(Model.GameplayRaw, "meal_orders", "meal_orders_claimed");
-    var mealOrdersPassed = TryGetInt(Model.GameplayRaw, "meal_orders", "meal_orders_available_passed");
-    var mealOrderIncomeTotal = TryGetNumber(Model.GameplayRaw, "meal_orders", "meal_order_income_total");
-    var needCardsPurchased = TryGetInt(Model.GameplayRaw, "needs", "need_cards_purchased");
-    var primaryNeedsOwned = TryGetInt(Model.GameplayRaw, "needs", "primary_needs_owned");
-    var secondaryNeedsOwned = TryGetInt(Model.GameplayRaw, "needs", "secondary_needs_owned");
-    var tertiaryNeedsOwned = TryGetInt(Model.GameplayRaw, "needs", "tertiary_needs_owned");
-    var goldCardsHeldEnd = TryGetInt(Model.GameplayRaw, "gold", "gold_cards_held_end");
-    var loansTaken = TryGetInt(Model.GameplayRaw, "financial_goals", "sharia_loan_cards_taken");
-    var loansRepaid = TryGetInt(Model.GameplayRaw, "financial_goals", "sharia_loans_repaid");
-    var loansUnpaidEnd = TryGetInt(Model.GameplayRaw, "financial_goals", "sharia_loans_unpaid_end");
-    var actionsSkipped = TryGetInt(Model.GameplayRaw, "actions", "actions_skipped");
-    var collectionMissionComplete = TryGetBool(Model.GameplayRaw, "needs", "collection_mission_complete");
-
-    var basicProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "basic_profile");
-    var collectorProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "collector_profile");
-    var specialistProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "specialist_profile");
     var rawGroups = BuildMetricGroups(Model.GameplayRaw);
     var derivedGroups = BuildMetricGroups(Model.GameplayDerived);
     var rawGroupMap = rawGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
     var derivedGroupMap = derivedGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
 
-    var rawKeysEconomy = new[] { "summary", "coins", "meal_orders", "donations", "gold", "pension" };
-    var rawKeysStrategy = new[] { "ingredients", "needs", "actions", "turns" };
-    var rawKeysRisk = new[] { "life_risk", "financial_goals", "notes" };
-    var rawMappedKeys = new HashSet<string>(rawKeysEconomy.Concat(rawKeysStrategy).Concat(rawKeysRisk), StringComparer.OrdinalIgnoreCase);
-    var rawFallbackKeys = rawGroupMap.Keys.Where(key => !rawMappedKeys.Contains(key)).ToArray();
+    var mappedRawKeys = new HashSet<string>(
+        new[] { "coins", "ingredients", "meal_orders", "needs", "donations", "gold", "pension", "life_risk", "financial_goals", "actions", "turns" },
+        StringComparer.OrdinalIgnoreCase);
+    var rawFallbackKeys = rawGroupMap.Keys.Where(key => !mappedRawKeys.Contains(key)).ToArray();
 
-    var economyRawRows = GetGroupRows(rawGroupMap, rawKeysEconomy);
-    var strategyRawRows = GetGroupRows(rawGroupMap, rawKeysStrategy);
-    var riskRawRows = MergeUniqueRows(GetGroupRows(rawGroupMap, rawKeysRisk), GetGroupRows(rawGroupMap, rawFallbackKeys));
+    var part11Rows = MergeUniqueRows(
+        GetGroupRows(rawGroupMap, "turns"),
+        GetGroupRows(rawGroupMap, rawFallbackKeys));
+
+    var part1Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows)>
+    {
+        ("1.1", L("Variabel Koin & Finansial", "Coin-Based Financial Variables"), L("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."), GetGroupRows(rawGroupMap, "coins")),
+        ("1.2", L("Variabel Kartu Bahan", "Ingredient Card Variables"), L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."), GetGroupRows(rawGroupMap, "ingredients")),
+        ("1.3", L("Variabel Pesanan Makanan", "Meal Order Variables"), L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."), GetGroupRows(rawGroupMap, "meal_orders")),
+        ("1.4", L("Variabel Kartu Kebutuhan", "Need Card Variables"), L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."), GetGroupRows(rawGroupMap, "needs")),
+        ("1.5", L("Variabel Donasi", "Donation Variables"), L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."), GetGroupRows(rawGroupMap, "donations")),
+        ("1.6", L("Variabel Investasi Emas", "Gold Investment Variables"), L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."), GetGroupRows(rawGroupMap, "gold")),
+        ("1.7", L("Variabel Dana Pensiun", "Pension Fund Variables"), L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."), GetGroupRows(rawGroupMap, "pension")),
+        ("1.8", L("Variabel Risiko Hidup", "Life Risk Variables"), L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."), GetGroupRows(rawGroupMap, "life_risk")),
+        ("1.9", L("Variabel Target Finansial", "Financial Goal Variables"), L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."), GetGroupRows(rawGroupMap, "financial_goals")),
+        ("1.10", L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"), L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."), GetGroupRows(rawGroupMap, "actions")),
+        ("1.11", L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"), L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."), part11Rows)
+    };
 
     var derivedSummaryRows = GetGroupRows(derivedGroupMap, "summary");
-    var economyDerivedRows = MergeUniqueRows(
+
+    var financialDerivedRows = MergeUniqueRows(
         FilterRowsByKeywords(
             derivedSummaryRows,
             "net_worth",
@@ -335,70 +232,57 @@
             "gold_roi",
             "growth_pattern"),
         GetGroupRows(derivedGroupMap, "expense_management_components"));
-    var strategyDerivedRows = MergeUniqueRows(
+
+    var strategicDerivedRows = MergeUniqueRows(
         FilterRowsByKeywords(
             derivedSummaryRows,
-            "action_efficiency",
-            "meal_order_success",
-            "planning_horizon",
+            "risk_appetite",
+            "debt_leverage",
+            "debt_ratio",
+            "loan_repayment",
             "goal_setting_ambition",
-            "mission_achievement",
-            "fulfillment_diversity"));
-    var riskDerivedRows = MergeUniqueRows(
+            "risk_exposure",
+            "risk_mitigation"),
+        GetGroupRows(derivedGroupMap, "risk_appetite_components"));
+
+    var behaviorDerivedRows = FilterRowsByKeywords(
+        derivedSummaryRows,
+        "action_efficiency",
+        "meal_order_success",
+        "planning_horizon",
+        "donation_aggressiveness",
+        "donation_stability");
+
+    var flourishingDerivedRows = MergeUniqueRows(
         FilterRowsByKeywords(
             derivedSummaryRows,
-            "risk_",
-            "debt_",
-            "loan_",
+            "fulfillment_diversity",
             "donation_commitment",
-            "donation_aggressiveness",
-            "donation_stability"),
-        GetGroupRows(derivedGroupMap, "risk_appetite_components"),
+            "mission_achievement"),
         GetGroupRows(derivedGroupMap, "happiness_portfolio"));
 
     var mappedDerivedPaths = new HashSet<string>(
-        economyDerivedRows
-            .Concat(strategyDerivedRows)
-            .Concat(riskDerivedRows)
+        financialDerivedRows
+            .Concat(strategicDerivedRows)
+            .Concat(behaviorDerivedRows)
+            .Concat(flourishingDerivedRows)
             .Select(row => row.Path),
         StringComparer.OrdinalIgnoreCase);
     var fallbackDerivedRows = derivedSummaryRows.Where(row => !mappedDerivedPaths.Contains(row.Path)).ToList();
     if (fallbackDerivedRows.Count > 0)
     {
-        riskDerivedRows = MergeUniqueRows(riskDerivedRows, fallbackDerivedRows);
+        behaviorDerivedRows = MergeUniqueRows(behaviorDerivedRows, fallbackDerivedRows);
     }
 
-    var economyQuickRows = new List<(string Label, string Value)>
+    var part2Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows)>
     {
-        (Context.T("players.metric.net_worth_index"), FormatPercent(netWorthIndex)),
-        (Context.T("players.metric.income_diversification"), FormatPercent(incomeDiversificationRatio)),
-        (Context.T("players.metric.expense_efficiency"), FormatPercent(expenseEfficiency)),
-        (Context.T("players.metric.business_profit_margin"), FormatPercent(businessProfitMargin)),
-        (Context.T("players.metric.gold_roi"), FormatPercent(goldRoiPercent)),
-        (Context.T("players.raw.coins_net_end"), FormatNumber(coinsNetEndGame))
+        ("2.1", L("Metrik Performa Finansial", "Financial Performance Metrics"), L("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."), financialDerivedRows),
+        ("2.2", L("Metrik Keputusan Strategis", "Strategic Decision Metrics"), L("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."), strategicDerivedRows),
+        ("2.3", L("Metrik Perilaku Pemain", "Player Behavior Metrics"), L("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."), behaviorDerivedRows),
+        ("2.4", L("Metrik Flourishing", "Flourishing-Related Metrics"), L("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."), flourishingDerivedRows)
     };
 
-    var strategyQuickRows = new List<(string Label, string Value)>
-    {
-        (Context.T("players.metric.action_efficiency"), FormatPercent(actionEfficiencyPercent)),
-        (Context.T("players.metric.meal_order_success"), FormatPercent(mealOrderSuccessRate)),
-        (Context.T("players.metric.planning_horizon"), FormatPercent(planningHorizonPercent)),
-        (Context.T("players.metric.goal_setting_ambition"), FormatPercent(goalSettingAmbition)),
-        (Context.T("players.metric.fulfillment_diversity"), FormatNumber(fulfillmentDiversity)),
-        (Context.T("metric.orders_completed"), FormatInt(mealOrdersClaimed))
-    };
-
-    var riskQuickRows = new List<(string Label, string Value)>
-    {
-        (Context.T("players.metric.risk_appetite"), FormatNumber(riskAppetite)),
-        (Context.T("players.metric.debt_leverage"), FormatPercent(debtLeverageRatio)),
-        (Context.T("players.metric.debt_ratio"), FormatPercent(debtRatio)),
-        (Context.T("players.metric.risk_exposure"), FormatPercent(riskExposurePercent)),
-        (Context.T("players.metric.risk_mitigation"), FormatPercent(riskMitigationEffectiveness)),
-        (Context.T("players.metric.loan_repayment_discipline"), FormatPercent(loanRepaymentDiscipline))
-    };
-
-    var netCashflow = Model.Summary is null ? 0 : (Model.Summary.CashInTotal - Model.Summary.CashOutTotal);
+    var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
 }
 
 <section class="section-shell">
@@ -410,6 +294,10 @@
             <p class="mt-2 text-base font-semibold text-slate-700">@Model.PlayerDisplayName</p>
         }
         <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
+        @if (Model.GameplayComputedAt.HasValue)
+        {
+            <p class="mt-2 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+        }
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -419,343 +307,97 @@
         </div>
     }
 
-    @if (Model.Summary is not null)
+    @if (!string.IsNullOrWhiteSpace(Model.GameplayErrorMessage))
     {
-        <div class="mt-6 player-kpi-grid">
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
-                <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Summary.CashInTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
-                <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Summary.CashOutTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@netCashflow</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.happiness")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.HappinessPointsTotal</p>
-            </div>
-        </div>
-
-        <div class="mt-6 metric-panels">
-            <article class="metric-panel">
-                <h3>@Context.T("players.economy_snapshot")</h3>
-                <div class="metric-list">
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.donation")</span><span class="metric-value">@Model.Summary.DonationTotal</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.gold_qty")</span><span class="metric-value">@Model.Summary.GoldQty</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.saving_goal")</span><span class="metric-value">@Model.Summary.SavingGoalPointsTotal</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.pension_points")</span><span class="metric-value">@Model.Summary.PensionPointsTotal</span></div>
-                </div>
-            </article>
-
-            <article class="metric-panel">
-                <h3>@Context.T("players.mission_risk")</h3>
-                <div class="metric-list">
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.mission_penalty")</span><span class="metric-value">@Model.Summary.MissionPenaltyTotal</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.loan_penalty")</span><span class="metric-value">@Model.Summary.LoanPenaltyTotal</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.loan_unpaid")</span><span class="metric-value">@((Model.Summary.HasUnpaidLoan) ? Context.T("state.true") : Context.T("state.false"))</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.need_points")</span><span class="metric-value">@Model.Summary.NeedPointsTotal</span></div>
-                </div>
-            </article>
-
-            <article class="metric-panel">
-                <h3>@Context.T("analytics.chart.operations")</h3>
-                <div class="metric-list">
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.orders_completed")</span><span class="metric-value">@Model.Summary.OrdersCompletedCount</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.inventory_ingredient")</span><span class="metric-value">@Model.Summary.InventoryIngredientTotal</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.actions_used")</span><span class="metric-value">@Model.Summary.ActionsUsedTotal</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.primary_need_compliance")</span><span class="metric-value">@FormatNumber(Model.Summary.CompliancePrimaryNeedRate * 100)%</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("metric.violations")</span><span class="metric-value">@Model.Summary.RulesViolationsCount</span></div>
-                </div>
-            </article>
+        <div class="mt-4 alert alert-warning" aria-live="polite">
+            @Model.GameplayErrorMessage
         </div>
     }
 
-    <details class="mt-8 data-toggle" open>
-        <summary>@Context.T("players.transaction_history") (@Model.Transactions.Count)</summary>
-        <div class="mt-3 table-wrap">
-            <table class="w-full text-left text-sm">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3">@Context.T("common.time")</th>
-                        <th class="px-4 py-3">@Context.T("common.direction")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.transaction_amount")</th>
-                        <th class="px-4 py-3">@Context.T("common.category")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Transactions.Count == 0)
-                {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="4">@Context.T("players.no_transactions")</td>
-                    </tr>
-                }
-                else
-                {
-                    foreach (var item in Model.Transactions)
-                    {
-                        <tr class="border-t border-slate-200">
-                            <td class="px-4 py-3 text-slate-600">@item.Timestamp.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td class="px-4 py-3 text-slate-600">@item.Direction</td>
-                            <td class="px-4 py-3 text-right">@item.Amount</td>
-                            <td class="px-4 py-3 text-slate-600">@item.Category</td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
+    @if (!hasGameplayData)
+    {
+        <div class="mt-6 alert alert-info" aria-live="polite">
+            @Context.T("state.no_player_data")
         </div>
-    </details>
-
-    <div class="mt-8">
-        <div class="page-intro">
-            <div class="page-intro-main">
-                <p class="eyebrow">@Context.T("players.gameplay_metrics")</p>
-                <h2 class="headline text-2xl">@Context.T("gameplay.title")</h2>
-                @if (Model.GameplayComputedAt.HasValue)
-                {
-                    <p class="mt-1 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
-                }
-            </div>
-        </div>
-
-        @if (!string.IsNullOrWhiteSpace(Model.GameplayErrorMessage))
-        {
-            <div class="mt-4 alert alert-warning" aria-live="polite">
-                @Model.GameplayErrorMessage
-            </div>
-        }
-
-        @if (Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue)
-        {
-            <div class="players-fusion-metrics mt-6">
-                <div class="players-fusion-head">
-                    <div class="page-intro-main">
-                        <p class="eyebrow">@($"{Context.T("players.player_focus_badge")} + {Context.T("players.analytics_focus_badge")}")</p>
-                        <h3 class="headline text-xl">@Context.T("players.fusion_title")</h3>
-                        <p class="subhead text-sm">@Context.T("players.fusion_desc")</p>
-                    </div>
-                    <div class="players-unified-badges">
-                        <span class="hint-chip">@Context.T("players.player_focus_badge")</span>
-                        <span class="hint-chip">@Context.T("players.analytics_focus_badge")</span>
-                    </div>
-                </div>
-
-                <div class="players-fusion-grid mt-6">
-                    <article class="players-fusion-card">
-                        <div class="players-fusion-card__head">
-                            <h4>@Context.T("players.financial_performance")</h4>
-                            <p class="metric-domain-intro">@Context.T("players.fusion.finance_desc")</p>
-                        </div>
-
-                        <div class="metric-list metric-list-compact players-fusion-quick">
-                            @foreach (var row in economyQuickRows)
-                            {
-                                <div class="metric-row metric-row-dense">
-                                    <span class="metric-key">@row.Label</span>
-                                    <span class="metric-value">@row.Value</span>
-                                </div>
-                            }
-                        </div>
-
-                        <div class="players-fusion-detail-grid">
-                            <details class="metric-domain-card" open>
-                                <summary>
-                                    <span>@Context.T("players.fusion.raw_details")</span>
-                                    <span class="metric-domain-count">@economyRawRows.Count @Context.T("players.metric_items_suffix")</span>
-                                </summary>
-                                @if (economyRawRows.Count == 0)
-                                {
-                                    <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                                }
-                                else
-                                {
-                                    <div class="metric-list metric-list-compact">
-                                        @foreach (var row in economyRawRows)
-                                        {
-                                            <div class="metric-row metric-row-dense">
-                                                <span class="metric-key metric-key-path">@row.Path</span>
-                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </details>
-
-                            <details class="metric-domain-card">
-                                <summary>
-                                    <span>@Context.T("players.fusion.derived_details")</span>
-                                    <span class="metric-domain-count">@economyDerivedRows.Count @Context.T("players.metric_items_suffix")</span>
-                                </summary>
-                                @if (economyDerivedRows.Count == 0)
-                                {
-                                    <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                                }
-                                else
-                                {
-                                    <div class="metric-list metric-list-compact">
-                                        @foreach (var row in economyDerivedRows)
-                                        {
-                                            <div class="metric-row metric-row-dense">
-                                                <span class="metric-key metric-key-path">@row.Path</span>
-                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </details>
-                        </div>
-                    </article>
-
-                    <article class="players-fusion-card">
-                        <div class="players-fusion-card__head">
-                            <h4>@Context.T("players.strategy_execution")</h4>
-                            <p class="metric-domain-intro">@Context.T("players.fusion.strategy_desc")</p>
-                        </div>
-
-                        <div class="metric-list metric-list-compact players-fusion-quick">
-                            @foreach (var row in strategyQuickRows)
-                            {
-                                <div class="metric-row metric-row-dense">
-                                    <span class="metric-key">@row.Label</span>
-                                    <span class="metric-value">@row.Value</span>
-                                </div>
-                            }
-                        </div>
-
-                        <div class="players-fusion-detail-grid">
-                            <details class="metric-domain-card" open>
-                                <summary>
-                                    <span>@Context.T("players.fusion.raw_details")</span>
-                                    <span class="metric-domain-count">@strategyRawRows.Count @Context.T("players.metric_items_suffix")</span>
-                                </summary>
-                                @if (strategyRawRows.Count == 0)
-                                {
-                                    <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                                }
-                                else
-                                {
-                                    <div class="metric-list metric-list-compact">
-                                        @foreach (var row in strategyRawRows)
-                                        {
-                                            <div class="metric-row metric-row-dense">
-                                                <span class="metric-key metric-key-path">@row.Path</span>
-                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </details>
-
-                            <details class="metric-domain-card">
-                                <summary>
-                                    <span>@Context.T("players.fusion.derived_details")</span>
-                                    <span class="metric-domain-count">@strategyDerivedRows.Count @Context.T("players.metric_items_suffix")</span>
-                                </summary>
-                                @if (strategyDerivedRows.Count == 0)
-                                {
-                                    <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                                }
-                                else
-                                {
-                                    <div class="metric-list metric-list-compact">
-                                        @foreach (var row in strategyDerivedRows)
-                                        {
-                                            <div class="metric-row metric-row-dense">
-                                                <span class="metric-key metric-key-path">@row.Path</span>
-                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </details>
-                        </div>
-                    </article>
-
-                    <article class="players-fusion-card">
-                        <div class="players-fusion-card__head">
-                            <h4>@Context.T("players.behavior_signals")</h4>
-                            <p class="metric-domain-intro">@Context.T("players.fusion.risk_desc")</p>
-                        </div>
-
-                        <div class="metric-list metric-list-compact players-fusion-quick">
-                            @foreach (var row in riskQuickRows)
-                            {
-                                <div class="metric-row metric-row-dense">
-                                    <span class="metric-key">@row.Label</span>
-                                    <span class="metric-value">@row.Value</span>
-                                </div>
-                            }
-                        </div>
-
-                        <div class="metric-list metric-list-compact players-fusion-quick mt-3">
-                            <div class="metric-row metric-row-dense">
-                                <span class="metric-key">@Context.T("players.metric.basic_need_profile")</span>
-                                <span class="metric-value">@(basicProfile.HasValue ? (basicProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span>
-                            </div>
-                            <div class="metric-row metric-row-dense">
-                                <span class="metric-key">@Context.T("players.metric.collector_need_profile")</span>
-                                <span class="metric-value">@(collectorProfile.HasValue ? (collectorProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span>
-                            </div>
-                            <div class="metric-row metric-row-dense">
-                                <span class="metric-key">@Context.T("players.metric.specialist_need_profile")</span>
-                                <span class="metric-value">@(specialistProfile.HasValue ? (specialistProfile.Value ? Context.T("state.true") : Context.T("state.false")) : Context.T("common.na"))</span>
-                            </div>
-                        </div>
-
-                        <div class="players-fusion-detail-grid">
-                            <details class="metric-domain-card" open>
-                                <summary>
-                                    <span>@Context.T("players.fusion.raw_details")</span>
-                                    <span class="metric-domain-count">@riskRawRows.Count @Context.T("players.metric_items_suffix")</span>
-                                </summary>
-                                @if (riskRawRows.Count == 0)
-                                {
-                                    <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                                }
-                                else
-                                {
-                                    <div class="metric-list metric-list-compact">
-                                        @foreach (var row in riskRawRows)
-                                        {
-                                            <div class="metric-row metric-row-dense">
-                                                <span class="metric-key metric-key-path">@row.Path</span>
-                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </details>
-
-                            <details class="metric-domain-card">
-                                <summary>
-                                    <span>@Context.T("players.fusion.derived_details")</span>
-                                    <span class="metric-domain-count">@riskDerivedRows.Count @Context.T("players.metric_items_suffix")</span>
-                                </summary>
-                                @if (riskDerivedRows.Count == 0)
-                                {
-                                    <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                                }
-                                else
-                                {
-                                    <div class="metric-list metric-list-compact">
-                                        @foreach (var row in riskDerivedRows)
-                                        {
-                                            <div class="metric-row metric-row-dense">
-                                                <span class="metric-key metric-key-path">@row.Path</span>
-                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </details>
-                        </div>
-                    </article>
+    }
+    else
+    {
+        <div class="players-fusion-metrics mt-6">
+            <div class="players-fusion-head">
+                <div class="page-intro-main">
+                    <p class="eyebrow">@Context.T("gameplay.raw")</p>
+                    <h2 class="headline text-xl">@L("Part 1: Variabel Permainan Fisik", "Part 1: Physical Gameplay Variables")</h2>
+                    <p class="subhead text-sm">@L("Semua variabel mentah disusun sesuai 11 domain observasi komponen permainan.", "All raw variables are organized into the 11 observable gameplay component domains.")</p>
                 </div>
             </div>
-        }
-    </div>
+
+            <div class="metric-domain-layout mt-6">
+                @foreach (var partSection in part1Sections)
+                {
+                    <details class="metric-domain-card" open>
+                        <summary>
+                            <span>@partSection.Code @partSection.Title</span>
+                            <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
+                        </summary>
+                        <p class="metric-domain-intro">@partSection.Description</p>
+                        @if (partSection.Rows.Count == 0)
+                        {
+                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
+                        }
+                        else
+                        {
+                            <div class="metric-list metric-list-compact">
+                                @foreach (var row in partSection.Rows)
+                                {
+                                    <div class="metric-row metric-row-dense">
+                                        <span class="metric-key metric-key-path">@row.Path</span>
+                                        <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </details>
+                }
+            </div>
+        </div>
+
+        <div class="players-fusion-metrics mt-6">
+            <div class="players-fusion-head">
+                <div class="page-intro-main">
+                    <p class="eyebrow">@Context.T("gameplay.derived")</p>
+                    <h2 class="headline text-xl">@L("Part 2: Metrik Turunan Analitika", "Part 2: Derived Analytics Metrics")</h2>
+                    <p class="subhead text-sm">@L("Metrik turunan dikelompokkan ke 4 area evaluasi sesuai kerangka metrik yang Anda tetapkan.", "Derived metrics are grouped into 4 evaluation areas based on your metric framework.")</p>
+                </div>
+            </div>
+
+            <div class="metric-domain-layout mt-6">
+                @foreach (var partSection in part2Sections)
+                {
+                    <details class="metric-domain-card" open>
+                        <summary>
+                            <span>@partSection.Code @partSection.Title</span>
+                            <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
+                        </summary>
+                        <p class="metric-domain-intro">@partSection.Description</p>
+                        @if (partSection.Rows.Count == 0)
+                        {
+                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
+                        }
+                        else
+                        {
+                            <div class="metric-list metric-list-compact">
+                                @foreach (var row in partSection.Rows)
+                                {
+                                    <div class="metric-row metric-row-dense">
+                                        <span class="metric-key metric-key-path">@row.Path</span>
+                                        <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </details>
+                }
+            </div>
+        </div>
+    }
 </section>

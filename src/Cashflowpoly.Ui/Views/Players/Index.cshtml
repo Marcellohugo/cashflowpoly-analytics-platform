@@ -14,34 +14,12 @@
         </div>
     </div>
 
-    <div class="mt-5 ruleset-stats">
-        <div class="stat-card">
-            <p class="text-xs uppercase text-slate-500">@Context.T("players.total_players")</p>
-            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Players.Count</p>
-        </div>
-        <div class="stat-card">
-            <p class="text-xs uppercase text-slate-500">@Context.T("players.total_sessions")</p>
-            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.SessionGroups.Count</p>
-        </div>
-    </div>
-
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="mt-4 alert alert-error" aria-live="polite">
             @Model.ErrorMessage
         </div>
     }
-
-    <details class="mt-4 data-toggle">
-        <summary>@Context.T("players.tips.title")</summary>
-        <div class="mt-3 metric-panel">
-            <div class="metric-list">
-                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.validate")</span><span class="metric-value">@Context.T("players.tip.validate")</span></div>
-                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.tracking")</span><span class="metric-value">@Context.T("players.tip.tracking")</span></div>
-                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.analysis")</span><span class="metric-value">@Context.T("players.tip.analysis")</span></div>
-            </div>
-        </div>
-    </details>
 
     @if (Model.SessionGroups.Count == 0)
     {
@@ -104,7 +82,6 @@
                             <thead class="table-head">
                                 <tr>
                                     <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
-                                    <th class="px-4 py-3 text-right">@Context.T("common.rank")</th>
                                     <th class="px-4 py-3 text-right">@Context.T("sessions.champion.donation")</th>
                                     <th class="px-4 py-3 text-right">@Context.T("sessions.champion.pension")</th>
                                     <th class="px-4 py-3">@Context.T("common.name")</th>
@@ -116,15 +93,6 @@
                             </thead>
                             <tbody>
                             @{
-                                var rankedPlayers = session.Players
-                                    .OrderByDescending(p => p.HappinessPointsTotal)
-                                    .ThenByDescending(p => p.CashInTotal - p.CashOutTotal)
-                                    .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
-                                    .ThenBy(p => p.PlayerId)
-                                    .ToList();
-                                var sessionRankLookup = rankedPlayers
-                                    .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
-                                    .ToDictionary(item => item.PlayerId, item => item.Rank);
                                 var donationChampionLookup = session.Players
                                     .OrderByDescending(p => p.DonationPointsTotal)
                                     .ThenByDescending(p => p.DonationTotal)
@@ -145,19 +113,14 @@
                             @foreach (var player in session.Players)
                             {
                                 var netCashflow = player.CashInTotal - player.CashOutTotal;
-                                var rank = sessionRankLookup.TryGetValue(player.PlayerId, out var resolvedRank)
-                                    ? resolvedRank
-                                    : 0;
                                 var donationRank = donationChampionLookup.TryGetValue(player.PlayerId, out var donationResolvedRank)
                                     ? donationResolvedRank
                                     : 0;
                                 var pensionRank = pensionChampionLookup.TryGetValue(player.PlayerId, out var pensionResolvedRank)
                                     ? pensionResolvedRank
                                     : 0;
-                                var isSessionWinner = rank == 1;
-                                <tr class="border-t border-slate-200 @(isSessionWinner ? "winner-row" : string.Empty)">
+                                <tr class="border-t border-slate-200">
                                     <td class="px-4 py-3 text-right text-slate-700">@(player.JoinOrder > 0 ? player.JoinOrder : "-")</td>
-                                    <td class="px-4 py-3 text-right text-slate-700">@(rank > 0 ? rank : "-")</td>
                                     <td class="px-4 py-3 text-right text-slate-700">@(donationRank > 0 ? donationRank : "-")</td>
                                     <td class="px-4 py-3 text-right text-slate-700">@(pensionRank > 0 ? pensionRank : "-")</td>
                                     <td class="px-4 py-3">
