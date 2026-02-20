@@ -22,7 +22,13 @@ builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live", "ready"]);
 
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5041";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+if (string.IsNullOrWhiteSpace(apiBaseUrl))
+{
+    apiBaseUrl = builder.Environment.IsDevelopment()
+        ? "http://localhost:5041"
+        : "http://api:5041";
+}
 
 builder.Services.AddHttpClient("Api", client =>
 {

@@ -258,18 +258,6 @@ app.UseSwaggerUI(options =>
 app.UseForwardedHeaders();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-if (enableLegacyApiCompatibility)
-{
-    app.Use(async (context, next) =>
-    {
-        if (LegacyApiCompatibilityHelper.TryRewritePath(context.Request.Path, out var rewrittenPath))
-        {
-            context.Request.Path = rewrittenPath;
-        }
-
-        await next();
-    });
-}
 app.UseRouting();
 
 app.Use(async (context, next) =>
@@ -317,8 +305,3 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapControllers().RequireRateLimiting("api");
 
 app.Run();
-
-/// <summary>
-/// Menyatakan peran utama tipe Program pada modul ini.
-/// </summary>
-public partial class Program { }
