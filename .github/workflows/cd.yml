@@ -1,5 +1,5 @@
-# Fungsi file: Mendefinisikan pipeline CD untuk build image dan deployment production setelah CI sukses.
-name: CD - Build Image & Deploy Production
+# Fungsi file: Mendefinisikan pipeline CD untuk build dan push image container.
+name: CD - Build & Push Images
 
 on:
   workflow_run:
@@ -28,10 +28,6 @@ jobs:
       contents: read
       packages: write
 
-    outputs:
-      deploy_branch: ${{ steps.meta.outputs.deploy_branch }}
-      deploy_sha: ${{ steps.meta.outputs.deploy_sha }}
-
     steps:
       - name: Resolve source ref
         id: meta
@@ -39,12 +35,10 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             echo "checkout_ref=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-            echo "deploy_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-            echo "deploy_branch=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
+            echo "image_tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "checkout_ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-            echo "deploy_sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-            echo "deploy_branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout
@@ -70,7 +64,7 @@ jobs:
           push: true
           tags: |
             ${{ env.API_IMAGE }}:latest
-            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.deploy_sha }}
+            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -82,74 +76,6 @@ jobs:
           push: true
           tags: |
             ${{ env.UI_IMAGE }}:latest
-            ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.deploy_sha }}
+            ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy:
-    name: Deploy
-    needs: docker-build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment: production
-    if: needs.docker-build.result == 'success'
-
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            set -e
-            BRANCH="${{ needs.docker-build.outputs.deploy_branch }}"
-            IMAGE_TAG="${{ needs.docker-build.outputs.deploy_sha }}"
-            API_IMAGE_REPO="${{ env.API_IMAGE }}"
-            UI_IMAGE_REPO="${{ env.UI_IMAGE }}"
-            DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
-            if [ -z "$DEPLOY_DIR" ]; then
-              if [ -d "$HOME/cashflowpoly-analytics-platform" ]; then
-                DEPLOY_DIR="$HOME/cashflowpoly-analytics-platform"
-              elif [ -d "$HOME/TugasAkhir" ]; then
-                DEPLOY_DIR="$HOME/TugasAkhir"
-              else
-                echo "Direktori deploy tidak ditemukan. Set secret DEPLOY_PATH."
-                exit 1
-              fi
-            fi
-            cd "$DEPLOY_DIR"
-
-            export IMAGE_TAG API_IMAGE_REPO UI_IMAGE_REPO
-
-            git fetch origin "$BRANCH"
-            if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
-              git checkout "$BRANCH"
-            elif git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
-              git checkout -b "$BRANCH" "origin/$BRANCH"
-            elif git show-ref --verify --quiet "refs/heads/master"; then
-              BRANCH="master"
-              git checkout "$BRANCH"
-            elif git show-ref --verify --quiet "refs/heads/main"; then
-              BRANCH="main"
-              git checkout "$BRANCH"
-            else
-              echo "Branch deploy tidak ditemukan (master/main)."
-              exit 1
-            fi
-            git pull origin "$BRANCH"
-
-            if [ -n "${{ secrets.GHCR_USERNAME }}" ] && [ -n "${{ secrets.GHCR_TOKEN }}" ]; then
-              echo "${{ secrets.GHCR_TOKEN }}" | docker login "${{ env.REGISTRY }}" -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
-            else
-              echo "GHCR credentials tidak diset. Asumsi image publik atau host sudah login."
-            fi
-
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /tmp/cashflowpoly-compose.effective.yml
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-            docker image prune -f
-
-            echo "Deploy selesai untuk IMAGE_TAG=$IMAGE_TAG pada $(date)"
