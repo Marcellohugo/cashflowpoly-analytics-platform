@@ -69,6 +69,19 @@
         return value.HasValue ? value.Value.ToString(format) : Context.T("common.na");
     }
 
+    static string FormatJsonLeafValue(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.Null => "null",
+            _ => element.GetRawText()
+        };
+    }
+
     static List<(string Path, string Value)> FlattenJsonLeaves(JsonElement? root)
     {
         var rows = new List<(string Path, string Value)>();
@@ -115,22 +128,129 @@
                     break;
                 }
                 case JsonValueKind.String:
-                    output.Add((path, element.GetString() ?? string.Empty));
+                    output.Add((string.IsNullOrWhiteSpace(path) ? "value" : path, FormatJsonLeafValue(element)));
                     break;
                 case JsonValueKind.True:
                 case JsonValueKind.False:
                 case JsonValueKind.Number:
                 case JsonValueKind.Null:
-                    output.Add((path, element.GetRawText()));
+                    output.Add((string.IsNullOrWhiteSpace(path) ? "value" : path, FormatJsonLeafValue(element)));
                     break;
                 default:
-                    output.Add((path, element.ToString()));
+                    output.Add((string.IsNullOrWhiteSpace(path) ? "value" : path, element.ToString()));
                     break;
             }
         }
 
         Visit(root.Value, string.Empty, rows);
         return rows;
+    }
+
+    static List<(string GroupKey, List<(string Path, string Value)> Rows)> BuildMetricGroups(JsonElement? root)
+    {
+        var groups = new List<(string GroupKey, List<(string Path, string Value)> Rows)>();
+        if (!root.HasValue || root.Value.ValueKind != JsonValueKind.Object)
+        {
+            return groups;
+        }
+
+        var scalarRows = new List<(string Path, string Value)>();
+        foreach (var property in root.Value.EnumerateObject())
+        {
+            if (property.Value.ValueKind == JsonValueKind.Object || property.Value.ValueKind == JsonValueKind.Array)
+            {
+                var rows = FlattenJsonLeaves(property.Value);
+                if (rows.Count == 0)
+                {
+                    rows.Add(("value", FormatJsonLeafValue(property.Value)));
+                }
+
+                groups.Add((property.Name, rows));
+                continue;
+            }
+
+            scalarRows.Add((property.Name, FormatJsonLeafValue(property.Value)));
+        }
+
+        if (scalarRows.Count > 0)
+        {
+            groups.Insert(0, ("summary", scalarRows));
+        }
+
+        return groups;
+    }
+
+    string HumanizeToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return token;
+        }
+
+        var cleaned = token
+            .Replace("_", " ", StringComparison.OrdinalIgnoreCase)
+            .Replace(".", " ", StringComparison.OrdinalIgnoreCase)
+            .Replace("-", " ", StringComparison.OrdinalIgnoreCase);
+        var parts = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+        {
+            return token;
+        }
+
+        var words = new List<string>(parts.Length);
+        foreach (var part in parts)
+        {
+            var lower = part.ToLowerInvariant();
+            words.Add(lower.Length == 1
+                ? lower.ToUpperInvariant()
+                : char.ToUpperInvariant(lower[0]) + lower[1..]);
+        }
+
+        return string.Join(' ', words);
+    }
+
+    string ResolveGroupLabel(string key)
+    {
+        return key switch
+        {
+            "summary" => Context.T("players.group.summary"),
+            "coins" => Context.T("players.group.coins"),
+            "ingredients" => Context.T("players.group.ingredients"),
+            "meal_orders" => Context.T("players.group.meal_orders"),
+            "needs" => Context.T("players.group.needs"),
+            "donations" => Context.T("players.group.donations"),
+            "gold" => Context.T("players.group.gold"),
+            "pension" => Context.T("players.group.pension"),
+            "life_risk" => Context.T("players.group.life_risk"),
+            "financial_goals" => Context.T("players.group.financial_goals"),
+            "actions" => Context.T("players.group.actions"),
+            "turns" => Context.T("players.group.turns"),
+            "notes" => Context.T("players.group.notes"),
+            "expense_management_components" => Context.T("players.group.expense_components"),
+            "risk_appetite_components" => Context.T("players.group.risk_components"),
+            "happiness_portfolio" => Context.T("players.group.happiness_portfolio"),
+            _ => HumanizeToken(key)
+        };
+    }
+
+    string FormatMetricFieldValue(string rawValue)
+    {
+        if (string.Equals(rawValue, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return Context.T("state.true");
+        }
+
+        if (string.Equals(rawValue, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            return Context.T("state.false");
+        }
+
+        if (string.Equals(rawValue, "null", StringComparison.OrdinalIgnoreCase))
+        {
+            return Context.T("common.na");
+        }
+
+        return string.IsNullOrEmpty(rawValue) ? "\"\"" : rawValue;
     }
 
     var netWorthIndex = TryGetNumber(Model.GameplayDerived, "net_worth_index");
@@ -181,8 +301,8 @@
     var basicProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "basic_profile");
     var collectorProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "collector_profile");
     var specialistProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "specialist_profile");
-    var allRawRows = FlattenJsonLeaves(Model.GameplayRaw);
-    var allDerivedRows = FlattenJsonLeaves(Model.GameplayDerived);
+    var rawGroups = BuildMetricGroups(Model.GameplayRaw);
+    var derivedGroups = BuildMetricGroups(Model.GameplayDerived);
 
     var netCashflow = Model.Summary is null ? 0 : (Model.Summary.CashInTotal - Model.Summary.CashOutTotal);
 }
@@ -317,6 +437,14 @@
 
         @if (Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue)
         {
+            <div class="page-intro mt-6">
+                <div class="page-intro-main">
+                    <p class="eyebrow">@Context.T("players.player_focus_badge")</p>
+                    <h3 class="headline text-xl">@Context.T("players.player_focus_title")</h3>
+                    <p class="subhead text-sm">@Context.T("players.player_focus_desc")</p>
+                </div>
+            </div>
+
             <div class="mt-6 metric-panels metric-panels-wide">
                 <article class="metric-panel">
                     <h3>@Context.T("players.financial_performance")</h3>
@@ -401,70 +529,81 @@
                 </article>
             </div>
 
-            <details class="mt-6 data-toggle">
-                <summary>@Context.T("players.gameplay_all_fields")</summary>
-                <div class="mt-3 metric-panels metric-panels-wide">
-                    <article class="metric-panel">
-                        <h3>@Context.T("gameplay.raw") (@allRawRows.Count)</h3>
-                        @if (allRawRows.Count == 0)
-                        {
-                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                        }
-                        else
-                        {
-                            <div class="table-wrap">
-                                <table class="w-full text-left text-sm">
-                                    <thead class="table-head">
-                                        <tr>
-                                            <th class="px-4 py-3">@Context.T("common.path")</th>
-                                            <th class="px-4 py-3">@Context.T("common.value")</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    @foreach (var row in allRawRows)
-                                    {
-                                        <tr class="border-t border-slate-200">
-                                            <td class="px-4 py-3 text-slate-600 font-mono break-all">@row.Path</td>
-                                            <td class="px-4 py-3 text-slate-700 font-mono break-all">@row.Value</td>
-                                        </tr>
-                                    }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                    </article>
-
-                    <article class="metric-panel">
-                        <h3>@Context.T("gameplay.derived") (@allDerivedRows.Count)</h3>
-                        @if (allDerivedRows.Count == 0)
-                        {
-                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                        }
-                        else
-                        {
-                            <div class="table-wrap">
-                                <table class="w-full text-left text-sm">
-                                    <thead class="table-head">
-                                        <tr>
-                                            <th class="px-4 py-3">@Context.T("common.path")</th>
-                                            <th class="px-4 py-3">@Context.T("common.value")</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    @foreach (var row in allDerivedRows)
-                                    {
-                                        <tr class="border-t border-slate-200">
-                                            <td class="px-4 py-3 text-slate-600 font-mono break-all">@row.Path</td>
-                                            <td class="px-4 py-3 text-slate-700 font-mono break-all">@row.Value</td>
-                                        </tr>
-                                    }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                    </article>
+            <div class="page-intro mt-8">
+                <div class="page-intro-main">
+                    <p class="eyebrow">@Context.T("players.analytics_focus_badge")</p>
+                    <h3 class="headline text-xl">@Context.T("players.analytics_focus_title")</h3>
+                    <p class="subhead text-sm">@Context.T("players.analytics_focus_desc")</p>
                 </div>
-            </details>
+            </div>
+
+            <div class="mt-6 metric-domain-layout">
+                <article class="metric-panel">
+                    <h3>@Context.T("gameplay.raw")</h3>
+                    <p class="metric-domain-intro">@Context.T("players.metrics_raw_desc")</p>
+                    @if (rawGroups.Count == 0)
+                    {
+                        <p class="text-sm text-slate-500">@Context.T("common.na")</p>
+                    }
+                    else
+                    {
+                        <div class="metric-domain-grid">
+                            @foreach (var group in rawGroups)
+                            {
+                                var showOpen = string.Equals(group.GroupKey, "coins", StringComparison.OrdinalIgnoreCase);
+                                <details class="metric-domain-card" open="@(showOpen ? "open" : null)">
+                                    <summary>
+                                        <span>@ResolveGroupLabel(group.GroupKey)</span>
+                                        <span class="metric-domain-count">@group.Rows.Count @Context.T("players.metric_items_suffix")</span>
+                                    </summary>
+                                    <div class="metric-list metric-list-compact">
+                                        @foreach (var row in group.Rows)
+                                        {
+                                            <div class="metric-row metric-row-dense">
+                                                <span class="metric-key metric-key-path">@row.Path</span>
+                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </details>
+                            }
+                        </div>
+                    }
+                </article>
+
+                <article class="metric-panel">
+                    <h3>@Context.T("gameplay.derived")</h3>
+                    <p class="metric-domain-intro">@Context.T("players.metrics_derived_desc")</p>
+                    @if (derivedGroups.Count == 0)
+                    {
+                        <p class="text-sm text-slate-500">@Context.T("common.na")</p>
+                    }
+                    else
+                    {
+                        <div class="metric-domain-grid">
+                            @foreach (var group in derivedGroups)
+                            {
+                                var showOpen = string.Equals(group.GroupKey, "summary", StringComparison.OrdinalIgnoreCase);
+                                <details class="metric-domain-card" open="@(showOpen ? "open" : null)">
+                                    <summary>
+                                        <span>@ResolveGroupLabel(group.GroupKey)</span>
+                                        <span class="metric-domain-count">@group.Rows.Count @Context.T("players.metric_items_suffix")</span>
+                                    </summary>
+                                    <div class="metric-list metric-list-compact">
+                                        @foreach (var row in group.Rows)
+                                        {
+                                            <div class="metric-row metric-row-dense">
+                                                <span class="metric-key metric-key-path">@row.Path</span>
+                                                <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </details>
+                            }
+                        </div>
+                    }
+                </article>
+            </div>
         }
     </div>
 </section>
