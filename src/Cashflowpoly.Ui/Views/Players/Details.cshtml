@@ -69,6 +69,70 @@
         return value.HasValue ? value.Value.ToString(format) : Context.T("common.na");
     }
 
+    static List<(string Path, string Value)> FlattenJsonLeaves(JsonElement? root)
+    {
+        var rows = new List<(string Path, string Value)>();
+        if (!root.HasValue)
+        {
+            return rows;
+        }
+
+        static void Visit(JsonElement element, string path, List<(string Path, string Value)> output)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                {
+                    var hasProperty = false;
+                    foreach (var property in element.EnumerateObject())
+                    {
+                        hasProperty = true;
+                        var nextPath = string.IsNullOrWhiteSpace(path) ? property.Name : $"{path}.{property.Name}";
+                        Visit(property.Value, nextPath, output);
+                    }
+
+                    if (!hasProperty && !string.IsNullOrWhiteSpace(path))
+                    {
+                        output.Add((path, "{}"));
+                    }
+
+                    break;
+                }
+                case JsonValueKind.Array:
+                {
+                    var index = 0;
+                    foreach (var item in element.EnumerateArray())
+                    {
+                        Visit(item, $"{path}[{index}]", output);
+                        index += 1;
+                    }
+
+                    if (index == 0 && !string.IsNullOrWhiteSpace(path))
+                    {
+                        output.Add((path, "[]"));
+                    }
+
+                    break;
+                }
+                case JsonValueKind.String:
+                    output.Add((path, element.GetString() ?? string.Empty));
+                    break;
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                case JsonValueKind.Number:
+                case JsonValueKind.Null:
+                    output.Add((path, element.GetRawText()));
+                    break;
+                default:
+                    output.Add((path, element.ToString()));
+                    break;
+            }
+        }
+
+        Visit(root.Value, string.Empty, rows);
+        return rows;
+    }
+
     var netWorthIndex = TryGetNumber(Model.GameplayDerived, "net_worth_index");
     var incomeDiversificationRatio = TryGetNumber(Model.GameplayDerived, "income_diversification_ratio");
     var expenseEfficiency = TryGetNumber(Model.GameplayDerived, "expense_management_efficiency");
@@ -117,6 +181,8 @@
     var basicProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "basic_profile");
     var collectorProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "collector_profile");
     var specialistProfile = TryGetBool(Model.GameplayRaw, "needs", "need_profile", "specialist_profile");
+    var allRawRows = FlattenJsonLeaves(Model.GameplayRaw);
+    var allDerivedRows = FlattenJsonLeaves(Model.GameplayDerived);
 
     var netCashflow = Model.Summary is null ? 0 : (Model.Summary.CashInTotal - Model.Summary.CashOutTotal);
 }
@@ -334,6 +400,71 @@
                     </div>
                 </article>
             </div>
+
+            <details class="mt-6 data-toggle">
+                <summary>@Context.T("players.gameplay_all_fields")</summary>
+                <div class="mt-3 metric-panels metric-panels-wide">
+                    <article class="metric-panel">
+                        <h3>@Context.T("gameplay.raw") (@allRawRows.Count)</h3>
+                        @if (allRawRows.Count == 0)
+                        {
+                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
+                        }
+                        else
+                        {
+                            <div class="table-wrap">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="table-head">
+                                        <tr>
+                                            <th class="px-4 py-3">@Context.T("common.path")</th>
+                                            <th class="px-4 py-3">@Context.T("common.value")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var row in allRawRows)
+                                    {
+                                        <tr class="border-t border-slate-200">
+                                            <td class="px-4 py-3 text-slate-600 font-mono break-all">@row.Path</td>
+                                            <td class="px-4 py-3 text-slate-700 font-mono break-all">@row.Value</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </article>
+
+                    <article class="metric-panel">
+                        <h3>@Context.T("gameplay.derived") (@allDerivedRows.Count)</h3>
+                        @if (allDerivedRows.Count == 0)
+                        {
+                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
+                        }
+                        else
+                        {
+                            <div class="table-wrap">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="table-head">
+                                        <tr>
+                                            <th class="px-4 py-3">@Context.T("common.path")</th>
+                                            <th class="px-4 py-3">@Context.T("common.value")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var row in allDerivedRows)
+                                    {
+                                        <tr class="border-t border-slate-200">
+                                            <td class="px-4 py-3 text-slate-600 font-mono break-all">@row.Path</td>
+                                            <td class="px-4 py-3 text-slate-700 font-mono break-all">@row.Value</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </article>
+                </div>
+            </details>
         }
     </div>
 </section>
