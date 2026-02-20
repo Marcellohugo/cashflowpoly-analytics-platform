@@ -94,11 +94,30 @@ function Deploy-Production {
     Test-Dependencies
     Test-EnvFile
     Validate-ComposeFiles -Production
+    $ghcrRegistry = if ($env:GHCR_REGISTRY) { $env:GHCR_REGISTRY } else { "ghcr.io" }
 
-    Write-Info "Building & starting semua service..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+    if ($env:GHCR_USERNAME -and $env:GHCR_TOKEN) {
+        Write-Info "Login ke GHCR ($ghcrRegistry)..."
+        $env:GHCR_TOKEN | docker login $ghcrRegistry -u $env:GHCR_USERNAME --password-stdin | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "Login GHCR gagal."
+            exit 1
+        }
+    } else {
+        Write-Warn "GHCR_USERNAME/GHCR_TOKEN tidak diset. Asumsi image publik atau host sudah login."
+    }
+
+    Write-Info "Pull image production..."
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
     if ($LASTEXITCODE -ne 0) {
-        Write-Err "Build/deploy production gagal."
+        Write-Err "Pull image production gagal."
+        exit 1
+    }
+
+    Write-Info "Starting semua service tanpa build ulang..."
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Deploy production gagal."
         exit 1
     }
 

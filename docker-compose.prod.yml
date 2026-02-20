@@ -3,7 +3,8 @@
 # Production deployment dengan Nginx reverse proxy
 #
 # Penggunaan:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
 #
 # File ini meng-override docker-compose.yml untuk production:
 # - Menambah Nginx sebagai reverse proxy (port 80/443)
@@ -12,12 +13,18 @@
 
 services:
   api:
+    build: !reset null
+    image: ${API_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/api}:${IMAGE_TAG:-latest}
+    pull_policy: always
     environment:
       ASPNETCORE_ENVIRONMENT: Production
     ports: !override []
     # Hapus port mapping langsung, semua traffic lewat Nginx
 
   ui:
+    build: !reset null
+    image: ${UI_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/ui}:${IMAGE_TAG:-latest}
+    pull_policy: always
     environment:
       ASPNETCORE_ENVIRONMENT: Production
     ports: !override []

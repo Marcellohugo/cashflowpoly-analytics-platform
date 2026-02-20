@@ -102,9 +102,20 @@ deploy_production() {
     check_dependencies
     check_env_file
     validate_compose_prod
+    local ghcr_registry="${GHCR_REGISTRY:-ghcr.io}"
 
-    info "Building & starting semua service..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+    if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
+        info "Login ke GHCR (${ghcr_registry})..."
+        echo "${GHCR_TOKEN}" | docker login "${ghcr_registry}" -u "${GHCR_USERNAME}" --password-stdin
+    else
+        warn "GHCR_USERNAME/GHCR_TOKEN tidak diset. Asumsi image publik atau host sudah login."
+    fi
+
+    info "Pull image production..."
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+
+    info "Starting semua service tanpa build ulang..."
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
 
     info "Menunggu health check..."
     sleep 15

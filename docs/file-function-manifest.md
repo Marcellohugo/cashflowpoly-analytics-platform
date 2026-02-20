@@ -5,8 +5,8 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | Path | Kategori | Mode | Fungsi File | Catatan |
 | --- | --- | --- | --- | --- |
 | .env.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.example. | - |
+| .github/workflows/cd.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file cd.yml. | - |
 | .github/workflows/ci.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file ci.yml. | - |
-| .github/workflows/ci-cd.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file ci-cd.yml. | - |
 | .gitignore | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .gitignore. | - |
 | Cashflowpoly.sln | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.sln. | File solusi dikelola tooling. |
 | cloudflared/config.yml | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file config.yml. | - |

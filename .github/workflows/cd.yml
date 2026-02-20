@@ -105,6 +105,9 @@ jobs:
           script: |
             set -e
             BRANCH="${{ needs.docker-build.outputs.deploy_branch }}"
+            IMAGE_TAG="${{ needs.docker-build.outputs.deploy_sha }}"
+            API_IMAGE_REPO="${{ env.API_IMAGE }}"
+            UI_IMAGE_REPO="${{ env.UI_IMAGE }}"
             DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
             if [ -z "$DEPLOY_DIR" ]; then
               if [ -d "$HOME/cashflowpoly-analytics-platform" ]; then
@@ -117,6 +120,8 @@ jobs:
               fi
             fi
             cd "$DEPLOY_DIR"
+
+            export IMAGE_TAG API_IMAGE_REPO UI_IMAGE_REPO
 
             git fetch origin "$BRANCH"
             if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
@@ -134,9 +139,17 @@ jobs:
               exit 1
             fi
             git pull origin "$BRANCH"
+
+            if [ -n "${{ secrets.GHCR_USERNAME }}" ] && [ -n "${{ secrets.GHCR_TOKEN }}" ]; then
+              echo "${{ secrets.GHCR_TOKEN }}" | docker login "${{ env.REGISTRY }}" -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+            else
+              echo "GHCR credentials tidak diset. Asumsi image publik atau host sudah login."
+            fi
+
             docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /tmp/cashflowpoly-compose.effective.yml
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
             docker image prune -f
 
-            echo "Deploy selesai: $(date)"
+            echo "Deploy selesai untuk IMAGE_TAG=$IMAGE_TAG pada $(date)"
