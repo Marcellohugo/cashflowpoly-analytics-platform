@@ -181,11 +181,14 @@
                             <td class="px-4 py-3 text-right">@item.EventCount</td>
                             <td class="px-4 py-3 text-right">@(item.LearningPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na"))</td>
                             <td class="px-4 py-3 text-right">@(item.MissionPerformanceAggregateScore?.ToString("0.00") ?? Context.T("common.na"))</td>
-                            <td class="px-4 py-3 text-xs text-slate-600">
-                                <div class="space-y-1">
-                                    <p><span class="font-semibold text-slate-700">@Context.T("rulesets.analytics.learning_aggregate"):</span> @learningReason</p>
-                                    <p><span class="font-semibold text-slate-700">@Context.T("rulesets.analytics.quest_aggregate"):</span> @missionReason</p>
-                                </div>
+                            <td class="px-4 py-3 text-right">
+                                <details class="score-info score-info--aggregate">
+                                    <summary class="score-info__button">@L("Lihat Alasan", "View Reason")</summary>
+                                    <div class="score-info__panel">
+                                        <p><span class="font-semibold text-slate-700">@Context.T("rulesets.analytics.learning_aggregate"):</span> @learningReason</p>
+                                        <p><span class="font-semibold text-slate-700">@Context.T("rulesets.analytics.quest_aggregate"):</span> @missionReason</p>
+                                    </div>
+                                </details>
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <a class="table-link"

@@ -855,25 +855,38 @@ a:hover {
 
 .table-wrap {
     width: 100%;
+    max-width: 100%;
+    border-radius: 1rem;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 .table-wrap th,
 .table-wrap td {
-    white-space: normal;
-    overflow-wrap: anywhere;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all;
     line-height: 1.35;
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 .table-wrap table {
-    width: 100%;
-    min-width: 38rem;
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
 }
 
 .table-wrap .table-link {
     white-space: nowrap;
+}
+
+.table-head th {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all;
+    letter-spacing: 0.06em;
 }
 
 .metric-head-info {
@@ -936,6 +949,26 @@ a:hover {
     font-size: 0.74rem;
     line-height: 1.4;
     text-align: left;
+}
+
+.score-info__panel p {
+    margin: 0;
+    white-space: normal;
+}
+
+.score-info__panel p + p {
+    margin-top: 0.42rem;
+    padding-top: 0.42rem;
+    border-top: 1px dashed rgba(43, 131, 152, 0.26);
+}
+
+.score-info--aggregate {
+    width: min(30rem, 100%);
+    margin-left: auto;
+}
+
+.score-info--aggregate .score-info__button {
+    min-width: 7.2rem;
 }
 
 .chart-grid {
@@ -1495,6 +1528,75 @@ body > footer .footer-shell {
 
 .players-unified-domain-head .subhead {
     margin-top: 0.34rem;
+}
+
+.players-fusion-metrics {
+    border: 2px solid #95ded6;
+    border-radius: 1rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 199, 71, 0.14), transparent 36%),
+        linear-gradient(158deg, rgba(255, 255, 255, 0.97), rgba(240, 255, 251, 0.95));
+    padding: 1rem;
+    box-shadow: 0 12px 28px rgba(20, 99, 134, 0.12);
+}
+
+.players-fusion-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.players-fusion-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.players-fusion-card {
+    border: 1px solid #a7e2db;
+    border-radius: 1rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 199, 71, 0.12), transparent 38%),
+        rgba(255, 255, 255, 0.9);
+    padding: 0.9rem;
+    box-shadow: 0 10px 22px rgba(20, 99, 134, 0.09);
+}
+
+.players-fusion-card__head h4 {
+    margin: 0;
+    color: #1f4863;
+    font-family: "Baloo 2", cursive;
+    font-size: 1.03rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.players-fusion-quick .metric-row {
+    background: rgba(255, 255, 255, 0.84);
+    border-color: #bce9e3;
+}
+
+.players-fusion-quick .metric-key {
+    text-transform: none;
+    letter-spacing: 0.01em;
+    font-size: 0.8rem;
+}
+
+.players-fusion-quick .metric-value {
+    font-size: 0.9rem;
+}
+
+.players-fusion-detail-grid {
+    margin-top: 0.72rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.players-fusion-detail-grid .metric-domain-card {
+    background: rgba(255, 255, 255, 0.86);
+    border-color: #afe5de;
 }
 
 .metric-domain-layout {
@@ -2248,6 +2350,10 @@ body > footer .footer-shell {
     .table-wrap th,
     .table-wrap td {
         padding: 0.58rem 0.62rem !important;
+    }
+
+    .score-info--aggregate {
+        width: min(24rem, 100%);
     }
 
     .form-input {
