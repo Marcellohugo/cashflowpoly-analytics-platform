@@ -10,7 +10,7 @@ Tujuan utama:
 - Menghitung metrik pada level sesi dan pemain dari log *event*.
 - Menyajikan analitika melalui UI web berbasis ASP.NET Core MVC (Razor Views).
 
-## Ruang lingkup fitur (sesuai kebutuhan TA)
+## Ruang lingkup fitur
 ### Platform web
 - UI berjalan di browser dan mengonsumsi data dari REST API.
 
