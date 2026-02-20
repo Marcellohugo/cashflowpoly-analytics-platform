@@ -1,5 +1,5 @@
 # Fungsi file: Mendefinisikan pipeline CI untuk build dan test otomatis repositori.
-name: CI
+name: CI - Build & Test
 
 on:
   push:

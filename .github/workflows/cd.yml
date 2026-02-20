@@ -1,108 +1,56 @@
-# Fungsi file: Mendefinisikan pipeline CI/CD untuk build, validasi, dan deployment terotomasi.
-name: CI/CD Pipeline
+# Fungsi file: Mendefinisikan pipeline CD untuk build image dan deployment production setelah CI sukses.
+name: CD - Build Image & Deploy Production
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
+  workflow_run:
+    workflows: ["CI - Build & Test"]
+    types: [completed]
     branches: [main, master]
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: "10.0.x"
   REGISTRY: ghcr.io
   API_IMAGE: ghcr.io/marcellohugo/cashflowpoly-analytics-platform/api
   UI_IMAGE: ghcr.io/marcellohugo/cashflowpoly-analytics-platform/ui
 
 jobs:
-  build-and-test:
-    name: Build & Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: cashflowpoly_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test -d cashflowpoly_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore API
-        run: dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
-
-      - name: Restore UI
-        run: dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
-
-      - name: Restore Tests
-        run: dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
-
-      - name: Build API
-        run: dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj --configuration Release --no-restore
-
-      - name: Build UI
-        run: dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj --configuration Release --no-restore
-
-      - name: Build Tests
-        run: dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --configuration Release --no-restore
-
-      - name: Validate Docker Compose (dev + prod)
-        env:
-          JWT_SIGNING_KEY: ci-test-signing-key-minimum-32-characters-long
-          POSTGRES_PASSWORD: ci-postgres-password
-        run: |
-          docker compose config > /dev/null
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /dev/null
-
-      - name: Run tests (Non-Integration)
-        run: dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --configuration Release --no-build --filter "Category!=Integration" --verbosity normal --logger "trx;LogFileName=test-results-non-integration.trx"
-        env:
-          ConnectionStrings__Default: Host=localhost;Port=5432;Database=cashflowpoly_test;Username=test;Password=test
-
-      - name: Run tests (Integration)
-        run: dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --configuration Release --no-build --filter "Category=Integration" --verbosity normal --logger "trx;LogFileName=test-results-integration.trx"
-        env:
-          ConnectionStrings__Default: Host=localhost;Port=5432;Database=cashflowpoly_test;Username=test;Password=test
-          JWT_SIGNING_KEY: ci-test-signing-key-minimum-32-characters-long
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: "**/test-results-*.trx"
-          retention-days: 30
-
   docker-build:
     name: Docker Build & Push
-    needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     timeout-minutes: 15
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
 
     permissions:
       contents: read
       packages: write
 
+    outputs:
+      deploy_branch: ${{ steps.meta.outputs.deploy_branch }}
+      deploy_sha: ${{ steps.meta.outputs.deploy_sha }}
+
     steps:
+      - name: Resolve source ref
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "checkout_ref=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_branch=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "checkout_ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_branch=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.meta.outputs.checkout_ref }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -122,7 +70,7 @@ jobs:
           push: true
           tags: |
             ${{ env.API_IMAGE }}:latest
-            ${{ env.API_IMAGE }}:${{ github.sha }}
+            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.deploy_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -134,7 +82,7 @@ jobs:
           push: true
           tags: |
             ${{ env.UI_IMAGE }}:latest
-            ${{ env.UI_IMAGE }}:${{ github.sha }}
+            ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.deploy_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -142,9 +90,9 @@ jobs:
     name: Deploy
     needs: docker-build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     timeout-minutes: 10
     environment: production
+    if: needs.docker-build.result == 'success'
 
     steps:
       - name: Deploy via SSH
@@ -156,7 +104,7 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
             set -e
-            BRANCH="${{ github.ref_name }}"
+            BRANCH="${{ needs.docker-build.outputs.deploy_branch }}"
             DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
             if [ -z "$DEPLOY_DIR" ]; then
               if [ -d "$HOME/cashflowpoly-analytics-platform" ]; then
