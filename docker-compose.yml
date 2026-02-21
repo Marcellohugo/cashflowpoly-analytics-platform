@@ -44,6 +44,8 @@ services:
       AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}
     ports:
       - "${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}"
+    volumes:
+      - cashflowpoly_api_dpkeys:/root/.aspnet/DataProtection-Keys
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:${API_HTTP_PORT:-5041}/health/ready > /dev/null || exit 1"]
       interval: 10s
@@ -68,6 +70,8 @@ services:
       ApiBaseUrl: http://api:${API_HTTP_PORT:-5041}
     ports:
       - "${UI_HTTP_PORT:-5203}:${UI_HTTP_PORT:-5203}"
+    volumes:
+      - cashflowpoly_ui_dpkeys:/root/.aspnet/DataProtection-Keys
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:${UI_HTTP_PORT:-5203}/health/ready > /dev/null || exit 1"]
       interval: 10s
@@ -82,6 +86,8 @@ services:
 
 volumes:
   cashflowpoly_pgdata:
+  cashflowpoly_api_dpkeys:
+  cashflowpoly_ui_dpkeys:
 
 networks:
   cashflowpoly-net:

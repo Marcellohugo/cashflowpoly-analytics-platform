@@ -79,8 +79,90 @@ check_env_file() {
     log "Variabel .env tervalidasi."
 }
 
+get_env_file_value() {
+    local key="$1"
+    if [ ! -f .env ]; then
+        return 0
+    fi
+
+    local line
+    line="$(grep -E "^[[:space:]]*${key}[[:space:]]*=" .env | tail -n 1 || true)"
+    if [ -z "$line" ]; then
+        return 0
+    fi
+
+    echo "${line#*=}" | sed -e "s/^[[:space:]]*//" -e "s/[[:space:]]*$//" -e "s/^['\"]//" -e "s/['\"]$//"
+}
+
+is_tunnel_profile_enabled() {
+    local token="${CLOUDFLARE_TUNNEL_TOKEN:-}"
+    if [ -z "$token" ]; then
+        token="$(get_env_file_value "CLOUDFLARE_TUNNEL_TOKEN")"
+    fi
+
+    if [ -z "$token" ]; then
+        return 1
+    fi
+
+    if [[ "$token" =~ ^GANTI_ ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+http_status() {
+    local url="$1"
+    curl -sS -o /dev/null -w "%{http_code}" --max-redirs 0 "$url" || echo "000"
+}
+
+assert_status() {
+    local name="$1"
+    local url="$2"
+    local expected="$3"
+    local status
+    status="$(http_status "$url")"
+    if [ "$status" != "$expected" ]; then
+        error "$name gagal. URL: $url, status: $status (expected: $expected)"
+        return 1
+    fi
+
+    log "$name: $status"
+    return 0
+}
+
+run_smoke_checks() {
+    local mode="${1:-prod}"
+    local failed=0
+
+    info "Menjalankan smoke checks..."
+    if [ "$mode" = "prod" ]; then
+        assert_status "Health" "http://localhost/health" "200" || failed=1
+        assert_status "Health Live" "http://localhost/health/live" "200" || failed=1
+        assert_status "Health Ready" "http://localhost/health/ready" "200" || failed=1
+        assert_status "UI CSS Site" "http://localhost/css/site.css" "200" || failed=1
+        assert_status "UI CSS Tailwind" "http://localhost/css/tailwind.css" "200" || failed=1
+        assert_status "Swagger" "http://localhost/swagger/index.html" "200" || failed=1
+    else
+        assert_status "UI Health Ready" "http://localhost:5203/health/ready" "200" || failed=1
+        assert_status "API Health Ready" "http://localhost:5041/health/ready" "200" || failed=1
+        assert_status "UI CSS Site" "http://localhost:5203/css/site.css" "200" || failed=1
+        assert_status "UI CSS Tailwind" "http://localhost:5203/css/tailwind.css" "200" || failed=1
+        assert_status "Swagger" "http://localhost:5041/swagger/index.html" "200" || failed=1
+    fi
+
+    if [ "$failed" -ne 0 ]; then
+        exit 1
+    fi
+}
+
 validate_compose_prod() {
-    if ! docker compose -f docker-compose.yml -f docker-compose.prod.yml config >/dev/null; then
+    local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+    if is_tunnel_profile_enabled; then
+        compose_args+=(--profile tunnel)
+    fi
+
+    if ! docker compose "${compose_args[@]}" config >/dev/null; then
         error "Validasi compose production gagal."
         exit 1
     fi
@@ -103,6 +185,14 @@ deploy_production() {
     check_env_file
     validate_compose_prod
     local ghcr_registry="${GHCR_REGISTRY:-ghcr.io}"
+    local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+
+    if is_tunnel_profile_enabled; then
+        compose_args+=(--profile tunnel)
+        info "CLOUDFLARE_TUNNEL_TOKEN ditemukan. Tunnel profile akan dijalankan."
+    else
+        warn "CLOUDFLARE_TUNNEL_TOKEN tidak ditemukan. Deploy tetap berjalan tanpa profile tunnel."
+    fi
 
     if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
         info "Login ke GHCR (${ghcr_registry})..."
@@ -112,14 +202,15 @@ deploy_production() {
     fi
 
     info "Pull image production..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+    docker compose "${compose_args[@]}" pull api ui
 
     info "Starting semua service tanpa build ulang..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+    docker compose "${compose_args[@]}" up -d --no-build
 
     info "Menunggu health check..."
     sleep 15
 
+    run_smoke_checks prod
     show_status
     echo ""
     log "Deploy production selesai."
@@ -143,6 +234,7 @@ deploy_dev() {
     info "Menunggu health check..."
     sleep 15
 
+    run_smoke_checks dev
     show_status
     echo ""
     log "Deploy development selesai."
@@ -152,29 +244,49 @@ deploy_dev() {
 }
 
 show_status() {
+    local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+    if is_tunnel_profile_enabled; then
+        compose_args+=(--profile tunnel)
+    fi
+
     echo ""
     info "Status Container:"
     echo "----------------------------------------------------"
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml ps 2>/dev/null \
+    docker compose "${compose_args[@]}" ps 2>/dev/null \
         || docker compose ps
     echo "----------------------------------------------------"
 }
 
 show_logs() {
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=100 2>/dev/null \
+    local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+    if is_tunnel_profile_enabled; then
+        compose_args+=(--profile tunnel)
+    fi
+
+    docker compose "${compose_args[@]}" logs -f --tail=100 2>/dev/null \
         || docker compose logs -f --tail=100
 }
 
 stop_all() {
+    local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+    if is_tunnel_profile_enabled; then
+        compose_args+=(--profile tunnel)
+    fi
+
     warn "Menghentikan semua service..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml down 2>/dev/null \
+    docker compose "${compose_args[@]}" down 2>/dev/null \
         || docker compose down
     log "Semua service dihentikan."
 }
 
 restart_all() {
+    local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+    if is_tunnel_profile_enabled; then
+        compose_args+=(--profile tunnel)
+    fi
+
     info "Restart semua service..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml restart 2>/dev/null \
+    docker compose "${compose_args[@]}" restart 2>/dev/null \
         || docker compose restart
     sleep 10
     show_status

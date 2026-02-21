@@ -66,11 +66,98 @@ function Test-EnvFile {
     Write-Log "Variabel .env tervalidasi."
 }
 
+function Get-EnvFileValue {
+    param([Parameter(Mandatory = $true)][string]$Key)
+
+    if (-not (Test-Path ".env")) {
+        return $null
+    }
+
+    $pattern = "^\s*$([Regex]::Escape($Key))\s*=\s*(.*)$"
+    foreach ($line in Get-Content ".env") {
+        if ($line -match $pattern) {
+            return $Matches[1].Trim().Trim("'`"")
+        }
+    }
+
+    return $null
+}
+
+function Test-TunnelProfileEnabled {
+    $token = if (-not [string]::IsNullOrWhiteSpace($env:CLOUDFLARE_TUNNEL_TOKEN)) {
+        $env:CLOUDFLARE_TUNNEL_TOKEN
+    } else {
+        Get-EnvFileValue -Key "CLOUDFLARE_TUNNEL_TOKEN"
+    }
+
+    return -not [string]::IsNullOrWhiteSpace($token) -and -not $token.StartsWith("GANTI_", [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Get-ProductionComposeArgs {
+    $args = @("-f", "docker-compose.yml", "-f", "docker-compose.prod.yml")
+    if (Test-TunnelProfileEnabled) {
+        $args += @("--profile", "tunnel")
+    }
+
+    return $args
+}
+
+function Get-HttpStatusCode {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    try {
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 20
+        return [int]$response.StatusCode
+    } catch {
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            return [int]$_.Exception.Response.StatusCode.value__
+        }
+
+        return -1
+    }
+}
+
+function Invoke-SmokeChecks {
+    param([switch]$Production)
+
+    $checks = if ($Production) {
+        @(
+            @{ Name = "Health"; Url = "http://localhost/health"; Allowed = @(200) },
+            @{ Name = "Health Live"; Url = "http://localhost/health/live"; Allowed = @(200) },
+            @{ Name = "Health Ready"; Url = "http://localhost/health/ready"; Allowed = @(200) },
+            @{ Name = "UI CSS Site"; Url = "http://localhost/css/site.css"; Allowed = @(200) },
+            @{ Name = "UI CSS Tailwind"; Url = "http://localhost/css/tailwind.css"; Allowed = @(200) },
+            @{ Name = "Swagger"; Url = "http://localhost/swagger/index.html"; Allowed = @(200) }
+        )
+    } else {
+        @(
+            @{ Name = "UI Health Ready"; Url = "http://localhost:5203/health/ready"; Allowed = @(200) },
+            @{ Name = "API Health Ready"; Url = "http://localhost:5041/health/ready"; Allowed = @(200) },
+            @{ Name = "UI CSS Site"; Url = "http://localhost:5203/css/site.css"; Allowed = @(200) },
+            @{ Name = "UI CSS Tailwind"; Url = "http://localhost:5203/css/tailwind.css"; Allowed = @(200) },
+            @{ Name = "Swagger"; Url = "http://localhost:5041/swagger/index.html"; Allowed = @(200) }
+        )
+    }
+
+    Write-Info "Menjalankan smoke checks..."
+    foreach ($check in $checks) {
+        $status = Get-HttpStatusCode -Url $check.Url
+        if ($check.Allowed -contains $status) {
+            Write-Log "$($check.Name): $status"
+            continue
+        }
+
+        Write-Err "$($check.Name) gagal. URL: $($check.Url), status: $status"
+        exit 1
+    }
+}
+
 function Validate-ComposeFiles {
     param([switch]$Production)
 
     if ($Production) {
-        docker compose -f docker-compose.yml -f docker-compose.prod.yml config | Out-Null
+        $prodComposeArgs = Get-ProductionComposeArgs
+        docker compose @prodComposeArgs config | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Err "Validasi compose production gagal."
             exit 1
@@ -94,7 +181,14 @@ function Deploy-Production {
     Test-Dependencies
     Test-EnvFile
     Validate-ComposeFiles -Production
+    $prodComposeArgs = Get-ProductionComposeArgs
     $ghcrRegistry = if ($env:GHCR_REGISTRY) { $env:GHCR_REGISTRY } else { "ghcr.io" }
+
+    if (Test-TunnelProfileEnabled) {
+        Write-Info "CLOUDFLARE_TUNNEL_TOKEN ditemukan. Tunnel profile akan dijalankan."
+    } else {
+        Write-Warn "CLOUDFLARE_TUNNEL_TOKEN tidak ditemukan. Deploy tetap berjalan tanpa profile tunnel."
+    }
 
     if ($env:GHCR_USERNAME -and $env:GHCR_TOKEN) {
         Write-Info "Login ke GHCR ($ghcrRegistry)..."
@@ -108,14 +202,14 @@ function Deploy-Production {
     }
 
     Write-Info "Pull image production..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+    docker compose @prodComposeArgs pull api ui
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Pull image production gagal."
         exit 1
     }
 
     Write-Info "Starting semua service tanpa build ulang..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+    docker compose @prodComposeArgs up -d --no-build
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Deploy production gagal."
         exit 1
@@ -124,6 +218,7 @@ function Deploy-Production {
     Write-Info "Menunggu health check (15 detik)..."
     Start-Sleep -Seconds 15
 
+    Invoke-SmokeChecks -Production
     Show-Status
     Write-Host ""
     Write-Log "Deploy production selesai."
@@ -151,6 +246,7 @@ function Deploy-Dev {
     Write-Info "Menunggu health check (15 detik)..."
     Start-Sleep -Seconds 15
 
+    Invoke-SmokeChecks
     Show-Status
     Write-Host ""
     Write-Log "Deploy development selesai."
@@ -160,10 +256,11 @@ function Deploy-Dev {
 }
 
 function Show-Status {
+    $prodComposeArgs = Get-ProductionComposeArgs
     Write-Host ""
     Write-Info "Status Container:"
     Write-Host ("=" * 55)
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml ps 2>$null
+    docker compose @prodComposeArgs ps 2>$null
     if ($LASTEXITCODE -ne 0) {
         docker compose ps
     }
@@ -171,15 +268,17 @@ function Show-Status {
 }
 
 function Show-Logs {
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=100 2>$null
+    $prodComposeArgs = Get-ProductionComposeArgs
+    docker compose @prodComposeArgs logs -f --tail=100 2>$null
     if ($LASTEXITCODE -ne 0) {
         docker compose logs -f --tail=100
     }
 }
 
 function Stop-All {
+    $prodComposeArgs = Get-ProductionComposeArgs
     Write-Warn "Menghentikan semua service..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml down 2>$null
+    docker compose @prodComposeArgs down 2>$null
     if ($LASTEXITCODE -ne 0) {
         docker compose down
     }
@@ -187,8 +286,9 @@ function Stop-All {
 }
 
 function Restart-All {
+    $prodComposeArgs = Get-ProductionComposeArgs
     Write-Info "Restart semua service..."
-    docker compose -f docker-compose.yml -f docker-compose.prod.yml restart 2>$null
+    docker compose @prodComposeArgs restart 2>$null
     if ($LASTEXITCODE -ne 0) {
         docker compose restart
     }

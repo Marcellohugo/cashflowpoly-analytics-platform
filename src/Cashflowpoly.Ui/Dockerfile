@@ -1,3 +1,13 @@
+# assets
+FROM node:20-alpine AS assets
+WORKDIR /src/src/Cashflowpoly.Ui
+
+COPY src/Cashflowpoly.Ui/package.json src/Cashflowpoly.Ui/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY src/Cashflowpoly.Ui/ ./
+RUN npm run tailwind:build
+
 # build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
@@ -7,6 +17,7 @@ COPY src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj src/Cashflowpoly.Ui/
 RUN dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
 
 COPY . .
+COPY --from=assets /src/src/Cashflowpoly.Ui/wwwroot/css/tailwind.css src/Cashflowpoly.Ui/wwwroot/css/tailwind.css
 RUN dotnet publish src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release -o /app/publish
 
 # runtime

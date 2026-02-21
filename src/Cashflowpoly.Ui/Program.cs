@@ -52,10 +52,18 @@ app.UseSession();
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
+    var requestPath = path.Value ?? string.Empty;
     var isLoginPath = path.StartsWithSegments("/auth/login", StringComparison.OrdinalIgnoreCase);
     var isRegisterPath = path.StartsWithSegments("/auth/register", StringComparison.OrdinalIgnoreCase);
     var isLanguagePath = path.StartsWithSegments("/language", StringComparison.OrdinalIgnoreCase);
     var isHealthPath = path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
+    var isStaticAssetPath = System.IO.Path.HasExtension(requestPath)
+        || path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/js", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/lib", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/swagger", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/favicon.ico", StringComparison.OrdinalIgnoreCase);
     var hasRole = !string.IsNullOrWhiteSpace(
         context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey));
     var hasAccessToken = !string.IsNullOrWhiteSpace(
@@ -82,7 +90,12 @@ app.Use(async (context, next) =>
         hasAccessToken = false;
     }
 
-    if (!isLoginPath && !isRegisterPath && !isLanguagePath && !isHealthPath && (!hasRole || !hasAccessToken))
+    if (!isLoginPath &&
+        !isRegisterPath &&
+        !isLanguagePath &&
+        !isHealthPath &&
+        !isStaticAssetPath &&
+        (!hasRole || !hasAccessToken))
     {
         var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
         context.Response.Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
