@@ -1,4 +1,5 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Players/Details.cshtml beserta interaksi presentasinya. *@
+@using System.Globalization
 @using System.Text.Json
 @using Microsoft.AspNetCore.Http
 @using Cashflowpoly.Ui.Infrastructure
@@ -190,6 +191,57 @@
             .ToList();
     }
 
+    static bool TryParseMetricNumber(string rawValue, out double value)
+    {
+        var styles = NumberStyles.Float | NumberStyles.AllowThousands;
+        return double.TryParse(rawValue, styles, CultureInfo.InvariantCulture, out value) ||
+               double.TryParse(rawValue, styles, CultureInfo.CurrentCulture, out value);
+    }
+
+    static string FormatChartNumber(double value)
+    {
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    static string ToChartLabel(string rawPath)
+    {
+        if (string.IsNullOrWhiteSpace(rawPath))
+        {
+            return "value";
+        }
+
+        return rawPath.Replace(".", " > ", StringComparison.Ordinal);
+    }
+
+    static List<(string Label, double Value)> BuildNumericChartSeries(
+        IEnumerable<(string Path, string Value)> rows,
+        int maxPoints = 12)
+    {
+        var points = rows
+            .Select(row =>
+            {
+                var parsed = TryParseMetricNumber(row.Value, out var numericValue);
+                return (
+                    Parsed: parsed,
+                    Label: ToChartLabel(row.Path),
+                    Value: numericValue
+                );
+            })
+            .Where(item => item.Parsed && !double.IsNaN(item.Value) && !double.IsInfinity(item.Value))
+            .Select(item => (item.Label, item.Value))
+            .ToList();
+
+        if (points.Count <= maxPoints)
+        {
+            return points;
+        }
+
+        return points
+            .OrderByDescending(item => Math.Abs(item.Value))
+            .Take(maxPoints)
+            .ToList();
+    }
+
     var rawGroups = BuildMetricGroups(Model.GameplayRaw);
     var derivedGroups = BuildMetricGroups(Model.GameplayDerived);
     var rawGroupMap = rawGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
@@ -334,12 +386,52 @@
             <div class="metric-domain-layout mt-6">
                 @foreach (var partSection in part1Sections)
                 {
+                    var chartSeries = BuildNumericChartSeries(partSection.Rows);
+                    var maxChartAbs = chartSeries.Count > 0
+                        ? chartSeries.Max(point => Math.Abs(point.Value))
+                        : 0d;
+                    if (maxChartAbs <= 0)
+                    {
+                        maxChartAbs = 1d;
+                    }
+
                     <details class="metric-domain-card" open>
                         <summary>
                             <span>@partSection.Code @partSection.Title</span>
                             <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
                         </summary>
                         <p class="metric-domain-intro">@partSection.Description</p>
+
+                        @if (chartSeries.Count > 0)
+                        {
+                            <div class="physical-chart-card">
+                                <p class="physical-chart-title">@L("Grafik Variabel Numerik", "Numeric Variable Chart")</p>
+                                <p class="physical-chart-subtitle">
+                                    @L("Menampilkan variabel numerik yang dapat divisualkan dari bagian ini.", "Shows numeric variables that can be visualized from this section.")
+                                </p>
+                                <div class="physical-chart-list">
+                                    @foreach (var point in chartSeries)
+                                    {
+                                        var barWidth = Math.Abs(point.Value) / maxChartAbs * 100d;
+                                        var barClass = point.Value < 0
+                                            ? "physical-chart-fill is-negative"
+                                            : "physical-chart-fill is-positive";
+                                        <div class="physical-chart-item">
+                                            <div class="physical-chart-meta">
+                                                <span class="physical-chart-label">@point.Label</span>
+                                                <span class="physical-chart-value">@FormatChartNumber(point.Value)</span>
+                                            </div>
+                                            <div class="physical-chart-track">
+                                                <div class="@barClass"
+                                                     style="width:@barWidth.ToString("0.##", CultureInfo.InvariantCulture)%">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
                         @if (partSection.Rows.Count == 0)
                         {
                             <p class="text-sm text-slate-500">@Context.T("common.na")</p>
@@ -401,3 +493,74 @@
         </div>
     }
 </section>
+
+<style>
+    .physical-chart-card {
+        margin: 0.75rem 0 1rem;
+        padding: 0.85rem;
+        border: 1.5px solid #9fe1db;
+        border-radius: 0.85rem;
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(241, 253, 250, 0.94));
+    }
+
+    .physical-chart-title {
+        margin: 0;
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: #1f4863;
+    }
+
+    .physical-chart-subtitle {
+        margin: 0.2rem 0 0.7rem;
+        font-size: 0.75rem;
+        color: #4f6f83;
+    }
+
+    .physical-chart-list {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .physical-chart-meta {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .physical-chart-label {
+        color: #26475f;
+        font-size: 0.73rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .physical-chart-value {
+        color: #1e3f57;
+        font-size: 0.74rem;
+        font-weight: 800;
+        font-family: "Consolas", "Menlo", monospace;
+    }
+
+    .physical-chart-track {
+        height: 0.48rem;
+        border-radius: 999px;
+        background: rgba(141, 196, 214, 0.32);
+        overflow: hidden;
+    }
+
+    .physical-chart-fill {
+        height: 100%;
+        border-radius: inherit;
+        min-width: 2px;
+    }
+
+    .physical-chart-fill.is-positive {
+        background: linear-gradient(90deg, #1eb19f, #1d7f8e);
+    }
+
+    .physical-chart-fill.is-negative {
+        background: linear-gradient(90deg, #ef6666, #c44747);
+    }
+</style>
