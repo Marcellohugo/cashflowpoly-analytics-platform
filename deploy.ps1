@@ -25,6 +25,27 @@ function Write-Warn  { param($msg) Write-Host "[!]  $msg" -ForegroundColor Yello
 function Write-Err   { param($msg) Write-Host "[X]  $msg" -ForegroundColor Red }
 function Write-Info  { param($msg) Write-Host "[->] $msg" -ForegroundColor Cyan }
 
+function Invoke-ComposeWithOrphanSuppressed {
+    param([Parameter(Mandatory = $true)][scriptblock]$Command)
+
+    $previousIgnoreOrphans = $null
+    $hadIgnoreOrphans = Test-Path Env:COMPOSE_IGNORE_ORPHANS
+    if ($hadIgnoreOrphans) {
+        $previousIgnoreOrphans = $env:COMPOSE_IGNORE_ORPHANS
+    }
+
+    $env:COMPOSE_IGNORE_ORPHANS = "true"
+    try {
+        & $Command
+    } finally {
+        if ($hadIgnoreOrphans) {
+            $env:COMPOSE_IGNORE_ORPHANS = $previousIgnoreOrphans
+        } else {
+            Remove-Item Env:COMPOSE_IGNORE_ORPHANS -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Test-Dependencies {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
         Write-Err "Docker tidak ditemukan. Install Docker Desktop terlebih dahulu."
@@ -256,7 +277,7 @@ function Deploy-Dev {
 
     Validate-ComposeFiles
 
-    docker compose up -d --build
+    Invoke-ComposeWithOrphanSuppressed { docker compose up -d --build }
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Build/deploy development gagal."
         exit 1
@@ -287,7 +308,7 @@ function Deploy-DevWatch {
 
     Validate-ComposeWatch
 
-    docker compose @watchComposeArgs up -d --build
+    Invoke-ComposeWithOrphanSuppressed { docker compose @watchComposeArgs up -d --build }
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Build/deploy development watch gagal."
         exit 1
@@ -304,7 +325,7 @@ function Deploy-DevWatch {
     Write-Info "Akses API:     http://localhost:5041"
     Write-Info "Tekan Ctrl+C untuk berhenti mode watch."
 
-    docker compose @watchComposeArgs watch
+    Invoke-ComposeWithOrphanSuppressed { docker compose @watchComposeArgs watch }
 }
 
 function Show-Status {
