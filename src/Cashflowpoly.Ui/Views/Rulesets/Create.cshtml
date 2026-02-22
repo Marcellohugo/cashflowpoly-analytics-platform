@@ -39,11 +39,16 @@
     }
 
     <div class="mt-6 ruleset-unified">
-        <div class="ruleset-tipline">
-            <span>@Context.T("rulesets.tip.versioning_draft")</span>
-            <span>@Context.T("rulesets.tip.consistency")</span>
-            <span>@Context.T("rulesets.tip.safety_before_start")</span>
-        </div>
+        <details class="data-toggle">
+            <summary>@Context.T("rulesets.tips.form_title")</summary>
+            <div class="mt-3 metric-panel">
+                <div class="metric-list">
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("rulesets.tip.versioning_draft")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("rulesets.tip.consistency")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 3</span><span class="metric-value">@Context.T("rulesets.tip.safety_before_start")</span></div>
+                </div>
+            </div>
+        </details>
 
         <div class="mt-4 alert alert-info">
             <p class="text-sm font-semibold text-slate-800">@Context.T("rulesets.quick_guide_title")</p>
