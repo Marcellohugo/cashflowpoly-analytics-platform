@@ -42,11 +42,16 @@
             </div>
         }
 
-        <div class="mt-4 ruleset-tipline">
-            <span>@Context.T("rulesets.tip.create")</span>
-            <span>@Context.T("rulesets.tip.versioning")</span>
-            <span>@Context.T("rulesets.tip.safety")</span>
-        </div>
+        <details class="mt-4 data-toggle">
+            <summary>@Context.T("rulesets.tips.title")</summary>
+            <div class="mt-3 metric-panel">
+                <div class="metric-list">
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("rulesets.tip.create")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("rulesets.tip.versioning")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 3</span><span class="metric-value">@Context.T("rulesets.tip.safety")</span></div>
+                </div>
+            </div>
+        </details>
 
         <div class="mt-6 table-wrap">
             <table class="w-full text-left text-sm mobile-card-table">

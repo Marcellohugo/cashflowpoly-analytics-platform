@@ -35,7 +35,6 @@
         const playerLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames));
         const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
         const pollIntervalMs = 10000;
-        const maxBoardNodes = 24;
 
         const playerLookup = Object.fromEntries(
             Object.entries(playerLookupRaw ?? {}).map(([key, value]) => [String(key).toLowerCase(), value])
@@ -197,7 +196,7 @@
             timeline = Array.from(map.values()).sort((a, b) => a.sequenceNumber - b.sequenceNumber);
         };
         const renderJourneyBoard = () => {
-            const boardEvents = timeline.slice(-maxBoardNodes);
+            const boardEvents = timeline;
             if (boardEvents.length === 0) {
                 boardTrackEl.innerHTML = `<div class="session-journey-empty">${escapeHtml(emptyMessage)}</div>`;
                 return;

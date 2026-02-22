@@ -14,10 +14,10 @@
     var heroSubtitle = isInstructor
         ? Context.T("home.subtitle")
         : Context.T("home.player_subtitle");
-    var primaryCtaController = isInstructor ? "Sessions" : "Analytics";
+    var primaryCtaController = "Sessions";
     var primaryCtaText = isInstructor ? Context.T("home.cta.sessions") : Context.T("home.cta.my_progress");
-    var secondaryCtaController = isInstructor ? "Analytics" : "Rulesets";
-    var secondaryCtaText = isInstructor ? Context.T("home.cta.analytics") : Context.T("home.cta.open_ruleset");
+    var secondaryCtaController = "Rulesets";
+    var secondaryCtaText = Context.T("home.cta.open_ruleset");
     var totalSessionsLabel = isInstructor ? Context.T("home.total_sessions") : Context.T("home.my_sessions");
     var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : Context.T("home.peers_in_session");
     var totalRulesetsLabel = isInstructor ? Context.T("home.ruleset_active") : Context.T("home.available_rulesets");
@@ -147,19 +147,14 @@
                 <a asp-controller="Sessions" asp-action="Index">@Context.T("home.guide.sessions.link")</a>
             </article>
             <article class="tip-card">
-                <h3>@Context.T("home.guide.ruleset.title")</h3>
-                <p>@Context.T("home.guide.ruleset.desc")</p>
-                <a asp-controller="Rulesets" asp-action="Index">@Context.T("home.guide.ruleset.link")</a>
-            </article>
-            <article class="tip-card">
-                <h3>@Context.T("home.guide.analytics.title")</h3>
-                <p>@Context.T("home.guide.analytics.desc")</p>
-                <a asp-controller="Analytics" asp-action="Index">@Context.T("home.guide.analytics.link")</a>
-            </article>
-            <article class="tip-card">
                 <h3>@Context.T("home.guide.players.title")</h3>
                 <p>@Context.T("home.guide.players.desc")</p>
                 <a asp-controller="PlayerDirectory" asp-action="Index">@Context.T("home.guide.players.link")</a>
+            </article>
+            <article class="tip-card">
+                <h3>@Context.T("home.guide.ruleset.title")</h3>
+                <p>@Context.T("home.guide.ruleset.desc")</p>
+                <a asp-controller="Rulesets" asp-action="Index">@Context.T("home.guide.ruleset.link")</a>
             </article>
         </div>
 
@@ -186,9 +181,14 @@ else
 
         <div class="mt-6 tips-grid">
             <article class="tip-card">
+                <h3>@Context.T("nav.sessions")</h3>
+                <p>@Context.T("sessions.player_subtitle")</p>
+                <a asp-controller="Sessions" asp-action="Index">@Context.T("sessions.view_progress")</a>
+            </article>
+            <article class="tip-card">
                 <h3>@Context.T("home.player_guide.analytics.title")</h3>
                 <p>@Context.T("home.player_guide.analytics.desc")</p>
-                <a asp-controller="Analytics" asp-action="Index">@Context.T("home.player_guide.analytics.link")</a>
+                <a asp-controller="Sessions" asp-action="Index">@Context.T("home.player_guide.analytics.link")</a>
             </article>
             <article class="tip-card">
                 <h3>@Context.T("home.player_guide.ruleset.title")</h3>
