@@ -1146,7 +1146,14 @@
 
             const drawChart = (svg, payload) => {
                 const labels = Array.isArray(payload?.labels)
-                    ? payload.labels.map((value) => String(value ?? ""))
+                    ? payload.labels.map((value, index) => {
+                        const text = String(value ?? "").trim();
+                        if (text.length > 0) {
+                            return text;
+                        }
+
+                        return `Item ${index + 1}`;
+                    })
                     : [];
                 const chartType = String(payload?.chartType ?? "line").toLowerCase();
                 const series = Array.isArray(payload?.series)
@@ -1193,11 +1200,12 @@
                 const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
                 const baseWidth = vb && vb.width ? vb.width : 840;
                 const height = vb && vb.height ? vb.height : 360;
+                const longestLabelLength = labels.reduce((max, label) => Math.max(max, label.length), 0);
                 const hostCard = svg.closest(".chart-card");
                 let width = baseWidth;
                 if (chartType === "bar") {
-                    const minPitchPerLabel = Math.max(26, 16 + series.length * 10);
-                    const dynamicWidth = Math.max(baseWidth, labels.length * minPitchPerLabel + 180);
+                    const minPitchPerLabel = Math.min(180, Math.max(88, longestLabelLength * 6.2));
+                    const dynamicWidth = Math.max(baseWidth, labels.length * minPitchPerLabel + 220);
                     width = dynamicWidth;
                     svg.style.width = `${dynamicWidth}px`;
                     svg.style.maxWidth = "none";
@@ -1232,7 +1240,9 @@
                 const margin = {
                     top: 16 + legendRows * legendLineHeight + 12,
                     right: 24,
-                    bottom: 58,
+                    bottom: chartType === "bar"
+                        ? Math.min(150, Math.max(92, 58 + longestLabelLength * 2.7))
+                        : 58,
                     left: 62
                 };
                 const plotWidth = Math.max(80, width - margin.left - margin.right);
@@ -1313,10 +1323,29 @@
                     "stroke-width": "1.4"
                 }));
 
-                const xLabelStep = Math.max(1, Math.ceil(labels.length / 6));
+                const xLabelStep = chartType === "bar"
+                    ? 1
+                    : Math.max(1, Math.ceil(labels.length / 6));
                 labels.forEach((label, index) => {
                     const isLast = index === labels.length - 1;
                     if (!isLast && index % xLabelStep !== 0) {
+                        return;
+                    }
+
+                    if (chartType === "bar") {
+                        const x = xForIndex(index) + 6;
+                        const y = margin.top + plotHeight + 16;
+                        const text = makeNode("text", {
+                            x,
+                            y,
+                            transform: `rotate(-34 ${x} ${y})`,
+                            "text-anchor": "end",
+                            fill: "#5f7f92",
+                            "font-size": "10",
+                            "font-family": "Nunito, Segoe UI, sans-serif"
+                        });
+                        text.textContent = label;
+                        svg.appendChild(text);
                         return;
                     }
 
