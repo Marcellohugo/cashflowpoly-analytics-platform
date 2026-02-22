@@ -1699,112 +1699,172 @@ body > footer .footer-shell {
     font-style: italic;
 }
 
+.player-detail-overhaul {
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: thin;
+    scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
+}
+
+.player-detail-overhaul .player-detail-canvas {
+    min-width: 1780px;
+    width: max-content;
+}
+
+.player-detail-overhaul .eyebrow {
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+.player-detail-overhaul > .player-detail-canvas > div:first-child .headline {
+    font-size: clamp(2.05rem, 1vw + 1.72rem, 2.75rem);
+    line-height: 1.2;
+}
+
 .player-detail-overhaul .players-fusion-metrics {
-    padding: 1.3rem 1.35rem;
-    border-radius: 1.15rem;
+    padding: 1.6rem 1.7rem;
+    border-radius: 1.22rem;
+}
+
+.player-detail-overhaul .players-fusion-head .headline {
+    font-size: 1.9rem;
+    line-height: 1.24;
+}
+
+.player-detail-overhaul .players-fusion-head .subhead {
+    font-size: 1.08rem;
+    line-height: 1.6;
 }
 
 .player-detail-overhaul .player-detail-jump {
-    gap: 0.65rem;
+    gap: 0.75rem;
 }
 
 .player-detail-overhaul .player-detail-jump__link {
-    font-size: 0.86rem;
-    padding: 0.56rem 0.94rem;
+    font-size: 0.95rem;
+    padding: 0.7rem 1.14rem;
 }
 
 .player-detail-overhaul .metric-domain-layout {
     grid-template-columns: 1fr;
-    gap: 1.2rem;
+    gap: 1.35rem;
 }
 
 .player-detail-overhaul .metric-domain-card {
-    padding: 1.05rem 1.08rem;
-    border-radius: 1rem;
+    padding: 1.25rem 1.3rem;
+    border-radius: 1.08rem;
 }
 
 .player-detail-overhaul .metric-domain-heading h3 {
-    font-size: 1.08rem;
+    font-size: 1.22rem;
+}
+
+.player-detail-overhaul .metric-domain-count {
+    font-size: 0.84rem;
+    padding: 0.32rem 0.68rem;
 }
 
 .player-detail-overhaul .metric-domain-intro {
-    margin-top: 0.28rem;
-    font-size: 0.9rem;
-    line-height: 1.52;
+    margin-top: 0.32rem;
+    font-size: 1rem;
+    line-height: 1.6;
 }
 
 .player-detail-overhaul .metric-domain-empty {
-    margin-top: 0.35rem;
-    font-size: 0.88rem;
+    margin-top: 0.4rem;
+    font-size: 0.95rem;
 }
 
 .player-detail-overhaul .chart-grid {
-    gap: 1.15rem;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1.28rem;
+    grid-template-columns: repeat(auto-fit, minmax(560px, 1fr));
 }
 
 .player-detail-overhaul .chart-card {
-    padding: 1.05rem;
-    min-height: 300px;
-    border-radius: 1rem;
+    padding: 1.2rem;
+    min-height: 420px;
+    border-radius: 1.05rem;
 }
 
 .player-detail-overhaul .chart-title {
-    margin-bottom: 0.68rem;
-    font-size: 1.08rem;
-    line-height: 1.35;
+    margin-bottom: 0.82rem;
+    font-size: 1.24rem;
+    line-height: 1.36;
 }
 
 .player-detail-overhaul .chart-card .metric-line-chart {
-    height: 280px;
-    border-radius: 0.9rem;
-}
-
-@media (max-width: 700px) {
-    .player-detail-jump__link {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .metric-domain-heading {
-        align-items: flex-start;
-    }
+    height: 340px;
+    border-radius: 0.94rem;
 }
 
 @media (max-width: 1100px) {
+    .player-detail-overhaul .player-detail-canvas {
+        min-width: 1540px;
+    }
+
     .player-detail-overhaul .chart-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(500px, 1fr));
     }
 }
 
 @media (max-width: 768px) {
     .player-detail-overhaul {
-        padding: 1.18rem;
+        padding: 1.08rem;
+    }
+
+    .player-detail-overhaul .player-detail-canvas {
+        min-width: 1320px;
     }
 
     .player-detail-overhaul .players-fusion-metrics {
-        padding: 1rem;
+        padding: 1.16rem 1.08rem;
+    }
+
+    .player-detail-overhaul .players-fusion-head .headline {
+        font-size: 1.52rem;
+    }
+
+    .player-detail-overhaul .players-fusion-head .subhead {
+        font-size: 0.95rem;
+    }
+
+    .player-detail-overhaul .player-detail-jump__link {
+        width: auto;
+        justify-content: center;
+        font-size: 0.9rem;
     }
 
     .player-detail-overhaul .metric-domain-card {
-        padding: 0.9rem;
+        padding: 1rem;
+    }
+
+    .player-detail-overhaul .metric-domain-heading {
+        align-items: flex-start;
     }
 
     .player-detail-overhaul .metric-domain-heading h3 {
-        font-size: 1rem;
+        font-size: 1.08rem;
     }
 
     .player-detail-overhaul .metric-domain-intro {
-        font-size: 0.84rem;
+        font-size: 0.92rem;
+    }
+
+    .player-detail-overhaul .chart-grid {
+        grid-template-columns: repeat(2, minmax(440px, 1fr));
     }
 
     .player-detail-overhaul .chart-card {
-        min-height: 260px;
-        padding: 0.85rem;
+        min-height: 360px;
+        padding: 0.95rem;
+    }
+
+    .player-detail-overhaul .chart-title {
+        font-size: 1.08rem;
     }
 
     .player-detail-overhaul .chart-card .metric-line-chart {
-        height: 240px;
+        height: 300px;
     }
 }
 

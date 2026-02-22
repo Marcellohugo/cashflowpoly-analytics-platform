@@ -866,19 +866,20 @@
 }
 
 <section class="section-shell player-detail-overhaul">
-    <div>
-        <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
-        <h1 class="headline">@Context.T("players.detail_title")</h1>
-        @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
-        {
-            <p class="mt-2 text-base font-semibold text-slate-700">@Model.PlayerDisplayName</p>
-        }
-        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
-        @if (Model.GameplayComputedAt.HasValue)
-        {
-            <p class="mt-2 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
-        }
-    </div>
+    <div class="player-detail-canvas">
+        <div>
+            <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
+            <h1 class="headline">@Context.T("players.detail_title")</h1>
+            @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
+            {
+                <p class="mt-2 text-base font-semibold text-slate-700">@Model.PlayerDisplayName</p>
+            }
+            <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
+            @if (Model.GameplayComputedAt.HasValue)
+            {
+                <p class="mt-2 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+            }
+        </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
@@ -993,6 +994,7 @@
             </div>
         </div>
     }
+    </div>
 </section>
 
 @section Scripts {
