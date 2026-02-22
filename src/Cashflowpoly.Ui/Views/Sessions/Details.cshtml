@@ -161,6 +161,26 @@
         </div>
     }
 
+    <details class="mt-4 data-toggle">
+        <summary>@(isInstructor ? Context.T("analytics.tips.instructor") : Context.T("analytics.tips.player"))</summary>
+        <div class="mt-3 metric-panel">
+            <div class="metric-list">
+                @if (isInstructor)
+                {
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.input")</span><span class="metric-value">@Context.T("analytics.tip.input")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.interpretation")</span><span class="metric-value">@Context.T("analytics.tip.interpretation")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.followup")</span><span class="metric-value">@Context.T("analytics.tip.followup")</span></div>
+                }
+                else
+                {
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.select_session")</span><span class="metric-value">@Context.T("analytics.tip.select_session")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.focus_score")</span><span class="metric-value">@Context.T("analytics.tip.focus_score")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("analytics.tip_key.risk_control")</span><span class="metric-value">@Context.T("analytics.tip.risk_control")</span></div>
+                }
+            </div>
+        </div>
+    </details>
+
     <div class="mt-6 metric-panel">
         <p class="eyebrow">@Context.T("sessions.active_ruleset.title")</p>
         @if (Model.Analytics?.RulesetId is Guid activeRulesetId)

@@ -21,6 +21,17 @@
         </div>
     }
 
+    <details class="mt-4 data-toggle">
+        <summary>@Context.T("players.tips.title")</summary>
+        <div class="mt-3 metric-panel">
+            <div class="metric-list">
+                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.validate")</span><span class="metric-value">@Context.T("players.tip.validate")</span></div>
+                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.tracking")</span><span class="metric-value">@Context.T("players.tip.tracking")</span></div>
+                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.analysis")</span><span class="metric-value">@Context.T("players.tip.analysis")</span></div>
+            </div>
+        </div>
+    </details>
+
     @if (Model.SessionGroups.Count == 0)
     {
         <div class="mt-6 table-wrap">
