@@ -293,24 +293,60 @@
         return $"{label[..(maxLength - 3)]}...";
     }
 
+    static bool IsPreferredCombinedSummaryPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        // Keep only compact scalar-like paths in the primary summary.
+        return !path.Contains('[') && !path.Contains('.');
+    }
+
+    static bool IsFallbackCombinedSummaryPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        // Fallback: allow nested objects but still exclude indexed array rows
+        // because those are already represented in dedicated charts.
+        return !path.Contains('[');
+    }
+
     (string Title, string Json)? BuildMergedRowChart(
         string domainTitle,
         IEnumerable<(string Path, string Value)> rows)
     {
-        var points = new List<(string Label, double Value)>();
-        foreach (var row in rows)
-        {
-            if (!TryParseMetricNumber(row.Value, out var value))
-            {
-                continue;
-            }
+        var numericRows = rows
+            .Where(row => !string.IsNullOrWhiteSpace(row.Path))
+            .Where(row => TryParseMetricNumber(row.Value, out _))
+            .ToList();
 
-            points.Add((ShortMetricLabel(FormatMetricPathLabel(row.Path)), value));
+        var summaryRows = numericRows
+            .Where(row => IsPreferredCombinedSummaryPath(row.Path))
+            .ToList();
+        if (summaryRows.Count == 0)
+        {
+            summaryRows = numericRows
+                .Where(row => IsFallbackCombinedSummaryPath(row.Path))
+                .ToList();
         }
 
-        if (points.Count == 0)
+        if (summaryRows.Count == 0)
         {
             return null;
+        }
+
+        var points = new List<(string Label, double Value)>();
+        foreach (var row in summaryRows)
+        {
+            if (TryParseMetricNumber(row.Value, out var value))
+            {
+                points.Add((ShortMetricLabel(FormatMetricPathLabel(row.Path)), value));
+            }
         }
 
         const int maxPoints = 36;
