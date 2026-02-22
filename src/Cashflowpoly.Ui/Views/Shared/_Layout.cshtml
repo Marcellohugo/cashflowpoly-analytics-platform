@@ -30,13 +30,19 @@
     Func<bool, string> navClass = isActive => isActive ? "nav-link is-active" : "nav-link";
     var hideFooter = ViewData["HideFooter"] as bool? ?? false;
     var hideHeader = ViewData["HideHeader"] as bool? ?? false;
+    var brandName = Context.T("layout.brand_name");
+    var activeRoleLabel = string.Equals(activeRole, AuthConstants.InstructorRole, StringComparison.OrdinalIgnoreCase)
+        ? Context.T("auth.role_instructor")
+        : string.Equals(activeRole, AuthConstants.PlayerRole, StringComparison.OrdinalIgnoreCase)
+            ? Context.T("auth.role_player")
+            : activeRole;
 }
 <!DOCTYPE html>
 <html lang="@activeLanguage">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Cashflowpoly</title>
+    <title>@ViewData["Title"] - @brandName</title>
     <script type="importmap"></script>
     <link rel="icon" type="image/x-icon" href="~/images/cashflowpoly-favicon.ico" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
@@ -51,7 +57,7 @@
                 <a class="nav-brand flex items-center gap-3 text-lg font-semibold text-slate-900" asp-area="" asp-controller="Home" asp-action="Index">
                     <img class="brand-mark" src="~/images/images.jpg" asp-append-version="true" alt="@Context.T("layout.logo_alt")" />
                     <div class="leading-tight">
-                        <span class="brand-title">Cashflowpoly</span>
+                        <span class="brand-title">@brandName</span>
                     </div>
                 </a>
                 @if (!isAuthPage)
@@ -110,7 +116,7 @@
                                     <div class="profile-meta">
                                         <div class="profile-name">@(string.IsNullOrWhiteSpace(activeDisplayName) ? activeUsername : activeDisplayName)</div>
                                         <div class="profile-role">@Context.T("auth.username"): @activeUsername</div>
-                                        <div class="profile-role">@Context.T("profile.role"): @activeRole</div>
+                                        <div class="profile-role">@Context.T("profile.role"): @activeRoleLabel</div>
                                     </div>
                                     <form method="post" asp-controller="Auth" asp-action="Logout">
                                         @Html.AntiForgeryToken()
@@ -161,7 +167,7 @@
     {
         <footer class="border-t border-white/70">
             <div class="footer-shell">
-                <span>&copy; 2026 - Cashflowpoly</span>
+                <span>&copy; @DateTime.Now.Year - @brandName</span>
                 <a class="hover:text-slate-700" href="@($"{Url.Action("Rulebook", "Home")}#rulebook-copyright")">@Context.T("footer.rulebook_copyright")</a>
             </div>
         </footer>

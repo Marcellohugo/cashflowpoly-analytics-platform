@@ -84,9 +84,16 @@
             {
                 foreach (var item in Model.Items)
                 {
+                    var modeLabel = string.Equals(item.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(item.Mode, "ADVANCED", StringComparison.OrdinalIgnoreCase)
+                        ? Context.T("rulesets.form.mode_advanced")
+                        : string.Equals(item.Mode, "PEMULA", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(item.Mode, "BEGINNER", StringComparison.OrdinalIgnoreCase)
+                            ? Context.T("rulesets.form.mode_beginner")
+                            : (string.IsNullOrWhiteSpace(item.Mode) ? "-" : item.Mode);
                     <tr class="border-t border-slate-200">
                         <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.SessionName</td>
-                        <td class="px-4 py-3 text-slate-600" data-label="@Context.T("common.mode")">@item.Mode</td>
+                        <td class="px-4 py-3 text-slate-600" data-label="@Context.T("common.mode")">@modeLabel</td>
                         <td class="px-4 py-3 text-slate-600" data-label="@Context.T("common.status")">
                             @{
                                 var statusClass = string.Equals(item.Status, "STARTED", StringComparison.OrdinalIgnoreCase)

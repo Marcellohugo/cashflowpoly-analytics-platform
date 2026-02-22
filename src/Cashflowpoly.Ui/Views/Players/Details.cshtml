@@ -13,20 +13,20 @@
     var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
     string L(string id, string en) => isEnglish ? en : id;
 
-    static string FormatJsonLeafValue(JsonElement element)
+    string FormatJsonLeafValue(JsonElement element)
     {
         return element.ValueKind switch
         {
             JsonValueKind.String => element.GetString() ?? string.Empty,
-            JsonValueKind.True => "true",
-            JsonValueKind.False => "false",
+            JsonValueKind.True => L("ya", "true"),
+            JsonValueKind.False => L("tidak", "false"),
             JsonValueKind.Number => element.GetRawText(),
-            JsonValueKind.Null => "null",
+            JsonValueKind.Null => L("kosong", "null"),
             _ => element.GetRawText()
         };
     }
 
-    static List<(string Path, string Value)> FlattenJsonLeaves(JsonElement? root)
+    List<(string Path, string Value)> FlattenJsonLeaves(JsonElement? root)
     {
         var rows = new List<(string Path, string Value)>();
         if (!root.HasValue)
@@ -34,7 +34,7 @@
             return rows;
         }
 
-        static void Visit(JsonElement element, string path, List<(string Path, string Value)> output)
+        void Visit(JsonElement element, string path, List<(string Path, string Value)> output)
         {
             switch (element.ValueKind)
             {
@@ -88,7 +88,7 @@
         return rows;
     }
 
-    static List<(string GroupKey, List<(string Path, string Value)> Rows)> BuildMetricGroups(JsonElement? root)
+    List<(string GroupKey, List<(string Path, string Value)> Rows)> BuildMetricGroups(JsonElement? root)
     {
         var groups = new List<(string GroupKey, List<(string Path, string Value)> Rows)>();
         if (!root.HasValue || root.Value.ValueKind != JsonValueKind.Object)
@@ -158,17 +158,27 @@
         return false;
     }
 
-    static string HumanizeMetricKey(string key)
+    string HumanizeMetricKey(string key)
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            return "Metric";
+            return L("Metrik", "Metric");
+        }
+
+        if (string.Equals(key, "value", StringComparison.OrdinalIgnoreCase))
+        {
+            return L("Nilai", "Value");
+        }
+
+        if (string.Equals(key, "series", StringComparison.OrdinalIgnoreCase))
+        {
+            return L("Seri", "Series");
         }
 
         var text = key.Replace('_', ' ').Trim();
         if (text.Length == 0)
         {
-            return "Metric";
+            return L("Metrik", "Metric");
         }
 
         return char.ToUpperInvariant(text[0]) + text[1..];
@@ -564,7 +574,7 @@
         return charts;
     }
 
-    static List<(string Title, string Json)> BuildLineChartsForGroup(string groupKey, JsonElement groupElement)
+    List<(string Title, string Json)> BuildLineChartsForGroup(string groupKey, JsonElement groupElement)
     {
         var charts = new List<(string Title, string Json)>();
         if (groupElement.ValueKind != JsonValueKind.Object)
@@ -584,7 +594,7 @@
         return charts;
     }
 
-    static (string Title, string Json)? BuildLineChartPayload(string path, JsonElement element)
+    (string Title, string Json)? BuildLineChartPayload(string path, JsonElement element)
     {
         var labels = new List<string>();
         var series = new Dictionary<string, List<double?>>(StringComparer.OrdinalIgnoreCase);
@@ -733,7 +743,7 @@
         }
 
         var pathParts = path.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : "Series";
+        var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : L("Seri", "Series");
         var metricLabel = pathParts.Length > 1 ? HumanizeMetricKey(pathParts[^1]) : HumanizeMetricKey(path);
         var title = $"{groupLabel}: {metricLabel}";
         var payload = new
@@ -1197,6 +1207,11 @@
                 selectedDetail: @Html.Raw(JsonSerializer.Serialize(L("Detail data terpilih", "Selected data details"))),
                 tapHint: @Html.Raw(JsonSerializer.Serialize(L("Ketuk batang atau titik pada diagram untuk melihat detail variabel dan rumus.", "Tap bars or points in the chart to view metric and formula details.")))
             };
+            const chartStatusText = {
+                noSeries: @Html.Raw(JsonSerializer.Serialize(L("Belum ada rangkaian metrik untuk ditampilkan.", "No serial metrics are available to display."))),
+                noPoints: @Html.Raw(JsonSerializer.Serialize(L("Belum ada titik numerik untuk ditampilkan.", "No numeric points are available to display."))),
+                invalidPayload: @Html.Raw(JsonSerializer.Serialize(L("Payload diagram tidak valid.", "Chart payload is invalid.")))
+            };
             const formatMetricValue = (value) => {
                 if (typeof value !== "number" || !Number.isFinite(value)) {
                     return "-";
@@ -1425,7 +1440,7 @@
                                 : [];
 
                             return {
-                                name: String(item?.name ?? `Series ${index + 1}`),
+                                name: String(item?.name ?? `${tooltipText.series} ${index + 1}`),
                                 values
                             };
                         })
@@ -1433,7 +1448,7 @@
                     : [];
 
                 if (!labels.length || !series.length) {
-                    drawEmpty(svg, "No serial metrics available");
+                    drawEmpty(svg, chartStatusText.noSeries);
                     return;
                 }
 
@@ -1447,7 +1462,7 @@
                 });
 
                 if (!numericValues.length) {
-                    drawEmpty(svg, "No numeric points");
+                    drawEmpty(svg, chartStatusText.noPoints);
                     return;
                 }
 
@@ -1881,7 +1896,7 @@
                     const payload = JSON.parse(node.dataset.chart || "{}");
                     drawChart(node, payload);
                 } catch {
-                    drawEmpty(node, "Chart payload invalid");
+                    drawEmpty(node, chartStatusText.invalidPayload);
                 }
             });
         })();

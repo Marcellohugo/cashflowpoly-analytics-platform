@@ -71,6 +71,7 @@ public static class UiText
         ["layout.toggle_nav"] = ("Buka/tutup menu navigasi", "Toggle navigation menu"),
         ["layout.logo_alt"] = ("Logo Cashflowpoly", "Cashflowpoly logo"),
         ["layout.profile_alt"] = ("Profil", "Profile"),
+        ["layout.brand_name"] = ("Cashflowpoly", "Cashflowpoly"),
         ["footer.rulebook_copyright"] = ("Hak Cipta Buku Aturan", "Rulebook Copyright"),
 
         ["home.badge"] = ("Cashflowpoly", "Cashflowpoly"),
