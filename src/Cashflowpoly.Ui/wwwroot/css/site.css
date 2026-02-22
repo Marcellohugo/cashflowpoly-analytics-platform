@@ -1699,6 +1699,67 @@ body > footer .footer-shell {
     font-style: italic;
 }
 
+.player-detail-overhaul .players-fusion-metrics {
+    padding: 1.3rem 1.35rem;
+    border-radius: 1.15rem;
+}
+
+.player-detail-overhaul .player-detail-jump {
+    gap: 0.65rem;
+}
+
+.player-detail-overhaul .player-detail-jump__link {
+    font-size: 0.86rem;
+    padding: 0.56rem 0.94rem;
+}
+
+.player-detail-overhaul .metric-domain-layout {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+}
+
+.player-detail-overhaul .metric-domain-card {
+    padding: 1.05rem 1.08rem;
+    border-radius: 1rem;
+}
+
+.player-detail-overhaul .metric-domain-heading h3 {
+    font-size: 1.08rem;
+}
+
+.player-detail-overhaul .metric-domain-intro {
+    margin-top: 0.28rem;
+    font-size: 0.9rem;
+    line-height: 1.52;
+}
+
+.player-detail-overhaul .metric-domain-empty {
+    margin-top: 0.35rem;
+    font-size: 0.88rem;
+}
+
+.player-detail-overhaul .chart-grid {
+    gap: 1.15rem;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+
+.player-detail-overhaul .chart-card {
+    padding: 1.05rem;
+    min-height: 300px;
+    border-radius: 1rem;
+}
+
+.player-detail-overhaul .chart-title {
+    margin-bottom: 0.68rem;
+    font-size: 1.08rem;
+    line-height: 1.35;
+}
+
+.player-detail-overhaul .chart-card .metric-line-chart {
+    height: 280px;
+    border-radius: 0.9rem;
+}
+
 @media (max-width: 700px) {
     .player-detail-jump__link {
         width: 100%;
@@ -1707,6 +1768,43 @@ body > footer .footer-shell {
 
     .metric-domain-heading {
         align-items: flex-start;
+    }
+}
+
+@media (max-width: 1100px) {
+    .player-detail-overhaul .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .player-detail-overhaul {
+        padding: 1.18rem;
+    }
+
+    .player-detail-overhaul .players-fusion-metrics {
+        padding: 1rem;
+    }
+
+    .player-detail-overhaul .metric-domain-card {
+        padding: 0.9rem;
+    }
+
+    .player-detail-overhaul .metric-domain-heading h3 {
+        font-size: 1rem;
+    }
+
+    .player-detail-overhaul .metric-domain-intro {
+        font-size: 0.84rem;
+    }
+
+    .player-detail-overhaul .chart-card {
+        min-height: 260px;
+        padding: 0.85rem;
+    }
+
+    .player-detail-overhaul .chart-card .metric-line-chart {
+        height: 240px;
     }
 }
 

@@ -865,7 +865,7 @@
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
 }
 
-<section class="section-shell">
+<section class="section-shell player-detail-overhaul">
     <div>
         <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
         <h1 class="headline">@Context.T("players.detail_title")</h1>
@@ -937,7 +937,7 @@
                                     <article class="chart-card">
                                         <h3 class="chart-title">@chart.Title</h3>
                                         <svg class="metric-line-chart js-metric-line-chart"
-                                             viewBox="0 0 640 240"
+                                             viewBox="0 0 760 320"
                                              data-chart="@chart.Json"
                                              role="img"
                                              aria-label="@chart.Title"></svg>
@@ -980,7 +980,7 @@
                                     <article class="chart-card">
                                         <h3 class="chart-title">@chart.Title</h3>
                                         <svg class="metric-line-chart js-metric-line-chart"
-                                             viewBox="0 0 640 240"
+                                             viewBox="0 0 760 320"
                                              data-chart="@chart.Json"
                                              role="img"
                                              aria-label="@chart.Title"></svg>
@@ -1030,8 +1030,8 @@
             const drawEmpty = (svg, message) => {
                 clearNode(svg);
                 const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
-                const width = vb && vb.width ? vb.width : 640;
-                const height = vb && vb.height ? vb.height : 240;
+                const width = vb && vb.width ? vb.width : 760;
+                const height = vb && vb.height ? vb.height : 320;
                 const text = makeNode("text", {
                     x: width / 2,
                     y: height / 2,
@@ -1103,9 +1103,34 @@
                 clearNode(svg);
 
                 const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
-                const width = vb && vb.width ? vb.width : 640;
-                const height = vb && vb.height ? vb.height : 240;
-                const margin = { top: 28, right: 18, bottom: 44, left: 52 };
+                const width = vb && vb.width ? vb.width : 760;
+                const height = vb && vb.height ? vb.height : 320;
+                const legendLineHeight = 16;
+                const estimateLegendRows = () => {
+                    const rowMaxWidth = Math.max(180, width - 110);
+                    let rowWidth = 0;
+                    let rows = 1;
+                    series.forEach((item) => {
+                        const itemWidth = Math.max(110, item.name.length * 8 + 36);
+                        if (rowWidth + itemWidth > rowMaxWidth) {
+                            rows += 1;
+                            rowWidth = itemWidth;
+                            return;
+                        }
+
+                        rowWidth += itemWidth;
+                    });
+
+                    return rows;
+                };
+
+                const legendRows = estimateLegendRows();
+                const margin = {
+                    top: 16 + legendRows * legendLineHeight + 10,
+                    right: 22,
+                    bottom: 52,
+                    left: 56
+                };
                 const plotWidth = Math.max(80, width - margin.left - margin.right);
                 const plotHeight = Math.max(80, height - margin.top - margin.bottom);
 
@@ -1236,10 +1261,20 @@
                     flushSegment();
                 });
 
-                let legendX = margin.left;
-                const legendY = 14;
+                const legendStartX = margin.left;
+                let legendX = legendStartX;
+                let legendRow = 0;
+                const legendYBase = 16;
+                const legendMaxX = margin.left + plotWidth;
                 series.forEach((item, index) => {
                     const color = palette[index % palette.length];
+                    const itemWidth = Math.max(110, item.name.length * 8 + 36);
+                    if (legendX + itemWidth > legendMaxX) {
+                        legendRow += 1;
+                        legendX = legendStartX;
+                    }
+
+                    const legendY = legendYBase + legendRow * legendLineHeight;
                     svg.appendChild(makeNode("line", {
                         x1: legendX,
                         y1: legendY,
@@ -1260,7 +1295,7 @@
                     label.textContent = item.name;
                     svg.appendChild(label);
 
-                    legendX += Math.max(82, item.name.length * 7 + 28);
+                    legendX += itemWidth;
                 });
             };
 
