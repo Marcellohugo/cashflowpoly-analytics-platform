@@ -1711,6 +1711,82 @@ body > footer .footer-shell {
     font-weight: 800;
 }
 
+.metric-table-wrap {
+    margin-top: 0.45rem;
+    border: 1px solid #b7e8e2;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.9);
+    overflow-x: auto;
+}
+
+.metric-table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+}
+
+.metric-table th,
+.metric-table td {
+    padding: 0.5rem 0.62rem;
+    border-bottom: 1px solid #d8efec;
+    vertical-align: top;
+}
+
+.metric-table th {
+    color: #3e6077;
+    background: #f4fbfa;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.metric-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.metric-table-label {
+    color: #32566f;
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.metric-table-path {
+    color: #7391a4;
+    font-family: "JetBrains Mono", "Cascadia Code", monospace;
+    font-size: 0.69rem;
+    font-weight: 600;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.metric-table-value {
+    color: #1f3345;
+    font-family: "Nunito", "Segoe UI", sans-serif;
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-align: right;
+    word-break: break-word;
+}
+
+@media (max-width: 700px) {
+    .metric-table {
+        min-width: 420px;
+    }
+
+    .metric-table th,
+    .metric-table td {
+        padding: 0.44rem 0.5rem;
+    }
+
+    .metric-table-value {
+        text-align: left;
+    }
+}
+
 .live-dot {
     width: 0.6rem;
     height: 0.6rem;

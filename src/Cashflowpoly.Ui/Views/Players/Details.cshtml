@@ -719,17 +719,26 @@
                         }
                         else
                         {
-                            <div class="metric-list metric-list-compact">
-                                @foreach (var row in partSection.Rows)
-                                {
-                                    <div class="metric-row metric-row-dense">
-                                        <span class="metric-key metric-key-path">
-                                            <span class="metric-key-label">@FormatMetricPathLabel(row.Path)</span>
-                                            <span class="metric-key-raw">@row.Path</span>
-                                        </span>
-                                        <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                    </div>
-                                }
+                            <div class="metric-table-wrap">
+                                <table class="metric-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@L("Metrik", "Metric")</th>
+                                            <th scope="col">@Context.T("common.path")</th>
+                                            <th scope="col">@Context.T("common.value")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in partSection.Rows)
+                                        {
+                                            <tr>
+                                                <td class="metric-table-label">@FormatMetricPathLabel(row.Path)</td>
+                                                <td class="metric-table-path">@row.Path</td>
+                                                <td class="metric-table-value">@FormatMetricFieldValue(row.Value)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
                         }
                     </details>
@@ -777,17 +786,26 @@
                         }
                         else
                         {
-                            <div class="metric-list metric-list-compact">
-                                @foreach (var row in partSection.Rows)
-                                {
-                                    <div class="metric-row metric-row-dense">
-                                        <span class="metric-key metric-key-path">
-                                            <span class="metric-key-label">@FormatMetricPathLabel(row.Path)</span>
-                                            <span class="metric-key-raw">@row.Path</span>
-                                        </span>
-                                        <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
-                                    </div>
-                                }
+                            <div class="metric-table-wrap">
+                                <table class="metric-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">@L("Metrik", "Metric")</th>
+                                            <th scope="col">@Context.T("common.path")</th>
+                                            <th scope="col">@Context.T("common.value")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in partSection.Rows)
+                                        {
+                                            <tr>
+                                                <td class="metric-table-label">@FormatMetricPathLabel(row.Path)</td>
+                                                <td class="metric-table-path">@row.Path</td>
+                                                <td class="metric-table-value">@FormatMetricFieldValue(row.Value)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
                         }
                     </details>
