@@ -1699,6 +1699,16 @@ body > footer .footer-shell {
     font-style: italic;
 }
 
+.section-shell.player-detail-overhaul {
+    border: 1px solid #bfe8e3 !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 255, 253, 0.97)) !important;
+    box-shadow: 0 12px 28px rgba(20, 99, 134, 0.1);
+}
+
+.section-shell.player-detail-overhaul::after {
+    display: none;
+}
+
 .player-detail-overhaul {
     padding: clamp(1rem, 1.2vw + 0.72rem, 1.65rem);
     max-width: min(1760px, calc(100vw - 2rem));
@@ -1823,8 +1833,8 @@ body > footer .footer-shell {
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
-    padding: 0.25rem 0.1rem 0.72rem;
-    margin-right: -0.2rem;
+    overscroll-behavior-x: contain;
+    padding: 0.25rem 0.35rem 0.72rem 0.1rem;
     scrollbar-width: thin;
     scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
 }
@@ -1833,6 +1843,7 @@ body > footer .footer-shell {
     flex: 0 0 min(760px, 92vw);
     min-height: 398px;
     scroll-snap-align: start;
+    border-color: #bdeae4;
 }
 
 .player-detail-overhaul .chart-grid-scroll .chart-title {

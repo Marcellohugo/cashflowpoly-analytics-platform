@@ -277,22 +277,6 @@
         return false;
     }
 
-    static string ShortMetricLabel(string label)
-    {
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            return "Metric";
-        }
-
-        const int maxLength = 34;
-        if (label.Length <= maxLength)
-        {
-            return label;
-        }
-
-        return $"{label[..(maxLength - 3)]}...";
-    }
-
     static bool IsPreferredCombinedSummaryPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -341,11 +325,27 @@
         }
 
         var points = new List<(string Label, double Value)>();
+        var labelUsage = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in summaryRows)
         {
             if (TryParseMetricNumber(row.Value, out var value))
             {
-                points.Add((ShortMetricLabel(FormatMetricPathLabel(row.Path)), value));
+                var baseLabel = FormatMetricPathLabel(row.Path).Trim();
+                if (string.IsNullOrWhiteSpace(baseLabel))
+                {
+                    baseLabel = L("Metrik", "Metric");
+                }
+
+                if (!labelUsage.TryGetValue(baseLabel, out var usageCount))
+                {
+                    labelUsage[baseLabel] = 1;
+                    points.Add((baseLabel, value));
+                    continue;
+                }
+
+                usageCount += 1;
+                labelUsage[baseLabel] = usageCount;
+                points.Add(($"{baseLabel} ({usageCount})", value));
             }
         }
 
@@ -1157,6 +1157,20 @@
                 return `Item ${index + 1}`;
             };
 
+            const makeUniqueLabels = (labels) => {
+                const usageMap = new Map();
+                return labels.map((label) => {
+                    const key = String(label ?? "").toLowerCase();
+                    const nextCount = (usageMap.get(key) || 0) + 1;
+                    usageMap.set(key, nextCount);
+                    if (nextCount === 1) {
+                        return label;
+                    }
+
+                    return `${label} (${nextCount})`;
+                });
+            };
+
             const wrapAxisLabel = (label, maxCharsPerLine = 16, maxLines = 2) => {
                 const compactLabel = String(label ?? "").replace(/\s+/g, " ").trim();
                 if (!compactLabel.length) {
@@ -1210,9 +1224,10 @@
             };
 
             const drawChart = (svg, payload) => {
-                const labels = Array.isArray(payload?.labels)
+                const normalizedLabels = Array.isArray(payload?.labels)
                     ? payload.labels.map((value, index) => normalizeLabel(value, index))
                     : [];
+                const labels = makeUniqueLabels(normalizedLabels);
                 const chartType = String(payload?.chartType ?? "line").toLowerCase();
                 const series = Array.isArray(payload?.series)
                     ? payload.series
