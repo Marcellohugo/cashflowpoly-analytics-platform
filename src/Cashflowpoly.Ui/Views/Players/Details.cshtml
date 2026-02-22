@@ -1,4 +1,5 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Players/Details.cshtml beserta interaksi presentasinya. *@
+@using System.Globalization
 @using System.Text
 @using System.Text.Json
 @using Microsoft.AspNetCore.Http
@@ -242,24 +243,96 @@
         return string.Join(" - ", displayTokens);
     }
 
-    string FormatMetricFieldValue(string rawValue)
+    bool TryParseMetricNumber(string rawValue, out double numericValue)
     {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            numericValue = 0;
+            return false;
+        }
+
         if (string.Equals(rawValue, "true", StringComparison.OrdinalIgnoreCase))
         {
-            return Context.T("state.true");
+            numericValue = 1;
+            return true;
         }
 
         if (string.Equals(rawValue, "false", StringComparison.OrdinalIgnoreCase))
         {
-            return Context.T("state.false");
+            numericValue = 0;
+            return true;
         }
 
-        if (string.Equals(rawValue, "null", StringComparison.OrdinalIgnoreCase))
+        if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out numericValue))
         {
-            return Context.T("common.na");
+            return true;
         }
 
-        return string.IsNullOrEmpty(rawValue) ? "\"\"" : rawValue;
+        if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.CurrentCulture, out numericValue))
+        {
+            return true;
+        }
+
+        numericValue = 0;
+        return false;
+    }
+
+    static string ShortMetricLabel(string label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return "Metric";
+        }
+
+        const int maxLength = 34;
+        if (label.Length <= maxLength)
+        {
+            return label;
+        }
+
+        return $"{label[..(maxLength - 3)]}...";
+    }
+
+    (string Title, string Json)? BuildMergedRowChart(
+        string domainTitle,
+        IEnumerable<(string Path, string Value)> rows)
+    {
+        var points = new List<(string Label, double Value)>();
+        foreach (var row in rows)
+        {
+            if (!TryParseMetricNumber(row.Value, out var value))
+            {
+                continue;
+            }
+
+            points.Add((ShortMetricLabel(FormatMetricPathLabel(row.Path)), value));
+        }
+
+        if (points.Count == 0)
+        {
+            return null;
+        }
+
+        const int maxPoints = 36;
+        if (points.Count > maxPoints)
+        {
+            points = points.Take(maxPoints).ToList();
+        }
+
+        var payload = new
+        {
+            labels = points.Select(point => point.Label).ToList(),
+            series = new[]
+            {
+                new
+                {
+                    name = L("Nilai", "Value"),
+                    values = points.Select(point => (double?)point.Value).ToList()
+                }
+            }
+        };
+
+        return ($"{domainTitle}: {L("Ringkasan Gabungan", "Combined Snapshot")}", JsonSerializer.Serialize(payload));
     }
 
     static List<(string Path, string Value)> MergeUniqueRows(params IEnumerable<(string Path, string Value)>[] rowSets)
@@ -333,6 +406,43 @@
         }
 
         return result;
+    }
+
+    static List<(string Title, string Json)> FilterChartsByKeywords(
+        IEnumerable<(string Title, string Json)> charts,
+        params string[] keywords)
+    {
+        if (keywords is null || keywords.Length == 0)
+        {
+            return charts.ToList();
+        }
+
+        return charts
+            .Where(chart => keywords.Any(keyword => chart.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+
+    List<(string Title, string Json)> BuildSectionCharts(
+        string domainTitle,
+        List<(string Path, string Value)> rows,
+        List<(string Title, string Json)> baseCharts,
+        int maxCharts = 4)
+    {
+        var chartCandidates = new List<(string Title, string Json)>();
+        var mergedChart = BuildMergedRowChart(domainTitle, rows);
+        if (mergedChart.HasValue)
+        {
+            chartCandidates.Add(mergedChart.Value);
+        }
+
+        chartCandidates.AddRange(baseCharts);
+        var charts = MergeUniqueCharts(chartCandidates);
+        if (charts.Count > maxCharts)
+        {
+            return charts.Take(maxCharts).ToList();
+        }
+
+        return charts;
     }
 
     static List<(string Title, string Json)> GetGroupCharts(
@@ -561,19 +671,96 @@
         GetGroupCharts(rawGroupChartsMap, "turns"),
         GetGroupCharts(rawGroupChartsMap, rawFallbackKeys));
 
-    var part1Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows, List<(string Title, string Json)> Charts)>
+    var rawSections = new List<(string Title, string Description, List<(string Title, string Json)> Charts)>
     {
-        ("1.1", L("Variabel Koin & Finansial", "Coin-Based Financial Variables"), L("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."), GetGroupRows(rawGroupMap, "coins"), GetGroupCharts(rawGroupChartsMap, "coins")),
-        ("1.2", L("Variabel Kartu Bahan", "Ingredient Card Variables"), L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."), GetGroupRows(rawGroupMap, "ingredients"), GetGroupCharts(rawGroupChartsMap, "ingredients")),
-        ("1.3", L("Variabel Pesanan Makanan", "Meal Order Variables"), L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."), GetGroupRows(rawGroupMap, "meal_orders"), GetGroupCharts(rawGroupChartsMap, "meal_orders")),
-        ("1.4", L("Variabel Kartu Kebutuhan", "Need Card Variables"), L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."), GetGroupRows(rawGroupMap, "needs"), GetGroupCharts(rawGroupChartsMap, "needs")),
-        ("1.5", L("Variabel Donasi", "Donation Variables"), L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."), GetGroupRows(rawGroupMap, "donations"), GetGroupCharts(rawGroupChartsMap, "donations")),
-        ("1.6", L("Variabel Investasi Emas", "Gold Investment Variables"), L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."), GetGroupRows(rawGroupMap, "gold"), GetGroupCharts(rawGroupChartsMap, "gold")),
-        ("1.7", L("Variabel Dana Pensiun", "Pension Fund Variables"), L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."), GetGroupRows(rawGroupMap, "pension"), GetGroupCharts(rawGroupChartsMap, "pension")),
-        ("1.8", L("Variabel Risiko Hidup", "Life Risk Variables"), L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."), GetGroupRows(rawGroupMap, "life_risk"), GetGroupCharts(rawGroupChartsMap, "life_risk")),
-        ("1.9", L("Variabel Target Finansial", "Financial Goal Variables"), L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."), GetGroupRows(rawGroupMap, "financial_goals"), GetGroupCharts(rawGroupChartsMap, "financial_goals")),
-        ("1.10", L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"), L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."), GetGroupRows(rawGroupMap, "actions"), GetGroupCharts(rawGroupChartsMap, "actions")),
-        ("1.11", L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"), L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."), part11Rows, part11Charts)
+        (
+            L("Variabel Koin dan Finansial", "Coin and Financial Variables"),
+            L("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."),
+            BuildSectionCharts(
+                L("Variabel Koin dan Finansial", "Coin and Financial Variables"),
+                GetGroupRows(rawGroupMap, "coins"),
+                GetGroupCharts(rawGroupChartsMap, "coins"),
+                maxCharts: 5)),
+        (
+            L("Variabel Kartu Bahan", "Ingredient Card Variables"),
+            L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."),
+            BuildSectionCharts(
+                L("Variabel Kartu Bahan", "Ingredient Card Variables"),
+                GetGroupRows(rawGroupMap, "ingredients"),
+                GetGroupCharts(rawGroupChartsMap, "ingredients"),
+                maxCharts: 5)),
+        (
+            L("Variabel Pesanan Makanan", "Meal Order Variables"),
+            L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."),
+            BuildSectionCharts(
+                L("Variabel Pesanan Makanan", "Meal Order Variables"),
+                GetGroupRows(rawGroupMap, "meal_orders"),
+                GetGroupCharts(rawGroupChartsMap, "meal_orders"),
+                maxCharts: 5)),
+        (
+            L("Variabel Kartu Kebutuhan", "Need Card Variables"),
+            L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."),
+            BuildSectionCharts(
+                L("Variabel Kartu Kebutuhan", "Need Card Variables"),
+                GetGroupRows(rawGroupMap, "needs"),
+                GetGroupCharts(rawGroupChartsMap, "needs"),
+                maxCharts: 5)),
+        (
+            L("Variabel Donasi", "Donation Variables"),
+            L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."),
+            BuildSectionCharts(
+                L("Variabel Donasi", "Donation Variables"),
+                GetGroupRows(rawGroupMap, "donations"),
+                GetGroupCharts(rawGroupChartsMap, "donations"),
+                maxCharts: 5)),
+        (
+            L("Variabel Investasi Emas", "Gold Investment Variables"),
+            L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."),
+            BuildSectionCharts(
+                L("Variabel Investasi Emas", "Gold Investment Variables"),
+                GetGroupRows(rawGroupMap, "gold"),
+                GetGroupCharts(rawGroupChartsMap, "gold"),
+                maxCharts: 5)),
+        (
+            L("Variabel Dana Pensiun", "Pension Fund Variables"),
+            L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."),
+            BuildSectionCharts(
+                L("Variabel Dana Pensiun", "Pension Fund Variables"),
+                GetGroupRows(rawGroupMap, "pension"),
+                GetGroupCharts(rawGroupChartsMap, "pension"),
+                maxCharts: 5)),
+        (
+            L("Variabel Risiko Hidup", "Life Risk Variables"),
+            L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."),
+            BuildSectionCharts(
+                L("Variabel Risiko Hidup", "Life Risk Variables"),
+                GetGroupRows(rawGroupMap, "life_risk"),
+                GetGroupCharts(rawGroupChartsMap, "life_risk"),
+                maxCharts: 5)),
+        (
+            L("Variabel Target Finansial", "Financial Goal Variables"),
+            L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."),
+            BuildSectionCharts(
+                L("Variabel Target Finansial", "Financial Goal Variables"),
+                GetGroupRows(rawGroupMap, "financial_goals"),
+                GetGroupCharts(rawGroupChartsMap, "financial_goals"),
+                maxCharts: 5)),
+        (
+            L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
+            L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."),
+            BuildSectionCharts(
+                L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
+                GetGroupRows(rawGroupMap, "actions"),
+                GetGroupCharts(rawGroupChartsMap, "actions"),
+                maxCharts: 5)),
+        (
+            L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
+            L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."),
+            BuildSectionCharts(
+                L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
+                part11Rows,
+                part11Charts,
+                maxCharts: 5))
     };
 
     var derivedSummaryRows = GetGroupRows(derivedGroupMap, "summary");
@@ -631,12 +818,48 @@
         behaviorDerivedRows = MergeUniqueRows(behaviorDerivedRows, fallbackDerivedRows);
     }
 
-    var part2Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows, List<(string Title, string Json)> Charts)>
+    var derivedSections = new List<(string Title, string Description, List<(string Title, string Json)> Charts)>
     {
-        ("2.1", L("Metrik Performa Finansial", "Financial Performance Metrics"), L("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."), financialDerivedRows, GetGroupCharts(derivedGroupChartsMap, "summary", "expense_management_components")),
-        ("2.2", L("Metrik Keputusan Strategis", "Strategic Decision Metrics"), L("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."), strategicDerivedRows, GetGroupCharts(derivedGroupChartsMap, "risk_appetite_components")),
-        ("2.3", L("Metrik Perilaku Pemain", "Player Behavior Metrics"), L("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."), behaviorDerivedRows, GetGroupCharts(derivedGroupChartsMap, "summary")),
-        ("2.4", L("Metrik Flourishing", "Flourishing-Related Metrics"), L("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."), flourishingDerivedRows, GetGroupCharts(derivedGroupChartsMap, "happiness_portfolio"))
+        (
+            L("Metrik Performa Finansial", "Financial Performance Metrics"),
+            L("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."),
+            BuildSectionCharts(
+                L("Metrik Performa Finansial", "Financial Performance Metrics"),
+                financialDerivedRows,
+                FilterChartsByKeywords(
+                    GetGroupCharts(derivedGroupChartsMap, "summary", "expense_management_components"),
+                    "net", "income", "expense", "business", "gold", "growth"),
+                maxCharts: 4)),
+        (
+            L("Metrik Keputusan Strategis", "Strategic Decision Metrics"),
+            L("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."),
+            BuildSectionCharts(
+                L("Metrik Keputusan Strategis", "Strategic Decision Metrics"),
+                strategicDerivedRows,
+                FilterChartsByKeywords(
+                    GetGroupCharts(derivedGroupChartsMap, "summary", "risk_appetite_components"),
+                    "risk", "debt", "goal", "loan"),
+                maxCharts: 4)),
+        (
+            L("Metrik Perilaku Pemain", "Player Behavior Metrics"),
+            L("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."),
+            BuildSectionCharts(
+                L("Metrik Perilaku Pemain", "Player Behavior Metrics"),
+                behaviorDerivedRows,
+                FilterChartsByKeywords(
+                    GetGroupCharts(derivedGroupChartsMap, "summary"),
+                    "action", "meal", "order", "planning", "donation"),
+                maxCharts: 4)),
+        (
+            L("Metrik Flourishing", "Flourishing-Related Metrics"),
+            L("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."),
+            BuildSectionCharts(
+                L("Metrik Flourishing", "Flourishing-Related Metrics"),
+                flourishingDerivedRows,
+                FilterChartsByKeywords(
+                    GetGroupCharts(derivedGroupChartsMap, "summary", "happiness_portfolio"),
+                    "fulfillment", "mission", "happiness", "donation"),
+                maxCharts: 4))
     };
 
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
@@ -679,28 +902,37 @@
     }
     else
     {
-        <div class="players-fusion-metrics mt-6">
+        <nav class="player-detail-jump mt-6" aria-label="@L("Navigasi metrik pemain", "Player metric navigation")">
+            <a class="player-detail-jump__link" href="#physical-variables">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</a>
+            <a class="player-detail-jump__link" href="#derived-metrics">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</a>
+        </nav>
+
+        <div id="physical-variables" class="players-fusion-metrics mt-5">
             <div class="players-fusion-head">
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.raw")</p>
-                    <h2 class="headline text-xl">@L("Part 1: Variabel Permainan Fisik", "Part 1: Physical Gameplay Variables")</h2>
-                    <p class="subhead text-sm">@L("Semua variabel mentah disusun sesuai 11 domain observasi komponen permainan.", "All raw variables are organized into the 11 observable gameplay component domains.")</p>
+                    <h2 class="headline text-xl">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</h2>
+                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram garis, termasuk ringkasan gabungan poin yang sebelumnya tampil sebagai tabel.", "All raw-variable domains are visualized as line charts, including combined snapshots of points that previously appeared in tables.")</p>
                 </div>
             </div>
 
             <div class="metric-domain-layout mt-6">
-                @foreach (var partSection in part1Sections)
+                @foreach (var domain in rawSections)
                 {
-                    <details class="metric-domain-card" open>
-                        <summary>
-                            <span>@partSection.Code @partSection.Title</span>
-                            <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
-                        </summary>
-                        <p class="metric-domain-intro">@partSection.Description</p>
-                        @if (partSection.Charts.Count > 0)
+                    <article class="metric-domain-card metric-domain-card-flat">
+                        <div class="metric-domain-heading">
+                            <h3>@domain.Title</h3>
+                            <span class="metric-domain-count">@domain.Charts.Count @L("diagram", "charts")</span>
+                        </div>
+                        <p class="metric-domain-intro">@domain.Description</p>
+                        @if (domain.Charts.Count == 0)
+                        {
+                            <p class="metric-domain-empty">@L("Belum ada titik numerik untuk divisualkan pada domain ini.", "No numeric points are currently available for this domain.")</p>
+                        }
+                        else
                         {
                             <div class="chart-grid mt-4">
-                                @foreach (var chart in partSection.Charts)
+                                @foreach (var chart in domain.Charts)
                                 {
                                     <article class="chart-card">
                                         <h3 class="chart-title">@chart.Title</h3>
@@ -713,61 +945,37 @@
                                 }
                             </div>
                         }
-                        @if (partSection.Rows.Count == 0)
-                        {
-                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                        }
-                        else
-                        {
-                            <div class="metric-table-wrap">
-                                <table class="metric-table">
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">@L("Metrik", "Metric")</th>
-                                            <th scope="col">@Context.T("common.path")</th>
-                                            <th scope="col">@Context.T("common.value")</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var row in partSection.Rows)
-                                        {
-                                            <tr>
-                                                <td class="metric-table-label">@FormatMetricPathLabel(row.Path)</td>
-                                                <td class="metric-table-path">@row.Path</td>
-                                                <td class="metric-table-value">@FormatMetricFieldValue(row.Value)</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                    </details>
+                    </article>
                 }
             </div>
         </div>
 
-        <div class="players-fusion-metrics mt-6">
+        <div id="derived-metrics" class="players-fusion-metrics mt-6">
             <div class="players-fusion-head">
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.derived")</p>
-                    <h2 class="headline text-xl">@L("Part 2: Metrik Turunan Analitika", "Part 2: Derived Analytics Metrics")</h2>
-                    <p class="subhead text-sm">@L("Metrik turunan dikelompokkan ke 4 area evaluasi sesuai kerangka metrik yang Anda tetapkan.", "Derived metrics are grouped into 4 evaluation areas based on your metric framework.")</p>
+                    <h2 class="headline text-xl">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</h2>
+                    <p class="subhead text-sm">@L("Metrik turunan juga disajikan dalam diagram garis per domain agar pola performa lebih cepat terbaca.", "Derived metrics are also presented as per-domain line charts for faster pattern recognition.")</p>
                 </div>
             </div>
 
             <div class="metric-domain-layout mt-6">
-                @foreach (var partSection in part2Sections)
+                @foreach (var domain in derivedSections)
                 {
-                    <details class="metric-domain-card" open>
-                        <summary>
-                            <span>@partSection.Code @partSection.Title</span>
-                            <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
-                        </summary>
-                        <p class="metric-domain-intro">@partSection.Description</p>
-                        @if (partSection.Charts.Count > 0)
+                    <article class="metric-domain-card metric-domain-card-flat">
+                        <div class="metric-domain-heading">
+                            <h3>@domain.Title</h3>
+                            <span class="metric-domain-count">@domain.Charts.Count @L("diagram", "charts")</span>
+                        </div>
+                        <p class="metric-domain-intro">@domain.Description</p>
+                        @if (domain.Charts.Count == 0)
+                        {
+                            <p class="metric-domain-empty">@L("Belum ada titik numerik untuk divisualkan pada domain ini.", "No numeric points are currently available for this domain.")</p>
+                        }
+                        else
                         {
                             <div class="chart-grid mt-4">
-                                @foreach (var chart in partSection.Charts)
+                                @foreach (var chart in domain.Charts)
                                 {
                                     <article class="chart-card">
                                         <h3 class="chart-title">@chart.Title</h3>
@@ -780,35 +988,7 @@
                                 }
                             </div>
                         }
-                        @if (partSection.Rows.Count == 0)
-                        {
-                            <p class="text-sm text-slate-500">@Context.T("common.na")</p>
-                        }
-                        else
-                        {
-                            <div class="metric-table-wrap">
-                                <table class="metric-table">
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">@L("Metrik", "Metric")</th>
-                                            <th scope="col">@Context.T("common.path")</th>
-                                            <th scope="col">@Context.T("common.value")</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var row in partSection.Rows)
-                                        {
-                                            <tr>
-                                                <td class="metric-table-label">@FormatMetricPathLabel(row.Path)</td>
-                                                <td class="metric-table-path">@row.Path</td>
-                                                <td class="metric-table-value">@FormatMetricFieldValue(row.Value)</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                    </details>
+                    </article>
                 }
             </div>
         </div>
