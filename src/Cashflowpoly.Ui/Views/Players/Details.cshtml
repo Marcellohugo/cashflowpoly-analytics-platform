@@ -173,6 +173,75 @@
         return char.ToUpperInvariant(text[0]) + text[1..];
     }
 
+    string FormatMetricPathLabel(string rawPath)
+    {
+        if (string.IsNullOrWhiteSpace(rawPath))
+        {
+            return L("Metrik", "Metric");
+        }
+
+        var tokens = new List<string>();
+        var buffer = new StringBuilder();
+
+        void FlushBuffer()
+        {
+            if (buffer.Length == 0)
+            {
+                return;
+            }
+
+            tokens.Add(HumanizeMetricKey(buffer.ToString()));
+            buffer.Clear();
+        }
+
+        for (var index = 0; index < rawPath.Length; index++)
+        {
+            var current = rawPath[index];
+            if (current == '.')
+            {
+                FlushBuffer();
+                continue;
+            }
+
+            if (current == '[')
+            {
+                FlushBuffer();
+
+                var closeIndex = rawPath.IndexOf(']', index);
+                if (closeIndex > index)
+                {
+                    var indexToken = rawPath.Substring(index + 1, closeIndex - index - 1);
+                    if (int.TryParse(indexToken, out var parsedIndex))
+                    {
+                        tokens.Add($"{L("Item", "Item")} {parsedIndex + 1}");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(indexToken))
+                    {
+                        tokens.Add($"{L("Item", "Item")} {indexToken}");
+                    }
+
+                    index = closeIndex;
+                    continue;
+                }
+            }
+
+            buffer.Append(current);
+        }
+
+        FlushBuffer();
+
+        var displayTokens = tokens
+            .Where(token => !string.IsNullOrWhiteSpace(token))
+            .ToList();
+
+        if (displayTokens.Count == 0)
+        {
+            return HumanizeMetricKey(rawPath);
+        }
+
+        return string.Join(" - ", displayTokens);
+    }
+
     string FormatMetricFieldValue(string rawValue)
     {
         if (string.Equals(rawValue, "true", StringComparison.OrdinalIgnoreCase))
@@ -654,7 +723,10 @@
                                 @foreach (var row in partSection.Rows)
                                 {
                                     <div class="metric-row metric-row-dense">
-                                        <span class="metric-key metric-key-path">@row.Path</span>
+                                        <span class="metric-key metric-key-path">
+                                            <span class="metric-key-label">@FormatMetricPathLabel(row.Path)</span>
+                                            <span class="metric-key-raw">@row.Path</span>
+                                        </span>
                                         <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
                                     </div>
                                 }
@@ -709,7 +781,10 @@
                                 @foreach (var row in partSection.Rows)
                                 {
                                     <div class="metric-row metric-row-dense">
-                                        <span class="metric-key metric-key-path">@row.Path</span>
+                                        <span class="metric-key metric-key-path">
+                                            <span class="metric-key-label">@FormatMetricPathLabel(row.Path)</span>
+                                            <span class="metric-key-raw">@row.Path</span>
+                                        </span>
                                         <span class="metric-value metric-value-path">@FormatMetricFieldValue(row.Value)</span>
                                     </div>
                                 }

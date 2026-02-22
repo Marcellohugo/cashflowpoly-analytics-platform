@@ -1678,11 +1678,31 @@ body > footer .footer-shell {
 }
 
 .metric-key-path {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
     text-transform: none;
     letter-spacing: 0.01em;
     font-family: "Nunito", "Segoe UI", sans-serif;
     font-size: 0.78rem;
     color: #3e6077;
+}
+
+.metric-key-label {
+    color: #33566f;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+}
+
+.metric-key-raw {
+    color: #7391a4;
+    font-family: "JetBrains Mono", "Cascadia Code", monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.25;
+    word-break: break-word;
 }
 
 .metric-value-path {
