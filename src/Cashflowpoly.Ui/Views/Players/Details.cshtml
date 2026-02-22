@@ -1,4 +1,5 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Players/Details.cshtml beserta interaksi presentasinya. *@
+@using System.Text
 @using System.Text.Json
 @using Microsoft.AspNetCore.Http
 @using Cashflowpoly.Ui.Infrastructure
@@ -120,6 +121,58 @@
         return groups;
     }
 
+    static Dictionary<string, JsonElement> BuildMetricGroupElements(JsonElement? root)
+    {
+        var groups = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        if (!root.HasValue || root.Value.ValueKind != JsonValueKind.Object)
+        {
+            return groups;
+        }
+
+        foreach (var property in root.Value.EnumerateObject())
+        {
+            groups[property.Name] = property.Value.Clone();
+        }
+
+        return groups;
+    }
+
+    static bool TryGetNumericValue(JsonElement element, out double value)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Number:
+                return element.TryGetDouble(out value);
+            case JsonValueKind.String:
+                if (double.TryParse(element.GetString(), out var parsed))
+                {
+                    value = parsed;
+                    return true;
+                }
+
+                break;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    static string HumanizeMetricKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return "Metric";
+        }
+
+        var text = key.Replace('_', ' ').Trim();
+        if (text.Length == 0)
+        {
+            return "Metric";
+        }
+
+        return char.ToUpperInvariant(text[0]) + text[1..];
+    }
+
     string FormatMetricFieldValue(string rawValue)
     {
         if (string.Equals(rawValue, "true", StringComparison.OrdinalIgnoreCase))
@@ -190,10 +243,242 @@
             .ToList();
     }
 
+    static List<(string Title, string Json)> MergeUniqueCharts(params IEnumerable<(string Title, string Json)>[] chartSets)
+    {
+        var result = new List<(string Title, string Json)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var chartSet in chartSets)
+        {
+            foreach (var chart in chartSet)
+            {
+                if (string.IsNullOrWhiteSpace(chart.Title))
+                {
+                    continue;
+                }
+
+                if (seen.Add(chart.Title))
+                {
+                    result.Add(chart);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    static List<(string Title, string Json)> GetGroupCharts(
+        Dictionary<string, List<(string Title, string Json)>> source,
+        params string[] keys)
+    {
+        var charts = new List<(string Title, string Json)>();
+        foreach (var key in keys)
+        {
+            if (!source.TryGetValue(key, out var groupCharts))
+            {
+                continue;
+            }
+
+            charts.AddRange(groupCharts);
+        }
+
+        return charts;
+    }
+
+    static List<(string Title, string Json)> BuildLineChartsForGroup(string groupKey, JsonElement groupElement)
+    {
+        var charts = new List<(string Title, string Json)>();
+        if (groupElement.ValueKind != JsonValueKind.Object)
+        {
+            return charts;
+        }
+
+        foreach (var property in groupElement.EnumerateObject())
+        {
+            var chart = BuildLineChartPayload($"{groupKey}.{property.Name}", property.Value);
+            if (chart.HasValue)
+            {
+                charts.Add(chart.Value);
+            }
+        }
+
+        return charts;
+    }
+
+    static (string Title, string Json)? BuildLineChartPayload(string path, JsonElement element)
+    {
+        var labels = new List<string>();
+        var series = new Dictionary<string, List<double?>>(StringComparer.OrdinalIgnoreCase);
+
+        void AppendLabel(string label)
+        {
+            labels.Add(label);
+            foreach (var values in series.Values)
+            {
+                values.Add(null);
+            }
+        }
+
+        void SetSeriesValue(string seriesName, double value)
+        {
+            if (!series.TryGetValue(seriesName, out var values))
+            {
+                values = Enumerable.Repeat<double?>(null, labels.Count).ToList();
+                series[seriesName] = values;
+            }
+
+            values[labels.Count - 1] = value;
+        }
+
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            var items = element.EnumerateArray().ToList();
+            if (items.Count == 0)
+            {
+                return null;
+            }
+
+            if (items.All(item => TryGetNumericValue(item, out _)))
+            {
+                for (var index = 0; index < items.Count; index++)
+                {
+                    AppendLabel((index + 1).ToString());
+                    if (TryGetNumericValue(items[index], out var numericValue))
+                    {
+                        SetSeriesValue("value", numericValue);
+                    }
+                }
+            }
+            else if (items.All(item => item.ValueKind == JsonValueKind.Object))
+            {
+                var xAxisCandidates = new[]
+                {
+                    "turn_number",
+                    "day_index",
+                    "friday_index",
+                    "order_index",
+                    "card_index",
+                    "goal_index",
+                    "sequence_number",
+                    "index"
+                };
+
+                string? xKey = null;
+                foreach (var candidate in xAxisCandidates)
+                {
+                    if (items.Any(item => item.TryGetProperty(candidate, out _)))
+                    {
+                        xKey = candidate;
+                        break;
+                    }
+                }
+
+                if (xKey is null)
+                {
+                    xKey = items
+                        .SelectMany(item => item.EnumerateObject().Select(prop => prop.Name))
+                        .FirstOrDefault(name =>
+                            name.EndsWith("_number", StringComparison.OrdinalIgnoreCase) ||
+                            name.EndsWith("_index", StringComparison.OrdinalIgnoreCase));
+                }
+
+                for (var index = 0; index < items.Count; index++)
+                {
+                    var item = items[index];
+                    var label = (index + 1).ToString();
+                    var rowValues = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var property in item.EnumerateObject())
+                    {
+                        if (!string.IsNullOrWhiteSpace(xKey) &&
+                            property.Name.Equals(xKey, StringComparison.OrdinalIgnoreCase))
+                        {
+                            label = FormatJsonLeafValue(property.Value);
+                            continue;
+                        }
+
+                        if (TryGetNumericValue(property.Value, out var numericValue))
+                        {
+                            rowValues[property.Name] = numericValue;
+                            continue;
+                        }
+
+                        if (property.Value.ValueKind == JsonValueKind.Array &&
+                            property.Name.Equals("actions", StringComparison.OrdinalIgnoreCase))
+                        {
+                            rowValues["actions_count"] = property.Value.GetArrayLength();
+                        }
+                    }
+
+                    AppendLabel(label);
+                    foreach (var rowValue in rowValues)
+                    {
+                        SetSeriesValue(rowValue.Key, rowValue.Value);
+                    }
+                }
+            }
+            else
+            {
+                return null;
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Object &&
+                 path.Contains("_per_", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (!TryGetNumericValue(property.Value, out var numericValue))
+                {
+                    continue;
+                }
+
+                AppendLabel(HumanizeMetricKey(property.Name));
+                SetSeriesValue("value", numericValue);
+            }
+        }
+        else
+        {
+            return null;
+        }
+
+        var activeSeries = series
+            .Where(item => item.Value.Any(value => value.HasValue))
+            .Select(item => new
+            {
+                name = HumanizeMetricKey(item.Key),
+                values = item.Value
+            })
+            .ToList();
+        if (labels.Count == 0 || activeSeries.Count == 0)
+        {
+            return null;
+        }
+
+        var pathParts = path.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : "Series";
+        var metricLabel = pathParts.Length > 1 ? HumanizeMetricKey(pathParts[^1]) : HumanizeMetricKey(path);
+        var title = $"{groupLabel}: {metricLabel}";
+        var payload = new
+        {
+            labels,
+            series = activeSeries
+        };
+
+        return (title, JsonSerializer.Serialize(payload));
+    }
+
     var rawGroups = BuildMetricGroups(Model.GameplayRaw);
     var derivedGroups = BuildMetricGroups(Model.GameplayDerived);
     var rawGroupMap = rawGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
     var derivedGroupMap = derivedGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
+    var rawGroupElementMap = BuildMetricGroupElements(Model.GameplayRaw);
+    var derivedGroupElementMap = BuildMetricGroupElements(Model.GameplayDerived);
+    var rawGroupChartsMap = rawGroupElementMap.ToDictionary(
+        item => item.Key,
+        item => BuildLineChartsForGroup(item.Key, item.Value),
+        StringComparer.OrdinalIgnoreCase);
+    var derivedGroupChartsMap = derivedGroupElementMap.ToDictionary(
+        item => item.Key,
+        item => BuildLineChartsForGroup(item.Key, item.Value),
+        StringComparer.OrdinalIgnoreCase);
 
     var mappedRawKeys = new HashSet<string>(
         new[] { "coins", "ingredients", "meal_orders", "needs", "donations", "gold", "pension", "life_risk", "financial_goals", "actions", "turns" },
@@ -203,20 +488,23 @@
     var part11Rows = MergeUniqueRows(
         GetGroupRows(rawGroupMap, "turns"),
         GetGroupRows(rawGroupMap, rawFallbackKeys));
+    var part11Charts = MergeUniqueCharts(
+        GetGroupCharts(rawGroupChartsMap, "turns"),
+        GetGroupCharts(rawGroupChartsMap, rawFallbackKeys));
 
-    var part1Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows)>
+    var part1Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows, List<(string Title, string Json)> Charts)>
     {
-        ("1.1", L("Variabel Koin & Finansial", "Coin-Based Financial Variables"), L("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."), GetGroupRows(rawGroupMap, "coins")),
-        ("1.2", L("Variabel Kartu Bahan", "Ingredient Card Variables"), L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."), GetGroupRows(rawGroupMap, "ingredients")),
-        ("1.3", L("Variabel Pesanan Makanan", "Meal Order Variables"), L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."), GetGroupRows(rawGroupMap, "meal_orders")),
-        ("1.4", L("Variabel Kartu Kebutuhan", "Need Card Variables"), L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."), GetGroupRows(rawGroupMap, "needs")),
-        ("1.5", L("Variabel Donasi", "Donation Variables"), L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."), GetGroupRows(rawGroupMap, "donations")),
-        ("1.6", L("Variabel Investasi Emas", "Gold Investment Variables"), L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."), GetGroupRows(rawGroupMap, "gold")),
-        ("1.7", L("Variabel Dana Pensiun", "Pension Fund Variables"), L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."), GetGroupRows(rawGroupMap, "pension")),
-        ("1.8", L("Variabel Risiko Hidup", "Life Risk Variables"), L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."), GetGroupRows(rawGroupMap, "life_risk")),
-        ("1.9", L("Variabel Target Finansial", "Financial Goal Variables"), L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."), GetGroupRows(rawGroupMap, "financial_goals")),
-        ("1.10", L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"), L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."), GetGroupRows(rawGroupMap, "actions")),
-        ("1.11", L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"), L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."), part11Rows)
+        ("1.1", L("Variabel Koin & Finansial", "Coin-Based Financial Variables"), L("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."), GetGroupRows(rawGroupMap, "coins"), GetGroupCharts(rawGroupChartsMap, "coins")),
+        ("1.2", L("Variabel Kartu Bahan", "Ingredient Card Variables"), L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."), GetGroupRows(rawGroupMap, "ingredients"), GetGroupCharts(rawGroupChartsMap, "ingredients")),
+        ("1.3", L("Variabel Pesanan Makanan", "Meal Order Variables"), L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."), GetGroupRows(rawGroupMap, "meal_orders"), GetGroupCharts(rawGroupChartsMap, "meal_orders")),
+        ("1.4", L("Variabel Kartu Kebutuhan", "Need Card Variables"), L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."), GetGroupRows(rawGroupMap, "needs"), GetGroupCharts(rawGroupChartsMap, "needs")),
+        ("1.5", L("Variabel Donasi", "Donation Variables"), L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."), GetGroupRows(rawGroupMap, "donations"), GetGroupCharts(rawGroupChartsMap, "donations")),
+        ("1.6", L("Variabel Investasi Emas", "Gold Investment Variables"), L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."), GetGroupRows(rawGroupMap, "gold"), GetGroupCharts(rawGroupChartsMap, "gold")),
+        ("1.7", L("Variabel Dana Pensiun", "Pension Fund Variables"), L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."), GetGroupRows(rawGroupMap, "pension"), GetGroupCharts(rawGroupChartsMap, "pension")),
+        ("1.8", L("Variabel Risiko Hidup", "Life Risk Variables"), L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."), GetGroupRows(rawGroupMap, "life_risk"), GetGroupCharts(rawGroupChartsMap, "life_risk")),
+        ("1.9", L("Variabel Target Finansial", "Financial Goal Variables"), L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."), GetGroupRows(rawGroupMap, "financial_goals"), GetGroupCharts(rawGroupChartsMap, "financial_goals")),
+        ("1.10", L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"), L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."), GetGroupRows(rawGroupMap, "actions"), GetGroupCharts(rawGroupChartsMap, "actions")),
+        ("1.11", L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"), L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."), part11Rows, part11Charts)
     };
 
     var derivedSummaryRows = GetGroupRows(derivedGroupMap, "summary");
@@ -274,12 +562,12 @@
         behaviorDerivedRows = MergeUniqueRows(behaviorDerivedRows, fallbackDerivedRows);
     }
 
-    var part2Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows)>
+    var part2Sections = new List<(string Code, string Title, string Description, List<(string Path, string Value)> Rows, List<(string Title, string Json)> Charts)>
     {
-        ("2.1", L("Metrik Performa Finansial", "Financial Performance Metrics"), L("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."), financialDerivedRows),
-        ("2.2", L("Metrik Keputusan Strategis", "Strategic Decision Metrics"), L("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."), strategicDerivedRows),
-        ("2.3", L("Metrik Perilaku Pemain", "Player Behavior Metrics"), L("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."), behaviorDerivedRows),
-        ("2.4", L("Metrik Flourishing", "Flourishing-Related Metrics"), L("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."), flourishingDerivedRows)
+        ("2.1", L("Metrik Performa Finansial", "Financial Performance Metrics"), L("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."), financialDerivedRows, GetGroupCharts(derivedGroupChartsMap, "summary", "expense_management_components")),
+        ("2.2", L("Metrik Keputusan Strategis", "Strategic Decision Metrics"), L("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."), strategicDerivedRows, GetGroupCharts(derivedGroupChartsMap, "risk_appetite_components")),
+        ("2.3", L("Metrik Perilaku Pemain", "Player Behavior Metrics"), L("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."), behaviorDerivedRows, GetGroupCharts(derivedGroupChartsMap, "summary")),
+        ("2.4", L("Metrik Flourishing", "Flourishing-Related Metrics"), L("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."), flourishingDerivedRows, GetGroupCharts(derivedGroupChartsMap, "happiness_portfolio"))
     };
 
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
@@ -340,6 +628,22 @@
                             <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
                         </summary>
                         <p class="metric-domain-intro">@partSection.Description</p>
+                        @if (partSection.Charts.Count > 0)
+                        {
+                            <div class="chart-grid mt-4">
+                                @foreach (var chart in partSection.Charts)
+                                {
+                                    <article class="chart-card">
+                                        <h3 class="chart-title">@chart.Title</h3>
+                                        <svg class="metric-line-chart js-metric-line-chart"
+                                             viewBox="0 0 640 240"
+                                             data-chart="@chart.Json"
+                                             role="img"
+                                             aria-label="@chart.Title"></svg>
+                                    </article>
+                                }
+                            </div>
+                        }
                         @if (partSection.Rows.Count == 0)
                         {
                             <p class="text-sm text-slate-500">@Context.T("common.na")</p>
@@ -379,6 +683,22 @@
                             <span class="metric-domain-count">@partSection.Rows.Count @Context.T("players.metric_items_suffix")</span>
                         </summary>
                         <p class="metric-domain-intro">@partSection.Description</p>
+                        @if (partSection.Charts.Count > 0)
+                        {
+                            <div class="chart-grid mt-4">
+                                @foreach (var chart in partSection.Charts)
+                                {
+                                    <article class="chart-card">
+                                        <h3 class="chart-title">@chart.Title</h3>
+                                        <svg class="metric-line-chart js-metric-line-chart"
+                                             viewBox="0 0 640 240"
+                                             data-chart="@chart.Json"
+                                             role="img"
+                                             aria-label="@chart.Title"></svg>
+                                    </article>
+                                }
+                            </div>
+                        }
                         @if (partSection.Rows.Count == 0)
                         {
                             <p class="text-sm text-slate-500">@Context.T("common.na")</p>
@@ -401,3 +721,284 @@
         </div>
     }
 </section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const chartNodes = Array.from(document.querySelectorAll(".js-metric-line-chart[data-chart]"));
+            if (!chartNodes.length) {
+                return;
+            }
+
+            const ns = "http://www.w3.org/2000/svg";
+            const palette = [
+                "#1ba784",
+                "#2d7dd2",
+                "#f4a84a",
+                "#ef4e4e",
+                "#6a5acd",
+                "#00a6a6"
+            ];
+
+            const makeNode = (name, attrs = {}) => {
+                const node = document.createElementNS(ns, name);
+                Object.entries(attrs).forEach(([key, value]) => {
+                    node.setAttribute(key, String(value));
+                });
+                return node;
+            };
+
+            const clearNode = (node) => {
+                while (node.firstChild) {
+                    node.removeChild(node.firstChild);
+                }
+            };
+
+            const drawEmpty = (svg, message) => {
+                clearNode(svg);
+                const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
+                const width = vb && vb.width ? vb.width : 640;
+                const height = vb && vb.height ? vb.height : 240;
+                const text = makeNode("text", {
+                    x: width / 2,
+                    y: height / 2,
+                    "text-anchor": "middle",
+                    "dominant-baseline": "middle",
+                    fill: "#4f6e83",
+                    "font-size": "12",
+                    "font-family": "Nunito, Segoe UI, sans-serif"
+                });
+                text.textContent = message;
+                svg.appendChild(text);
+            };
+
+            const buildPath = (points) => {
+                if (!points.length) {
+                    return "";
+                }
+
+                let path = `M ${points[0].x} ${points[0].y}`;
+                for (let index = 1; index < points.length; index += 1) {
+                    path += ` L ${points[index].x} ${points[index].y}`;
+                }
+                return path;
+            };
+
+            const drawChart = (svg, payload) => {
+                const labels = Array.isArray(payload?.labels)
+                    ? payload.labels.map((value) => String(value ?? ""))
+                    : [];
+                const series = Array.isArray(payload?.series)
+                    ? payload.series
+                        .map((item, index) => {
+                            const values = Array.isArray(item?.values)
+                                ? item.values.map((value) => {
+                                    if (typeof value !== "number" || !Number.isFinite(value)) {
+                                        return null;
+                                    }
+                                    return value;
+                                })
+                                : [];
+
+                            return {
+                                name: String(item?.name ?? `Series ${index + 1}`),
+                                values
+                            };
+                        })
+                        .filter((item) => item.values.some((value) => value !== null))
+                    : [];
+
+                if (!labels.length || !series.length) {
+                    drawEmpty(svg, "No serial metrics available");
+                    return;
+                }
+
+                const numericValues = [];
+                series.forEach((item) => {
+                    item.values.forEach((value) => {
+                        if (value !== null) {
+                            numericValues.push(value);
+                        }
+                    });
+                });
+
+                if (!numericValues.length) {
+                    drawEmpty(svg, "No numeric points");
+                    return;
+                }
+
+                clearNode(svg);
+
+                const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
+                const width = vb && vb.width ? vb.width : 640;
+                const height = vb && vb.height ? vb.height : 240;
+                const margin = { top: 28, right: 18, bottom: 44, left: 52 };
+                const plotWidth = Math.max(80, width - margin.left - margin.right);
+                const plotHeight = Math.max(80, height - margin.top - margin.bottom);
+
+                let minY = Math.min(...numericValues);
+                let maxY = Math.max(...numericValues);
+                if (Math.abs(maxY - minY) < 0.000001) {
+                    const pad = Math.abs(maxY) < 1 ? 1 : Math.abs(maxY) * 0.1;
+                    minY -= pad;
+                    maxY += pad;
+                }
+
+                const xForIndex = (index) => {
+                    if (labels.length === 1) {
+                        return margin.left + plotWidth / 2;
+                    }
+
+                    return margin.left + (index * plotWidth) / (labels.length - 1);
+                };
+
+                const yForValue = (value) => (
+                    margin.top + ((maxY - value) * plotHeight) / (maxY - minY)
+                );
+
+                const gridTicks = 4;
+                for (let tick = 0; tick <= gridTicks; tick += 1) {
+                    const ratio = tick / gridTicks;
+                    const y = margin.top + ratio * plotHeight;
+                    const value = maxY - (maxY - minY) * ratio;
+
+                    svg.appendChild(makeNode("line", {
+                        x1: margin.left,
+                        y1: y,
+                        x2: margin.left + plotWidth,
+                        y2: y,
+                        stroke: "rgba(60, 125, 145, 0.18)",
+                        "stroke-width": "1"
+                    }));
+
+                    const label = makeNode("text", {
+                        x: margin.left - 8,
+                        y: y + 4,
+                        "text-anchor": "end",
+                        fill: "#5f7f92",
+                        "font-size": "11",
+                        "font-family": "Nunito, Segoe UI, sans-serif"
+                    });
+                    label.textContent = value.toFixed(1).replace(/\.0$/, "");
+                    svg.appendChild(label);
+                }
+
+                svg.appendChild(makeNode("line", {
+                    x1: margin.left,
+                    y1: margin.top,
+                    x2: margin.left,
+                    y2: margin.top + plotHeight,
+                    stroke: "#9ccfd2",
+                    "stroke-width": "1.4"
+                }));
+
+                svg.appendChild(makeNode("line", {
+                    x1: margin.left,
+                    y1: margin.top + plotHeight,
+                    x2: margin.left + plotWidth,
+                    y2: margin.top + plotHeight,
+                    stroke: "#9ccfd2",
+                    "stroke-width": "1.4"
+                }));
+
+                const xLabelStep = Math.max(1, Math.ceil(labels.length / 6));
+                labels.forEach((label, index) => {
+                    const isLast = index === labels.length - 1;
+                    if (!isLast && index % xLabelStep !== 0) {
+                        return;
+                    }
+
+                    const text = makeNode("text", {
+                        x: xForIndex(index),
+                        y: margin.top + plotHeight + 18,
+                        "text-anchor": "middle",
+                        fill: "#5f7f92",
+                        "font-size": "10",
+                        "font-family": "Nunito, Segoe UI, sans-serif"
+                    });
+                    text.textContent = label;
+                    svg.appendChild(text);
+                });
+
+                series.forEach((item, seriesIndex) => {
+                    const color = palette[seriesIndex % palette.length];
+                    let segment = [];
+
+                    const flushSegment = () => {
+                        if (!segment.length) {
+                            return;
+                        }
+
+                        const path = buildPath(segment);
+                        if (path.length) {
+                            svg.appendChild(makeNode("path", {
+                                d: path,
+                                fill: "none",
+                                stroke: color,
+                                "stroke-width": "2.2",
+                                "stroke-linejoin": "round",
+                                "stroke-linecap": "round"
+                            }));
+                        }
+                        segment = [];
+                    };
+
+                    item.values.forEach((value, index) => {
+                        if (value === null) {
+                            flushSegment();
+                            return;
+                        }
+
+                        const point = { x: xForIndex(index), y: yForValue(value) };
+                        segment.push(point);
+                        svg.appendChild(makeNode("circle", {
+                            cx: point.x,
+                            cy: point.y,
+                            r: "2.5",
+                            fill: color,
+                            stroke: "#ffffff",
+                            "stroke-width": "1"
+                        }));
+                    });
+                    flushSegment();
+                });
+
+                let legendX = margin.left;
+                const legendY = 14;
+                series.forEach((item, index) => {
+                    const color = palette[index % palette.length];
+                    svg.appendChild(makeNode("line", {
+                        x1: legendX,
+                        y1: legendY,
+                        x2: legendX + 14,
+                        y2: legendY,
+                        stroke: color,
+                        "stroke-width": "2.2",
+                        "stroke-linecap": "round"
+                    }));
+
+                    const label = makeNode("text", {
+                        x: legendX + 18,
+                        y: legendY + 4,
+                        fill: "#32576e",
+                        "font-size": "10",
+                        "font-family": "Nunito, Segoe UI, sans-serif"
+                    });
+                    label.textContent = item.name;
+                    svg.appendChild(label);
+
+                    legendX += Math.max(82, item.name.length * 7 + 28);
+                });
+            };
+
+            chartNodes.forEach((node) => {
+                try {
+                    const payload = JSON.parse(node.dataset.chart || "{}");
+                    drawChart(node, payload);
+                } catch {
+                    drawEmpty(node, "Chart payload invalid");
+                }
+            });
+        })();
+    </script>
+}
