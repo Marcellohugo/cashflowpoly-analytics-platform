@@ -1335,9 +1335,16 @@
 
                 let minY = Math.min(...numericValues);
                 let maxY = Math.max(...numericValues);
+                const hasNegativeValues = numericValues.some((value) => value < 0);
                 if (chartType === "bar") {
                     minY = Math.min(minY, 0);
                     maxY = Math.max(maxY, 0);
+                    const range = Math.max(0.000001, maxY - minY);
+                    const topPad = Math.max(0.5, range * 0.09);
+                    maxY += topPad;
+                    if (hasNegativeValues) {
+                        minY -= topPad * 0.35;
+                    }
                 }
                 if (Math.abs(maxY - minY) < 0.000001) {
                     const pad = Math.abs(maxY) < 1 ? 1 : Math.abs(maxY) * 0.1;
@@ -1459,12 +1466,16 @@
                 });
 
                 if (chartType === "bar") {
-                    const barGap = Math.max(4, Math.min(14, clusterWidth * 0.24));
-                    const seriesGap = 3;
-                    const availableBarWidth = Math.max(6, clusterWidth - barGap * 2);
-                    const barWidth = Math.max(
-                        3,
-                        (availableBarWidth - seriesGap * Math.max(0, series.length - 1)) / Math.max(1, series.length));
+                    const seriesCount = Math.max(1, series.length);
+                    const seriesGap = seriesCount > 1
+                        ? Math.max(2, Math.min(8, clusterWidth * 0.05))
+                        : 0;
+                    const clusterInnerWidth = Math.max(12, Math.min(220, clusterWidth * 0.72));
+                    const rawBarWidth =
+                        (clusterInnerWidth - seriesGap * Math.max(0, seriesCount - 1)) / seriesCount;
+                    const barWidth = Math.max(4, Math.min(56, rawBarWidth));
+                    const barGroupWidth = barWidth * seriesCount + seriesGap * Math.max(0, seriesCount - 1);
+                    const groupOffset = Math.max(0, (clusterWidth - barGroupWidth) / 2);
 
                     series.forEach((item, seriesIndex) => {
                         const color = palette[seriesIndex % palette.length];
@@ -1476,7 +1487,7 @@
                             const x =
                                 margin.left +
                                 clusterWidth * index +
-                                barGap +
+                                groupOffset +
                                 seriesIndex * (barWidth + seriesGap);
                             const y = yForValue(value);
                             const barTop = Math.min(y, zeroY);
