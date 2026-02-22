@@ -866,20 +866,19 @@
 }
 
 <section class="section-shell player-detail-overhaul">
-    <div class="player-detail-canvas">
-        <div>
-            <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
-            <h1 class="headline">@Context.T("players.detail_title")</h1>
-            @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
-            {
-                <p class="mt-2 text-base font-semibold text-slate-700">@Model.PlayerDisplayName</p>
-            }
-            <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
-            @if (Model.GameplayComputedAt.HasValue)
-            {
-                <p class="mt-2 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
-            }
-        </div>
+    <div>
+        <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
+        <h1 class="headline">@Context.T("players.detail_title")</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
+        {
+            <p class="mt-2 text-base font-semibold text-slate-700">@Model.PlayerDisplayName</p>
+        }
+        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
+        @if (Model.GameplayComputedAt.HasValue)
+        {
+            <p class="mt-2 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+        }
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
@@ -932,13 +931,13 @@
                         }
                         else
                         {
-                            <div class="chart-grid mt-4">
+                            <div class="chart-grid chart-grid-scroll mt-4">
                                 @foreach (var chart in domain.Charts)
                                 {
                                     <article class="chart-card">
                                         <h3 class="chart-title">@chart.Title</h3>
                                         <svg class="metric-line-chart js-metric-line-chart"
-                                             viewBox="0 0 760 320"
+                                             viewBox="0 0 840 360"
                                              data-chart="@chart.Json"
                                              role="img"
                                              aria-label="@chart.Title"></svg>
@@ -975,13 +974,13 @@
                         }
                         else
                         {
-                            <div class="chart-grid mt-4">
+                            <div class="chart-grid chart-grid-scroll mt-4">
                                 @foreach (var chart in domain.Charts)
                                 {
                                     <article class="chart-card">
                                         <h3 class="chart-title">@chart.Title</h3>
                                         <svg class="metric-line-chart js-metric-line-chart"
-                                             viewBox="0 0 760 320"
+                                             viewBox="0 0 840 360"
                                              data-chart="@chart.Json"
                                              role="img"
                                              aria-label="@chart.Title"></svg>
@@ -994,7 +993,6 @@
             </div>
         </div>
     }
-    </div>
 </section>
 
 @section Scripts {
@@ -1032,15 +1030,15 @@
             const drawEmpty = (svg, message) => {
                 clearNode(svg);
                 const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
-                const width = vb && vb.width ? vb.width : 760;
-                const height = vb && vb.height ? vb.height : 320;
+                const width = vb && vb.width ? vb.width : 840;
+                const height = vb && vb.height ? vb.height : 360;
                 const text = makeNode("text", {
                     x: width / 2,
                     y: height / 2,
                     "text-anchor": "middle",
                     "dominant-baseline": "middle",
                     fill: "#4f6e83",
-                    "font-size": "12",
+                    "font-size": "13",
                     "font-family": "Nunito, Segoe UI, sans-serif"
                 });
                 text.textContent = message;
@@ -1105,8 +1103,8 @@
                 clearNode(svg);
 
                 const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
-                const width = vb && vb.width ? vb.width : 760;
-                const height = vb && vb.height ? vb.height : 320;
+                const width = vb && vb.width ? vb.width : 840;
+                const height = vb && vb.height ? vb.height : 360;
                 const legendLineHeight = 16;
                 const estimateLegendRows = () => {
                     const rowMaxWidth = Math.max(180, width - 110);
@@ -1128,10 +1126,10 @@
 
                 const legendRows = estimateLegendRows();
                 const margin = {
-                    top: 16 + legendRows * legendLineHeight + 10,
-                    right: 22,
-                    bottom: 52,
-                    left: 56
+                    top: 16 + legendRows * legendLineHeight + 12,
+                    right: 24,
+                    bottom: 58,
+                    left: 62
                 };
                 const plotWidth = Math.max(80, width - margin.left - margin.right);
                 const plotHeight = Math.max(80, height - margin.top - margin.bottom);
@@ -1176,7 +1174,7 @@
                         y: y + 4,
                         "text-anchor": "end",
                         fill: "#5f7f92",
-                        "font-size": "11",
+                        "font-size": "12",
                         "font-family": "Nunito, Segoe UI, sans-serif"
                     });
                     label.textContent = value.toFixed(1).replace(/\.0$/, "");
@@ -1213,7 +1211,7 @@
                         y: margin.top + plotHeight + 18,
                         "text-anchor": "middle",
                         fill: "#5f7f92",
-                        "font-size": "10",
+                        "font-size": "11",
                         "font-family": "Nunito, Segoe UI, sans-serif"
                     });
                     text.textContent = label;
@@ -1235,7 +1233,7 @@
                                 d: path,
                                 fill: "none",
                                 stroke: color,
-                                "stroke-width": "2.2",
+                                "stroke-width": "2.4",
                                 "stroke-linejoin": "round",
                                 "stroke-linecap": "round"
                             }));
@@ -1254,7 +1252,7 @@
                         svg.appendChild(makeNode("circle", {
                             cx: point.x,
                             cy: point.y,
-                            r: "2.5",
+                            r: "3",
                             fill: color,
                             stroke: "#ffffff",
                             "stroke-width": "1"
@@ -1291,7 +1289,7 @@
                         x: legendX + 18,
                         y: legendY + 4,
                         fill: "#32576e",
-                        "font-size": "10",
+                        "font-size": "11",
                         "font-family": "Nunito, Segoe UI, sans-serif"
                     });
                     label.textContent = item.name;
