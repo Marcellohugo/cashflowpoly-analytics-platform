@@ -949,7 +949,7 @@
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.raw")</p>
                     <h2 class="headline text-xl">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</h2>
-                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram garis, termasuk ringkasan gabungan poin yang sebelumnya tampil sebagai tabel.", "All raw-variable domains are visualized as line charts, including combined snapshots of points that previously appeared in tables.")</p>
+                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability.")</p>
                 </div>
             </div>
 
@@ -1017,7 +1017,7 @@
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.derived")</p>
                     <h2 class="headline text-xl">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</h2>
-                    <p class="subhead text-sm">@L("Metrik turunan juga disajikan dalam diagram garis per domain agar pola performa lebih cepat terbaca.", "Derived metrics are also presented as per-domain line charts for faster pattern recognition.")</p>
+                    <p class="subhead text-sm">@L("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear.")</p>
                 </div>
             </div>
 
@@ -1144,16 +1144,74 @@
                 return path;
             };
 
-            const drawChart = (svg, payload) => {
-                const labels = Array.isArray(payload?.labels)
-                    ? payload.labels.map((value, index) => {
-                        const text = String(value ?? "").trim();
-                        if (text.length > 0) {
-                            return text;
+            const normalizeLabel = (value, index) => {
+                const text = String(value ?? "")
+                    .replace(/[_-]+/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+                if (text.length > 0) {
+                    return text;
+                }
+
+                return `Item ${index + 1}`;
+            };
+
+            const wrapAxisLabel = (label, maxCharsPerLine = 16, maxLines = 2) => {
+                const compactLabel = String(label ?? "").replace(/\s+/g, " ").trim();
+                if (!compactLabel.length) {
+                    return ["-"];
+                }
+
+                const words = compactLabel.split(" ");
+                const lines = [];
+                let currentLine = "";
+
+                words.forEach((word) => {
+                    const chunks = word.length > maxCharsPerLine
+                        ? word.match(new RegExp(`.{1,${maxCharsPerLine}}`, "g")) || [word]
+                        : [word];
+
+                    chunks.forEach((chunk) => {
+                        const candidate = currentLine.length > 0
+                            ? `${currentLine} ${chunk}`
+                            : chunk;
+
+                        if (candidate.length <= maxCharsPerLine) {
+                            currentLine = candidate;
+                            return;
                         }
 
-                        return `Item ${index + 1}`;
-                    })
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine);
+                        }
+                        currentLine = chunk;
+                    });
+                });
+
+                if (currentLine.length > 0) {
+                    lines.push(currentLine);
+                }
+
+                if (lines.length <= maxLines) {
+                    return lines;
+                }
+
+                const trimmedLines = lines.slice(0, maxLines);
+                const lastIndex = maxLines - 1;
+                const lastLine = trimmedLines[lastIndex];
+                if (lastLine.length >= maxCharsPerLine - 1) {
+                    trimmedLines[lastIndex] = `${lastLine.slice(0, Math.max(1, maxCharsPerLine - 1)).trim()}...`;
+                } else {
+                    trimmedLines[lastIndex] = `${lastLine}...`;
+                }
+
+                return trimmedLines;
+            };
+
+            const drawChart = (svg, payload) => {
+                const labels = Array.isArray(payload?.labels)
+                    ? payload.labels.map((value, index) => normalizeLabel(value, index))
                     : [];
                 const chartType = String(payload?.chartType ?? "line").toLowerCase();
                 const series = Array.isArray(payload?.series)
@@ -1201,12 +1259,22 @@
                 const baseWidth = vb && vb.width ? vb.width : 840;
                 const height = vb && vb.height ? vb.height : 360;
                 const longestLabelLength = labels.reduce((max, label) => Math.max(max, label.length), 0);
+                const averageLabelLength = labels.length
+                    ? labels.reduce((total, label) => total + label.length, 0) / labels.length
+                    : 0;
                 const hostCard = svg.closest(".chart-card");
                 let width = baseWidth;
+                let barLabelCharsPerLine = 16;
+                let wrappedAxisLabels = [];
                 if (chartType === "bar") {
-                    const minPitchPerLabel = Math.min(180, Math.max(88, longestLabelLength * 6.2));
-                    const dynamicWidth = Math.max(baseWidth, labels.length * minPitchPerLabel + 220);
+                    const minPitchPerLabel = Math.min(260, Math.max(
+                        124,
+                        longestLabelLength * 7.1,
+                        averageLabelLength * 6.6 + 42));
+                    const dynamicWidth = Math.max(baseWidth, labels.length * minPitchPerLabel + 280);
                     width = dynamicWidth;
+                    barLabelCharsPerLine = Math.max(11, Math.min(22, Math.round(minPitchPerLabel / 8)));
+                    wrappedAxisLabels = labels.map((label) => wrapAxisLabel(label, barLabelCharsPerLine, 2));
                     svg.style.width = `${dynamicWidth}px`;
                     svg.style.maxWidth = "none";
                     hostCard?.classList.add("chart-card-hscroll");
@@ -1239,9 +1307,11 @@
                 const legendRows = estimateLegendRows();
                 const margin = {
                     top: 16 + legendRows * legendLineHeight + 12,
-                    right: 24,
+                    right: chartType === "bar" ? 52 : 24,
                     bottom: chartType === "bar"
-                        ? Math.min(150, Math.max(92, 58 + longestLabelLength * 2.7))
+                        ? 80 + Math.max(0, (
+                            wrappedAxisLabels.reduce((max, lines) => Math.max(max, lines.length), 1) - 1
+                        ) * 13)
                         : 58,
                     left: 62
                 };
@@ -1333,18 +1403,30 @@
                     }
 
                     if (chartType === "bar") {
-                        const x = xForIndex(index) + 6;
-                        const y = margin.top + plotHeight + 16;
+                        const x = xForIndex(index);
+                        const y = margin.top + plotHeight + 18;
+                        const labelLines = wrappedAxisLabels[index] || [label];
                         const text = makeNode("text", {
                             x,
                             y,
-                            transform: `rotate(-34 ${x} ${y})`,
-                            "text-anchor": "end",
+                            "text-anchor": "middle",
                             fill: "#5f7f92",
-                            "font-size": "10",
+                            "font-size": "10.5",
                             "font-family": "Nunito, Segoe UI, sans-serif"
                         });
-                        text.textContent = label;
+                        labelLines.forEach((line, lineIndex) => {
+                            const tspan = makeNode("tspan", {
+                                x,
+                                dy: lineIndex === 0 ? 0 : 12
+                            });
+                            tspan.textContent = line;
+                            text.appendChild(tspan);
+                        });
+                        if (labelLines.join(" ").replace(/\.\.\.$/, "").trim() !== label) {
+                            const fullLabel = makeNode("title");
+                            fullLabel.textContent = label;
+                            text.appendChild(fullLabel);
+                        }
                         svg.appendChild(text);
                         return;
                     }
