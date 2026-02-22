@@ -30,7 +30,7 @@ public sealed class PlayerDirectoryController : Controller
     {
         if (!HttpContext.Session.IsInstructor())
         {
-            return RedirectToAction("Index", "Analytics");
+            return RedirectToAction("Index", "Sessions");
         }
 
         var client = _clientFactory.CreateClient("Api");

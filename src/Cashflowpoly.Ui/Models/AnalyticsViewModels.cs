@@ -4,26 +4,6 @@ using System.Text.Json;
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsSearchViewModel pada modul ini.
-/// </summary>
-public sealed class AnalyticsSearchViewModel
-{
-    public string SessionId { get; set; } = string.Empty;
-    public bool IsInstructor { get; set; } = true;
-    /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
-    /// </summary>
-    public List<SessionListItemDto> Sessions { get; set; } = new();
-    /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
-    /// </summary>
-    public Dictionary<Guid, string> PlayerDisplayNames { get; set; } = new();
-    public AnalyticsSessionResponseDto? Result { get; set; }
-    public string? ErrorMessage { get; set; }
-    public string? SessionLookupErrorMessage { get; set; }
-}
-
-/// <summary>
 /// Menyatakan peran utama tipe SessionListViewModel pada modul ini.
 /// </summary>
 public sealed class SessionListViewModel

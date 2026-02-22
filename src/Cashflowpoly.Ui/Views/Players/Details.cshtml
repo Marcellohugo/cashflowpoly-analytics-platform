@@ -989,18 +989,23 @@
                             }
                             if (detailCharts.Count > 0)
                             {
-                                <div class="chart-grid chart-grid-scroll mt-4">
-                                    @foreach (var chart in detailCharts)
-                                    {
-                                        <article class="chart-card">
-                                            <h3 class="chart-title">@chart.Title</h3>
-                                            <svg class="metric-line-chart js-metric-line-chart"
-                                                 viewBox="0 0 840 360"
-                                                 data-chart="@chart.Json"
-                                                 role="img"
-                                                 aria-label="@chart.Title"></svg>
-                                        </article>
-                                    }
+                                <div class="chart-scroll-region mt-4"
+                                     role="region"
+                                     aria-label="@L("Rincian diagram dapat digeser secara horizontal", "Detailed charts can be scrolled horizontally")">
+                                    <p class="chart-scroll-hint">@L("Geser ke samping jika daftar diagram melebihi lebar panel.", "Scroll sideways if the chart list exceeds the panel width.")</p>
+                                    <div class="chart-grid chart-grid-scroll mt-2">
+                                        @foreach (var chart in detailCharts)
+                                        {
+                                            <article class="chart-card">
+                                                <h3 class="chart-title">@chart.Title</h3>
+                                                <svg class="metric-line-chart js-metric-line-chart"
+                                                     viewBox="0 0 840 360"
+                                                     data-chart="@chart.Json"
+                                                     role="img"
+                                                     aria-label="@chart.Title"></svg>
+                                            </article>
+                                        }
+                                    </div>
                                 </div>
                             }
                         }
@@ -1057,18 +1062,23 @@
                             }
                             if (detailCharts.Count > 0)
                             {
-                                <div class="chart-grid chart-grid-scroll mt-4">
-                                    @foreach (var chart in detailCharts)
-                                    {
-                                        <article class="chart-card">
-                                            <h3 class="chart-title">@chart.Title</h3>
-                                            <svg class="metric-line-chart js-metric-line-chart"
-                                                 viewBox="0 0 840 360"
-                                                 data-chart="@chart.Json"
-                                                 role="img"
-                                                 aria-label="@chart.Title"></svg>
-                                        </article>
-                                    }
+                                <div class="chart-scroll-region mt-4"
+                                     role="region"
+                                     aria-label="@L("Rincian diagram dapat digeser secara horizontal", "Detailed charts can be scrolled horizontally")">
+                                    <p class="chart-scroll-hint">@L("Geser ke samping jika daftar diagram melebihi lebar panel.", "Scroll sideways if the chart list exceeds the panel width.")</p>
+                                    <div class="chart-grid chart-grid-scroll mt-2">
+                                        @foreach (var chart in detailCharts)
+                                        {
+                                            <article class="chart-card">
+                                                <h3 class="chart-title">@chart.Title</h3>
+                                                <svg class="metric-line-chart js-metric-line-chart"
+                                                     viewBox="0 0 840 360"
+                                                     data-chart="@chart.Json"
+                                                     role="img"
+                                                     aria-label="@chart.Title"></svg>
+                                            </article>
+                                        }
+                                    </div>
                                 </div>
                             }
                         }

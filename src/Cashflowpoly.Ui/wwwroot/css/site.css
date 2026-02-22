@@ -1683,10 +1683,22 @@ body > footer .footer-shell {
 }
 
 .player-detail-overhaul {
+    width: 100%;
     padding: clamp(1rem, 1.2vw + 0.72rem, 1.65rem);
-    max-width: min(1760px, calc(100vw - 2rem));
+    max-width: min(1760px, 100%);
     margin-inline: auto;
     border-radius: 1.1rem;
+    overflow-x: hidden;
+}
+
+.player-detail-overhaul .players-fusion-metrics,
+.player-detail-overhaul .metric-domain-card,
+.player-detail-overhaul .chart-grid,
+.player-detail-overhaul .chart-grid-scroll,
+.player-detail-overhaul .chart-grid-scroll .chart-card,
+.player-detail-overhaul .chart-card {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .player-detail-overhaul .eyebrow {
@@ -1787,6 +1799,9 @@ body > footer .footer-shell {
 .player-detail-overhaul .metric-domain-heading h3 {
     font-size: 1.22rem;
     line-height: 1.26;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
 }
 
 .player-detail-overhaul .metric-domain-count {
@@ -1796,8 +1811,11 @@ body > footer .footer-shell {
 
 .player-detail-overhaul .metric-domain-intro {
     margin-top: 0.36rem;
+    color: #496b80;
     font-size: 0.96rem;
     line-height: 1.6;
+    max-width: 76ch;
+    text-wrap: pretty;
 }
 
 .player-detail-overhaul .metric-domain-empty {
@@ -1815,8 +1833,29 @@ body > footer .footer-shell {
 
 .player-detail-overhaul .chart-title {
     margin-bottom: 0.8rem;
-    font-size: 1.16rem;
-    line-height: 1.34;
+    color: #1e4b66;
+    font-size: clamp(1.04rem, 0.2vw + 1rem, 1.16rem);
+    font-weight: 800;
+    line-height: 1.42;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+.player-detail-overhaul .chart-scroll-region {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.player-detail-overhaul .chart-scroll-hint {
+    margin: 0;
+    color: #4a6f84;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    text-wrap: pretty;
 }
 
 .player-detail-overhaul .chart-card .metric-line-chart {
@@ -1846,17 +1885,21 @@ body > footer .footer-shell {
 .player-detail-overhaul .chart-grid-scroll {
     display: flex;
     gap: 1.05rem;
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
     overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable both-edges;
     padding: 0.25rem 0.35rem 0.72rem 0.1rem;
     scrollbar-width: thin;
     scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
 }
 
 .player-detail-overhaul .chart-grid-scroll .chart-card {
-    flex: 0 0 min(760px, 92vw);
+    flex: 0 0 clamp(560px, 74vw, 760px);
     min-height: 398px;
     scroll-snap-align: start;
     border-color: #bdeae4;
@@ -1873,6 +1916,8 @@ body > footer .footer-shell {
 .player-detail-overhaul .chart-card.chart-card-hscroll {
     overflow-x: auto;
     overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: 0.45rem;
     scrollbar-width: thin;
     scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
@@ -1881,7 +1926,7 @@ body > footer .footer-shell {
 /* Keep bar charts readable when categories are many by allowing horizontal pan. */
 .player-detail-overhaul .chart-card.chart-card-hscroll .metric-line-chart {
     display: block;
-    min-width: 100%;
+    min-width: max(100%, 680px);
 }
 
 .player-detail-overhaul .chart-grid-scroll::-webkit-scrollbar,
@@ -1903,7 +1948,7 @@ body > footer .footer-shell {
 
 @media (max-width: 900px) {
     .player-detail-overhaul {
-        max-width: calc(100vw - 1rem);
+        max-width: 100%;
         padding: 0.95rem;
     }
 
@@ -1947,6 +1992,11 @@ body > footer .footer-shell {
 
     .player-detail-overhaul .metric-domain-intro {
         font-size: 0.87rem;
+    }
+
+    .player-detail-overhaul .chart-scroll-hint {
+        font-size: 0.75rem;
+        line-height: 1.38;
     }
 
     .player-detail-overhaul .chart-grid-feature .chart-card-feature {
