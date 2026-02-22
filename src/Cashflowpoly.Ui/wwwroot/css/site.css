@@ -1815,6 +1815,18 @@ body > footer .footer-shell {
     border-radius: 0.9rem;
 }
 
+.player-detail-overhaul .chart-card.chart-card-hscroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
+}
+
+/* Keep bar charts readable when categories are many by allowing horizontal pan. */
+.player-detail-overhaul .chart-card.chart-card-hscroll .metric-line-chart {
+    display: block;
+}
+
 @media (max-width: 900px) {
     .player-detail-overhaul {
         padding: 1rem;

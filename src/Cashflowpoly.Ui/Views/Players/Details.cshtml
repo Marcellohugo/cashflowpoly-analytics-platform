@@ -1155,8 +1155,24 @@
                 clearNode(svg);
 
                 const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
-                const width = vb && vb.width ? vb.width : 840;
+                const baseWidth = vb && vb.width ? vb.width : 840;
                 const height = vb && vb.height ? vb.height : 360;
+                const hostCard = svg.closest(".chart-card");
+                let width = baseWidth;
+                if (chartType === "bar") {
+                    const minPitchPerLabel = Math.max(26, 16 + series.length * 10);
+                    const dynamicWidth = Math.max(baseWidth, labels.length * minPitchPerLabel + 180);
+                    width = dynamicWidth;
+                    svg.style.width = `${dynamicWidth}px`;
+                    svg.style.maxWidth = "none";
+                    hostCard?.classList.add("chart-card-hscroll");
+                } else {
+                    svg.style.width = "100%";
+                    svg.style.maxWidth = "100%";
+                    hostCard?.classList.remove("chart-card-hscroll");
+                }
+                svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
                 const legendLineHeight = 16;
                 const estimateLegendRows = () => {
                     const rowMaxWidth = Math.max(180, width - 110);
@@ -1281,11 +1297,11 @@
                 });
 
                 if (chartType === "bar") {
-                    const barGap = Math.min(10, clusterWidth * 0.14);
+                    const barGap = Math.max(4, Math.min(14, clusterWidth * 0.24));
                     const seriesGap = 3;
-                    const availableBarWidth = Math.max(8, clusterWidth - barGap * 2);
+                    const availableBarWidth = Math.max(6, clusterWidth - barGap * 2);
                     const barWidth = Math.max(
-                        4,
+                        3,
                         (availableBarWidth - seriesGap * Math.max(0, series.length - 1)) / Math.max(1, series.length));
 
                     series.forEach((item, seriesIndex) => {
