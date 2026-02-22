@@ -903,18 +903,20 @@
 }
 
 <section class="section-shell player-detail-overhaul">
-    <div>
+    <div class="player-detail-hero">
         <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
         <h1 class="headline">@Context.T("players.detail_title")</h1>
         @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
         {
-            <p class="mt-2 text-base font-semibold text-slate-700">@Model.PlayerDisplayName</p>
+            <p class="player-detail-name">@Model.PlayerDisplayName</p>
         }
-        <p class="mt-2 text-xs text-slate-500 font-mono">@Model.PlayerId</p>
-        @if (Model.GameplayComputedAt.HasValue)
-        {
-            <p class="mt-2 text-xs text-slate-500">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
-        }
+        <div class="player-detail-meta">
+            <span class="player-detail-meta__item player-detail-meta__item--mono">@Model.PlayerId</span>
+            @if (Model.GameplayComputedAt.HasValue)
+            {
+                <span class="player-detail-meta__item">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+            }
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -939,12 +941,7 @@
     }
     else
     {
-        <nav class="player-detail-jump mt-6" aria-label="@L("Navigasi metrik pemain", "Player metric navigation")">
-            <a class="player-detail-jump__link" href="#physical-variables">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</a>
-            <a class="player-detail-jump__link" href="#derived-metrics">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</a>
-        </nav>
-
-        <div id="physical-variables" class="players-fusion-metrics mt-5">
+        <div id="physical-variables" class="players-fusion-metrics player-detail-section">
             <div class="players-fusion-head">
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.raw")</p>
@@ -1012,7 +1009,7 @@
             </div>
         </div>
 
-        <div id="derived-metrics" class="players-fusion-metrics mt-6">
+        <div id="derived-metrics" class="players-fusion-metrics player-detail-section">
             <div class="players-fusion-head">
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.derived")</p>

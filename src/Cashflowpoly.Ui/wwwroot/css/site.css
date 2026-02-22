@@ -1608,33 +1608,6 @@ body > footer .footer-shell {
     border-color: #afe5de;
 }
 
-.player-detail-jump {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.player-detail-jump__link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    border: 1px solid #9fded7;
-    background: linear-gradient(145deg, #f7fffd, #edf9ff);
-    color: #24506b;
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    padding: 0.42rem 0.75rem;
-    text-decoration: none;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.player-detail-jump__link:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(21, 97, 131, 0.15);
-}
-
 .metric-domain-layout {
     display: grid;
     gap: 1rem;
@@ -1727,6 +1700,54 @@ body > footer .footer-shell {
     line-height: 1.16;
 }
 
+.player-detail-overhaul .player-detail-hero {
+    display: grid;
+    gap: 0.52rem;
+    padding: 0.08rem 0.1rem 0.15rem;
+}
+
+.player-detail-overhaul .player-detail-name {
+    margin: 0.12rem 0 0;
+    color: #274f68;
+    font-size: 1.08rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.player-detail-overhaul .player-detail-meta {
+    margin-top: 0.3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.52rem;
+}
+
+.player-detail-overhaul .player-detail-meta__item {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid #c2e9e3;
+    background: rgba(245, 255, 253, 0.9);
+    color: #4a697e;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.35;
+    padding: 0.3rem 0.62rem;
+}
+
+.player-detail-overhaul .player-detail-meta__item--mono {
+    font-family: "JetBrains Mono", "Cascadia Mono", "Consolas", monospace;
+    letter-spacing: 0.01em;
+    font-weight: 700;
+}
+
+.player-detail-overhaul .player-detail-section {
+    margin-top: 1.18rem;
+}
+
+.player-detail-overhaul .player-detail-section + .player-detail-section {
+    margin-top: 1.35rem;
+}
+
 .player-detail-overhaul .players-fusion-metrics {
     padding: clamp(1.15rem, 1vw + 0.85rem, 1.8rem);
     border-radius: 1.2rem;
@@ -1745,13 +1766,8 @@ body > footer .footer-shell {
     line-height: 1.62;
 }
 
-.player-detail-overhaul .player-detail-jump {
-    gap: 0.72rem;
-}
-
-.player-detail-overhaul .player-detail-jump__link {
-    font-size: 0.92rem;
-    padding: 0.66rem 1.08rem;
+.player-detail-overhaul .players-fusion-head .page-intro-main {
+    max-width: 88ch;
 }
 
 .player-detail-overhaul .metric-domain-layout {
@@ -1904,9 +1920,17 @@ body > footer .footer-shell {
         line-height: 1.56;
     }
 
-    .player-detail-overhaul .player-detail-jump__link {
-        font-size: 0.84rem;
-        padding: 0.56rem 0.84rem;
+    .player-detail-overhaul .player-detail-name {
+        font-size: 0.98rem;
+    }
+
+    .player-detail-overhaul .player-detail-meta__item {
+        font-size: 0.75rem;
+        padding: 0.28rem 0.56rem;
+    }
+
+    .player-detail-overhaul .player-detail-section {
+        margin-top: 1rem;
     }
 
     .player-detail-overhaul .metric-domain-card {
