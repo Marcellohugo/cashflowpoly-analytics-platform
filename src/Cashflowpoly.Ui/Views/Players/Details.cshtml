@@ -321,6 +321,7 @@
 
         var payload = new
         {
+            chartType = "bar",
             labels = points.Select(point => point.Label).ToList(),
             series = new[]
             {
@@ -931,19 +932,44 @@
                         }
                         else
                         {
-                            <div class="chart-grid chart-grid-scroll mt-4">
-                                @foreach (var chart in domain.Charts)
-                                {
-                                    <article class="chart-card">
-                                        <h3 class="chart-title">@chart.Title</h3>
+                            var summaryChart = domain.Charts.FirstOrDefault(chart =>
+                                chart.Title.Contains("Ringkasan Gabungan", StringComparison.OrdinalIgnoreCase) ||
+                                chart.Title.Contains("Combined Snapshot", StringComparison.OrdinalIgnoreCase));
+                            var hasSummaryChart = !string.IsNullOrWhiteSpace(summaryChart.Title);
+                            var detailCharts = hasSummaryChart
+                                ? domain.Charts.Where(chart =>
+                                    !string.Equals(chart.Title, summaryChart.Title, StringComparison.OrdinalIgnoreCase))
+                                    .ToList()
+                                : domain.Charts;
+                            if (hasSummaryChart)
+                            {
+                                <div class="chart-grid chart-grid-feature mt-4">
+                                    <article class="chart-card chart-card-feature">
+                                        <h3 class="chart-title">@summaryChart.Title</h3>
                                         <svg class="metric-line-chart js-metric-line-chart"
                                              viewBox="0 0 840 360"
-                                             data-chart="@chart.Json"
+                                             data-chart="@summaryChart.Json"
                                              role="img"
-                                             aria-label="@chart.Title"></svg>
+                                             aria-label="@summaryChart.Title"></svg>
                                     </article>
-                                }
-                            </div>
+                                </div>
+                            }
+                            if (detailCharts.Count > 0)
+                            {
+                                <div class="chart-grid chart-grid-scroll mt-4">
+                                    @foreach (var chart in detailCharts)
+                                    {
+                                        <article class="chart-card">
+                                            <h3 class="chart-title">@chart.Title</h3>
+                                            <svg class="metric-line-chart js-metric-line-chart"
+                                                 viewBox="0 0 840 360"
+                                                 data-chart="@chart.Json"
+                                                 role="img"
+                                                 aria-label="@chart.Title"></svg>
+                                        </article>
+                                    }
+                                </div>
+                            }
                         }
                     </article>
                 }
@@ -974,19 +1000,44 @@
                         }
                         else
                         {
-                            <div class="chart-grid chart-grid-scroll mt-4">
-                                @foreach (var chart in domain.Charts)
-                                {
-                                    <article class="chart-card">
-                                        <h3 class="chart-title">@chart.Title</h3>
+                            var summaryChart = domain.Charts.FirstOrDefault(chart =>
+                                chart.Title.Contains("Ringkasan Gabungan", StringComparison.OrdinalIgnoreCase) ||
+                                chart.Title.Contains("Combined Snapshot", StringComparison.OrdinalIgnoreCase));
+                            var hasSummaryChart = !string.IsNullOrWhiteSpace(summaryChart.Title);
+                            var detailCharts = hasSummaryChart
+                                ? domain.Charts.Where(chart =>
+                                    !string.Equals(chart.Title, summaryChart.Title, StringComparison.OrdinalIgnoreCase))
+                                    .ToList()
+                                : domain.Charts;
+                            if (hasSummaryChart)
+                            {
+                                <div class="chart-grid chart-grid-feature mt-4">
+                                    <article class="chart-card chart-card-feature">
+                                        <h3 class="chart-title">@summaryChart.Title</h3>
                                         <svg class="metric-line-chart js-metric-line-chart"
                                              viewBox="0 0 840 360"
-                                             data-chart="@chart.Json"
+                                             data-chart="@summaryChart.Json"
                                              role="img"
-                                             aria-label="@chart.Title"></svg>
+                                             aria-label="@summaryChart.Title"></svg>
                                     </article>
-                                }
-                            </div>
+                                </div>
+                            }
+                            if (detailCharts.Count > 0)
+                            {
+                                <div class="chart-grid chart-grid-scroll mt-4">
+                                    @foreach (var chart in detailCharts)
+                                    {
+                                        <article class="chart-card">
+                                            <h3 class="chart-title">@chart.Title</h3>
+                                            <svg class="metric-line-chart js-metric-line-chart"
+                                                 viewBox="0 0 840 360"
+                                                 data-chart="@chart.Json"
+                                                 role="img"
+                                                 aria-label="@chart.Title"></svg>
+                                        </article>
+                                    }
+                                </div>
+                            }
                         }
                     </article>
                 }
@@ -1061,6 +1112,7 @@
                 const labels = Array.isArray(payload?.labels)
                     ? payload.labels.map((value) => String(value ?? ""))
                     : [];
+                const chartType = String(payload?.chartType ?? "line").toLowerCase();
                 const series = Array.isArray(payload?.series)
                     ? payload.series
                         .map((item, index) => {
@@ -1136,13 +1188,22 @@
 
                 let minY = Math.min(...numericValues);
                 let maxY = Math.max(...numericValues);
+                if (chartType === "bar") {
+                    minY = Math.min(minY, 0);
+                    maxY = Math.max(maxY, 0);
+                }
                 if (Math.abs(maxY - minY) < 0.000001) {
                     const pad = Math.abs(maxY) < 1 ? 1 : Math.abs(maxY) * 0.1;
                     minY -= pad;
                     maxY += pad;
                 }
 
+                const clusterWidth = plotWidth / Math.max(1, labels.length);
                 const xForIndex = (index) => {
+                    if (chartType === "bar") {
+                        return margin.left + clusterWidth * index + clusterWidth / 2;
+                    }
+
                     if (labels.length === 1) {
                         return margin.left + plotWidth / 2;
                     }
@@ -1153,6 +1214,7 @@
                 const yForValue = (value) => (
                     margin.top + ((maxY - value) * plotHeight) / (maxY - minY)
                 );
+                const zeroY = yForValue(0);
 
                 const gridTicks = 4;
                 for (let tick = 0; tick <= gridTicks; tick += 1) {
@@ -1192,9 +1254,9 @@
 
                 svg.appendChild(makeNode("line", {
                     x1: margin.left,
-                    y1: margin.top + plotHeight,
+                    y1: chartType === "bar" ? zeroY : margin.top + plotHeight,
                     x2: margin.left + plotWidth,
-                    y2: margin.top + plotHeight,
+                    y2: chartType === "bar" ? zeroY : margin.top + plotHeight,
                     stroke: "#9ccfd2",
                     "stroke-width": "1.4"
                 }));
@@ -1218,48 +1280,84 @@
                     svg.appendChild(text);
                 });
 
-                series.forEach((item, seriesIndex) => {
-                    const color = palette[seriesIndex % palette.length];
-                    let segment = [];
+                if (chartType === "bar") {
+                    const barGap = Math.min(10, clusterWidth * 0.14);
+                    const seriesGap = 3;
+                    const availableBarWidth = Math.max(8, clusterWidth - barGap * 2);
+                    const barWidth = Math.max(
+                        4,
+                        (availableBarWidth - seriesGap * Math.max(0, series.length - 1)) / Math.max(1, series.length));
 
-                    const flushSegment = () => {
-                        if (!segment.length) {
-                            return;
-                        }
+                    series.forEach((item, seriesIndex) => {
+                        const color = palette[seriesIndex % palette.length];
+                        item.values.forEach((value, index) => {
+                            if (value === null) {
+                                return;
+                            }
 
-                        const path = buildPath(segment);
-                        if (path.length) {
-                            svg.appendChild(makeNode("path", {
-                                d: path,
-                                fill: "none",
-                                stroke: color,
-                                "stroke-width": "2.4",
-                                "stroke-linejoin": "round",
-                                "stroke-linecap": "round"
+                            const x =
+                                margin.left +
+                                clusterWidth * index +
+                                barGap +
+                                seriesIndex * (barWidth + seriesGap);
+                            const y = yForValue(value);
+                            const barTop = Math.min(y, zeroY);
+                            const barHeight = Math.max(1.5, Math.abs(zeroY - y));
+                            svg.appendChild(makeNode("rect", {
+                                x,
+                                y: barTop,
+                                width: barWidth,
+                                height: barHeight,
+                                rx: "2",
+                                fill: color,
+                                opacity: "0.9"
                             }));
-                        }
-                        segment = [];
-                    };
-
-                    item.values.forEach((value, index) => {
-                        if (value === null) {
-                            flushSegment();
-                            return;
-                        }
-
-                        const point = { x: xForIndex(index), y: yForValue(value) };
-                        segment.push(point);
-                        svg.appendChild(makeNode("circle", {
-                            cx: point.x,
-                            cy: point.y,
-                            r: "3",
-                            fill: color,
-                            stroke: "#ffffff",
-                            "stroke-width": "1"
-                        }));
+                        });
                     });
-                    flushSegment();
-                });
+                } else {
+                    series.forEach((item, seriesIndex) => {
+                        const color = palette[seriesIndex % palette.length];
+                        let segment = [];
+
+                        const flushSegment = () => {
+                            if (!segment.length) {
+                                return;
+                            }
+
+                            const path = buildPath(segment);
+                            if (path.length) {
+                                svg.appendChild(makeNode("path", {
+                                    d: path,
+                                    fill: "none",
+                                    stroke: color,
+                                    "stroke-width": "2.4",
+                                    "stroke-linejoin": "round",
+                                    "stroke-linecap": "round"
+                                }));
+                            }
+                            segment = [];
+                        };
+
+                        item.values.forEach((value, index) => {
+                            if (value === null) {
+                                flushSegment();
+                                return;
+                            }
+
+                            const point = { x: xForIndex(index), y: yForValue(value) };
+                            segment.push(point);
+                            svg.appendChild(makeNode("circle", {
+                                cx: point.x,
+                                cy: point.y,
+                                r: "3",
+                                fill: color,
+                                stroke: "#ffffff",
+                                "stroke-width": "1"
+                            }));
+                        });
+                        flushSegment();
+                    });
+                }
 
                 const legendStartX = margin.left;
                 let legendX = legendStartX;
@@ -1275,15 +1373,26 @@
                     }
 
                     const legendY = legendYBase + legendRow * legendLineHeight;
-                    svg.appendChild(makeNode("line", {
-                        x1: legendX,
-                        y1: legendY,
-                        x2: legendX + 14,
-                        y2: legendY,
-                        stroke: color,
-                        "stroke-width": "2.2",
-                        "stroke-linecap": "round"
-                    }));
+                    if (chartType === "bar") {
+                        svg.appendChild(makeNode("rect", {
+                            x: legendX,
+                            y: legendY - 4.5,
+                            width: "12",
+                            height: "9",
+                            rx: "2",
+                            fill: color
+                        }));
+                    } else {
+                        svg.appendChild(makeNode("line", {
+                            x1: legendX,
+                            y1: legendY,
+                            x2: legendX + 14,
+                            y2: legendY,
+                            stroke: color,
+                            "stroke-width": "2.2",
+                            "stroke-linecap": "round"
+                        }));
+                    }
 
                     const label = makeNode("text", {
                         x: legendX + 18,

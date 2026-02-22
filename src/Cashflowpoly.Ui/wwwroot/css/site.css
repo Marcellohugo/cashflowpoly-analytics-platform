@@ -1767,6 +1767,24 @@ body > footer .footer-shell {
     font-size: 0.9rem;
 }
 
+.player-detail-overhaul .chart-grid-feature {
+    display: block;
+}
+
+.player-detail-overhaul .chart-grid-feature .chart-card-feature {
+    width: 100%;
+    min-height: 404px;
+    padding: 1.14rem;
+}
+
+.player-detail-overhaul .chart-grid-feature .chart-card-feature .chart-title {
+    font-size: 1.2rem;
+}
+
+.player-detail-overhaul .chart-grid-feature .chart-card-feature .metric-line-chart {
+    height: 334px;
+}
+
 .player-detail-overhaul .chart-grid-scroll {
     display: flex;
     gap: 1rem;
@@ -1833,6 +1851,19 @@ body > footer .footer-shell {
 
     .player-detail-overhaul .metric-domain-intro {
         font-size: 0.86rem;
+    }
+
+    .player-detail-overhaul .chart-grid-feature .chart-card-feature {
+        min-height: 338px;
+        padding: 0.96rem;
+    }
+
+    .player-detail-overhaul .chart-grid-feature .chart-card-feature .chart-title {
+        font-size: 1.04rem;
+    }
+
+    .player-detail-overhaul .chart-grid-feature .chart-card-feature .metric-line-chart {
+        height: 274px;
     }
 
     .player-detail-overhaul .chart-grid-scroll .chart-card {
