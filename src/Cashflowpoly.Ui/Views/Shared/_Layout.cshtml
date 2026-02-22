@@ -70,9 +70,9 @@
                 {
                     <div id="primary-nav-links" class="nav-pill nav-center">
                         <a class="@navClass(isHomeSection)" aria-current="@(isHomeSection ? "page" : null)" data-nav="home" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
+                        <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
                         @if (isInstructor)
                         {
-                            <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
                             <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
                         }
                         <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>

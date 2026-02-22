@@ -186,6 +186,11 @@ else
                 <a asp-controller="Sessions" asp-action="Index">@Context.T("sessions.view_progress")</a>
             </article>
             <article class="tip-card">
+                <h3>@Context.T("home.player_guide.analytics.title")</h3>
+                <p>@Context.T("home.player_guide.analytics.desc")</p>
+                <a asp-controller="Sessions" asp-action="Index">@Context.T("home.player_guide.analytics.link")</a>
+            </article>
+            <article class="tip-card">
                 <h3>@Context.T("home.player_guide.ruleset.title")</h3>
                 <p>@Context.T("home.player_guide.ruleset.desc")</p>
                 <a asp-controller="Rulesets" asp-action="Index">@Context.T("home.player_guide.ruleset.link")</a>

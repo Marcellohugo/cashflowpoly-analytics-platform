@@ -304,6 +304,68 @@
         string domainTitle,
         IEnumerable<(string Path, string Value)> rows)
     {
+        string BuildFormulaHint(string metricPath)
+        {
+            var key = (metricPath ?? string.Empty).ToLowerInvariant();
+            if (key.Contains("happiness_points"))
+            {
+                return L(
+                    "Poin Kebutuhan + Bonus + Poin Donasi + Poin Emas + Poin Pensiun + Poin Target Tabungan - Penalti Misi - Penalti Pinjaman",
+                    "Need Points + Bonus + Donation Points + Gold Points + Pension Points + Saving Goal Points - Mission Penalty - Loan Penalty");
+            }
+
+            if (key.Contains("cashflow_net") || key.Contains("net_cashflow") || key.Contains("coins_net"))
+            {
+                return L("Kas Masuk - Kas Keluar", "Cash In - Cash Out");
+            }
+
+            if (key.Contains("donation_points"))
+            {
+                return L(
+                    "Total Donasi x bobot poin donasi (set aturan aktif)",
+                    "Total Donations x donation-point weight (active ruleset)");
+            }
+
+            if (key.Contains("pension_points"))
+            {
+                return L(
+                    "Akumulasi dana pensiun akhir x bobot poin pensiun (set aturan aktif)",
+                    "End-game pension accumulation x pension-point weight (active ruleset)");
+            }
+
+            if (key.Contains("saving_goal_points"))
+            {
+                return L(
+                    "Pencapaian target tabungan x bobot poin target tabungan (set aturan aktif)",
+                    "Saving-goal achievement x saving-goal point weight (active ruleset)");
+            }
+
+            if (key.Contains("need_points"))
+            {
+                return L(
+                    "Akumulasi poin kartu kebutuhan sesuai aturan sesi",
+                    "Accumulated need-card points based on session rules");
+            }
+
+            if (key.Contains("penalty"))
+            {
+                return L(
+                    "Akumulasi penalti dari pelanggaran/ketidakpatuhan selama sesi",
+                    "Accumulated penalties from violations/non-compliance during the session");
+            }
+
+            if (key.Contains("points"))
+            {
+                return L(
+                    "Poin dihitung sesuai bobot pada set aturan aktif",
+                    "Points are calculated using weights from the active ruleset");
+            }
+
+            return L(
+                "Nilai dihitung dari agregasi event sesi yang tervalidasi",
+                "Value is calculated from validated session-event aggregation");
+        }
+
         var numericRows = rows
             .Where(row => !string.IsNullOrWhiteSpace(row.Path))
             .Where(row => TryParseMetricNumber(row.Value, out _))
@@ -324,7 +386,7 @@
             return null;
         }
 
-        var points = new List<(string Label, double Value)>();
+        var points = new List<(string Path, string Label, double Value, string Formula)>();
         var labelUsage = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in summaryRows)
         {
@@ -339,13 +401,13 @@
                 if (!labelUsage.TryGetValue(baseLabel, out var usageCount))
                 {
                     labelUsage[baseLabel] = 1;
-                    points.Add((baseLabel, value));
+                    points.Add((row.Path, baseLabel, value, BuildFormulaHint(row.Path)));
                     continue;
                 }
 
                 usageCount += 1;
                 labelUsage[baseLabel] = usageCount;
-                points.Add(($"{baseLabel} ({usageCount})", value));
+                points.Add((row.Path, $"{baseLabel} ({usageCount})", value, BuildFormulaHint(row.Path)));
             }
         }
 
@@ -359,6 +421,8 @@
         {
             chartType = "bar",
             labels = points.Select(point => point.Label).ToList(),
+            keys = points.Select(point => point.Path).ToList(),
+            formulas = points.Select(point => point.Formula).ToList(),
             series = new[]
             {
                 new
@@ -946,7 +1010,7 @@
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.raw")</p>
                     <h2 class="headline text-xl">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</h2>
-                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability.")</p>
+                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca. Arahkan kursor atau ketuk batang/titik untuk melihat rumus perhitungan dan nilai poin/angka.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability. Hover over or tap each bar/point to see the calculation formula and point/value.")</p>
                 </div>
             </div>
 
@@ -1019,7 +1083,7 @@
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.derived")</p>
                     <h2 class="headline text-xl">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</h2>
-                    <p class="subhead text-sm">@L("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear.")</p>
+                    <p class="subhead text-sm">@L("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas. Arahkan kursor atau ketuk batang/titik untuk melihat rumus perhitungan dan nilai poin/angka.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear. Hover over or tap each bar/point to see the calculation formula and point/value.")</p>
                 </div>
             </div>
 
@@ -1098,14 +1162,120 @@
             }
 
             const ns = "http://www.w3.org/2000/svg";
-            const palette = [
+            const seriesPalette = [
                 "#1ba784",
                 "#2d7dd2",
                 "#f4a84a",
                 "#ef4e4e",
                 "#6a5acd",
-                "#00a6a6"
+                "#00a6a6",
+                "#b56576",
+                "#5f8f00"
             ];
+            const variablePalette = [
+                "#1ba784",
+                "#2d7dd2",
+                "#f4a84a",
+                "#ef4e4e",
+                "#6a5acd",
+                "#00a6a6",
+                "#ff7f50",
+                "#7f5af0",
+                "#16a34a",
+                "#d97706",
+                "#0284c7",
+                "#be123c"
+            ];
+            const colorForSeries = (index) => seriesPalette[index % seriesPalette.length];
+            const colorForVariable = (index) => variablePalette[index % variablePalette.length];
+            const tooltipText = {
+                metric: @Html.Raw(JsonSerializer.Serialize(L("Variabel", "Metric"))),
+                series: @Html.Raw(JsonSerializer.Serialize(L("Seri", "Series"))),
+                points: @Html.Raw(JsonSerializer.Serialize(L("Poin/Nilai", "Points/Value"))),
+                formula: @Html.Raw(JsonSerializer.Serialize(L("Rumus", "Formula"))),
+                defaultFormula: @Html.Raw(JsonSerializer.Serialize(L("Nilai dihitung dari agregasi event sesi yang tervalidasi.", "Value is calculated from validated session-event aggregation."))),
+                selectedDetail: @Html.Raw(JsonSerializer.Serialize(L("Detail data terpilih", "Selected data details"))),
+                tapHint: @Html.Raw(JsonSerializer.Serialize(L("Ketuk batang atau titik pada diagram untuk melihat detail variabel dan rumus.", "Tap bars or points in the chart to view metric and formula details.")))
+            };
+            const formatMetricValue = (value) => {
+                if (typeof value !== "number" || !Number.isFinite(value)) {
+                    return "-";
+                }
+
+                const abs = Math.abs(value);
+                const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+                return value.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: decimals
+                });
+            };
+            const makeHtmlNode = (name, className = "") => {
+                const node = document.createElement(name);
+                if (className.length > 0) {
+                    node.className = className;
+                }
+                return node;
+            };
+            const ensureBarInsightPanel = (hostCard) => {
+                if (!hostCard) {
+                    return null;
+                }
+
+                let panel = hostCard.querySelector(".js-chart-bar-insight");
+                if (!panel) {
+                    panel = makeHtmlNode("div", "chart-bar-insight js-chart-bar-insight");
+                    panel.hidden = true;
+                    panel.setAttribute("aria-live", "polite");
+
+                    const title = makeHtmlNode("p", "chart-bar-insight-title");
+                    title.textContent = tooltipText.selectedDetail;
+                    panel.appendChild(title);
+
+                    const hint = makeHtmlNode("p", "chart-bar-insight-hint");
+                    hint.textContent = tooltipText.tapHint;
+                    panel.appendChild(hint);
+
+                    const makeRow = (label, valueClass) => {
+                        const row = makeHtmlNode("div", "chart-bar-insight-row");
+                        const key = makeHtmlNode("span", "chart-bar-insight-key");
+                        key.textContent = label;
+                        const value = makeHtmlNode("span", `chart-bar-insight-value ${valueClass}`);
+                        value.textContent = "-";
+                        row.appendChild(key);
+                        row.appendChild(value);
+                        return row;
+                    };
+
+                    panel.appendChild(makeRow(tooltipText.metric, "js-chart-bar-insight-metric"));
+                    panel.appendChild(makeRow(tooltipText.points, "js-chart-bar-insight-points"));
+                    panel.appendChild(makeRow(tooltipText.formula, "js-chart-bar-insight-formula"));
+
+                    hostCard.appendChild(panel);
+                }
+
+                return {
+                    panel,
+                    metric: panel.querySelector(".js-chart-bar-insight-metric"),
+                    points: panel.querySelector(".js-chart-bar-insight-points"),
+                    formula: panel.querySelector(".js-chart-bar-insight-formula")
+                };
+            };
+            const revealBarInsight = (insight, detail) => {
+                if (!insight) {
+                    return;
+                }
+
+                insight.panel.hidden = false;
+                if (insight.metric) {
+                    insight.metric.textContent = detail.metric;
+                }
+                if (insight.points) {
+                    insight.points.textContent = detail.points;
+                }
+                if (insight.formula) {
+                    insight.formula.textContent = detail.formula;
+                }
+            };
 
             const makeNode = (name, attrs = {}) => {
                 const node = document.createElementNS(ns, name);
@@ -1236,6 +1406,12 @@
                     : [];
                 const labels = makeUniqueLabels(normalizedLabels);
                 const chartType = String(payload?.chartType ?? "line").toLowerCase();
+                const metricKeys = Array.isArray(payload?.keys)
+                    ? payload.keys.map((value) => String(value ?? ""))
+                    : [];
+                const formulaHints = Array.isArray(payload?.formulas)
+                    ? payload.formulas.map((value) => String(value ?? "").trim())
+                    : [];
                 const series = Array.isArray(payload?.series)
                     ? payload.series
                         .map((item, index) => {
@@ -1285,6 +1461,10 @@
                     ? labels.reduce((total, label) => total + label.length, 0) / labels.length
                     : 0;
                 const hostCard = svg.closest(".chart-card");
+                const chartInsight = ensureBarInsightPanel(hostCard);
+                if (chartInsight) {
+                    chartInsight.panel.hidden = true;
+                }
                 let width = baseWidth;
                 let barLabelCharsPerLine = 16;
                 let wrappedAxisLabels = [];
@@ -1309,6 +1489,10 @@
 
                 const legendLineHeight = 16;
                 const estimateLegendRows = () => {
+                    if (chartType === "bar" && series.length === 1) {
+                        return 0;
+                    }
+
                     const rowMaxWidth = Math.max(180, width - 110);
                     let rowWidth = 0;
                     let rows = 1;
@@ -1485,7 +1669,7 @@
                     const groupOffset = Math.max(0, (clusterWidth - barGroupWidth) / 2);
 
                     series.forEach((item, seriesIndex) => {
-                        const color = palette[seriesIndex % palette.length];
+                        const seriesColor = colorForSeries(seriesIndex);
                         item.values.forEach((value, index) => {
                             if (value === null) {
                                 return;
@@ -1499,20 +1683,57 @@
                             const y = yForValue(value);
                             const barTop = Math.min(y, zeroY);
                             const barHeight = Math.max(1.5, Math.abs(zeroY - y));
-                            svg.appendChild(makeNode("rect", {
+                            const barColor = colorForVariable(index);
+                            const rect = makeNode("rect", {
                                 x,
                                 y: barTop,
                                 width: barWidth,
                                 height: barHeight,
                                 rx: "2",
-                                fill: color,
-                                opacity: "0.9"
-                            }));
+                                fill: barColor,
+                                stroke: series.length > 1 ? seriesColor : "none",
+                                "stroke-width": series.length > 1 ? "1.2" : "0",
+                                opacity: "0.92"
+                            });
+                            const variableLabel =
+                                labels[index] ||
+                                metricKeys[index] ||
+                                `Item ${index + 1}`;
+                            const tooltipLines = [
+                                `${tooltipText.metric}: ${variableLabel}`,
+                                ...(series.length > 1 ? [`${tooltipText.series}: ${item.name}`] : []),
+                                `${tooltipText.points}: ${formatMetricValue(value)}`,
+                                `${tooltipText.formula}: ${formulaHints[index] || tooltipText.defaultFormula}`
+                            ];
+                            const insightDetail = {
+                                metric: variableLabel,
+                                points: formatMetricValue(value),
+                                formula: formulaHints[index] || tooltipText.defaultFormula
+                            };
+                            const title = makeNode("title");
+                            title.textContent = tooltipLines.join("\n");
+                            rect.appendChild(title);
+                            rect.setAttribute("tabindex", "0");
+                            rect.setAttribute("role", "button");
+                            rect.setAttribute("aria-label", tooltipLines.join(". "));
+                            rect.style.cursor = "pointer";
+                            const onSelectBar = () => revealBarInsight(chartInsight, insightDetail);
+                            rect.addEventListener("click", (event) => {
+                                event.preventDefault();
+                                onSelectBar();
+                            });
+                            rect.addEventListener("keydown", (event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    onSelectBar();
+                                }
+                            });
+                            svg.appendChild(rect);
                         });
                     });
                 } else {
                     series.forEach((item, seriesIndex) => {
-                        const color = palette[seriesIndex % palette.length];
+                        const color = colorForSeries(seriesIndex);
                         let segment = [];
 
                         const flushSegment = () => {
@@ -1542,66 +1763,117 @@
 
                             const point = { x: xForIndex(index), y: yForValue(value) };
                             segment.push(point);
-                            svg.appendChild(makeNode("circle", {
+                            const pointLabel =
+                                labels[index] ||
+                                metricKeys[index] ||
+                                `Item ${index + 1}`;
+                            const metricLabel = series.length > 1
+                                ? `${item.name} - ${pointLabel}`
+                                : pointLabel;
+                            const tooltipLines = [
+                                `${tooltipText.metric}: ${metricLabel}`,
+                                ...(series.length > 1 ? [`${tooltipText.series}: ${item.name}`] : []),
+                                `${tooltipText.points}: ${formatMetricValue(value)}`,
+                                `${tooltipText.formula}: ${formulaHints[index] || tooltipText.defaultFormula}`
+                            ];
+                            const insightDetail = {
+                                metric: metricLabel,
+                                points: formatMetricValue(value),
+                                formula: formulaHints[index] || tooltipText.defaultFormula
+                            };
+                            const hitTarget = makeNode("circle", {
+                                cx: point.x,
+                                cy: point.y,
+                                r: "10",
+                                fill: "transparent"
+                            });
+                            const pointNode = makeNode("circle", {
                                 cx: point.x,
                                 cy: point.y,
                                 r: "3",
                                 fill: color,
                                 stroke: "#ffffff",
                                 "stroke-width": "1"
-                            }));
+                            });
+                            const title = makeNode("title");
+                            title.textContent = tooltipLines.join("\n");
+                            pointNode.appendChild(title);
+                            pointNode.setAttribute("tabindex", "0");
+                            pointNode.setAttribute("role", "button");
+                            pointNode.setAttribute("aria-label", tooltipLines.join(". "));
+                            pointNode.style.cursor = "pointer";
+                            hitTarget.style.cursor = "pointer";
+                            const onSelectPoint = () => revealBarInsight(chartInsight, insightDetail);
+                            hitTarget.addEventListener("click", (event) => {
+                                event.preventDefault();
+                                onSelectPoint();
+                            });
+                            pointNode.addEventListener("click", (event) => {
+                                event.preventDefault();
+                                onSelectPoint();
+                            });
+                            pointNode.addEventListener("keydown", (event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    onSelectPoint();
+                                }
+                            });
+                            svg.appendChild(hitTarget);
+                            svg.appendChild(pointNode);
                         });
                         flushSegment();
                     });
                 }
 
-                const legendStartX = margin.left;
-                let legendX = legendStartX;
-                let legendRow = 0;
-                const legendYBase = 16;
-                const legendMaxX = margin.left + plotWidth;
-                series.forEach((item, index) => {
-                    const color = palette[index % palette.length];
-                    const itemWidth = Math.max(110, item.name.length * 8 + 36);
-                    if (legendX + itemWidth > legendMaxX) {
-                        legendRow += 1;
-                        legendX = legendStartX;
-                    }
+                if (!(chartType === "bar" && series.length === 1)) {
+                    const legendStartX = margin.left;
+                    let legendX = legendStartX;
+                    let legendRow = 0;
+                    const legendYBase = 16;
+                    const legendMaxX = margin.left + plotWidth;
+                    series.forEach((item, index) => {
+                        const color = colorForSeries(index);
+                        const itemWidth = Math.max(110, item.name.length * 8 + 36);
+                        if (legendX + itemWidth > legendMaxX) {
+                            legendRow += 1;
+                            legendX = legendStartX;
+                        }
 
-                    const legendY = legendYBase + legendRow * legendLineHeight;
-                    if (chartType === "bar") {
-                        svg.appendChild(makeNode("rect", {
-                            x: legendX,
-                            y: legendY - 4.5,
-                            width: "12",
-                            height: "9",
-                            rx: "2",
-                            fill: color
-                        }));
-                    } else {
-                        svg.appendChild(makeNode("line", {
-                            x1: legendX,
-                            y1: legendY,
-                            x2: legendX + 14,
-                            y2: legendY,
-                            stroke: color,
-                            "stroke-width": "2.2",
-                            "stroke-linecap": "round"
-                        }));
-                    }
+                        const legendY = legendYBase + legendRow * legendLineHeight;
+                        if (chartType === "bar") {
+                            svg.appendChild(makeNode("rect", {
+                                x: legendX,
+                                y: legendY - 4.5,
+                                width: "12",
+                                height: "9",
+                                rx: "2",
+                                fill: color
+                            }));
+                        } else {
+                            svg.appendChild(makeNode("line", {
+                                x1: legendX,
+                                y1: legendY,
+                                x2: legendX + 14,
+                                y2: legendY,
+                                stroke: color,
+                                "stroke-width": "2.2",
+                                "stroke-linecap": "round"
+                            }));
+                        }
 
-                    const label = makeNode("text", {
-                        x: legendX + 18,
-                        y: legendY + 4,
-                        fill: "#32576e",
-                        "font-size": "11",
-                        "font-family": "Nunito, Segoe UI, sans-serif"
+                        const label = makeNode("text", {
+                            x: legendX + 18,
+                            y: legendY + 4,
+                            fill: "#32576e",
+                            "font-size": "11",
+                            "font-family": "Nunito, Segoe UI, sans-serif"
+                        });
+                        label.textContent = item.name;
+                        svg.appendChild(label);
+
+                        legendX += itemWidth;
                     });
-                    label.textContent = item.name;
-                    svg.appendChild(label);
-
-                    legendX += itemWidth;
-                });
+                }
             };
 
             chartNodes.forEach((node) => {
