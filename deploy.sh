@@ -7,6 +7,7 @@
 #   chmod +x deploy.sh
 #   ./deploy.sh            -> deploy production
 #   ./deploy.sh --dev      -> deploy development (port langsung)
+#   ./deploy.sh --dev-watch -> deploy development + auto-redeploy
 #   ./deploy.sh --status   -> cek status semua container
 #   ./deploy.sh --logs     -> tail logs semua service
 #   ./deploy.sh --down     -> stop semua service
@@ -179,6 +180,22 @@ validate_compose_dev() {
     log "Compose development tervalidasi."
 }
 
+validate_compose_dev_watch() {
+    if ! docker compose -f docker-compose.yml -f docker-compose.watch.yml config >/dev/null; then
+        error "Validasi compose development watch gagal."
+        exit 1
+    fi
+
+    log "Compose development watch tervalidasi."
+}
+
+check_compose_watch_support() {
+    if ! docker compose watch --help >/dev/null 2>&1; then
+        error "Docker Compose watch belum tersedia. Perbarui Docker Compose ke versi terbaru."
+        exit 1
+    fi
+}
+
 deploy_production() {
     info "Deploying Cashflowpoly (PRODUCTION)..."
     check_dependencies
@@ -243,6 +260,35 @@ deploy_dev() {
     info "Swagger:       http://localhost:5041/swagger"
 }
 
+deploy_dev_watch() {
+    info "Deploying Cashflowpoly (DEVELOPMENT + WATCH)..."
+    check_dependencies
+    check_compose_watch_support
+    local compose_args=(-f docker-compose.yml -f docker-compose.watch.yml)
+
+    if [ ! -f .env ] && [ -f .env.example ]; then
+        cp .env.example .env
+        warn "File .env dibuat dari template. Edit jika perlu."
+    fi
+
+    validate_compose_dev_watch
+
+    docker compose "${compose_args[@]}" up -d --build
+
+    info "Menunggu health check..."
+    sleep 15
+
+    run_smoke_checks dev
+    show_status
+    echo ""
+    log "Mode development watch aktif."
+    info "Akses UI:      http://localhost:5203"
+    info "Akses API:     http://localhost:5041"
+    info "Tekan Ctrl+C untuk berhenti mode watch."
+
+    docker compose "${compose_args[@]}" watch
+}
+
 show_status() {
     local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
     if is_tunnel_profile_enabled; then
@@ -300,6 +346,7 @@ Penggunaan: ./deploy.sh [OPTION]
 Options:
   (tanpa opsi)   Deploy production (dengan Nginx)
   --dev          Deploy development (port langsung)
+  --dev-watch    Deploy development + auto-redeploy
   --status       Tampilkan status container
   --logs         Tail logs semua service
   --down         Stop semua service
@@ -310,6 +357,7 @@ EOF
 
 case "${1:-}" in
     --dev)      deploy_dev ;;
+    --dev-watch) deploy_dev_watch ;;
     --status)   show_status ;;
     --logs)     show_logs ;;
     --down)     stop_all ;;

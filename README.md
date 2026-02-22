@@ -104,6 +104,19 @@ Jalankan perintah berikut dari root repositori:
 docker compose up -d --build
 ```
 
+Untuk mode development dengan auto-redeploy saat file berubah:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.watch.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.watch.yml watch
+```
+
+Atau gunakan script:
+
+```powershell
+.\deploy.ps1 -Mode dev-watch
+```
+
 Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY`.
 
 Akses (sesuai `.env`):

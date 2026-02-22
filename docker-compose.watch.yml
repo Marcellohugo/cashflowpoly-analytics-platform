@@ -1,0 +1,33 @@
+# Fungsi file: Menambahkan mode development auto-redeploy dengan dotnet watch.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/Cashflowpoly.Api/Dockerfile.dev
+    command: >
+      dotnet watch --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj run --no-launch-profile
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+    volumes:
+      - ./:/src
+      - cashflowpoly_api_dpkeys:/root/.aspnet/DataProtection-Keys
+      - cashflowpoly_nuget:/root/.nuget/packages
+
+  ui:
+    build:
+      context: .
+      dockerfile: src/Cashflowpoly.Ui/Dockerfile.dev
+    command: ["/bin/sh", "/src/scripts/dev/ui-watch-entrypoint.sh"]
+    environment:
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+    volumes:
+      - ./:/src
+      - cashflowpoly_ui_dpkeys:/root/.aspnet/DataProtection-Keys
+      - cashflowpoly_nuget:/root/.nuget/packages
+      - cashflowpoly_ui_node_modules:/src/src/Cashflowpoly.Ui/node_modules
+
+volumes:
+  cashflowpoly_nuget:
+  cashflowpoly_ui_node_modules:

@@ -121,6 +121,12 @@ Mode ini mengekspos port API dan UI langsung. Cocok untuk pengembangan lokal.
 docker compose up -d --build
 ```
 
+Untuk auto-redeploy saat source berubah:
+
+```powershell
+.\deploy.ps1 -Mode dev-watch
+```
+
 Akses:
 - UI: `http://localhost:5203`
 - API: `http://localhost:5041`
@@ -259,6 +265,7 @@ Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun 
 |---|---|
 | `.\deploy.ps1` | Deploy production (default) |
 | `.\deploy.ps1 -Mode dev` | Deploy development |
+| `.\deploy.ps1 -Mode dev-watch` | Deploy development + auto-redeploy |
 | `.\deploy.ps1 -Mode status` | Cek status container |
 | `.\deploy.ps1 -Mode logs` | Lihat log real-time |
 | `.\deploy.ps1 -Mode down` | Hentikan semua container |

@@ -5,6 +5,7 @@
 # Penggunaan:
 #   .\deploy.ps1               -> deploy production
 #   .\deploy.ps1 -Mode dev     -> deploy development
+#   .\deploy.ps1 -Mode dev-watch -> deploy development + auto-redeploy
 #   .\deploy.ps1 -Mode status  -> cek status container
 #   .\deploy.ps1 -Mode logs    -> tail logs
 #   .\deploy.ps1 -Mode down    -> stop semua
@@ -12,7 +13,7 @@
 # ============================================================
 
 param(
-    [ValidateSet("prod", "dev", "status", "logs", "down", "restart")]
+    [ValidateSet("prod", "dev", "dev-watch", "status", "logs", "down", "restart")]
     [string]$Mode = "prod"
 )
 
@@ -176,6 +177,24 @@ function Validate-ComposeFiles {
     Write-Log "Compose development tervalidasi."
 }
 
+function Validate-ComposeWatch {
+    docker compose -f docker-compose.yml -f docker-compose.watch.yml config | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Validasi compose development watch gagal."
+        exit 1
+    }
+
+    Write-Log "Compose development watch tervalidasi."
+}
+
+function Test-ComposeWatchSupport {
+    docker compose watch --help 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Docker Compose watch belum tersedia. Perbarui Docker Compose ke versi terbaru."
+        exit 1
+    }
+}
+
 function Deploy-Production {
     Write-Info "Deploying Cashflowpoly (PRODUCTION)..."
     Test-Dependencies
@@ -255,6 +274,39 @@ function Deploy-Dev {
     Write-Info "Swagger:       http://localhost:5041/swagger"
 }
 
+function Deploy-DevWatch {
+    Write-Info "Deploying Cashflowpoly (DEVELOPMENT + WATCH)..."
+    Test-Dependencies
+    Test-ComposeWatchSupport
+    $watchComposeArgs = @("-f", "docker-compose.yml", "-f", "docker-compose.watch.yml")
+
+    if (-not (Test-Path ".env") -and (Test-Path ".env.example")) {
+        Copy-Item ".env.example" ".env"
+        Write-Warn "File .env dibuat dari template. Edit jika perlu."
+    }
+
+    Validate-ComposeWatch
+
+    docker compose @watchComposeArgs up -d --build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Build/deploy development watch gagal."
+        exit 1
+    }
+
+    Write-Info "Menunggu health check (15 detik)..."
+    Start-Sleep -Seconds 15
+
+    Invoke-SmokeChecks
+    Show-Status
+    Write-Host ""
+    Write-Log "Mode development watch aktif."
+    Write-Info "Akses UI:      http://localhost:5203"
+    Write-Info "Akses API:     http://localhost:5041"
+    Write-Info "Tekan Ctrl+C untuk berhenti mode watch."
+
+    docker compose @watchComposeArgs watch
+}
+
 function Show-Status {
     $prodComposeArgs = Get-ProductionComposeArgs
     Write-Host ""
@@ -300,6 +352,7 @@ function Restart-All {
 switch ($Mode) {
     "prod"    { Deploy-Production }
     "dev"     { Deploy-Dev }
+    "dev-watch" { Deploy-DevWatch }
     "status"  { Show-Status }
     "logs"    { Show-Logs }
     "down"    { Stop-All }

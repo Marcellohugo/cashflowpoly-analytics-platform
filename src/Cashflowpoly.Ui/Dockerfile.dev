@@ -1,0 +1,10 @@
+# dev runtime
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /src
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
+    DOTNET_WATCH_SUPPRESS_EMOJIS=1
