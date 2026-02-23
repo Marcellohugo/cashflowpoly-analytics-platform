@@ -397,6 +397,120 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
+    /// Menjalankan fungsi AddPlayerToSession_FifthPlayer_IsRejectedWithDomainRuleViolation sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task AddPlayerToSession_FifthPlayer_IsRejectedWithDomainRuleViolation()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorUsername = $"it_evt_limit_instructor_{suffix}";
+        const string instructorPassword = "IntegrationLimitInstructorPass!123";
+        var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+
+        var createRulesetPayload = new
+        {
+            name = $"Ruleset Limit IT {suffix}",
+            description = "Integration max player per session",
+            config = BuildRulesetConfig(startingCash: 20)
+        };
+
+        var createRulesetResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/rulesets",
+            createRulesetPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+
+        var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(createdRuleset);
+
+        var createSessionPayload = new
+        {
+            session_name = $"Session Limit IT {suffix}",
+            mode = "PEMULA",
+            ruleset_id = createdRuleset.RulesetId
+        };
+
+        var createSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            createSessionPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+
+        var createdSession = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
+        Assert.NotNull(createdSession);
+
+        for (var i = 1; i <= 4; i++)
+        {
+            var createPlayerPayload = new
+            {
+                display_name = $"Player Limit {i} {suffix}",
+                username = $"it_evt_limit_player_{i}_{suffix}",
+                password = "IntegrationLimitPlayerPass!123"
+            };
+
+            var createPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                "/api/v1/players",
+                createPlayerPayload,
+                instructorToken);
+            Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+
+            var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+            Assert.NotNull(createdPlayer);
+
+            var addPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                $"/api/v1/sessions/{createdSession.SessionId}/players",
+                new
+                {
+                    player_id = createdPlayer.PlayerId,
+                    role = "PLAYER"
+                },
+                instructorToken);
+            Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
+        }
+
+        var createFifthPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            new
+            {
+                display_name = $"Player Limit 5 {suffix}",
+                username = $"it_evt_limit_player_5_{suffix}",
+                password = "IntegrationLimitPlayerPass!123"
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createFifthPlayerResponse.StatusCode);
+
+        var fifthPlayer = await createFifthPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+        Assert.NotNull(fifthPlayer);
+
+        var addFifthPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            new
+            {
+                player_id = fifthPlayer.PlayerId,
+                role = "PLAYER"
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, addFifthPlayerResponse.StatusCode);
+
+        var addFifthPlayerError = await addFifthPlayerResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(addFifthPlayerError);
+        Assert.Equal("DOMAIN_RULE_VIOLATION", addFifthPlayerError.ErrorCode);
+
+        var startSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/start",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, startSessionResponse.StatusCode);
+    }
+
+    [Fact]
+    /// <summary>
     /// Menjalankan fungsi LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks sebagai bagian dari alur file ini.
     /// </summary>
     public async Task LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks()

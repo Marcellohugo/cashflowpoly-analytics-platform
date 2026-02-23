@@ -221,6 +221,21 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
+    /// Menjalankan fungsi CountPlayersInSessionAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<int> CountPlayersInSessionAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select count(*)::int
+            from session_players
+            where session_id = @sessionId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
+    /// <summary>
     /// Menjalankan fungsi IsPlayerInSessionAsync sebagai bagian dari alur file ini.
     /// </summary>
     public async Task<bool> IsPlayerInSessionAsync(Guid sessionId, Guid playerId, CancellationToken ct)

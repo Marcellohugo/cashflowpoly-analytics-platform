@@ -130,6 +130,7 @@ internal static class ApiErrorHelper
         ["Sequence number loncat dari event terakhir"] = "Sequence number skips from the latest event",
         ["Sequence number minimal 0"] = "Sequence number must be at least 0",
         ["Sequence number sudah ada"] = "Sequence number already exists",
+        ["Sesi maksimal 4 pemain"] = "A session can have at most 4 players",
         ["Session sudah berakhir"] = "Session has already ended",
         ["Session tidak ditemukan"] = "Session not found",
         ["Setiap klaim pesanan harus diikuti pengambilan risiko pada mode MAHIR"] = "Each order claim must be followed by a risk draw in ADVANCED mode",
