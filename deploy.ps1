@@ -248,8 +248,15 @@ function Deploy-Production {
         exit 1
     }
 
-    Write-Info "Starting semua service tanpa build ulang..."
+    Write-Info "Memastikan seluruh service production berjalan..."
     docker compose @prodComposeArgs up -d --no-build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Start service production gagal."
+        exit 1
+    }
+
+    Write-Info "Redeploy service production (api + ui) dengan force recreate..."
+    docker compose @prodComposeArgs up -d --no-build --force-recreate --no-deps api ui
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Deploy production gagal."
         exit 1

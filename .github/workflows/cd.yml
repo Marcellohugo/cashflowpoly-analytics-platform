@@ -5,8 +5,16 @@ on:
   workflow_run:
     workflows: ["CI - Build & Test"]
     types: [completed]
-    branches: [main, master]
+    branches: [dev, prod]
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch sumber image
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -22,7 +30,9 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push')
+      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.head_branch == 'dev' ||
+      github.event.workflow_run.head_branch == 'prod'))
 
     permissions:
       contents: read
@@ -35,16 +45,22 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             echo "checkout_ref=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-            echo "image_tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "branch_name=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
           else
-            echo "checkout_ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "checkout_ref=${{ inputs.target_branch }}" >> "$GITHUB_OUTPUT"
+            echo "branch_name=${{ inputs.target_branch }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.meta.outputs.checkout_ref }}
+
+      - name: Resolve image tag
+        id: image
+        shell: bash
+        run: |
+          echo "image_tag=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -64,7 +80,8 @@ jobs:
           push: true
           tags: |
             ${{ env.API_IMAGE }}:latest
-            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.image_tag }}
+            ${{ env.API_IMAGE }}:${{ steps.meta.outputs.branch_name }}-latest
+            ${{ env.API_IMAGE }}:${{ steps.image.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,6 +93,7 @@ jobs:
           push: true
           tags: |
             ${{ env.UI_IMAGE }}:latest
-            ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.image_tag }}
+            ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.branch_name }}-latest
+            ${{ env.UI_IMAGE }}:${{ steps.image.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

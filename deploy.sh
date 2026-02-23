@@ -221,8 +221,11 @@ deploy_production() {
     info "Pull image production..."
     docker compose "${compose_args[@]}" pull api ui
 
-    info "Starting semua service tanpa build ulang..."
+    info "Memastikan seluruh service production berjalan..."
     docker compose "${compose_args[@]}" up -d --no-build
+
+    info "Redeploy service production (api + ui) dengan force recreate..."
+    docker compose "${compose_args[@]}" up -d --no-build --force-recreate --no-deps api ui
 
     info "Menunggu health check..."
     sleep 15

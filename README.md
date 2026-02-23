@@ -119,6 +119,11 @@ Atau gunakan script:
 
 Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY`.
 
+Catatan auto-redeploy production:
+- `docker-compose.prod.yml` menjalankan `watchtower` untuk auto-update container `api` dan `ui`.
+- Saat Docker daemon/desktop aktif kembali, `watchtower` otomatis jalan dan mengecek image terbaru sesuai interval `WATCHTOWER_POLL_INTERVAL` (default `30` detik).
+- Jika ingin mematikan auto-redeploy, hentikan service `cashflowpoly-watchtower` atau hapus service `watchtower` dari compose production.
+
 Akses (sesuai `.env`):
 - API + Swagger: `http://localhost:5041/swagger`
 - UI MVC: `http://localhost:5203`
