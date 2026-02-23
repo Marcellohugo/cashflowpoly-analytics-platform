@@ -345,36 +345,39 @@ Get-Content backup.sql | docker exec -i cashflowpoly-db psql -U cashflowpoly cas
 
 ## 7. CI/CD dengan GitHub Actions
 
-Repository ini menyertakan pipeline CI/CD di `.github/workflows/ci-cd.yml`.
+Repository ini menyertakan pipeline CI/CD pada dua workflow:
+- `.github/workflows/ci.yml` untuk build dan test.
+- `.github/workflows/cd.yml` untuk build dan push image ke GHCR.
 
 ### 7.1 Pipeline Jobs
 
 ```
-push ke main -> [Build & Test] -> [Docker Build & Push] -> [Deploy]
+push ke dev/prod -> [Build & Test] -> [Docker Build & Push]
 ```
 
 | Job | Fungsi | Trigger |
 |---|---|---|
-| **Build & Test** | Restore/build per-`csproj`, validasi `docker compose config` (dev+prod), lalu test non-integration + integration | push & PR ke `main` |
-| **Docker Build & Push** | Build image API/UI lalu push ke GitHub Container Registry (GHCR) | push ke `main` saja |
-| **Deploy** | SSH ke mesin target, `git pull`, validasi compose, lalu `docker compose up -d --build` | push ke `main` saja |
+| **Build & Test** | Restore/build per-`csproj`, validasi `docker compose config` (dev+prod), lalu test non-integration + integration | push & PR di semua branch |
+| **Docker Build & Push** | Build image API/UI lalu push ke GitHub Container Registry (GHCR) dengan tag branch (`dev-latest` / `prod-latest`) dan SHA commit | push ke `dev` atau `prod` (setelah CI sukses), atau manual via `workflow_dispatch` |
+| **Deploy (Manual)** | Pull branch dan jalankan script deploy di server target (`deploy.ps1` / `deploy.sh`) | dijalankan manual oleh operator |
 
-### 7.2 Setup GitHub Secrets
+### 7.2 Secrets yang Dibutuhkan
 
-Untuk mengaktifkan CI/CD, tambahkan secrets di GitHub Repository -> Settings -> Secrets and variables -> Actions:
+Untuk workflow CI/CD saat ini:
+- `ci.yml` tidak butuh secret khusus.
+- `cd.yml` memakai `GITHUB_TOKEN` bawaan GitHub Actions untuk push image ke GHCR.
+
+Untuk deploy manual di server target (opsional, jika image private), siapkan variabel environment berikut di mesin server:
 
 | Secret | Nilai | Keterangan |
 |---|---|---|
-| `DEPLOY_HOST` | IP publik atau hostname mesin | Mesin target deploy |
-| `DEPLOY_USER` | Username SSH | User di mesin target |
-| `DEPLOY_SSH_KEY` | Private key SSH | Generate dengan `ssh-keygen` |
-| `DEPLOY_PATH` | `/home/user/cashflowpoly-analytics-platform` | Path project di mesin target |
-| `DEPLOY_PORT` | `22` | Port SSH mesin target (opsional, default 22) |
+| `GHCR_USERNAME` | Username GitHub | Untuk login registry GHCR saat deploy manual |
+| `GHCR_TOKEN` | Personal Access Token (`read:packages`) | Token pull image dari GHCR (jika image private) |
 
 ### 7.3 Monitoring CI/CD
 
 - Buka tab **Actions** di repository GitHub
-- Setiap push ke `main` akan memicu pipeline
+- Setiap push ke `dev` atau `prod` akan memicu pipeline
 - Status pipeline: sukses atau gagal
 - Klik job yang gagal untuk melihat log error
 
@@ -493,7 +496,8 @@ Berikut daftar file yang berkaitan dengan deployment:
 | `nginx/default.conf` | Konfigurasi Nginx reverse proxy |
 | `deploy.ps1` | Script deploy untuk Windows (PowerShell) |
 | `deploy.sh` | Script deploy untuk Linux/macOS (Bash) |
-| `.github/workflows/ci-cd.yml` | Pipeline CI/CD GitHub Actions |
+| `.github/workflows/ci.yml` | Pipeline CI build & test |
+| `.github/workflows/cd.yml` | Pipeline CD build & push image |
 | `src/Cashflowpoly.Api/Dockerfile` | Multi-stage Docker build untuk API |
 | `src/Cashflowpoly.Ui/Dockerfile` | Multi-stage Docker build untuk UI |
 | `database/00_create_schema.sql` | Skrip inisiasi skema database |
