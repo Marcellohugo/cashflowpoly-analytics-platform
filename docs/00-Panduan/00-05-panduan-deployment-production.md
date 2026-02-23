@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Deployment Production
-- Versi: 1.0
-- Tanggal: 19 Februari 2026
+- Versi: 1.1
+- Tanggal: 23 Februari 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -99,11 +99,14 @@ Cloudflare Edge (SSL termination)
    |---|---|---|
    | `POSTGRES_PASSWORD` | `Str0ng!P@ssw0rd` | Password database, jangan gunakan default |
    | `JWT_SIGNING_KEY` | (random 48 karakter) | Generate: `openssl rand -base64 48` |
+   | `IMAGE_TAG` | `prod-latest` | Wajib untuk server production agar tidak menarik image branch `dev` |
    | `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` | `true` | Set `true` untuk buat user pertama |
    | `AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME` | `admin` | Username instructor |
    | `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | `Admin@123!` | Password instructor |
    | `AUTH_BOOTSTRAP_PLAYER_USERNAME` | `player1` | Username player |
    | `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | `Player@123!` | Password player |
+   | `GHCR_USERNAME` | `username-github` | Isi jika image GHCR private |
+   | `GHCR_TOKEN` | `ghp_xxx...` | Personal access token `read:packages` untuk pull image private |
 
    > **Penting**: Setelah seed user berhasil (login pertama sukses), ubah `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` ke `false` agar tidak seed ulang.
 
@@ -139,11 +142,12 @@ Akses:
 Mode ini mengarahkan semua traffic melalui Nginx reverse proxy. Port API dan UI tidak terekspos langsung.
 
 ```powershell
-# Cara 1: Menggunakan script deploy
+# Cara 1 (disarankan): menggunakan script deploy (pull image + recreate service)
 .\deploy.ps1 -Mode prod
 
 # Cara 2: Manual
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
 ```
 
 Akses:
@@ -152,9 +156,43 @@ Akses:
 - Swagger: `http://localhost/swagger`
 - Health: `http://localhost/health/ready`
 
+Catatan:
+- `docker-compose.prod.yml` memakai image dari GHCR (bukan build lokal) untuk service `api` dan `ui`.
+- Default fallback tag production adalah `prod-latest`.
+
 ---
 
-### 4.4 Mengaktifkan Cloudflare Tunnel (Akses Publik)
+### 4.4 Alur End-to-End (PC Developer dan PC Target Deploy)
+
+Alur ini memastikan deployment bisa dipicu dari mana saja, tetapi tetap aman untuk production.
+
+#### Alur dari PC Developer
+
+1. Ubah kode di branch `dev`, lalu `commit` dan `push` ke `origin/dev`.
+2. Workflow `CI - Build & Test` berjalan.
+3. Jika CI sukses, workflow `CD - Build & Push Images` mem-publish image:
+   - branch `dev`: tag `dev-latest` dan `SHA`.
+   - branch `prod`: tag `prod-latest`, `latest`, dan `SHA`.
+4. Saat siap rilis, dorong perubahan ke branch `prod`.
+
+#### Alur di PC Target Deploy (Docker Desktop)
+
+1. Jalankan deploy awal:
+   ```powershell
+   .\deploy.ps1 -Mode prod
+   ```
+2. Pastikan `IMAGE_TAG=prod-latest` pada `.env`.
+3. Service `watchtower` akan cek image baru sesuai `WATCHTOWER_POLL_INTERVAL` (default 30 detik).
+4. Ketika image `prod-latest` baru tersedia, container `api` dan `ui` akan auto pull dan rolling restart.
+
+#### Batasan Auto-Deploy
+
+- Auto-update berlaku untuk update image container (`api` dan `ui`).
+- Perubahan file konfigurasi (contoh: `.env`, `docker-compose*.yml`, `nginx/default.conf`) tetap butuh deploy manual ulang (`.\deploy.ps1 -Mode prod`).
+
+---
+
+### 4.5 Mengaktifkan Cloudflare Tunnel (Akses Publik)
 
 Cloudflare Tunnel memungkinkan sistem diakses dari mana saja melalui internet tanpa membuka port di firewall atau memerlukan IP publik statis.
 
@@ -225,7 +263,7 @@ Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun 
 
 8. **Jalankan**:
    ```powershell
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d
    ```
 
 9. **Verifikasi** tunnel berjalan:
@@ -286,8 +324,9 @@ docker logs cashflowpoly-tunnel --tail 50
 # Restart satu container
 docker compose -f docker-compose.yml -f docker-compose.prod.yml restart api
 
-# Rebuild dan restart satu container
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --no-deps api
+# Redeploy image terbaru untuk API
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build --force-recreate --no-deps api
 
 # Hentikan semua (data database tetap aman)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml down
@@ -306,16 +345,17 @@ Jika perlu memindahkan deployment dari PC pribadi ke PC lab atau mesin lain:
 
 ```powershell
 # 1. Clone repository
-git clone https://github.com/marcomarcello15/cashflowpoly-analytics-platform.git
+git clone https://github.com/Marcellohugo/cashflowpoly-analytics-platform.git
 cd cashflowpoly-analytics-platform
+git checkout prod
 
 # 2. Salin file .env (JANGAN commit .env ke Git)
 # Copy manual dari mesin lama, atau buat ulang dari template:
 Copy-Item .env.example .env
 notepad .env    # Isi semua variabel
 
-# 3. Deploy production + tunnel
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build
+# 3. Deploy production (script akan pull image dan recreate service)
+.\deploy.ps1 -Mode prod
 
 # 4. Verifikasi
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
@@ -352,14 +392,19 @@ Repository ini menyertakan pipeline CI/CD pada dua workflow:
 ### 7.1 Pipeline Jobs
 
 ```
-push ke dev/prod -> [Build & Test] -> [Docker Build & Push]
+push ke dev/prod -> [Build & Test] -> [Docker Build & Push] -> [Watchtower auto-update di server target]
 ```
 
 | Job | Fungsi | Trigger |
 |---|---|---|
 | **Build & Test** | Restore/build per-`csproj`, validasi `docker compose config` (dev+prod), lalu test non-integration + integration | push & PR di semua branch |
-| **Docker Build & Push** | Build image API/UI lalu push ke GitHub Container Registry (GHCR) dengan tag branch (`dev-latest` / `prod-latest`) dan SHA commit | push ke `dev` atau `prod` (setelah CI sukses), atau manual via `workflow_dispatch` |
-| **Deploy (Manual)** | Pull branch dan jalankan script deploy di server target (`deploy.ps1` / `deploy.sh`) | dijalankan manual oleh operator |
+| **Docker Build & Push** | Build image API/UI lalu push ke GHCR dengan tag sesuai branch dan SHA commit | push ke `dev` atau `prod` (setelah CI sukses), atau manual via `workflow_dispatch` |
+| **Auto-Redeploy (Watchtower)** | Menarik image terbaru untuk service berlabel (`api`, `ui`) lalu restart container | polling berkala di server target |
+
+Aturan tag image:
+- Push ke `dev`: publish `dev-latest` dan `<SHA>`.
+- Push ke `prod`: publish `prod-latest`, `latest`, dan `<SHA>`.
+- Server production disarankan tetap memakai `IMAGE_TAG=prod-latest`.
 
 ### 7.2 Secrets yang Dibutuhkan
 
@@ -513,9 +558,10 @@ Berikut daftar file yang berkaitan dengan deployment:
 # 1. Buat .env
 Copy-Item .env.example .env
 notepad .env          # Edit semua variabel
+# Pastikan IMAGE_TAG=prod-latest
 
-# 2. Deploy production + tunnel
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build
+# 2. Deploy production (script sudah pull/recreate)
+.\deploy.ps1 -Mode prod
 
 # 3. Cek status
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
@@ -524,14 +570,13 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 docker logs cashflowpoly-tunnel --tail 10
 
 # ===== SEHARI-HARI =====
-# Start
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d
+# Rilis perubahan kode:
+# a) push perubahan ke branch prod dari PC developer
+# b) tunggu CI/CD sukses
+# c) watchtower di server target auto-update container
 
-# Stop
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down
-
-# Rebuild setelah perubahan kode
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build
+# Jika perlu paksa redeploy manual
+.\deploy.ps1 -Mode prod
 
 # Lihat log
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=50
@@ -544,8 +589,10 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=5
 Sistem terdeploy dengan benar jika:
 
 - [ ] File `.env` sudah diisi dengan nilai yang benar (bukan default)
+- [ ] `IMAGE_TAG` pada `.env` production bernilai `prod-latest`
 - [ ] Semua container berstatus **healthy**: `db`, `api`, `ui`, `nginx`
 - [ ] Container `cloudflared` berstatus **running** (jika menggunakan tunnel)
+- [ ] Container `watchtower` berstatus **running** untuk auto-redeploy
 - [ ] Endpoint `/health/ready` mengembalikan `200 Healthy`
 - [ ] Dashboard UI dapat diakses di `/`
 - [ ] Swagger UI dapat diakses di `/swagger`
