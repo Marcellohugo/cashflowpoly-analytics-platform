@@ -1,5 +1,6 @@
 // Fungsi file: Mengelola endpoint API untuk domain PlayersController termasuk validasi request dan respons standar.
 using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -164,6 +165,19 @@ public sealed class PlayersController : ControllerBase
         if (player is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Player tidak ditemukan"));
+        }
+
+        var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, request.PlayerId, ct);
+        if (!alreadyInSession)
+        {
+            var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
+            if (playersInSession >= SessionRules.MaxPlayersPerSession)
+            {
+                return UnprocessableEntity(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "DOMAIN_RULE_VIOLATION",
+                    $"Sesi maksimal {SessionRules.MaxPlayersPerSession} pemain"));
+            }
         }
 
         var role = string.IsNullOrWhiteSpace(request.Role) ? "PLAYER" : request.Role;

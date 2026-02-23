@@ -26,15 +26,21 @@ public sealed class SessionsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
     private readonly SessionRepository _sessions;
+    private readonly PlayerRepository _players;
     private readonly UserRepository _users;
 
     /// <summary>
     /// Menjalankan fungsi SessionsController sebagai bagian dari alur file ini.
     /// </summary>
-    public SessionsController(RulesetRepository rulesets, SessionRepository sessions, UserRepository users)
+    public SessionsController(
+        RulesetRepository rulesets,
+        SessionRepository sessions,
+        PlayerRepository players,
+        UserRepository users)
     {
         _rulesets = rulesets;
         _sessions = sessions;
+        _players = players;
         _users = users;
     }
 
@@ -157,6 +163,15 @@ public sealed class SessionsController : ControllerBase
         if (!string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase))
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Status sesi tidak valid"));
+        }
+
+        var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
+        if (playersInSession > SessionRules.MaxPlayersPerSession)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                $"Sesi maksimal {SessionRules.MaxPlayersPerSession} pemain"));
         }
 
         var startedAt = DateTimeOffset.UtcNow;
