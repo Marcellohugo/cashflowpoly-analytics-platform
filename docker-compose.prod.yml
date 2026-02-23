@@ -14,7 +14,7 @@
 services:
   api:
     build: !reset null
-    image: ${API_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/api}:${IMAGE_TAG:-latest}
+    image: ${API_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/api}:${IMAGE_TAG:-prod-latest}
     pull_policy: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -25,7 +25,7 @@ services:
 
   ui:
     build: !reset null
-    image: ${UI_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/ui}:${IMAGE_TAG:-latest}
+    image: ${UI_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/ui}:${IMAGE_TAG:-prod-latest}
     pull_policy: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"

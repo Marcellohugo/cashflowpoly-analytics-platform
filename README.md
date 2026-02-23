@@ -121,6 +121,7 @@ Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY`.
 
 Catatan auto-redeploy production:
 - `docker-compose.prod.yml` menjalankan `watchtower` untuk auto-update container `api` dan `ui`.
+- Set `IMAGE_TAG=prod-latest` di `.env` production agar server production tidak menarik image dari branch `dev`.
 - Saat Docker daemon/desktop aktif kembali, `watchtower` otomatis jalan dan mengecek image terbaru sesuai interval `WATCHTOWER_POLL_INTERVAL` (default `30` detik).
 - Jika ingin mematikan auto-redeploy, hentikan service `cashflowpoly-watchtower` atau hapus service `watchtower` dari compose production.
 
