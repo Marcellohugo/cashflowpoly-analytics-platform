@@ -8,6 +8,7 @@
 #   ./deploy.sh            -> deploy production
 #   ./deploy.sh --dev      -> deploy development (port langsung)
 #   ./deploy.sh --dev-watch -> deploy development + auto-redeploy
+#   ./deploy.sh --env-file .env.prod -> pakai env file spesifik
 #   ./deploy.sh --status   -> cek status semua container
 #   ./deploy.sh --logs     -> tail logs semua service
 #   ./deploy.sh --down     -> stop semua service
@@ -29,6 +30,62 @@ log()   { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[!]${NC} $1"; }
 error() { echo -e "${RED}[X]${NC} $1"; }
 info()  { echo -e "${BLUE}[->]${NC} $1"; }
+
+default_env_file_for_mode() {
+    local mode="${1:-prod}"
+    if [ "$mode" = "dev" ] || [ "$mode" = "dev-watch" ]; then
+        echo ".env.dev"
+        return
+    fi
+
+    echo ".env.prod"
+}
+
+resolve_env_file() {
+    local mode="${1:-prod}"
+    local requested_env_file="${2:-}"
+
+    if [ -n "$requested_env_file" ]; then
+        echo "$requested_env_file"
+        return
+    fi
+
+    local mode_default
+    mode_default="$(default_env_file_for_mode "$mode")"
+    if [ -f "$mode_default" ]; then
+        echo "$mode_default"
+        return
+    fi
+
+    if [ -f ".env" ]; then
+        echo ".env"
+        return
+    fi
+
+    echo "$mode_default"
+}
+
+get_env_template_for_target() {
+    local target_env_file="$1"
+    if [[ "$target_env_file" == *.env.dev ]] && [ -f ".env.dev.example" ]; then
+        echo ".env.dev.example"
+        return
+    fi
+
+    if [[ "$target_env_file" == *.env.prod ]] && [ -f ".env.prod.example" ]; then
+        echo ".env.prod.example"
+        return
+    fi
+
+    if [ -f ".env.example" ]; then
+        echo ".env.example"
+        return
+    fi
+}
+
+compose() {
+    docker compose --env-file "$ENV_FILE" "$@"
+}
 
 check_dependencies() {
     local missing=0
@@ -52,42 +109,44 @@ check_dependencies() {
 }
 
 check_env_file() {
-    if [ ! -f .env ]; then
-        warn "File .env belum ada."
-        if [ -f .env.example ]; then
-            info "Membuat .env dari .env.example..."
-            cp .env.example .env
-            warn "PENTING: Edit file .env dan ganti nilai default sebelum deploy production."
-            warn "  nano .env"
+    if [ ! -f "$ENV_FILE" ]; then
+        warn "File $ENV_FILE belum ada."
+        local env_template
+        env_template="$(get_env_template_for_target "$ENV_FILE")"
+        if [ -n "${env_template:-}" ]; then
+            info "Membuat $ENV_FILE dari $env_template..."
+            cp "$env_template" "$ENV_FILE"
+            warn "PENTING: Edit file $ENV_FILE dan ganti nilai default sebelum deploy production."
+            warn "  nano $ENV_FILE"
             exit 1
         fi
 
-        error "File .env.example tidak ditemukan."
+        error "Template env file tidak ditemukan."
         exit 1
     fi
 
-    log "File .env ditemukan."
+    log "File $ENV_FILE ditemukan."
 
     # shellcheck disable=SC1091
-    source .env 2>/dev/null || true
+    source "$ENV_FILE" 2>/dev/null || true
     if [[ "${POSTGRES_PASSWORD:-}" == "GANTI_DENGAN_PASSWORD_KUAT" ]] || \
        [[ "${JWT_SIGNING_KEY:-}" == *"GANTI"* ]]; then
-        error "Variabel .env masih menggunakan nilai default."
-        error "Edit .env dan ganti POSTGRES_PASSWORD, JWT_SIGNING_KEY, dll."
+        error "Variabel $ENV_FILE masih menggunakan nilai default."
+        error "Edit $ENV_FILE dan ganti POSTGRES_PASSWORD, JWT_SIGNING_KEY, dll."
         exit 1
     fi
 
-    log "Variabel .env tervalidasi."
+    log "Variabel $ENV_FILE tervalidasi."
 }
 
 get_env_file_value() {
     local key="$1"
-    if [ ! -f .env ]; then
+    if [ ! -f "$ENV_FILE" ]; then
         return 0
     fi
 
     local line
-    line="$(grep -E "^[[:space:]]*${key}[[:space:]]*=" .env | tail -n 1 || true)"
+    line="$(grep -E "^[[:space:]]*${key}[[:space:]]*=" "$ENV_FILE" | tail -n 1 || true)"
     if [ -z "$line" ]; then
         return 0
     fi
@@ -163,7 +222,7 @@ validate_compose_prod() {
         compose_args+=(--profile tunnel)
     fi
 
-    if ! docker compose "${compose_args[@]}" config >/dev/null; then
+    if ! compose "${compose_args[@]}" config >/dev/null; then
         error "Validasi compose production gagal."
         exit 1
     fi
@@ -172,7 +231,7 @@ validate_compose_prod() {
 }
 
 validate_compose_dev() {
-    if ! docker compose config >/dev/null; then
+    if ! compose config >/dev/null; then
         error "Validasi compose development gagal."
         exit 1
     fi
@@ -181,7 +240,7 @@ validate_compose_dev() {
 }
 
 validate_compose_dev_watch() {
-    if ! docker compose -f docker-compose.yml -f docker-compose.watch.yml config >/dev/null; then
+    if ! compose -f docker-compose.yml -f docker-compose.watch.yml config >/dev/null; then
         error "Validasi compose development watch gagal."
         exit 1
     fi
@@ -201,8 +260,14 @@ deploy_production() {
     check_dependencies
     check_env_file
     validate_compose_prod
-    local ghcr_registry="${GHCR_REGISTRY:-ghcr.io}"
+    local ghcr_registry="${GHCR_REGISTRY:-$(get_env_file_value GHCR_REGISTRY)}"
+    local ghcr_username="${GHCR_USERNAME:-$(get_env_file_value GHCR_USERNAME)}"
+    local ghcr_token="${GHCR_TOKEN:-$(get_env_file_value GHCR_TOKEN)}"
     local compose_args=(-f docker-compose.yml -f docker-compose.prod.yml)
+
+    if [ -z "$ghcr_registry" ]; then
+        ghcr_registry="ghcr.io"
+    fi
 
     if is_tunnel_profile_enabled; then
         compose_args+=(--profile tunnel)
@@ -211,21 +276,21 @@ deploy_production() {
         warn "CLOUDFLARE_TUNNEL_TOKEN tidak ditemukan. Deploy tetap berjalan tanpa profile tunnel."
     fi
 
-    if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
+    if [ -n "$ghcr_username" ] && [ -n "$ghcr_token" ]; then
         info "Login ke GHCR (${ghcr_registry})..."
-        echo "${GHCR_TOKEN}" | docker login "${ghcr_registry}" -u "${GHCR_USERNAME}" --password-stdin
+        echo "${ghcr_token}" | docker login "${ghcr_registry}" -u "${ghcr_username}" --password-stdin
     else
         warn "GHCR_USERNAME/GHCR_TOKEN tidak diset. Asumsi image publik atau host sudah login."
     fi
 
     info "Pull image production..."
-    docker compose "${compose_args[@]}" pull api ui
+    compose "${compose_args[@]}" pull api ui
 
     info "Memastikan seluruh service production berjalan..."
-    docker compose "${compose_args[@]}" up -d --no-build
+    compose "${compose_args[@]}" up -d --no-build
 
     info "Redeploy service production (api + ui) dengan force recreate..."
-    docker compose "${compose_args[@]}" up -d --no-build --force-recreate --no-deps api ui
+    compose "${compose_args[@]}" up -d --no-build --force-recreate --no-deps api ui
 
     info "Menunggu health check..."
     sleep 15
@@ -249,7 +314,7 @@ deploy_dev() {
 
     validate_compose_dev
 
-    docker compose up -d --build
+    compose up -d --build
 
     info "Menunggu health check..."
     sleep 15
@@ -276,7 +341,7 @@ deploy_dev_watch() {
 
     validate_compose_dev_watch
 
-    docker compose "${compose_args[@]}" up -d --build
+    compose "${compose_args[@]}" up -d --build
 
     info "Menunggu health check..."
     sleep 15
@@ -289,7 +354,7 @@ deploy_dev_watch() {
     info "Akses API:     http://localhost:5041"
     info "Tekan Ctrl+C untuk berhenti mode watch."
 
-    docker compose "${compose_args[@]}" watch
+    compose "${compose_args[@]}" watch
 }
 
 show_status() {
@@ -301,8 +366,8 @@ show_status() {
     echo ""
     info "Status Container:"
     echo "----------------------------------------------------"
-    docker compose "${compose_args[@]}" ps 2>/dev/null \
-        || docker compose ps
+    compose "${compose_args[@]}" ps 2>/dev/null \
+        || compose ps
     echo "----------------------------------------------------"
 }
 
@@ -312,8 +377,8 @@ show_logs() {
         compose_args+=(--profile tunnel)
     fi
 
-    docker compose "${compose_args[@]}" logs -f --tail=100 2>/dev/null \
-        || docker compose logs -f --tail=100
+    compose "${compose_args[@]}" logs -f --tail=100 2>/dev/null \
+        || compose logs -f --tail=100
 }
 
 stop_all() {
@@ -323,8 +388,8 @@ stop_all() {
     fi
 
     warn "Menghentikan semua service..."
-    docker compose "${compose_args[@]}" down 2>/dev/null \
-        || docker compose down
+    compose "${compose_args[@]}" down 2>/dev/null \
+        || compose down
     log "Semua service dihentikan."
 }
 
@@ -335,8 +400,8 @@ restart_all() {
     fi
 
     info "Restart semua service..."
-    docker compose "${compose_args[@]}" restart 2>/dev/null \
-        || docker compose restart
+    compose "${compose_args[@]}" restart 2>/dev/null \
+        || compose restart
     sleep 10
     show_status
     log "Restart selesai."
@@ -350,6 +415,7 @@ Options:
   (tanpa opsi)   Deploy production (dengan Nginx)
   --dev          Deploy development (port langsung)
   --dev-watch    Deploy development + auto-redeploy
+  --env-file     Pilih file env custom (contoh: .env.prod)
   --status       Tampilkan status container
   --logs         Tail logs semua service
   --down         Stop semua service
@@ -358,14 +424,52 @@ Options:
 EOF
 }
 
-case "${1:-}" in
-    --dev)      deploy_dev ;;
-    --dev-watch) deploy_dev_watch ;;
-    --status)   show_status ;;
-    --logs)     show_logs ;;
-    --down)     stop_all ;;
-    --restart)  restart_all ;;
-    --help|-h)  show_help ;;
-    "")         deploy_production ;;
-    *)          error "Opsi tidak dikenal: $1"; show_help; exit 1 ;;
+MODE="prod"
+CUSTOM_ENV_FILE=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dev) MODE="dev" ;;
+        --dev-watch) MODE="dev-watch" ;;
+        --status) MODE="status" ;;
+        --logs) MODE="logs" ;;
+        --down) MODE="down" ;;
+        --restart) MODE="restart" ;;
+        --env-file)
+            if [ $# -lt 2 ]; then
+                error "Nilai untuk --env-file belum diisi."
+                show_help
+                exit 1
+            fi
+            CUSTOM_ENV_FILE="$2"
+            shift
+            ;;
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        *)
+            error "Opsi tidak dikenal: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+ENV_FILE="$(resolve_env_file "$MODE" "$CUSTOM_ENV_FILE")"
+info "Menggunakan env file: $ENV_FILE"
+
+case "$MODE" in
+    dev) deploy_dev ;;
+    dev-watch) deploy_dev_watch ;;
+    status) show_status ;;
+    logs) show_logs ;;
+    down) stop_all ;;
+    restart) restart_all ;;
+    prod) deploy_production ;;
+    *)
+        error "Mode tidak dikenal: $MODE"
+        exit 1
+        ;;
 esac

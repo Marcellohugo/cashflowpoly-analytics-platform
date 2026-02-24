@@ -6,6 +6,7 @@
 #   .\deploy.ps1               -> deploy production
 #   .\deploy.ps1 -Mode dev     -> deploy development
 #   .\deploy.ps1 -Mode dev-watch -> deploy development + auto-redeploy
+#   .\deploy.ps1 -Mode prod -EnvFile .env.prod -> pakai env file spesifik
 #   .\deploy.ps1 -Mode status  -> cek status container
 #   .\deploy.ps1 -Mode logs    -> tail logs
 #   .\deploy.ps1 -Mode down    -> stop semua
@@ -14,7 +15,8 @@
 
 param(
     [ValidateSet("prod", "dev", "dev-watch", "status", "logs", "down", "restart")]
-    [string]$Mode = "prod"
+    [string]$Mode = "prod",
+    [string]$EnvFile
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +26,55 @@ function Write-Log   { param($msg) Write-Host "[OK] $msg" -ForegroundColor Green
 function Write-Warn  { param($msg) Write-Host "[!]  $msg" -ForegroundColor Yellow }
 function Write-Err   { param($msg) Write-Host "[X]  $msg" -ForegroundColor Red }
 function Write-Info  { param($msg) Write-Host "[->] $msg" -ForegroundColor Cyan }
+
+function Get-DefaultEnvFileForMode {
+    param([Parameter(Mandatory = $true)][string]$SelectedMode)
+
+    if ($SelectedMode -in @("dev", "dev-watch")) {
+        return ".env.dev"
+    }
+
+    return ".env.prod"
+}
+
+function Resolve-EnvFilePath {
+    if (-not [string]::IsNullOrWhiteSpace($EnvFile)) {
+        return $EnvFile
+    }
+
+    $modeDefault = Get-DefaultEnvFileForMode -SelectedMode $Mode
+    if (Test-Path $modeDefault) {
+        return $modeDefault
+    }
+
+    if (Test-Path ".env") {
+        return ".env"
+    }
+
+    return $modeDefault
+}
+
+function Get-TemplateEnvFileForTarget {
+    param([Parameter(Mandatory = $true)][string]$TargetEnvFile)
+
+    $normalized = $TargetEnvFile.ToLowerInvariant()
+    if ($normalized.EndsWith(".env.dev") -and (Test-Path ".env.dev.example")) {
+        return ".env.dev.example"
+    }
+
+    if ($normalized.EndsWith(".env.prod") -and (Test-Path ".env.prod.example")) {
+        return ".env.prod.example"
+    }
+
+    if (Test-Path ".env.example") {
+        return ".env.example"
+    }
+
+    return $null
+}
+
+$script:ComposeEnvFile = Resolve-EnvFilePath
+Write-Info "Menggunakan env file: $script:ComposeEnvFile"
 
 function Invoke-ComposeWithOrphanSuppressed {
     param([Parameter(Mandatory = $true)][scriptblock]$Command)
@@ -62,47 +113,52 @@ function Test-Dependencies {
 }
 
 function Test-EnvFile {
-    if (-not (Test-Path ".env")) {
-        Write-Warn "File .env belum ada."
-        if (Test-Path ".env.example") {
-            Write-Info "Membuat .env dari .env.example..."
-            Copy-Item ".env.example" ".env"
-            Write-Warn "PENTING: Edit file .env dan ganti nilai default sebelum deploy."
-            Write-Warn "  notepad .env"
+    if (-not (Test-Path $script:ComposeEnvFile)) {
+        Write-Warn "File $script:ComposeEnvFile belum ada."
+        $templateEnvFile = Get-TemplateEnvFileForTarget -TargetEnvFile $script:ComposeEnvFile
+        if ($templateEnvFile) {
+            Write-Info "Membuat $script:ComposeEnvFile dari $templateEnvFile..."
+            Copy-Item $templateEnvFile $script:ComposeEnvFile
+            Write-Warn "PENTING: Edit file $script:ComposeEnvFile dan ganti nilai default sebelum deploy."
+            Write-Warn "  notepad $script:ComposeEnvFile"
             exit 1
         }
 
-        Write-Err ".env.example tidak ditemukan."
+        Write-Err "Template env file tidak ditemukan."
         exit 1
     }
 
-    Write-Log "File .env ditemukan."
+    Write-Log "File $script:ComposeEnvFile ditemukan."
 
-    $envContent = Get-Content ".env" -Raw
+    $envContent = Get-Content $script:ComposeEnvFile -Raw
     if ($envContent -match "GANTI_DENGAN_PASSWORD_KUAT" -or $envContent -match "GANTI_DENGAN_SIGNING_KEY") {
-        Write-Err "Variabel .env masih menggunakan nilai default."
-        Write-Err "Edit .env dan ganti POSTGRES_PASSWORD, JWT_SIGNING_KEY, dll."
+        Write-Err "Variabel $script:ComposeEnvFile masih menggunakan nilai default."
+        Write-Err "Edit $script:ComposeEnvFile dan ganti POSTGRES_PASSWORD, JWT_SIGNING_KEY, dll."
         exit 1
     }
 
-    Write-Log "Variabel .env tervalidasi."
+    Write-Log "Variabel $script:ComposeEnvFile tervalidasi."
 }
 
 function Get-EnvFileValue {
     param([Parameter(Mandatory = $true)][string]$Key)
 
-    if (-not (Test-Path ".env")) {
+    if (-not (Test-Path $script:ComposeEnvFile)) {
         return $null
     }
 
     $pattern = "^\s*$([Regex]::Escape($Key))\s*=\s*(.*)$"
-    foreach ($line in Get-Content ".env") {
+    foreach ($line in Get-Content $script:ComposeEnvFile) {
         if ($line -match $pattern) {
             return $Matches[1].Trim().Trim("'`"")
         }
     }
 
     return $null
+}
+
+function Get-ComposeEnvArgs {
+    return @("--env-file", $script:ComposeEnvFile)
 }
 
 function Test-TunnelProfileEnabled {
@@ -177,9 +233,11 @@ function Invoke-SmokeChecks {
 function Validate-ComposeFiles {
     param([switch]$Production)
 
+    $envArgs = Get-ComposeEnvArgs
+
     if ($Production) {
         $prodComposeArgs = Get-ProductionComposeArgs
-        docker compose @prodComposeArgs config | Out-Null
+        docker compose @envArgs @prodComposeArgs config | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Err "Validasi compose production gagal."
             exit 1
@@ -189,7 +247,7 @@ function Validate-ComposeFiles {
         return
     }
 
-    docker compose config | Out-Null
+    docker compose @envArgs config | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Validasi compose development gagal."
         exit 1
@@ -199,7 +257,8 @@ function Validate-ComposeFiles {
 }
 
 function Validate-ComposeWatch {
-    docker compose -f docker-compose.yml -f docker-compose.watch.yml config | Out-Null
+    $envArgs = Get-ComposeEnvArgs
+    docker compose @envArgs -f docker-compose.yml -f docker-compose.watch.yml config | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Validasi compose development watch gagal."
         exit 1
@@ -221,8 +280,14 @@ function Deploy-Production {
     Test-Dependencies
     Test-EnvFile
     Validate-ComposeFiles -Production
+    $envArgs = Get-ComposeEnvArgs
     $prodComposeArgs = Get-ProductionComposeArgs
-    $ghcrRegistry = if ($env:GHCR_REGISTRY) { $env:GHCR_REGISTRY } else { "ghcr.io" }
+    $ghcrRegistry = if ($env:GHCR_REGISTRY) { $env:GHCR_REGISTRY } else {
+        $registryFromFile = Get-EnvFileValue -Key "GHCR_REGISTRY"
+        if ($registryFromFile) { $registryFromFile } else { "ghcr.io" }
+    }
+    $ghcrUsername = if ($env:GHCR_USERNAME) { $env:GHCR_USERNAME } else { Get-EnvFileValue -Key "GHCR_USERNAME" }
+    $ghcrToken = if ($env:GHCR_TOKEN) { $env:GHCR_TOKEN } else { Get-EnvFileValue -Key "GHCR_TOKEN" }
 
     if (Test-TunnelProfileEnabled) {
         Write-Info "CLOUDFLARE_TUNNEL_TOKEN ditemukan. Tunnel profile akan dijalankan."
@@ -230,9 +295,9 @@ function Deploy-Production {
         Write-Warn "CLOUDFLARE_TUNNEL_TOKEN tidak ditemukan. Deploy tetap berjalan tanpa profile tunnel."
     }
 
-    if ($env:GHCR_USERNAME -and $env:GHCR_TOKEN) {
+    if ($ghcrUsername -and $ghcrToken) {
         Write-Info "Login ke GHCR ($ghcrRegistry)..."
-        $env:GHCR_TOKEN | docker login $ghcrRegistry -u $env:GHCR_USERNAME --password-stdin | Out-Null
+        $ghcrToken | docker login $ghcrRegistry -u $ghcrUsername --password-stdin | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Err "Login GHCR gagal."
             exit 1
@@ -242,21 +307,21 @@ function Deploy-Production {
     }
 
     Write-Info "Pull image production..."
-    docker compose @prodComposeArgs pull api ui
+    docker compose @envArgs @prodComposeArgs pull api ui
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Pull image production gagal."
         exit 1
     }
 
     Write-Info "Memastikan seluruh service production berjalan..."
-    docker compose @prodComposeArgs up -d --no-build
+    docker compose @envArgs @prodComposeArgs up -d --no-build
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Start service production gagal."
         exit 1
     }
 
     Write-Info "Redeploy service production (api + ui) dengan force recreate..."
-    docker compose @prodComposeArgs up -d --no-build --force-recreate --no-deps api ui
+    docker compose @envArgs @prodComposeArgs up -d --no-build --force-recreate --no-deps api ui
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Deploy production gagal."
         exit 1
@@ -276,15 +341,12 @@ function Deploy-Production {
 function Deploy-Dev {
     Write-Info "Deploying Cashflowpoly (DEVELOPMENT)..."
     Test-Dependencies
-
-    if (-not (Test-Path ".env") -and (Test-Path ".env.example")) {
-        Copy-Item ".env.example" ".env"
-        Write-Warn "File .env dibuat dari template."
-    }
+    Test-EnvFile
+    $envArgs = Get-ComposeEnvArgs
 
     Validate-ComposeFiles
 
-    Invoke-ComposeWithOrphanSuppressed { docker compose up -d --build }
+    Invoke-ComposeWithOrphanSuppressed { docker compose @envArgs up -d --build }
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Build/deploy development gagal."
         exit 1
@@ -305,17 +367,14 @@ function Deploy-Dev {
 function Deploy-DevWatch {
     Write-Info "Deploying Cashflowpoly (DEVELOPMENT + WATCH)..."
     Test-Dependencies
+    Test-EnvFile
     Test-ComposeWatchSupport
+    $envArgs = Get-ComposeEnvArgs
     $watchComposeArgs = @("-f", "docker-compose.yml", "-f", "docker-compose.watch.yml")
-
-    if (-not (Test-Path ".env") -and (Test-Path ".env.example")) {
-        Copy-Item ".env.example" ".env"
-        Write-Warn "File .env dibuat dari template. Edit jika perlu."
-    }
 
     Validate-ComposeWatch
 
-    Invoke-ComposeWithOrphanSuppressed { docker compose @watchComposeArgs up -d --build }
+    Invoke-ComposeWithOrphanSuppressed { docker compose @envArgs @watchComposeArgs up -d --build }
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Build/deploy development watch gagal."
         exit 1
@@ -332,45 +391,49 @@ function Deploy-DevWatch {
     Write-Info "Akses API:     http://localhost:5041"
     Write-Info "Tekan Ctrl+C untuk berhenti mode watch."
 
-    Invoke-ComposeWithOrphanSuppressed { docker compose @watchComposeArgs watch }
+    Invoke-ComposeWithOrphanSuppressed { docker compose @envArgs @watchComposeArgs watch }
 }
 
 function Show-Status {
+    $envArgs = Get-ComposeEnvArgs
     $prodComposeArgs = Get-ProductionComposeArgs
     Write-Host ""
     Write-Info "Status Container:"
     Write-Host ("=" * 55)
-    docker compose @prodComposeArgs ps 2>$null
+    docker compose @envArgs @prodComposeArgs ps 2>$null
     if ($LASTEXITCODE -ne 0) {
-        docker compose ps
+        docker compose @envArgs ps
     }
     Write-Host ("=" * 55)
 }
 
 function Show-Logs {
+    $envArgs = Get-ComposeEnvArgs
     $prodComposeArgs = Get-ProductionComposeArgs
-    docker compose @prodComposeArgs logs -f --tail=100 2>$null
+    docker compose @envArgs @prodComposeArgs logs -f --tail=100 2>$null
     if ($LASTEXITCODE -ne 0) {
-        docker compose logs -f --tail=100
+        docker compose @envArgs logs -f --tail=100
     }
 }
 
 function Stop-All {
+    $envArgs = Get-ComposeEnvArgs
     $prodComposeArgs = Get-ProductionComposeArgs
     Write-Warn "Menghentikan semua service..."
-    docker compose @prodComposeArgs down 2>$null
+    docker compose @envArgs @prodComposeArgs down 2>$null
     if ($LASTEXITCODE -ne 0) {
-        docker compose down
+        docker compose @envArgs down
     }
     Write-Log "Semua service dihentikan."
 }
 
 function Restart-All {
+    $envArgs = Get-ComposeEnvArgs
     $prodComposeArgs = Get-ProductionComposeArgs
     Write-Info "Restart semua service..."
-    docker compose @prodComposeArgs restart 2>$null
+    docker compose @envArgs @prodComposeArgs restart 2>$null
     if ($LASTEXITCODE -ne 0) {
-        docker compose restart
+        docker compose @envArgs restart
     }
     Start-Sleep -Seconds 10
     Show-Status
