@@ -34,6 +34,8 @@ services:
     ports: !override []
 
   db:
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports: !override []
     # Database tidak di-expose ke luar di production
 
@@ -76,7 +78,7 @@ services:
     networks:
       - cashflowpoly-net
 
-  # Auto-redeploy image API/UI saat Docker daemon hidup kembali.
+  # Auto-redeploy image API/UI/DB saat Docker daemon hidup kembali.
   # Tidak perlu menjalankan script deploy manual setelah Docker Desktop start.
   watchtower:
     image: containrrr/watchtower:latest
