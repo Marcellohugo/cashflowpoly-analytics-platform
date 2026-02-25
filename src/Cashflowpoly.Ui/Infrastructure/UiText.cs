@@ -436,6 +436,7 @@ public static class UiText
         ["players.raw.coins_saved"] = ("Koin Ditabung", "Coins Saved"),
         ["players.raw.coins_donated"] = ("Koin Donasi", "Coins Donated"),
         ["players.raw.coins_net_end"] = ("Koin Bersih Akhir Permainan", "Coins Net End Game"),
+        ["players.raw.coins_net_end_game"] = ("Koin Bersih Akhir Permainan", "Coins Net End Game"),
         ["players.raw.meal_order_income_total"] = ("Total Pendapatan Pesanan", "Meal Order Income Total"),
         ["players.raw.ingredients_collected"] = ("Bahan Terkumpul", "Ingredients Collected"),
         ["players.raw.ingredients_held_current"] = ("Bahan Tersimpan Saat Ini", "Ingredients Held (Current)"),
