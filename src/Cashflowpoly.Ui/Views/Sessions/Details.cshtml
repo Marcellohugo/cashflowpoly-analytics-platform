@@ -383,7 +383,7 @@
                             <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.rank")">@(rank > 0 ? rank : "-")</td>
                             <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">
                                 <div class="flex items-center gap-3">
-                                    <img class="h-9 w-9 rounded-full border border-slate-200 object-cover"
+                                    <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
                                          src="@ResolvePlayerAvatarPath(turnOrder)"
                                          alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
                                     <span>@ResolvePlayerName(item.PlayerId)</span>

@@ -370,23 +370,44 @@
             string WithSource(string idText, string enText)
             {
                 return L(
-                    $"{idText}. Sumber: {sourcePath}",
-                    $"{enText}. Source: {sourcePath}");
+                    $"Asal data: {sourcePath}. Cara hitung: {idText}",
+                    $"Source: {sourcePath}. Calculation: {enText}");
             }
 
             if (isRawDomain &&
                 (key.Contains("coins_net_end_game") || key.Contains("coins_net_end")))
             {
                 return WithSource(
-                    "Koin Bersih Akhir Permainan = Koin Awal + Total Kas Masuk - Total Kas Keluar",
-                    "Coins Net End Game = Starting Coins + Total Cash In - Total Cash Out");
+                    "Koin Awal + Total Kas Masuk (IN) - Total Kas Keluar (OUT).",
+                    "Starting Coins + Total Cash In (IN) - Total Cash Out (OUT).");
             }
 
             if (isRawDomain)
             {
+                if (key.Contains("cash_in") || key.Contains("earned"))
+                {
+                    return WithSource(
+                        "Menjumlahkan semua transaksi IN pemain pada domain ini.",
+                        "Sums all player IN transactions in this domain.");
+                }
+
+                if (key.Contains("cash_out") || key.Contains("spent"))
+                {
+                    return WithSource(
+                        "Menjumlahkan semua transaksi OUT pemain pada domain ini.",
+                        "Sums all player OUT transactions in this domain.");
+                }
+
+                if (key.Contains("per_turn") || key.Contains("progression"))
+                {
+                    return WithSource(
+                        "Agregasi nilai per giliran berdasarkan transaksi/aksi yang tercatat pada giliran tersebut.",
+                        "Per-turn aggregation based on transactions/actions recorded in that turn.");
+                }
+
                 return WithSource(
-                    "Nilai berasal dari agregasi event sesi",
-                    "Value comes from session-event aggregation");
+                    "Nilai diambil langsung dari agregasi event sesi pada domain ini.",
+                    "Value is read directly from session-event aggregation in this domain.");
             }
 
             if (key.Contains("happiness_points"))
@@ -398,7 +419,7 @@
 
             if (key.Contains("cashflow_net") || key.Contains("net_cashflow") || key.Contains("coins_net"))
             {
-                return WithSource("Kas Masuk - Kas Keluar", "Cash In - Cash Out");
+                return WithSource("Total Kas Masuk - Total Kas Keluar.", "Total Cash In - Total Cash Out.");
             }
 
             if (key.Contains("donation_points"))
@@ -444,8 +465,8 @@
             }
 
             return WithSource(
-                "Nilai dihitung dari agregasi event sesi yang tervalidasi",
-                "Value is calculated from validated session-event aggregation");
+                "Nilai turunan dihitung dari variabel mentah sesuai aturan pada ruleset aktif.",
+                "Derived value is calculated from raw variables using formulas in the active ruleset.");
         }
 
         var numericRows = rows
@@ -505,10 +526,10 @@
             labels = points.Select(point => point.Label).ToList(),
             keys = points.Select(point => point.Path).ToList(),
             formulas = points.Select(point => point.Formula).ToList(),
-            detailLabel = isRawDomain ? L("Sumber/Rumus", "Source/Formula") : L("Rumus", "Formula"),
+            detailLabel = L("Asal Data & Cara Hitung", "Data Source & Calculation"),
             detailFallback = isRawDomain
-                ? L("Nilai berasal dari agregasi event sesi.", "Value comes from session-event aggregation.")
-                : L("Nilai dihitung dari agregasi event sesi yang tervalidasi.", "Value is calculated from validated session-event aggregation."),
+                ? L("Asal data: agregasi event sesi. Cara hitung: nilai diringkas dari transaksi/aksi pada domain ini.", "Source: session-event aggregation. Calculation: value is summarized from transactions/actions in this domain.")
+                : L("Asal data: agregasi event sesi tervalidasi. Cara hitung: nilai turunan mengikuti formula pada ruleset aktif.", "Source: validated session-event aggregation. Calculation: derived value follows formulas from the active ruleset."),
             series = new[]
             {
                 new
@@ -828,10 +849,10 @@
         {
             labels,
             series = activeSeries,
-            detailLabel = isRawDomain ? L("Sumber/Rumus", "Source/Formula") : L("Rumus", "Formula"),
+            detailLabel = L("Asal Data & Cara Hitung", "Data Source & Calculation"),
             detailFallback = isRawDomain
-                ? L($"Nilai berasal dari {sourcePath}.", $"Value comes from {sourcePath}.")
-                : L($"Nilai dihitung pada {sourcePath}.", $"Value is calculated from {sourcePath}.")
+                ? L($"Asal data: {sourcePath}. Cara hitung: nilai mengikuti agregasi event sesi pada domain ini.", $"Source: {sourcePath}. Calculation: value follows session-event aggregation in this domain.")
+                : L($"Asal data: {sourcePath}. Cara hitung: nilai turunan dihitung dari variabel mentah sesuai ruleset aktif.", $"Source: {sourcePath}. Calculation: derived value is computed from raw variables based on the active ruleset.")
         };
 
         return (title, JsonSerializer.Serialize(payload));
@@ -1109,7 +1130,7 @@
         @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
         {
             <div class="mt-2 flex items-center gap-3">
-                <img class="h-10 w-10 rounded-full border border-slate-200 object-cover"
+                <img class="h-8 w-8 rounded-full border border-slate-200 object-cover"
                      src="@playerAvatarPath"
                      alt="@($"{Context.T("common.turn_order")} {playerTurnOrder}")" />
                 <p class="player-detail-name" style="margin-top: 0;">@Model.PlayerDisplayName</p>
@@ -1143,7 +1164,7 @@
             <div class="page-intro-main">
                 <p class="eyebrow">@L("Alur Keuangan Pemain", "Player Cashflow Journey")</p>
                 <h2 class="headline text-xl">@L("Statistik Alur Keuangan dari Awal sampai Akhir", "Cashflow Journey Statistics from Start to Finish")</h2>
-                <p class="subhead text-sm">@L("Ringkasan ini dimulai dari Kas Awal pemain, lalu mengikuti setiap transaksi hingga akhir sesi.", "This summary starts from the player's Starting Cash, then follows every transaction to the end of the session.")</p>
+                <p class="subhead text-sm">@L("Ringkasan ini dimulai dari Kas Awal pemain, lalu mengikuti setiap transaksi hingga akhir sesi. Nilai 'Total Kas Masuk' dan 'Total Kas Keluar' adalah akumulasi sepanjang permainan, sehingga bisa mencapai ratusan meskipun saldo akhir lebih kecil.", "This summary starts from the player's Starting Cash, then follows every transaction to the end of the session. 'Total Cash In' and 'Total Cash Out' are cumulative totals across the game, so they can reach hundreds even when the ending balance is smaller.")</p>
             </div>
         </div>
 
@@ -1155,7 +1176,31 @@
         }
         else
         {
-            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+            var cashDeltaFromStart = cashflowJourney!.EndingCash - cashflowJourney.StartingCash;
+            var balanceRange = cashflowJourney.PeakRunningNet - cashflowJourney.LowestRunningNet;
+            var averageNetPerTransaction = cashflowJourney.TransactionCount > 0
+                ? cashDeltaFromStart / cashflowJourney.TransactionCount
+                : 0d;
+
+            <div class="mt-4 flex flex-wrap items-center gap-2"
+                 data-cashflow-toggle
+                 role="group"
+                 aria-label="@L("Mode tampilan statistik alur keuangan", "Cashflow statistic display mode")">
+                <button type="button"
+                        class="btn-primary px-3 py-1 text-sm js-cashflow-mode-btn"
+                        data-mode="cumulative"
+                        aria-pressed="true">
+                    @L("Mode Akumulasi", "Cumulative Mode")
+                </button>
+                <button type="button"
+                        class="btn-ghost px-3 py-1 text-sm js-cashflow-mode-btn"
+                        data-mode="balance"
+                        aria-pressed="false">
+                    @L("Mode Saldo Saat Ini", "Current Balance Mode")
+                </button>
+            </div>
+
+            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4 js-cashflow-mode-panel" data-mode="cumulative">
                 <article class="stat-card">
                     <p class="text-sm font-medium text-slate-600">@L("Kas Awal Pemain", "Player Starting Cash")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
@@ -1165,11 +1210,11 @@
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.TransactionCount</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Masuk", "Total Cash In")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Masuk (Akumulasi)", "Total Cash In (Cumulative)")</p>
                     <p class="mt-2 text-2xl font-semibold text-emerald-700">@cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Keluar", "Total Cash Out")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Keluar (Akumulasi)", "Total Cash Out (Cumulative)")</p>
                     <p class="mt-2 text-2xl font-semibold text-rose-700">@cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
@@ -1188,6 +1233,51 @@
                     <p class="text-sm font-medium text-slate-600">@L("Titik Terendah Saldo", "Lowest Balance Point")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
+            </div>
+
+            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4 js-cashflow-mode-panel" data-mode="balance" hidden>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Kas Awal Pemain", "Player Starting Cash")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Kas Akhir Pemain", "Player Ending Cash")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Perubahan Kas dari Awal", "Cash Change from Start")</p>
+                    <p class="mt-2 text-2xl font-semibold @(cashDeltaFromStart >= 0 ? "text-emerald-700" : "text-rose-700")">@cashDeltaFromStart.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Rata-rata Perubahan per Transaksi", "Average Change per Transaction")</p>
+                    <p class="mt-2 text-2xl font-semibold @(averageNetPerTransaction >= 0 ? "text-emerald-700" : "text-rose-700")">@averageNetPerTransaction.ToString("N2", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Total Transaksi", "Total Transactions")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.TransactionCount</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Puncak Saldo Berjalan", "Peak Running Balance")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.PeakRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Titik Terendah Saldo", "Lowest Balance Point")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Rentang Saldo (Puncak - Terendah)", "Balance Range (Peak - Lowest)")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@balanceRange.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+            </div>
+
+            <div class="mt-3 alert alert-info text-sm js-cashflow-mode-panel" data-mode="cumulative">
+                @L($"Cek cepat saldo: Kas Awal {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} + Total Kas Masuk {cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)} - Total Kas Keluar {cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)} = Kas Akhir {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)}.",
+                    $"Quick balance check: Starting Cash {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} + Total Cash In {cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)} - Total Cash Out {cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)} = Ending Cash {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)}.")
+            </div>
+
+            <div class="mt-3 alert alert-info text-sm js-cashflow-mode-panel" data-mode="balance" hidden>
+                @L($"Pembacaan saldo saat ini: pemain memulai dengan {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} koin dan berakhir di {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)} koin (perubahan {cashDeltaFromStart.ToString("N0", CultureInfo.CurrentCulture)}).",
+                    $"Current-balance reading: the player started with {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} coins and ended with {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)} coins (change {cashDeltaFromStart.ToString("N0", CultureInfo.CurrentCulture)}).")
             </div>
 
             <div class="mt-4 metric-panel">
@@ -1237,7 +1327,7 @@
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.raw")</p>
                     <h2 class="headline text-xl">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</h2>
-                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca. Arahkan kursor atau ketuk batang/titik untuk melihat rumus perhitungan dan nilai poin/angka.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability. Hover over or tap each bar/point to see the calculation formula and point/value.")</p>
+                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca. Arahkan kursor atau ketuk batang/titik untuk melihat asal data, cara hitung, dan nilai poin/angka.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability. Hover over or tap each bar/point to see the data source, calculation, and point/value.")</p>
                 </div>
             </div>
 
@@ -1310,7 +1400,7 @@
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.derived")</p>
                     <h2 class="headline text-xl">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</h2>
-                    <p class="subhead text-sm">@L("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas. Arahkan kursor atau ketuk batang/titik untuk melihat rumus perhitungan dan nilai poin/angka.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear. Hover over or tap each bar/point to see the calculation formula and point/value.")</p>
+                    <p class="subhead text-sm">@L("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas. Arahkan kursor atau ketuk batang/titik untuk melihat asal data, cara hitung, dan nilai poin/angka.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear. Hover over or tap each bar/point to see the data source, calculation, and point/value.")</p>
                 </div>
             </div>
 
@@ -1383,6 +1473,50 @@
 @section Scripts {
     <script>
         (() => {
+            const toggleRoot = document.querySelector("[data-cashflow-toggle]");
+            if (!toggleRoot) {
+                return;
+            }
+
+            const host = toggleRoot.closest("#cashflow-journey");
+            if (!host) {
+                return;
+            }
+
+            const buttons = Array.from(toggleRoot.querySelectorAll(".js-cashflow-mode-btn[data-mode]"));
+            const panels = Array.from(host.querySelectorAll(".js-cashflow-mode-panel[data-mode]"));
+            if (!buttons.length || !panels.length) {
+                return;
+            }
+
+            const setMode = (mode) => {
+                panels.forEach((panel) => {
+                    panel.hidden = panel.dataset.mode !== mode;
+                });
+
+                buttons.forEach((button) => {
+                    const isActive = button.dataset.mode === mode;
+                    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+                    button.classList.toggle("btn-primary", isActive);
+                    button.classList.toggle("btn-ghost", !isActive);
+                });
+            };
+
+            buttons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const mode = button.dataset.mode;
+                    if (!mode) {
+                        return;
+                    }
+
+                    setMode(mode);
+                });
+            });
+
+            setMode("cumulative");
+        })();
+
+        (() => {
             const chartNodes = Array.from(document.querySelectorAll(".js-metric-line-chart[data-chart]"));
             if (!chartNodes.length) {
                 return;
@@ -1419,10 +1553,10 @@
                 metric: @Html.Raw(JsonSerializer.Serialize(L("Variabel", "Metric"))),
                 series: @Html.Raw(JsonSerializer.Serialize(L("Seri", "Series"))),
                 points: @Html.Raw(JsonSerializer.Serialize(L("Poin/Nilai", "Points/Value"))),
-                formula: @Html.Raw(JsonSerializer.Serialize(L("Rumus", "Formula"))),
-                defaultFormula: @Html.Raw(JsonSerializer.Serialize(L("Nilai dihitung dari agregasi event sesi yang tervalidasi.", "Value is calculated from validated session-event aggregation."))),
+                formula: @Html.Raw(JsonSerializer.Serialize(L("Asal Data & Cara Hitung", "Data Source & Calculation"))),
+                defaultFormula: @Html.Raw(JsonSerializer.Serialize(L("Asal data: agregasi event sesi tervalidasi. Cara hitung: nilai mengikuti formula pada ruleset aktif.", "Source: validated session-event aggregation. Calculation: value follows formulas in the active ruleset."))),
                 selectedDetail: @Html.Raw(JsonSerializer.Serialize(L("Detail data terpilih", "Selected data details"))),
-                tapHint: @Html.Raw(JsonSerializer.Serialize(L("Ketuk batang atau titik pada diagram untuk melihat detail variabel dan rumus.", "Tap bars or points in the chart to view metric and formula details.")))
+                tapHint: @Html.Raw(JsonSerializer.Serialize(L("Ketuk batang atau titik pada diagram untuk melihat detail variabel, asal data, dan cara hitung.", "Tap bars or points in the chart to view metric details, data source, and calculation.")))
             };
             const chartStatusText = {
                 noSeries: @Html.Raw(JsonSerializer.Serialize(L("Belum ada rangkaian metrik untuk ditampilkan.", "No serial metrics are available to display."))),
