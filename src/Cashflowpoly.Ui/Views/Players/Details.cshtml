@@ -837,6 +837,16 @@
         return (title, JsonSerializer.Serialize(payload));
     }
 
+    static int ResolvePlayerAvatarIndex(int turnOrder)
+    {
+        if (turnOrder <= 0)
+        {
+            return 1;
+        }
+
+        return ((turnOrder - 1) % 4) + 1;
+    }
+
     var rawGroups = BuildMetricGroups(Model.GameplayRaw);
     var derivedGroups = BuildMetricGroups(Model.GameplayDerived);
     var rawGroupMap = rawGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
@@ -1088,6 +1098,8 @@
         : "{}";
 
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
+    var playerTurnOrder = Model.Summary?.JoinOrder ?? 1;
+    var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
 }
 
 <section class="section-shell player-detail-overhaul">
@@ -1096,7 +1108,12 @@
         <h1 class="headline">@Context.T("players.detail_title")</h1>
         @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
         {
-            <p class="player-detail-name">@Model.PlayerDisplayName</p>
+            <div class="mt-2 flex items-center gap-3">
+                <img class="h-10 w-10 rounded-full border border-slate-200 object-cover"
+                     src="@playerAvatarPath"
+                     alt="@($"{Context.T("common.turn_order")} {playerTurnOrder}")" />
+                <p class="player-detail-name" style="margin-top: 0;">@Model.PlayerDisplayName</p>
+            </div>
         }
         <div class="player-detail-meta">
             <span class="player-detail-meta__item player-detail-meta__item--mono">@Model.PlayerId</span>

@@ -72,6 +72,27 @@ public sealed class AuthRbacRulesetIntegrationTests
             playerLogin.AccessToken);
         Assert.Equal(HttpStatusCode.OK, defaultComponentsByPlayer.StatusCode);
 
+        var gameComponentsPemula = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/game-components?mode=PEMULA",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, gameComponentsPemula.StatusCode);
+
+        var gameComponentsPemulaPayload =
+            await gameComponentsPemula.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
+        Assert.NotNull(gameComponentsPemulaPayload);
+        Assert.NotNull(gameComponentsPemulaPayload.Items);
+        Assert.All(gameComponentsPemulaPayload.Items, item =>
+            Assert.Equal("PEMULA", (item.Mode ?? string.Empty).ToUpperInvariant()));
+
+        var gameComponentsInvalidMode = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/game-components?mode=INVALID",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.BadRequest, gameComponentsInvalidMode.StatusCode);
+
         var createRulesetPayload = new
         {
             name = $"Ruleset IT {suffix}",

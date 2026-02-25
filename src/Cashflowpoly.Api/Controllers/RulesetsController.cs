@@ -192,11 +192,12 @@ public sealed class RulesetsController : ControllerBase
     }
 
     [HttpGet("components/defaults")]
+    [HttpGet("/api/v1/game-components")]
     [ProducesResponseType(typeof(DefaultRulesetComponentsResponse), StatusCodes.Status200OK)]
     /// <summary>
     /// Menjalankan fungsi ListDefaultRulesetComponents sebagai bagian dari alur file ini.
     /// </summary>
-    public async Task<IActionResult> ListDefaultRulesetComponents(CancellationToken ct)
+    public async Task<IActionResult> ListDefaultRulesetComponents([FromQuery] string? mode, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out _))
         {
@@ -212,6 +213,21 @@ public sealed class RulesetsController : ControllerBase
                 ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
         }
 
+        string? modeFilter = null;
+        if (!string.IsNullOrWhiteSpace(mode))
+        {
+            modeFilter = mode.Trim().ToUpperInvariant();
+            if (!string.Equals(modeFilter, "PEMULA", StringComparison.Ordinal) &&
+                !string.Equals(modeFilter, "MAHIR", StringComparison.Ordinal))
+            {
+                return BadRequest(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "VALIDATION_ERROR",
+                    "Query mode tidak valid",
+                    new ErrorDetail("mode", "INVALID_VALUE")));
+            }
+        }
+
         var defaults = await _rulesets.ListDefaultRulesetComponentsAsync(ct);
         var items = new List<DefaultRulesetComponentItem>(defaults.Count);
 
@@ -220,10 +236,16 @@ public sealed class RulesetsController : ControllerBase
             using var doc = JsonDocument.Parse(row.ConfigJson);
             var root = doc.RootElement;
 
-            string? mode = null;
+            string? itemMode = null;
             if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
             {
-                mode = modeProp.GetString();
+                itemMode = modeProp.GetString();
+            }
+
+            if (!string.IsNullOrWhiteSpace(modeFilter) &&
+                !string.Equals(itemMode, modeFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
             }
 
             JsonElement? componentCatalog = null;
@@ -238,7 +260,7 @@ public sealed class RulesetsController : ControllerBase
                 row.Description,
                 row.RulesetVersionId,
                 row.Version,
-                mode,
+                itemMode,
                 componentCatalog));
         }
 
