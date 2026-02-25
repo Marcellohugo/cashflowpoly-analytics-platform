@@ -8,7 +8,6 @@ insert into rulesets (
   name,
   description,
   instructor_user_id,
-  is_archived,
   created_at,
   created_by
 )
@@ -17,7 +16,6 @@ values (
   'Cashflowpoly Default - Mode Pemula (Komponen Lengkap)',
   'Seed ruleset mode pemula dengan susunan komponen lengkap.',
   null,
-  false,
   now(),
   'system-seed-components-v1'
 )
@@ -243,7 +241,6 @@ insert into rulesets (
   name,
   description,
   instructor_user_id,
-  is_archived,
   created_at,
   created_by
 )
@@ -252,7 +249,6 @@ values (
   'Cashflowpoly Default - Mode Mahir (Ekspansi Komponen Lengkap)',
   'Seed ruleset mode mahir dengan ekspansi komponen lengkap.',
   null,
-  false,
   now(),
   'system-seed-components-v1'
 )

@@ -90,5 +90,58 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="ruleset-stream-divider mt-5"></div>
+
+        <div class="mt-5">
+            <div class="ruleset-unified-head">
+                <div>
+                    <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.default_components.title")</p>
+                    <p class="mt-1 text-2xl font-semibold text-slate-900">@Model.DefaultComponentItems.Count</p>
+                </div>
+                <p class="text-sm text-slate-600">@Context.T("rulesets.default_components.subtitle")</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.DefaultComponentsErrorMessage))
+            {
+                <div class="mt-4 alert alert-error" aria-live="polite">
+                    @Model.DefaultComponentsErrorMessage
+                </div>
+            }
+
+            @if (Model.DefaultComponentItems.Count == 0)
+            {
+                <div class="mt-4 alert alert-info">
+                    @Context.T("rulesets.default_components.empty")
+                </div>
+            }
+            else
+            {
+                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                    @foreach (var item in Model.DefaultComponentItems)
+                    {
+                        <article class="metric-panel">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-sm font-semibold text-slate-900">@item.Name</p>
+                                <span class="version-pill">v@item.Version</span>
+                            </div>
+                            <p class="mt-2 text-xs text-slate-600">
+                                @Context.T("common.mode"): @(string.IsNullOrWhiteSpace(item.Mode) ? "-" : item.Mode)
+                            </p>
+                            <p class="mt-1 text-xs text-slate-600">
+                                @Context.T("common.description"): @(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)
+                            </p>
+                            <p class="mt-1 font-mono text-[11px] text-slate-500">@item.RulesetId</p>
+                            <div class="mt-3">
+                                <a class="table-link"
+                                   asp-controller="Rulesets"
+                                   asp-action="Details"
+                                   asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.default_components.open_detail")</a>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
     </div>
 </section>

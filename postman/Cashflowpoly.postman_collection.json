@@ -295,19 +295,6 @@
                                                   }
                                   },
                                   {
-                                      "name":  "Archive Ruleset",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "url":  "{{baseUrl}}/api/v1/rulesets/{{rulesetId}}/archive",
-                                                      "header":  [
-                                                                     {
-                                                                         "key":  "Authorization",
-                                                                         "value":  "Bearer {{accessToken}}"
-                                                                     }
-                                                                 ]
-                                                  }
-                                  },
-                                  {
                                       "name":  "Delete Ruleset",
                                       "request":  {
                                                       "method":  "DELETE",

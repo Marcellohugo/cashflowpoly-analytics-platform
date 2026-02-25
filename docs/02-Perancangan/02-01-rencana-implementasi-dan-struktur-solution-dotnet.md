@@ -91,7 +91,7 @@ Tanggung jawab:
 
 ### Tahap D - Sesi dan Ruleset
 1. endpoint create/list/start/end session,
-2. endpoint create/list/detail/archive/delete ruleset,
+2. endpoint create/list/detail/delete ruleset,
 3. endpoint activate ruleset ke sesi,
 4. guard domain: ruleset dipakai sesi tidak boleh dihapus.
 

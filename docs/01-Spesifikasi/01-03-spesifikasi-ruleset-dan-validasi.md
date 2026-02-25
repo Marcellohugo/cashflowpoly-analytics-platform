@@ -49,7 +49,6 @@ Sistem menyimpan data *ruleset* melalui dua entitas:
 - `ruleset_id` (UUID)
 - `name` (string)
 - `description` (string, opsional)
-- `is_archived` (bool)
 - `created_at` (timestamp)
 - `created_by` (string/user_id)
 
@@ -76,8 +75,7 @@ Lifecycle ditetapkan eksplisit sebagai berikut.
 
 Lifecycle entitas `rulesets`:
 1. `ACTIVE_RECORD`: ruleset aktif dipakai operasional.
-2. `ARCHIVED`: `is_archived = true`, ruleset tidak dipilih untuk sesi baru.
-3. `DELETED`: hard delete, hanya jika ruleset belum pernah dipakai sesi.
+2. `DELETED`: hard delete, hanya jika ruleset belum pernah dipakai sesi.
 
 Lifecycle entitas `ruleset_versions`:
 1. `DRAFT`: versi disiapkan namun belum dijadikan aktif.
@@ -85,9 +83,8 @@ Lifecycle entitas `ruleset_versions`:
 3. `RETIRED`: versi lama yang tidak aktif.
 
 Aturan transisi minimum:
-1. `ACTIVE_RECORD -> ARCHIVED` melalui endpoint archive.
-2. `ACTIVE_RECORD -> DELETED` hanya jika `IsRulesetUsed=false`.
-3. `ACTIVE -> RETIRED` saat versi baru diaktifkan.
+1. `ACTIVE_RECORD -> DELETED` hanya jika `IsRulesetUsed=false`.
+2. `ACTIVE -> RETIRED` saat versi baru diaktifkan.
 
 ---
 

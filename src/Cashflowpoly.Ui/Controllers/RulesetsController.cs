@@ -58,9 +58,39 @@ public sealed class RulesetsController : Controller
             });
         }
 
+        var defaultComponentItems = new List<DefaultRulesetComponentItemDto>();
+        string? defaultComponentsErrorMessage = null;
+        var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
+        unauthorized = this.HandleUnauthorizedApiResponse(defaultsResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!defaultsResponse.IsSuccessStatusCode)
+        {
+            defaultComponentsErrorMessage = HttpContext
+                .T("rulesets.error.load_default_components_failed")
+                .Replace("{status}", ((int)defaultsResponse.StatusCode).ToString());
+        }
+        else
+        {
+            var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+            if (defaultsData is null)
+            {
+                defaultComponentsErrorMessage = HttpContext.T("rulesets.error.invalid_default_components_response");
+            }
+            else
+            {
+                defaultComponentItems = defaultsData.Items ?? new List<DefaultRulesetComponentItemDto>();
+            }
+        }
+
         return View(new RulesetListViewModel
         {
-            Items = data?.Items ?? new List<RulesetListItemDto>()
+            Items = data.Items ?? new List<RulesetListItemDto>(),
+            DefaultComponentItems = defaultComponentItems,
+            DefaultComponentsErrorMessage = defaultComponentsErrorMessage
         });
     }
 
@@ -329,10 +359,36 @@ public sealed class RulesetsController : Controller
             });
         }
 
+        RulesetComponentsResponseDto? components = null;
+        string? componentsErrorMessage = null;
+        var componentsResponse = await client.GetAsync($"api/v1/rulesets/{rulesetId}/components", ct);
+        unauthorized = this.HandleUnauthorizedApiResponse(componentsResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!componentsResponse.IsSuccessStatusCode)
+        {
+            componentsErrorMessage = HttpContext
+                .T("rulesets.error.load_components_failed")
+                .Replace("{status}", ((int)componentsResponse.StatusCode).ToString());
+        }
+        else
+        {
+            components = await TryReadJsonAsync<RulesetComponentsResponseDto>(componentsResponse.Content, ct);
+            if (components is null)
+            {
+                componentsErrorMessage = HttpContext.T("rulesets.error.invalid_components_response");
+            }
+        }
+
         return View(new RulesetDetailViewModel
         {
             Ruleset = data,
-            ErrorMessage = TempData[RulesetErrorTempDataKey] as string
+            Components = components,
+            ErrorMessage = TempData[RulesetErrorTempDataKey] as string,
+            ComponentsErrorMessage = componentsErrorMessage
         });
     }
 

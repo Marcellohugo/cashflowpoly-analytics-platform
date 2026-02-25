@@ -208,7 +208,6 @@ Kolom utama:
 - `name`
 - `description`
 - `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
-- `is_archived`
 - `created_at`
 - `created_by`
 
@@ -219,12 +218,10 @@ create table if not exists rulesets (
   name varchar(120) not null,
   description text null,
   instructor_user_id uuid null references app_users(user_id) on delete set null,
-  is_archived boolean not null default false,
   created_at timestamptz not null default now(),
   created_by varchar(80) null
 );
 
-create index if not exists ix_rulesets_archived on rulesets(is_archived);
 create index if not exists ix_rulesets_created_at on rulesets(created_at desc);
 create index if not exists ix_rulesets_instructor_user on rulesets(instructor_user_id, created_at desc);
 ```

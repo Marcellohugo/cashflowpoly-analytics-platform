@@ -10,7 +10,6 @@ public sealed class RulesetDb
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public Guid? InstructorUserId { get; set; }
-    public bool IsArchived { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
 }

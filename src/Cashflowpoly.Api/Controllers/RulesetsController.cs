@@ -304,7 +304,6 @@ public sealed class RulesetsController : ControllerBase
             ruleset.RulesetId,
             ruleset.Name,
             ruleset.Description,
-            ruleset.IsArchived,
             versionItems,
             configJson);
 
@@ -396,29 +395,6 @@ public sealed class RulesetsController : ControllerBase
             selectedVersion.Version,
             mode,
             componentCatalog));
-    }
-
-    /// <summary>
-    /// Mengarsipkan ruleset (soft archive).
-    /// </summary>
-    [HttpPost("{rulesetId:guid}/archive")]
-    [Authorize(Roles = "INSTRUCTOR")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ArchiveRuleset(Guid rulesetId, CancellationToken ct)
-    {
-        if (!TryGetCurrentUserId(out var instructorUserId))
-        {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
-        }
-
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
-        if (ruleset is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
-
-        await _rulesets.SetArchiveAsync(rulesetId, true, ct);
-        return Ok();
     }
 
     /// <summary>

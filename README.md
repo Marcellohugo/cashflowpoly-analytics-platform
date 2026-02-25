@@ -206,7 +206,6 @@ dotnet run --project src/Cashflowpoly.Ui
 
 ## Endpoint tambahan
 Endpoint tambahan yang tersedia:
-- `POST /api/v1/rulesets/{rulesetId}/archive` arsip ruleset
 - `DELETE /api/v1/rulesets/{rulesetId}` hapus ruleset (jika belum dipakai sesi)
 - `GET /api/v1/sessions` daftar sesi
 - `POST /api/v1/players` buat pemain
