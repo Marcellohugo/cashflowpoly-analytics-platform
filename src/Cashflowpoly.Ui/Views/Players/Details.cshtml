@@ -158,6 +158,22 @@
         return false;
     }
 
+    string? TryTranslateMetricLexicon(string lexiconKey)
+    {
+        if (string.IsNullOrWhiteSpace(lexiconKey))
+        {
+            return null;
+        }
+
+        var translated = Context.T(lexiconKey);
+        if (string.Equals(translated, lexiconKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return translated;
+    }
+
     string HumanizeMetricKey(string key)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -173,6 +189,25 @@
         if (string.Equals(key, "series", StringComparison.OrdinalIgnoreCase))
         {
             return L("Seri", "Series");
+        }
+
+        var normalized = key.Trim().ToLowerInvariant();
+        var aliasLexiconKey = normalized switch
+        {
+            "coins_net_end" => "players.raw.coins_net_end_game",
+            "coins_net_end_game" => "players.raw.coins_net_end_game",
+            "meal_orders_available_passed" => "players.raw.meal_orders_passed",
+            _ => string.Empty
+        };
+
+        var localizedLabel =
+            TryTranslateMetricLexicon(aliasLexiconKey) ??
+            TryTranslateMetricLexicon($"players.raw.{normalized}") ??
+            TryTranslateMetricLexicon($"players.group.{normalized}") ??
+            TryTranslateMetricLexicon($"players.metric.{normalized}");
+        if (!string.IsNullOrWhiteSpace(localizedLabel))
+        {
+            return localizedLabel;
         }
 
         var text = key.Replace('_', ' ').Trim();
@@ -310,68 +345,105 @@
         return !path.Contains('[');
     }
 
+    static string BuildMetricSourcePath(string? metricPath, bool isRawDomain)
+    {
+        var root = isRawDomain ? "gameplay.raw" : "gameplay.derived";
+        var normalized = (metricPath ?? string.Empty).Trim().Trim('.');
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return root;
+        }
+
+        return $"{root}.{normalized}";
+    }
+
     (string Title, string Json)? BuildMergedRowChart(
         string domainTitle,
-        IEnumerable<(string Path, string Value)> rows)
+        IEnumerable<(string Path, string Value)> rows,
+        bool isRawDomain)
     {
         string BuildFormulaHint(string metricPath)
         {
             var key = (metricPath ?? string.Empty).ToLowerInvariant();
-            if (key.Contains("happiness_points"))
+            var sourcePath = BuildMetricSourcePath(metricPath, isRawDomain);
+
+            string WithSource(string idText, string enText)
             {
                 return L(
+                    $"{idText}. Sumber: {sourcePath}",
+                    $"{enText}. Source: {sourcePath}");
+            }
+
+            if (isRawDomain &&
+                (key.Contains("coins_net_end_game") || key.Contains("coins_net_end")))
+            {
+                return WithSource(
+                    "Koin Bersih Akhir Permainan = Koin Awal + Total Kas Masuk - Total Kas Keluar",
+                    "Coins Net End Game = Starting Coins + Total Cash In - Total Cash Out");
+            }
+
+            if (isRawDomain)
+            {
+                return WithSource(
+                    "Nilai berasal dari agregasi event sesi",
+                    "Value comes from session-event aggregation");
+            }
+
+            if (key.Contains("happiness_points"))
+            {
+                return WithSource(
                     "Poin Kebutuhan + Bonus + Poin Donasi + Poin Emas + Poin Pensiun + Poin Target Tabungan - Penalti Misi - Penalti Pinjaman",
                     "Need Points + Bonus + Donation Points + Gold Points + Pension Points + Saving Goal Points - Mission Penalty - Loan Penalty");
             }
 
             if (key.Contains("cashflow_net") || key.Contains("net_cashflow") || key.Contains("coins_net"))
             {
-                return L("Kas Masuk - Kas Keluar", "Cash In - Cash Out");
+                return WithSource("Kas Masuk - Kas Keluar", "Cash In - Cash Out");
             }
 
             if (key.Contains("donation_points"))
             {
-                return L(
+                return WithSource(
                     "Total Donasi x bobot poin donasi (set aturan aktif)",
                     "Total Donations x donation-point weight (active ruleset)");
             }
 
             if (key.Contains("pension_points"))
             {
-                return L(
+                return WithSource(
                     "Akumulasi dana pensiun akhir x bobot poin pensiun (set aturan aktif)",
                     "End-game pension accumulation x pension-point weight (active ruleset)");
             }
 
             if (key.Contains("saving_goal_points"))
             {
-                return L(
+                return WithSource(
                     "Pencapaian target tabungan x bobot poin target tabungan (set aturan aktif)",
                     "Saving-goal achievement x saving-goal point weight (active ruleset)");
             }
 
             if (key.Contains("need_points"))
             {
-                return L(
+                return WithSource(
                     "Akumulasi poin kartu kebutuhan sesuai aturan sesi",
                     "Accumulated need-card points based on session rules");
             }
 
             if (key.Contains("penalty"))
             {
-                return L(
+                return WithSource(
                     "Akumulasi penalti dari pelanggaran/ketidakpatuhan selama sesi",
                     "Accumulated penalties from violations/non-compliance during the session");
             }
 
             if (key.Contains("points"))
             {
-                return L(
+                return WithSource(
                     "Poin dihitung sesuai bobot pada set aturan aktif",
                     "Points are calculated using weights from the active ruleset");
             }
 
-            return L(
+            return WithSource(
                 "Nilai dihitung dari agregasi event sesi yang tervalidasi",
                 "Value is calculated from validated session-event aggregation");
         }
@@ -433,6 +505,10 @@
             labels = points.Select(point => point.Label).ToList(),
             keys = points.Select(point => point.Path).ToList(),
             formulas = points.Select(point => point.Formula).ToList(),
+            detailLabel = isRawDomain ? L("Sumber/Rumus", "Source/Formula") : L("Rumus", "Formula"),
+            detailFallback = isRawDomain
+                ? L("Nilai berasal dari agregasi event sesi.", "Value comes from session-event aggregation.")
+                : L("Nilai dihitung dari agregasi event sesi yang tervalidasi.", "Value is calculated from validated session-event aggregation."),
             series = new[]
             {
                 new
@@ -537,10 +613,11 @@
         string domainTitle,
         List<(string Path, string Value)> rows,
         List<(string Title, string Json)> baseCharts,
-        int maxCharts = 4)
+        int maxCharts = 4,
+        bool isRawDomain = false)
     {
         var chartCandidates = new List<(string Title, string Json)>();
-        var mergedChart = BuildMergedRowChart(domainTitle, rows);
+        var mergedChart = BuildMergedRowChart(domainTitle, rows, isRawDomain);
         if (mergedChart.HasValue)
         {
             chartCandidates.Add(mergedChart.Value);
@@ -574,7 +651,7 @@
         return charts;
     }
 
-    List<(string Title, string Json)> BuildLineChartsForGroup(string groupKey, JsonElement groupElement)
+    List<(string Title, string Json)> BuildLineChartsForGroup(string groupKey, JsonElement groupElement, bool isRawDomain)
     {
         var charts = new List<(string Title, string Json)>();
         if (groupElement.ValueKind != JsonValueKind.Object)
@@ -584,7 +661,7 @@
 
         foreach (var property in groupElement.EnumerateObject())
         {
-            var chart = BuildLineChartPayload($"{groupKey}.{property.Name}", property.Value);
+            var chart = BuildLineChartPayload($"{groupKey}.{property.Name}", property.Value, isRawDomain);
             if (chart.HasValue)
             {
                 charts.Add(chart.Value);
@@ -594,7 +671,7 @@
         return charts;
     }
 
-    (string Title, string Json)? BuildLineChartPayload(string path, JsonElement element)
+    (string Title, string Json)? BuildLineChartPayload(string path, JsonElement element, bool isRawDomain)
     {
         var labels = new List<string>();
         var series = new Dictionary<string, List<double?>>(StringComparer.OrdinalIgnoreCase);
@@ -746,10 +823,15 @@
         var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : L("Seri", "Series");
         var metricLabel = pathParts.Length > 1 ? HumanizeMetricKey(pathParts[^1]) : HumanizeMetricKey(path);
         var title = $"{groupLabel}: {metricLabel}";
+        var sourcePath = BuildMetricSourcePath(path, isRawDomain);
         var payload = new
         {
             labels,
-            series = activeSeries
+            series = activeSeries,
+            detailLabel = isRawDomain ? L("Sumber/Rumus", "Source/Formula") : L("Rumus", "Formula"),
+            detailFallback = isRawDomain
+                ? L($"Nilai berasal dari {sourcePath}.", $"Value comes from {sourcePath}.")
+                : L($"Nilai dihitung pada {sourcePath}.", $"Value is calculated from {sourcePath}.")
         };
 
         return (title, JsonSerializer.Serialize(payload));
@@ -763,11 +845,11 @@
     var derivedGroupElementMap = BuildMetricGroupElements(Model.GameplayDerived);
     var rawGroupChartsMap = rawGroupElementMap.ToDictionary(
         item => item.Key,
-        item => BuildLineChartsForGroup(item.Key, item.Value),
+        item => BuildLineChartsForGroup(item.Key, item.Value, true),
         StringComparer.OrdinalIgnoreCase);
     var derivedGroupChartsMap = derivedGroupElementMap.ToDictionary(
         item => item.Key,
-        item => BuildLineChartsForGroup(item.Key, item.Value),
+        item => BuildLineChartsForGroup(item.Key, item.Value, false),
         StringComparer.OrdinalIgnoreCase);
 
     var mappedRawKeys = new HashSet<string>(
@@ -791,7 +873,8 @@
                 L("Variabel Koin dan Finansial", "Coin and Financial Variables"),
                 GetGroupRows(rawGroupMap, "coins"),
                 GetGroupCharts(rawGroupChartsMap, "coins"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Kartu Bahan", "Ingredient Card Variables"),
             L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."),
@@ -799,7 +882,8 @@
                 L("Variabel Kartu Bahan", "Ingredient Card Variables"),
                 GetGroupRows(rawGroupMap, "ingredients"),
                 GetGroupCharts(rawGroupChartsMap, "ingredients"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Pesanan Makanan", "Meal Order Variables"),
             L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."),
@@ -807,7 +891,8 @@
                 L("Variabel Pesanan Makanan", "Meal Order Variables"),
                 GetGroupRows(rawGroupMap, "meal_orders"),
                 GetGroupCharts(rawGroupChartsMap, "meal_orders"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Kartu Kebutuhan", "Need Card Variables"),
             L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."),
@@ -815,7 +900,8 @@
                 L("Variabel Kartu Kebutuhan", "Need Card Variables"),
                 GetGroupRows(rawGroupMap, "needs"),
                 GetGroupCharts(rawGroupChartsMap, "needs"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Donasi", "Donation Variables"),
             L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."),
@@ -823,7 +909,8 @@
                 L("Variabel Donasi", "Donation Variables"),
                 GetGroupRows(rawGroupMap, "donations"),
                 GetGroupCharts(rawGroupChartsMap, "donations"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Investasi Emas", "Gold Investment Variables"),
             L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."),
@@ -831,7 +918,8 @@
                 L("Variabel Investasi Emas", "Gold Investment Variables"),
                 GetGroupRows(rawGroupMap, "gold"),
                 GetGroupCharts(rawGroupChartsMap, "gold"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Dana Pensiun", "Pension Fund Variables"),
             L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."),
@@ -839,7 +927,8 @@
                 L("Variabel Dana Pensiun", "Pension Fund Variables"),
                 GetGroupRows(rawGroupMap, "pension"),
                 GetGroupCharts(rawGroupChartsMap, "pension"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Risiko Hidup", "Life Risk Variables"),
             L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."),
@@ -847,7 +936,8 @@
                 L("Variabel Risiko Hidup", "Life Risk Variables"),
                 GetGroupRows(rawGroupMap, "life_risk"),
                 GetGroupCharts(rawGroupChartsMap, "life_risk"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Target Finansial", "Financial Goal Variables"),
             L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."),
@@ -855,7 +945,8 @@
                 L("Variabel Target Finansial", "Financial Goal Variables"),
                 GetGroupRows(rawGroupMap, "financial_goals"),
                 GetGroupCharts(rawGroupChartsMap, "financial_goals"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
             L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."),
@@ -863,7 +954,8 @@
                 L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
                 GetGroupRows(rawGroupMap, "actions"),
                 GetGroupCharts(rawGroupChartsMap, "actions"),
-                maxCharts: 5)),
+                maxCharts: 5,
+                isRawDomain: true)),
         (
             L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
             L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."),
@@ -871,7 +963,8 @@
                 L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
                 part11Rows,
                 part11Charts,
-                maxCharts: 5))
+                maxCharts: 5,
+                isRawDomain: true))
     };
 
     var derivedSummaryRows = GetGroupRows(derivedGroupMap, "summary");
@@ -981,12 +1074,13 @@
             chartType = "line",
             labels = cashflowJourney!.TimelineLabels,
             keys = new[] { "cashflow_running_net" },
-            formulas = new[] { Context.T("players.cashflow_journey.formula") },
+            formulas = cashflowJourney.TransactionDetails,
+            detailLabel = L("Transaksi", "Transaction"),
             series = new[]
             {
                 new
                 {
-                    name = Context.T("players.cashflow_journey.series_name"),
+                    name = L("Saldo Kas Berjalan", "Running Cash Balance"),
                     values = cashflowJourney.RunningNetSeries
                 }
             }
@@ -1030,43 +1124,51 @@
     <div id="cashflow-journey" class="players-fusion-metrics player-detail-section">
         <div class="players-fusion-head">
             <div class="page-intro-main">
-                <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
-                <h2 class="headline text-xl">@Context.T("players.cashflow_journey.title")</h2>
-                <p class="subhead text-sm">@Context.T("players.cashflow_journey.subtitle")</p>
+                <p class="eyebrow">@L("Alur Keuangan Pemain", "Player Cashflow Journey")</p>
+                <h2 class="headline text-xl">@L("Statistik Alur Keuangan dari Awal sampai Akhir", "Cashflow Journey Statistics from Start to Finish")</h2>
+                <p class="subhead text-sm">@L("Ringkasan ini dimulai dari Kas Awal pemain, lalu mengikuti setiap transaksi hingga akhir sesi.", "This summary starts from the player's Starting Cash, then follows every transaction to the end of the session.")</p>
             </div>
         </div>
 
         @if (!hasCashflowJourney)
         {
             <div class="mt-4 alert alert-info">
-                @Context.T("players.cashflow_journey.empty")
+                @L("Belum ada data transaksi untuk pemain ini di sesi tersebut.", "No transaction data is available for this player in this session.")
             </div>
         }
         else
         {
-            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
                 <article class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.total_transactions")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.TransactionCount</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Kas Awal Pemain", "Player Starting Cash")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.total_in")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Total Transaksi", "Total Transactions")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.TransactionCount</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Masuk", "Total Cash In")</p>
                     <p class="mt-2 text-2xl font-semibold text-emerald-700">@cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.total_out")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Keluar", "Total Cash Out")</p>
                     <p class="mt-2 text-2xl font-semibold text-rose-700">@cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.net")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Arus Kas Bersih", "Net Cashflow")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.NetCashflow.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.running_peak")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Kas Akhir Pemain", "Player Ending Cash")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-sm font-medium text-slate-600">@L("Puncak Saldo Berjalan", "Peak Running Balance")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.PeakRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.running_lowest")</p>
+                    <p class="text-sm font-medium text-slate-600">@L("Titik Terendah Saldo", "Lowest Balance Point")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
             </div>
@@ -1074,19 +1176,19 @@
             <div class="mt-4 metric-panel">
                 <div class="metric-list">
                     <div class="metric-row">
-                        <span class="metric-key">@Context.T("players.cashflow_journey.period_start")</span>
+                        <span class="metric-key">@L("Waktu Awal Periode", "Period Start Time")</span>
                         <span class="metric-value">@(cashflowJourney.FirstTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@Context.T("players.cashflow_journey.period_end")</span>
+                        <span class="metric-key">@L("Waktu Akhir Periode", "Period End Time")</span>
                         <span class="metric-value">@(cashflowJourney.LastTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@Context.T("players.cashflow_journey.in_count")</span>
+                        <span class="metric-key">@L("Jumlah Transaksi IN", "IN Transaction Count")</span>
                         <span class="metric-value">@cashflowJourney.CashInCount</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@Context.T("players.cashflow_journey.out_count")</span>
+                        <span class="metric-key">@L("Jumlah Transaksi OUT", "OUT Transaction Count")</span>
                         <span class="metric-value">@cashflowJourney.CashOutCount</span>
                     </div>
                 </div>
@@ -1094,12 +1196,12 @@
 
             <div class="chart-grid chart-grid-feature mt-4">
                 <article class="chart-card chart-card-feature">
-                    <h3 class="chart-title">@Context.T("players.cashflow_journey.chart_title")</h3>
+                    <h3 class="chart-title">@L("Grafik Saldo Kas Berjalan per Transaksi", "Running Cash Balance per Transaction Chart")</h3>
                     <svg class="metric-line-chart js-metric-line-chart"
                          viewBox="0 0 840 360"
                          data-chart="@cashflowJourneyChartPayload"
                          role="img"
-                         aria-label="@Context.T("players.cashflow_journey.chart_title")"></svg>
+                         aria-label="@L("Grafik Saldo Kas Berjalan per Transaksi", "Running Cash Balance per Transaction Chart")"></svg>
                 </article>
             </div>
         }
@@ -1329,10 +1431,15 @@
                 }
                 return node;
             };
-            const ensureBarInsightPanel = (hostCard) => {
+            const ensureBarInsightPanel = (hostCard, detailLabel) => {
                 if (!hostCard) {
                     return null;
                 }
+
+                const resolvedDetailLabel =
+                    typeof detailLabel === "string" && detailLabel.trim().length > 0
+                        ? detailLabel.trim()
+                        : tooltipText.formula;
 
                 let panel = hostCard.querySelector(".js-chart-bar-insight");
                 if (!panel) {
@@ -1348,9 +1455,12 @@
                     hint.textContent = tooltipText.tapHint;
                     panel.appendChild(hint);
 
-                    const makeRow = (label, valueClass) => {
+                    const makeRow = (label, keyClass, valueClass) => {
                         const row = makeHtmlNode("div", "chart-bar-insight-row");
-                        const key = makeHtmlNode("span", "chart-bar-insight-key");
+                        const keyClassName = keyClass && keyClass.length > 0
+                            ? `chart-bar-insight-key ${keyClass}`
+                            : "chart-bar-insight-key";
+                        const key = makeHtmlNode("span", keyClassName);
                         key.textContent = label;
                         const value = makeHtmlNode("span", `chart-bar-insight-value ${valueClass}`);
                         value.textContent = "-";
@@ -1359,18 +1469,33 @@
                         return row;
                     };
 
-                    panel.appendChild(makeRow(tooltipText.metric, "js-chart-bar-insight-metric"));
-                    panel.appendChild(makeRow(tooltipText.points, "js-chart-bar-insight-points"));
-                    panel.appendChild(makeRow(tooltipText.formula, "js-chart-bar-insight-formula"));
+                    panel.appendChild(makeRow(
+                        tooltipText.metric,
+                        "js-chart-bar-insight-metric-key",
+                        "js-chart-bar-insight-metric"));
+                    panel.appendChild(makeRow(
+                        tooltipText.points,
+                        "js-chart-bar-insight-points-key",
+                        "js-chart-bar-insight-points"));
+                    panel.appendChild(makeRow(
+                        resolvedDetailLabel,
+                        "js-chart-bar-insight-detail-key",
+                        "js-chart-bar-insight-formula"));
 
                     hostCard.appendChild(panel);
+                }
+
+                const detailKey = panel.querySelector(".js-chart-bar-insight-detail-key");
+                if (detailKey) {
+                    detailKey.textContent = resolvedDetailLabel;
                 }
 
                 return {
                     panel,
                     metric: panel.querySelector(".js-chart-bar-insight-metric"),
                     points: panel.querySelector(".js-chart-bar-insight-points"),
-                    formula: panel.querySelector(".js-chart-bar-insight-formula")
+                    formula: panel.querySelector(".js-chart-bar-insight-formula"),
+                    detailKey
                 };
             };
             const revealBarInsight = (insight, detail) => {
@@ -1525,6 +1650,12 @@
                 const formulaHints = Array.isArray(payload?.formulas)
                     ? payload.formulas.map((value) => String(value ?? "").trim())
                     : [];
+                const detailLabel = typeof payload?.detailLabel === "string" && payload.detailLabel.trim().length > 0
+                    ? payload.detailLabel.trim()
+                    : tooltipText.formula;
+                const detailFallback = typeof payload?.detailFallback === "string" && payload.detailFallback.trim().length > 0
+                    ? payload.detailFallback.trim()
+                    : tooltipText.defaultFormula;
                 const series = Array.isArray(payload?.series)
                     ? payload.series
                         .map((item, index) => {
@@ -1574,7 +1705,7 @@
                     ? labels.reduce((total, label) => total + label.length, 0) / labels.length
                     : 0;
                 const hostCard = svg.closest(".chart-card");
-                const chartInsight = ensureBarInsightPanel(hostCard);
+                const chartInsight = ensureBarInsightPanel(hostCard, detailLabel);
                 if (chartInsight) {
                     chartInsight.panel.hidden = true;
                 }
@@ -1816,12 +1947,12 @@
                                 `${tooltipText.metric}: ${variableLabel}`,
                                 ...(series.length > 1 ? [`${tooltipText.series}: ${item.name}`] : []),
                                 `${tooltipText.points}: ${formatMetricValue(value)}`,
-                                `${tooltipText.formula}: ${formulaHints[index] || tooltipText.defaultFormula}`
+                                `${detailLabel}: ${formulaHints[index] || detailFallback}`
                             ];
                             const insightDetail = {
                                 metric: variableLabel,
                                 points: formatMetricValue(value),
-                                formula: formulaHints[index] || tooltipText.defaultFormula
+                                formula: formulaHints[index] || detailFallback
                             };
                             const title = makeNode("title");
                             title.textContent = tooltipLines.join("\n");
@@ -1887,12 +2018,12 @@
                                 `${tooltipText.metric}: ${metricLabel}`,
                                 ...(series.length > 1 ? [`${tooltipText.series}: ${item.name}`] : []),
                                 `${tooltipText.points}: ${formatMetricValue(value)}`,
-                                `${tooltipText.formula}: ${formulaHints[index] || tooltipText.defaultFormula}`
+                                `${detailLabel}: ${formulaHints[index] || detailFallback}`
                             ];
                             const insightDetail = {
                                 metric: metricLabel,
                                 points: formatMetricValue(value),
-                                formula: formulaHints[index] || tooltipText.defaultFormula
+                                formula: formulaHints[index] || detailFallback
                             };
                             const hitTarget = makeNode("circle", {
                                 cx: point.x,

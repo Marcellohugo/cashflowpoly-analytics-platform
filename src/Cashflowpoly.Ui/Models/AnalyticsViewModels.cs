@@ -79,6 +79,8 @@ public sealed class PlayerDetailViewModel
 /// </summary>
 public sealed class PlayerCashflowJourneyStatsViewModel
 {
+    public double StartingCash { get; init; }
+    public double EndingCash { get; init; }
     public int TransactionCount { get; init; }
     public int CashInCount { get; init; }
     public int CashOutCount { get; init; }
@@ -97,6 +99,10 @@ public sealed class PlayerCashflowJourneyStatsViewModel
     /// Menjalankan fungsi new sebagai bagian dari alur file ini.
     /// </summary>
     public List<double> RunningNetSeries { get; init; } = new();
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
+    public List<string> TransactionDetails { get; init; } = new();
 }
 
 /// <summary>
