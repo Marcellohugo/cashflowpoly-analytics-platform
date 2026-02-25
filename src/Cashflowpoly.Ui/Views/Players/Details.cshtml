@@ -973,6 +973,26 @@
                 maxCharts: 4))
     };
 
+    var cashflowJourney = Model.CashflowJourney;
+    var hasCashflowJourney = cashflowJourney is not null && cashflowJourney.TransactionCount > 0;
+    var cashflowJourneyChartPayload = hasCashflowJourney
+        ? JsonSerializer.Serialize(new
+        {
+            chartType = "line",
+            labels = cashflowJourney!.TimelineLabels,
+            keys = new[] { "cashflow_running_net" },
+            formulas = new[] { Context.T("players.cashflow_journey.formula") },
+            series = new[]
+            {
+                new
+                {
+                    name = Context.T("players.cashflow_journey.series_name"),
+                    values = cashflowJourney.RunningNetSeries
+                }
+            }
+        })
+        : "{}";
+
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
 }
 
@@ -1006,6 +1026,84 @@
             @Model.GameplayErrorMessage
         </div>
     }
+
+    <div id="cashflow-journey" class="players-fusion-metrics player-detail-section">
+        <div class="players-fusion-head">
+            <div class="page-intro-main">
+                <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
+                <h2 class="headline text-xl">@Context.T("players.cashflow_journey.title")</h2>
+                <p class="subhead text-sm">@Context.T("players.cashflow_journey.subtitle")</p>
+            </div>
+        </div>
+
+        @if (!hasCashflowJourney)
+        {
+            <div class="mt-4 alert alert-info">
+                @Context.T("players.cashflow_journey.empty")
+            </div>
+        }
+        else
+        {
+            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+                <article class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.total_transactions")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.TransactionCount</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.total_in")</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700">@cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.total_out")</p>
+                    <p class="mt-2 text-2xl font-semibold text-rose-700">@cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.net")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.NetCashflow.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.running_peak")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.PeakRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+                <article class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.cashflow_journey.running_lowest")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
+                </article>
+            </div>
+
+            <div class="mt-4 metric-panel">
+                <div class="metric-list">
+                    <div class="metric-row">
+                        <span class="metric-key">@Context.T("players.cashflow_journey.period_start")</span>
+                        <span class="metric-value">@(cashflowJourney.FirstTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-key">@Context.T("players.cashflow_journey.period_end")</span>
+                        <span class="metric-value">@(cashflowJourney.LastTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-key">@Context.T("players.cashflow_journey.in_count")</span>
+                        <span class="metric-value">@cashflowJourney.CashInCount</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-key">@Context.T("players.cashflow_journey.out_count")</span>
+                        <span class="metric-value">@cashflowJourney.CashOutCount</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-grid chart-grid-feature mt-4">
+                <article class="chart-card chart-card-feature">
+                    <h3 class="chart-title">@Context.T("players.cashflow_journey.chart_title")</h3>
+                    <svg class="metric-line-chart js-metric-line-chart"
+                         viewBox="0 0 840 360"
+                         data-chart="@cashflowJourneyChartPayload"
+                         role="img"
+                         aria-label="@Context.T("players.cashflow_journey.chart_title")"></svg>
+                </article>
+            </div>
+        }
+    </div>
 
     @if (!hasGameplayData)
     {
