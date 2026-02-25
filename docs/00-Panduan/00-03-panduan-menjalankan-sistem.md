@@ -17,7 +17,7 @@ Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakse
 ## 2. Prasyarat
 Pastikan setup lingkungan sudah selesai:
 - .NET 10 SDK terpasang,
-- PostgreSQL siap dan skema `database/00_create_schema.sql` sudah dijalankan,
+- PostgreSQL siap dan skrip `database/00_create_schema.sql` serta `database/01_seed_default_rulesets_components.sql` sudah dijalankan,
 - connection string API dan `ApiBaseUrl` UI sudah benar,
 - `Jwt:SigningKey` sudah diisi (minimal 32 karakter, disarankan via variabel lingkungan).
 
