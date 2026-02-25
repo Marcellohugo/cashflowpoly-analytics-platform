@@ -62,6 +62,8 @@ public static class UiText
         ["auth.error.register_response_invalid"] = ("Respons registrasi tidak valid.", "Invalid registration response."),
 
         ["lang.label"] = ("Bahasa", "Language"),
+        ["lang.code.id"] = ("ID", "ID"),
+        ["lang.code.en"] = ("EN", "EN"),
         ["lang.option.id"] = ("Bahasa Indonesia (ID)", "Indonesian (ID)"),
         ["lang.option.en"] = ("Bahasa Inggris (EN)", "English (EN)"),
 
@@ -350,22 +352,116 @@ public static class UiText
         ["players.mission_risk"] = ("Misi dan Risiko", "Mission and Risk"),
         ["players.transaction_history"] = ("Riwayat Aktivitas Keuangan", "Financial Activity History"),
         ["players.cashflow_journey.badge"] = ("Alur Keuangan Pemain", "Player Cashflow Journey"),
-        ["players.cashflow_journey.title"] = ("Statistik Alur Keuangan dari Awal hingga Akhir", "Cashflow Journey Statistics from Start to End"),
-        ["players.cashflow_journey.subtitle"] = ("Ringkasan ini menunjukkan perjalanan transaksi pemain sepanjang sesi permainan.", "This summary shows the player's transaction journey throughout the session."),
+        ["players.cashflow_journey.title"] = ("Statistik Alur Keuangan dari Awal sampai Akhir", "Cashflow Journey Statistics from Start to Finish"),
+        ["players.cashflow_journey.subtitle"] = ("Ringkasan ini dimulai dari Kas Awal pemain, lalu mengikuti setiap transaksi hingga akhir sesi. Nilai Total Kas Masuk dan Total Kas Keluar adalah akumulasi sepanjang permainan, sehingga bisa mencapai ratusan meskipun saldo akhir lebih kecil.", "This summary starts from the player's Starting Cash, then follows every transaction to the end of the session. Total Cash In and Total Cash Out are cumulative across the game, so they can reach hundreds even when the ending balance is smaller."),
+        ["players.cashflow_journey.starting_cash"] = ("Kas Awal Pemain", "Player Starting Cash"),
+        ["players.cashflow_journey.ending_cash"] = ("Kas Akhir Pemain", "Player Ending Cash"),
         ["players.cashflow_journey.total_transactions"] = ("Total Transaksi", "Total Transactions"),
-        ["players.cashflow_journey.total_in"] = ("Total Kas Masuk", "Total Cash In"),
-        ["players.cashflow_journey.total_out"] = ("Total Kas Keluar", "Total Cash Out"),
+        ["players.cashflow_journey.total_in"] = ("Total Kas Masuk (Akumulasi)", "Total Cash In (Cumulative)"),
+        ["players.cashflow_journey.total_out"] = ("Total Kas Keluar (Akumulasi)", "Total Cash Out (Cumulative)"),
         ["players.cashflow_journey.net"] = ("Arus Kas Bersih", "Net Cashflow"),
-        ["players.cashflow_journey.running_peak"] = ("Puncak Saldo Kumulatif", "Peak Cumulative Balance"),
+        ["players.cashflow_journey.running_peak"] = ("Puncak Saldo Berjalan", "Peak Running Balance"),
         ["players.cashflow_journey.running_lowest"] = ("Titik Terendah Saldo", "Lowest Balance Point"),
         ["players.cashflow_journey.period_start"] = ("Waktu Awal Periode", "Period Start Time"),
         ["players.cashflow_journey.period_end"] = ("Waktu Akhir Periode", "Period End Time"),
-        ["players.cashflow_journey.in_count"] = ("Jumlah Transaksi IN", "IN Transaction Count"),
-        ["players.cashflow_journey.out_count"] = ("Jumlah Transaksi OUT", "OUT Transaction Count"),
-        ["players.cashflow_journey.chart_title"] = ("Grafik Saldo Kumulatif per Transaksi", "Cumulative Balance per Transaction Chart"),
-        ["players.cashflow_journey.series_name"] = ("Saldo Kumulatif", "Cumulative Balance"),
+        ["players.cashflow_journey.in_count"] = ("Jumlah Transaksi Masuk", "Incoming Transaction Count"),
+        ["players.cashflow_journey.out_count"] = ("Jumlah Transaksi Keluar", "Outgoing Transaction Count"),
+        ["players.cashflow_journey.chart_title"] = ("Grafik Saldo Kas Berjalan per Transaksi", "Running Cash Balance per Transaction Chart"),
+        ["players.cashflow_journey.series_name"] = ("Saldo Kas Berjalan", "Running Cash Balance"),
         ["players.cashflow_journey.formula"] = ("Saldo kumulatif = akumulasi IN dikurangi akumulasi OUT hingga titik transaksi ini.", "Cumulative balance = accumulated IN minus accumulated OUT up to this transaction point."),
+        ["players.cashflow_journey.quick_check"] = ("Cek cepat saldo: Kas Awal {0} + Total Kas Masuk {1} - Total Kas Keluar {2} = Kas Akhir {3}.", "Quick balance check: Starting Cash {0} + Total Cash In {1} - Total Cash Out {2} = Ending Cash {3}."),
         ["players.cashflow_journey.empty"] = ("Belum ada data transaksi untuk pemain ini di sesi tersebut.", "No transaction data is available for this player in this session."),
+        ["players.details.metric"] = ("Variabel", "Metric"),
+        ["players.details.series"] = ("Seri", "Series"),
+        ["players.details.transaction_label"] = ("Transaksi", "Transaction"),
+        ["players.details.points_value"] = ("Poin/Nilai", "Points/Value"),
+        ["players.details.metric_fallback"] = ("Metrik", "Metric"),
+        ["players.details.item"] = ("Item", "Item"),
+        ["players.details.combined_snapshot"] = ("Ringkasan Gabungan", "Combined Snapshot"),
+        ["players.details.source_calc_label"] = ("Asal Data & Cara Hitung", "Data Source & Calculation"),
+        ["players.details.source_calc_template"] = ("Asal data: {0}. Cara hitung: {1}", "Source: {0}. Calculation: {1}"),
+        ["players.details.source_calc_default"] = ("Asal data: agregasi event sesi tervalidasi. Cara hitung: nilai mengikuti formula pada ruleset aktif.", "Source: validated session-event aggregation. Calculation: value follows formulas in the active ruleset."),
+        ["players.details.source_raw_summary"] = ("Asal data: agregasi event sesi. Cara hitung: nilai diringkas dari transaksi/aksi pada domain ini.", "Source: session-event aggregation. Calculation: value is summarized from transactions/actions in this domain."),
+        ["players.details.source_derived_summary"] = ("Asal data: agregasi event sesi tervalidasi. Cara hitung: nilai turunan mengikuti formula pada ruleset aktif.", "Source: validated session-event aggregation. Calculation: derived value follows formulas from the active ruleset."),
+        ["players.details.source_line_raw_template"] = ("Asal data: {0}. Cara hitung: nilai mengikuti agregasi event sesi pada domain ini.", "Source: {0}. Calculation: value follows session-event aggregation in this domain."),
+        ["players.details.source_line_derived_template"] = ("Asal data: {0}. Cara hitung: nilai turunan dihitung dari variabel mentah sesuai ruleset aktif.", "Source: {0}. Calculation: derived value is computed from raw variables based on the active ruleset."),
+        ["players.details.selected_detail"] = ("Detail data terpilih", "Selected data details"),
+        ["players.details.tap_hint"] = ("Ketuk batang atau titik pada diagram untuk melihat detail variabel, asal data, dan cara hitung.", "Tap bars or points in the chart to view metric details, data source, and calculation."),
+        ["players.details.no_series"] = ("Belum ada rangkaian metrik untuk ditampilkan.", "No serial metrics are available to display."),
+        ["players.details.no_points"] = ("Belum ada titik numerik untuk ditampilkan.", "No numeric points are available to display."),
+        ["players.details.invalid_payload"] = ("Payload diagram tidak valid.", "Chart payload is invalid."),
+        ["players.details.transaction.opening_cash"] = ("Kas Awal", "Opening Cash"),
+        ["players.details.transaction.opening_cash_with_amount"] = ("Kas Awal ({0})", "Opening Cash ({0})"),
+        ["players.details.transaction.cash_in"] = ("Kas Masuk", "Cash In"),
+        ["players.details.transaction.cash_out"] = ("Kas Keluar", "Cash Out"),
+        ["players.details.transaction.category.donation"] = ("Donasi", "Donation"),
+        ["players.details.transaction.category.gold_trade"] = ("Transaksi Emas", "Gold Trade"),
+        ["players.details.transaction.category.ingredient"] = ("Pembelian Bahan", "Ingredient Purchase"),
+        ["players.details.transaction.category.order"] = ("Pesanan Makanan", "Meal Order"),
+        ["players.details.transaction.category.freelance"] = ("Pekerjaan Freelance", "Freelance Work"),
+        ["players.details.transaction.category.need_primary"] = ("Kebutuhan Primer", "Primary Need"),
+        ["players.details.transaction.category.need_secondary"] = ("Kebutuhan Sekunder", "Secondary Need"),
+        ["players.details.transaction.category.need_tertiary"] = ("Kebutuhan Tersier", "Tertiary Need"),
+        ["players.details.transaction.category.saving_deposit"] = ("Setoran Tabungan", "Saving Deposit"),
+        ["players.details.transaction.category.saving_withdraw"] = ("Penarikan Tabungan", "Saving Withdrawal"),
+        ["players.details.transaction.category.risk_life"] = ("Dampak Risiko Kehidupan", "Life Risk Impact"),
+        ["players.details.transaction.category.loan_taken"] = ("Pinjaman Diambil", "Loan Taken"),
+        ["players.details.transaction.category.loan_repaid"] = ("Pelunasan Pinjaman", "Loan Repaid"),
+        ["players.details.transaction.category.insurance_premium"] = ("Premi Asuransi", "Insurance Premium"),
+        ["players.details.transaction.category.insurance_claim"] = ("Klaim Asuransi", "Insurance Claim"),
+        ["players.details.transaction.category.emergency_option"] = ("Pilihan Kondisi Darurat", "Emergency Option"),
+        ["players.details.formula.coins_net_end"] = ("Koin Awal + Total Kas Masuk - Total Kas Keluar.", "Starting Coins + Total Cash In - Total Cash Out."),
+        ["players.details.formula.raw.cash_in_sum"] = ("Menjumlahkan semua transaksi kas masuk pemain pada domain ini.", "Sums all player cash-in transactions in this domain."),
+        ["players.details.formula.raw.cash_out_sum"] = ("Menjumlahkan semua transaksi kas keluar pemain pada domain ini.", "Sums all player cash-out transactions in this domain."),
+        ["players.details.formula.raw.per_turn_aggregate"] = ("Agregasi nilai per giliran berdasarkan transaksi/aksi yang tercatat pada giliran tersebut.", "Per-turn aggregation based on transactions/actions recorded in that turn."),
+        ["players.details.formula.raw.direct_aggregate"] = ("Nilai diambil langsung dari agregasi event sesi pada domain ini.", "Value is read directly from session-event aggregation in this domain."),
+        ["players.details.formula.derived.happiness_points"] = ("Poin Kebutuhan + Bonus + Poin Donasi + Poin Emas + Poin Pensiun + Poin Target Tabungan - Penalti Misi - Penalti Pinjaman", "Need Points + Bonus + Donation Points + Gold Points + Pension Points + Saving Goal Points - Mission Penalty - Loan Penalty"),
+        ["players.details.formula.derived.net_cashflow"] = ("Total Kas Masuk - Total Kas Keluar.", "Total Cash In - Total Cash Out."),
+        ["players.details.formula.derived.donation_points"] = ("Total Donasi x bobot poin donasi (set aturan aktif)", "Total Donations x donation-point weight (active ruleset)"),
+        ["players.details.formula.derived.pension_points"] = ("Akumulasi dana pensiun akhir x bobot poin pensiun (set aturan aktif)", "End-game pension accumulation x pension-point weight (active ruleset)"),
+        ["players.details.formula.derived.saving_goal_points"] = ("Pencapaian target tabungan x bobot poin target tabungan (set aturan aktif)", "Saving-goal achievement x saving-goal point weight (active ruleset)"),
+        ["players.details.formula.derived.need_points"] = ("Akumulasi poin kartu kebutuhan sesuai aturan sesi", "Accumulated need-card points based on session rules"),
+        ["players.details.formula.derived.penalty"] = ("Akumulasi penalti dari pelanggaran/ketidakpatuhan selama sesi", "Accumulated penalties from violations/non-compliance during the session"),
+        ["players.details.formula.derived.points_weight"] = ("Poin dihitung sesuai bobot pada set aturan aktif", "Points are calculated using weights from the active ruleset"),
+        ["players.details.formula.derived.default"] = ("Nilai turunan dihitung dari variabel mentah sesuai aturan pada ruleset aktif.", "Derived value is calculated from raw variables using formulas in the active ruleset."),
+        ["players.details.raw_title"] = ("Variabel Permainan Fisik", "Physical Gameplay Variables"),
+        ["players.details.raw_subtitle"] = ("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca. Arahkan kursor atau ketuk batang/titik untuk melihat asal data, cara hitung, dan nilai poin/angka.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability. Hover over or tap each bar/point to see the data source, calculation, and point/value."),
+        ["players.details.derived_title"] = ("Metrik Turunan Analitika", "Derived Analytics Metrics"),
+        ["players.details.derived_subtitle"] = ("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas. Arahkan kursor atau ketuk batang/titik untuk melihat asal data, cara hitung, dan nilai poin/angka.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear. Hover over or tap each bar/point to see the data source, calculation, and point/value."),
+        ["players.details.chart_count_suffix"] = ("diagram", "charts"),
+        ["players.details.chart_domain_empty"] = ("Belum ada titik numerik untuk divisualkan pada domain ini.", "No numeric points are currently available for this domain."),
+        ["players.details.chart_scroll_region"] = ("Rincian diagram dapat digeser secara horizontal", "Detailed charts can be scrolled horizontally"),
+        ["players.details.chart_scroll_hint"] = ("Geser ke samping jika daftar diagram melebihi lebar panel.", "Scroll sideways if the chart list exceeds the panel width."),
+        ["players.details.raw.coin_finance.title"] = ("Variabel Koin dan Finansial", "Coin and Financial Variables"),
+        ["players.details.raw.coin_finance.desc"] = ("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."),
+        ["players.details.raw.ingredients.title"] = ("Variabel Kartu Bahan", "Ingredient Card Variables"),
+        ["players.details.raw.ingredients.desc"] = ("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."),
+        ["players.details.raw.meal_orders.title"] = ("Variabel Pesanan Makanan", "Meal Order Variables"),
+        ["players.details.raw.meal_orders.desc"] = ("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."),
+        ["players.details.raw.needs.title"] = ("Variabel Kartu Kebutuhan", "Need Card Variables"),
+        ["players.details.raw.needs.desc"] = ("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."),
+        ["players.details.raw.donations.title"] = ("Variabel Donasi", "Donation Variables"),
+        ["players.details.raw.donations.desc"] = ("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."),
+        ["players.details.raw.gold.title"] = ("Variabel Investasi Emas", "Gold Investment Variables"),
+        ["players.details.raw.gold.desc"] = ("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."),
+        ["players.details.raw.pension.title"] = ("Variabel Dana Pensiun", "Pension Fund Variables"),
+        ["players.details.raw.pension.desc"] = ("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."),
+        ["players.details.raw.life_risk.title"] = ("Variabel Risiko Hidup", "Life Risk Variables"),
+        ["players.details.raw.life_risk.desc"] = ("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."),
+        ["players.details.raw.financial_goals.title"] = ("Variabel Target Finansial", "Financial Goal Variables"),
+        ["players.details.raw.financial_goals.desc"] = ("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."),
+        ["players.details.raw.actions.title"] = ("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
+        ["players.details.raw.actions.desc"] = ("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."),
+        ["players.details.raw.turns.title"] = ("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
+        ["players.details.raw.turns.desc"] = ("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."),
+        ["players.details.derived.financial.title"] = ("Metrik Performa Finansial", "Financial Performance Metrics"),
+        ["players.details.derived.financial.desc"] = ("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."),
+        ["players.details.derived.strategy.title"] = ("Metrik Keputusan Strategis", "Strategic Decision Metrics"),
+        ["players.details.derived.strategy.desc"] = ("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."),
+        ["players.details.derived.behavior.title"] = ("Metrik Perilaku Pemain", "Player Behavior Metrics"),
+        ["players.details.derived.behavior.desc"] = ("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."),
+        ["players.details.derived.flourishing.title"] = ("Metrik Flourishing", "Flourishing-Related Metrics"),
+        ["players.details.derived.flourishing.desc"] = ("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."),
         ["players.gameplay_metrics"] = ("Metrik Permainan", "Gameplay Metrics"),
         ["players.gameplay_all_fields"] = ("Tampilkan Semua Field Metrik", "Show All Metric Fields"),
         ["players.player_focus_badge"] = ("Untuk Pemain", "For Players"),
@@ -646,7 +742,8 @@ public static class UiText
         ["state.no_rulesets"] = ("Belum ada set aturan.", "No rulesets yet."),
         ["state.no_versions"] = ("Belum ada versi.", "No versions yet."),
         ["state.true"] = ("Ya", "Yes"),
-        ["state.false"] = ("Tidak", "No")
+        ["state.false"] = ("Tidak", "No"),
+        ["state.null"] = ("Kosong", "Null")
     };
 
     /// <summary>
@@ -692,6 +789,22 @@ public static class UiText
     }
 
     /// <summary>
+    /// Menjalankan fungsi TranslateRulesetMode sebagai bagian dari alur file ini.
+    /// </summary>
+    public static string TranslateRulesetMode(HttpContext context, string? mode)
+    {
+        var normalized = mode?.Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "PEMULA" => Translate(context, "rulesets.form.mode_beginner"),
+            "BEGINNER" => Translate(context, "rulesets.form.mode_beginner"),
+            "MAHIR" => Translate(context, "rulesets.form.mode_advanced"),
+            "ADVANCED" => Translate(context, "rulesets.form.mode_advanced"),
+            _ => string.IsNullOrWhiteSpace(mode) ? "-" : mode!
+        };
+    }
+
+    /// <summary>
     /// Menjalankan fungsi Translate sebagai bagian dari alur file ini.
     /// </summary>
     public static string Translate(HttpContext context, string key)
@@ -723,5 +836,9 @@ public static class UiTextHttpContextExtensions
     /// Menjalankan fungsi TranslateRulesetStatus sebagai bagian dari alur file ini.
     /// </summary>
     public static string TRulesetStatus(this HttpContext context, string? status) => UiText.TranslateRulesetStatus(context, status);
+    /// <summary>
+    /// Menjalankan fungsi TranslateRulesetMode sebagai bagian dari alur file ini.
+    /// </summary>
+    public static string TRulesetMode(this HttpContext context, string? mode) => UiText.TranslateRulesetMode(context, mode);
 }
 

@@ -3,26 +3,21 @@
 @using System.Text
 @using System.Text.Json
 @using System.Text.RegularExpressions
-@using Microsoft.AspNetCore.Http
 @using Cashflowpoly.Ui.Infrastructure
 @model Cashflowpoly.Ui.Models.PlayerDetailViewModel
 
 @{
     ViewData["Title"] = Context.T("players.detail_title");
 
-    var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
-    var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
-    string L(string id, string en) => isEnglish ? en : id;
-
     string FormatJsonLeafValue(JsonElement element)
     {
         return element.ValueKind switch
         {
             JsonValueKind.String => element.GetString() ?? string.Empty,
-            JsonValueKind.True => L("ya", "true"),
-            JsonValueKind.False => L("tidak", "false"),
+            JsonValueKind.True => Context.T("state.true"),
+            JsonValueKind.False => Context.T("state.false"),
             JsonValueKind.Number => element.GetRawText(),
-            JsonValueKind.Null => L("kosong", "null"),
+            JsonValueKind.Null => Context.T("state.null"),
             _ => element.GetRawText()
         };
     }
@@ -179,17 +174,17 @@
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            return L("Metrik", "Metric");
+            return Context.T("players.details.metric_fallback");
         }
 
         if (string.Equals(key, "value", StringComparison.OrdinalIgnoreCase))
         {
-            return L("Nilai", "Value");
+            return Context.T("common.value");
         }
 
         if (string.Equals(key, "series", StringComparison.OrdinalIgnoreCase))
         {
-            return L("Seri", "Series");
+            return Context.T("players.details.series");
         }
 
         var normalized = key.Trim().ToLowerInvariant();
@@ -214,7 +209,7 @@
         var text = key.Replace('_', ' ').Trim();
         if (text.Length == 0)
         {
-            return L("Metrik", "Metric");
+            return Context.T("players.details.metric_fallback");
         }
 
         return char.ToUpperInvariant(text[0]) + text[1..];
@@ -224,7 +219,7 @@
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
-            return L("Metrik", "Metric");
+            return Context.T("players.details.metric_fallback");
         }
 
         var tokens = new List<string>();
@@ -260,11 +255,11 @@
                     var indexToken = rawPath.Substring(index + 1, closeIndex - index - 1);
                     if (int.TryParse(indexToken, out var parsedIndex))
                     {
-                        tokens.Add($"{L("Item", "Item")} {parsedIndex + 1}");
+                        tokens.Add($"{Context.T("players.details.item")} {parsedIndex + 1}");
                     }
                     else if (!string.IsNullOrWhiteSpace(indexToken))
                     {
-                        tokens.Add($"{L("Item", "Item")} {indexToken}");
+                        tokens.Add($"{Context.T("players.details.item")} {indexToken}");
                     }
 
                     index = closeIndex;
@@ -293,28 +288,28 @@
     {
         if (string.IsNullOrWhiteSpace(category))
         {
-            return L("Transaksi", "Transaction");
+            return Context.T("players.details.transaction_label");
         }
 
         var normalized = category.Trim().ToUpperInvariant();
         var mapped = normalized switch
         {
-            "DONATION" => L("Donasi", "Donation"),
-            "GOLD_TRADE" => L("Transaksi Emas", "Gold Trade"),
-            "INGREDIENT" => L("Pembelian Bahan", "Ingredient Purchase"),
-            "ORDER" => L("Pesanan Makanan", "Meal Order"),
-            "FREELANCE" => L("Pekerjaan Freelance", "Freelance Work"),
-            "NEED_PRIMARY" => L("Kebutuhan Primer", "Primary Need"),
-            "NEED_SECONDARY" => L("Kebutuhan Sekunder", "Secondary Need"),
-            "NEED_TERTIARY" => L("Kebutuhan Tersier", "Tertiary Need"),
-            "SAVING_DEPOSIT" => L("Setoran Tabungan", "Saving Deposit"),
-            "SAVING_WITHDRAW" => L("Penarikan Tabungan", "Saving Withdrawal"),
-            "RISK_LIFE" => L("Dampak Risiko Kehidupan", "Life Risk Impact"),
-            "LOAN_TAKEN" => L("Pinjaman Diambil", "Loan Taken"),
-            "LOAN_REPAID" => L("Pelunasan Pinjaman", "Loan Repaid"),
-            "INSURANCE_PREMIUM" => L("Premi Asuransi", "Insurance Premium"),
-            "INSURANCE_CLAIM" => L("Klaim Asuransi", "Insurance Claim"),
-            "EMERGENCY_OPTION" => L("Pilihan Kondisi Darurat", "Emergency Option"),
+            "DONATION" => Context.T("players.details.transaction.category.donation"),
+            "GOLD_TRADE" => Context.T("players.details.transaction.category.gold_trade"),
+            "INGREDIENT" => Context.T("players.details.transaction.category.ingredient"),
+            "ORDER" => Context.T("players.details.transaction.category.order"),
+            "FREELANCE" => Context.T("players.details.transaction.category.freelance"),
+            "NEED_PRIMARY" => Context.T("players.details.transaction.category.need_primary"),
+            "NEED_SECONDARY" => Context.T("players.details.transaction.category.need_secondary"),
+            "NEED_TERTIARY" => Context.T("players.details.transaction.category.need_tertiary"),
+            "SAVING_DEPOSIT" => Context.T("players.details.transaction.category.saving_deposit"),
+            "SAVING_WITHDRAW" => Context.T("players.details.transaction.category.saving_withdraw"),
+            "RISK_LIFE" => Context.T("players.details.transaction.category.risk_life"),
+            "LOAN_TAKEN" => Context.T("players.details.transaction.category.loan_taken"),
+            "LOAN_REPAID" => Context.T("players.details.transaction.category.loan_repaid"),
+            "INSURANCE_PREMIUM" => Context.T("players.details.transaction.category.insurance_premium"),
+            "INSURANCE_CLAIM" => Context.T("players.details.transaction.category.insurance_claim"),
+            "EMERGENCY_OPTION" => Context.T("players.details.transaction.category.emergency_option"),
             _ => string.Empty
         };
 
@@ -330,7 +325,7 @@
     {
         if (string.IsNullOrWhiteSpace(rawDetail))
         {
-            return L("Transaksi", "Transaction");
+            return Context.T("players.details.transaction_label");
         }
 
         var text = rawDetail.Trim();
@@ -347,14 +342,17 @@
         if (rawDirection.Equals("START", StringComparison.OrdinalIgnoreCase))
         {
             return string.IsNullOrWhiteSpace(amountText)
-                ? L("Kas Awal", "Opening Cash")
-                : L($"Kas Awal ({amountText})", $"Opening Cash ({amountText})");
+                ? Context.T("players.details.transaction.opening_cash")
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    Context.T("players.details.transaction.opening_cash_with_amount"),
+                    amountText);
         }
 
         var directionText = rawDirection.Equals("IN", StringComparison.OrdinalIgnoreCase)
-            ? L("Kas Masuk", "Cash In")
+            ? Context.T("players.details.transaction.cash_in")
             : rawDirection.Equals("OUT", StringComparison.OrdinalIgnoreCase)
-                ? L("Kas Keluar", "Cash Out")
+                ? Context.T("players.details.transaction.cash_out")
                 : HumanizeMetricKey(rawDirection.ToLowerInvariant());
         var categoryText = HumanizeTransactionCategory(rawCategory);
 
@@ -423,8 +421,8 @@
     string BuildMetricSourceLabel(string? metricPath, bool isRawDomain)
     {
         var root = isRawDomain
-            ? L("Variabel Permainan Fisik", "Physical Gameplay Variables")
-            : L("Metrik Turunan Analitika", "Derived Analytics Metrics");
+            ? Context.T("players.details.raw_title")
+            : Context.T("players.details.derived_title");
         var normalized = (metricPath ?? string.Empty).Trim().Trim('.');
         if (string.IsNullOrWhiteSpace(normalized))
         {
@@ -444,106 +442,82 @@
             var key = (metricPath ?? string.Empty).ToLowerInvariant();
             var sourcePath = BuildMetricSourceLabel(metricPath, isRawDomain);
 
-            string WithSource(string idText, string enText)
+            string WithSource(string formulaKey)
             {
-                return L(
-                    $"Asal data: {sourcePath}. Cara hitung: {idText}",
-                    $"Source: {sourcePath}. Calculation: {enText}");
+                return string.Format(
+                    CultureInfo.CurrentCulture,
+                    Context.T("players.details.source_calc_template"),
+                    sourcePath,
+                    Context.T(formulaKey));
             }
 
             if (isRawDomain &&
                 (key.Contains("coins_net_end_game") || key.Contains("coins_net_end")))
             {
-                return WithSource(
-                    "Koin Awal + Total Kas Masuk - Total Kas Keluar.",
-                    "Starting Coins + Total Cash In (IN) - Total Cash Out (OUT).");
+                return WithSource("players.details.formula.coins_net_end");
             }
 
             if (isRawDomain)
             {
                 if (key.Contains("cash_in") || key.Contains("earned"))
                 {
-                    return WithSource(
-                        "Menjumlahkan semua transaksi kas masuk pemain pada domain ini.",
-                        "Sums all player IN transactions in this domain.");
+                    return WithSource("players.details.formula.raw.cash_in_sum");
                 }
 
                 if (key.Contains("cash_out") || key.Contains("spent"))
                 {
-                    return WithSource(
-                        "Menjumlahkan semua transaksi kas keluar pemain pada domain ini.",
-                        "Sums all player OUT transactions in this domain.");
+                    return WithSource("players.details.formula.raw.cash_out_sum");
                 }
 
                 if (key.Contains("per_turn") || key.Contains("progression"))
                 {
-                    return WithSource(
-                        "Agregasi nilai per giliran berdasarkan transaksi/aksi yang tercatat pada giliran tersebut.",
-                        "Per-turn aggregation based on transactions/actions recorded in that turn.");
+                    return WithSource("players.details.formula.raw.per_turn_aggregate");
                 }
 
-                return WithSource(
-                    "Nilai diambil langsung dari agregasi event sesi pada domain ini.",
-                    "Value is read directly from session-event aggregation in this domain.");
+                return WithSource("players.details.formula.raw.direct_aggregate");
             }
 
             if (key.Contains("happiness_points"))
             {
-                return WithSource(
-                    "Poin Kebutuhan + Bonus + Poin Donasi + Poin Emas + Poin Pensiun + Poin Target Tabungan - Penalti Misi - Penalti Pinjaman",
-                    "Need Points + Bonus + Donation Points + Gold Points + Pension Points + Saving Goal Points - Mission Penalty - Loan Penalty");
+                return WithSource("players.details.formula.derived.happiness_points");
             }
 
             if (key.Contains("cashflow_net") || key.Contains("net_cashflow") || key.Contains("coins_net"))
             {
-                return WithSource("Total Kas Masuk - Total Kas Keluar.", "Total Cash In - Total Cash Out.");
+                return WithSource("players.details.formula.derived.net_cashflow");
             }
 
             if (key.Contains("donation_points"))
             {
-                return WithSource(
-                    "Total Donasi x bobot poin donasi (set aturan aktif)",
-                    "Total Donations x donation-point weight (active ruleset)");
+                return WithSource("players.details.formula.derived.donation_points");
             }
 
             if (key.Contains("pension_points"))
             {
-                return WithSource(
-                    "Akumulasi dana pensiun akhir x bobot poin pensiun (set aturan aktif)",
-                    "End-game pension accumulation x pension-point weight (active ruleset)");
+                return WithSource("players.details.formula.derived.pension_points");
             }
 
             if (key.Contains("saving_goal_points"))
             {
-                return WithSource(
-                    "Pencapaian target tabungan x bobot poin target tabungan (set aturan aktif)",
-                    "Saving-goal achievement x saving-goal point weight (active ruleset)");
+                return WithSource("players.details.formula.derived.saving_goal_points");
             }
 
             if (key.Contains("need_points"))
             {
-                return WithSource(
-                    "Akumulasi poin kartu kebutuhan sesuai aturan sesi",
-                    "Accumulated need-card points based on session rules");
+                return WithSource("players.details.formula.derived.need_points");
             }
 
             if (key.Contains("penalty"))
             {
-                return WithSource(
-                    "Akumulasi penalti dari pelanggaran/ketidakpatuhan selama sesi",
-                    "Accumulated penalties from violations/non-compliance during the session");
+                return WithSource("players.details.formula.derived.penalty");
             }
 
             if (key.Contains("points"))
             {
-                return WithSource(
-                    "Poin dihitung sesuai bobot pada set aturan aktif",
-                    "Points are calculated using weights from the active ruleset");
+                return WithSource("players.details.formula.derived.points_weight");
             }
 
-            return WithSource(
-                "Nilai turunan dihitung dari variabel mentah sesuai aturan pada ruleset aktif.",
-                "Derived value is calculated from raw variables using formulas in the active ruleset.");
+            return WithSource("players.details.formula.derived.default");
         }
 
         var numericRows = rows
@@ -575,7 +549,7 @@
                 var baseLabel = FormatMetricPathLabel(row.Path).Trim();
                 if (string.IsNullOrWhiteSpace(baseLabel))
                 {
-                    baseLabel = L("Metrik", "Metric");
+                    baseLabel = Context.T("players.details.metric_fallback");
                 }
 
                 if (!labelUsage.TryGetValue(baseLabel, out var usageCount))
@@ -603,21 +577,21 @@
             labels = points.Select(point => point.Label).ToList(),
             keys = points.Select(point => point.Path).ToList(),
             formulas = points.Select(point => point.Formula).ToList(),
-            detailLabel = L("Asal Data & Cara Hitung", "Data Source & Calculation"),
+            detailLabel = Context.T("players.details.source_calc_label"),
             detailFallback = isRawDomain
-                ? L("Asal data: agregasi event sesi. Cara hitung: nilai diringkas dari transaksi/aksi pada domain ini.", "Source: session-event aggregation. Calculation: value is summarized from transactions/actions in this domain.")
-                : L("Asal data: agregasi event sesi tervalidasi. Cara hitung: nilai turunan mengikuti formula pada ruleset aktif.", "Source: validated session-event aggregation. Calculation: derived value follows formulas from the active ruleset."),
+                ? Context.T("players.details.source_raw_summary")
+                : Context.T("players.details.source_derived_summary"),
             series = new[]
             {
                 new
                 {
-                    name = L("Nilai", "Value"),
+                    name = Context.T("common.value"),
                     values = points.Select(point => (double?)point.Value).ToList()
                 }
             }
         };
 
-        return ($"{domainTitle}: {L("Ringkasan Gabungan", "Combined Snapshot")}", JsonSerializer.Serialize(payload));
+        return ($"{domainTitle}: {Context.T("players.details.combined_snapshot")}", JsonSerializer.Serialize(payload));
     }
 
     static List<(string Path, string Value)> MergeUniqueRows(params IEnumerable<(string Path, string Value)>[] rowSets)
@@ -918,7 +892,7 @@
         }
 
         var pathParts = path.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : L("Seri", "Series");
+        var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : Context.T("players.details.series");
         var metricLabel = pathParts.Length > 1 ? HumanizeMetricKey(pathParts[^1]) : HumanizeMetricKey(path);
         var title = $"{groupLabel}: {metricLabel}";
         var sourcePath = BuildMetricSourceLabel(path, isRawDomain);
@@ -926,10 +900,16 @@
         {
             labels,
             series = activeSeries,
-            detailLabel = L("Asal Data & Cara Hitung", "Data Source & Calculation"),
+            detailLabel = Context.T("players.details.source_calc_label"),
             detailFallback = isRawDomain
-                ? L($"Asal data: {sourcePath}. Cara hitung: nilai mengikuti agregasi event sesi pada domain ini.", $"Source: {sourcePath}. Calculation: value follows session-event aggregation in this domain.")
-                : L($"Asal data: {sourcePath}. Cara hitung: nilai turunan dihitung dari variabel mentah sesuai ruleset aktif.", $"Source: {sourcePath}. Calculation: derived value is computed from raw variables based on the active ruleset.")
+                ? string.Format(
+                    CultureInfo.CurrentCulture,
+                    Context.T("players.details.source_line_raw_template"),
+                    sourcePath)
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    Context.T("players.details.source_line_derived_template"),
+                    sourcePath)
         };
 
         return (title, JsonSerializer.Serialize(payload));
@@ -975,100 +955,100 @@
     var rawSections = new List<(string Title, string Description, List<(string Title, string Json)> Charts)>
     {
         (
-            L("Variabel Koin dan Finansial", "Coin and Financial Variables"),
-            L("Modal awal, arus kas, donasi, tabungan, dan saldo akhir.", "Starting capital, cashflow, donations, savings, and end balance."),
+            Context.T("players.details.raw.coin_finance.title"),
+            Context.T("players.details.raw.coin_finance.desc"),
             BuildSectionCharts(
-                L("Variabel Koin dan Finansial", "Coin and Financial Variables"),
+                Context.T("players.details.raw.coin_finance.title"),
                 GetGroupRows(rawGroupMap, "coins"),
                 GetGroupCharts(rawGroupChartsMap, "coins"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Kartu Bahan", "Ingredient Card Variables"),
-            L("Perolehan, stok, penggunaan, dan pemborosan bahan.", "Ingredient acquisition, stock, usage, and waste."),
+            Context.T("players.details.raw.ingredients.title"),
+            Context.T("players.details.raw.ingredients.desc"),
             BuildSectionCharts(
-                L("Variabel Kartu Bahan", "Ingredient Card Variables"),
+                Context.T("players.details.raw.ingredients.title"),
                 GetGroupRows(rawGroupMap, "ingredients"),
                 GetGroupCharts(rawGroupChartsMap, "ingredients"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Pesanan Makanan", "Meal Order Variables"),
-            L("Jumlah pesanan, pendapatan pesanan, dan keputusan melewati pesanan.", "Order count, order income, and pass decisions."),
+            Context.T("players.details.raw.meal_orders.title"),
+            Context.T("players.details.raw.meal_orders.desc"),
             BuildSectionCharts(
-                L("Variabel Pesanan Makanan", "Meal Order Variables"),
+                Context.T("players.details.raw.meal_orders.title"),
                 GetGroupRows(rawGroupMap, "meal_orders"),
                 GetGroupCharts(rawGroupChartsMap, "meal_orders"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Kartu Kebutuhan", "Need Card Variables"),
-            L("Kepemilikan kebutuhan primer-sekunder-tersier dan status misi koleksi.", "Primary-secondary-tertiary needs ownership and collection mission status."),
+            Context.T("players.details.raw.needs.title"),
+            Context.T("players.details.raw.needs.desc"),
             BuildSectionCharts(
-                L("Variabel Kartu Kebutuhan", "Need Card Variables"),
+                Context.T("players.details.raw.needs.title"),
                 GetGroupRows(rawGroupMap, "needs"),
                 GetGroupCharts(rawGroupChartsMap, "needs"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Donasi", "Donation Variables"),
-            L("Nominal donasi, ranking donasi, dan poin donasi.", "Donation amount, donation rank, and donation points."),
+            Context.T("players.details.raw.donations.title"),
+            Context.T("players.details.raw.donations.desc"),
             BuildSectionCharts(
-                L("Variabel Donasi", "Donation Variables"),
+                Context.T("players.details.raw.donations.title"),
                 GetGroupRows(rawGroupMap, "donations"),
                 GetGroupCharts(rawGroupChartsMap, "donations"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Investasi Emas", "Gold Investment Variables"),
-            L("Pembelian, penjualan, posisi akhir, dan arus kas emas.", "Gold buy/sell, ending position, and gold cashflow."),
+            Context.T("players.details.raw.gold.title"),
+            Context.T("players.details.raw.gold.desc"),
             BuildSectionCharts(
-                L("Variabel Investasi Emas", "Gold Investment Variables"),
+                Context.T("players.details.raw.gold.title"),
                 GetGroupRows(rawGroupMap, "gold"),
                 GetGroupCharts(rawGroupChartsMap, "gold"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Dana Pensiun", "Pension Fund Variables"),
-            L("Komponen dana pensiun akhir dan peringkat poin pensiun.", "End-game pension components and pension ranking points."),
+            Context.T("players.details.raw.pension.title"),
+            Context.T("players.details.raw.pension.desc"),
             BuildSectionCharts(
-                L("Variabel Dana Pensiun", "Pension Fund Variables"),
+                Context.T("players.details.raw.pension.title"),
                 GetGroupRows(rawGroupMap, "pension"),
                 GetGroupCharts(rawGroupChartsMap, "pension"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Risiko Hidup", "Life Risk Variables"),
-            L("Frekuensi risiko, biaya risiko, dan mitigasi asuransi.", "Risk frequency, risk costs, and insurance mitigation."),
+            Context.T("players.details.raw.life_risk.title"),
+            Context.T("players.details.raw.life_risk.desc"),
             BuildSectionCharts(
-                L("Variabel Risiko Hidup", "Life Risk Variables"),
+                Context.T("players.details.raw.life_risk.title"),
                 GetGroupRows(rawGroupMap, "life_risk"),
                 GetGroupCharts(rawGroupChartsMap, "life_risk"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Target Finansial", "Financial Goal Variables"),
-            L("Progres target finansial, pinjaman, dan status pelunasan.", "Financial goal progress, loans, and repayment status."),
+            Context.T("players.details.raw.financial_goals.title"),
+            Context.T("players.details.raw.financial_goals.desc"),
             BuildSectionCharts(
-                L("Variabel Target Finansial", "Financial Goal Variables"),
+                Context.T("players.details.raw.financial_goals.title"),
                 GetGroupRows(rawGroupMap, "financial_goals"),
                 GetGroupCharts(rawGroupChartsMap, "financial_goals"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
-            L("Distribusi aksi per giliran, repetisi aksi, dan aksi terlewati.", "Per-turn action distribution, repetitions, and skipped actions."),
+            Context.T("players.details.raw.actions.title"),
+            Context.T("players.details.raw.actions.desc"),
             BuildSectionCharts(
-                L("Variabel Penggunaan Token Aksi", "Action Token Usage Variables"),
+                Context.T("players.details.raw.actions.title"),
                 GetGroupRows(rawGroupMap, "actions"),
                 GetGroupCharts(rawGroupChartsMap, "actions"),
                 maxCharts: 5,
                 isRawDomain: true)),
         (
-            L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
-            L("Perkembangan ekonomi dari awal sampai akhir permainan.", "Economic progression from start to end of the game."),
+            Context.T("players.details.raw.turns.title"),
+            Context.T("players.details.raw.turns.desc"),
             BuildSectionCharts(
-                L("Variabel Progres Giliran", "Turn-by-Turn Progression Variables"),
+                Context.T("players.details.raw.turns.title"),
                 part11Rows,
                 part11Charts,
                 maxCharts: 5,
@@ -1133,40 +1113,40 @@
     var derivedSections = new List<(string Title, string Description, List<(string Title, string Json)> Charts)>
     {
         (
-            L("Metrik Performa Finansial", "Financial Performance Metrics"),
-            L("Indeks kekayaan, diversifikasi pendapatan, efisiensi pengeluaran, dan margin laba.", "Net worth index, income diversification, spending efficiency, and profit margin."),
+            Context.T("players.details.derived.financial.title"),
+            Context.T("players.details.derived.financial.desc"),
             BuildSectionCharts(
-                L("Metrik Performa Finansial", "Financial Performance Metrics"),
+                Context.T("players.details.derived.financial.title"),
                 financialDerivedRows,
                 FilterChartsByKeywords(
                     GetGroupCharts(derivedGroupChartsMap, "summary", "expense_management_components"),
                     "net", "income", "expense", "business", "gold", "growth"),
                 maxCharts: 4)),
         (
-            L("Metrik Keputusan Strategis", "Strategic Decision Metrics"),
-            L("Selera risiko, leverage utang, dan ambisi target finansial.", "Risk appetite, debt leverage, and financial goal ambition."),
+            Context.T("players.details.derived.strategy.title"),
+            Context.T("players.details.derived.strategy.desc"),
             BuildSectionCharts(
-                L("Metrik Keputusan Strategis", "Strategic Decision Metrics"),
+                Context.T("players.details.derived.strategy.title"),
                 strategicDerivedRows,
                 FilterChartsByKeywords(
                     GetGroupCharts(derivedGroupChartsMap, "summary", "risk_appetite_components"),
                     "risk", "debt", "goal", "loan"),
                 maxCharts: 4)),
         (
-            L("Metrik Perilaku Pemain", "Player Behavior Metrics"),
-            L("Efisiensi aksi, keberhasilan pesanan, dan orientasi perencanaan.", "Action efficiency, order success, and planning orientation."),
+            Context.T("players.details.derived.behavior.title"),
+            Context.T("players.details.derived.behavior.desc"),
             BuildSectionCharts(
-                L("Metrik Perilaku Pemain", "Player Behavior Metrics"),
+                Context.T("players.details.derived.behavior.title"),
                 behaviorDerivedRows,
                 FilterChartsByKeywords(
                     GetGroupCharts(derivedGroupChartsMap, "summary"),
                     "action", "meal", "order", "planning", "donation"),
                 maxCharts: 4)),
         (
-            L("Metrik Flourishing", "Flourishing-Related Metrics"),
-            L("Keberagaman pemenuhan, komitmen donasi, dan komposisi portofolio kebahagiaan.", "Fulfillment diversity, donation commitment, and happiness portfolio composition."),
+            Context.T("players.details.derived.flourishing.title"),
+            Context.T("players.details.derived.flourishing.desc"),
             BuildSectionCharts(
-                L("Metrik Flourishing", "Flourishing-Related Metrics"),
+                Context.T("players.details.derived.flourishing.title"),
                 flourishingDerivedRows,
                 FilterChartsByKeywords(
                     GetGroupCharts(derivedGroupChartsMap, "summary", "happiness_portfolio"),
@@ -1186,12 +1166,12 @@
             labels = cashflowJourney!.TimelineLabels,
             keys = new[] { "cashflow_running_net" },
             formulas = localizedTransactionDetails,
-            detailLabel = L("Transaksi", "Transaction"),
+            detailLabel = Context.T("players.details.transaction_label"),
             series = new[]
             {
                 new
                 {
-                    name = L("Saldo Kas Berjalan", "Running Cash Balance"),
+                    name = Context.T("players.cashflow_journey.series_name"),
                     values = cashflowJourney.RunningNetSeries
                 }
             }
@@ -1242,76 +1222,81 @@
     <div id="cashflow-journey" class="players-fusion-metrics player-detail-section">
         <div class="players-fusion-head">
             <div class="page-intro-main">
-                <p class="eyebrow">@L("Alur Keuangan Pemain", "Player Cashflow Journey")</p>
-                <h2 class="headline text-xl">@L("Statistik Alur Keuangan dari Awal sampai Akhir", "Cashflow Journey Statistics from Start to Finish")</h2>
-                <p class="subhead text-sm">@L("Ringkasan ini dimulai dari Kas Awal pemain, lalu mengikuti setiap transaksi hingga akhir sesi. Nilai 'Total Kas Masuk' dan 'Total Kas Keluar' adalah akumulasi sepanjang permainan, sehingga bisa mencapai ratusan meskipun saldo akhir lebih kecil.", "This summary starts from the player's Starting Cash, then follows every transaction to the end of the session. 'Total Cash In' and 'Total Cash Out' are cumulative totals across the game, so they can reach hundreds even when the ending balance is smaller.")</p>
+                <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
+                <h2 class="headline text-xl">@Context.T("players.cashflow_journey.title")</h2>
+                <p class="subhead text-sm">@Context.T("players.cashflow_journey.subtitle")</p>
             </div>
         </div>
 
         @if (!hasCashflowJourney)
         {
             <div class="mt-4 alert alert-info">
-                @L("Belum ada data transaksi untuk pemain ini di sesi tersebut.", "No transaction data is available for this player in this session.")
+                @Context.T("players.cashflow_journey.empty")
             </div>
         }
         else
         {
             <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Kas Awal Pemain", "Player Starting Cash")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.starting_cash")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Total Transaksi", "Total Transactions")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.total_transactions")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.TransactionCount</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Masuk (Akumulasi)", "Total Cash In (Cumulative)")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.total_in")</p>
                     <p class="mt-2 text-2xl font-semibold text-emerald-700">@cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Total Kas Keluar (Akumulasi)", "Total Cash Out (Cumulative)")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.total_out")</p>
                     <p class="mt-2 text-2xl font-semibold text-rose-700">@cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Arus Kas Bersih", "Net Cashflow")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.net")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.NetCashflow.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Kas Akhir Pemain", "Player Ending Cash")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.ending_cash")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Puncak Saldo Berjalan", "Peak Running Balance")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.running_peak")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.PeakRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
                 <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Titik Terendah Saldo", "Lowest Balance Point")</p>
+                    <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.running_lowest")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
                 </article>
             </div>
 
             <div class="mt-3 alert alert-info text-sm">
-                @L($"Cek cepat saldo: Kas Awal {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} + Total Kas Masuk {cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)} - Total Kas Keluar {cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)} = Kas Akhir {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)}.",
-                    $"Quick balance check: Starting Cash {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} + Total Cash In {cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)} - Total Cash Out {cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)} = Ending Cash {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)}.")
+                @(string.Format(
+                    CultureInfo.CurrentCulture,
+                    Context.T("players.cashflow_journey.quick_check"),
+                    cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture),
+                    cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture),
+                    cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture),
+                    cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)))
             </div>
 
             <div class="mt-4 metric-panel">
                 <div class="metric-list">
                     <div class="metric-row">
-                        <span class="metric-key">@L("Waktu Awal Periode", "Period Start Time")</span>
+                        <span class="metric-key">@Context.T("players.cashflow_journey.period_start")</span>
                         <span class="metric-value">@(cashflowJourney.FirstTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@L("Waktu Akhir Periode", "Period End Time")</span>
+                        <span class="metric-key">@Context.T("players.cashflow_journey.period_end")</span>
                         <span class="metric-value">@(cashflowJourney.LastTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@L("Jumlah Transaksi Masuk", "Incoming Transaction Count")</span>
+                        <span class="metric-key">@Context.T("players.cashflow_journey.in_count")</span>
                         <span class="metric-value">@cashflowJourney.CashInCount</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@L("Jumlah Transaksi Keluar", "Outgoing Transaction Count")</span>
+                        <span class="metric-key">@Context.T("players.cashflow_journey.out_count")</span>
                         <span class="metric-value">@cashflowJourney.CashOutCount</span>
                     </div>
                 </div>
@@ -1319,12 +1304,12 @@
 
             <div class="chart-grid chart-grid-feature mt-4">
                 <article class="chart-card chart-card-feature">
-                    <h3 class="chart-title">@L("Grafik Saldo Kas Berjalan per Transaksi", "Running Cash Balance per Transaction Chart")</h3>
+                    <h3 class="chart-title">@Context.T("players.cashflow_journey.chart_title")</h3>
                     <svg class="metric-line-chart js-metric-line-chart"
                          viewBox="0 0 840 360"
                          data-chart="@cashflowJourneyChartPayload"
                          role="img"
-                         aria-label="@L("Grafik Saldo Kas Berjalan per Transaksi", "Running Cash Balance per Transaction Chart")"></svg>
+                         aria-label="@Context.T("players.cashflow_journey.chart_title")"></svg>
                 </article>
             </div>
         }
@@ -1342,8 +1327,8 @@
             <div class="players-fusion-head">
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.raw")</p>
-                    <h2 class="headline text-xl">@L("Variabel Permainan Fisik", "Physical Gameplay Variables")</h2>
-                    <p class="subhead text-sm">@L("Semua domain variabel mentah divisualkan sebagai diagram. Ringkasan gabungan tampil sebagai batang, metrik sisanya tetap dalam garis agar pola tetap mudah dibaca. Arahkan kursor atau ketuk batang/titik untuk melihat asal data, cara hitung, dan nilai poin/angka.", "All raw-variable domains are visualized as charts. Combined snapshots are shown as bars, while the remaining metrics stay as lines for readability. Hover over or tap each bar/point to see the data source, calculation, and point/value.")</p>
+                    <h2 class="headline text-xl">@Context.T("players.details.raw_title")</h2>
+                    <p class="subhead text-sm">@Context.T("players.details.raw_subtitle")</p>
                 </div>
             </div>
 
@@ -1353,12 +1338,12 @@
                     <article class="metric-domain-card metric-domain-card-flat">
                         <div class="metric-domain-heading">
                             <h3>@domain.Title</h3>
-                            <span class="metric-domain-count">@domain.Charts.Count @L("diagram", "charts")</span>
+                            <span class="metric-domain-count">@domain.Charts.Count @Context.T("players.details.chart_count_suffix")</span>
                         </div>
                         <p class="metric-domain-intro">@domain.Description</p>
                         @if (domain.Charts.Count == 0)
                         {
-                            <p class="metric-domain-empty">@L("Belum ada titik numerik untuk divisualkan pada domain ini.", "No numeric points are currently available for this domain.")</p>
+                            <p class="metric-domain-empty">@Context.T("players.details.chart_domain_empty")</p>
                         }
                         else
                         {
@@ -1388,8 +1373,8 @@
                             {
                                 <div class="chart-scroll-region mt-4"
                                      role="region"
-                                     aria-label="@L("Rincian diagram dapat digeser secara horizontal", "Detailed charts can be scrolled horizontally")">
-                                    <p class="chart-scroll-hint">@L("Geser ke samping jika daftar diagram melebihi lebar panel.", "Scroll sideways if the chart list exceeds the panel width.")</p>
+                                     aria-label="@Context.T("players.details.chart_scroll_region")">
+                                    <p class="chart-scroll-hint">@Context.T("players.details.chart_scroll_hint")</p>
                                     <div class="chart-grid chart-grid-scroll mt-2">
                                         @foreach (var chart in detailCharts)
                                         {
@@ -1415,8 +1400,8 @@
             <div class="players-fusion-head">
                 <div class="page-intro-main">
                     <p class="eyebrow">@Context.T("gameplay.derived")</p>
-                    <h2 class="headline text-xl">@L("Metrik Turunan Analitika", "Derived Analytics Metrics")</h2>
-                    <p class="subhead text-sm">@L("Metrik turunan disajikan per domain: ringkasan gabungan dalam batang, lalu detail tetap dalam garis agar tren dan perbandingan sama-sama jelas. Arahkan kursor atau ketuk batang/titik untuk melihat asal data, cara hitung, dan nilai poin/angka.", "Derived metrics are presented per domain: combined snapshots in bars, then details in lines so trends and comparisons stay clear. Hover over or tap each bar/point to see the data source, calculation, and point/value.")</p>
+                    <h2 class="headline text-xl">@Context.T("players.details.derived_title")</h2>
+                    <p class="subhead text-sm">@Context.T("players.details.derived_subtitle")</p>
                 </div>
             </div>
 
@@ -1426,12 +1411,12 @@
                     <article class="metric-domain-card metric-domain-card-flat">
                         <div class="metric-domain-heading">
                             <h3>@domain.Title</h3>
-                            <span class="metric-domain-count">@domain.Charts.Count @L("diagram", "charts")</span>
+                            <span class="metric-domain-count">@domain.Charts.Count @Context.T("players.details.chart_count_suffix")</span>
                         </div>
                         <p class="metric-domain-intro">@domain.Description</p>
                         @if (domain.Charts.Count == 0)
                         {
-                            <p class="metric-domain-empty">@L("Belum ada titik numerik untuk divisualkan pada domain ini.", "No numeric points are currently available for this domain.")</p>
+                            <p class="metric-domain-empty">@Context.T("players.details.chart_domain_empty")</p>
                         }
                         else
                         {
@@ -1461,8 +1446,8 @@
                             {
                                 <div class="chart-scroll-region mt-4"
                                      role="region"
-                                     aria-label="@L("Rincian diagram dapat digeser secara horizontal", "Detailed charts can be scrolled horizontally")">
-                                    <p class="chart-scroll-hint">@L("Geser ke samping jika daftar diagram melebihi lebar panel.", "Scroll sideways if the chart list exceeds the panel width.")</p>
+                                     aria-label="@Context.T("players.details.chart_scroll_region")">
+                                    <p class="chart-scroll-hint">@Context.T("players.details.chart_scroll_hint")</p>
                                     <div class="chart-grid chart-grid-scroll mt-2">
                                         @foreach (var chart in detailCharts)
                                         {
@@ -1522,18 +1507,19 @@
             const colorForSeries = (index) => seriesPalette[index % seriesPalette.length];
             const colorForVariable = (index) => variablePalette[index % variablePalette.length];
             const tooltipText = {
-                metric: @Html.Raw(JsonSerializer.Serialize(L("Variabel", "Metric"))),
-                series: @Html.Raw(JsonSerializer.Serialize(L("Seri", "Series"))),
-                points: @Html.Raw(JsonSerializer.Serialize(L("Poin/Nilai", "Points/Value"))),
-                formula: @Html.Raw(JsonSerializer.Serialize(L("Asal Data & Cara Hitung", "Data Source & Calculation"))),
-                defaultFormula: @Html.Raw(JsonSerializer.Serialize(L("Asal data: agregasi event sesi tervalidasi. Cara hitung: nilai mengikuti formula pada ruleset aktif.", "Source: validated session-event aggregation. Calculation: value follows formulas in the active ruleset."))),
-                selectedDetail: @Html.Raw(JsonSerializer.Serialize(L("Detail data terpilih", "Selected data details"))),
-                tapHint: @Html.Raw(JsonSerializer.Serialize(L("Ketuk batang atau titik pada diagram untuk melihat detail variabel, asal data, dan cara hitung.", "Tap bars or points in the chart to view metric details, data source, and calculation.")))
+                metric: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.metric"))),
+                series: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.series"))),
+                points: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.points_value"))),
+                formula: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.source_calc_label"))),
+                defaultFormula: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.source_calc_default"))),
+                selectedDetail: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.selected_detail"))),
+                tapHint: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.tap_hint"))),
+                itemPrefix: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.item")))
             };
             const chartStatusText = {
-                noSeries: @Html.Raw(JsonSerializer.Serialize(L("Belum ada rangkaian metrik untuk ditampilkan.", "No serial metrics are available to display."))),
-                noPoints: @Html.Raw(JsonSerializer.Serialize(L("Belum ada titik numerik untuk ditampilkan.", "No numeric points are available to display."))),
-                invalidPayload: @Html.Raw(JsonSerializer.Serialize(L("Payload diagram tidak valid.", "Chart payload is invalid.")))
+                noSeries: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.no_series"))),
+                noPoints: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.no_points"))),
+                invalidPayload: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.invalid_payload")))
             };
             const formatMetricValue = (value) => {
                 if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -1692,7 +1678,7 @@
                     return text;
                 }
 
-                return `Item ${index + 1}`;
+                return `${tooltipText.itemPrefix} ${index + 1}`;
             };
 
             const makeUniqueLabels = (labels) => {
@@ -2065,7 +2051,7 @@
                             const variableLabel =
                                 labels[index] ||
                                 metricKeys[index] ||
-                                `Item ${index + 1}`;
+                                `${tooltipText.itemPrefix} ${index + 1}`;
                             const tooltipLines = [
                                 `${tooltipText.metric}: ${variableLabel}`,
                                 ...(series.length > 1 ? [`${tooltipText.series}: ${item.name}`] : []),
@@ -2133,7 +2119,7 @@
                             const pointLabel =
                                 labels[index] ||
                                 metricKeys[index] ||
-                                `Item ${index + 1}`;
+                                `${tooltipText.itemPrefix} ${index + 1}`;
                             const metricLabel = series.length > 1
                                 ? `${item.name} - ${pointLabel}`
                                 : pointLabel;

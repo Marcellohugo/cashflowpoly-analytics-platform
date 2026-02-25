@@ -14,7 +14,7 @@
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
     var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
     var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
-    var languageCode = isEnglish ? "EN" : "ID";
+    var languageCode = isEnglish ? Context.T("lang.code.en") : Context.T("lang.code.id");
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
     var isAuthPage = string.Equals(currentController, "Auth", StringComparison.OrdinalIgnoreCase);
