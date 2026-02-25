@@ -77,6 +77,8 @@ public sealed class PlayersController : Controller
         }
 
         var tx = await txResponse.Content.ReadFromJsonAsync<TransactionHistoryResponseDto>(cancellationToken: ct);
+        var transactions = tx?.Items ?? new List<TransactionHistoryItemDto>();
+        var cashflowJourney = BuildCashflowJourneyStats(transactions);
         string? gameplayError = null;
         GameplayMetricsResponseDto? gameplay = null;
         var gameplayResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay", ct);
@@ -104,7 +106,8 @@ public sealed class PlayersController : Controller
             PlayerId = playerId,
             PlayerDisplayName = playerDisplayName,
             Summary = summary,
-            Transactions = tx?.Items ?? new List<TransactionHistoryItemDto>(),
+            Transactions = transactions,
+            CashflowJourney = cashflowJourney,
             GameplayRaw = gameplay?.Raw,
             GameplayDerived = gameplay?.Derived,
             GameplayComputedAt = gameplay?.ComputedAt,
@@ -125,6 +128,69 @@ public sealed class PlayersController : Controller
 
         var players = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
         return players?.Items.FirstOrDefault(item => item.PlayerId == playerId)?.DisplayName;
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi BuildCashflowJourneyStats sebagai bagian dari alur file ini.
+    /// </summary>
+    private static PlayerCashflowJourneyStatsViewModel BuildCashflowJourneyStats(List<TransactionHistoryItemDto> transactions)
+    {
+        if (transactions.Count == 0)
+        {
+            return new PlayerCashflowJourneyStatsViewModel();
+        }
+
+        var orderedTransactions = transactions
+            .OrderBy(item => item.Timestamp)
+            .ToList();
+
+        var labels = new List<string>(orderedTransactions.Count);
+        var runningNetSeries = new List<double>(orderedTransactions.Count);
+
+        var totalCashIn = 0d;
+        var totalCashOut = 0d;
+        var cashInCount = 0;
+        var cashOutCount = 0;
+        var runningNet = 0d;
+        var peakRunningNet = double.MinValue;
+        var lowestRunningNet = double.MaxValue;
+
+        foreach (var item in orderedTransactions)
+        {
+            if (string.Equals(item.Direction, "IN", StringComparison.OrdinalIgnoreCase))
+            {
+                totalCashIn += item.Amount;
+                cashInCount += 1;
+                runningNet += item.Amount;
+            }
+            else if (string.Equals(item.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                totalCashOut += item.Amount;
+                cashOutCount += 1;
+                runningNet -= item.Amount;
+            }
+
+            labels.Add(item.Timestamp.ToString("dd/MM HH:mm"));
+            runningNetSeries.Add(runningNet);
+            peakRunningNet = Math.Max(peakRunningNet, runningNet);
+            lowestRunningNet = Math.Min(lowestRunningNet, runningNet);
+        }
+
+        return new PlayerCashflowJourneyStatsViewModel
+        {
+            TransactionCount = orderedTransactions.Count,
+            CashInCount = cashInCount,
+            CashOutCount = cashOutCount,
+            TotalCashIn = totalCashIn,
+            TotalCashOut = totalCashOut,
+            NetCashflow = totalCashIn - totalCashOut,
+            PeakRunningNet = peakRunningNet == double.MinValue ? 0 : peakRunningNet,
+            LowestRunningNet = lowestRunningNet == double.MaxValue ? 0 : lowestRunningNet,
+            FirstTransactionAt = orderedTransactions.First().Timestamp,
+            LastTransactionAt = orderedTransactions.Last().Timestamp,
+            TimelineLabels = labels,
+            RunningNetSeries = runningNetSeries
+        };
     }
 }
 
