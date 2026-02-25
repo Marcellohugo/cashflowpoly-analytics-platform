@@ -43,3 +43,9 @@ Accept: application/json
 Authorization: Bearer {{login.response.body.$.access_token}}
 
 ###
+
+GET {{api_host}}/api/v1/game-components?mode=PEMULA
+Accept: application/json
+Authorization: Bearer {{login.response.body.$.access_token}}
+
+###

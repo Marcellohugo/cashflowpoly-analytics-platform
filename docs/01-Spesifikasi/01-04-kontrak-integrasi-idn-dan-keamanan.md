@@ -73,6 +73,7 @@ Response login minimal:
 | `POST /api/v1/sessions/{sessionId}/players` | Ya | Tidak |
 | `GET /api/v1/sessions` | Ya | Ya |
 | `GET /api/v1/analytics/...` | Ya | Ya |
+| `GET /api/v1/game-components` | Ya | Ya |
 | `POST /api/v1/events` | Ya | Ya |
 | `POST /api/v1/events/batch` | Ya | Ya |
 
