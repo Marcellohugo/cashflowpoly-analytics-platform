@@ -71,6 +71,7 @@ Catatan kontrak API:
 +- docker-compose.yml
 +- database/
 |  +- 00_create_schema.sql
+|  +- 01_seed_default_rulesets_components.sql
 +- docs/
 |  +- Img/
 |  +- 00-Panduan/
@@ -97,40 +98,49 @@ Catatan kontrak API:
 ```
 
 ## Menjalankan dengan Docker (Docker Compose)
-### 1) Jalankan semua layanan
-Jalankan perintah berikut dari root repositori:
-
+### PC Kamu (Development)
+1. Pastikan konteks Docker lokal:
 ```bash
-docker compose up -d --build
+docker context use default
 ```
-
-Untuk mode development dengan auto-redeploy saat file berubah:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.watch.yml up -d --build
-docker compose -f docker-compose.yml -f docker-compose.watch.yml watch
-```
-
-Atau gunakan script:
-
+2. Siapkan env dev (sekali):
 ```powershell
-.\deploy.ps1 -Mode dev-watch
+Copy-Item .env.example .env.dev
+```
+3. Jalankan dev watch:
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
+```
+4. Ngoding seperti biasa, auto-reload jalan.
+5. Kalau sudah oke: commit lalu push ke branch `dev`.
+6. Saat mau rilis: merge/push ke branch `prod`.
+7. Selesai kerja, stop dev:
+```bash
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
 
-Sebelum menjalankan compose, pastikan `.env` sudah berisi `JWT_SIGNING_KEY`.
-
-Catatan auto-redeploy production:
-- `docker-compose.prod.yml` menjalankan `watchtower` untuk auto-update container `api` dan `ui`.
-- Set `IMAGE_TAG=prod-latest` di `.env` production agar server production tidak menarik image dari branch `dev`.
-- Saat Docker daemon/desktop aktif kembali, `watchtower` otomatis jalan dan mengecek image terbaru sesuai interval `WATCHTOWER_POLL_INTERVAL` (default `30` detik).
-- Jika ingin mematikan auto-redeploy, hentikan service `cashflowpoly-watchtower` atau hapus service `watchtower` dari compose production.
-
-Akses (sesuai `.env`):
+Akses (sesuai env dev):
 - API + Swagger: `http://localhost:5041/swagger`
 - UI MVC: `http://localhost:5203`
 
+### PC Server (Production)
+1. Install Docker, Docker Compose, Git.
+2. Clone repo branch `prod`.
+3. Siapkan env prod (isi secret benar): `.env.prod`.
+4. Deploy awal:
+```bash
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
+```
+5. Verifikasi:
+```bash
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+curl http://localhost/health/ready
+docker logs cashflowpoly-tunnel --tail 20
+```
+
 Catatan keamanan lokal:
-- Set `JWT_SIGNING_KEY` di `.env` (minimal 32 karakter).
+- Set `JWT_SIGNING_KEY` di `.env.dev` (dev) dan `.env.prod` (production), minimal 32 karakter.
 - Untuk rotasi key JWT, bisa pakai:
   - `JWT_SIGNING_KEYS_JSON` (array JSON key + `kid` + window aktivasi), atau
   - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
@@ -149,21 +159,29 @@ Gunakan konfigurasi berikut:
 - User: `cashflowpoly`
 - Password: `cashflowpoly`
 
-DBeaver menampilkan tabel pada schema `public` setelah PostgreSQL menjalankan `database/00_create_schema.sql` saat volume database masih kosong.
+DBeaver menampilkan tabel pada schema `public` setelah PostgreSQL menjalankan skrip pada folder `database/` saat volume database masih kosong (`00_create_schema.sql` lalu `01_seed_default_rulesets_components.sql`).
 
 ### 3) Hentikan layanan
+Untuk development:
 ```bash
-docker compose down
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
 
-Jika perlu menghapus data database:
+Untuk production:
 ```bash
-docker compose down -v
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down
+```
+
+Jika perlu menghapus data database/volume:
+```bash
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down -v
 ```
 
 ## Menjalankan lokal tanpa Docker
 ### 1) Siapkan PostgreSQL
-Buat database dan user, lalu jalankan skrip DDL dari `database/00_create_schema.sql`.
+Buat database dan user, lalu jalankan:
+1. `database/00_create_schema.sql`
+2. `database/01_seed_default_rulesets_components.sql` (seed ruleset default + katalog komponen mode pemula/mahir)
 
 ### 2) Atur konfigurasi API dan UI
 API memakai koneksi database dari `ConnectionStrings:Default`.
@@ -188,13 +206,14 @@ dotnet run --project src/Cashflowpoly.Ui
 
 ## Endpoint tambahan
 Endpoint tambahan yang tersedia:
-- `POST /api/v1/rulesets/{rulesetId}/archive` arsip ruleset
 - `DELETE /api/v1/rulesets/{rulesetId}` hapus ruleset (jika belum dipakai sesi)
 - `GET /api/v1/sessions` daftar sesi
 - `POST /api/v1/players` buat pemain
 - `GET /api/v1/players` daftar pemain
 - `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
 - `GET /api/v1/rulesets/{rulesetId}` detail ruleset + versi
+- `GET /api/v1/rulesets/components/defaults` daftar ruleset default komponen (mode pemula + mahir)
+- `GET /api/v1/rulesets/{rulesetId}/components` detail komponen ruleset dari `component_catalog` (opsional `?version=`).
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
 - `GET /api/v1/observability/metrics` ringkasan metrik operasional endpoint (request count, error rate, latency)
 - `GET /api/v1/security/audit-logs` ringkasan audit log keamanan

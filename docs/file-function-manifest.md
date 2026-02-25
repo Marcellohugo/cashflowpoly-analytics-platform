@@ -11,8 +11,6 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | Cashflowpoly.sln | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.sln. | File solusi dikelola tooling. |
 | cloudflared/config.yml | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file config.yml. | - |
 | database/00_create_schema.sql | Database | inline | Menyediakan implementasi atau konfigurasi aktif pada file 00_create_schema.sql. | - |
-| deploy.ps1 | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file deploy.ps1. | - |
-| deploy.sh | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file deploy.sh. | - |
 | docker-compose.prod.yml | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file docker-compose.prod.yml. | - |
 | docker-compose.yml | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file docker-compose.yml. | - |
 | docs/00-Panduan/00-01-panduan-setup-lingkungan.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-01-panduan-setup-lingkungan.md. | Dokumen tidak diubah inline sesuai kebijakan. |

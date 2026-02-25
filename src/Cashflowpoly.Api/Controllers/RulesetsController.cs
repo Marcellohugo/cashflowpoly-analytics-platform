@@ -191,6 +191,82 @@ public sealed class RulesetsController : ControllerBase
         return Ok(new RulesetListResponse(items));
     }
 
+    [HttpGet("components/defaults")]
+    [HttpGet("/api/v1/game-components")]
+    [ProducesResponseType(typeof(DefaultRulesetComponentsResponse), StatusCodes.Status200OK)]
+    /// <summary>
+    /// Menjalankan fungsi ListDefaultRulesetComponents sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<IActionResult> ListDefaultRulesetComponents([FromQuery] string? mode, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out _))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        if (!isInstructor && !isPlayer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
+        string? modeFilter = null;
+        if (!string.IsNullOrWhiteSpace(mode))
+        {
+            modeFilter = mode.Trim().ToUpperInvariant();
+            if (!string.Equals(modeFilter, "PEMULA", StringComparison.Ordinal) &&
+                !string.Equals(modeFilter, "MAHIR", StringComparison.Ordinal))
+            {
+                return BadRequest(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "VALIDATION_ERROR",
+                    "Query mode tidak valid",
+                    new ErrorDetail("mode", "INVALID_VALUE")));
+            }
+        }
+
+        var defaults = await _rulesets.ListDefaultRulesetComponentsAsync(ct);
+        var items = new List<DefaultRulesetComponentItem>(defaults.Count);
+
+        foreach (var row in defaults)
+        {
+            using var doc = JsonDocument.Parse(row.ConfigJson);
+            var root = doc.RootElement;
+
+            string? itemMode = null;
+            if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
+            {
+                itemMode = modeProp.GetString();
+            }
+
+            if (!string.IsNullOrWhiteSpace(modeFilter) &&
+                !string.Equals(itemMode, modeFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            JsonElement? componentCatalog = null;
+            if (root.TryGetProperty("component_catalog", out var componentCatalogProp))
+            {
+                componentCatalog = componentCatalogProp.Clone();
+            }
+
+            items.Add(new DefaultRulesetComponentItem(
+                row.RulesetId,
+                row.Name,
+                row.Description,
+                row.RulesetVersionId,
+                row.Version,
+                itemMode,
+                componentCatalog));
+        }
+
+        return Ok(new DefaultRulesetComponentsResponse(items));
+    }
+
     [HttpGet("{rulesetId:guid}")]
     [ProducesResponseType(typeof(RulesetDetailResponse), StatusCodes.Status200OK)]
     /// <summary>
@@ -250,34 +326,97 @@ public sealed class RulesetsController : ControllerBase
             ruleset.RulesetId,
             ruleset.Name,
             ruleset.Description,
-            ruleset.IsArchived,
             versionItems,
             configJson);
 
         return Ok(response);
     }
 
+    [HttpGet("{rulesetId:guid}/components")]
+    [ProducesResponseType(typeof(RulesetComponentsResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Mengarsipkan ruleset (soft archive).
+    /// Menjalankan fungsi GetRulesetComponents sebagai bagian dari alur file ini.
     /// </summary>
-    [HttpPost("{rulesetId:guid}/archive")]
-    [Authorize(Roles = "INSTRUCTOR")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ArchiveRuleset(Guid rulesetId, CancellationToken ct)
+    public async Task<IActionResult> GetRulesetComponents(Guid rulesetId, [FromQuery] int? version, CancellationToken ct)
     {
-        if (!TryGetCurrentUserId(out var instructorUserId))
+        if (!TryGetCurrentUserId(out var userId))
         {
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
+        if (version.HasValue && version.Value < 1)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Query version tidak valid",
+                new ErrorDetail("version", "OUT_OF_RANGE")));
+        }
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        RulesetDb? ruleset;
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, userId, ct);
+        }
+        else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
+            if (!linkedPlayerId.HasValue)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
+            }
+
+            ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
+        }
+        else
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        await _rulesets.SetArchiveAsync(rulesetId, true, ct);
-        return Ok();
+        RulesetVersionDb? selectedVersion;
+        if (version.HasValue)
+        {
+            selectedVersion = await _rulesets.GetRulesetVersionAsync(rulesetId, version.Value, ct);
+        }
+        else
+        {
+            selectedVersion = await _rulesets.GetLatestActiveVersionAsync(rulesetId, ct)
+                ?? await _rulesets.GetLatestVersionAsync(rulesetId, ct);
+        }
+
+        if (selectedVersion is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        using var doc = JsonDocument.Parse(selectedVersion.ConfigJson);
+        var root = doc.RootElement;
+        string? mode = null;
+        if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
+        {
+            mode = modeProp.GetString();
+        }
+
+        JsonElement? componentCatalog = null;
+        if (root.TryGetProperty("component_catalog", out var componentsProp))
+        {
+            componentCatalog = componentsProp.Clone();
+        }
+
+        return Ok(new RulesetComponentsResponse(
+            rulesetId,
+            selectedVersion.RulesetVersionId,
+            selectedVersion.Version,
+            mode,
+            componentCatalog));
     }
 
     /// <summary>

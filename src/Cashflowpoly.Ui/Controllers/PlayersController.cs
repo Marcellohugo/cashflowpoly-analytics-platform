@@ -1,5 +1,6 @@
 // Fungsi file: Mengelola alur halaman UI untuk domain PlayersController termasuk komunikasi ke API backend.
 using System.Net.Http.Json;
+using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -77,6 +78,7 @@ public sealed class PlayersController : Controller
         }
 
         var tx = await txResponse.Content.ReadFromJsonAsync<TransactionHistoryResponseDto>(cancellationToken: ct);
+        var transactions = tx?.Items ?? new List<TransactionHistoryItemDto>();
         string? gameplayError = null;
         GameplayMetricsResponseDto? gameplay = null;
         var gameplayResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay", ct);
@@ -98,13 +100,20 @@ public sealed class PlayersController : Controller
                 .Replace("{status}", ((int)gameplayResponse.StatusCode).ToString());
         }
 
+        var fallbackStartingCash = InferDefaultStartingCash(analytics?.RulesetName);
+        var startingCash = TryReadStartingCashFromGameplayRaw(gameplay?.Raw, out var parsedStartingCash)
+            ? parsedStartingCash
+            : fallbackStartingCash;
+        var cashflowJourney = BuildCashflowJourneyStats(transactions, startingCash);
+
         return View(new PlayerDetailViewModel
         {
             SessionId = sessionId,
             PlayerId = playerId,
             PlayerDisplayName = playerDisplayName,
             Summary = summary,
-            Transactions = tx?.Items ?? new List<TransactionHistoryItemDto>(),
+            Transactions = transactions,
+            CashflowJourney = cashflowJourney,
             GameplayRaw = gameplay?.Raw,
             GameplayDerived = gameplay?.Derived,
             GameplayComputedAt = gameplay?.ComputedAt,
@@ -125,6 +134,121 @@ public sealed class PlayersController : Controller
 
         var players = await response.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
         return players?.Items.FirstOrDefault(item => item.PlayerId == playerId)?.DisplayName;
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi BuildCashflowJourneyStats sebagai bagian dari alur file ini.
+    /// </summary>
+    private static PlayerCashflowJourneyStatsViewModel BuildCashflowJourneyStats(List<TransactionHistoryItemDto> transactions, double startingCash)
+    {
+        var orderedTransactions = transactions
+            .OrderBy(item => item.Timestamp)
+            .ToList();
+
+        var labels = new List<string>(orderedTransactions.Count + 1) { "START" };
+        var runningBalanceSeries = new List<double>(orderedTransactions.Count + 1) { startingCash };
+        var transactionDetails = new List<string>(orderedTransactions.Count + 1) { $"START - OPENING CASH ({startingCash:N0})" };
+
+        var totalCashIn = 0d;
+        var totalCashOut = 0d;
+        var cashInCount = 0;
+        var cashOutCount = 0;
+        var runningBalance = startingCash;
+        var peakRunningBalance = startingCash;
+        var lowestRunningBalance = startingCash;
+
+        foreach (var item in orderedTransactions)
+        {
+            var direction = item.Direction?.Trim().ToUpperInvariant() ?? string.Empty;
+            var category = string.IsNullOrWhiteSpace(item.Category) ? "TRANSACTION" : item.Category.Trim();
+
+            if (string.Equals(item.Direction, "IN", StringComparison.OrdinalIgnoreCase))
+            {
+                totalCashIn += item.Amount;
+                cashInCount += 1;
+                runningBalance += item.Amount;
+            }
+            else if (string.Equals(item.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            {
+                totalCashOut += item.Amount;
+                cashOutCount += 1;
+                runningBalance -= item.Amount;
+            }
+
+            labels.Add(item.Timestamp.ToString("dd/MM HH:mm"));
+            runningBalanceSeries.Add(runningBalance);
+            peakRunningBalance = Math.Max(peakRunningBalance, runningBalance);
+            lowestRunningBalance = Math.Min(lowestRunningBalance, runningBalance);
+            transactionDetails.Add($"{direction} - {category} ({item.Amount:N0})");
+        }
+
+        return new PlayerCashflowJourneyStatsViewModel
+        {
+            StartingCash = startingCash,
+            EndingCash = runningBalance,
+            TransactionCount = orderedTransactions.Count,
+            CashInCount = cashInCount,
+            CashOutCount = cashOutCount,
+            TotalCashIn = totalCashIn,
+            TotalCashOut = totalCashOut,
+            NetCashflow = totalCashIn - totalCashOut,
+            PeakRunningNet = peakRunningBalance,
+            LowestRunningNet = lowestRunningBalance,
+            FirstTransactionAt = orderedTransactions.Count > 0 ? orderedTransactions.First().Timestamp : null,
+            LastTransactionAt = orderedTransactions.Count > 0 ? orderedTransactions.Last().Timestamp : null,
+            TimelineLabels = labels,
+            RunningNetSeries = runningBalanceSeries,
+            TransactionDetails = transactionDetails
+        };
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi TryReadStartingCashFromGameplayRaw sebagai bagian dari alur file ini.
+    /// </summary>
+    private static bool TryReadStartingCashFromGameplayRaw(JsonElement? raw, out double startingCash)
+    {
+        startingCash = 0;
+        if (!raw.HasValue || raw.Value.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        if (!raw.Value.TryGetProperty("coins", out var coins) || coins.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        if (!coins.TryGetProperty("starting_coins", out var startingProp))
+        {
+            return false;
+        }
+
+        return startingProp.ValueKind switch
+        {
+            JsonValueKind.Number => startingProp.TryGetDouble(out startingCash),
+            JsonValueKind.String => double.TryParse(startingProp.GetString(), out startingCash),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi InferDefaultStartingCash sebagai bagian dari alur file ini.
+    /// </summary>
+    private static double InferDefaultStartingCash(string? rulesetName)
+    {
+        if (string.IsNullOrWhiteSpace(rulesetName))
+        {
+            return 20d;
+        }
+
+        var normalized = rulesetName.Trim().ToLowerInvariant();
+        if (normalized.Contains("mahir", StringComparison.Ordinal) ||
+            normalized.Contains("advanced", StringComparison.Ordinal))
+        {
+            return 10d;
+        }
+
+        return 20d;
     }
 }
 

@@ -161,7 +161,9 @@ Sistem tidak memakai EF Core. Skema dibuat dengan skrip SQL yang disediakan.
 ### 8.2 Jalankan skrip skema
 1. Buka file `database/00_create_schema.sql`.
 2. Jalankan seluruh script di DBeaver pada database `cashflowpoly`.
-3. Pastikan tabel dan indeks terbentuk tanpa error.
+3. Buka file `database/01_seed_default_rulesets_components.sql`.
+4. Jalankan script seed untuk mengisi ruleset default mode pemula dan mode mahir beserta katalog komponennya.
+5. Pastikan tabel, indeks, dan data seed terbentuk tanpa error.
 
 Catatan:
 - Jika extension `pgcrypto` belum aktif, jalankan perintah pada bagian 4.2 sebelum menjalankan script.
@@ -195,10 +197,11 @@ npm run tailwind:watch
 Setup selesai jika:
 1. `dotnet --list-sdks` menampilkan .NET 10.x,
 2. skrip `database/00_create_schema.sql` berhasil dan tabel terbentuk,
-3. connection string PostgreSQL sudah benar di `Cashflowpoly.Api/appsettings.Development.json`,
-4. `ApiBaseUrl` sudah sesuai di `Cashflowpoly.Ui/appsettings.Development.json`,
-5. dependensi Tailwind sudah terpasang (npm install) dan build CSS berhasil.
-6. jika memakai secret manager, path secret file JWT dapat diakses container/proses API.
+3. skrip `database/01_seed_default_rulesets_components.sql` berhasil dan data ruleset default terisi,
+4. connection string PostgreSQL sudah benar di `Cashflowpoly.Api/appsettings.Development.json`,
+5. `ApiBaseUrl` sudah sesuai di `Cashflowpoly.Ui/appsettings.Development.json`,
+6. dependensi Tailwind sudah terpasang (npm install) dan build CSS berhasil.
+7. jika memakai secret manager, path secret file JWT dapat diakses container/proses API.
 
 Untuk menjalankan sistem, lanjutkan ke: `docs/00-Panduan/00-03-panduan-menjalankan-sistem.md`.
 

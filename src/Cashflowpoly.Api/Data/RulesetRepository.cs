@@ -28,7 +28,7 @@ public sealed class RulesetRepository
     public async Task<RulesetDb?> GetRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_id, name, description, instructor_user_id, is_archived, created_at, created_by
+            select ruleset_id, name, description, instructor_user_id, created_at, created_by
             from rulesets
             where ruleset_id = @rulesetId
             """;
@@ -43,7 +43,7 @@ public sealed class RulesetRepository
     public async Task<RulesetDb?> GetRulesetForInstructorAsync(Guid rulesetId, Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_id, name, description, instructor_user_id, is_archived, created_at, created_by
+            select ruleset_id, name, description, instructor_user_id, created_at, created_by
             from rulesets
             where ruleset_id = @rulesetId
               and instructor_user_id = @instructorUserId
@@ -136,8 +136,8 @@ public sealed class RulesetRepository
         var configHash = ComputeHash(configJson);
 
         const string insertRuleset = """
-            insert into rulesets (ruleset_id, name, description, instructor_user_id, is_archived, created_at, created_by)
-            values (@rulesetId, @name, @description, @instructorUserId, false, @createdAt, @createdBy)
+            insert into rulesets (ruleset_id, name, description, instructor_user_id, created_at, created_by)
+            values (@rulesetId, @name, @description, @instructorUserId, @createdAt, @createdBy)
             """;
 
         const string insertVersion = """
@@ -329,12 +329,58 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
+    /// Menjalankan fungsi ListDefaultRulesetComponentsAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<List<DefaultRulesetComponentDb>> ListDefaultRulesetComponentsAsync(CancellationToken ct)
+    {
+        const string sql = """
+            with latest_versions as (
+                select
+                    rv.ruleset_id,
+                    rv.ruleset_version_id,
+                    rv.version,
+                    rv.config_json,
+                    row_number() over (
+                        partition by rv.ruleset_id
+                        order by
+                            case when rv.status = 'ACTIVE' then 0 else 1 end,
+                            rv.version desc
+                    ) as rn
+                from ruleset_versions rv
+            )
+            select
+                r.ruleset_id,
+                r.name,
+                r.description,
+                lv.ruleset_version_id,
+                lv.version,
+                lv.config_json::text as config_json
+            from rulesets r
+            join latest_versions lv on lv.ruleset_id = r.ruleset_id and lv.rn = 1
+            where r.created_by = 'system-seed-components-v1'
+              and lv.config_json ? 'component_catalog'
+            order by
+                case upper(coalesce(lv.config_json->>'mode', ''))
+                    when 'PEMULA' then 1
+                    when 'MAHIR' then 2
+                    else 3
+                end,
+                r.name asc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<DefaultRulesetComponentDb>(
+            new CommandDefinition(sql, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    /// <summary>
     /// Menjalankan fungsi GetRulesetForPlayerAsync sebagai bagian dari alur file ini.
     /// </summary>
     public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid playerId, CancellationToken ct)
     {
         const string sql = """
-            select r.ruleset_id, r.name, r.description, r.instructor_user_id, r.is_archived, r.created_at, r.created_by
+            select r.ruleset_id, r.name, r.description, r.instructor_user_id, r.created_at, r.created_by
             from rulesets r
             where r.ruleset_id = @rulesetId
               and exists (
@@ -367,21 +413,6 @@ public sealed class RulesetRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
         return items.ToList();
-    }
-
-    /// <summary>
-    /// Menjalankan fungsi SetArchiveAsync sebagai bagian dari alur file ini.
-    /// </summary>
-    public async Task SetArchiveAsync(Guid rulesetId, bool isArchived, CancellationToken ct)
-    {
-        const string sql = """
-            update rulesets
-            set is_archived = @isArchived
-            where ruleset_id = @rulesetId
-            """;
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(sql, new { rulesetId, isArchived }, cancellationToken: ct));
     }
 
     /// <summary>

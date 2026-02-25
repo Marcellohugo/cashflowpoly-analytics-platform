@@ -592,7 +592,7 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 1. Jalankan collection `postman/Cashflowpoly.postman_collection.json`.
 2. Verifikasi endpoint kritikal:
    - autentikasi (`login/register`),
-   - ruleset (create/update/activate/archive/delete),
+   - ruleset (create/update/activate/delete),
    - sesi (create/start/end/activate ruleset),
    - ingest event dan analytics.
 
