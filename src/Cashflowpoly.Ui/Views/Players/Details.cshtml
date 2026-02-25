@@ -2,6 +2,7 @@
 @using System.Globalization
 @using System.Text
 @using System.Text.Json
+@using System.Text.RegularExpressions
 @using Microsoft.AspNetCore.Http
 @using Cashflowpoly.Ui.Infrastructure
 @model Cashflowpoly.Ui.Models.PlayerDetailViewModel
@@ -288,6 +289,80 @@
         return string.Join(" - ", displayTokens);
     }
 
+    string HumanizeTransactionCategory(string category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            return L("Transaksi", "Transaction");
+        }
+
+        var normalized = category.Trim().ToUpperInvariant();
+        var mapped = normalized switch
+        {
+            "DONATION" => L("Donasi", "Donation"),
+            "GOLD_TRADE" => L("Transaksi Emas", "Gold Trade"),
+            "INGREDIENT" => L("Pembelian Bahan", "Ingredient Purchase"),
+            "ORDER" => L("Pesanan Makanan", "Meal Order"),
+            "FREELANCE" => L("Pekerjaan Freelance", "Freelance Work"),
+            "NEED_PRIMARY" => L("Kebutuhan Primer", "Primary Need"),
+            "NEED_SECONDARY" => L("Kebutuhan Sekunder", "Secondary Need"),
+            "NEED_TERTIARY" => L("Kebutuhan Tersier", "Tertiary Need"),
+            "SAVING_DEPOSIT" => L("Setoran Tabungan", "Saving Deposit"),
+            "SAVING_WITHDRAW" => L("Penarikan Tabungan", "Saving Withdrawal"),
+            "RISK_LIFE" => L("Dampak Risiko Kehidupan", "Life Risk Impact"),
+            "LOAN_TAKEN" => L("Pinjaman Diambil", "Loan Taken"),
+            "LOAN_REPAID" => L("Pelunasan Pinjaman", "Loan Repaid"),
+            "INSURANCE_PREMIUM" => L("Premi Asuransi", "Insurance Premium"),
+            "INSURANCE_CLAIM" => L("Klaim Asuransi", "Insurance Claim"),
+            "EMERGENCY_OPTION" => L("Pilihan Kondisi Darurat", "Emergency Option"),
+            _ => string.Empty
+        };
+
+        if (!string.IsNullOrWhiteSpace(mapped))
+        {
+            return mapped;
+        }
+
+        return HumanizeMetricKey(category.Trim().ToLowerInvariant());
+    }
+
+    string LocalizeTransactionDetail(string rawDetail)
+    {
+        if (string.IsNullOrWhiteSpace(rawDetail))
+        {
+            return L("Transaksi", "Transaction");
+        }
+
+        var text = rawDetail.Trim();
+        var match = Regex.Match(text, @"^(?<dir>[A-Za-z_]+)\s*-\s*(?<cat>.+?)(?:\s*\((?<amt>[^)]+)\))?$");
+        if (!match.Success)
+        {
+            return text;
+        }
+
+        var rawDirection = match.Groups["dir"].Value.Trim();
+        var rawCategory = match.Groups["cat"].Value.Trim();
+        var amountText = match.Groups["amt"].Success ? match.Groups["amt"].Value.Trim() : string.Empty;
+
+        if (rawDirection.Equals("START", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.IsNullOrWhiteSpace(amountText)
+                ? L("Kas Awal", "Opening Cash")
+                : L($"Kas Awal ({amountText})", $"Opening Cash ({amountText})");
+        }
+
+        var directionText = rawDirection.Equals("IN", StringComparison.OrdinalIgnoreCase)
+            ? L("Kas Masuk", "Cash In")
+            : rawDirection.Equals("OUT", StringComparison.OrdinalIgnoreCase)
+                ? L("Kas Keluar", "Cash Out")
+                : HumanizeMetricKey(rawDirection.ToLowerInvariant());
+        var categoryText = HumanizeTransactionCategory(rawCategory);
+
+        return string.IsNullOrWhiteSpace(amountText)
+            ? $"{directionText} - {categoryText}"
+            : $"{directionText} - {categoryText} ({amountText})";
+    }
+
     bool TryParseMetricNumber(string rawValue, out double numericValue)
     {
         if (string.IsNullOrWhiteSpace(rawValue))
@@ -345,16 +420,18 @@
         return !path.Contains('[');
     }
 
-    static string BuildMetricSourcePath(string? metricPath, bool isRawDomain)
+    string BuildMetricSourceLabel(string? metricPath, bool isRawDomain)
     {
-        var root = isRawDomain ? "gameplay.raw" : "gameplay.derived";
+        var root = isRawDomain
+            ? L("Variabel Permainan Fisik", "Physical Gameplay Variables")
+            : L("Metrik Turunan Analitika", "Derived Analytics Metrics");
         var normalized = (metricPath ?? string.Empty).Trim().Trim('.');
         if (string.IsNullOrWhiteSpace(normalized))
         {
             return root;
         }
 
-        return $"{root}.{normalized}";
+        return $"{root} -> {FormatMetricPathLabel(normalized)}";
     }
 
     (string Title, string Json)? BuildMergedRowChart(
@@ -365,7 +442,7 @@
         string BuildFormulaHint(string metricPath)
         {
             var key = (metricPath ?? string.Empty).ToLowerInvariant();
-            var sourcePath = BuildMetricSourcePath(metricPath, isRawDomain);
+            var sourcePath = BuildMetricSourceLabel(metricPath, isRawDomain);
 
             string WithSource(string idText, string enText)
             {
@@ -378,7 +455,7 @@
                 (key.Contains("coins_net_end_game") || key.Contains("coins_net_end")))
             {
                 return WithSource(
-                    "Koin Awal + Total Kas Masuk (IN) - Total Kas Keluar (OUT).",
+                    "Koin Awal + Total Kas Masuk - Total Kas Keluar.",
                     "Starting Coins + Total Cash In (IN) - Total Cash Out (OUT).");
             }
 
@@ -387,14 +464,14 @@
                 if (key.Contains("cash_in") || key.Contains("earned"))
                 {
                     return WithSource(
-                        "Menjumlahkan semua transaksi IN pemain pada domain ini.",
+                        "Menjumlahkan semua transaksi kas masuk pemain pada domain ini.",
                         "Sums all player IN transactions in this domain.");
                 }
 
                 if (key.Contains("cash_out") || key.Contains("spent"))
                 {
                     return WithSource(
-                        "Menjumlahkan semua transaksi OUT pemain pada domain ini.",
+                        "Menjumlahkan semua transaksi kas keluar pemain pada domain ini.",
                         "Sums all player OUT transactions in this domain.");
                 }
 
@@ -844,7 +921,7 @@
         var groupLabel = pathParts.Length > 0 ? HumanizeMetricKey(pathParts[0]) : L("Seri", "Series");
         var metricLabel = pathParts.Length > 1 ? HumanizeMetricKey(pathParts[^1]) : HumanizeMetricKey(path);
         var title = $"{groupLabel}: {metricLabel}";
-        var sourcePath = BuildMetricSourcePath(path, isRawDomain);
+        var sourcePath = BuildMetricSourceLabel(path, isRawDomain);
         var payload = new
         {
             labels,
@@ -1099,13 +1176,16 @@
 
     var cashflowJourney = Model.CashflowJourney;
     var hasCashflowJourney = cashflowJourney is not null && cashflowJourney.TransactionCount > 0;
+    var localizedTransactionDetails = hasCashflowJourney
+        ? cashflowJourney!.TransactionDetails.Select(LocalizeTransactionDetail).ToList()
+        : new List<string>();
     var cashflowJourneyChartPayload = hasCashflowJourney
         ? JsonSerializer.Serialize(new
         {
             chartType = "line",
             labels = cashflowJourney!.TimelineLabels,
             keys = new[] { "cashflow_running_net" },
-            formulas = cashflowJourney.TransactionDetails,
+            formulas = localizedTransactionDetails,
             detailLabel = L("Transaksi", "Transaction"),
             series = new[]
             {
@@ -1176,31 +1256,7 @@
         }
         else
         {
-            var cashDeltaFromStart = cashflowJourney!.EndingCash - cashflowJourney.StartingCash;
-            var balanceRange = cashflowJourney.PeakRunningNet - cashflowJourney.LowestRunningNet;
-            var averageNetPerTransaction = cashflowJourney.TransactionCount > 0
-                ? cashDeltaFromStart / cashflowJourney.TransactionCount
-                : 0d;
-
-            <div class="mt-4 flex flex-wrap items-center gap-2"
-                 data-cashflow-toggle
-                 role="group"
-                 aria-label="@L("Mode tampilan statistik alur keuangan", "Cashflow statistic display mode")">
-                <button type="button"
-                        class="btn-primary px-3 py-1 text-sm js-cashflow-mode-btn"
-                        data-mode="cumulative"
-                        aria-pressed="true">
-                    @L("Mode Akumulasi", "Cumulative Mode")
-                </button>
-                <button type="button"
-                        class="btn-ghost px-3 py-1 text-sm js-cashflow-mode-btn"
-                        data-mode="balance"
-                        aria-pressed="false">
-                    @L("Mode Saldo Saat Ini", "Current Balance Mode")
-                </button>
-            </div>
-
-            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4 js-cashflow-mode-panel" data-mode="cumulative">
+            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4">
                 <article class="stat-card">
                     <p class="text-sm font-medium text-slate-600">@L("Kas Awal Pemain", "Player Starting Cash")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
@@ -1235,49 +1291,9 @@
                 </article>
             </div>
 
-            <div class="mt-6 grid gap-4 md:grid-cols-3 xl:grid-cols-4 js-cashflow-mode-panel" data-mode="balance" hidden>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Kas Awal Pemain", "Player Starting Cash")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Kas Akhir Pemain", "Player Ending Cash")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Perubahan Kas dari Awal", "Cash Change from Start")</p>
-                    <p class="mt-2 text-2xl font-semibold @(cashDeltaFromStart >= 0 ? "text-emerald-700" : "text-rose-700")">@cashDeltaFromStart.ToString("N0", CultureInfo.CurrentCulture)</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Rata-rata Perubahan per Transaksi", "Average Change per Transaction")</p>
-                    <p class="mt-2 text-2xl font-semibold @(averageNetPerTransaction >= 0 ? "text-emerald-700" : "text-rose-700")">@averageNetPerTransaction.ToString("N2", CultureInfo.CurrentCulture)</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Total Transaksi", "Total Transactions")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.TransactionCount</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Puncak Saldo Berjalan", "Peak Running Balance")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.PeakRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Titik Terendah Saldo", "Lowest Balance Point")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
-                </article>
-                <article class="stat-card">
-                    <p class="text-sm font-medium text-slate-600">@L("Rentang Saldo (Puncak - Terendah)", "Balance Range (Peak - Lowest)")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@balanceRange.ToString("N0", CultureInfo.CurrentCulture)</p>
-                </article>
-            </div>
-
-            <div class="mt-3 alert alert-info text-sm js-cashflow-mode-panel" data-mode="cumulative">
+            <div class="mt-3 alert alert-info text-sm">
                 @L($"Cek cepat saldo: Kas Awal {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} + Total Kas Masuk {cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)} - Total Kas Keluar {cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)} = Kas Akhir {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)}.",
                     $"Quick balance check: Starting Cash {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} + Total Cash In {cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)} - Total Cash Out {cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)} = Ending Cash {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)}.")
-            </div>
-
-            <div class="mt-3 alert alert-info text-sm js-cashflow-mode-panel" data-mode="balance" hidden>
-                @L($"Pembacaan saldo saat ini: pemain memulai dengan {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} koin dan berakhir di {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)} koin (perubahan {cashDeltaFromStart.ToString("N0", CultureInfo.CurrentCulture)}).",
-                    $"Current-balance reading: the player started with {cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture)} coins and ended with {cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)} coins (change {cashDeltaFromStart.ToString("N0", CultureInfo.CurrentCulture)}).")
             </div>
 
             <div class="mt-4 metric-panel">
@@ -1291,11 +1307,11 @@
                         <span class="metric-value">@(cashflowJourney.LastTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@L("Jumlah Transaksi IN", "IN Transaction Count")</span>
+                        <span class="metric-key">@L("Jumlah Transaksi Masuk", "Incoming Transaction Count")</span>
                         <span class="metric-value">@cashflowJourney.CashInCount</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-key">@L("Jumlah Transaksi OUT", "OUT Transaction Count")</span>
+                        <span class="metric-key">@L("Jumlah Transaksi Keluar", "Outgoing Transaction Count")</span>
                         <span class="metric-value">@cashflowJourney.CashOutCount</span>
                     </div>
                 </div>
@@ -1472,50 +1488,6 @@
 
 @section Scripts {
     <script>
-        (() => {
-            const toggleRoot = document.querySelector("[data-cashflow-toggle]");
-            if (!toggleRoot) {
-                return;
-            }
-
-            const host = toggleRoot.closest("#cashflow-journey");
-            if (!host) {
-                return;
-            }
-
-            const buttons = Array.from(toggleRoot.querySelectorAll(".js-cashflow-mode-btn[data-mode]"));
-            const panels = Array.from(host.querySelectorAll(".js-cashflow-mode-panel[data-mode]"));
-            if (!buttons.length || !panels.length) {
-                return;
-            }
-
-            const setMode = (mode) => {
-                panels.forEach((panel) => {
-                    panel.hidden = panel.dataset.mode !== mode;
-                });
-
-                buttons.forEach((button) => {
-                    const isActive = button.dataset.mode === mode;
-                    button.setAttribute("aria-pressed", isActive ? "true" : "false");
-                    button.classList.toggle("btn-primary", isActive);
-                    button.classList.toggle("btn-ghost", !isActive);
-                });
-            };
-
-            buttons.forEach((button) => {
-                button.addEventListener("click", () => {
-                    const mode = button.dataset.mode;
-                    if (!mode) {
-                        return;
-                    }
-
-                    setMode(mode);
-                });
-            });
-
-            setMode("cumulative");
-        })();
-
         (() => {
             const chartNodes = Array.from(document.querySelectorAll(".js-metric-line-chart[data-chart]"));
             if (!chartNodes.length) {
