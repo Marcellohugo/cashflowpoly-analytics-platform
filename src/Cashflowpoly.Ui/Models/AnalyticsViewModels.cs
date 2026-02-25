@@ -69,8 +69,40 @@ public sealed class PlayerDetailViewModel
     public JsonElement? GameplayRaw { get; init; }
     public JsonElement? GameplayDerived { get; init; }
     public DateTimeOffset? GameplayComputedAt { get; init; }
+    public PlayerCashflowJourneyStatsViewModel? CashflowJourney { get; init; }
     public string? GameplayErrorMessage { get; init; }
     public string? ErrorMessage { get; init; }
+}
+
+/// <summary>
+/// Menyatakan peran utama tipe PlayerCashflowJourneyStatsViewModel pada modul ini.
+/// </summary>
+public sealed class PlayerCashflowJourneyStatsViewModel
+{
+    public double StartingCash { get; init; }
+    public double EndingCash { get; init; }
+    public int TransactionCount { get; init; }
+    public int CashInCount { get; init; }
+    public int CashOutCount { get; init; }
+    public double TotalCashIn { get; init; }
+    public double TotalCashOut { get; init; }
+    public double NetCashflow { get; init; }
+    public double PeakRunningNet { get; init; }
+    public double LowestRunningNet { get; init; }
+    public DateTimeOffset? FirstTransactionAt { get; init; }
+    public DateTimeOffset? LastTransactionAt { get; init; }
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
+    public List<string> TimelineLabels { get; init; } = new();
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
+    public List<double> RunningNetSeries { get; init; } = new();
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
+    public List<string> TransactionDetails { get; init; } = new();
 }
 
 /// <summary>

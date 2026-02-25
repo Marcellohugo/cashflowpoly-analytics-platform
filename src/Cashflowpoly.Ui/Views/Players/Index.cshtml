@@ -3,6 +3,18 @@
 
 @{
     ViewData["Title"] = Context.T("nav.players");
+
+    int ResolvePlayerAvatarIndex(int joinOrder)
+    {
+        if (joinOrder <= 0)
+        {
+            return 1;
+        }
+
+        return ((joinOrder - 1) % 4) + 1;
+    }
+
+    string ResolvePlayerAvatarPath(int joinOrder) => $"/images/players/{ResolvePlayerAvatarIndex(joinOrder)}.png";
 }
 
 <section class="section-shell w-full">
@@ -135,7 +147,12 @@
                                     <td class="px-4 py-3 text-right text-slate-700">@(donationRank > 0 ? donationRank : "-")</td>
                                     <td class="px-4 py-3 text-right text-slate-700">@(pensionRank > 0 ? pensionRank : "-")</td>
                                     <td class="px-4 py-3">
-                                        <span class="font-medium text-slate-900">@player.DisplayName</span>
+                                        <div class="flex items-center gap-3">
+                                            <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
+                                                 src="@ResolvePlayerAvatarPath(player.JoinOrder)"
+                                                 alt="@($"{Context.T("common.turn_order")} {(player.JoinOrder > 0 ? player.JoinOrder : 1)}")" />
+                                            <span class="font-medium text-slate-900">@player.DisplayName</span>
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
                                     <td class="px-4 py-3 text-right">@netCashflow</td>

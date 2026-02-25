@@ -52,9 +52,36 @@ public sealed record RulesetDetailResponseDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("description")] string? Description,
-    [property: JsonPropertyName("is_archived")] bool IsArchived,
     [property: JsonPropertyName("versions")] List<RulesetVersionItemDto> Versions,
     [property: JsonPropertyName("config_json")] JsonElement? ConfigJson);
+
+/// <summary>
+/// Menyatakan peran utama tipe RulesetComponentsResponseDto pada modul ini.
+/// </summary>
+public sealed record RulesetComponentsResponseDto(
+    [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
+    [property: JsonPropertyName("version")] int Version,
+    [property: JsonPropertyName("mode")] string? Mode,
+    [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
+
+/// <summary>
+/// Menyatakan peran utama tipe DefaultRulesetComponentItemDto pada modul ini.
+/// </summary>
+public sealed record DefaultRulesetComponentItemDto(
+    [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
+    [property: JsonPropertyName("version")] int Version,
+    [property: JsonPropertyName("mode")] string? Mode,
+    [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
+
+/// <summary>
+/// Menyatakan peran utama tipe DefaultRulesetComponentsResponseDto pada modul ini.
+/// </summary>
+public sealed record DefaultRulesetComponentsResponseDto(
+    [property: JsonPropertyName("items")] List<DefaultRulesetComponentItemDto> Items);
 
 /// <summary>
 /// Menyatakan peran utama tipe AnalyticsSessionSummaryDto pada modul ini.

@@ -117,17 +117,9 @@ Cloudflare Edge (SSL termination)
 Mode ini mengekspos port API dan UI langsung. Cocok untuk pengembangan lokal.
 
 ```powershell
-# Cara 1: Menggunakan script deploy
-.\deploy.ps1 -Mode dev
-
-# Cara 2: Manual
-docker compose up -d --build
-```
-
-Untuk auto-redeploy saat source berubah:
-
-```powershell
-.\deploy.ps1 -Mode dev-watch
+docker context use default
+Copy-Item .env.example .env.dev
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
 ```
 
 Akses:
@@ -142,12 +134,8 @@ Akses:
 Mode ini mengarahkan semua traffic melalui Nginx reverse proxy. Port API dan UI tidak terekspos langsung.
 
 ```powershell
-# Cara 1 (disarankan): menggunakan script deploy (pull image + recreate service)
-.\deploy.ps1 -Mode prod
-
-# Cara 2: Manual
-docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
 ```
 
 Akses:
@@ -179,7 +167,8 @@ Alur ini memastikan deployment bisa dipicu dari mana saja, tetapi tetap aman unt
 
 1. Jalankan deploy awal:
    ```powershell
-   .\deploy.ps1 -Mode prod
+   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
+   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
    ```
 2. Pastikan `IMAGE_TAG=prod-latest` pada `.env`.
 3. Service `watchtower` akan cek image baru sesuai `WATCHTOWER_POLL_INTERVAL` (default 30 detik).
@@ -188,7 +177,7 @@ Alur ini memastikan deployment bisa dipicu dari mana saja, tetapi tetap aman unt
 #### Batasan Auto-Deploy
 
 - Auto-update berlaku untuk update image container (`api` dan `ui`).
-- Perubahan file konfigurasi (contoh: `.env`, `docker-compose*.yml`, `nginx/default.conf`) tetap butuh deploy manual ulang (`.\deploy.ps1 -Mode prod`).
+- Perubahan file konfigurasi (contoh: `.env`, `docker-compose*.yml`, `nginx/default.conf`) tetap butuh deploy manual ulang (`docker compose ... up -d`).
 
 ---
 
@@ -297,19 +286,7 @@ Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun 
 
 ## 5. Manajemen Container
 
-### 5.1 Menggunakan Script Deploy (`deploy.ps1`)
-
-| Perintah | Fungsi |
-|---|---|
-| `.\deploy.ps1` | Deploy production (default) |
-| `.\deploy.ps1 -Mode dev` | Deploy development |
-| `.\deploy.ps1 -Mode dev-watch` | Deploy development + auto-redeploy |
-| `.\deploy.ps1 -Mode status` | Cek status container |
-| `.\deploy.ps1 -Mode logs` | Lihat log real-time |
-| `.\deploy.ps1 -Mode down` | Hentikan semua container |
-| `.\deploy.ps1 -Mode restart` | Restart semua container |
-
-### 5.2 Perintah Docker Compose Manual
+### 5.1 Perintah Docker Compose Manual
 
 ```powershell
 # Lihat status semua container
@@ -351,14 +328,15 @@ git checkout prod
 
 # 2. Salin file .env (JANGAN commit .env ke Git)
 # Copy manual dari mesin lama, atau buat ulang dari template:
-Copy-Item .env.example .env
-notepad .env    # Isi semua variabel
+Copy-Item .env.example .env.prod
+notepad .env.prod    # Isi semua variabel
 
 # 3. Deploy production (script akan pull image dan recreate service)
-.\deploy.ps1 -Mode prod
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
 
 # 4. Verifikasi
-docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
 ```
 
 ### 6.2 Catatan Penting Saat Pindah Mesin
@@ -539,8 +517,6 @@ Berikut daftar file yang berkaitan dengan deployment:
 | `.env` | Variabel environment (tidak di-commit ke Git) |
 | `.env.example` | Template variabel environment |
 | `nginx/default.conf` | Konfigurasi Nginx reverse proxy |
-| `deploy.ps1` | Script deploy untuk Windows (PowerShell) |
-| `deploy.sh` | Script deploy untuk Linux/macOS (Bash) |
 | `.github/workflows/ci.yml` | Pipeline CI build & test |
 | `.github/workflows/cd.yml` | Pipeline CD build & push image |
 | `src/Cashflowpoly.Api/Dockerfile` | Multi-stage Docker build untuk API |
@@ -555,16 +531,16 @@ Berikut daftar file yang berkaitan dengan deployment:
 
 ```powershell
 # ===== PERTAMA KALI =====
-# 1. Buat .env
-Copy-Item .env.example .env
-notepad .env          # Edit semua variabel
-# Pastikan IMAGE_TAG=prod-latest
+# 1. Buat .env.prod
+Copy-Item .env.example .env.prod
+notepad .env.prod     # Edit semua variabel secret + IMAGE_TAG=prod-latest
 
-# 2. Deploy production (script sudah pull/recreate)
-.\deploy.ps1 -Mode prod
+# 2. Deploy production
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
 
 # 3. Cek status
-docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
 
 # 4. Cek tunnel
 docker logs cashflowpoly-tunnel --tail 10
@@ -576,10 +552,11 @@ docker logs cashflowpoly-tunnel --tail 10
 # c) watchtower di server target auto-update container
 
 # Jika perlu paksa redeploy manual
-.\deploy.ps1 -Mode prod
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
 
 # Lihat log
-docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=50
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=50
 ```
 
 ---

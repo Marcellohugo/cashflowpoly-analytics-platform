@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Cashflowpoly.Api.Models;
 using Cashflowpoly.Api.Tests.Infrastructure;
 using Xunit;
@@ -52,6 +53,46 @@ public sealed class AuthRbacRulesetIntegrationTests
         var withoutToken = await _client.GetAsync("/api/v1/sessions");
         Assert.Equal(HttpStatusCode.Unauthorized, withoutToken.StatusCode);
 
+        var defaultComponentsByInstructor = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets/components/defaults",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, defaultComponentsByInstructor.StatusCode);
+
+        var defaultComponentsInstructorPayload =
+            await defaultComponentsByInstructor.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
+        Assert.NotNull(defaultComponentsInstructorPayload);
+        Assert.NotNull(defaultComponentsInstructorPayload.Items);
+
+        var defaultComponentsByPlayer = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets/components/defaults",
+            body: null,
+            playerLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, defaultComponentsByPlayer.StatusCode);
+
+        var gameComponentsPemula = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/game-components?mode=PEMULA",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, gameComponentsPemula.StatusCode);
+
+        var gameComponentsPemulaPayload =
+            await gameComponentsPemula.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
+        Assert.NotNull(gameComponentsPemulaPayload);
+        Assert.NotNull(gameComponentsPemulaPayload.Items);
+        Assert.All(gameComponentsPemulaPayload.Items, item =>
+            Assert.Equal("PEMULA", (item.Mode ?? string.Empty).ToUpperInvariant()));
+
+        var gameComponentsInvalidMode = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/game-components?mode=INVALID",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.BadRequest, gameComponentsInvalidMode.StatusCode);
+
         var createRulesetPayload = new
         {
             name = $"Ruleset IT {suffix}",
@@ -77,6 +118,21 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.NotNull(createdRuleset);
         Assert.NotEqual(Guid.Empty, createdRuleset.RulesetId);
         Assert.Equal(1, createdRuleset.Version);
+
+        var getComponentsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}/components",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, getComponentsResponse.StatusCode);
+
+        var components = await getComponentsResponse.Content.ReadFromJsonAsync<RulesetComponentsResponse>();
+        Assert.NotNull(components);
+        Assert.Equal(createdRuleset.RulesetId, components.RulesetId);
+        Assert.Equal(1, components.Version);
+        Assert.Equal("PEMULA", components.Mode);
+        Assert.True(components.ComponentCatalog.HasValue);
+        Assert.Equal(JsonValueKind.Object, components.ComponentCatalog!.Value.ValueKind);
 
         var updateRulesetPayload = new
         {
@@ -256,6 +312,11 @@ public sealed class AuthRbacRulesetIntegrationTests
                     new { rank = 2, points = 3 },
                     new { rank = 3, points = 1 }
                 }
+            },
+            component_catalog = new
+            {
+                mode = "PEMULA",
+                test_marker = "integration-test-catalog"
             }
         };
     }

@@ -10,7 +10,6 @@ public sealed class RulesetDb
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public Guid? InstructorUserId { get; set; }
-    public bool IsArchived { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
 }
@@ -28,6 +27,19 @@ public sealed class RulesetVersionDb
     public string ConfigHash { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
+}
+
+/// <summary>
+/// Menyatakan peran utama tipe DefaultRulesetComponentDb pada modul ini.
+/// </summary>
+public sealed class DefaultRulesetComponentDb
+{
+    public Guid RulesetId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public Guid RulesetVersionId { get; set; }
+    public int Version { get; set; }
+    public string ConfigJson { get; set; } = string.Empty;
 }
 
 /// <summary>

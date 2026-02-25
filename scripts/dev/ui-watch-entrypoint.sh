@@ -17,4 +17,4 @@ cleanup() {
 trap cleanup INT TERM EXIT
 
 cd /src
-dotnet watch --project src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj run --no-launch-profile
+dotnet watch --non-interactive --project src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj run --no-launch-profile

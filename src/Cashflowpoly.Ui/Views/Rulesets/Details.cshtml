@@ -66,6 +66,62 @@
             _ => fallback
         };
     }
+
+    private static string FormatJsonLeafValue(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.Null => "null",
+            _ => element.GetRawText()
+        };
+    }
+
+    private static List<(string Path, string Value)> FlattenJsonLeaves(JsonElement? root)
+    {
+        var rows = new List<(string Path, string Value)>();
+        if (!root.HasValue)
+        {
+            return rows;
+        }
+
+        static void Visit(JsonElement element, string path, List<(string Path, string Value)> output)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    foreach (var property in element.EnumerateObject())
+                    {
+                        var nextPath = string.IsNullOrWhiteSpace(path)
+                            ? property.Name
+                            : $"{path}.{property.Name}";
+                        Visit(property.Value, nextPath, output);
+                    }
+
+                    break;
+                case JsonValueKind.Array:
+                {
+                    var index = 0;
+                    foreach (var item in element.EnumerateArray())
+                    {
+                        Visit(item, $"{path}[{index}]", output);
+                        index++;
+                    }
+
+                    break;
+                }
+                default:
+                    output.Add((string.IsNullOrWhiteSpace(path) ? "value" : path, FormatJsonLeafValue(element)));
+                    break;
+            }
+        }
+
+        Visit(root.Value, string.Empty, rows);
+        return rows;
+    }
 }
 
 <section class="section-shell">
@@ -100,8 +156,8 @@
                 </div>
                 <div class="ruleset-hero-meta">
                     <span class="id-chip">@Model.Ruleset.RulesetId</span>
-                    <span class="status-pill @(Model.Ruleset.IsArchived ? "status-retired" : "status-active")">
-                        @(Model.Ruleset.IsArchived ? Context.T("rulesets.status.archived") : Context.T("rulesets.status.available"))
+                    <span class="status-pill status-active">
+                        @Context.T("rulesets.status.available")
                     </span>
                 </div>
             </div>
@@ -140,7 +196,7 @@
                 </article>
                 <article class="ruleset-overview-card">
                     <p class="ruleset-overview-label">@Context.T("rulesets.status_label")</p>
-                    <p class="ruleset-overview-value">@(Model.Ruleset.IsArchived ? Context.T("rulesets.status.archived") : Context.T("rulesets.status.available"))</p>
+                    <p class="ruleset-overview-value">@Context.T("rulesets.status.available")</p>
                 </article>
             </div>
 
@@ -206,6 +262,108 @@
             <div class="ruleset-stream-divider mt-5"></div>
 
             <div class="mt-5">
+                <p class="text-sm font-semibold text-slate-700">@Context.T("rulesets.components.title")</p>
+                <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.components.subtitle")</p>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ComponentsErrorMessage))
+                {
+                    <div class="mt-2 alert alert-error" aria-live="polite">
+                        @Model.ComponentsErrorMessage
+                    </div>
+                }
+
+                @{
+                    var componentCatalog = Model.Components?.ComponentCatalog;
+                    var hasComponentCatalog = componentCatalog.HasValue;
+                    var componentRows = FlattenJsonLeaves(componentCatalog);
+                    var localizedComponentRows = componentRows
+                        .Select(row =>
+                        {
+                            var normalizedValue = row.Value.Trim();
+                            var localizedValue = normalizedValue switch
+                            {
+                                var text when string.Equals(text, "true", StringComparison.OrdinalIgnoreCase) => Context.T("state.true"),
+                                var text when string.Equals(text, "false", StringComparison.OrdinalIgnoreCase) => Context.T("state.false"),
+                                var text when string.Equals(text, "null", StringComparison.OrdinalIgnoreCase) => Context.T("state.null"),
+                                _ => row.Value
+                            };
+
+                            return (row.Path, Value: localizedValue);
+                        })
+                        .ToList();
+                }
+
+                @if (Model.Components is not null)
+                {
+                    <div class="ruleset-overview-grid mt-3">
+                        <article class="ruleset-overview-card">
+                            <p class="ruleset-overview-label">@Context.T("common.mode")</p>
+                            <p class="ruleset-overview-value">@Context.TRulesetMode(Model.Components.Mode)</p>
+                        </article>
+                        <article class="ruleset-overview-card">
+                            <p class="ruleset-overview-label">@Context.T("common.version")</p>
+                            <p class="ruleset-overview-value">v@Model.Components.Version</p>
+                        </article>
+                        <article class="ruleset-overview-card">
+                            <p class="ruleset-overview-label">@Context.T("rulesets.components.ruleset_version_id")</p>
+                            <p class="ruleset-overview-value font-mono text-xs">@Model.Components.RulesetVersionId</p>
+                        </article>
+                        <article class="ruleset-overview-card">
+                            <p class="ruleset-overview-label">@Context.T("rulesets.components.item_count")</p>
+                            <p class="ruleset-overview-value">@localizedComponentRows.Count</p>
+                        </article>
+                    </div>
+                }
+
+                @if (!hasComponentCatalog)
+                {
+                    <div class="mt-3 alert alert-info">
+                        @Context.T("rulesets.components.unavailable")
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-3 table-wrap">
+                        <table class="w-full text-left text-sm mobile-card-table">
+                            <thead class="table-head">
+                                <tr>
+                                    <th class="px-4 py-3">@Context.T("common.path")</th>
+                                    <th class="px-4 py-3">@Context.T("common.value")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @if (localizedComponentRows.Count == 0)
+                            {
+                                <tr>
+                                    <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="2">
+                                        @Context.T("rulesets.components.empty")
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var row in localizedComponentRows)
+                                {
+                                    <tr class="border-t border-slate-200">
+                                        <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.path")">@row.Path</td>
+                                        <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.value")">@row.Value</td>
+                                    </tr>
+                                }
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <details class="mt-3 data-toggle">
+                        <summary>@Context.T("rulesets.components.raw_json")</summary>
+                        <pre class="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">@JsonSerializer.Serialize(componentCatalog!.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
+                    </details>
+                }
+            </div>
+
+            <div class="ruleset-stream-divider mt-5"></div>
+
+            <div class="mt-5">
                 <p class="text-sm font-semibold text-slate-700">@Context.T("rulesets.config_summary")</p>
                 @if (!hasConfig)
                 {
@@ -216,9 +374,7 @@
                 else
                 {
                     var modeRaw = AsText(GetPath(cfg, "mode"), "PEMULA");
-                    var modeLabel = string.Equals(modeRaw, "MAHIR", StringComparison.OrdinalIgnoreCase)
-                        ? Context.T("rulesets.form.mode_advanced")
-                        : Context.T("rulesets.form.mode_beginner");
+                    var modeLabel = Context.TRulesetMode(modeRaw);
                     var playerOrderingRaw = AsText(GetPath(cfg, "player_ordering"), "JOIN_ORDER");
                     var playerOrderingLabel = playerOrderingRaw.ToUpperInvariant() switch
                     {

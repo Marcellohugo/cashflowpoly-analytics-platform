@@ -68,12 +68,12 @@ Response login minimal:
 | `POST /api/v1/rulesets` | Ya | Tidak |
 | `PUT /api/v1/rulesets/{rulesetId}` | Ya | Tidak |
 | `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate` | Ya | Tidak |
-| `POST /api/v1/rulesets/{rulesetId}/archive` | Ya | Tidak |
 | `DELETE /api/v1/rulesets/{rulesetId}` | Ya | Tidak |
 | `POST /api/v1/players` | Ya | Tidak |
 | `POST /api/v1/sessions/{sessionId}/players` | Ya | Tidak |
 | `GET /api/v1/sessions` | Ya | Ya |
 | `GET /api/v1/analytics/...` | Ya | Ya |
+| `GET /api/v1/game-components` | Ya | Ya |
 | `POST /api/v1/events` | Ya | Ya |
 | `POST /api/v1/events/batch` | Ya | Ya |
 
@@ -150,7 +150,6 @@ Aturan tambahan untuk konteks integrasi IDN:
 2. Saat satu versi diaktifkan, versi `ACTIVE` lain pada ruleset yang sama otomatis menjadi `RETIRED`.
 3. Pembuatan sesi baru mengambil versi `ACTIVE` terbaru dari ruleset yang dipilih.
 4. Ruleset tidak boleh dihapus jika sudah muncul pada `session_ruleset_activations`.
-5. Ruleset yang sudah dipakai hanya boleh diarsipkan.
 
 ---
 

@@ -17,7 +17,7 @@ Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakse
 ## 2. Prasyarat
 Pastikan setup lingkungan sudah selesai:
 - .NET 10 SDK terpasang,
-- PostgreSQL siap dan skema `database/00_create_schema.sql` sudah dijalankan,
+- PostgreSQL siap dan skrip `database/00_create_schema.sql` serta `database/01_seed_default_rulesets_components.sql` sudah dijalankan,
 - connection string API dan `ApiBaseUrl` UI sudah benar,
 - `Jwt:SigningKey` sudah diisi (minimal 32 karakter, disarankan via variabel lingkungan).
 
@@ -164,12 +164,13 @@ docs/evidence/
 ## 10. Menjalankan dengan Docker Compose
 Jalankan dari root repository:
 ```bash
-docker compose up --build
+docker context use default
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
 ```
 
 Hentikan container:
 ```bash
-docker compose down
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
 
 

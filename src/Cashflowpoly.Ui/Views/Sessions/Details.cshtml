@@ -37,6 +37,18 @@
         return Context.T("common.player");
     }
 
+    int ResolvePlayerAvatarIndex(int turnOrder)
+    {
+        if (turnOrder <= 0)
+        {
+            return 1;
+        }
+
+        return ((turnOrder - 1) % 4) + 1;
+    }
+
+    string ResolvePlayerAvatarPath(int turnOrder) => $"/images/players/{ResolvePlayerAvatarIndex(turnOrder)}.png";
+
     string F(double value) => value.ToString("0.##");
 }
 
@@ -227,6 +239,10 @@
             .ThenBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
             .ThenBy(item => item.PlayerId)
             .ToList();
+        var orderedPlayers = Model.Analytics.ByPlayer
+            .OrderBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
+            .ThenBy(item => item.PlayerId)
+            .ToList();
         var playerRankLookup = rankedPlayers
             .Select((item, index) => new { item.PlayerId, Rank = index + 1 })
             .ToDictionary(item => item.PlayerId, item => item.Rank);
@@ -344,7 +360,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                @if (Model.Analytics.ByPlayer.Count == 0)
+                @if (orderedPlayers.Count == 0)
                 {
                     <tr>
                         <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="11">@Context.T("state.no_player_data")</td>
@@ -352,9 +368,10 @@
                 }
                 else
                 {
-                    for (var playerIndex = 0; playerIndex < Model.Analytics.ByPlayer.Count; playerIndex++)
+                    for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
                     {
-                        var item = Model.Analytics.ByPlayer[playerIndex];
+                        var item = orderedPlayers[playerIndex];
+                        var turnOrder = item.JoinOrder > 0 ? item.JoinOrder : playerIndex + 1;
                         var rank = playerRankLookup.TryGetValue(item.PlayerId, out var resolvedRank)
                             ? resolvedRank
                             : 0;
@@ -362,10 +379,15 @@
                             ? "winner-row"
                             : string.Empty;
                         <tr class="border-t border-slate-200 @winnerRowClass">
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@(playerIndex + 1)</td>
+                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@turnOrder</td>
                             <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.rank")">@(rank > 0 ? rank : "-")</td>
                             <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">
-                                @ResolvePlayerName(item.PlayerId)
+                                <div class="flex items-center gap-3">
+                                    <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
+                                         src="@ResolvePlayerAvatarPath(turnOrder)"
+                                         alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
+                                    <span>@ResolvePlayerName(item.PlayerId)</span>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@item.CashInTotal</td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_out")">@item.CashOutTotal</td>

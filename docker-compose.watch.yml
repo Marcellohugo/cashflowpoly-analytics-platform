@@ -5,14 +5,17 @@ services:
       context: .
       dockerfile: src/Cashflowpoly.Api/Dockerfile.dev
     command: >
-      dotnet watch --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj run --no-launch-profile
+      dotnet watch --non-interactive --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj run --no-launch-profile
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
     volumes:
       - ./:/src
       - cashflowpoly_api_dpkeys:/root/.aspnet/DataProtection-Keys
       - cashflowpoly_nuget:/root/.nuget/packages
+      - cashflowpoly_api_bin:/src/src/Cashflowpoly.Api/bin
+      - cashflowpoly_api_obj:/src/src/Cashflowpoly.Api/obj
 
   ui:
     build:
@@ -22,12 +25,19 @@ services:
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
     volumes:
       - ./:/src
       - cashflowpoly_ui_dpkeys:/root/.aspnet/DataProtection-Keys
       - cashflowpoly_nuget:/root/.nuget/packages
       - cashflowpoly_ui_node_modules:/src/src/Cashflowpoly.Ui/node_modules
+      - cashflowpoly_ui_bin:/src/src/Cashflowpoly.Ui/bin
+      - cashflowpoly_ui_obj:/src/src/Cashflowpoly.Ui/obj
 
 volumes:
   cashflowpoly_nuget:
   cashflowpoly_ui_node_modules:
+  cashflowpoly_api_bin:
+  cashflowpoly_api_obj:
+  cashflowpoly_ui_bin:
+  cashflowpoly_ui_obj:
