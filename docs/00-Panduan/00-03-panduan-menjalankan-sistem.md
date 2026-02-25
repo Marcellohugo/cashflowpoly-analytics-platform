@@ -164,12 +164,13 @@ docs/evidence/
 ## 10. Menjalankan dengan Docker Compose
 Jalankan dari root repository:
 ```bash
-docker compose up --build
+docker context use default
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
 ```
 
 Hentikan container:
 ```bash
-docker compose down
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
 
 
