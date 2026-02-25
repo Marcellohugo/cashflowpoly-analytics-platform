@@ -5,10 +5,11 @@ services:
       context: .
       dockerfile: src/Cashflowpoly.Api/Dockerfile.dev
     command: >
-      dotnet watch --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj run --no-launch-profile
+      dotnet watch --non-interactive --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj run --no-launch-profile
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
     volumes:
       - ./:/src
       - cashflowpoly_api_dpkeys:/root/.aspnet/DataProtection-Keys
@@ -24,6 +25,7 @@ services:
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
     volumes:
       - ./:/src
       - cashflowpoly_ui_dpkeys:/root/.aspnet/DataProtection-Keys
