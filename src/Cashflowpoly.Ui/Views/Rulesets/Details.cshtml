@@ -276,6 +276,21 @@
                     var componentCatalog = Model.Components?.ComponentCatalog;
                     var hasComponentCatalog = componentCatalog.HasValue;
                     var componentRows = FlattenJsonLeaves(componentCatalog);
+                    var localizedComponentRows = componentRows
+                        .Select(row =>
+                        {
+                            var normalizedValue = row.Value.Trim();
+                            var localizedValue = normalizedValue switch
+                            {
+                                var text when string.Equals(text, "true", StringComparison.OrdinalIgnoreCase) => Context.T("state.true"),
+                                var text when string.Equals(text, "false", StringComparison.OrdinalIgnoreCase) => Context.T("state.false"),
+                                var text when string.Equals(text, "null", StringComparison.OrdinalIgnoreCase) => Context.T("state.null"),
+                                _ => row.Value
+                            };
+
+                            return (row.Path, Value: localizedValue);
+                        })
+                        .ToList();
                 }
 
                 @if (Model.Components is not null)
@@ -283,7 +298,7 @@
                     <div class="ruleset-overview-grid mt-3">
                         <article class="ruleset-overview-card">
                             <p class="ruleset-overview-label">@Context.T("common.mode")</p>
-                            <p class="ruleset-overview-value">@(string.IsNullOrWhiteSpace(Model.Components.Mode) ? "-" : Model.Components.Mode)</p>
+                            <p class="ruleset-overview-value">@Context.TRulesetMode(Model.Components.Mode)</p>
                         </article>
                         <article class="ruleset-overview-card">
                             <p class="ruleset-overview-label">@Context.T("common.version")</p>
@@ -295,7 +310,7 @@
                         </article>
                         <article class="ruleset-overview-card">
                             <p class="ruleset-overview-label">@Context.T("rulesets.components.item_count")</p>
-                            <p class="ruleset-overview-value">@componentRows.Count</p>
+                            <p class="ruleset-overview-value">@localizedComponentRows.Count</p>
                         </article>
                     </div>
                 }
@@ -317,7 +332,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @if (componentRows.Count == 0)
+                            @if (localizedComponentRows.Count == 0)
                             {
                                 <tr>
                                     <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="2">
@@ -327,7 +342,7 @@
                             }
                             else
                             {
-                                foreach (var row in componentRows)
+                                foreach (var row in localizedComponentRows)
                                 {
                                     <tr class="border-t border-slate-200">
                                         <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.path")">@row.Path</td>
@@ -359,9 +374,7 @@
                 else
                 {
                     var modeRaw = AsText(GetPath(cfg, "mode"), "PEMULA");
-                    var modeLabel = string.Equals(modeRaw, "MAHIR", StringComparison.OrdinalIgnoreCase)
-                        ? Context.T("rulesets.form.mode_advanced")
-                        : Context.T("rulesets.form.mode_beginner");
+                    var modeLabel = Context.TRulesetMode(modeRaw);
                     var playerOrderingRaw = AsText(GetPath(cfg, "player_ordering"), "JOIN_ORDER");
                     var playerOrderingLabel = playerOrderingRaw.ToUpperInvariant() switch
                     {

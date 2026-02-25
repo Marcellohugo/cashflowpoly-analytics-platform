@@ -126,7 +126,7 @@
                                 <span class="version-pill">v@item.Version</span>
                             </div>
                             <p class="mt-2 text-xs text-slate-600">
-                                @Context.T("common.mode"): @(string.IsNullOrWhiteSpace(item.Mode) ? "-" : item.Mode)
+                                @Context.T("common.mode"): @Context.TRulesetMode(item.Mode)
                             </p>
                             <p class="mt-1 text-xs text-slate-600">
                                 @Context.T("common.description"): @(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)
