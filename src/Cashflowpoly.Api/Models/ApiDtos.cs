@@ -144,6 +144,34 @@ public sealed record RulesetDetailResponse(
     [property: JsonPropertyName("config_json")] JsonElement? ConfigJson);
 
 /// <summary>
+/// Menyatakan peran utama tipe RulesetComponentsResponse pada modul ini.
+/// </summary>
+public sealed record RulesetComponentsResponse(
+    [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
+    [property: JsonPropertyName("version")] int Version,
+    [property: JsonPropertyName("mode")] string? Mode,
+    [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
+
+/// <summary>
+/// Menyatakan peran utama tipe DefaultRulesetComponentItem pada modul ini.
+/// </summary>
+public sealed record DefaultRulesetComponentItem(
+    [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
+    [property: JsonPropertyName("version")] int Version,
+    [property: JsonPropertyName("mode")] string? Mode,
+    [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
+
+/// <summary>
+/// Menyatakan peran utama tipe DefaultRulesetComponentsResponse pada modul ini.
+/// </summary>
+public sealed record DefaultRulesetComponentsResponse(
+    [property: JsonPropertyName("items")] List<DefaultRulesetComponentItem> Items);
+
+/// <summary>
 /// Menyatakan peran utama tipe EventRequest pada modul ini.
 /// </summary>
 public sealed record EventRequest(

@@ -71,6 +71,7 @@ Catatan kontrak API:
 +- docker-compose.yml
 +- database/
 |  +- 00_create_schema.sql
+|  +- 01_seed_default_rulesets_components.sql
 +- docs/
 |  +- Img/
 |  +- 00-Panduan/
@@ -149,7 +150,7 @@ Gunakan konfigurasi berikut:
 - User: `cashflowpoly`
 - Password: `cashflowpoly`
 
-DBeaver menampilkan tabel pada schema `public` setelah PostgreSQL menjalankan `database/00_create_schema.sql` saat volume database masih kosong.
+DBeaver menampilkan tabel pada schema `public` setelah PostgreSQL menjalankan skrip pada folder `database/` saat volume database masih kosong (`00_create_schema.sql` lalu `01_seed_default_rulesets_components.sql`).
 
 ### 3) Hentikan layanan
 ```bash
@@ -163,7 +164,9 @@ docker compose down -v
 
 ## Menjalankan lokal tanpa Docker
 ### 1) Siapkan PostgreSQL
-Buat database dan user, lalu jalankan skrip DDL dari `database/00_create_schema.sql`.
+Buat database dan user, lalu jalankan:
+1. `database/00_create_schema.sql`
+2. `database/01_seed_default_rulesets_components.sql` (seed ruleset default + katalog komponen mode pemula/mahir)
 
 ### 2) Atur konfigurasi API dan UI
 API memakai koneksi database dari `ConnectionStrings:Default`.
@@ -195,6 +198,8 @@ Endpoint tambahan yang tersedia:
 - `GET /api/v1/players` daftar pemain
 - `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
 - `GET /api/v1/rulesets/{rulesetId}` detail ruleset + versi
+- `GET /api/v1/rulesets/components/defaults` daftar ruleset default komponen (mode pemula + mahir)
+- `GET /api/v1/rulesets/{rulesetId}/components` detail komponen ruleset dari `component_catalog` (opsional `?version=`).
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
 - `GET /api/v1/observability/metrics` ringkasan metrik operasional endpoint (request count, error rate, latency)
 - `GET /api/v1/security/audit-logs` ringkasan audit log keamanan

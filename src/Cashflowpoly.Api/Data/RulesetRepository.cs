@@ -329,6 +329,52 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
+    /// Menjalankan fungsi ListDefaultRulesetComponentsAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<List<DefaultRulesetComponentDb>> ListDefaultRulesetComponentsAsync(CancellationToken ct)
+    {
+        const string sql = """
+            with latest_versions as (
+                select
+                    rv.ruleset_id,
+                    rv.ruleset_version_id,
+                    rv.version,
+                    rv.config_json,
+                    row_number() over (
+                        partition by rv.ruleset_id
+                        order by
+                            case when rv.status = 'ACTIVE' then 0 else 1 end,
+                            rv.version desc
+                    ) as rn
+                from ruleset_versions rv
+            )
+            select
+                r.ruleset_id,
+                r.name,
+                r.description,
+                lv.ruleset_version_id,
+                lv.version,
+                lv.config_json::text as config_json
+            from rulesets r
+            join latest_versions lv on lv.ruleset_id = r.ruleset_id and lv.rn = 1
+            where r.created_by = 'system-seed-components-v1'
+              and lv.config_json ? 'component_catalog'
+            order by
+                case upper(coalesce(lv.config_json->>'mode', ''))
+                    when 'PEMULA' then 1
+                    when 'MAHIR' then 2
+                    else 3
+                end,
+                r.name asc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<DefaultRulesetComponentDb>(
+            new CommandDefinition(sql, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    /// <summary>
     /// Menjalankan fungsi GetRulesetForPlayerAsync sebagai bagian dari alur file ini.
     /// </summary>
     public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid playerId, CancellationToken ct)
