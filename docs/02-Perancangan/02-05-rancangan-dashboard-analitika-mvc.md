@@ -33,7 +33,7 @@ UI yang dibangun pada proyek web ini mencakup:
 4. daftar dan detail ruleset,
 5. pembuatan ruleset baru,
 6. aktivasi ruleset ke sesi,
-7. arsip dan penghapusan ruleset sesuai aturan domain.
+7. penghapusan ruleset sesuai aturan domain.
 
 UI tidak mencakup:
 1. gameplay IDN app,
@@ -133,7 +133,7 @@ Menampilkan:
 Menampilkan:
 1. daftar ruleset dan versi terbaru,
 2. detail versi ruleset,
-3. aksi archive/delete (instruktur saja).
+3. aksi delete (instruktur saja).
 
 ### 6.5 Ruleset analytics (embedded di `/analytics`)
 Menampilkan:
@@ -159,7 +159,6 @@ Catatan implementasi:
 | Aktivasi ruleset | `POST /api/v1/sessions/{sessionId}/ruleset/activate` | Bearer (`INSTRUCTOR`) |
 | Daftar ruleset | `GET /api/v1/rulesets` | Bearer |
 | Buat ruleset | `POST /api/v1/rulesets` | Bearer (`INSTRUCTOR`) |
-| Arsip ruleset | `POST /api/v1/rulesets/{rulesetId}/archive` | Bearer (`INSTRUCTOR`) |
 | Hapus ruleset | `DELETE /api/v1/rulesets/{rulesetId}` | Bearer (`INSTRUCTOR`) |
 | Analitika sesi | `GET /api/v1/analytics/sessions/{sessionId}` | Bearer |
 | Histori transaksi | `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` | Bearer |

@@ -135,7 +135,7 @@ Tabel pemetaan endpoint API ke halaman UI mengikuti `docs/02-Perancangan/02-05-r
 ## 8. Aturan Otorisasi di UI
 1. Middleware UI memaksa login untuk semua route non publik.
 2. Session menyimpan `role`, `username`, dan `access_token`.
-3. Aksi instruktur-only (create/archive/delete/activate ruleset) harus diverifikasi role di UI dan API.
+3. Aksi instruktur-only (create/delete/activate ruleset) harus diverifikasi role di UI dan API.
 4. Jika API membalas `403`, UI tetap menampilkan halaman read-only bila memungkinkan.
 
 ---
@@ -159,4 +159,3 @@ Standar penanganan error UI mengikuti `docs/02-Perancangan/02-05-rancangan-dashb
 3. Alur login/register/logout berjalan.
 4. Aksi instruktur-only tidak bisa diakses player.
 5. Halaman analitika dan ruleset menampilkan error state dengan benar.
-

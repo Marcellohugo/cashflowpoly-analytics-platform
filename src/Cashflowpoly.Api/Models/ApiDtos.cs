@@ -139,7 +139,6 @@ public sealed record RulesetDetailResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("description")] string? Description,
-    [property: JsonPropertyName("is_archived")] bool IsArchived,
     [property: JsonPropertyName("versions")] List<RulesetVersionItem> Versions,
     [property: JsonPropertyName("config_json")] JsonElement? ConfigJson);
 
