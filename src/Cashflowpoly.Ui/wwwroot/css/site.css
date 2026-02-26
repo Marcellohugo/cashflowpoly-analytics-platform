@@ -1149,18 +1149,28 @@ body > footer .footer-shell {
 
 .page-shell {
     flex: 1 0 auto;
-    width: 100%;
+    width: min(1280px, calc(100% - 2rem));
+    margin: 1rem auto 0;
     min-width: 0;
+    display: grid;
+    gap: 1rem;
+    padding-top: 0;
+}
+
+.page-shell > aside,
+.page-shell > main {
+    width: 100%;
 }
 
 #content {
     width: 100%;
     min-width: 0;
+    margin: 0;
 }
 
 .quickstart-shell {
-    margin: 1rem auto 0;
-    width: min(1280px, calc(100% - 2rem));
+    margin: 0;
+    width: 100%;
     padding: 1rem;
 }
 
@@ -1335,8 +1345,15 @@ body > footer .footer-shell {
 }
 
 @media (max-width: 768px) {
-    .quickstart-shell {
+    .page-shell {
         width: calc(100% - 1rem);
+        margin-top: 0.75rem;
+        padding-top: 0;
+        padding-bottom: 1.5rem;
+    }
+
+    .quickstart-shell {
+        width: 100%;
         padding: 0.92rem;
     }
 
@@ -1522,11 +1539,6 @@ body > footer .footer-shell {
     .nav-center .nav-link {
         min-width: 0;
         font-size: 0.95rem;
-    }
-
-    .page-shell {
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
     }
 
     .rulebook-grid {
