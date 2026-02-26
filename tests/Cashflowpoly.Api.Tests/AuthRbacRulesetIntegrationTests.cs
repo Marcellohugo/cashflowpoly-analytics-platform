@@ -64,6 +64,23 @@ public sealed class AuthRbacRulesetIntegrationTests
             await defaultComponentsByInstructor.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
         Assert.NotNull(defaultComponentsInstructorPayload);
         Assert.NotNull(defaultComponentsInstructorPayload.Items);
+        if (defaultComponentsInstructorPayload.Items.Count > 0)
+        {
+            var defaultRuleset = defaultComponentsInstructorPayload.Items[0];
+            var defaultRulesetDetailByInstructor = await SendJsonAsync(
+                HttpMethod.Get,
+                $"/api/v1/rulesets/{defaultRuleset.RulesetId}",
+                body: null,
+                instructorLogin.AccessToken);
+            Assert.Equal(HttpStatusCode.OK, defaultRulesetDetailByInstructor.StatusCode);
+
+            var defaultRulesetComponentsByInstructor = await SendJsonAsync(
+                HttpMethod.Get,
+                $"/api/v1/rulesets/{defaultRuleset.RulesetId}/components",
+                body: null,
+                instructorLogin.AccessToken);
+            Assert.Equal(HttpStatusCode.OK, defaultRulesetComponentsByInstructor.StatusCode);
+        }
 
         var defaultComponentsByPlayer = await SendJsonAsync(
             HttpMethod.Get,
