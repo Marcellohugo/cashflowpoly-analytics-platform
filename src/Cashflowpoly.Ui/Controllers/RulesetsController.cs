@@ -16,6 +16,7 @@ public sealed class RulesetsController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
     private const string RulesetErrorTempDataKey = "ruleset_error";
+    private const string RulesetInfoTempDataKey = "ruleset_info";
 
     /// <summary>
     /// Menjalankan fungsi RulesetsController sebagai bagian dari alur file ini.
@@ -31,6 +32,9 @@ public sealed class RulesetsController : Controller
     /// </summary>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
+        ViewData[RulesetErrorTempDataKey] = TempData[RulesetErrorTempDataKey] as string;
+        ViewData[RulesetInfoTempDataKey] = TempData[RulesetInfoTempDataKey] as string;
+
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/v1/rulesets", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -98,61 +102,49 @@ public sealed class RulesetsController : Controller
     /// <summary>
     /// Menjalankan fungsi Create sebagai bagian dari alur file ini.
     /// </summary>
-    public IActionResult Create()
+    public async Task<IActionResult> Create(Guid? templateRulesetId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
         {
             return RedirectToAction(nameof(Index));
         }
 
+        var model = BuildDefaultCreateViewModel();
+        if (!templateRulesetId.HasValue)
+        {
+            return View(model);
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/v1/rulesets/{templateRulesetId.Value}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            model.ErrorMessage = error?.Message ?? HttpContext
+                .T("rulesets.error.load_clone_template_failed")
+                .Replace("{status}", ((int)response.StatusCode).ToString());
+            return View(model);
+        }
+
+        var data = await TryReadJsonAsync<RulesetDetailResponseDto>(response.Content, ct);
+        if (data is null)
+        {
+            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_detail_response");
+            return View(model);
+        }
+
         return View(new CreateRulesetViewModel
         {
             IsEditMode = false,
-            ConfigJson = """
-            {
-              "mode": "PEMULA",
-              "actions_per_turn": 2,
-              "starting_cash": 20,
-              "weekday_rules": {
-                "friday": { "feature": "DONATION", "enabled": true },
-                "saturday": { "feature": "GOLD_TRADE", "enabled": true },
-                "sunday": { "feature": "REST", "enabled": true }
-              },
-              "constraints": {
-                "cash_min": 0,
-                "max_ingredient_total": 6,
-                "max_same_ingredient": 3,
-                "primary_need_max_per_day": 1,
-                "require_primary_before_others": true
-              },
-              "donation": { "min_amount": 1, "max_amount": 999999 },
-              "gold_trade": { "allow_buy": true, "allow_sell": true },
-              "advanced": {
-                "loan": { "enabled": false },
-                "insurance": { "enabled": false },
-                "saving_goal": { "enabled": false }
-              },
-              "freelance": { "income": 1 },
-              "scoring": {
-                "donation_rank_points": [
-                  { "rank": 1, "points": 7 },
-                  { "rank": 2, "points": 5 },
-                  { "rank": 3, "points": 2 }
-                ],
-                "gold_points_by_qty": [
-                  { "qty": 1, "points": 3 },
-                  { "qty": 2, "points": 5 },
-                  { "qty": 3, "points": 8 },
-                  { "qty": 4, "points": 12 }
-                ],
-                "pension_rank_points": [
-                  { "rank": 1, "points": 5 },
-                  { "rank": 2, "points": 3 },
-                  { "rank": 3, "points": 1 }
-                ]
-              }
-            }
-            """
+            Name = $"{data.Name} {HttpContext.T("rulesets.copy_suffix")}",
+            Description = data.Description,
+            ConfigJson = SerializeIndentedJson(data.ConfigJson)
         });
     }
 
@@ -451,6 +443,125 @@ public sealed class RulesetsController : Controller
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("bulk-delete")]
+    /// <summary>
+    /// Menjalankan fungsi BulkDelete sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<IActionResult> BulkDelete([FromForm(Name = "rulesetIds")] List<Guid>? rulesetIds, CancellationToken ct)
+    {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        var selectedRulesetIds = (rulesetIds ?? []).Distinct().ToList();
+        if (selectedRulesetIds.Count == 0)
+        {
+            TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.bulk_delete_empty");
+            return RedirectToAction(nameof(Index));
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var deletedCount = 0;
+        var failedCount = 0;
+
+        foreach (var rulesetId in selectedRulesetIds)
+        {
+            var response = await client.DeleteAsync($"api/v1/rulesets/{rulesetId}", ct);
+            var unauthorized = this.HandleUnauthorizedApiResponse(response);
+            if (unauthorized is not null)
+            {
+                return unauthorized;
+            }
+
+            if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                deletedCount++;
+                continue;
+            }
+
+            failedCount++;
+        }
+
+        if (deletedCount > 0 && failedCount == 0)
+        {
+            TempData[RulesetInfoTempDataKey] = HttpContext
+                .T("rulesets.bulk_delete_success")
+                .Replace("{count}", deletedCount.ToString());
+        }
+        else if (deletedCount > 0)
+        {
+            TempData[RulesetErrorTempDataKey] = HttpContext
+                .T("rulesets.bulk_delete_partial")
+                .Replace("{success}", deletedCount.ToString())
+                .Replace("{failed}", failedCount.ToString());
+        }
+        else
+        {
+            TempData[RulesetErrorTempDataKey] = HttpContext
+                .T("rulesets.bulk_delete_failed")
+                .Replace("{failed}", failedCount.ToString());
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi BuildDefaultCreateViewModel sebagai bagian dari alur file ini.
+    /// </summary>
+    private static CreateRulesetViewModel BuildDefaultCreateViewModel()
+    {
+        return new CreateRulesetViewModel
+        {
+            IsEditMode = false,
+            ConfigJson = """
+            {
+              "mode": "PEMULA",
+              "actions_per_turn": 2,
+              "starting_cash": 20,
+              "weekday_rules": {
+                "friday": { "feature": "DONATION", "enabled": true },
+                "saturday": { "feature": "GOLD_TRADE", "enabled": true },
+                "sunday": { "feature": "REST", "enabled": true }
+              },
+              "constraints": {
+                "cash_min": 0,
+                "max_ingredient_total": 6,
+                "max_same_ingredient": 3,
+                "primary_need_max_per_day": 1,
+                "require_primary_before_others": true
+              },
+              "donation": { "min_amount": 1, "max_amount": 999999 },
+              "gold_trade": { "allow_buy": true, "allow_sell": true },
+              "advanced": {
+                "loan": { "enabled": false },
+                "insurance": { "enabled": false },
+                "saving_goal": { "enabled": false }
+              },
+              "freelance": { "income": 1 },
+              "scoring": {
+                "donation_rank_points": [
+                  { "rank": 1, "points": 7 },
+                  { "rank": 2, "points": 5 },
+                  { "rank": 3, "points": 2 }
+                ],
+                "gold_points_by_qty": [
+                  { "qty": 1, "points": 3 },
+                  { "qty": 2, "points": 5 },
+                  { "qty": 3, "points": 8 },
+                  { "qty": 4, "points": 12 }
+                ],
+                "pension_rank_points": [
+                  { "rank": 1, "points": 5 },
+                  { "rank": 2, "points": 3 },
+                  { "rank": 3, "points": 1 }
+                ]
+              }
+            }
+            """
+        };
     }
 
     /// <summary>

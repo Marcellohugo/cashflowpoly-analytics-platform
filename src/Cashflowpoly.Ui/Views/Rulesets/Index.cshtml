@@ -4,6 +4,9 @@
 @{
     ViewData["Title"] = Context.T("nav.ruleset");
     var isInstructor = Context.Session.IsInstructor();
+    var tableColumnCount = isInstructor ? 6 : 4;
+    var flashError = ViewData["ruleset_error"] as string;
+    var flashInfo = ViewData["ruleset_info"] as string;
 }
 
 <section class="section-shell w-full">
@@ -41,6 +44,19 @@
                 @Model.ErrorMessage
             </div>
         }
+        else if (!string.IsNullOrWhiteSpace(flashError))
+        {
+            <div class="mt-4 alert alert-error" aria-live="polite">
+                @flashError
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(flashInfo))
+        {
+            <div class="mt-4 alert alert-info" aria-live="polite">
+                @flashInfo
+            </div>
+        }
 
         <details class="mt-4 data-toggle">
             <summary>@Context.T("rulesets.tips.title")</summary>
@@ -53,21 +69,92 @@
             </div>
         </details>
 
-        <div class="mt-6 table-wrap">
+        <div class="mt-4 ruleset-quick-tools">
+            <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.quick_tools")</p>
+            <div class="ruleset-quick-tools-controls">
+                <div class="form-field">
+                    <label class="form-label" for="ruleset-search">@Context.T("rulesets.search")</label>
+                    <input id="ruleset-search"
+                           class="form-input"
+                           type="search"
+                           placeholder="@Context.T("rulesets.search_placeholder")"
+                           autocomplete="off"
+                           data-ruleset-search />
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="ruleset-sort">@Context.T("rulesets.sort")</label>
+                    <select id="ruleset-sort" class="form-input" data-ruleset-sort>
+                        <option value="name_asc">@Context.T("rulesets.sort.name_asc")</option>
+                        <option value="name_desc">@Context.T("rulesets.sort.name_desc")</option>
+                        <option value="version_desc">@Context.T("rulesets.sort.version_desc")</option>
+                        <option value="version_asc">@Context.T("rulesets.sort.version_asc")</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="ruleset-page-size">@Context.T("rulesets.page_size")</label>
+                    <select id="ruleset-page-size" class="form-input" data-ruleset-page-size>
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <button class="btn-ghost ruleset-quick-reset"
+                        type="button"
+                        data-ruleset-reset>@Context.T("rulesets.clear_filter")</button>
+            </div>
+        </div>
+
+        @if (isInstructor && Model.Items.Count > 0)
+        {
+            <form id="ruleset-bulk-form"
+                  method="post"
+                  asp-controller="Rulesets"
+                  asp-action="BulkDelete"
+                  onsubmit="return confirm('@Context.T("rulesets.bulk_delete_confirm")');">
+                @Html.AntiForgeryToken()
+                <div data-ruleset-bulk-hidden-inputs></div>
+            </form>
+
+            <div class="mt-3 ruleset-bulk-toolbar">
+                <span class="hint-chip">
+                    @Context.T("rulesets.selected"): <strong class="ml-1" data-ruleset-selected-count>0</strong>
+                </span>
+                <button class="btn-primary"
+                        type="submit"
+                        form="ruleset-bulk-form"
+                        data-ruleset-bulk-delete
+                        disabled>@Context.T("rulesets.bulk_delete")</button>
+            </div>
+        }
+
+        <div class="mt-4 table-wrap">
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
+                        @if (isInstructor)
+                        {
+                            <th class="px-4 py-3 text-center">
+                                <input type="checkbox"
+                                       data-ruleset-select-all
+                                       aria-label="@Context.T("rulesets.select_all")" />
+                            </th>
+                        }
                         <th class="px-4 py-3">@Context.T("common.name")</th>
                         <th class="px-4 py-3">@Context.T("common.ruleset_id")</th>
                         <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
                         <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
+                        @if (isInstructor)
+                        {
+                            <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
+                        }
                     </tr>
                 </thead>
-                <tbody>
+                <tbody data-ruleset-tbody>
                 @if (Model.Items.Count == 0)
                 {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="4">
+                    <tr data-empty-base-row>
+                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="@tableColumnCount">
                             @Context.T("state.no_rulesets")
                         </td>
                     </tr>
@@ -76,7 +163,20 @@
                 {
                     foreach (var item in Model.Items)
                     {
-                        <tr class="border-t border-slate-200">
+                        <tr class="border-t border-slate-200"
+                            data-ruleset-row
+                            data-name="@item.Name.ToLowerInvariant()"
+                            data-ruleset-id="@item.RulesetId.ToString().ToLowerInvariant()"
+                            data-latest-version="@item.LatestVersion">
+                            @if (isInstructor)
+                            {
+                                <td class="px-4 py-3 text-center" data-label="@Context.T("rulesets.select")">
+                                    <input type="checkbox"
+                                           value="@item.RulesetId"
+                                           data-ruleset-select
+                                           aria-label="@Context.T("rulesets.select_one")" />
+                                </td>
+                            }
                             <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.Name</td>
                             <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.ruleset_id")">@item.RulesetId</td>
                             <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">v@item.LatestVersion</span></td>
@@ -84,12 +184,53 @@
                                 <a class="table-link"
                                    asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
                             </td>
+                            @if (isInstructor)
+                            {
+                                <td class="px-4 py-3 text-right" data-label="@Context.T("common.action")">
+                                    <div class="ruleset-row-actions">
+                                        <a class="table-link"
+                                           asp-controller="Rulesets"
+                                           asp-action="Edit"
+                                           asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.edit")</a>
+                                        <a class="table-link"
+                                           asp-controller="Rulesets"
+                                           asp-action="Create"
+                                           asp-route-templateRulesetId="@item.RulesetId">@Context.T("rulesets.duplicate")</a>
+                                        <form method="post"
+                                              asp-controller="Rulesets"
+                                              asp-action="Delete"
+                                              asp-route-rulesetId="@item.RulesetId"
+                                              onsubmit="return confirm('@Context.T("rulesets.delete_confirm")');">
+                                            @Html.AntiForgeryToken()
+                                            <button class="ruleset-action-btn" type="submit">@Context.T("rulesets.delete")</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            }
                         </tr>
                     }
+                    <tr data-empty-filter-row hidden>
+                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="@tableColumnCount">
+                            @Context.T("rulesets.no_filtered")
+                        </td>
+                    </tr>
                 }
                 </tbody>
             </table>
         </div>
+
+        @if (Model.Items.Count > 0)
+        {
+            <div class="mt-3 ruleset-pagination">
+                <button class="btn-ghost btn-compact"
+                        type="button"
+                        data-ruleset-prev>@Context.T("rulesets.pagination_prev")</button>
+                <span class="hint-chip" data-ruleset-page-info></span>
+                <button class="btn-ghost btn-compact"
+                        type="button"
+                        data-ruleset-next>@Context.T("rulesets.pagination_next")</button>
+            </div>
+        }
 
         <div class="ruleset-stream-divider mt-5"></div>
 
@@ -145,3 +286,247 @@
         </div>
     </div>
 </section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const searchInput = document.querySelector("[data-ruleset-search]");
+            const sortSelect = document.querySelector("[data-ruleset-sort]");
+            const pageSizeSelect = document.querySelector("[data-ruleset-page-size]");
+            const resetButton = document.querySelector("[data-ruleset-reset]");
+            const prevButton = document.querySelector("[data-ruleset-prev]");
+            const nextButton = document.querySelector("[data-ruleset-next]");
+            const pageInfo = document.querySelector("[data-ruleset-page-info]");
+            const tbody = document.querySelector("[data-ruleset-tbody]");
+            if (!searchInput || !sortSelect || !pageSizeSelect || !resetButton || !tbody) {
+                return;
+            }
+
+            const rows = Array.from(tbody.querySelectorAll("[data-ruleset-row]"));
+            const emptyFilterRow = tbody.querySelector("[data-empty-filter-row]");
+            const selectAllCheckbox = document.querySelector("[data-ruleset-select-all]");
+            const selectedCount = document.querySelector("[data-ruleset-selected-count]");
+            const bulkDeleteButton = document.querySelector("[data-ruleset-bulk-delete]");
+            const bulkInputsHost = document.querySelector("[data-ruleset-bulk-hidden-inputs]");
+            const selectedRulesetIds = new Set();
+            let currentPageRows = [];
+            let currentPage = 1;
+
+            if (rows.length === 0) {
+                return;
+            }
+
+            const refreshBulkSelectionState = () => {
+                rows.forEach((row) => {
+                    const checkbox = row.querySelector("[data-ruleset-select]");
+                    if (!checkbox) {
+                        return;
+                    }
+
+                    checkbox.checked = selectedRulesetIds.has(checkbox.value);
+                });
+
+                if (selectedCount) {
+                    selectedCount.textContent = `${selectedRulesetIds.size}`;
+                }
+
+                if (bulkDeleteButton) {
+                    bulkDeleteButton.disabled = selectedRulesetIds.size === 0;
+                }
+
+                if (bulkInputsHost) {
+                    bulkInputsHost.innerHTML = "";
+                    Array.from(selectedRulesetIds).forEach((rulesetId) => {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = "rulesetIds";
+                        input.value = rulesetId;
+                        bulkInputsHost.appendChild(input);
+                    });
+                }
+
+                if (selectAllCheckbox) {
+                    const pageCheckboxes = currentPageRows
+                        .map((row) => row.querySelector("[data-ruleset-select]"))
+                        .filter((checkbox) => checkbox);
+                    const pageSelected = pageCheckboxes.filter((checkbox) => checkbox.checked).length;
+                    if (pageCheckboxes.length === 0) {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckbox.disabled = true;
+                        return;
+                    }
+
+                    selectAllCheckbox.disabled = false;
+                    selectAllCheckbox.checked = pageSelected === pageCheckboxes.length;
+                    selectAllCheckbox.indeterminate = pageSelected > 0 && pageSelected < pageCheckboxes.length;
+                }
+            };
+
+            const getSortValue = (row, mode) => {
+                const name = row.dataset.name ?? "";
+                const version = Number.parseInt(row.dataset.latestVersion ?? "0", 10);
+                if (mode === "name_desc") {
+                    return { key: name, order: -1 };
+                }
+
+                if (mode === "version_desc") {
+                    return { key: Number.isFinite(version) ? version : 0, order: -1 };
+                }
+
+                if (mode === "version_asc") {
+                    return { key: Number.isFinite(version) ? version : 0, order: 1 };
+                }
+
+                return { key: name, order: 1 };
+            };
+
+            const sortRows = (targetRows, mode) => {
+                targetRows.sort((a, b) => {
+                    const left = getSortValue(a, mode);
+                    const right = getSortValue(b, mode);
+                    if (left.key < right.key) {
+                        return -1 * left.order;
+                    }
+
+                    if (left.key > right.key) {
+                        return 1 * left.order;
+                    }
+
+                    return 0;
+                });
+            };
+
+            const refreshRows = () => {
+                const query = searchInput.value.trim().toLowerCase();
+                const mode = sortSelect.value;
+                const filteredRows = rows.filter((row) => {
+                    const haystack = `${row.dataset.name ?? ""} ${row.dataset.rulesetId ?? ""} v${row.dataset.latestVersion ?? ""}`;
+                    return query.length === 0 || haystack.includes(query);
+                });
+                const pageSize = Number.parseInt(pageSizeSelect.value, 10);
+                const resolvedPageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 10;
+
+                sortRows(filteredRows, mode);
+
+                const totalPages = Math.max(1, Math.ceil(filteredRows.length / resolvedPageSize));
+                currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+                const startIndex = (currentPage - 1) * resolvedPageSize;
+                const endIndex = startIndex + resolvedPageSize;
+                currentPageRows = filteredRows.slice(startIndex, endIndex);
+
+                rows.forEach((row) => {
+                    row.hidden = true;
+                });
+
+                filteredRows.forEach((row, index) => {
+                    const isCurrentPage = index >= startIndex && index < endIndex;
+                    row.hidden = !isCurrentPage;
+                    tbody.appendChild(row);
+                });
+
+                if (emptyFilterRow) {
+                    emptyFilterRow.hidden = filteredRows.length > 0 || query.length === 0;
+                    if (!emptyFilterRow.hidden) {
+                        tbody.appendChild(emptyFilterRow);
+                    }
+                }
+
+                if (pageInfo) {
+                    if (filteredRows.length === 0) {
+                        pageInfo.textContent = "0/0";
+                    } else {
+                        pageInfo.textContent = `${currentPage}/${totalPages}`;
+                    }
+                }
+
+                if (prevButton) {
+                    prevButton.disabled = filteredRows.length === 0 || currentPage <= 1;
+                }
+
+                if (nextButton) {
+                    nextButton.disabled = filteredRows.length === 0 || currentPage >= totalPages;
+                }
+
+                refreshBulkSelectionState();
+            };
+
+            searchInput.addEventListener("input", () => {
+                currentPage = 1;
+                refreshRows();
+            });
+
+            sortSelect.addEventListener("change", () => {
+                currentPage = 1;
+                refreshRows();
+            });
+
+            pageSizeSelect.addEventListener("change", () => {
+                currentPage = 1;
+                refreshRows();
+            });
+
+            resetButton.addEventListener("click", () => {
+                searchInput.value = "";
+                sortSelect.value = "name_asc";
+                pageSizeSelect.value = "10";
+                currentPage = 1;
+                refreshRows();
+                searchInput.focus();
+            });
+
+            if (prevButton) {
+                prevButton.addEventListener("click", () => {
+                    currentPage = Math.max(currentPage - 1, 1);
+                    refreshRows();
+                });
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener("click", () => {
+                    currentPage += 1;
+                    refreshRows();
+                });
+            }
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener("change", (event) => {
+                    const isChecked = !!event.target.checked;
+                    currentPageRows.forEach((row) => {
+                        const checkbox = row.querySelector("[data-ruleset-select]");
+                        if (!checkbox) {
+                            return;
+                        }
+
+                        if (isChecked) {
+                            selectedRulesetIds.add(checkbox.value);
+                        } else {
+                            selectedRulesetIds.delete(checkbox.value);
+                        }
+                    });
+                    refreshBulkSelectionState();
+                });
+            }
+
+            rows.forEach((row) => {
+                const checkbox = row.querySelector("[data-ruleset-select]");
+                if (!checkbox) {
+                    return;
+                }
+
+                checkbox.addEventListener("change", (event) => {
+                    const target = event.target;
+                    if (target.checked) {
+                        selectedRulesetIds.add(target.value);
+                    } else {
+                        selectedRulesetIds.delete(target.value);
+                    }
+                    refreshBulkSelectionState();
+                });
+            });
+
+            refreshRows();
+        })();
+    </script>
+}

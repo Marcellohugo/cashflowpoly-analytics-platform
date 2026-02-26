@@ -2258,6 +2258,38 @@ body > footer .footer-shell {
     flex-wrap: wrap;
 }
 
+.ruleset-quick-tools {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.ruleset-quick-tools-controls {
+    display: grid;
+    gap: 0.7rem;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 0.8fr) auto;
+    align-items: end;
+}
+
+.ruleset-quick-reset {
+    min-height: 2.8rem;
+}
+
+.ruleset-bulk-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.ruleset-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
 .ruleset-title-block {
     max-width: 48rem;
 }
@@ -2313,6 +2345,33 @@ body > footer .footer-shell {
 
 .ruleset-unified .action-toolbar form {
     margin: 0;
+}
+
+.ruleset-row-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.ruleset-row-actions form {
+    margin: 0;
+}
+
+.ruleset-action-btn {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #1b3f5b;
+    font-size: 0.86rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.ruleset-action-btn:hover {
+    color: #102f46;
+    text-decoration: underline;
 }
 
 .ruleset-form-section .metric-row {
@@ -2717,6 +2776,19 @@ body > footer .footer-shell {
         align-items: flex-start;
     }
 
+    .ruleset-quick-tools-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .ruleset-quick-reset {
+        justify-self: start;
+    }
+
+    .ruleset-bulk-toolbar,
+    .ruleset-pagination {
+        justify-content: flex-start;
+    }
+
     .ruleset-hero {
         grid-template-columns: 1fr;
     }
@@ -2776,6 +2848,10 @@ body > footer .footer-shell {
 
     .metric-value {
         text-align: left;
+    }
+
+    .ruleset-row-actions {
+        justify-content: flex-start;
     }
 }
 
