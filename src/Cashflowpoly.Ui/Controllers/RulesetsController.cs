@@ -17,6 +17,7 @@ public sealed class RulesetsController : Controller
     private readonly IHttpClientFactory _clientFactory;
     private const string RulesetErrorTempDataKey = "ruleset_error";
     private const string RulesetInfoTempDataKey = "ruleset_info";
+    private const string DefaultCatalogSource = "default-catalog";
 
     /// <summary>
     /// Menjalankan fungsi RulesetsController sebagai bagian dari alur file ini.
@@ -321,8 +322,10 @@ public sealed class RulesetsController : Controller
     /// <summary>
     /// Menjalankan fungsi Details sebagai bagian dari alur file ini.
     /// </summary>
-    public async Task<IActionResult> Details(Guid rulesetId, CancellationToken ct)
+    public async Task<IActionResult> Details(Guid rulesetId, int? version, string? source, Guid? defaultRulesetVersionId, CancellationToken ct)
     {
+        var fromDefaultCatalog = string.Equals(source, DefaultCatalogSource, StringComparison.OrdinalIgnoreCase);
+        var requestedVersion = version.HasValue && version.Value > 0 ? version : null;
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -334,6 +337,46 @@ public sealed class RulesetsController : Controller
         if (!response.IsSuccessStatusCode)
         {
             var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            if (fromDefaultCatalog)
+            {
+                var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
+                unauthorized = this.HandleUnauthorizedApiResponse(defaultsResponse);
+                if (unauthorized is not null)
+                {
+                    return unauthorized;
+                }
+
+                if (defaultsResponse.IsSuccessStatusCode)
+                {
+                    var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+                    var fallbackItem = defaultsData?.Items?.FirstOrDefault(item =>
+                        item.RulesetId == rulesetId &&
+                        (requestedVersion is null || item.Version == requestedVersion.Value) &&
+                        (!defaultRulesetVersionId.HasValue || item.RulesetVersionId == defaultRulesetVersionId.Value));
+                    if (fallbackItem is not null)
+                    {
+                        return View(new RulesetDetailViewModel
+                        {
+                            Ruleset = new RulesetDetailResponseDto(
+                                fallbackItem.RulesetId,
+                                fallbackItem.Name,
+                                fallbackItem.Description,
+                                new List<RulesetVersionItemDto>(),
+                                null),
+                            Components = new RulesetComponentsResponseDto(
+                                fallbackItem.RulesetId,
+                                fallbackItem.RulesetVersionId,
+                                fallbackItem.Version,
+                                fallbackItem.Mode,
+                                fallbackItem.ComponentCatalog),
+                            InfoMessage = HttpContext.T("rulesets.info.default_catalog_readonly"),
+                            IsReadOnly = true,
+                            IsDefaultCatalogSource = true
+                        });
+                    }
+                }
+            }
+
             return View(new RulesetDetailViewModel
             {
                 ErrorMessage = error?.Message ?? HttpContext
@@ -353,7 +396,10 @@ public sealed class RulesetsController : Controller
 
         RulesetComponentsResponseDto? components = null;
         string? componentsErrorMessage = null;
-        var componentsResponse = await client.GetAsync($"api/v1/rulesets/{rulesetId}/components", ct);
+        var componentsPath = requestedVersion.HasValue
+            ? $"api/v1/rulesets/{rulesetId}/components?version={requestedVersion.Value}"
+            : $"api/v1/rulesets/{rulesetId}/components";
+        var componentsResponse = await client.GetAsync(componentsPath, ct);
         unauthorized = this.HandleUnauthorizedApiResponse(componentsResponse);
         if (unauthorized is not null)
         {
@@ -375,13 +421,79 @@ public sealed class RulesetsController : Controller
             }
         }
 
+        var tempInfo = TempData[RulesetInfoTempDataKey] as string;
+        var infoMessages = new List<string>();
+        if (!string.IsNullOrWhiteSpace(tempInfo))
+        {
+            infoMessages.Add(tempInfo);
+        }
+
+        if (fromDefaultCatalog)
+        {
+            infoMessages.Add(HttpContext.T("rulesets.info.default_catalog_readonly"));
+        }
+
+        if (requestedVersion.HasValue)
+        {
+            infoMessages.Add(HttpContext
+                .T("rulesets.info.viewing_version")
+                .Replace("{version}", $"v{requestedVersion.Value}"));
+        }
+
         return View(new RulesetDetailViewModel
         {
             Ruleset = data,
             Components = components,
             ErrorMessage = TempData[RulesetErrorTempDataKey] as string,
-            InfoMessage = TempData[RulesetInfoTempDataKey] as string,
-            ComponentsErrorMessage = componentsErrorMessage
+            InfoMessage = infoMessages.Count == 0 ? null : string.Join(" ", infoMessages),
+            ComponentsErrorMessage = componentsErrorMessage,
+            IsReadOnly = fromDefaultCatalog,
+            IsDefaultCatalogSource = fromDefaultCatalog
+        });
+    }
+
+    [HttpGet("default-components/{rulesetVersionId:guid}")]
+    /// <summary>
+    /// Membuka rincian komponen default dengan resolusi versi agar tautan tetap stabil.
+    /// </summary>
+    public async Task<IActionResult> DefaultComponentDetails(Guid rulesetVersionId, CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(defaultsResponse);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!defaultsResponse.IsSuccessStatusCode)
+        {
+            TempData[RulesetErrorTempDataKey] = HttpContext
+                .T("rulesets.error.load_default_components_failed")
+                .Replace("{status}", ((int)defaultsResponse.StatusCode).ToString());
+            return RedirectToAction(nameof(Index));
+        }
+
+        var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+        if (defaultsData is null)
+        {
+            TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.invalid_default_components_response");
+            return RedirectToAction(nameof(Index));
+        }
+
+        var selectedItem = defaultsData.Items.FirstOrDefault(item => item.RulesetVersionId == rulesetVersionId);
+        if (selectedItem is null)
+        {
+            TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.default_component_not_found");
+            return RedirectToAction(nameof(Index));
+        }
+
+        return RedirectToAction(nameof(Details), new
+        {
+            rulesetId = selectedItem.RulesetId,
+            version = selectedItem.Version,
+            source = DefaultCatalogSource,
+            defaultRulesetVersionId = selectedItem.RulesetVersionId
         });
     }
 
