@@ -72,7 +72,9 @@
                 <label class="form-label" for="ruleset-description">@Context.T("common.description")</label>
                 <input class="form-input"
                        id="ruleset-description"
-                       asp-for="Description" />
+                       asp-for="Description"
+                       placeholder="@Context.T("rulesets.form.description_placeholder")" />
+                <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.description_hint")</p>
             </div>
 
             <div class="ruleset-form-section">

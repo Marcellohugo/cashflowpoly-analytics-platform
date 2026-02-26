@@ -15,6 +15,27 @@
     }
 
     string ResolvePlayerAvatarPath(int joinOrder) => $"/images/players/{ResolvePlayerAvatarIndex(joinOrder)}.png";
+
+    var sessionGroupCount = Model.SessionGroups.Count;
+    var startedSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase));
+    var createdSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "CREATED", StringComparison.OrdinalIgnoreCase));
+    var endedSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase));
+    var playerIdsWithSessionData = new HashSet<Guid>();
+    foreach (var groupedSession in Model.SessionGroups)
+    {
+        foreach (var sessionPlayer in groupedSession.Players)
+        {
+            playerIdsWithSessionData.Add(sessionPlayer.PlayerId);
+        }
+    }
+
+    var guideSteps = new[]
+    {
+        Context.T("players.index.guide_step1"),
+        Context.T("players.index.guide_step2"),
+        Context.T("players.index.guide_step3"),
+        Context.T("players.index.guide_step4")
+    };
 }
 
 <section class="section-shell w-full">
@@ -24,153 +45,259 @@
             <h1 class="headline">@Context.T("players.title")</h1>
             <p class="subhead">@Context.T("players.subtitle")</p>
         </div>
+        <div class="page-intro-actions">
+            <span class="hint-chip">@Context.T("players.index.source_hint")</span>
+        </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="mt-4 alert alert-error" aria-live="polite">
-            @Model.ErrorMessage
-        </div>
-    }
-
-    <details class="mt-4 data-toggle">
-        <summary>@Context.T("players.tips.title")</summary>
-        <div class="mt-3 metric-panel">
-            <div class="metric-list">
-                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.validate")</span><span class="metric-value">@Context.T("players.tip.validate")</span></div>
-                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.tracking")</span><span class="metric-value">@Context.T("players.tip.tracking")</span></div>
-                <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.analysis")</span><span class="metric-value">@Context.T("players.tip.analysis")</span></div>
-            </div>
-        </div>
-    </details>
-
-    @if (Model.SessionGroups.Count == 0)
-    {
-        <div class="mt-6 table-wrap">
-            <table class="w-full text-left text-sm">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3">@Context.T("common.name")</th>
-                        <th class="px-4 py-3">@Context.T("common.player_id")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Players.Count == 0)
-                {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500" colspan="2">@Context.T("state.no_players")</td>
-                    </tr>
-                }
-                else
-                {
-                    foreach (var player in Model.Players)
-                    {
-                        <tr class="border-t border-slate-200">
-                            <td class="px-4 py-3">
-                                <span class="font-medium text-slate-900">@player.DisplayName</span>
-                            </td>
-                            <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-    }
-    else
-    {
-        <div class="mt-6 space-y-4">
-            @foreach (var session in Model.SessionGroups)
+    <div class="mt-4 players-index-guide-shell" aria-label="@Context.T("players.index.guide_title")">
+        <p class="players-index-guide-title">@Context.T("players.index.guide_title")</p>
+        <ol class="players-index-guide">
+            @foreach (var step in guideSteps)
             {
-                <details class="data-toggle" open>
-                    <summary>
-                        @session.SessionName
-                        <span class="ml-2 text-xs text-slate-500">(@session.Players.Count @Context.T("players.count_suffix"))</span>
-                    </summary>
-                    <div class="mt-3 alert alert-info text-xs">
-                        <span class="font-semibold">@Context.T("common.session_id"):</span> <span class="font-mono">@session.SessionId</span>
-                        <span class="ml-3 font-semibold">@Context.T("common.status"):</span> @Context.TSessionStatus(session.Status)
-                        @if (session.StartedAt.HasValue)
-                        {
-                            <span class="ml-3 font-semibold">@Context.T("common.start"):</span> @session.StartedAt.Value.ToString("dd/MM/yyyy HH:mm")
-                        }
-                        @if (session.EndedAt.HasValue)
-                        {
-                            <span class="ml-3 font-semibold">@Context.T("common.finish"):</span> @session.EndedAt.Value.ToString("dd/MM/yyyy HH:mm")
-                        }
-                    </div>
-
-                    <div class="mt-3 table-wrap">
-                        <table class="w-full text-left text-sm">
-                            <thead class="table-head">
-                                <tr>
-                                    <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
-                                    <th class="px-4 py-3 text-right">@Context.T("sessions.champion.donation")</th>
-                                    <th class="px-4 py-3 text-right">@Context.T("sessions.champion.pension")</th>
-                                    <th class="px-4 py-3">@Context.T("common.name")</th>
-                                    <th class="px-4 py-3">@Context.T("common.player_id")</th>
-                                    <th class="px-4 py-3 text-right">@Context.T("metric.net_cashflow")</th>
-                                    <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
-                                    <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            @{
-                                var donationChampionLookup = session.Players
-                                    .OrderByDescending(p => p.DonationPointsTotal)
-                                    .ThenByDescending(p => p.DonationTotal)
-                                    .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
-                                    .ThenBy(p => p.PlayerId)
-                                    .Take(3)
-                                    .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
-                                    .ToDictionary(item => item.PlayerId, item => item.Rank);
-                                var pensionChampionLookup = session.Players
-                                    .OrderByDescending(p => p.PensionPointsTotal)
-                                    .ThenByDescending(p => p.CashInTotal - p.CashOutTotal)
-                                    .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
-                                    .ThenBy(p => p.PlayerId)
-                                    .Take(3)
-                                    .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
-                                    .ToDictionary(item => item.PlayerId, item => item.Rank);
-                            }
-                            @foreach (var player in session.Players)
-                            {
-                                var netCashflow = player.CashInTotal - player.CashOutTotal;
-                                var donationRank = donationChampionLookup.TryGetValue(player.PlayerId, out var donationResolvedRank)
-                                    ? donationResolvedRank
-                                    : 0;
-                                var pensionRank = pensionChampionLookup.TryGetValue(player.PlayerId, out var pensionResolvedRank)
-                                    ? pensionResolvedRank
-                                    : 0;
-                                <tr class="border-t border-slate-200">
-                                    <td class="px-4 py-3 text-right text-slate-700">@(player.JoinOrder > 0 ? player.JoinOrder : "-")</td>
-                                    <td class="px-4 py-3 text-right text-slate-700">@(donationRank > 0 ? donationRank : "-")</td>
-                                    <td class="px-4 py-3 text-right text-slate-700">@(pensionRank > 0 ? pensionRank : "-")</td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center gap-3">
-                                            <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
-                                                 src="@ResolvePlayerAvatarPath(player.JoinOrder)"
-                                                 alt="@($"{Context.T("common.turn_order")} {(player.JoinOrder > 0 ? player.JoinOrder : 1)}")" />
-                                            <span class="font-medium text-slate-900">@player.DisplayName</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3 font-mono text-xs text-slate-600">@player.PlayerId</td>
-                                    <td class="px-4 py-3 text-right">@netCashflow</td>
-                                    <td class="px-4 py-3 text-right">@player.HappinessPointsTotal</td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a class="table-link"
-                                           asp-controller="Players"
-                                           asp-action="Details"
-                                           asp-route-sessionId="@session.SessionId"
-                                           asp-route-playerId="@player.PlayerId">@Context.T("common.view")</a>
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
-                </details>
+                <li>@step</li>
             }
-        </div>
-    }
+        </ol>
+    </div>
+
+    <div class="mt-6 ruleset-unified players-index-shell">
+        <section class="players-index-section">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("players.index.summary_title")</p>
+                <p class="ruleset-section-subtitle">@Context.T("players.index.summary_subtitle")</p>
+            </div>
+            <div class="players-stats-grid mt-3">
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.total_players")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Players.Count</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.index.players_with_data")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@playerIdsWithSessionData.Count</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("players.index.sessions_with_data")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@sessionGroupCount</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.started")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@startedSessionCount</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.created")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@createdSessionCount</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.ended")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@endedSessionCount</p>
+                </div>
+            </div>
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="mt-4 alert alert-error" aria-live="polite">
+                @Model.ErrorMessage
+            </div>
+        }
+
+        <section class="players-index-section mt-4">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("players.tips.title")</p>
+                <p class="ruleset-section-subtitle">@Context.T("players.index.status_help")</p>
+            </div>
+
+            <details class="mt-3 data-toggle">
+                <summary>@Context.T("players.tips.title")</summary>
+                <div class="mt-3 metric-panel">
+                    <div class="metric-list">
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.validate")</span><span class="metric-value">@Context.T("players.tip.validate")</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.tracking")</span><span class="metric-value">@Context.T("players.tip.tracking")</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("players.tip_key.analysis")</span><span class="metric-value">@Context.T("players.tip.analysis")</span></div>
+                    </div>
+                </div>
+            </details>
+
+            <div class="mt-4 ux-legend" aria-label="@Context.T("sessions.legend.title")">
+                <p class="ux-legend-title">@Context.T("sessions.legend.title")</p>
+                <div class="ux-legend-items">
+                    <span class="ux-legend-item">
+                        <span class="status-pill status-active">@Context.TSessionStatus("STARTED")</span>
+                        <span class="ux-legend-note">@Context.T("sessions.legend.started_hint")</span>
+                    </span>
+                    <span class="ux-legend-item">
+                        <span class="status-pill status-draft">@Context.TSessionStatus("CREATED")</span>
+                        <span class="ux-legend-note">@Context.T("sessions.legend.created_hint")</span>
+                    </span>
+                    <span class="ux-legend-item">
+                        <span class="status-pill status-retired">@Context.TSessionStatus("ENDED")</span>
+                        <span class="ux-legend-note">@Context.T("sessions.legend.ended_hint")</span>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <section class="players-index-section mt-5">
+            @if (sessionGroupCount == 0)
+            {
+                <div class="ruleset-section-head">
+                    <p class="ruleset-section-title">@Context.T("players.index.ungrouped_title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("players.index.ungrouped_subtitle")</p>
+                </div>
+
+                <div class="mt-3 alert alert-info">
+                    @Context.T("players.index.ungrouped_hint")
+                </div>
+
+                <div class="mt-3 table-wrap">
+                    <table class="w-full text-left text-sm mobile-card-table">
+                        <thead class="table-head">
+                            <tr>
+                                <th class="px-4 py-3">@Context.T("common.name")</th>
+                                <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (Model.Players.Count == 0)
+                        {
+                            <tr>
+                                <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="2">@Context.T("state.no_players")</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var player in Model.Players)
+                            {
+                                <tr class="border-t border-slate-200">
+                                    <td class="px-4 py-3" data-label="@Context.T("common.name")">
+                                        <span class="font-medium text-slate-900">@player.DisplayName</span>
+                                    </td>
+                                    <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.player_id")">@player.PlayerId</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="ruleset-section-head">
+                    <p class="ruleset-section-title">@Context.T("players.index.grouped_title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("players.index.grouped_subtitle")</p>
+                </div>
+
+                <div class="mt-3 players-session-stack">
+                    @foreach (var session in Model.SessionGroups)
+                    {
+                        var statusClass = string.Equals(session.Status, "STARTED", StringComparison.OrdinalIgnoreCase)
+                            ? "status-active"
+                            : string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase)
+                                ? "status-draft"
+                                : "status-retired";
+                        <details class="data-toggle players-session-card" open>
+                            <summary class="players-session-summary">
+                                <span class="players-session-summary-main">
+                                    <span class="font-semibold text-slate-900">@session.SessionName</span>
+                                    <span class="text-xs text-slate-500">(@session.Players.Count @Context.T("players.count_suffix"))</span>
+                                </span>
+                                <span class="status-pill @statusClass">@Context.TSessionStatus(session.Status)</span>
+                            </summary>
+
+                            <div class="players-session-meta mt-3">
+                                <span class="hint-chip">
+                                    <span class="font-semibold">@Context.T("common.session_id"):</span>
+                                    <span class="font-mono">@session.SessionId</span>
+                                </span>
+                                @if (session.StartedAt.HasValue)
+                                {
+                                    <span class="hint-chip">
+                                        <span class="font-semibold">@Context.T("common.start"):</span>
+                                        @session.StartedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                }
+                                @if (session.EndedAt.HasValue)
+                                {
+                                    <span class="hint-chip">
+                                        <span class="font-semibold">@Context.T("common.finish"):</span>
+                                        @session.EndedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="mt-3 table-wrap">
+                                <table class="w-full text-left text-sm mobile-card-table">
+                                    <thead class="table-head">
+                                        <tr>
+                                            <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
+                                            <th class="px-4 py-3 text-right">@Context.T("players.champion.donation_short")</th>
+                                            <th class="px-4 py-3 text-right">@Context.T("players.champion.pension_short")</th>
+                                            <th class="px-4 py-3">@Context.T("common.name")</th>
+                                            <th class="px-4 py-3">@Context.T("common.player_id")</th>
+                                            <th class="px-4 py-3 text-right">@Context.T("metric.net_cashflow")</th>
+                                            <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
+                                            <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @{
+                                        var donationChampionLookup = session.Players
+                                            .OrderByDescending(p => p.DonationPointsTotal)
+                                            .ThenByDescending(p => p.DonationTotal)
+                                            .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
+                                            .ThenBy(p => p.PlayerId)
+                                            .Take(3)
+                                            .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
+                                            .ToDictionary(item => item.PlayerId, item => item.Rank);
+                                        var pensionChampionLookup = session.Players
+                                            .OrderByDescending(p => p.PensionPointsTotal)
+                                            .ThenByDescending(p => p.CashInTotal - p.CashOutTotal)
+                                            .ThenBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
+                                            .ThenBy(p => p.PlayerId)
+                                            .Take(3)
+                                            .Select((player, index) => new { player.PlayerId, Rank = index + 1 })
+                                            .ToDictionary(item => item.PlayerId, item => item.Rank);
+                                    }
+                                    @foreach (var player in session.Players)
+                                    {
+                                        var netCashflow = player.CashInTotal - player.CashOutTotal;
+                                        var donationRank = donationChampionLookup.TryGetValue(player.PlayerId, out var donationResolvedRank)
+                                            ? donationResolvedRank
+                                            : 0;
+                                        var pensionRank = pensionChampionLookup.TryGetValue(player.PlayerId, out var pensionResolvedRank)
+                                            ? pensionResolvedRank
+                                            : 0;
+                                        <tr class="border-t border-slate-200">
+                                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@(player.JoinOrder > 0 ? player.JoinOrder : "-")</td>
+                                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("players.champion.donation_short")">@(donationRank > 0 ? donationRank : "-")</td>
+                                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("players.champion.pension_short")">@(pensionRank > 0 ? pensionRank : "-")</td>
+                                            <td class="px-4 py-3" data-label="@Context.T("common.name")">
+                                                <div class="flex items-center gap-3">
+                                                    <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
+                                                         src="@ResolvePlayerAvatarPath(player.JoinOrder)"
+                                                         alt="@($"{Context.T("common.turn_order")} {(player.JoinOrder > 0 ? player.JoinOrder : 1)}")" />
+                                                    <span class="font-medium text-slate-900">@player.DisplayName</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.player_id")">@player.PlayerId</td>
+                                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.net_cashflow")">@netCashflow</td>
+                                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.happiness")">@player.HappinessPointsTotal</td>
+                                            <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
+                                                <a class="table-link"
+                                                   asp-controller="Players"
+                                                   asp-action="Details"
+                                                   asp-route-sessionId="@session.SessionId"
+                                                   asp-route-playerId="@player.PlayerId">@Context.T("common.view")</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    }
+                </div>
+            }
+        </section>
+    </div>
 </section>

@@ -64,6 +64,23 @@ public sealed class AuthRbacRulesetIntegrationTests
             await defaultComponentsByInstructor.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
         Assert.NotNull(defaultComponentsInstructorPayload);
         Assert.NotNull(defaultComponentsInstructorPayload.Items);
+        if (defaultComponentsInstructorPayload.Items.Count > 0)
+        {
+            var defaultRuleset = defaultComponentsInstructorPayload.Items[0];
+            var defaultRulesetDetailByInstructor = await SendJsonAsync(
+                HttpMethod.Get,
+                $"/api/v1/rulesets/{defaultRuleset.RulesetId}",
+                body: null,
+                instructorLogin.AccessToken);
+            Assert.Equal(HttpStatusCode.OK, defaultRulesetDetailByInstructor.StatusCode);
+
+            var defaultRulesetComponentsByInstructor = await SendJsonAsync(
+                HttpMethod.Get,
+                $"/api/v1/rulesets/{defaultRuleset.RulesetId}/components",
+                body: null,
+                instructorLogin.AccessToken);
+            Assert.Equal(HttpStatusCode.OK, defaultRulesetComponentsByInstructor.StatusCode);
+        }
 
         var defaultComponentsByPlayer = await SendJsonAsync(
             HttpMethod.Get,
@@ -166,6 +183,56 @@ public sealed class AuthRbacRulesetIntegrationTests
             body: null,
             instructorLogin.AccessToken);
         Assert.Equal(HttpStatusCode.OK, instructorActivateVersion.StatusCode);
+
+        var updateRulesetPayloadV3 = new
+        {
+            name = $"Ruleset IT {suffix} V3",
+            description = "Integration test ruleset v3",
+            config = BuildRulesetConfig(startingCash: 22)
+        };
+
+        var instructorUpdateRulesetV3 = await SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            updateRulesetPayloadV3,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, instructorUpdateRulesetV3.StatusCode);
+
+        var updatedRulesetV3 = await instructorUpdateRulesetV3.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(updatedRulesetV3);
+        Assert.True(updatedRulesetV3.Version > updatedRuleset.Version);
+
+        var playerDeleteVersion = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{updatedRulesetV3.Version}",
+            body: null,
+            playerLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.Forbidden, playerDeleteVersion.StatusCode);
+
+        var instructorDeleteActiveVersion = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{updatedRuleset.Version}",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, instructorDeleteActiveVersion.StatusCode);
+
+        var instructorDeleteDraftVersion = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{updatedRulesetV3.Version}",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.NoContent, instructorDeleteDraftVersion.StatusCode);
+
+        var rulesetDetailAfterDeleteVersion = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, rulesetDetailAfterDeleteVersion.StatusCode);
+
+        var rulesetDetailPayload = await rulesetDetailAfterDeleteVersion.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(rulesetDetailPayload);
+        Assert.DoesNotContain(rulesetDetailPayload.Versions, v => v.Version == updatedRulesetV3.Version);
 
         var createSessionPayload = new
         {

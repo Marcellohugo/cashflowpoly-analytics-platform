@@ -10,6 +10,9 @@ public sealed class RulesetListViewModel
     /// Menjalankan fungsi new sebagai bagian dari alur file ini.
     /// </summary>
     public List<RulesetListItemDto> Items { get; init; } = new();
+    /// <summary>
+    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// </summary>
     public List<DefaultRulesetComponentItemDto> DefaultComponentItems { get; init; } = new();
     public string? ErrorMessage { get; init; }
     public string? DefaultComponentsErrorMessage { get; init; }
@@ -36,5 +39,8 @@ public sealed class RulesetDetailViewModel
     public RulesetDetailResponseDto? Ruleset { get; init; }
     public RulesetComponentsResponseDto? Components { get; init; }
     public string? ErrorMessage { get; init; }
+    public string? InfoMessage { get; init; }
     public string? ComponentsErrorMessage { get; init; }
+    public bool IsReadOnly { get; init; }
+    public bool IsDefaultCatalogSource { get; init; }
 }

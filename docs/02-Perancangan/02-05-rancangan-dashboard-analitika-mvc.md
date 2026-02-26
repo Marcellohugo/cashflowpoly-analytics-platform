@@ -100,8 +100,8 @@ Tujuan aturan ini adalah mencegah bug grafik memanjang tanpa batas.
 | Ruleset | `RulesetsController` | `Index` | `/rulesets` | Daftar ruleset. |
 | Ruleset Details | `RulesetsController` | `Details` | `/rulesets/{rulesetId}` | Detail ruleset dan versi. |
 | Session Ruleset | `SessionsController` | `Ruleset` | `/sessions/{sessionId}/ruleset` | Aktivasi ruleset pada sesi. |
-| Analytics | `AnalyticsController` | `Index` | `/analytics` | Pencarian analitika per session id. |
-| Ruleset Analytics | `AnalyticsController` | `Index` | `/analytics` | Ringkasan learning/mission per ruleset dimuat dari sesi yang dipilih. |
+| Session Analytics | `SessionsController` | `Details` | `/sessions/{sessionId}` | Menampilkan ringkasan analitika sesi, pemain, dan ruleset aktif. |
+| Analytics (Legacy) | `AnalyticsController` | `Index` | `/analytics` | Route kompatibilitas; redirect ke daftar sesi atau detail sesi. |
 | Rulebook | `HomeController` | `Rulebook` | `/home/rulebook` | Konten rulebook permainan. |
 
 ---
@@ -135,7 +135,7 @@ Menampilkan:
 2. detail versi ruleset,
 3. aksi delete (instruktur saja).
 
-### 6.5 Ruleset analytics (embedded di `/analytics`)
+### 6.5 Ruleset analytics (embedded di `/sessions/{sessionId}`)
 Menampilkan:
 1. agregasi performa learning per ruleset,
 2. agregasi performa misi per ruleset,
@@ -143,7 +143,8 @@ Menampilkan:
 
 Catatan implementasi:
 - UI tidak memiliki route terpisah `/analytics/rulesets/{rulesetId}`.
-- Ringkasan ruleset dipanggil dari endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` setelah analitika sesi berhasil dimuat.
+- Route `/analytics` hanya dipertahankan sebagai kompatibilitas dan melakukan redirect ke daftar/detail sesi.
+- Ringkasan ruleset dipanggil dari endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` setelah analitika sesi pada detail sesi berhasil dimuat.
 
 ---
 
@@ -207,6 +208,6 @@ UI wajib menangani:
 UI dinyatakan siap jika:
 1. semua route utama dapat diakses sesuai role,
 2. semua panggilan API terproteksi memakai token Bearer,
-3. halaman analitika sesi dan per-ruleset berjalan,
+3. halaman detail sesi (analitika) dan per-ruleset berjalan,
 4. grafik garis tidak mengalami stretch horizontal tak terbatas,
 5. error state 401/403/422/429 tampil sesuai standar.
