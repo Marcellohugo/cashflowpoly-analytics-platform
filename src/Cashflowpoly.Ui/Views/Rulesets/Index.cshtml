@@ -69,6 +69,24 @@
             </div>
         </details>
 
+        <div class="mt-4 ux-legend" aria-label="@Context.T("rulesets.legend.title")">
+            <p class="ux-legend-title">@Context.T("rulesets.legend.title")</p>
+            <div class="ux-legend-items">
+                <span class="ux-legend-item">
+                    <span class="status-pill status-active">@Context.TRulesetStatus("ACTIVE")</span>
+                    <span class="ux-legend-note">@Context.T("rulesets.legend.active_hint")</span>
+                </span>
+                <span class="ux-legend-item">
+                    <span class="status-pill status-draft">@Context.TRulesetStatus("DRAFT")</span>
+                    <span class="ux-legend-note">@Context.T("rulesets.legend.draft_hint")</span>
+                </span>
+                <span class="ux-legend-item">
+                    <span class="status-pill status-retired">@Context.TRulesetStatus("RETIRED")</span>
+                    <span class="ux-legend-note">@Context.T("rulesets.legend.retired_hint")</span>
+                </span>
+            </div>
+        </div>
+
         <div class="mt-4 ruleset-quick-tools">
             <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.quick_tools")</p>
             <div class="ruleset-quick-tools-controls">

@@ -24,6 +24,8 @@
     var isHomeSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
         && !isRulebookSection;
     var isSessionsSection = string.Equals(currentController, "Sessions", StringComparison.OrdinalIgnoreCase);
+    var isSessionListPage = isSessionsSection && string.Equals(currentAction, "Index", StringComparison.OrdinalIgnoreCase);
+    var isSessionDetailPage = isSessionsSection && string.Equals(currentAction, "Details", StringComparison.OrdinalIgnoreCase);
     var isPlayersSection = string.Equals(currentController, "PlayerDirectory", StringComparison.OrdinalIgnoreCase)
         || string.Equals(currentController, "Players", StringComparison.OrdinalIgnoreCase);
     var isRulesetsSection = string.Equals(currentController, "Rulesets", StringComparison.OrdinalIgnoreCase);
@@ -36,6 +38,93 @@
         : string.Equals(activeRole, AuthConstants.PlayerRole, StringComparison.OrdinalIgnoreCase)
             ? Context.T("auth.role_player")
             : activeRole;
+    var showQuickStartGuide = isLoggedIn && !isAuthPage;
+    var quickStartRole = isInstructor ? "instructor" : "player";
+    var quickStartTitle = isInstructor
+        ? Context.T("layout.quickstart.instructor.title")
+        : Context.T("layout.quickstart.player.title");
+    var quickStartSubtitle = isInstructor
+        ? Context.T("layout.quickstart.instructor.subtitle")
+        : Context.T("layout.quickstart.player.subtitle");
+    var quickStartSteps = isInstructor
+        ? new[]
+        {
+            new
+            {
+                Number = 1,
+                Title = Context.T("layout.quickstart.instructor.step1.title"),
+                Description = Context.T("layout.quickstart.instructor.step1.desc"),
+                Controller = "Rulesets",
+                Action = "Index",
+                IsCurrent = isRulesetsSection
+            },
+            new
+            {
+                Number = 2,
+                Title = Context.T("layout.quickstart.instructor.step2.title"),
+                Description = Context.T("layout.quickstart.instructor.step2.desc"),
+                Controller = "Sessions",
+                Action = "Index",
+                IsCurrent = isSessionsSection
+            },
+            new
+            {
+                Number = 3,
+                Title = Context.T("layout.quickstart.instructor.step3.title"),
+                Description = Context.T("layout.quickstart.instructor.step3.desc"),
+                Controller = "PlayerDirectory",
+                Action = "Index",
+                IsCurrent = isPlayersSection
+            },
+            new
+            {
+                Number = 4,
+                Title = Context.T("layout.quickstart.instructor.step4.title"),
+                Description = Context.T("layout.quickstart.instructor.step4.desc"),
+                Controller = "Home",
+                Action = "Rulebook",
+                IsCurrent = isRulebookSection
+            }
+        }
+        : new[]
+        {
+            new
+            {
+                Number = 1,
+                Title = Context.T("layout.quickstart.player.step1.title"),
+                Description = Context.T("layout.quickstart.player.step1.desc"),
+                Controller = "Sessions",
+                Action = "Index",
+                IsCurrent = isSessionListPage
+            },
+            new
+            {
+                Number = 2,
+                Title = Context.T("layout.quickstart.player.step2.title"),
+                Description = Context.T("layout.quickstart.player.step2.desc"),
+                Controller = "Sessions",
+                Action = "Index",
+                IsCurrent = isSessionDetailPage
+            },
+            new
+            {
+                Number = 3,
+                Title = Context.T("layout.quickstart.player.step3.title"),
+                Description = Context.T("layout.quickstart.player.step3.desc"),
+                Controller = "Rulesets",
+                Action = "Index",
+                IsCurrent = isRulesetsSection
+            },
+            new
+            {
+                Number = 4,
+                Title = Context.T("layout.quickstart.player.step4.title"),
+                Description = Context.T("layout.quickstart.player.step4.desc"),
+                Controller = "Home",
+                Action = "Rulebook",
+                IsCurrent = isRulebookSection
+            }
+        };
 }
 <!DOCTYPE html>
 <html lang="@activeLanguage">
@@ -158,6 +247,52 @@
         </header>
     }
     <div class="page-shell">
+        @if (showQuickStartGuide)
+        {
+            <aside class="section-shell quickstart-shell"
+                   data-quickstart
+                   data-quickstart-role="@quickStartRole"
+                   aria-label="@Context.T("layout.quickstart.aria")">
+                <div class="quickstart-head">
+                    <div>
+                        <p class="eyebrow">@Context.T("layout.quickstart.kicker")</p>
+                        <h2 class="quickstart-title">@quickStartTitle</h2>
+                        <p class="subhead">@quickStartSubtitle</p>
+                    </div>
+                    <button class="btn-ghost btn-compact quickstart-toggle"
+                            type="button"
+                            data-quickstart-toggle
+                            data-expanded-label="@Context.T("layout.quickstart.hide")"
+                            data-collapsed-label="@Context.T("layout.quickstart.show")">
+                        @Context.T("layout.quickstart.hide")
+                    </button>
+                </div>
+                <div class="quickstart-body" data-quickstart-body>
+                    <ol class="quickstart-steps">
+                        @foreach (var step in quickStartSteps)
+                        {
+                            <li class="quickstart-step @(step.IsCurrent ? "is-current" : string.Empty)">
+                                <span class="quickstart-step-index">@step.Number</span>
+                                <div class="quickstart-step-content">
+                                    <p class="quickstart-step-title">@step.Title</p>
+                                    <p class="quickstart-step-desc">@step.Description</p>
+                                    @if (step.IsCurrent)
+                                    {
+                                        <span class="quickstart-step-flag">@Context.T("layout.quickstart.current")</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="quickstart-step-link"
+                                           asp-controller="@step.Controller"
+                                           asp-action="@step.Action">@Context.T("layout.quickstart.open_menu")</a>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ol>
+                </div>
+            </aside>
+        }
         <main id="content" role="main" class="space-y-6">
             @RenderBody()
         </main>
