@@ -153,6 +153,41 @@
 })();
 
 (() => {
+  const quickstart = document.querySelector("[data-quickstart]");
+  const toggle = document.querySelector("[data-quickstart-toggle]");
+  const body = document.querySelector("[data-quickstart-body]");
+  if (!quickstart || !toggle || !body) {
+    return;
+  }
+
+  const role = quickstart.getAttribute("data-quickstart-role") || "default";
+  const storageKey = `cfp_quickstart_collapsed_${role}`;
+  const expandedLabel = toggle.getAttribute("data-expanded-label") || "";
+  const collapsedLabel = toggle.getAttribute("data-collapsed-label") || "";
+
+  const applyState = (collapsed) => {
+    quickstart.classList.toggle("is-collapsed", collapsed);
+    body.hidden = collapsed;
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggle.textContent = collapsed ? collapsedLabel : expandedLabel;
+  };
+
+  let initiallyCollapsed = false;
+  try {
+    initiallyCollapsed = window.localStorage.getItem(storageKey) === "1";
+  } catch {}
+  applyState(initiallyCollapsed);
+
+  toggle.addEventListener("click", () => {
+    const nextCollapsed = !quickstart.classList.contains("is-collapsed");
+    applyState(nextCollapsed);
+    try {
+      window.localStorage.setItem(storageKey, nextCollapsed ? "1" : "0");
+    } catch {}
+  });
+})();
+
+(() => {
   const switches = Array.from(document.querySelectorAll(".js-auth-switch"));
   const card = document.querySelector(".auth-split-card");
 

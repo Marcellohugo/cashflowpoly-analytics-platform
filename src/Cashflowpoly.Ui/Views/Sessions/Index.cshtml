@@ -63,6 +63,24 @@
             </div>
         </details>
 
+        <div class="mt-4 ux-legend" aria-label="@Context.T("sessions.legend.title")">
+            <p class="ux-legend-title">@Context.T("sessions.legend.title")</p>
+            <div class="ux-legend-items">
+                <span class="ux-legend-item">
+                    <span class="status-pill status-active">@Context.TSessionStatus("STARTED")</span>
+                    <span class="ux-legend-note">@Context.T("sessions.legend.started_hint")</span>
+                </span>
+                <span class="ux-legend-item">
+                    <span class="status-pill status-draft">@Context.TSessionStatus("CREATED")</span>
+                    <span class="ux-legend-note">@Context.T("sessions.legend.created_hint")</span>
+                </span>
+                <span class="ux-legend-item">
+                    <span class="status-pill status-retired">@Context.TSessionStatus("ENDED")</span>
+                    <span class="ux-legend-note">@Context.T("sessions.legend.ended_hint")</span>
+                </span>
+            </div>
+        </div>
+
         <div class="mt-6 table-wrap">
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
