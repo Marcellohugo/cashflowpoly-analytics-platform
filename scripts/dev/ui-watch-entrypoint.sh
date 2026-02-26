@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# Fungsi file: Menjalankan watcher UI (Tailwind + dotnet watch) di kontainer development.
 set -eu
 
 cd /src/src/Cashflowpoly.Ui
