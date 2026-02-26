@@ -138,6 +138,12 @@
             @Model.ErrorMessage
         </div>
     }
+    @if (!string.IsNullOrWhiteSpace(Model.InfoMessage))
+    {
+        <div class="mt-4 alert alert-info" aria-live="polite">
+            @Model.InfoMessage
+        </div>
+    }
 
     @if (Model.Ruleset is not null)
     {
@@ -228,7 +234,7 @@
                         foreach (var version in Model.Ruleset.Versions.OrderByDescending(v => v.Version))
                         {
                             <tr class="border-t border-slate-200">
-                                <td class="px-4 py-3 font-medium text-slate-900">v@version.Version</td>
+                                <td class="px-4 py-3 font-medium text-slate-900">@($"v{version.Version}")</td>
                                 <td class="px-4 py-3 text-slate-600">
                                     @{
                                         var statusClass = string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
@@ -245,10 +251,25 @@
                                     <td class="px-4 py-3 text-right">
                                         @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <form method="post" asp-controller="Rulesets" asp-action="ActivateVersion" asp-route-rulesetId="@Model.Ruleset.RulesetId" asp-route-version="@version.Version">
-                                                @Html.AntiForgeryToken()
-                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
-                                            </form>
+                                            <div class="inline-flex items-center gap-2">
+                                                <form method="post"
+                                                      asp-controller="Rulesets"
+                                                      asp-action="ActivateVersion"
+                                                      asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                      asp-route-version="@version.Version">
+                                                    @Html.AntiForgeryToken()
+                                                    <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
+                                                </form>
+                                                <form method="post"
+                                                      asp-controller="Rulesets"
+                                                      asp-action="DeleteVersion"
+                                                      asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                      asp-route-version="@version.Version"
+                                                      onsubmit="return confirm('@Context.T("rulesets.delete_version_confirm")');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.delete_version")</button>
+                                                </form>
+                                            </div>
                                         }
                                     </td>
                                 }
@@ -302,7 +323,7 @@
                         </article>
                         <article class="ruleset-overview-card">
                             <p class="ruleset-overview-label">@Context.T("common.version")</p>
-                            <p class="ruleset-overview-value">v@Model.Components.Version</p>
+                            <p class="ruleset-overview-value">@($"v{Model.Components.Version}")</p>
                         </article>
                         <article class="ruleset-overview-card">
                             <p class="ruleset-overview-label">@Context.T("rulesets.components.ruleset_version_id")</p>

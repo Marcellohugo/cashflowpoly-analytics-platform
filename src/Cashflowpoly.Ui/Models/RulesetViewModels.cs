@@ -39,5 +39,6 @@ public sealed class RulesetDetailViewModel
     public RulesetDetailResponseDto? Ruleset { get; init; }
     public RulesetComponentsResponseDto? Components { get; init; }
     public string? ErrorMessage { get; init; }
+    public string? InfoMessage { get; init; }
     public string? ComponentsErrorMessage { get; init; }
 }

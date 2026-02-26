@@ -26,9 +26,9 @@ Acuan utama:
 | Ingest event + validasi domain | Sesuai | Validasi urutan, idempotensi, ruleset aktif, dan aturan event utama sudah ada. |
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
 | Manajemen ruleset (create/list/detail/delete) | Sesuai | Alur CRUD + guard ruleset terpakai sudah ada. |
-| UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API. |
+| UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API; analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` dipertahankan sebagai route kompatibilitas. |
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik tersedia untuk seluruh role. |
-| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman `/analytics`. |
+| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman detail sesi (`/sessions/{sessionId}`). |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
 | Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
 | Observability operasional | Sesuai | Endpoint observability (`GET /api/v1/observability/metrics`) tersedia dengan metrik jumlah request, error rate, avg/p95 latency per endpoint; trace ID diseragamkan pada header/log. |

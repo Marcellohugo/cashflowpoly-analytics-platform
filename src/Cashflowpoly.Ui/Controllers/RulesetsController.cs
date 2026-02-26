@@ -380,6 +380,7 @@ public sealed class RulesetsController : Controller
             Ruleset = data,
             Components = components,
             ErrorMessage = TempData[RulesetErrorTempDataKey] as string,
+            InfoMessage = TempData[RulesetInfoTempDataKey] as string,
             ComponentsErrorMessage = componentsErrorMessage
         });
     }
@@ -409,6 +410,42 @@ public sealed class RulesetsController : Controller
                 response,
                 HttpContext.T("rulesets.error.activate_version_failed"),
                 ct);
+        }
+
+        return RedirectToAction(nameof(Details), new { rulesetId });
+    }
+
+    [HttpPost("{rulesetId:guid}/versions/{version:int}/delete")]
+    /// <summary>
+    /// Menjalankan fungsi DeleteVersion sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<IActionResult> DeleteVersion(Guid rulesetId, int version, CancellationToken ct)
+    {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            return RedirectToAction(nameof(Details), new { rulesetId });
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.DeleteAsync($"api/v1/rulesets/{rulesetId}/versions/{version}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NoContent)
+        {
+            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+                response,
+                HttpContext.T("rulesets.error.delete_version_failed"),
+                ct);
+        }
+        else
+        {
+            TempData[RulesetInfoTempDataKey] = HttpContext
+                .T("rulesets.delete_version_success")
+                .Replace("{version}", $"v{version}");
         }
 
         return RedirectToAction(nameof(Details), new { rulesetId });
