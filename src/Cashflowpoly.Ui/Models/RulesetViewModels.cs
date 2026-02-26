@@ -41,4 +41,6 @@ public sealed class RulesetDetailViewModel
     public string? ErrorMessage { get; init; }
     public string? InfoMessage { get; init; }
     public string? ComponentsErrorMessage { get; init; }
+    public bool IsReadOnly { get; init; }
+    public bool IsDefaultCatalogSource { get; init; }
 }

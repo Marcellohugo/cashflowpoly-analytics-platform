@@ -50,6 +50,13 @@
     string ResolvePlayerAvatarPath(int turnOrder) => $"/images/players/{ResolvePlayerAvatarIndex(turnOrder)}.png";
 
     string F(double value) => value.ToString("0.##");
+    var detailGuideSteps = new[]
+    {
+        Context.T("sessions.detail.guide_step1"),
+        Context.T("sessions.detail.guide_step2"),
+        Context.T("sessions.detail.guide_step3"),
+        Context.T("sessions.detail.guide_step4")
+    };
 }
 
 <style>
@@ -146,7 +153,7 @@
     }
 </style>
 
-<section class="section-shell">
+<section class="section-shell session-detail-shell">
     <div class="ruleset-hero">
         <div>
             <p class="eyebrow text-emerald-700">@Context.T("sessions.analytics_title")</p>
@@ -164,6 +171,29 @@
                 <span class="status-pill @sessionStatusClass">@Context.TSessionStatus(Model.SessionStatus)</span>
             }
         </div>
+    </div>
+
+    <div class="action-toolbar mt-4">
+        <a class="btn-ghost"
+           asp-controller="Sessions"
+           asp-action="Index">@Context.T("sessions.back_to_list")</a>
+        @if (isInstructor)
+        {
+            <a class="btn-ghost"
+               asp-controller="Sessions"
+               asp-action="Ruleset"
+               asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+        }
+    </div>
+
+    <div class="session-detail-guide-shell mt-4" aria-label="@Context.T("sessions.detail.guide_title")">
+        <p class="session-detail-guide-title">@Context.T("sessions.detail.guide_title")</p>
+        <ol class="session-detail-guide">
+            @foreach (var step in detailGuideSteps)
+            {
+                <li>@step</li>
+            }
+        </ol>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -193,43 +223,48 @@
         </div>
     </details>
 
-    <div class="mt-6 metric-panel">
-        <p class="eyebrow">@Context.T("sessions.active_ruleset.title")</p>
-        @if (Model.Analytics?.RulesetId is Guid activeRulesetId)
-        {
-            <h2 class="text-xl font-semibold text-slate-900">
-                @(string.IsNullOrWhiteSpace(Model.Analytics.RulesetName) ? Context.T("common.ruleset") : Model.Analytics.RulesetName)
-            </h2>
-            <p class="mt-1 text-xs font-mono text-slate-500">@activeRulesetId</p>
-            <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.subtitle")</p>
-            <div class="mt-3 action-toolbar">
-                <a class="btn-ghost"
-                   asp-controller="Rulesets"
-                   asp-action="Details"
-                   asp-route-rulesetId="@activeRulesetId">@Context.T("common.view")</a>
-                @if (isInstructor)
-                {
-                    <a class="btn-primary"
-                       asp-controller="Sessions"
-                       asp-action="Ruleset"
-                       asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
-                }
-            </div>
-        }
-        else
-        {
-            <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.empty")</p>
-            @if (isInstructor)
+    <section class="session-detail-section mt-5">
+        <div class="ruleset-section-head">
+            <p class="ruleset-section-title">@Context.T("sessions.active_ruleset.title")</p>
+            <p class="ruleset-section-subtitle">@Context.T("sessions.detail.ruleset_subtitle")</p>
+        </div>
+        <div class="mt-3 metric-panel">
+            @if (Model.Analytics?.RulesetId is Guid activeRulesetId)
             {
+                <h2 class="text-xl font-semibold text-slate-900">
+                    @(string.IsNullOrWhiteSpace(Model.Analytics.RulesetName) ? Context.T("common.ruleset") : Model.Analytics.RulesetName)
+                </h2>
+                <p class="mt-1 text-xs font-mono text-slate-500">@activeRulesetId</p>
+                <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.subtitle")</p>
                 <div class="mt-3 action-toolbar">
-                    <a class="btn-primary"
-                       asp-controller="Sessions"
-                       asp-action="Ruleset"
-                       asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+                    <a class="btn-ghost"
+                       asp-controller="Rulesets"
+                       asp-action="Details"
+                       asp-route-rulesetId="@activeRulesetId">@Context.T("common.view")</a>
+                    @if (isInstructor)
+                    {
+                        <a class="btn-primary"
+                           asp-controller="Sessions"
+                           asp-action="Ruleset"
+                           asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+                    }
                 </div>
             }
-        }
-    </div>
+            else
+            {
+                <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.empty")</p>
+                @if (isInstructor)
+                {
+                    <div class="mt-3 action-toolbar">
+                        <a class="btn-primary"
+                           asp-controller="Sessions"
+                           asp-action="Ruleset"
+                           asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
+                    </div>
+                }
+            }
+        </div>
+    </section>
 
     @if (Model.Analytics is not null)
     {
@@ -263,28 +298,33 @@
             .ToList();
         var hasCategoryChampions = donationChampions.Count > 0 || pensionChampions.Count > 0;
 
-        <div class="mt-6 grid gap-4 md:grid-cols-5">
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.EventCount</p>
+        <section class="session-detail-section mt-5">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("sessions.detail.summary_title")</p>
+                <p class="ruleset-section-subtitle">@Context.T("sessions.detail.summary_subtitle")</p>
             </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
-                <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Analytics.Summary.CashInTotal</p>
+            <div class="mt-3 grid gap-4 md:grid-cols-5">
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.EventCount</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700">@Model.Analytics.Summary.CashInTotal</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
+                    <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Analytics.Summary.CashOutTotal</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.CashflowNetTotal</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
-                <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Analytics.Summary.CashOutTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.CashflowNetTotal</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
-                <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
-            </div>
-        </div>
 
         @if (hasCategoryChampions)
         {
@@ -342,7 +382,12 @@
             <div class="mt-6 alert alert-info">@Context.T("sessions.champion.none")</div>
         }
 
-        <div class="mt-8 table-wrap">
+        <div class="ruleset-section-head mt-6">
+            <p class="ruleset-section-title">@Context.T("sessions.detail.players_title")</p>
+            <p class="ruleset-section-subtitle">@Context.T("sessions.detail.players_subtitle")</p>
+        </div>
+
+        <div class="mt-3 table-wrap">
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
@@ -407,10 +452,21 @@
                 </tbody>
             </table>
         </div>
+        </section>
 
     }
+    else
+    {
+        <div class="session-detail-section mt-5">
+            <div class="alert alert-info" aria-live="polite">
+                @Context.T("sessions.detail.empty_analytics")
+            </div>
+        </div>
+    }
 
-    @await Html.PartialAsync("_SessionJourneySection", Model)
+    <div class="session-detail-section mt-5">
+        @await Html.PartialAsync("_SessionJourneySection", Model)
+    </div>
 </section>
 
 @section Scripts {

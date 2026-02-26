@@ -5,6 +5,7 @@
 @{
     ViewData["Title"] = Context.T("rulesets.detail_title");
     var isInstructor = Context.Session.IsInstructor();
+    var showVersionActions = isInstructor && !Model.IsReadOnly;
 }
 
 @functions {
@@ -145,32 +146,49 @@
         </div>
     }
 
-    @if (Model.Ruleset is not null)
+    @if (Model.Ruleset is null)
+    {
+        <div class="mt-4 ruleset-unified">
+            <div class="metric-panel">
+                <p class="text-sm font-semibold text-slate-800">@Context.T("rulesets.detail.empty_title")</p>
+                <p class="mt-2 text-sm text-slate-600">@Context.T("rulesets.detail.empty_body")</p>
+                <div class="mt-4">
+                    <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+                </div>
+            </div>
+        </div>
+    }
+    else
     {
         var hasConfig = Model.Ruleset.ConfigJson.HasValue && Model.Ruleset.ConfigJson.Value.ValueKind == JsonValueKind.Object;
         var cfg = hasConfig ? Model.Ruleset.ConfigJson!.Value : default;
         var latestVersion = Model.Ruleset.Versions.Count > 0 ? Model.Ruleset.Versions.Max(v => v.Version) : 0;
         var activeVersionCount = Model.Ruleset.Versions.Count(v => string.Equals(v.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase));
 
-        <div class="mt-4 ruleset-unified">
-            <div class="ruleset-unified-head">
+        <div class="mt-4 ruleset-unified ruleset-detail-shell">
+            <div class="ruleset-detail-hero">
                 <div class="ruleset-title-block">
                     <p class="text-sm text-slate-600">@Context.T("common.name")</p>
                     <p class="text-lg font-semibold text-slate-900">@Model.Ruleset.Name</p>
                     <p class="mt-2 text-sm text-slate-600">@Context.T("common.description")</p>
                     <p class="text-sm text-slate-700">@(string.IsNullOrWhiteSpace(Model.Ruleset.Description) ? "-" : Model.Ruleset.Description)</p>
                 </div>
-                <div class="ruleset-hero-meta">
-                    <span class="id-chip">@Model.Ruleset.RulesetId</span>
+                <div class="ruleset-detail-meta">
                     <span class="status-pill status-active">
                         @Context.T("rulesets.status.available")
                     </span>
+                    @if (Model.IsDefaultCatalogSource)
+                    {
+                        <span class="hint-chip">@Context.T("rulesets.detail.source_default_catalog")</span>
+                    }
+                    <p class="ruleset-detail-id-label">@Context.T("common.ruleset_id")</p>
+                    <span class="id-chip">@Model.Ruleset.RulesetId</span>
                 </div>
             </div>
 
-            <div class="action-toolbar mt-4">
+            <div class="action-toolbar mt-4 ruleset-detail-toolbar">
                 <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
-                @if (isInstructor)
+                @if (showVersionActions)
                 {
                     <a class="btn-ghost"
                        asp-controller="Rulesets"
@@ -187,7 +205,17 @@
                 }
             </div>
 
-            <div class="ruleset-overview-grid mt-5">
+            <div class="ruleset-detail-guide-shell mt-4" aria-label="@Context.T("rulesets.detail.guide_title")">
+                <p class="ruleset-detail-guide-title">@Context.T("rulesets.detail.guide_title")</p>
+                <ol class="ruleset-detail-guide">
+                    <li>@Context.T("rulesets.detail.guide_step_identity")</li>
+                    <li>@Context.T("rulesets.detail.guide_step_versions")</li>
+                    <li>@Context.T("rulesets.detail.guide_step_components")</li>
+                    <li>@Context.T("rulesets.detail.guide_step_config")</li>
+                </ol>
+            </div>
+
+            <div class="ruleset-overview-grid mt-4">
                 <article class="ruleset-overview-card">
                     <p class="ruleset-overview-label">@Context.T("rulesets.total_versions")</p>
                     <p class="ruleset-overview-value">@Model.Ruleset.Versions.Count</p>
@@ -206,17 +234,19 @@
                 </article>
             </div>
 
-            <div class="ruleset-stream-divider mt-5"></div>
-
-            <div class="mt-5 table-wrap">
-                <div class="px-4 pt-4 pb-2 text-sm font-semibold text-slate-700">@Context.T("rulesets.version_history")</div>
+            <section class="ruleset-detail-section mt-5">
+                <div class="ruleset-section-head">
+                    <p class="ruleset-section-title">@Context.T("rulesets.version_history")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.version_history_subtitle")</p>
+                </div>
+                <div class="mt-3 table-wrap">
                 <table class="w-full text-left text-sm">
                     <thead class="table-head">
                         <tr>
                             <th class="px-4 py-3">@Context.T("common.version")</th>
                             <th class="px-4 py-3">@Context.T("common.status")</th>
                             <th class="px-4 py-3">@Context.T("common.created")</th>
-                            @if (isInstructor)
+                            @if (showVersionActions)
                             {
                                 <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
                             }
@@ -226,7 +256,7 @@
                     @if (Model.Ruleset.Versions.Count == 0)
                     {
                         <tr>
-                            <td class="px-4 py-4 text-slate-500" colspan="@(isInstructor ? 4 : 3)">@Context.T("state.no_versions")</td>
+                            <td class="px-4 py-4 text-slate-500" colspan="@(showVersionActions ? 4 : 3)">@Context.T("state.no_versions")</td>
                         </tr>
                     }
                     else
@@ -246,7 +276,7 @@
                                     <span class="status-pill @statusClass">@Context.TRulesetStatus(version.Status)</span>
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                @if (isInstructor)
+                                @if (showVersionActions)
                                 {
                                     <td class="px-4 py-3 text-right">
                                         @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
@@ -278,12 +308,14 @@
                     }
                     </tbody>
                 </table>
-            </div>
+                </div>
+            </section>
 
-            <div class="ruleset-stream-divider mt-5"></div>
-
-            <div class="mt-5">
-                <p class="text-sm font-semibold text-slate-700">@Context.T("rulesets.components.title")</p>
+            <section class="ruleset-detail-section mt-5">
+                <div class="ruleset-section-head">
+                    <p class="ruleset-section-title">@Context.T("rulesets.components.title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.components.subtitle_detail")</p>
+                </div>
                 <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.components.subtitle")</p>
 
                 @if (!string.IsNullOrWhiteSpace(Model.ComponentsErrorMessage))
@@ -380,12 +412,13 @@
                         <pre class="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">@JsonSerializer.Serialize(componentCatalog!.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
                     </details>
                 }
-            </div>
+            </section>
 
-            <div class="ruleset-stream-divider mt-5"></div>
-
-            <div class="mt-5">
-                <p class="text-sm font-semibold text-slate-700">@Context.T("rulesets.config_summary")</p>
+            <section class="ruleset-detail-section mt-5">
+                <div class="ruleset-section-head">
+                    <p class="ruleset-section-title">@Context.T("rulesets.config_summary")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.config_summary_subtitle")</p>
+                </div>
                 @if (!hasConfig)
                 {
                     <div class="mt-2 alert alert-info">
@@ -525,7 +558,7 @@
                         </div>
                     </div>
                 }
-            </div>
+            </section>
         </div>
     }
 </section>

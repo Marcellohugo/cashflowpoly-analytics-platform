@@ -21,6 +21,7 @@
     var totalSessionsLabel = isInstructor ? Context.T("home.total_sessions") : Context.T("home.my_sessions");
     var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : Context.T("home.peers_in_session");
     var totalRulesetsLabel = isInstructor ? Context.T("home.ruleset_active") : Context.T("home.available_rulesets");
+    var hasWorkspaceData = Model.TotalSessions > 0 || Model.TotalPlayers > 0 || Model.TotalRulesets > 0;
 }
 
 <section class="section-shell home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
@@ -125,6 +126,15 @@
                         <p id="home-total-rulesets" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalRulesets</p>
                     </div>
                 </div>
+                @if (!hasWorkspaceData)
+                {
+                    <div class="home-empty-state" aria-live="polite">
+                        <p class="home-empty-state-title">@Context.T("home.empty_workspace.title")</p>
+                        <p class="home-empty-state-body">@(isInstructor
+                            ? Context.T("home.empty_workspace.instructor")
+                            : Context.T("home.empty_workspace.player"))</p>
+                    </div>
+                }
                 <p class="text-xs text-slate-500">@Context.T("home.auto_refresh_note")</p>
             </div>
         </div>

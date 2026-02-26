@@ -29,7 +29,17 @@
         </div>
     </div>
 
-    <div class="mt-6 ruleset-unified">
+    <div class="mt-4 ruleset-index-guide-shell" aria-label="@Context.T("rulesets.index.guide_title")">
+        <p class="ruleset-index-guide-title">@Context.T("rulesets.index.guide_title")</p>
+        <ol class="ruleset-index-guide">
+            <li>@Context.T("rulesets.index.guide_step1")</li>
+            <li>@Context.T("rulesets.index.guide_step2")</li>
+            <li>@Context.T("rulesets.index.guide_step3")</li>
+            <li>@Context.T("rulesets.index.guide_step4")</li>
+        </ol>
+    </div>
+
+    <div class="mt-6 ruleset-unified ruleset-index-shell">
         <div class="ruleset-unified-head">
             <div>
                 <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.total_rulesets")</p>
@@ -87,9 +97,13 @@
             </div>
         </div>
 
-        <div class="mt-4 ruleset-quick-tools">
-            <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.quick_tools")</p>
-            <div class="ruleset-quick-tools-controls">
+        <section class="ruleset-index-section mt-4">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("rulesets.quick_tools")</p>
+                <p class="ruleset-section-subtitle">@Context.T("rulesets.index.quick_tools_help")</p>
+            </div>
+            <div class="mt-3 ruleset-quick-tools">
+                <div class="ruleset-quick-tools-controls">
                 <div class="form-field">
                     <label class="form-label" for="ruleset-search">@Context.T("rulesets.search")</label>
                     <input id="ruleset-search"
@@ -120,8 +134,15 @@
                 <button class="btn-ghost ruleset-quick-reset"
                         type="button"
                         data-ruleset-reset>@Context.T("rulesets.clear_filter")</button>
+                </div>
             </div>
-        </div>
+        </section>
+
+        <section class="ruleset-index-section mt-4">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("rulesets.index.list_title")</p>
+                <p class="ruleset-section-subtitle">@Context.T("rulesets.index.list_subtitle")</p>
+            </div>
 
         @if (isInstructor && Model.Items.Count > 0)
         {
@@ -138,6 +159,7 @@
                 <span class="hint-chip">
                     @Context.T("rulesets.selected"): <strong class="ml-1" data-ruleset-selected-count>0</strong>
                 </span>
+                <span class="ruleset-index-bulk-hint">@Context.T("rulesets.index.bulk_hint")</span>
                 <button class="btn-primary"
                         type="submit"
                         form="ruleset-bulk-form"
@@ -249,17 +271,19 @@
                         data-ruleset-next>@Context.T("rulesets.pagination_next")</button>
             </div>
         }
+        </section>
 
         <div class="ruleset-stream-divider mt-5"></div>
 
-        <div class="mt-5">
+        <section class="ruleset-index-section mt-5">
             <div class="ruleset-unified-head">
                 <div>
-                    <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.default_components.title")</p>
-                    <p class="mt-1 text-2xl font-semibold text-slate-900">@Model.DefaultComponentItems.Count</p>
+                    <p class="ruleset-section-title">@Context.T("rulesets.default_components.title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.default_components.subtitle")</p>
                 </div>
-                <p class="text-sm text-slate-600">@Context.T("rulesets.default_components.subtitle")</p>
+                <p class="ruleset-index-count">@Model.DefaultComponentItems.Count</p>
             </div>
+            <p class="mt-2 text-xs text-slate-500">@Context.T("rulesets.index.default_help")</p>
 
             @if (!string.IsNullOrWhiteSpace(Model.DefaultComponentsErrorMessage))
             {
@@ -276,10 +300,10 @@
             }
             else
             {
-                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                <div class="mt-4 grid gap-3 md:grid-cols-2 ruleset-default-grid">
                     @foreach (var item in Model.DefaultComponentItems)
                     {
-                        <article class="metric-panel">
+                        <article class="metric-panel ruleset-default-card">
                             <div class="flex items-center justify-between gap-2">
                                 <p class="text-sm font-semibold text-slate-900">@item.Name</p>
                                 <span class="version-pill">@($"v{item.Version}")</span>
@@ -290,18 +314,23 @@
                             <p class="mt-1 text-xs text-slate-600">
                                 @Context.T("common.description"): @(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)
                             </p>
-                            <p class="mt-1 font-mono text-[11px] text-slate-500">@item.RulesetId</p>
-                            <div class="mt-3">
+                            <p class="mt-1 text-[11px] text-slate-500">
+                                @Context.T("common.ruleset_id"): <span class="font-mono">@item.RulesetId</span>
+                            </p>
+                            <p class="mt-1 text-[11px] text-slate-500">
+                                @Context.T("rulesets.components.ruleset_version_id"): <span class="font-mono">@item.RulesetVersionId</span>
+                            </p>
+                            <div class="mt-3 ruleset-default-card-action">
                                 <a class="table-link"
                                    asp-controller="Rulesets"
-                                   asp-action="Details"
-                                   asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.default_components.open_detail")</a>
+                                   asp-action="DefaultComponentDetails"
+                                   asp-route-rulesetVersionId="@item.RulesetVersionId">@Context.T("rulesets.default_components.open_detail")</a>
                             </div>
                         </article>
                     }
                 </div>
             }
-        </div>
+        </section>
     </div>
 </section>
 
