@@ -276,6 +276,63 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
+    /// Menjalankan fungsi CountRulesetVersionsAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<int> CountRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select count(*)
+            from ruleset_versions
+            where ruleset_id = @rulesetId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi IsRulesetVersionUsedAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<bool> IsRulesetVersionUsedAsync(Guid rulesetVersionId, CancellationToken ct)
+    {
+        const string sql = """
+            select 1
+            from (
+                select ruleset_version_id from session_ruleset_activations
+                union all
+                select ruleset_version_id from events
+                union all
+                select ruleset_version_id from metric_snapshots
+            ) refs
+            where refs.ruleset_version_id = @rulesetVersionId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var result = await conn.ExecuteScalarAsync<int?>(
+            new CommandDefinition(sql, new { rulesetVersionId }, cancellationToken: ct));
+        return result.HasValue;
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi DeleteRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<bool> DeleteRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
+    {
+        const string sql = """
+            delete from ruleset_versions
+            where ruleset_id = @rulesetId
+              and version = @version
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var affected = await conn.ExecuteAsync(
+            new CommandDefinition(sql, new { rulesetId, version }, cancellationToken: ct));
+        return affected > 0;
+    }
+
+    /// <summary>
     /// Menjalankan fungsi ListRulesetsByInstructorAsync sebagai bagian dari alur file ini.
     /// </summary>
     public async Task<List<RulesetListItem>> ListRulesetsByInstructorAsync(Guid instructorUserId, CancellationToken ct)

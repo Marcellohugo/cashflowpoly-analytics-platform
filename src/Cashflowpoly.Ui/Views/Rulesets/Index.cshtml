@@ -179,7 +179,7 @@
                             }
                             <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.Name</td>
                             <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.ruleset_id")">@item.RulesetId</td>
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">v@item.LatestVersion</span></td>
+                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">@($"v{item.LatestVersion}")</span></td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
                                 <a class="table-link"
                                    asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
@@ -264,7 +264,7 @@
                         <article class="metric-panel">
                             <div class="flex items-center justify-between gap-2">
                                 <p class="text-sm font-semibold text-slate-900">@item.Name</p>
-                                <span class="version-pill">v@item.Version</span>
+                                <span class="version-pill">@($"v{item.Version}")</span>
                             </div>
                             <p class="mt-2 text-xs text-slate-600">
                                 @Context.T("common.mode"): @Context.TRulesetMode(item.Mode)

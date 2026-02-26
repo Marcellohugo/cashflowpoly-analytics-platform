@@ -152,6 +152,75 @@ public sealed class RulesetsController : ControllerBase
         return Ok(new CreateRulesetResponse(rulesetId, version));
     }
 
+    [HttpDelete("{rulesetId:guid}/versions/{version:int}")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    /// <summary>
+    /// Menghapus versi ruleset tertentu jika aman untuk dihapus.
+    /// </summary>
+    public async Task<IActionResult> DeleteRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        if (version < 1)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Path version tidak valid",
+                new ErrorDetail("version", "OUT_OF_RANGE")));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var selectedVersion = await _rulesets.GetRulesetVersionAsync(rulesetId, version, ct);
+        if (selectedVersion is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        var totalVersions = await _rulesets.CountRulesetVersionsAsync(rulesetId, ct);
+        if (totalVersions <= 1)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Versi terakhir tidak dapat dihapus. Hapus ruleset jika tidak lagi diperlukan."));
+        }
+
+        if (string.Equals(selectedVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Versi aktif tidak dapat dihapus. Aktifkan versi lain terlebih dahulu."));
+        }
+
+        var isUsed = await _rulesets.IsRulesetVersionUsedAsync(selectedVersion.RulesetVersionId, ct);
+        if (isUsed)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Versi ruleset sudah dipakai pada sesi/event sehingga tidak dapat dihapus."));
+        }
+
+        var deleted = await _rulesets.DeleteRulesetVersionAsync(rulesetId, version, ct);
+        if (!deleted)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        return NoContent();
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(RulesetListResponse), StatusCodes.Status200OK)]
     /// <summary>

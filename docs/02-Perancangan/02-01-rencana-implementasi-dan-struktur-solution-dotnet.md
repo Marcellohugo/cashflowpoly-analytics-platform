@@ -118,7 +118,7 @@ Tanggung jawab:
 3. players details,
 4. ruleset list/details/create,
 5. activation ruleset,
-6. halaman analytics dan rulebook.
+6. halaman detail sesi (analitika), route kompatibilitas `/analytics`, dan rulebook.
 
 ### Tahap I - Pengujian dan Operasional
 1. `dotnet build` API dan UI,

@@ -136,9 +136,6 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/tailwind.config.js | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file tailwind.config.js. | - |
 | src/Cashflowpoly.Ui/Views/_ViewImports.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewImports.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/_ViewStart.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewStart.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Analytics/_AnalyticsChartsScript.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _AnalyticsChartsScript.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Analytics/_RulesetAnalyticsSection.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _RulesetAnalyticsSection.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Analytics/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Auth/Login.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Login.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Auth/Register.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Register.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Home/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |

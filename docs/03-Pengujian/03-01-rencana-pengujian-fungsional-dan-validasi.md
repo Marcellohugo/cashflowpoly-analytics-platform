@@ -606,7 +606,7 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 
 ### 14.2B Web UI smoke test
 1. Login ke UI menggunakan akun valid.
-2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/analytics`, `/home/rulebook`) dapat diakses tanpa error.
+2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/home/rulebook`) dapat diakses tanpa error, dan route kompatibilitas `/analytics` melakukan redirect yang benar ke halaman sesi.
 3. Verifikasi Swagger API (`/swagger`) dapat diakses.
 
 ### 14.3 Definition of Done (DoD)
