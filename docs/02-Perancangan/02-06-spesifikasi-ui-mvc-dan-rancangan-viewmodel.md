@@ -60,7 +60,6 @@ Cashflowpoly.Ui/
     RulebookViewModels.cs
     RulesetViewModels.cs
   Views/
-    Analytics/
     Auth/
     Home/
     Players/
@@ -88,7 +87,7 @@ Cashflowpoly.Ui/
 | Player details | `/sessions/{sessionId}/players/{playerId}` | `PlayersController` | Login |
 | Rulesets | `/rulesets` | `RulesetsController` | Login |
 | Ruleset details | `/rulesets/{rulesetId}` | `RulesetsController` | Login |
-| Analytics | `/analytics` | `AnalyticsController` | Login |
+| Analytics (legacy route) | `/analytics` | `AnalyticsController` | Login (redirect kompatibilitas) |
 | Rulebook | `/home/rulebook` | `HomeController` | Login |
 
 ---
@@ -158,4 +157,4 @@ Standar penanganan error UI mengikuti `docs/02-Perancangan/02-05-rancangan-dashb
 2. Semua call API terproteksi memakai token Bearer.
 3. Alur login/register/logout berjalan.
 4. Aksi instruktur-only tidak bisa diakses player.
-5. Halaman analitika dan ruleset menampilkan error state dengan benar.
+5. Halaman detail sesi (analitika) dan ruleset menampilkan error state dengan benar.

@@ -1181,6 +1181,13 @@
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
     var playerTurnOrder = Model.Summary?.JoinOrder ?? 1;
     var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
+    var detailGuideSteps = new[]
+    {
+        Context.T("players.detail.guide_step1"),
+        Context.T("players.detail.guide_step2"),
+        Context.T("players.detail.guide_step3"),
+        Context.T("players.detail.guide_step4")
+    };
 }
 
 <section class="section-shell player-detail-overhaul">
@@ -1203,6 +1210,26 @@
                 <span class="player-detail-meta__item">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
             }
         </div>
+    </div>
+
+    <div class="action-toolbar mt-4 player-detail-toolbar">
+        <a class="btn-ghost"
+           asp-controller="PlayerDirectory"
+           asp-action="Index">@Context.T("players.detail.nav_back_players")</a>
+        <a class="btn-ghost"
+           asp-controller="Sessions"
+           asp-action="Details"
+           asp-route-sessionId="@Model.SessionId">@Context.T("players.detail.nav_back_session")</a>
+    </div>
+
+    <div class="player-detail-guide-shell mt-4" aria-label="@Context.T("players.detail.guide_title")">
+        <p class="player-detail-guide-title">@Context.T("players.detail.guide_title")</p>
+        <ol class="player-detail-guide">
+            @foreach (var step in detailGuideSteps)
+            {
+                <li>@step</li>
+            }
+        </ol>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -1318,7 +1345,7 @@
     @if (!hasGameplayData)
     {
         <div class="mt-6 alert alert-info" aria-live="polite">
-            @Context.T("state.no_player_data")
+            @Context.T("players.detail.empty_analytics")
         </div>
     }
     else

@@ -4,9 +4,12 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 
 | Path | Kategori | Mode | Fungsi File | Catatan |
 | --- | --- | --- | --- | --- |
+| .env.dev.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.dev.example. | - |
 | .env.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.example. | - |
+| .env.prod.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.prod.example. | - |
 | .github/workflows/cd.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file cd.yml. | - |
 | .github/workflows/ci.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file ci.yml. | - |
+| .gitattributes | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file .gitattributes. | Konfigurasi atribut Git lintas platform. |
 | .gitignore | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .gitignore. | - |
 | Cashflowpoly.sln | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.sln. | File solusi dikelola tooling. |
 | cloudflared/config.yml | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file config.yml. | - |
@@ -54,6 +57,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | postman/Cashflowpoly.postman_collection.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.postman_collection.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | README.md | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file README.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | scripts/audit/verify-file-function-coverage.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file verify-file-function-coverage.ps1. | - |
+| scripts/dev/ui-watch-entrypoint.sh | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file ui-watch-entrypoint.sh. | - |
 | scripts/perf/run-load-test.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file run-load-test.ps1. | - |
 | src/Cashflowpoly.Api/appsettings.Development.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.Development.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | src/Cashflowpoly.Api/appsettings.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
@@ -78,6 +82,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Api/Data/SessionRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionRepository.cs. | - |
 | src/Cashflowpoly.Api/Data/UserRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file UserRepository.cs. | - |
 | src/Cashflowpoly.Api/Dockerfile | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile. | Tidak aman/kurang relevan diberi komentar inline. |
+| src/Cashflowpoly.Api/Dockerfile.dev | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile.dev. | Tidak aman/kurang relevan diberi komentar inline. |
 | src/Cashflowpoly.Api/Domain/RulesetConfig.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetConfig.cs. | - |
 | src/Cashflowpoly.Api/Infrastructure/DatabaseHealthCheck.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file DatabaseHealthCheck.cs. | - |
 | src/Cashflowpoly.Api/Infrastructure/OperationalMetricsTracker.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file OperationalMetricsTracker.cs. | - |
@@ -109,6 +114,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/Controllers/RulesetsController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetsController.cs. | - |
 | src/Cashflowpoly.Ui/Controllers/SessionsController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionsController.cs. | - |
 | src/Cashflowpoly.Ui/Dockerfile | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile. | Tidak aman/kurang relevan diberi komentar inline. |
+| src/Cashflowpoly.Ui/Dockerfile.dev | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile.dev. | Tidak aman/kurang relevan diberi komentar inline. |
 | src/Cashflowpoly.Ui/Infrastructure/ApiAuthHelper.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiAuthHelper.cs. | - |
 | src/Cashflowpoly.Ui/Infrastructure/AuthSessionExtensions.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthSessionExtensions.cs. | - |
 | src/Cashflowpoly.Ui/Infrastructure/BearerTokenHandler.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file BearerTokenHandler.cs. | - |
@@ -130,9 +136,6 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/tailwind.config.js | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file tailwind.config.js. | - |
 | src/Cashflowpoly.Ui/Views/_ViewImports.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewImports.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/_ViewStart.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewStart.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Analytics/_AnalyticsChartsScript.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _AnalyticsChartsScript.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Analytics/_RulesetAnalyticsSection.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _RulesetAnalyticsSection.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Analytics/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Auth/Login.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Login.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Auth/Register.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Register.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Home/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
@@ -154,6 +157,10 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/wwwroot/css/tailwind.input.css | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file tailwind.input.css. | - |
 | src/Cashflowpoly.Ui/wwwroot/images/cashflowpoly-favicon.ico | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file cashflowpoly-favicon.ico. | Aset biner. |
 | src/Cashflowpoly.Ui/wwwroot/images/images.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file images.jpg. | Aset biner. |
+| src/Cashflowpoly.Ui/wwwroot/images/players/1.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 1.png. | Aset biner. |
+| src/Cashflowpoly.Ui/wwwroot/images/players/2.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 2.png. | Aset biner. |
+| src/Cashflowpoly.Ui/wwwroot/images/players/3.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 3.png. | Aset biner. |
+| src/Cashflowpoly.Ui/wwwroot/images/players/4.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 4.png. | Aset biner. |
 | src/Cashflowpoly.Ui/wwwroot/images/rulebook/aksi-donasi-emas.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file aksi-donasi-emas.jpg. | Aset biner. |
 | src/Cashflowpoly.Ui/wwwroot/images/rulebook/aksi-kebutuhan-freelance.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file aksi-kebutuhan-freelance.jpg. | Aset biner. |
 | src/Cashflowpoly.Ui/wwwroot/images/rulebook/aksi-risiko-asuransi.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file aksi-risiko-asuransi.jpg. | Aset biner. |
