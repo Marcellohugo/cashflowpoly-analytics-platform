@@ -2708,6 +2708,7 @@ body > footer .footer-shell {
 
 .players-index-shell {
     padding: 1.08rem;
+    min-width: 0;
 }
 
 .players-index-guide-shell {
@@ -2744,6 +2745,7 @@ body > footer .footer-shell {
 .players-index-section {
     padding-top: 0.92rem;
     border-top: 1px dashed #9ddfd7;
+    min-width: 0;
 }
 
 .players-stats-grid {
@@ -2755,6 +2757,7 @@ body > footer .footer-shell {
 .players-session-stack {
     display: grid;
     gap: 0.78rem;
+    min-width: 0;
 }
 
 .players-session-card {
@@ -2763,6 +2766,9 @@ body > footer .footer-shell {
     background: rgba(255, 255, 255, 0.82);
     padding: 0.76rem 0.78rem 0.84rem;
     box-shadow: 0 8px 18px rgba(20, 99, 134, 0.08);
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .players-session-summary {
@@ -2792,6 +2798,7 @@ body > footer .footer-shell {
 
 .players-session-card .table-wrap {
     background: rgba(255, 255, 255, 0.9) !important;
+    max-width: 100%;
 }
 
 .session-detail-shell {
