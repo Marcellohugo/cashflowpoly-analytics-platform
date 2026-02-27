@@ -474,7 +474,10 @@
                     return WithSource("players.details.formula.raw.per_turn_aggregate");
                 }
 
-                return WithSource("players.details.formula.raw.direct_aggregate");
+                return string.Format(
+                    CultureInfo.CurrentCulture,
+                    Context.T("players.details.source_line_raw_template"),
+                    sourcePath);
             }
 
             if (key.Contains("happiness_points"))

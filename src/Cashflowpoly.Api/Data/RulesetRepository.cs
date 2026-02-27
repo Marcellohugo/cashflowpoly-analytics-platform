@@ -342,7 +342,6 @@ public sealed class RulesetRepository
                 select
                     rv.ruleset_id,
                     rv.version as latest_version,
-                    rv.status,
                     row_number() over (
                         partition by rv.ruleset_id
                         order by rv.version desc
@@ -353,7 +352,14 @@ public sealed class RulesetRepository
                 r.ruleset_id,
                 r.name,
                 coalesce(v.latest_version, 0) as latest_version,
-                coalesce(v.status, 'UNKNOWN') as status
+                case when exists (
+                    select 1
+                    from ruleset_versions rv_used
+                    join session_ruleset_activations sra on sra.ruleset_version_id = rv_used.ruleset_version_id
+                    join sessions s on s.session_id = sra.session_id
+                    where rv_used.ruleset_id = r.ruleset_id
+                      and s.instructor_user_id = @instructorUserId
+                ) then 'ACTIVE' else 'DRAFT' end as status
             from rulesets r
             left join latest_versions v
                 on v.ruleset_id = r.ruleset_id and v.rn = 1
@@ -377,7 +383,6 @@ public sealed class RulesetRepository
                 select
                     rv.ruleset_id,
                     rv.version as latest_version,
-                    rv.status,
                     row_number() over (
                         partition by rv.ruleset_id
                         order by rv.version desc
@@ -388,7 +393,7 @@ public sealed class RulesetRepository
                 r.ruleset_id,
                 r.name,
                 coalesce(v.latest_version, 0) as latest_version,
-                coalesce(v.status, 'UNKNOWN') as status
+                'ACTIVE' as status
             from rulesets r
             left join latest_versions v
                 on v.ruleset_id = r.ruleset_id and v.rn = 1

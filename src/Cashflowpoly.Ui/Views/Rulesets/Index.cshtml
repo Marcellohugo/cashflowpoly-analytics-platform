@@ -83,16 +83,12 @@
             <p class="ux-legend-title">@Context.T("rulesets.legend.title")</p>
             <div class="ux-legend-items">
                 <span class="ux-legend-item">
-                    <span class="status-pill status-active">@Context.TRulesetStatus("ACTIVE")</span>
+                    <span class="status-pill status-active">@Context.T("rulesets.usage_status.active")</span>
                     <span class="ux-legend-note">@Context.T("rulesets.legend.active_hint")</span>
                 </span>
                 <span class="ux-legend-item">
-                    <span class="status-pill status-draft">@Context.TRulesetStatus("DRAFT")</span>
+                    <span class="status-pill status-draft">@Context.T("rulesets.usage_status.draft")</span>
                     <span class="ux-legend-note">@Context.T("rulesets.legend.draft_hint")</span>
-                </span>
-                <span class="ux-legend-item">
-                    <span class="status-pill status-retired">@Context.TRulesetStatus("RETIRED")</span>
-                    <span class="ux-legend-note">@Context.T("rulesets.legend.retired_hint")</span>
                 </span>
             </div>
         </div>
@@ -229,8 +225,13 @@
                                         : string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
                                             ? "status-draft"
                                             : "status-retired";
+                                    var statusLabel = string.Equals(item.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+                                        ? Context.T("rulesets.usage_status.active")
+                                        : string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
+                                            ? Context.T("rulesets.usage_status.draft")
+                                            : Context.T("rulesets.usage_status.unknown");
                                 }
-                                <span class="status-pill @statusClass">@Context.TRulesetStatus(item.Status)</span>
+                                <span class="status-pill @statusClass">@statusLabel</span>
                             </td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
                                 <a class="table-link"
@@ -244,10 +245,6 @@
                                            asp-controller="Rulesets"
                                            asp-action="Edit"
                                            asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.edit")</a>
-                                        <a class="table-link"
-                                           asp-controller="Rulesets"
-                                           asp-action="Create"
-                                           asp-route-templateRulesetId="@item.RulesetId">@Context.T("rulesets.duplicate")</a>
                                         <form method="post"
                                               asp-controller="Rulesets"
                                               asp-action="Delete"
