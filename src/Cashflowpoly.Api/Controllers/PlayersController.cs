@@ -5,6 +5,7 @@ using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -192,6 +193,7 @@ public sealed class PlayersController : ControllerBase
 
         var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
         var requiresInstructorOrder = false;
+        var instructorOrderLookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (activeRulesetVersionId.HasValue)
         {
             var activeRulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
@@ -200,15 +202,8 @@ public sealed class PlayersController : ControllerBase
                 activeConfig?.PlayerOrdering == PlayerOrdering.InstructorOrder)
             {
                 requiresInstructorOrder = true;
+                instructorOrderLookup = BuildInstructorOrderLookup(activeRulesetVersion.ConfigJson);
             }
-        }
-
-        if (requiresInstructorOrder && !request.JoinOrder.HasValue)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                "Ruleset mewajibkan join_order saat menambah pemain ke sesi"));
         }
 
         PlayerDb? player = null;
@@ -227,6 +222,35 @@ public sealed class PlayersController : ControllerBase
         }
 
         var playerId = player.PlayerId;
+        var resolvedJoinOrder = request.JoinOrder;
+        if (requiresInstructorOrder && !resolvedJoinOrder.HasValue)
+        {
+            var requestedUsername = string.IsNullOrWhiteSpace(request.Username)
+                ? null
+                : request.Username.Trim();
+            if (string.IsNullOrWhiteSpace(requestedUsername))
+            {
+                var usernameMap = await _users.GetUsernamesByPlayerIdsAsync(new[] { playerId }, ct);
+                requestedUsername = usernameMap.TryGetValue(playerId, out var mappedUsername)
+                    ? mappedUsername
+                    : null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(requestedUsername) &&
+                instructorOrderLookup.TryGetValue(requestedUsername.Trim(), out var inferredJoinOrder))
+            {
+                resolvedJoinOrder = inferredJoinOrder;
+            }
+        }
+
+        if (requiresInstructorOrder && !resolvedJoinOrder.HasValue)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset mewajibkan join_order atau username yang terdaftar pada slot Player 1-4"));
+        }
+
         var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, playerId, ct);
         if (!alreadyInSession)
         {
@@ -245,7 +269,7 @@ public sealed class PlayersController : ControllerBase
             sessionId,
             playerId,
             role,
-            request.JoinOrder,
+            resolvedJoinOrder,
             ct);
 
         return Ok(new AddSessionPlayerResponse(playerId, joinOrder));
@@ -258,5 +282,54 @@ public sealed class PlayersController : ControllerBase
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdRaw, out userId);
+    }
+
+    /// <summary>
+    /// Menjalankan fungsi BuildInstructorOrderLookup sebagai bagian dari alur file ini.
+    /// </summary>
+    private static Dictionary<string, int> BuildInstructorOrderLookup(string configJson)
+    {
+        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(configJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("instructor_player_usernames", out var slotArray) ||
+                slotArray.ValueKind != JsonValueKind.Array)
+            {
+                return result;
+            }
+
+            var position = 1;
+            foreach (var item in slotArray.EnumerateArray())
+            {
+                if (position > SessionRules.MaxPlayersPerSession)
+                {
+                    break;
+                }
+
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var username = item.GetString();
+                    if (!string.IsNullOrWhiteSpace(username))
+                    {
+                        var normalized = username.Trim();
+                        if (!result.ContainsKey(normalized))
+                        {
+                            result[normalized] = position;
+                        }
+                    }
+                }
+
+                position++;
+            }
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        return result;
     }
 }

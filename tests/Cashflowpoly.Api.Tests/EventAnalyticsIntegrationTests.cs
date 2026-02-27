@@ -405,12 +405,18 @@ public sealed class EventAnalyticsIntegrationTests
         var instructorUsername = $"it_evt_manual_order_instructor_{suffix}";
         const string instructorPassword = "IntegrationManualOrderInstructorPass!123";
         var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+        var firstPlayerUsername = $"it_evt_manual_order_player_1_{suffix}";
+        var secondPlayerUsername = $"it_evt_manual_order_player_2_{suffix}";
+        var thirdPlayerUsername = $"it_evt_manual_order_player_3_{suffix}";
 
         var createRulesetPayload = new
         {
             name = $"Ruleset Manual Order IT {suffix}",
             description = "Integration instructor manual order by username",
-            config = BuildRulesetConfig(startingCash: 20, playerOrdering: "INSTRUCTOR_ORDER")
+            config = BuildRulesetConfig(
+                startingCash: 20,
+                playerOrdering: "INSTRUCTOR_ORDER",
+                instructorPlayerUsernames: new[] { thirdPlayerUsername, firstPlayerUsername, secondPlayerUsername, "" })
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -441,7 +447,12 @@ public sealed class EventAnalyticsIntegrationTests
         var players = new List<(string Username, Guid PlayerId)>();
         for (var i = 1; i <= 3; i++)
         {
-            var username = $"it_evt_manual_order_player_{i}_{suffix}";
+            var username = i switch
+            {
+                1 => firstPlayerUsername,
+                2 => secondPlayerUsername,
+                _ => thirdPlayerUsername
+            };
             var createPlayerResponse = await SendJsonAsync(
                 HttpMethod.Post,
                 "/api/v1/players",
@@ -466,21 +477,21 @@ public sealed class EventAnalyticsIntegrationTests
         var addFirst = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/players",
-            new { username = firstPlayer.Username, role = "PLAYER", join_order = 2 },
+            new { username = firstPlayer.Username, role = "PLAYER" },
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, addFirst.StatusCode);
 
         var addSecond = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/players",
-            new { username = secondPlayer.Username, role = "PLAYER", join_order = 3 },
+            new { username = secondPlayer.Username, role = "PLAYER" },
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, addSecond.StatusCode);
 
         var addThird = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/players",
-            new { username = thirdPlayer.Username, role = "PLAYER", join_order = 1 },
+            new { username = thirdPlayer.Username, role = "PLAYER" },
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, addThird.StatusCode);
 
@@ -849,7 +860,10 @@ public sealed class EventAnalyticsIntegrationTests
     /// <summary>
     /// Menjalankan fungsi BuildRulesetConfig sebagai bagian dari alur file ini.
     /// </summary>
-    private static object BuildRulesetConfig(int startingCash, string playerOrdering = "JOIN_ORDER")
+    private static object BuildRulesetConfig(
+        int startingCash,
+        string playerOrdering = "JOIN_ORDER",
+        string[]? instructorPlayerUsernames = null)
     {
         return new
         {
@@ -857,6 +871,7 @@ public sealed class EventAnalyticsIntegrationTests
             actions_per_turn = 2,
             starting_cash = startingCash,
             player_ordering = playerOrdering,
+            instructor_player_usernames = instructorPlayerUsernames ?? Array.Empty<string>(),
             weekday_rules = new
             {
                 friday = new { feature = "DONATION", enabled = true },

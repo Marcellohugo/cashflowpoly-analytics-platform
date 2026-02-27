@@ -96,15 +96,35 @@
                         <label class="form-label" for="cfg-cash">@Context.T("rulesets.form.starting_cash")</label>
                         <input id="cfg-cash" type="number" min="0" class="form-input" value="20" />
                     </div>
-                    <div>
-                        <label class="form-label" for="cfg-player-ordering">@Context.T("rulesets.form.player_ordering")</label>
-                        <select id="cfg-player-ordering" class="form-input">
-                            <option value="JOIN_ORDER">@Context.T("rulesets.form.player_ordering_join_order")</option>
-                            <option value="INSTRUCTOR_ORDER">@Context.T("rulesets.form.player_ordering_instructor_order")</option>
-                            <option value="EVENT_SEQUENCE">@Context.T("rulesets.form.player_ordering_event_sequence")</option>
-                            <option value="PLAYER_ID">@Context.T("rulesets.form.player_ordering_player_id")</option>
-                            <option value="USERNAME">@Context.T("rulesets.form.player_ordering_username")</option>
-                        </select>
+                    <div class="md:col-span-2">
+                        <label class="form-label">@Context.T("rulesets.form.player_ordering")</label>
+                        <input type="text"
+                               readonly
+                               class="form-input"
+                               value="@Context.T("rulesets.form.player_ordering_instructor_order")" />
+                        <input id="cfg-player-ordering" type="hidden" value="INSTRUCTOR_ORDER" />
+                        <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.player_ordering_fixed_hint")</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="form-label">@Context.T("rulesets.form.player_slots_title")</label>
+                        <div class="grid gap-3 md:grid-cols-2 mt-2">
+                            <div>
+                                <label class="form-label" for="cfg-player1-username">@Context.T("rulesets.form.player_slot_1_username")</label>
+                                <input id="cfg-player1-username" type="text" class="form-input" placeholder="player1" />
+                            </div>
+                            <div>
+                                <label class="form-label" for="cfg-player2-username">@Context.T("rulesets.form.player_slot_2_username")</label>
+                                <input id="cfg-player2-username" type="text" class="form-input" placeholder="player2" />
+                            </div>
+                            <div>
+                                <label class="form-label" for="cfg-player3-username">@Context.T("rulesets.form.player_slot_3_username")</label>
+                                <input id="cfg-player3-username" type="text" class="form-input" placeholder="player3" />
+                            </div>
+                            <div>
+                                <label class="form-label" for="cfg-player4-username">@Context.T("rulesets.form.player_slot_4_username")</label>
+                                <input id="cfg-player4-username" type="text" class="form-input" placeholder="player4" />
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label class="form-label" for="cfg-freelance-income">@Context.T("rulesets.form.freelance_income")</label>
@@ -195,6 +215,7 @@
                 const v = parseInt(getEl(id)?.value ?? "", 10);
                 return Number.isFinite(v) ? v : fallback;
             };
+            const toText = (id) => `${getEl(id)?.value ?? ""}`.trim();
             const toBool = (id) => !!getEl(id)?.checked;
             const configTextArea = getEl("ConfigJson");
             const modePresets = {
@@ -222,7 +243,13 @@
                 mode: getEl("cfg-mode")?.value ?? "PEMULA",
                 actions_per_turn: toInt("cfg-actions", 2),
                 starting_cash: toInt("cfg-cash", 20),
-                player_ordering: getEl("cfg-player-ordering")?.value ?? "JOIN_ORDER",
+                player_ordering: "INSTRUCTOR_ORDER",
+                instructor_player_usernames: [
+                    toText("cfg-player1-username"),
+                    toText("cfg-player2-username"),
+                    toText("cfg-player3-username"),
+                    toText("cfg-player4-username")
+                ],
                 weekday_rules: {
                     friday: { feature: "DONATION", enabled: toBool("cfg-friday") },
                     saturday: { feature: "GOLD_TRADE", enabled: toBool("cfg-saturday") },
@@ -257,10 +284,13 @@
                 getEl("cfg-mode").value = cfg.mode ?? "PEMULA";
                 getEl("cfg-actions").value = cfg.actions_per_turn ?? 2;
                 getEl("cfg-cash").value = cfg.starting_cash ?? 20;
-                const playerOrdering = `${cfg.player_ordering ?? "JOIN_ORDER"}`.toUpperCase();
-                getEl("cfg-player-ordering").value = ["JOIN_ORDER", "INSTRUCTOR_ORDER", "EVENT_SEQUENCE", "PLAYER_ID", "USERNAME"].includes(playerOrdering)
-                    ? playerOrdering
-                    : "JOIN_ORDER";
+                const slotUsernames = Array.isArray(cfg.instructor_player_usernames)
+                    ? cfg.instructor_player_usernames
+                    : [];
+                getEl("cfg-player1-username").value = typeof slotUsernames[0] === "string" ? slotUsernames[0] : "";
+                getEl("cfg-player2-username").value = typeof slotUsernames[1] === "string" ? slotUsernames[1] : "";
+                getEl("cfg-player3-username").value = typeof slotUsernames[2] === "string" ? slotUsernames[2] : "";
+                getEl("cfg-player4-username").value = typeof slotUsernames[3] === "string" ? slotUsernames[3] : "";
                 getEl("cfg-freelance-income").value = cfg.freelance?.income ?? 1;
                 getEl("cfg-friday").checked = !!cfg.weekday_rules?.friday?.enabled;
                 getEl("cfg-saturday").checked = !!cfg.weekday_rules?.saturday?.enabled;
