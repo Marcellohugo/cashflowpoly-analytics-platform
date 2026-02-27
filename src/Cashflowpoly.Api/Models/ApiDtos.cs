@@ -119,7 +119,15 @@ public sealed record RulesetListItem(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("latest_version")] int LatestVersion,
-    [property: JsonPropertyName("status")] string Status);
+    [property: JsonPropertyName("status")] string Status)
+{
+    // Backward-compatible constructor for hot-reload/watch sessions compiled
+    // against the previous 3-argument signature.
+    public RulesetListItem(Guid rulesetId, string name, int latestVersion)
+        : this(rulesetId, name, latestVersion, "UNKNOWN")
+    {
+    }
+}
 
 /// <summary>
 /// Menyatakan peran utama tipe RulesetListResponse pada modul ini.
