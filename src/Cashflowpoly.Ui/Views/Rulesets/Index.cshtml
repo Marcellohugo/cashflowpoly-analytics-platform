@@ -4,7 +4,7 @@
 @{
     ViewData["Title"] = Context.T("nav.ruleset");
     var isInstructor = Context.Session.IsInstructor();
-    var tableColumnCount = isInstructor ? 6 : 4;
+    var tableColumnCount = isInstructor ? 7 : 5;
     var flashError = ViewData["ruleset_error"] as string;
     var flashInfo = ViewData["ruleset_info"] as string;
 }
@@ -83,16 +83,12 @@
             <p class="ux-legend-title">@Context.T("rulesets.legend.title")</p>
             <div class="ux-legend-items">
                 <span class="ux-legend-item">
-                    <span class="status-pill status-active">@Context.TRulesetStatus("ACTIVE")</span>
+                    <span class="status-pill status-active">@Context.T("rulesets.usage_status.active")</span>
                     <span class="ux-legend-note">@Context.T("rulesets.legend.active_hint")</span>
                 </span>
                 <span class="ux-legend-item">
-                    <span class="status-pill status-draft">@Context.TRulesetStatus("DRAFT")</span>
+                    <span class="status-pill status-draft">@Context.T("rulesets.usage_status.draft")</span>
                     <span class="ux-legend-note">@Context.T("rulesets.legend.draft_hint")</span>
-                </span>
-                <span class="ux-legend-item">
-                    <span class="status-pill status-retired">@Context.TRulesetStatus("RETIRED")</span>
-                    <span class="ux-legend-note">@Context.T("rulesets.legend.retired_hint")</span>
                 </span>
             </div>
         </div>
@@ -183,6 +179,7 @@
                         <th class="px-4 py-3">@Context.T("common.name")</th>
                         <th class="px-4 py-3">@Context.T("common.ruleset_id")</th>
                         <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("common.status")</th>
                         <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
                         @if (isInstructor)
                         {
@@ -207,6 +204,7 @@
                             data-ruleset-row
                             data-name="@item.Name.ToLowerInvariant()"
                             data-ruleset-id="@item.RulesetId.ToString().ToLowerInvariant()"
+                            data-status="@((item.Status ?? "UNKNOWN").ToLowerInvariant())"
                             data-latest-version="@item.LatestVersion">
                             @if (isInstructor)
                             {
@@ -220,6 +218,21 @@
                             <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.Name</td>
                             <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.ruleset_id")">@item.RulesetId</td>
                             <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">@($"v{item.LatestVersion}")</span></td>
+                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.status")">
+                                @{
+                                    var statusClass = string.Equals(item.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+                                        ? "status-active"
+                                        : string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
+                                            ? "status-draft"
+                                            : "status-retired";
+                                    var statusLabel = string.Equals(item.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+                                        ? Context.T("rulesets.usage_status.active")
+                                        : string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
+                                            ? Context.T("rulesets.usage_status.draft")
+                                            : Context.T("rulesets.usage_status.unknown");
+                                }
+                                <span class="status-pill @statusClass">@statusLabel</span>
+                            </td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
                                 <a class="table-link"
                                    asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
@@ -232,10 +245,6 @@
                                            asp-controller="Rulesets"
                                            asp-action="Edit"
                                            asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.edit")</a>
-                                        <a class="table-link"
-                                           asp-controller="Rulesets"
-                                           asp-action="Create"
-                                           asp-route-templateRulesetId="@item.RulesetId">@Context.T("rulesets.duplicate")</a>
                                         <form method="post"
                                               asp-controller="Rulesets"
                                               asp-action="Delete"

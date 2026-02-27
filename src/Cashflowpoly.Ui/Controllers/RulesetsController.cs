@@ -103,50 +103,14 @@ public sealed class RulesetsController : Controller
     /// <summary>
     /// Menjalankan fungsi Create sebagai bagian dari alur file ini.
     /// </summary>
-    public async Task<IActionResult> Create(Guid? templateRulesetId, CancellationToken ct)
+    public IActionResult Create()
     {
         if (!HttpContext.Session.IsInstructor())
         {
             return RedirectToAction(nameof(Index));
         }
 
-        var model = BuildDefaultCreateViewModel();
-        if (!templateRulesetId.HasValue)
-        {
-            return View(model);
-        }
-
-        var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/v1/rulesets/{templateRulesetId.Value}", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
-            model.ErrorMessage = error?.Message ?? HttpContext
-                .T("rulesets.error.load_clone_template_failed")
-                .Replace("{status}", ((int)response.StatusCode).ToString());
-            return View(model);
-        }
-
-        var data = await TryReadJsonAsync<RulesetDetailResponseDto>(response.Content, ct);
-        if (data is null)
-        {
-            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_detail_response");
-            return View(model);
-        }
-
-        return View(new CreateRulesetViewModel
-        {
-            IsEditMode = false,
-            Name = $"{data.Name} {HttpContext.T("rulesets.copy_suffix")}",
-            Description = data.Description,
-            ConfigJson = SerializeIndentedJson(data.ConfigJson)
-        });
+        return View(BuildDefaultCreateViewModel());
     }
 
     [HttpPost("create")]
@@ -180,6 +144,7 @@ public sealed class RulesetsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
+        configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
         var payload = new
         {
             name = model.Name,
@@ -292,6 +257,7 @@ public sealed class RulesetsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
+        configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
         var payload = new
         {
             name = model.Name,
@@ -711,6 +677,89 @@ public sealed class RulesetsController : Controller
             }
             """
         };
+    }
+
+    /// <summary>
+    /// Menambahkan component_catalog default berdasarkan mode bila konfigurasi belum memilikinya.
+    /// </summary>
+    private async Task<JsonNode?> EnsureComponentCatalogAsync(JsonNode? configNode, HttpClient client, CancellationToken ct)
+    {
+        if (configNode is not JsonObject configObject)
+        {
+            return configNode;
+        }
+
+        if (configObject.TryGetPropertyValue("component_catalog", out var existingCatalog) && existingCatalog is not null)
+        {
+            return configNode;
+        }
+
+        if (!TryResolveMode(configObject, out var mode))
+        {
+            return configNode;
+        }
+
+        var defaultsResponse = await client.GetAsync($"api/v1/rulesets/components/defaults?mode={Uri.EscapeDataString(mode)}", ct);
+        if (!defaultsResponse.IsSuccessStatusCode)
+        {
+            return configNode;
+        }
+
+        var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+        if (defaultsData?.Items is null || defaultsData.Items.Count == 0)
+        {
+            return configNode;
+        }
+
+        var selectedCatalog = defaultsData.Items
+            .FirstOrDefault(item =>
+                string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase) &&
+                item.ComponentCatalog.HasValue)
+            ?.ComponentCatalog
+            ?? defaultsData.Items.FirstOrDefault(item => item.ComponentCatalog.HasValue)?.ComponentCatalog;
+
+        if (!selectedCatalog.HasValue)
+        {
+            return configNode;
+        }
+
+        try
+        {
+            configObject["component_catalog"] = JsonNode.Parse(selectedCatalog.Value.GetRawText());
+        }
+        catch (JsonException)
+        {
+            return configNode;
+        }
+
+        return configNode;
+    }
+
+    /// <summary>
+    /// Menentukan mode ruleset (PEMULA/MAHIR) dari konfigurasi JSON.
+    /// </summary>
+    private static bool TryResolveMode(JsonObject configObject, out string mode)
+    {
+        mode = string.Empty;
+        if (!configObject.TryGetPropertyValue("mode", out var modeNode))
+        {
+            return false;
+        }
+
+        if (modeNode is not JsonValue modeValue || !modeValue.TryGetValue<string>(out var rawMode))
+        {
+            return false;
+        }
+
+        var modeText = rawMode?.Trim().ToUpperInvariant();
+        if (!string.Equals(modeText, "PEMULA", StringComparison.Ordinal) &&
+            !string.Equals(modeText, "MAHIR", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        mode = modeText!;
+        return true;
     }
 
     /// <summary>

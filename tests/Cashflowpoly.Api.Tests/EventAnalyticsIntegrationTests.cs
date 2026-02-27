@@ -397,6 +397,125 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
+    /// Menjalankan fungsi AddPlayersByUsername_WithInstructorOrderRuleset_AssignsManualTurnOrder sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task AddPlayersByUsername_WithInstructorOrderRuleset_AssignsManualTurnOrder()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorUsername = $"it_evt_manual_order_instructor_{suffix}";
+        const string instructorPassword = "IntegrationManualOrderInstructorPass!123";
+        var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+        var firstPlayerUsername = $"it_evt_manual_order_player_1_{suffix}";
+        var secondPlayerUsername = $"it_evt_manual_order_player_2_{suffix}";
+        var thirdPlayerUsername = $"it_evt_manual_order_player_3_{suffix}";
+
+        var createRulesetPayload = new
+        {
+            name = $"Ruleset Manual Order IT {suffix}",
+            description = "Integration instructor manual order by username",
+            config = BuildRulesetConfig(
+                startingCash: 20,
+                playerOrdering: "INSTRUCTOR_ORDER",
+                instructorPlayerUsernames: new[] { thirdPlayerUsername, firstPlayerUsername, secondPlayerUsername, "" })
+        };
+
+        var createRulesetResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/rulesets",
+            createRulesetPayload,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+
+        var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(createdRuleset);
+
+        var createSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            new
+            {
+                session_name = $"Session Manual Order IT {suffix}",
+                mode = "PEMULA",
+                ruleset_id = createdRuleset.RulesetId
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+
+        var createdSession = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
+        Assert.NotNull(createdSession);
+
+        var players = new List<(string Username, Guid PlayerId)>();
+        for (var i = 1; i <= 3; i++)
+        {
+            var username = i switch
+            {
+                1 => firstPlayerUsername,
+                2 => secondPlayerUsername,
+                _ => thirdPlayerUsername
+            };
+            var createPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                "/api/v1/players",
+                new
+                {
+                    display_name = $"Player Manual Order {i} {suffix}",
+                    username,
+                    password = "IntegrationManualOrderPlayerPass!123"
+                },
+                instructorToken);
+            Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+
+            var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+            Assert.NotNull(createdPlayer);
+            players.Add((username, createdPlayer.PlayerId));
+        }
+
+        var firstPlayer = players[0];
+        var secondPlayer = players[1];
+        var thirdPlayer = players[2];
+
+        var addFirst = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            new { username = firstPlayer.Username, role = "PLAYER" },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, addFirst.StatusCode);
+
+        var addSecond = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            new { username = secondPlayer.Username, role = "PLAYER" },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, addSecond.StatusCode);
+
+        var addThird = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            new { username = thirdPlayer.Username, role = "PLAYER" },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, addThird.StatusCode);
+
+        var analyticsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/analytics/sessions/{createdSession.SessionId}",
+            body: null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, analyticsResponse.StatusCode);
+
+        var analytics = await analyticsResponse.Content.ReadFromJsonAsync<AnalyticsSessionResponse>();
+        Assert.NotNull(analytics);
+        Assert.Equal(3, analytics.ByPlayer.Count);
+
+        var expectedPlayerOrder = new[] { thirdPlayer.PlayerId, firstPlayer.PlayerId, secondPlayer.PlayerId };
+        var actualPlayerOrder = analytics.ByPlayer.Select(item => item.PlayerId).ToArray();
+        var actualJoinOrders = analytics.ByPlayer.Select(item => item.JoinOrder).ToArray();
+
+        Assert.Equal(expectedPlayerOrder, actualPlayerOrder);
+        Assert.Equal(new[] { 1, 2, 3 }, actualJoinOrders);
+    }
+
+    [Fact]
+    /// <summary>
     /// Menjalankan fungsi AddPlayerToSession_FifthPlayer_IsRejectedWithDomainRuleViolation sebagai bagian dari alur file ini.
     /// </summary>
     public async Task AddPlayerToSession_FifthPlayer_IsRejectedWithDomainRuleViolation()
@@ -741,13 +860,18 @@ public sealed class EventAnalyticsIntegrationTests
     /// <summary>
     /// Menjalankan fungsi BuildRulesetConfig sebagai bagian dari alur file ini.
     /// </summary>
-    private static object BuildRulesetConfig(int startingCash)
+    private static object BuildRulesetConfig(
+        int startingCash,
+        string playerOrdering = "JOIN_ORDER",
+        string[]? instructorPlayerUsernames = null)
     {
         return new
         {
             mode = "PEMULA",
             actions_per_turn = 2,
             starting_cash = startingCash,
+            player_ordering = playerOrdering,
+            instructor_player_usernames = instructorPlayerUsernames ?? Array.Empty<string>(),
             weekday_rules = new
             {
                 friday = new { feature = "DONATION", enabled = true },

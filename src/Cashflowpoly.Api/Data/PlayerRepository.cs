@@ -52,6 +52,26 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
+    /// Menjalankan fungsi GetPlayerForInstructorByUsernameAsync sebagai bagian dari alur file ini.
+    /// </summary>
+    public async Task<PlayerDb?> GetPlayerForInstructorByUsernameAsync(string username, Guid instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            select p.player_id, p.display_name, p.instructor_user_id, p.created_at
+            from players p
+            join user_player_links upl on upl.player_id = p.player_id
+            join app_users u on u.user_id = upl.user_id
+            where lower(u.username) = lower(@username)
+              and p.instructor_user_id = @instructorUserId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<PlayerDb>(
+            new CommandDefinition(sql, new { username, instructorUserId }, cancellationToken: ct));
+    }
+
+    /// <summary>
     /// Menjalankan fungsi CreatePlayerAsync sebagai bagian dari alur file ini.
     /// </summary>
     public async Task<Guid> CreatePlayerAsync(string displayName, Guid instructorUserId, CancellationToken ct)
@@ -140,24 +160,54 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync sebagai bagian dari alur file ini.
+    /// Menjalankan fungsi AddPlayerToSessionAndAssignJoinOrderAsync sebagai bagian dari alur file ini.
     /// </summary>
-    public async Task<int> AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync(
+    public async Task<int> AddPlayerToSessionAndAssignJoinOrderAsync(
         Guid sessionId,
         Guid playerId,
         string role,
+        int? joinOrder,
         CancellationToken ct)
     {
         const string insertSql = """
             insert into session_players (session_player_id, session_id, player_id, join_order, role, created_at)
-            values (@sessionPlayerId, @sessionId, @playerId, 0, @role, @createdAt)
-            on conflict (session_id, player_id) do nothing
+            values (@sessionPlayerId, @sessionId, @playerId, @initialJoinOrder, @role, @createdAt)
+            on conflict (session_id, player_id) do update
+            set role = excluded.role
             """;
 
-        const string reorderSql = """
+        const string reorderByPlayerIdSql = """
             with ranked as (
                 select session_player_id,
                        row_number() over (order by player_id asc)::int as new_join_order
+                from session_players
+                where session_id = @sessionId
+            )
+            update session_players sp
+            set join_order = ranked.new_join_order
+            from ranked
+            where sp.session_player_id = ranked.session_player_id
+            """;
+
+        const string applyRequestedJoinOrderSql = """
+            update session_players
+            set join_order = join_order + 1
+            where session_id = @sessionId
+              and player_id <> @playerId
+              and join_order >= @joinOrder;
+
+            update session_players
+            set join_order = @joinOrder
+            where session_id = @sessionId
+              and player_id = @playerId;
+            """;
+
+        const string normalizeJoinOrderSql = """
+            with ranked as (
+                select session_player_id,
+                       row_number() over (
+                           order by join_order asc, created_at asc, player_id asc
+                       )::int as new_join_order
                 from session_players
                 where session_id = @sessionId
             )
@@ -184,22 +234,35 @@ public sealed class PlayerRepository
             sessionId,
             playerId,
             role,
+            initialJoinOrder = joinOrder ?? 0,
             createdAt = DateTimeOffset.UtcNow
         }, tx, cancellationToken: ct));
 
-        await conn.ExecuteAsync(new CommandDefinition(reorderSql, new { sessionId }, tx, cancellationToken: ct));
+        if (joinOrder.HasValue)
+        {
+            await conn.ExecuteAsync(new CommandDefinition(
+                applyRequestedJoinOrderSql,
+                new { sessionId, playerId, joinOrder = joinOrder.Value },
+                tx,
+                cancellationToken: ct));
+            await conn.ExecuteAsync(new CommandDefinition(normalizeJoinOrderSql, new { sessionId }, tx, cancellationToken: ct));
+        }
+        else
+        {
+            await conn.ExecuteAsync(new CommandDefinition(reorderByPlayerIdSql, new { sessionId }, tx, cancellationToken: ct));
+        }
 
-        var joinOrder = await conn.QuerySingleOrDefaultAsync<int?>(
+        var assignedJoinOrder = await conn.QuerySingleOrDefaultAsync<int?>(
             new CommandDefinition(selectSql, new { sessionId, playerId }, tx, cancellationToken: ct));
 
         await tx.CommitAsync(ct);
 
-        if (!joinOrder.HasValue)
+        if (!assignedJoinOrder.HasValue)
         {
             throw new InvalidOperationException("Pemain gagal terdaftar pada sesi.");
         }
 
-        return joinOrder.Value;
+        return assignedJoinOrder.Value;
     }
 
     /// <summary>
