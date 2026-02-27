@@ -338,13 +338,25 @@ public sealed class RulesetRepository
     public async Task<List<RulesetListItem>> ListRulesetsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select r.ruleset_id, r.name, coalesce(v.latest_version, 0) as latest_version
+            with latest_versions as (
+                select
+                    rv.ruleset_id,
+                    rv.version as latest_version,
+                    rv.status,
+                    row_number() over (
+                        partition by rv.ruleset_id
+                        order by rv.version desc
+                    ) as rn
+                from ruleset_versions rv
+            )
+            select
+                r.ruleset_id,
+                r.name,
+                coalesce(v.latest_version, 0) as latest_version,
+                coalesce(v.status, 'UNKNOWN') as status
             from rulesets r
-            left join (
-                select ruleset_id, max(version) as latest_version
-                from ruleset_versions
-                group by ruleset_id
-            ) v on v.ruleset_id = r.ruleset_id
+            left join latest_versions v
+                on v.ruleset_id = r.ruleset_id and v.rn = 1
             where r.instructor_user_id = @instructorUserId
             order by r.created_at desc
             """;
@@ -361,13 +373,25 @@ public sealed class RulesetRepository
     public async Task<List<RulesetListItem>> ListRulesetsByPlayerAsync(Guid playerId, CancellationToken ct)
     {
         const string sql = """
-            select r.ruleset_id, r.name, coalesce(v.latest_version, 0) as latest_version
+            with latest_versions as (
+                select
+                    rv.ruleset_id,
+                    rv.version as latest_version,
+                    rv.status,
+                    row_number() over (
+                        partition by rv.ruleset_id
+                        order by rv.version desc
+                    ) as rn
+                from ruleset_versions rv
+            )
+            select
+                r.ruleset_id,
+                r.name,
+                coalesce(v.latest_version, 0) as latest_version,
+                coalesce(v.status, 'UNKNOWN') as status
             from rulesets r
-            left join (
-                select ruleset_id, max(version) as latest_version
-                from ruleset_versions
-                group by ruleset_id
-            ) v on v.ruleset_id = r.ruleset_id
+            left join latest_versions v
+                on v.ruleset_id = r.ruleset_id and v.rn = 1
             where exists (
                 select 1
                 from session_players sp

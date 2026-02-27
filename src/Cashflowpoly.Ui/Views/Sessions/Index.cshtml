@@ -6,7 +6,6 @@
     var isInstructor = Context.Session.IsInstructor();
     var totalSessions = Model.Items.Count;
     var startedCount = Model.Items.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase));
-    var createdCount = Model.Items.Count(x => string.Equals(x.Status, "CREATED", StringComparison.OrdinalIgnoreCase));
     var endedCount = Model.Items.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase));
     var guideTitle = isInstructor
         ? Context.T("sessions.index.guide_title.instructor")
@@ -74,10 +73,6 @@
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@startedCount</p>
                 </div>
                 <div class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.created")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@createdCount</p>
-                </div>
-                <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("sessions.ended")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@endedCount</p>
                 </div>
@@ -122,10 +117,6 @@
                     <span class="ux-legend-item">
                         <span class="status-pill status-active">@Context.TSessionStatus("STARTED")</span>
                         <span class="ux-legend-note">@Context.T("sessions.legend.started_hint")</span>
-                    </span>
-                    <span class="ux-legend-item">
-                        <span class="status-pill status-draft">@Context.TSessionStatus("CREATED")</span>
-                        <span class="ux-legend-note">@Context.T("sessions.legend.created_hint")</span>
                     </span>
                     <span class="ux-legend-item">
                         <span class="status-pill status-retired">@Context.TSessionStatus("ENDED")</span>
