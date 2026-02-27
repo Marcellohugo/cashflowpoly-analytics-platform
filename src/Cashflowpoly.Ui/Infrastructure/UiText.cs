@@ -743,6 +743,7 @@ public static class UiText
         ["rulesets.form.starting_cash"] = ("Kas Awal per Pemain", "Starting Cash per Player"),
         ["rulesets.form.player_ordering"] = ("Urutan Pemain", "Player Ordering"),
         ["rulesets.form.player_ordering_join_order"] = ("Urutan Bergabung (Sesi)", "Join Order (Session)"),
+        ["rulesets.form.player_ordering_instructor_order"] = ("Urutan Instruktur (Username)", "Instructor Order (Username)"),
         ["rulesets.form.player_ordering_event_sequence"] = ("Aktivitas Pertama", "First Event"),
         ["rulesets.form.player_ordering_player_id"] = ("ID Pemain", "Player ID"),
         ["rulesets.form.player_ordering_username"] = ("Username (A-Z)", "Username (A-Z)"),

@@ -54,6 +54,7 @@ internal sealed record QtyPoint(int Qty, int Points);
 internal enum PlayerOrdering
 {
     JoinOrder,
+    InstructorOrder,
     EventSequence,
     PlayerId,
     Username
@@ -387,6 +388,10 @@ internal static class RulesetConfigParser
         {
             case "JOIN_ORDER":
                 ordering = PlayerOrdering.JoinOrder;
+                return true;
+            case "INSTRUCTOR_ORDER":
+            case "MANUAL_ORDER":
+                ordering = PlayerOrdering.InstructorOrder;
                 return true;
             case "EVENT_SEQUENCE":
                 ordering = PlayerOrdering.EventSequence;

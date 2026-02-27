@@ -688,6 +688,11 @@ public sealed class AnalyticsController : ControllerBase
     {
         return (config?.PlayerOrdering ?? PlayerOrdering.JoinOrder) switch
         {
+            PlayerOrdering.InstructorOrder => players
+                .OrderBy(player => playerJoinOrders.TryGetValue(player.PlayerId, out var joinOrder) ? joinOrder : int.MaxValue)
+                .ThenBy(player => firstEventSequenceByPlayer.TryGetValue(player.PlayerId, out var firstSeq) ? firstSeq : long.MaxValue)
+                .ThenBy(player => player.PlayerId)
+                .ToList(),
             PlayerOrdering.Username => players
                 .OrderBy(player => ResolveOrderingUsername(usernamesByPlayer, player.PlayerId), UsernameOrderingComparer)
                 .ThenBy(player => playerJoinOrders.TryGetValue(player.PlayerId, out var joinOrder) ? joinOrder : int.MaxValue)

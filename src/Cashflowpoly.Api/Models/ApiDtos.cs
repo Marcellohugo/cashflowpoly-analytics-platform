@@ -46,7 +46,9 @@ public sealed record PlayerListResponse([property: JsonPropertyName("items")] Li
 /// Menyatakan peran utama tipe AddSessionPlayerRequest pada modul ini.
 /// </summary>
 public sealed record AddSessionPlayerRequest(
-    [property: JsonPropertyName("player_id")] Guid PlayerId,
+    [property: JsonPropertyName("player_id")] Guid? PlayerId,
+    [property: JsonPropertyName("username")] string? Username,
+    [property: JsonPropertyName("join_order")] int? JoinOrder,
     [property: JsonPropertyName("role")] string? Role);
 
 /// <summary>

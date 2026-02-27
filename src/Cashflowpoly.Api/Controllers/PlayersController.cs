@@ -29,15 +29,17 @@ public sealed class PlayersController : ControllerBase
 {
     private readonly PlayerRepository _players;
     private readonly SessionRepository _sessions;
+    private readonly RulesetRepository _rulesets;
     private readonly UserRepository _users;
 
     /// <summary>
     /// Menjalankan fungsi PlayersController sebagai bagian dari alur file ini.
     /// </summary>
-    public PlayersController(PlayerRepository players, SessionRepository sessions, UserRepository users)
+    public PlayersController(PlayerRepository players, SessionRepository sessions, RulesetRepository rulesets, UserRepository users)
     {
         _players = players;
         _sessions = sessions;
+        _rulesets = rulesets;
         _users = users;
     }
 
@@ -161,13 +163,71 @@ public sealed class PlayersController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        var player = await _players.GetPlayerForInstructorAsync(request.PlayerId, instructorUserId, ct);
+        if (!request.PlayerId.HasValue && string.IsNullOrWhiteSpace(request.Username))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Player ID atau username wajib diisi",
+                new ErrorDetail("player_id", "REQUIRED"),
+                new ErrorDetail("username", "REQUIRED")));
+        }
+
+        if (request.JoinOrder is <= 0)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Join order minimal 1",
+                new ErrorDetail("join_order", "OUT_OF_RANGE")));
+        }
+
+        if (request.JoinOrder is > SessionRules.MaxPlayersPerSession)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                $"Join order maksimal {SessionRules.MaxPlayersPerSession}"));
+        }
+
+        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
+        var requiresInstructorOrder = false;
+        if (activeRulesetVersionId.HasValue)
+        {
+            var activeRulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
+            if (activeRulesetVersion is not null &&
+                RulesetConfigParser.TryParse(activeRulesetVersion.ConfigJson, out var activeConfig, out _) &&
+                activeConfig?.PlayerOrdering == PlayerOrdering.InstructorOrder)
+            {
+                requiresInstructorOrder = true;
+            }
+        }
+
+        if (requiresInstructorOrder && !request.JoinOrder.HasValue)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset mewajibkan join_order saat menambah pemain ke sesi"));
+        }
+
+        PlayerDb? player = null;
+        if (request.PlayerId.HasValue)
+        {
+            player = await _players.GetPlayerForInstructorAsync(request.PlayerId.Value, instructorUserId, ct);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.Username))
+        {
+            player = await _players.GetPlayerForInstructorByUsernameAsync(request.Username.Trim(), instructorUserId, ct);
+        }
+
         if (player is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Player tidak ditemukan"));
         }
 
-        var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, request.PlayerId, ct);
+        var playerId = player.PlayerId;
+        var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, playerId, ct);
         if (!alreadyInSession)
         {
             var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
@@ -181,13 +241,14 @@ public sealed class PlayersController : ControllerBase
         }
 
         var role = string.IsNullOrWhiteSpace(request.Role) ? "PLAYER" : request.Role;
-        var joinOrder = await _players.AddPlayerToSessionAndAssignJoinOrderByPlayerIdAsync(
+        var joinOrder = await _players.AddPlayerToSessionAndAssignJoinOrderAsync(
             sessionId,
-            request.PlayerId,
+            playerId,
             role,
+            request.JoinOrder,
             ct);
 
-        return Ok(new AddSessionPlayerResponse(request.PlayerId, joinOrder));
+        return Ok(new AddSessionPlayerResponse(playerId, joinOrder));
     }
 
     /// <summary>
