@@ -1159,6 +1159,13 @@
 
     var cashflowJourney = Model.CashflowJourney;
     var hasCashflowJourney = cashflowJourney is not null && cashflowJourney.TransactionCount > 0;
+    var localizedTimelineLabels = hasCashflowJourney
+        ? cashflowJourney!.TimelineLabels
+            .Select(label => string.Equals(label, "START", StringComparison.OrdinalIgnoreCase)
+                ? Context.T("common.start")
+                : label)
+            .ToList()
+        : new List<string>();
     var localizedTransactionDetails = hasCashflowJourney
         ? cashflowJourney!.TransactionDetails.Select(LocalizeTransactionDetail).ToList()
         : new List<string>();
@@ -1166,7 +1173,7 @@
         ? JsonSerializer.Serialize(new
         {
             chartType = "line",
-            labels = cashflowJourney!.TimelineLabels,
+            labels = localizedTimelineLabels,
             keys = new[] { "cashflow_running_net" },
             formulas = localizedTransactionDetails,
             detailLabel = Context.T("players.details.transaction_label"),
@@ -1175,7 +1182,7 @@
                 new
                 {
                     name = Context.T("players.cashflow_journey.series_name"),
-                    values = cashflowJourney.RunningNetSeries
+                    values = cashflowJourney!.RunningNetSeries
                 }
             }
         })

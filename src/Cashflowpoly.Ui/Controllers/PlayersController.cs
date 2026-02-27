@@ -147,7 +147,7 @@ public sealed class PlayersController : Controller
 
         var labels = new List<string>(orderedTransactions.Count + 1) { "START" };
         var runningBalanceSeries = new List<double>(orderedTransactions.Count + 1) { startingCash };
-        var transactionDetails = new List<string>(orderedTransactions.Count + 1) { $"START - OPENING CASH ({startingCash:N0})" };
+        var transactionDetails = new List<string>(orderedTransactions.Count + 1) { $"START - OPENING_CASH ({startingCash:N0})" };
 
         var totalCashIn = 0d;
         var totalCashOut = 0d;
