@@ -79,10 +79,25 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             do $$
             begin
               if to_regclass('public.session_players') is not null then
-                with ranked as (
-                  select session_player_id,
-                         row_number() over (partition by session_id order by player_id asc)::int as new_join_order
+                with sessions_needing_fix as (
+                  select session_id
                   from session_players
+                  group by session_id
+                  having bool_or(join_order <= 0)
+                     or count(distinct join_order) <> count(*)
+                ),
+                ranked as (
+                  select sp.session_player_id,
+                         row_number() over (
+                           partition by sp.session_id
+                           order by
+                             case when sp.join_order > 0 then 0 else 1 end,
+                             sp.join_order asc,
+                             sp.created_at asc,
+                             sp.player_id asc
+                         )::int as new_join_order
+                  from session_players sp
+                  join sessions_needing_fix nf on nf.session_id = sp.session_id
                 )
                 update session_players sp
                 set join_order = ranked.new_join_order

@@ -432,6 +432,7 @@
                     var playerOrderingRaw = AsText(GetPath(cfg, "player_ordering"), "JOIN_ORDER");
                     var playerOrderingLabel = playerOrderingRaw.ToUpperInvariant() switch
                     {
+                        "INSTRUCTOR_ORDER" or "MANUAL_ORDER" => Context.T("rulesets.form.player_ordering_instructor_order"),
                         "EVENT_SEQUENCE" => Context.T("rulesets.form.player_ordering_event_sequence"),
                         "PLAYER_ID" => Context.T("rulesets.form.player_ordering_player_id"),
                         "USERNAME" or "IDN" or "USERNAME_IDN" => Context.T("rulesets.form.player_ordering_username"),
