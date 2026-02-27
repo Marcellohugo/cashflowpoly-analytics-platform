@@ -18,7 +18,6 @@
 
     var sessionGroupCount = Model.SessionGroups.Count;
     var startedSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase));
-    var createdSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "CREATED", StringComparison.OrdinalIgnoreCase));
     var endedSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase));
     var playerIdsWithSessionData = new HashSet<Guid>();
     foreach (var groupedSession in Model.SessionGroups)
@@ -84,10 +83,6 @@
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@startedSessionCount</p>
                 </div>
                 <div class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.created")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@createdSessionCount</p>
-                </div>
-                <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("sessions.ended")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@endedSessionCount</p>
                 </div>
@@ -124,10 +119,6 @@
                     <span class="ux-legend-item">
                         <span class="status-pill status-active">@Context.TSessionStatus("STARTED")</span>
                         <span class="ux-legend-note">@Context.T("sessions.legend.started_hint")</span>
-                    </span>
-                    <span class="ux-legend-item">
-                        <span class="status-pill status-draft">@Context.TSessionStatus("CREATED")</span>
-                        <span class="ux-legend-note">@Context.T("sessions.legend.created_hint")</span>
                     </span>
                     <span class="ux-legend-item">
                         <span class="status-pill status-retired">@Context.TSessionStatus("ENDED")</span>

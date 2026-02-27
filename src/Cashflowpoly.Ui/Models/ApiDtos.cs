@@ -10,7 +10,8 @@ namespace Cashflowpoly.Ui.Models;
 public sealed record RulesetListItemDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("latest_version")] int LatestVersion);
+    [property: JsonPropertyName("latest_version")] int LatestVersion,
+    [property: JsonPropertyName("status")] string Status);
 
 /// <summary>
 /// Menyatakan peran utama tipe RulesetListResponseDto pada modul ini.
