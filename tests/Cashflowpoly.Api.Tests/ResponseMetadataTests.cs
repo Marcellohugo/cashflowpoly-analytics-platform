@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ResponseMetadataTests.
+// Fungsi file: Menguji bahwa setiap action pada API controller memiliki metadata ProducesResponseType untuk sukses dan error.
 using System.Reflection;
 using Cashflowpoly.Api.Controllers;
 using Microsoft.AspNetCore.Http;
@@ -9,13 +9,15 @@ using Xunit;
 namespace Cashflowpoly.Api.Tests;
 
 /// <summary>
-/// Menyatakan peran utama tipe ResponseMetadataTests pada modul ini.
+/// Kelas pengujian unit untuk memastikan setiap action API controller
+/// mendeklarasikan atribut ProducesResponseType yang lengkap untuk status sukses maupun error.
 /// </summary>
 public sealed class ResponseMetadataTests
 {
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Every_Api_Action_Defines_Success_Response_Metadata sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa setiap action API memiliki setidaknya satu
+    /// atribut ProducesResponseType dengan status code sukses (2xx).
     /// </summary>
     public void Every_Api_Action_Defines_Success_Response_Metadata()
     {
@@ -31,7 +33,8 @@ public sealed class ResponseMetadataTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Every_Api_Action_Defines_Error_Response_Metadata sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa setiap action API memiliki setidaknya satu
+    /// atribut ProducesResponseType dengan status code error (4xx/5xx).
     /// </summary>
     public void Every_Api_Action_Defines_Error_Response_Metadata()
     {
@@ -47,7 +50,8 @@ public sealed class ResponseMetadataTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Every_Api_Action_Exposes_More_Than_200_Status sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa tidak ada action API yang hanya mendeklarasikan
+    /// status 200 OK saja tanpa status code lain yang lebih spesifik.
     /// </summary>
     public void Every_Api_Action_Exposes_More_Than_200_Status()
     {
@@ -62,7 +66,8 @@ public sealed class ResponseMetadataTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetActionResponseMetadata sebagai bagian dari alur file ini.
+    /// Helper yang menggunakan refleksi untuk mengumpulkan semua action pada controller API
+    /// beserta daftar status code dari atribut ProducesResponseType yang dideklarasikan.
     /// </summary>
     private static IReadOnlyList<ActionMetadata> GetActionResponseMetadata()
     {
@@ -109,7 +114,7 @@ public sealed class ResponseMetadataTests
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe ActionMetadata pada modul ini.
+    /// Record internal yang menyimpan nama action dan daftar status code metadata-nya.
     /// </summary>
     private sealed record ActionMetadata(string ActionDisplayName, IReadOnlyList<int> StatusCodes);
 }

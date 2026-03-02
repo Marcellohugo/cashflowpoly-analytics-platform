@@ -1,8 +1,9 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain AuthViewModels.
+// Fungsi file: Mendefinisikan konstanta autentikasi sesi, serta ViewModel untuk formulir login dan registrasi pengguna.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe AuthConstants pada modul ini.
+/// Kelas statis yang menyimpan konstanta kunci sesi, definisi peran (Instructor/Player),
+/// dan kode bahasa yang digunakan pada modul autentikasi aplikasi.
 /// </summary>
 public static class AuthConstants
 {
@@ -19,7 +20,7 @@ public static class AuthConstants
     public const string LanguageEn = "en";
 
     /// <summary>
-    /// Menjalankan fungsi IsValidRole sebagai bagian dari alur file ini.
+    /// Memeriksa apakah string peran yang diberikan merupakan peran valid (INSTRUCTOR atau PLAYER), tanpa memperhatikan huruf besar/kecil.
     /// </summary>
     public static bool IsValidRole(string? role) =>
         string.Equals(role, InstructorRole, StringComparison.OrdinalIgnoreCase) ||
@@ -27,7 +28,7 @@ public static class AuthConstants
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe LoginViewModel pada modul ini.
+/// ViewModel formulir login yang menampung nama pengguna, kata sandi, URL kembali, dan pesan error.
 /// </summary>
 public sealed class LoginViewModel
 {
@@ -38,7 +39,8 @@ public sealed class LoginViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe RegisterViewModel pada modul ini.
+/// ViewModel formulir registrasi yang menampung nama tampilan, nama pengguna, kata sandi,
+/// konfirmasi kata sandi, pemilihan peran, URL kembali, dan pesan error.
 /// </summary>
 public sealed class RegisterViewModel
 {

@@ -1,11 +1,11 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain ApiDtos.
+// Fungsi file: Mendefinisikan Data Transfer Object (DTO) untuk serialisasi dan deserialisasi respons serta permintaan REST API backend.
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetListItemDto pada modul ini.
+/// DTO yang merepresentasikan satu item ruleset dalam daftar, memuat ID, nama, versi terbaru, dan status.
 /// </summary>
 public sealed record RulesetListItemDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -14,13 +14,13 @@ public sealed record RulesetListItemDto(
     [property: JsonPropertyName("status")] string Status);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetListResponseDto pada modul ini.
+/// DTO respons yang membungkus daftar item ruleset dari API.
 /// </summary>
 public sealed record RulesetListResponseDto(
     [property: JsonPropertyName("items")] List<RulesetListItemDto> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionListItemDto pada modul ini.
+/// DTO yang merepresentasikan satu item sesi permainan dalam daftar, memuat ID, nama, mode, status, dan cap waktu.
 /// </summary>
 public sealed record SessionListItemDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -32,13 +32,13 @@ public sealed record SessionListItemDto(
     [property: JsonPropertyName("ended_at")] DateTimeOffset? EndedAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionListResponseDto pada modul ini.
+/// DTO respons yang membungkus daftar item sesi permainan dari API.
 /// </summary>
 public sealed record SessionListResponseDto(
     [property: JsonPropertyName("items")] List<SessionListItemDto> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetVersionItemDto pada modul ini.
+/// DTO yang merepresentasikan satu versi dari sebuah ruleset, memuat ID versi, nomor versi, status, dan waktu pembuatan.
 /// </summary>
 public sealed record RulesetVersionItemDto(
     [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
@@ -47,7 +47,7 @@ public sealed record RulesetVersionItemDto(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetDetailResponseDto pada modul ini.
+/// DTO respons detail ruleset yang memuat ID, nama, deskripsi, daftar versi, dan konfigurasi JSON.
 /// </summary>
 public sealed record RulesetDetailResponseDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -57,7 +57,7 @@ public sealed record RulesetDetailResponseDto(
     [property: JsonPropertyName("config_json")] JsonElement? ConfigJson);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetComponentsResponseDto pada modul ini.
+/// DTO respons komponen ruleset yang memuat ID ruleset, ID versi, nomor versi, mode, dan katalog komponen.
 /// </summary>
 public sealed record RulesetComponentsResponseDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -67,7 +67,7 @@ public sealed record RulesetComponentsResponseDto(
     [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
 
 /// <summary>
-/// Menyatakan peran utama tipe DefaultRulesetComponentItemDto pada modul ini.
+/// DTO satu item komponen default ruleset bawaan, memuat metadata ruleset beserta katalog komponen.
 /// </summary>
 public sealed record DefaultRulesetComponentItemDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -79,13 +79,13 @@ public sealed record DefaultRulesetComponentItemDto(
     [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
 
 /// <summary>
-/// Menyatakan peran utama tipe DefaultRulesetComponentsResponseDto pada modul ini.
+/// DTO respons yang membungkus daftar komponen default bawaan ruleset dari API.
 /// </summary>
 public sealed record DefaultRulesetComponentsResponseDto(
     [property: JsonPropertyName("items")] List<DefaultRulesetComponentItemDto> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsSessionSummaryDto pada modul ini.
+/// DTO ringkasan analitik sesi yang memuat jumlah event, total arus kas masuk/keluar, arus kas bersih, dan jumlah pelanggaran aturan.
 /// </summary>
 public sealed record AnalyticsSessionSummaryDto(
     [property: JsonPropertyName("event_count")] int EventCount,
@@ -95,7 +95,7 @@ public sealed record AnalyticsSessionSummaryDto(
     [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount);
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsByPlayerItemDto pada modul ini.
+/// DTO analitik per pemain dalam satu sesi, memuat metrik keuangan, inventaris, skor kebahagiaan, donasi, penalti, dan status pinjaman.
 /// </summary>
 public sealed record AnalyticsByPlayerItemDto(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
@@ -121,7 +121,7 @@ public sealed record AnalyticsByPlayerItemDto(
     [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsSessionResponseDto pada modul ini.
+/// DTO respons analitik sesi lengkap yang memuat ringkasan agregat, data per pemain, dan informasi ruleset terkait.
 /// </summary>
 public sealed record AnalyticsSessionResponseDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -131,7 +131,7 @@ public sealed record AnalyticsSessionResponseDto(
     [property: JsonPropertyName("ruleset_name")] string? RulesetName);
 
 /// <summary>
-/// Menyatakan peran utama tipe GameplayMetricsResponseDto pada modul ini.
+/// DTO respons metrik gameplay seorang pemain dalam sesi, memuat data mentah (raw) dan turunan (derived) dalam format JSON.
 /// </summary>
 public sealed record GameplayMetricsResponseDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -141,7 +141,7 @@ public sealed record GameplayMetricsResponseDto(
     [property: JsonPropertyName("derived")] JsonElement? Derived);
 
 /// <summary>
-/// Menyatakan peran utama tipe TransactionHistoryItemDto pada modul ini.
+/// DTO satu item riwayat transaksi keuangan pemain, memuat cap waktu, arah transaksi, jumlah, dan kategori.
 /// </summary>
 public sealed record TransactionHistoryItemDto(
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
@@ -150,13 +150,13 @@ public sealed record TransactionHistoryItemDto(
     [property: JsonPropertyName("category")] string Category);
 
 /// <summary>
-/// Menyatakan peran utama tipe TransactionHistoryResponseDto pada modul ini.
+/// DTO respons yang membungkus daftar riwayat transaksi keuangan pemain dari API.
 /// </summary>
 public sealed record TransactionHistoryResponseDto(
     [property: JsonPropertyName("items")] List<TransactionHistoryItemDto> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetAnalyticsPlayerItemDto pada modul ini.
+/// DTO analitik pemain pada tingkat ruleset, memuat skor performa pembelajaran dan misi individual.
 /// </summary>
 public sealed record RulesetAnalyticsPlayerItemDto(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
@@ -164,7 +164,7 @@ public sealed record RulesetAnalyticsPlayerItemDto(
     [property: JsonPropertyName("mission_performance_individual_score")] double? MissionPerformanceIndividualScore);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetAnalyticsSessionItemDto pada modul ini.
+/// DTO analitik sesi pada tingkat ruleset, memuat nama sesi, status, jumlah event, skor agregat, dan data pemain.
 /// </summary>
 public sealed record RulesetAnalyticsSessionItemDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -176,7 +176,7 @@ public sealed record RulesetAnalyticsSessionItemDto(
     [property: JsonPropertyName("players")] List<RulesetAnalyticsPlayerItemDto> Players);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetAnalyticsSummaryResponseDto pada modul ini.
+/// DTO respons ringkasan analitik tingkat ruleset yang memuat jumlah sesi, skor performa agregat, dan daftar sesi terkait.
 /// </summary>
 public sealed record RulesetAnalyticsSummaryResponseDto(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -187,20 +187,20 @@ public sealed record RulesetAnalyticsSummaryResponseDto(
     [property: JsonPropertyName("sessions")] List<RulesetAnalyticsSessionItemDto> Sessions);
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerResponseDto pada modul ini.
+/// DTO data pemain yang memuat ID pemain dan nama tampilan.
 /// </summary>
 public sealed record PlayerResponseDto(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
     [property: JsonPropertyName("display_name")] string DisplayName);
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerListResponseDto pada modul ini.
+/// DTO respons yang membungkus daftar pemain dari API.
 /// </summary>
 public sealed record PlayerListResponseDto(
     [property: JsonPropertyName("items")] List<PlayerResponseDto> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventRequestDto pada modul ini.
+/// DTO permintaan event gameplay yang memuat metadata sesi, pemain, aksi, hari, giliran, dan payload JSON.
 /// </summary>
 public sealed record EventRequestDto(
     [property: JsonPropertyName("event_id")] Guid EventId,
@@ -218,21 +218,21 @@ public sealed record EventRequestDto(
     [property: JsonPropertyName("client_request_id")] string? ClientRequestId);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventsBySessionResponseDto pada modul ini.
+/// DTO respons yang membungkus daftar event gameplay berdasarkan sesi dari API.
 /// </summary>
 public sealed record EventsBySessionResponseDto(
     [property: JsonPropertyName("session_id")] Guid SessionId,
     [property: JsonPropertyName("events")] List<EventRequestDto> Events);
 
 /// <summary>
-/// Menyatakan peran utama tipe ApiErrorDetailDto pada modul ini.
+/// DTO detail kesalahan API yang memuat nama field dan deskripsi masalah validasi.
 /// </summary>
 public sealed record ApiErrorDetailDto(
     [property: JsonPropertyName("field")] string Field,
     [property: JsonPropertyName("issue")] string Issue);
 
 /// <summary>
-/// Menyatakan peran utama tipe ApiErrorResponseDto pada modul ini.
+/// DTO respons error standar API yang memuat kode error, pesan, daftar detail kesalahan, dan trace ID.
 /// </summary>
 public sealed record ApiErrorResponseDto(
     [property: JsonPropertyName("error_code")] string ErrorCode,
@@ -241,14 +241,14 @@ public sealed record ApiErrorResponseDto(
     [property: JsonPropertyName("trace_id")] string TraceId);
 
 /// <summary>
-/// Menyatakan peran utama tipe LoginRequestDto pada modul ini.
+/// DTO permintaan login yang memuat nama pengguna dan kata sandi untuk autentikasi ke API.
 /// </summary>
 public sealed record LoginRequestDto(
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("password")] string Password);
 
 /// <summary>
-/// Menyatakan peran utama tipe LoginResponseDto pada modul ini.
+/// DTO respons login yang memuat ID pengguna, nama pengguna, peran, token akses, dan waktu kedaluwarsa token.
 /// </summary>
 public sealed record LoginResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -258,7 +258,7 @@ public sealed record LoginResponseDto(
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe RegisterRequestDto pada modul ini.
+/// DTO permintaan registrasi pengguna baru yang memuat nama pengguna, kata sandi, peran, dan nama tampilan.
 /// </summary>
 public sealed record RegisterRequestDto(
     [property: JsonPropertyName("username")] string Username,
@@ -267,7 +267,7 @@ public sealed record RegisterRequestDto(
     [property: JsonPropertyName("display_name")] string? DisplayName);
 
 /// <summary>
-/// Menyatakan peran utama tipe RegisterResponseDto pada modul ini.
+/// DTO respons registrasi yang memuat ID pengguna, nama pengguna, peran, token akses, dan waktu kedaluwarsa token.
 /// </summary>
 public sealed record RegisterResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,

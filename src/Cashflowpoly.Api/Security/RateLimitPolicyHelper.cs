@@ -1,10 +1,10 @@
-// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain RateLimitPolicyHelper (JWT, audit, atau rate limiting).
+// Fungsi file: Helper kebijakan rate limiting — menentukan limit dan partition key berdasarkan path dan identitas pengguna.
 using System.Security.Claims;
 
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>
-/// Menyatakan peran utama tipe RateLimitPolicyHelper pada modul ini.
+/// Menyediakan logika partisi dan batas rate-limit berdasarkan jalur API dan identitas klien.
 /// </summary>
 internal static class RateLimitPolicyHelper
 {
@@ -12,7 +12,7 @@ internal static class RateLimitPolicyHelper
     private const int DefaultPermitLimit = 60;
 
     /// <summary>
-    /// Menjalankan fungsi ResolvePermitLimit sebagai bagian dari alur file ini.
+    /// Mengembalikan batas permit: 120 untuk path ingest event, 60 untuk path lainnya.
     /// </summary>
     internal static int ResolvePermitLimit(PathString path)
     {
@@ -20,7 +20,7 @@ internal static class RateLimitPolicyHelper
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildPartitionKey sebagai bagian dari alur file ini.
+    /// Membangun partition key format "scope:client" untuk sliding-window rate limiter.
     /// </summary>
     internal static string BuildPartitionKey(HttpContext context)
     {
@@ -30,7 +30,7 @@ internal static class RateLimitPolicyHelper
     }
 
     /// <summary>
-    /// Menjalankan fungsi IsIngestPath sebagai bagian dari alur file ini.
+    /// Memeriksa apakah path merupakan endpoint ingest event (/api/v1/events).
     /// </summary>
     private static bool IsIngestPath(PathString path)
     {
@@ -38,7 +38,7 @@ internal static class RateLimitPolicyHelper
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveClientKey sebagai bagian dari alur file ini.
+    /// Mengambil identitas klien: user ID dari claim JWT jika ada, atau alamat IP remote.
     /// </summary>
     private static string ResolveClientKey(HttpContext context)
     {

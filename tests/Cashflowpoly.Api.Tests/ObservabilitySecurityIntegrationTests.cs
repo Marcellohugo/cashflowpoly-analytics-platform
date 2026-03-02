@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ObservabilitySecurityIntegrationTests.
+// Fungsi file: Menguji bahwa endpoint observability dan audit log membatasi akses sesuai role INSTRUCTOR/PLAYER.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -12,14 +12,15 @@ namespace Cashflowpoly.Api.Tests;
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
 /// <summary>
-/// Menyatakan peran utama tipe ObservabilitySecurityIntegrationTests pada modul ini.
+/// Kelas pengujian integrasi yang memvalidasi bahwa endpoint observability metrics
+/// dan security audit logs menerapkan pembatasan akses berbasis role dengan benar.
 /// </summary>
 public sealed class ObservabilitySecurityIntegrationTests
 {
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Menjalankan fungsi ObservabilitySecurityIntegrationTests sebagai bagian dari alur file ini.
+    /// Menginisialisasi instance pengujian dengan HttpClient dari fixture integrasi bersama.
     /// </summary>
     public ObservabilitySecurityIntegrationTests(ApiIntegrationTestFixture fixture)
     {
@@ -28,7 +29,8 @@ public sealed class ObservabilitySecurityIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Observability_And_SecurityAudit_RespectRoleAccess sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa INSTRUCTOR dapat mengakses observability metrics dan audit logs,
+    /// sedangkan PLAYER ditolak dengan status 403 Forbidden pada kedua endpoint.
     /// </summary>
     public async Task Observability_And_SecurityAudit_RespectRoleAccess()
     {
@@ -72,7 +74,7 @@ public sealed class ObservabilitySecurityIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi RegisterAsync sebagai bagian dari alur file ini.
+    /// Helper untuk mendaftarkan pengguna baru dan mengembalikan data registrasi.
     /// </summary>
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
@@ -86,7 +88,7 @@ public sealed class ObservabilitySecurityIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi LoginAsync sebagai bagian dari alur file ini.
+    /// Helper untuk melakukan login dan mengembalikan data token akses.
     /// </summary>
     private async Task<LoginResponse> LoginAsync(string username, string password)
     {
@@ -100,7 +102,7 @@ public sealed class ObservabilitySecurityIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi SendAsync sebagai bagian dari alur file ini.
+    /// Helper untuk mengirim HTTP request dengan header Bearer token.
     /// </summary>
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string accessToken)
     {
@@ -110,7 +112,7 @@ public sealed class ObservabilitySecurityIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi AssertJsonHasPropertyAsync sebagai bagian dari alur file ini.
+    /// Helper yang memvalidasi bahwa body respons JSON mengandung properti tertentu.
     /// </summary>
     private static async Task AssertJsonHasPropertyAsync(HttpResponseMessage response, string propertyName)
     {

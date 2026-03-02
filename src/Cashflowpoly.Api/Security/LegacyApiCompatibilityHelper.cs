@@ -1,15 +1,15 @@
-// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain LegacyApiCompatibilityHelper (JWT, audit, atau rate limiting).
+// Fungsi file: Middleware helper untuk menulis ulang path API lama (/api/...) ke format berversi (/api/v1/...).
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>
-/// Menyatakan peran utama tipe LegacyApiCompatibilityHelper pada modul ini.
+/// Helper kompatibilitas mundur agar klien lama tanpa prefix /v1/ tetap dapat mengakses API.
 /// </summary>
 internal static class LegacyApiCompatibilityHelper
 {
     /// <summary>
-    /// Menjalankan fungsi TryRewritePath sebagai bagian dari alur file ini.
+    /// Mendeteksi path /api/ tanpa /v1/ dan menulis ulang menjadi /api/v1/...; mengembalikan true jika berhasil.
     /// </summary>
     internal static bool TryRewritePath(PathString path, out PathString rewrittenPath)
     {

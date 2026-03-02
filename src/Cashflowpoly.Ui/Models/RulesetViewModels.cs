@@ -1,17 +1,17 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain RulesetViewModels.
+// Fungsi file: Mendefinisikan ViewModel untuk halaman daftar, pembuatan, dan detail ruleset permainan.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetListViewModel pada modul ini.
+/// ViewModel halaman daftar ruleset yang memuat koleksi ruleset beserta komponen default dan pesan error.
 /// </summary>
 public sealed class RulesetListViewModel
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar item ruleset yang tersedia untuk ditampilkan pada halaman daftar.
     /// </summary>
     public List<RulesetListItemDto> Items { get; init; } = new();
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar komponen default bawaan dari katalog ruleset untuk referensi pengguna.
     /// </summary>
     public List<DefaultRulesetComponentItemDto> DefaultComponentItems { get; init; } = new();
     public string? ErrorMessage { get; init; }
@@ -19,7 +19,7 @@ public sealed class RulesetListViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe CreateRulesetViewModel pada modul ini.
+/// ViewModel formulir pembuatan atau pengeditan ruleset, memuat nama, deskripsi, dan konfigurasi JSON.
 /// </summary>
 public sealed class CreateRulesetViewModel
 {
@@ -32,7 +32,7 @@ public sealed class CreateRulesetViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetDetailViewModel pada modul ini.
+/// ViewModel halaman detail ruleset yang menampilkan data ruleset, komponen terkait, dan status baca-saja.
 /// </summary>
 public sealed class RulesetDetailViewModel
 {

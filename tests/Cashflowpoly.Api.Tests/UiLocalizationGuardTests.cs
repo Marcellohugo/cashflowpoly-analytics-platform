@@ -1,43 +1,44 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain UiLocalizationGuardTests.
+// Fungsi file: Menguji bahwa semua key terjemahan UI terdaftar di leksikon dan tidak ada teks hardcoded di view/controller.
 using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
 
 /// <summary>
-/// Menyatakan peran utama tipe UiLocalizationGuardTests pada modul ini.
+/// Kelas pengujian unit yang memastikan semua key terjemahan yang digunakan di UI
+/// terdaftar pada UiText, dan tidak ada pesan error atau teks literal hardcoded.
 /// </summary>
 public sealed class UiLocalizationGuardTests
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Regex untuk mengekstrak key dari dictionary leksikon UiText (pola ["key"] = ...).
     /// </summary>
     private static readonly Regex LexiconKeyRegex = new(@"\[""(?<key>[^""]+)""\]\s*=", RegexOptions.Compiled);
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Regex untuk mendeteksi pemanggilan Context.T("key") atau HttpContext.T("key") di file C#/Razor.
     /// </summary>
     private static readonly Regex TranslationCallRegex = new(@"(?:Context|HttpContext)\.T\(""(?<key>[^""]+)""\)", RegexOptions.Compiled);
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Regex untuk mendeteksi node teks literal di dalam elemen HTML pada Razor view.
     /// </summary>
     private static readonly Regex LiteralTextNodeRegex = new(
         @"<[^!/][^>]*>\s*(?<text>[A-Za-z][A-Za-z0-9\s\.,'""/&()\-:]{0,120})\s*</[^>]+>",
         RegexOptions.Compiled);
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Regex untuk mendeteksi assignment pesan error hardcoded pada variabel controller UI.
     /// </summary>
     private static readonly Regex HardcodedErrorAssignmentRegex = new(
         @"\b(?:ErrorMessage|SessionLookupErrorMessage|RulesetErrorMessage|groupError|gameplayError|timelineErrorMessage|errorMessage)\s*=\s*\$?""",
         RegexOptions.Compiled);
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Regex untuk mendeteksi assignment string hardcoded ke TempData pada controller UI.
     /// </summary>
     private static readonly Regex HardcodedTempDataAssignmentRegex = new(
         @"TempData\[[^\]]+\]\s*=\s*\$?""",
         RegexOptions.Compiled);
 
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar teks literal yang diizinkan muncul langsung di Razor view tanpa terjemahan.
     /// </summary>
     private static readonly HashSet<string> AllowedLiteralViewTextNodes = new(StringComparer.Ordinal)
     {
@@ -47,13 +48,14 @@ public sealed class UiLocalizationGuardTests
     };
 
     /// <summary>
-    /// Menjalankan fungsi ResolveRepositoryRoot sebagai bagian dari alur file ini.
+    /// Path root repositori yang ditemukan dengan menelusuri ke atas dari BaseDirectory.
     /// </summary>
     private static readonly string RepoRoot = ResolveRepositoryRoot();
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi TranslationKeys_UsedByUiControllersAndViews_MustExistInUiTextLexicon sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa setiap key yang dipanggil via Context.T() di controller dan view
+    /// UI terdaftar dalam dictionary leksikon UiText.cs.
     /// </summary>
     public void TranslationKeys_UsedByUiControllersAndViews_MustExistInUiTextLexicon()
     {
@@ -92,7 +94,8 @@ public sealed class UiLocalizationGuardTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi UiControllers_ShouldNotUseHardcodedUserFacingErrorMessages sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa controller UI tidak mengandung assignment pesan error
+    /// hardcoded yang seharusnya menggunakan key terjemahan.
     /// </summary>
     public void UiControllers_ShouldNotUseHardcodedUserFacingErrorMessages()
     {
@@ -114,7 +117,8 @@ public sealed class UiLocalizationGuardTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi UiViews_ShouldNotContainUnexpectedHardcodedLiteralTextNodes sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa Razor view tidak mengandung node teks literal hardcoded
+    /// yang seharusnya menggunakan mekanisme terjemahan, kecuali yang diizinkan.
     /// </summary>
     public void UiViews_ShouldNotContainUnexpectedHardcodedLiteralTextNodes()
     {
@@ -150,7 +154,8 @@ public sealed class UiLocalizationGuardTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi FindViolations sebagai bagian dari alur file ini.
+    /// Helper yang mencari semua kecocokan regex dalam konten file dan mengembalikan
+    /// daftar pelanggaran beserta lokasi baris relatif terhadap root repositori.
     /// </summary>
     private static IEnumerable<string> FindViolations(string filePath, string content, Regex pattern)
     {
@@ -162,7 +167,8 @@ public sealed class UiLocalizationGuardTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveRepositoryRoot sebagai bagian dari alur file ini.
+    /// Helper yang menelusuri direktori ke atas dari AppContext.BaseDirectory
+    /// untuk menemukan root repositori berdasarkan keberadaan file Cashflowpoly.sln.
     /// </summary>
     private static string ResolveRepositoryRoot()
     {

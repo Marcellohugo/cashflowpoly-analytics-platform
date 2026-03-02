@@ -636,12 +636,13 @@ a:hover {
 
 .lang-menu {
     min-width: min(10.25rem, 86vw);
+    top: calc(100% + 0.86rem);
 }
 
 .profile-menu {
-    width: min(16.5rem, 90vw);
-    min-width: min(16.5rem, 90vw);
-    max-width: min(16.5rem, 90vw);
+    width: min(18.5rem, 90vw);
+    min-width: min(18.5rem, 90vw);
+    max-width: min(18.5rem, 90vw);
     max-height: min(68vh, 20.5rem);
     overflow-y: auto;
     right: var(--profile-menu-offset-right);

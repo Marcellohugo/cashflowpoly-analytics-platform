@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain AuthRbacRulesetIntegrationTests.
+// Fungsi file: Menguji alur end-to-end autentikasi, otorisasi RBAC, dan manajemen ruleset termasuk CRUD dan versioning.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -12,14 +12,15 @@ namespace Cashflowpoly.Api.Tests;
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
 /// <summary>
-/// Menyatakan peran utama tipe AuthRbacRulesetIntegrationTests pada modul ini.
+/// Kelas pengujian integrasi yang memvalidasi alur registrasi, login, pembatasan akses RBAC,
+/// serta operasi CRUD dan versioning ruleset secara end-to-end melalui API.
 /// </summary>
 public sealed class AuthRbacRulesetIntegrationTests
 {
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Menjalankan fungsi AuthRbacRulesetIntegrationTests sebagai bagian dari alur file ini.
+    /// Menginisialisasi instance pengujian dengan HttpClient dari fixture integrasi bersama.
     /// </summary>
     public AuthRbacRulesetIntegrationTests(ApiIntegrationTestFixture fixture)
     {
@@ -28,7 +29,8 @@ public sealed class AuthRbacRulesetIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Auth_Rbac_And_RulesetFlow_Work_EndToEnd sebagai bagian dari alur file ini.
+    /// Memvalidasi alur lengkap: registrasi INSTRUCTOR/PLAYER, login, pembatasan akses tanpa token,
+    /// CRUD ruleset dengan RBAC, aktivasi versi, penghapusan versi draft, dan pembuatan sesi permainan.
     /// </summary>
     public async Task Auth_Rbac_And_RulesetFlow_Work_EndToEnd()
     {
@@ -278,8 +280,50 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.Equal("STARTED", startResponse.Status);
     }
 
+    [Fact]
     /// <summary>
-    /// Menjalankan fungsi RegisterAsync sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa kebijakan password diterapkan pada endpoint registrasi dan
+    /// pembuatan player, menolak password yang terlalu pendek dengan error VALIDATION_ERROR.
+    /// </summary>
+    public async Task PasswordPolicy_IsEnforced_ForRegisterAndCreatePlayer()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var registerPayload = new RegisterRequest(
+            $"it_shortpass_{suffix}",
+            "Short1!",
+            "PLAYER",
+            null);
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/v1/auth/register", registerPayload);
+        Assert.Equal(HttpStatusCode.BadRequest, registerResponse.StatusCode);
+
+        var registerError = await registerResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(registerError);
+        Assert.Equal("VALIDATION_ERROR", registerError.ErrorCode);
+
+        var instructorUsername = $"it_pwd_instructor_{suffix}";
+        const string instructorPassword = "IntegrationPolicyInstructorPass!123";
+        var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+
+        var createPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            new
+            {
+                display_name = $"Player Policy {suffix}",
+                username = $"it_pwd_player_{suffix}",
+                password = "Short1!"
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, createPlayerResponse.StatusCode);
+
+        var createPlayerError = await createPlayerResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(createPlayerError);
+        Assert.Equal("VALIDATION_ERROR", createPlayerError.ErrorCode);
+    }
+
+    /// <summary>
+    /// Helper untuk mendaftarkan pengguna baru dan mengembalikan data registrasi.
     /// </summary>
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
@@ -293,7 +337,7 @@ public sealed class AuthRbacRulesetIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi LoginAsync sebagai bagian dari alur file ini.
+    /// Helper untuk melakukan login dan mengembalikan data token akses.
     /// </summary>
     private async Task<LoginResponse> LoginAsync(string username, string password)
     {
@@ -307,7 +351,7 @@ public sealed class AuthRbacRulesetIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi SendJsonAsync sebagai bagian dari alur file ini.
+    /// Helper untuk mengirim HTTP request dengan body JSON dan header Bearer token.
     /// </summary>
     private async Task<HttpResponseMessage> SendJsonAsync(
         HttpMethod method,
@@ -326,7 +370,8 @@ public sealed class AuthRbacRulesetIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildRulesetConfig sebagai bagian dari alur file ini.
+    /// Helper yang membangun objek konfigurasi ruleset lengkap untuk mode PEMULA
+    /// dengan parameter starting cash yang dapat dikustomisasi.
     /// </summary>
     private static object BuildRulesetConfig(int startingCash)
     {

@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ApiWebApplicationFactory.
+// Fungsi file: Menyediakan WebApplicationFactory kustom untuk pengujian integrasi API dengan konfigurasi database dan JWT in-memory.
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -6,7 +6,8 @@ using Microsoft.Extensions.Configuration;
 namespace Cashflowpoly.Api.Tests.Infrastructure;
 
 /// <summary>
-/// Menyatakan peran utama tipe ApiWebApplicationFactory pada modul ini.
+/// Factory kustom yang menginisialisasi host API untuk pengujian integrasi
+/// dengan mengganti connection string dan signing key JWT melalui in-memory configuration.
 /// </summary>
 internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
 {
@@ -14,7 +15,8 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
     private readonly string _jwtSigningKey;
 
     /// <summary>
-    /// Menjalankan fungsi ApiWebApplicationFactory sebagai bagian dari alur file ini.
+    /// Membuat instance factory dengan connection string database dan signing key JWT
+    /// yang akan diinjeksikan ke konfigurasi aplikasi saat pengujian.
     /// </summary>
     public ApiWebApplicationFactory(string connectionString, string jwtSigningKey)
     {
@@ -23,7 +25,8 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Menjalankan fungsi ConfigureWebHost sebagai bagian dari alur file ini.
+    /// Mengonfigurasi web host dengan environment Development dan menyuntikkan
+    /// connection string serta signing key JWT melalui in-memory configuration.
     /// </summary>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

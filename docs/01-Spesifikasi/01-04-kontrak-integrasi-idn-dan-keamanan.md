@@ -20,7 +20,8 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 ### 2.1 Versi kontrak aktif
 - Versi kontrak API aktif: `v1`.
 - Prefix route aktif: `/api/v1/...`.
-- Route lama `/api/...` dipertahankan sementara untuk kompatibilitas mundur.
+- Route lama `/api/...` **default nonaktif**.
+- Kompatibilitas route lama hanya aktif bila `FeatureFlags__EnableLegacyApiCompatibility=true` (transisi sementara).
 
 ### 2.2 Kebijakan kompatibilitas
 1. Perubahan non-breaking boleh menambah field response baru.
@@ -86,6 +87,8 @@ Catatan:
 2. API tidak pernah mengembalikan `password_hash` atau kredensial mentah dalam response.
 3. JWT hanya disimpan pada sisi klien yang membutuhkan akses API dan harus dikirim via header `Authorization`.
 4. Log aplikasi tidak boleh mencatat password mentah, token JWT utuh, atau payload sensitif di luar kebutuhan debugging terkontrol.
+5. Relasi `user_player_links` digunakan untuk akun role `PLAYER`; akun `INSTRUCTOR` tidak diwajibkan memiliki profil/link player.
+6. UI menyimpan sesi autentikasi pada cookie server-side dengan `HttpOnly`, `SameSite=Lax`, dan kebijakan `Secure` yang wajib di production.
 
 ### 3.6 Validasi input minimum
 1. Endpoint autentikasi memvalidasi field wajib (`username`, `password`).

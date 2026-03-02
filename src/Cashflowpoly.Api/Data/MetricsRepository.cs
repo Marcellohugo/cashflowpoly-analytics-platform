@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain MetricsRepository melalui query dan command terenkapsulasi.
+// Fungsi file: Repository akses data snapshot metrik — penyisipan batch dan query metrik gameplay/numerik.
 using Dapper;
 using Npgsql;
 
@@ -12,7 +12,7 @@ public sealed class MetricsRepository
     private readonly NpgsqlDataSource _dataSource;
 
     /// <summary>
-    /// Menjalankan fungsi MetricsRepository sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource untuk koneksi ke tabel metric_snapshots.
     /// </summary>
     public MetricsRepository(NpgsqlDataSource dataSource)
     {
@@ -20,7 +20,7 @@ public sealed class MetricsRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi InsertSnapshotsAsync sebagai bagian dari alur file ini.
+    /// Menyisipkan batch snapshot metrik ke database.
     /// </summary>
     public async Task InsertSnapshotsAsync(IEnumerable<MetricSnapshotDb> snapshots, CancellationToken ct)
     {
@@ -52,7 +52,7 @@ public sealed class MetricsRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CountValidationViolationsAsync sebagai bagian dari alur file ini.
+    /// Menghitung jumlah pelanggaran validasi pada sesi dengan filter opsional per pemain.
     /// </summary>
     public async Task<int> CountValidationViolationsAsync(Guid sessionId, Guid? playerId, CancellationToken ct)
     {
@@ -73,7 +73,7 @@ public sealed class MetricsRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetLatestGameplaySnapshotsAsync sebagai bagian dari alur file ini.
+    /// Mengambil snapshot gameplay JSON terbaru (variabel mentah dan metrik turunan) per pemain.
     /// </summary>
     public async Task<List<MetricSnapshotJsonDb>> GetLatestGameplaySnapshotsAsync(Guid sessionId, Guid playerId, CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public sealed class MetricsRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetLatestMetricNumericAsync sebagai bagian dari alur file ini.
+    /// Mengambil nilai numerik terbaru dari metrik tertentu per pemain.
     /// </summary>
     public async Task<double?> GetLatestMetricNumericAsync(Guid sessionId, Guid playerId, string metricName, CancellationToken ct)
     {

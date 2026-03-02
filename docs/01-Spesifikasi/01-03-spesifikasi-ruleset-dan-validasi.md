@@ -269,7 +269,7 @@ Catatan akses:
    Sistem membuat versi baru dari *ruleset* yang sama dengan status awal `DRAFT`.
 
 3. `GET /api/v1/rulesets`  
-   Sistem mengembalikan daftar *ruleset* beserta versi terbaru.
+   Sistem mengembalikan daftar *ruleset* beserta versi terbaru, termasuk `status` yang merepresentasikan status pada versi terbaru.
 
 4. `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`  
    Instruktur mengaktifkan versi ruleset secara eksplisit pada level ruleset.
