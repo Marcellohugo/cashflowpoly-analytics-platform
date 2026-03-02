@@ -1,8 +1,9 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain HomeViewModels.
+// Fungsi file: Mendefinisikan ViewModel untuk halaman beranda (dashboard) yang menampilkan ringkasan statistik sesi, pemain, dan ruleset.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe HomeIndexViewModel pada modul ini.
+/// ViewModel halaman beranda yang memuat jumlah sesi aktif, total sesi,
+/// total pemain, total ruleset, waktu sinkronisasi terakhir, dan pesan error opsional.
 /// </summary>
 public sealed class HomeIndexViewModel
 {

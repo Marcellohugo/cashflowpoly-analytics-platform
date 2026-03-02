@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain PlayerRepository melalui query dan command terenkapsulasi.
+// Fungsi file: Repository akses data pemain — CRUD pemain, relasi sesi-pemain, dan pengaturan join order.
 using Dapper;
 using Npgsql;
 
@@ -12,7 +12,7 @@ public sealed class PlayerRepository
     private readonly NpgsqlDataSource _dataSource;
 
     /// <summary>
-    /// Menjalankan fungsi PlayerRepository sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource untuk koneksi ke tabel players dan session_players.
     /// </summary>
     public PlayerRepository(NpgsqlDataSource dataSource)
     {
@@ -20,7 +20,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetPlayerAsync sebagai bagian dari alur file ini.
+    /// Mengambil data pemain berdasarkan player_id.
     /// </summary>
     public async Task<PlayerDb?> GetPlayerAsync(Guid playerId, CancellationToken ct)
     {
@@ -35,7 +35,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetPlayerForInstructorAsync sebagai bagian dari alur file ini.
+    /// Mengambil pemain yang dimiliki instruktur tertentu.
     /// </summary>
     public async Task<PlayerDb?> GetPlayerForInstructorAsync(Guid playerId, Guid instructorUserId, CancellationToken ct)
     {
@@ -52,7 +52,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetPlayerForInstructorByUsernameAsync sebagai bagian dari alur file ini.
+    /// Mengambil pemain milik instruktur berdasarkan username melalui link user-player.
     /// </summary>
     public async Task<PlayerDb?> GetPlayerForInstructorByUsernameAsync(string username, Guid instructorUserId, CancellationToken ct)
     {
@@ -72,7 +72,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CreatePlayerAsync sebagai bagian dari alur file ini.
+    /// Membuat profil pemain baru milik instruktur.
     /// </summary>
     public async Task<Guid> CreatePlayerAsync(string displayName, Guid instructorUserId, CancellationToken ct)
     {
@@ -96,7 +96,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi UpdatePlayerProfileAsync sebagai bagian dari alur file ini.
+    /// Memperbarui display_name dan instructor_user_id profil pemain.
     /// </summary>
     public async Task<bool> UpdatePlayerProfileAsync(Guid playerId, string displayName, Guid? instructorUserId, CancellationToken ct)
     {
@@ -119,7 +119,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListPlayersAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar pemain milik instruktur tertentu.
     /// </summary>
     public async Task<List<PlayerDb>> ListPlayersAsync(Guid instructorUserId, CancellationToken ct)
     {
@@ -136,7 +136,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListPlayersByPlayerScopeAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar pemain berdasarkan cakupan sesi (player scope) — filter session_id.
     /// </summary>
     public async Task<List<PlayerDb>> ListPlayersByPlayerScopeAsync(Guid playerId, CancellationToken ct)
     {
@@ -160,7 +160,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi AddPlayerToSessionAndAssignJoinOrderAsync sebagai bagian dari alur file ini.
+    /// Menambahkan pemain ke sesi dan menetapkan nomor urut bergabung (join_order).
     /// </summary>
     public async Task<int> AddPlayerToSessionAndAssignJoinOrderAsync(
         Guid sessionId,
@@ -234,7 +234,7 @@ public sealed class PlayerRepository
             sessionId,
             playerId,
             role,
-            initialJoinOrder = joinOrder ?? 0,
+            initialJoinOrder = joinOrder ?? 1,
             createdAt = DateTimeOffset.UtcNow
         }, tx, cancellationToken: ct));
 
@@ -266,7 +266,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetSessionPlayerJoinOrderMapAsync sebagai bagian dari alur file ini.
+    /// Mengambil peta player_id → join_order untuk satu sesi.
     /// </summary>
     public async Task<Dictionary<Guid, int>> GetSessionPlayerJoinOrderMapAsync(Guid sessionId, CancellationToken ct)
     {
@@ -284,7 +284,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CountPlayersInSessionAsync sebagai bagian dari alur file ini.
+    /// Menghitung jumlah pemain yang tergabung pada satu sesi.
     /// </summary>
     public async Task<int> CountPlayersInSessionAsync(Guid sessionId, CancellationToken ct)
     {
@@ -299,7 +299,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi IsPlayerInSessionAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah pemain tertentu sudah tergabung dalam sesi.
     /// </summary>
     public async Task<bool> IsPlayerInSessionAsync(Guid sessionId, Guid playerId, CancellationToken ct)
     {
@@ -315,7 +315,7 @@ public sealed class PlayerRepository
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe SessionPlayerJoinOrderDb pada modul ini.
+    /// DTO internal untuk hasil query join order session-player.
     /// </summary>
     private sealed class SessionPlayerJoinOrderDb
     {

@@ -1,17 +1,18 @@
-// Fungsi file: Mengelola endpoint API untuk domain ApiErrorHelper termasuk validasi request dan respons standar.
+// Fungsi file: Menyediakan helper statis untuk membangun ErrorResponse terstandar dengan dukungan lokalisasi ID↔EN berdasarkan Accept-Language.
 using Cashflowpoly.Api.Models;
+using System.Collections.Frozen;
 
 namespace Cashflowpoly.Api.Controllers;
 
 /// <summary>
-/// Menyatakan peran utama tipe ApiErrorHelper pada modul ini.
+/// Helper statis untuk membangun respons error terstandar dengan terjemahan otomatis Indonesia↔Inggris berdasarkan header Accept-Language.
 /// </summary>
 internal static class ApiErrorHelper
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Kamus pemetaan pesan error dari Bahasa Indonesia ke Bahasa Inggris.
     /// </summary>
-    private static readonly Dictionary<string, string> IdToEnMessages = new(StringComparer.Ordinal)
+    private static readonly FrozenDictionary<string, string> IdToEnMessages = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Action type wajib diisi"] = "Action type is required",
         ["Actor type tidak valid"] = "Invalid actor type",
@@ -21,6 +22,7 @@ internal static class ApiErrorHelper
         ["Amount tidak sesuai unit_price * qty"] = "Amount does not match unit_price * qty",
         ["Asuransi hanya berlaku untuk risiko OUT"] = "Insurance can only be used for OUT risk events",
         ["Bahan tidak mencukupi untuk klaim order"] = "Insufficient ingredients to claim the order",
+        ["Batch maksimal 500 event"] = "Batch cannot exceed 500 events",
         ["Card ID wajib diisi"] = "Card ID is required",
         ["Category wajib diisi"] = "Category is required",
         ["Config wajib ada"] = "Config is required",
@@ -34,6 +36,7 @@ internal static class ApiErrorHelper
         ["Event sudah ada"] = "Event already exists",
         ["Field wajib tidak lengkap"] = "Required fields are incomplete",
         ["Fitur asuransi tidak aktif"] = "Insurance feature is not enabled",
+        ["Fitur darurat hanya tersedia di mode MAHIR"] = "Emergency feature is only available in ADVANCED mode",
         ["Fitur donasi Jumat tidak aktif"] = "Friday donation feature is not enabled",
         ["Fitur perdagangan emas tidak aktif"] = "Gold trading feature is not enabled",
         ["Fitur pinjaman tidak aktif"] = "Loan feature is not enabled",
@@ -66,6 +69,7 @@ internal static class ApiErrorHelper
         ["Nomor tie breaker tidak valid"] = "Invalid tie-breaker number",
         ["Option type tidak valid"] = "Invalid option type",
         ["Password minimal 6 karakter"] = "Password must be at least 6 characters",
+        ["Password minimal 12 karakter"] = "Password must be at least 12 characters",
         ["Password wajib diisi"] = "Password is required",
         ["Payload action used tidak valid"] = "Invalid action-used payload",
         ["Payload discard ingredient tidak valid"] = "Invalid ingredient-discard payload",
@@ -90,6 +94,7 @@ internal static class ApiErrorHelper
         ["Payload tabungan tidak valid"] = "Invalid saving payload",
         ["Payload tie breaker tidak valid"] = "Invalid tie-breaker payload",
         ["Payload transaksi tidak valid"] = "Invalid transaction payload",
+        ["Pemain belum membeli asuransi"] = "Player has not purchased insurance",
         ["Pembayaran melebihi sisa pinjaman"] = "Repayment exceeds remaining loan amount",
         ["Pembelian kebutuhan primer melebihi batas harian"] = "Primary-needs purchase exceeds daily limit",
         ["Penalty misi harus 10 poin"] = "Mission penalty must be 10 points",
@@ -99,6 +104,8 @@ internal static class ApiErrorHelper
         ["Player hanya dapat melihat metrik miliknya"] = "Player can only view their own metrics",
         ["Player tidak ditemukan"] = "Player not found",
         ["Player tidak terdaftar di sesi ini"] = "Player is not registered in this session",
+        ["Player hanya dapat mengirim event actor PLAYER"] = "Player can only submit PLAYER actor events",
+        ["Player hanya dapat mengirim event miliknya"] = "Player can only submit their own events",
         ["Player wajib diisi"] = "Player is required",
         ["Player wajib diisi untuk actor PLAYER"] = "Player is required for PLAYER actor",
         ["Points tidak valid"] = "Invalid points",
@@ -112,6 +119,7 @@ internal static class ApiErrorHelper
         ["Risk event tidak ditemukan"] = "Risk event not found",
         ["Risk ID wajib diisi"] = "Risk ID is required",
         ["Role tidak diizinkan"] = "Role is not allowed",
+        ["Role tidak dikenali"] = "Unrecognized role",
         ["Role tidak valid"] = "Invalid role",
         ["Role wajib diisi"] = "Role is required",
         ["Ruleset belum memiliki versi ACTIVE"] = "Ruleset has no ACTIVE version yet",
@@ -131,10 +139,13 @@ internal static class ApiErrorHelper
         ["Sequence number minimal 0"] = "Sequence number must be at least 0",
         ["Sequence number sudah ada"] = "Sequence number already exists",
         ["Sesi maksimal 4 pemain"] = "A session can have at most 4 players",
+        ["Session harus berstatus STARTED untuk menerima event"] = "Session must be STARTED to accept events",
         ["Session sudah berakhir"] = "Session has already ended",
         ["Session tidak ditemukan"] = "Session not found",
         ["Setiap klaim pesanan harus diikuti pengambilan risiko pada mode MAHIR"] = "Each order claim must be followed by a risk draw in ADVANCED mode",
         ["Status sesi tidak valid"] = "Invalid session status",
+        ["Terlalu banyak request"] = "Too many requests",
+        ["Terjadi kesalahan pada server"] = "An internal server error occurred",
         ["Tie breaker sudah ditetapkan untuk pemain"] = "Tie-breaker has already been assigned to this player",
         ["Token user tidak valid"] = "Invalid user token",
         ["Total kartu bahan melebihi batas ruleset"] = "Total ingredient cards exceed ruleset limit",
@@ -147,14 +158,17 @@ internal static class ApiErrorHelper
         ["Username wajib diisi"] = "Username is required",
         ["Weekday harus FRI"] = "Weekday must be FRI",
         ["Weekday harus SAT"] = "Weekday must be SAT",
-        ["Weekday tidak valid"] = "Invalid weekday",
-        ["Terlalu banyak request"] = "Too many requests",
-        ["Terjadi kesalahan pada server"] = "An internal server error occurred"
-    };
+        ["Weekday tidak valid"] = "Invalid weekday"
+    }.ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary>
-    /// Menjalankan fungsi BuildError sebagai bagian dari alur file ini.
+    /// Membangun objek <see cref="ErrorResponse"/> dengan pesan yang dilokalisasi sesuai preferensi bahasa klien.
     /// </summary>
+    /// <param name="httpContext">Konteks HTTP untuk membaca Accept-Language dan trace identifier.</param>
+    /// <param name="code">Kode error (misal VALIDATION_ERROR, DUPLICATE).</param>
+    /// <param name="message">Pesan error dalam Bahasa Indonesia.</param>
+    /// <param name="details">Detail error tambahan.</param>
+    /// <returns>Objek ErrorResponse siap dikembalikan ke klien.</returns>
     internal static ErrorResponse BuildError(HttpContext httpContext, string code, string message, params ErrorDetail[] details)
     {
         var localizedMessage = ResolveMessage(httpContext, message);
@@ -162,7 +176,7 @@ internal static class ApiErrorHelper
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveMessage sebagai bagian dari alur file ini.
+    /// Menerjemahkan pesan ke Bahasa Inggris jika klien memilih Accept-Language: en.
     /// </summary>
     private static string ResolveMessage(HttpContext context, string message)
     {
@@ -177,7 +191,7 @@ internal static class ApiErrorHelper
     }
 
     /// <summary>
-    /// Menjalankan fungsi PrefersEnglish sebagai bagian dari alur file ini.
+    /// Memeriksa apakah klien lebih memilih respons dalam Bahasa Inggris berdasarkan header Accept-Language.
     /// </summary>
     private static bool PrefersEnglish(HttpContext context)
     {

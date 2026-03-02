@@ -1,38 +1,39 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain RulebookViewModels.
+// Fungsi file: Mendefinisikan ViewModel untuk menampilkan halaman buku aturan (rulebook) permainan, termasuk bagian-bagian aturan dan tabel penilaian.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe RulebookPageViewModel pada modul ini.
+/// ViewModel utama halaman rulebook yang memuat judul, subjudul,
+/// daftar bagian aturan, dan daftar item penilaian (scoring).
 /// </summary>
 public sealed class RulebookPageViewModel
 {
     public string Title { get; init; } = string.Empty;
     public string Subtitle { get; init; } = string.Empty;
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar bagian (section) aturan yang ditampilkan pada halaman rulebook.
     /// </summary>
     public List<RulebookSectionViewModel> Sections { get; init; } = new();
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar item penilaian (scoring) yang menjelaskan kategori dan aturan skor permainan.
     /// </summary>
     public List<RulebookScoreItemViewModel> Scoring { get; init; } = new();
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe RulebookSectionViewModel pada modul ini.
+/// ViewModel untuk satu bagian aturan dalam rulebook, berisi judul, deskripsi, dan poin-poin penjelasan.
 /// </summary>
 public sealed class RulebookSectionViewModel
 {
     public string Heading { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar poin-poin penjelasan di dalam bagian aturan ini.
     /// </summary>
     public List<string> Points { get; init; } = new();
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe RulebookScoreItemViewModel pada modul ini.
+/// ViewModel untuk satu item penilaian dalam rulebook, memuat kategori dan aturan skor terkait.
 /// </summary>
 public sealed class RulebookScoreItemViewModel
 {

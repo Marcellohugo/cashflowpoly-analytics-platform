@@ -57,7 +57,7 @@ Sistem melayani dasbor dengan tabel proyeksi dan agregasi (`event_cashflow_proje
 ## 4. Diagram Entitas dan Relasi (deskripsi)
 Skema memuat relasi inti berikut:
 1. `app_users` menyimpan akun autentikasi (`INSTRUCTOR`, `PLAYER`).
-2. `user_player_links` mengikat akun ke profil pemain secara 1:1.
+2. `user_player_links` mengikat akun role `PLAYER` ke profil pemain secara 1:1.
 3. `players`, `sessions`, dan `rulesets` dapat membawa `instructor_user_id` untuk scope data instruktur.
 4. `rulesets` memiliki banyak `ruleset_versions`.
 5. `sessions` mereferensikan satu `ruleset_version` aktif melalui `session_ruleset_activations`.
@@ -117,7 +117,7 @@ create index if not exists ix_players_instructor_user on players(instructor_user
 ```
 
 ### Relasi akun-pemain (`user_player_links`)
-Sistem mengikat akun login ke profil pemain secara 1:1.
+Sistem mengikat akun login role `PLAYER` ke profil pemain secara 1:1.
 
 Kolom utama:
 - `link_id` UUID
@@ -179,8 +179,8 @@ Kolom utama:
 - `session_player_id` UUID
 - `session_id`
 - `player_id`
-- `join_order` urutan masuk atau urutan permainan
-- `role` peran dalam sesi (`PLAYER`, `INSTRUCTOR_VIEW` bila perlu)
+- `join_order` urutan masuk atau urutan permainan (minimal 1)
+- `role` peran dalam sesi (saat ini hanya `PLAYER`)
 
 SQL:
 ```sql
@@ -188,8 +188,8 @@ create table if not exists session_players (
   session_player_id uuid primary key,
   session_id uuid not null references sessions(session_id) on delete cascade,
   player_id uuid not null references players(player_id) on delete restrict,
-  join_order int not null default 0,
-  role varchar(20) not null default 'PLAYER',
+  join_order int not null default 1 check (join_order >= 1),
+  role varchar(20) not null default 'PLAYER' constraint ck_session_players_role check (role in ('PLAYER')),
   created_at timestamptz not null default now(),
   unique(session_id, player_id)
 );
@@ -324,7 +324,7 @@ create table if not exists events (
   timestamp timestamptz not null,
   day_index int not null check (day_index >= 0),
   weekday varchar(3) not null check (weekday in ('MON','TUE','WED','THU','FRI','SAT','SUN')),
-  turn_number int not null check (turn_number >= 0),
+  turn_number int not null check (turn_number >= 1),
   sequence_number bigint not null check (sequence_number >= 0),
   action_type varchar(64) not null,
   ruleset_version_id uuid not null references ruleset_versions(ruleset_version_id) on delete restrict,

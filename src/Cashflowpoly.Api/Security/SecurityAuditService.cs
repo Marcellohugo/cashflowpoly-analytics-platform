@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain SecurityAuditService (JWT, audit, atau rate limiting).
+// Fungsi file: Layanan pencatatan audit keamanan — menyimpan log autentikasi, otorisasi, dan rate-limit ke database.
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;
@@ -7,7 +7,7 @@ using Cashflowpoly.Api.Data;
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>
-/// Menyatakan peran utama tipe SecurityAuditEventTypes pada modul ini.
+/// Konstanta string tipe event untuk audit keamanan (login, register, challenge, dsb.).
 /// </summary>
 public static class SecurityAuditEventTypes
 {
@@ -22,7 +22,7 @@ public static class SecurityAuditEventTypes
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe SecurityAuditOutcomes pada modul ini.
+/// Konstanta string outcome audit keamanan: SUCCESS, FAILURE, DENIED.
 /// </summary>
 public static class SecurityAuditOutcomes
 {
@@ -37,7 +37,7 @@ public static class SecurityAuditOutcomes
 public sealed class SecurityAuditService
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Opsi serialisasi JSON web-default untuk mengonversi detail audit menjadi string JSON.
     /// </summary>
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -45,7 +45,7 @@ public sealed class SecurityAuditService
     private readonly ILogger<SecurityAuditService> _logger;
 
     /// <summary>
-    /// Menjalankan fungsi SecurityAuditService sebagai bagian dari alur file ini.
+    /// Menerima SecurityAuditRepository dan logger untuk pencatatan audit.
     /// </summary>
     public SecurityAuditService(SecurityAuditRepository repository, ILogger<SecurityAuditService> logger)
     {
@@ -54,7 +54,7 @@ public sealed class SecurityAuditService
     }
 
     /// <summary>
-    /// Menjalankan fungsi LogAsync sebagai bagian dari alur file ini.
+    /// Menyimpan satu entri audit keamanan; kegagalan ditelan agar tidak mengganggu request utama.
     /// </summary>
     public async Task LogAsync(
         HttpContext context,
@@ -116,7 +116,7 @@ public sealed class SecurityAuditService
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveTraceId sebagai bagian dari alur file ini.
+    /// Mengambil trace ID dari HttpContext atau Activity.Current; fallback ke "unknown-trace".
     /// </summary>
     private static string ResolveTraceId(HttpContext context)
     {

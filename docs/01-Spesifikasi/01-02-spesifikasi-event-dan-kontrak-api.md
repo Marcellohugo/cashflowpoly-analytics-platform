@@ -62,6 +62,9 @@ Setiap event dikirim sebagai JSON dengan skema umum berikut:
 Catatan:
 - `player_id` wajib saat `actor_type=PLAYER`.
 - `timestamp` harus format UTC atau menyertakan offset zona waktu.
+- `day_index` minimal `0`.
+- `turn_number` minimal `1`.
+- `sequence_number` minimal `0`.
 
 ### 3.2 Struktur respons error (standar)
 Semua error validasi mengikuti format ini:
@@ -874,8 +877,20 @@ Isi field `config` mengikuti struktur `config_json` pada `docs/01-Spesifikasi/01
 - Path: `/api/v1/rulesets`
 - Response 200:
 ```json
-{ "items": [ { "ruleset_id":"uuid", "name":"Ruleset Default", "latest_version": 2 } ] }
+{
+  "items": [
+    {
+      "ruleset_id": "uuid",
+      "name": "Ruleset Default",
+      "latest_version": 2,
+      "status": "ACTIVE"
+    }
+  ]
+}
 ```
+
+Keterangan:
+- Field `status` merepresentasikan status pada **versi terbaru** ruleset (`DRAFT`/`ACTIVE`/`RETIRED`).
 
 ---
 
@@ -1059,6 +1074,5 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
-
 
 

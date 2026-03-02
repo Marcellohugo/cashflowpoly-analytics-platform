@@ -1,7 +1,8 @@
-// Fungsi file: Mengelola endpoint API untuk domain PlayersController termasuk validasi request dan respons standar.
+// Fungsi file: Menyediakan endpoint manajemen pemain (buat, daftar) dan penugasan pemain ke sesi permainan.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
+using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -24,7 +25,7 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 /// <summary>
-/// Menyatakan peran utama tipe PlayersController pada modul ini.
+/// Controller manajemen pemain dan relasi pemain-sesi dengan dukungan instructor order dari ruleset.
 /// </summary>
 public sealed class PlayersController : ControllerBase
 {
@@ -34,7 +35,7 @@ public sealed class PlayersController : ControllerBase
     private readonly UserRepository _users;
 
     /// <summary>
-    /// Menjalankan fungsi PlayersController sebagai bagian dari alur file ini.
+    /// Menginisialisasi controller dengan dependensi repositori pemain, sesi, ruleset, dan user.
     /// </summary>
     public PlayersController(PlayerRepository players, SessionRepository sessions, RulesetRepository rulesets, UserRepository users)
     {
@@ -48,8 +49,11 @@ public sealed class PlayersController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(PlayerResponse), StatusCodes.Status201Created)]
     /// <summary>
-    /// Menjalankan fungsi CreatePlayer sebagai bagian dari alur file ini.
+    /// Membuat profil pemain baru beserta akun user PLAYER berdasarkan data yang diberikan instruktur.
     /// </summary>
+    /// <param name="request">Data pemain baru: username, password, display name.</param>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <returns>201 Created dengan ID dan display name pemain baru.</returns>
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -82,9 +86,12 @@ public sealed class PlayersController : ControllerBase
                 new ErrorDetail("username", "OUT_OF_RANGE")));
         }
 
-        if (request.Password.Length < 6)
+        if (request.Password.Length < PasswordPolicy.MinPasswordLength)
         {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Password minimal 6 karakter",
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Password minimal {PasswordPolicy.MinPasswordLength} karakter",
                 new ErrorDetail("password", "OUT_OF_RANGE")));
         }
 
@@ -108,8 +115,10 @@ public sealed class PlayersController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(PlayerListResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi ListPlayers sebagai bagian dari alur file ini.
+    /// Menampilkan daftar pemain milik instruktur atau pemain yang terkait dengan akun PLAYER yang sedang login.
     /// </summary>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <returns>200 OK dengan daftar pemain.</returns>
     public async Task<IActionResult> ListPlayers(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -149,8 +158,12 @@ public sealed class PlayersController : ControllerBase
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(AddSessionPlayerResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi AddPlayerToSession sebagai bagian dari alur file ini.
+    /// Menambahkan pemain ke sesi permainan dengan penentuan join order otomatis atau manual berdasarkan ruleset.
     /// </summary>
+    /// <param name="sessionId">ID sesi target.</param>
+    /// <param name="request">Data penugasan berisi player ID/username, role, dan join order opsional.</param>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <returns>200 OK dengan player ID dan join order yang ditetapkan.</returns>
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -264,7 +277,18 @@ public sealed class PlayersController : ControllerBase
             }
         }
 
-        var role = string.IsNullOrWhiteSpace(request.Role) ? "PLAYER" : request.Role;
+        var role = string.IsNullOrWhiteSpace(request.Role)
+            ? "PLAYER"
+            : request.Role.Trim().ToUpperInvariant();
+        if (!string.Equals(role, "PLAYER", StringComparison.Ordinal))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Role tidak valid",
+                new ErrorDetail("role", "INVALID_ENUM")));
+        }
+
         var joinOrder = await _players.AddPlayerToSessionAndAssignJoinOrderAsync(
             sessionId,
             playerId,
@@ -276,7 +300,7 @@ public sealed class PlayersController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetCurrentUserId sebagai bagian dari alur file ini.
+    /// Mencoba mengekstrak user ID dari claim JWT NameIdentifier.
     /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
@@ -285,7 +309,7 @@ public sealed class PlayersController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildInstructorOrderLookup sebagai bagian dari alur file ini.
+    /// Membangun lookup username→join order dari konfigurasi JSON field instructor_player_usernames.
     /// </summary>
     private static Dictionary<string, int> BuildInstructorOrderLookup(string configJson)
     {

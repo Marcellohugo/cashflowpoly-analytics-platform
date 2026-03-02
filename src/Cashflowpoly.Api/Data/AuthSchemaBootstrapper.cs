@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain AuthSchemaBootstrapper melalui query dan command terenkapsulasi.
+// Fungsi file: HostedService bootstrap skema autentikasi — membuat tabel user, link, audit, dan menyemai akun default.
 using Dapper;
 using Cashflowpoly.Api.Security;
 using Microsoft.Extensions.Hosting;
@@ -16,7 +16,7 @@ public sealed class AuthSchemaBootstrapper : IHostedService
     private readonly AuthBootstrapOptions _options;
 
     /// <summary>
-    /// Menjalankan fungsi AuthSchemaBootstrapper sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource dan opsi bootstrap untuk membuat skema dan seed user.
     /// </summary>
     public AuthSchemaBootstrapper(NpgsqlDataSource dataSource, IOptions<AuthBootstrapOptions> options)
     {
@@ -25,7 +25,7 @@ public sealed class AuthSchemaBootstrapper : IHostedService
     }
 
     /// <summary>
-    /// Menjalankan fungsi StartAsync sebagai bagian dari alur file ini.
+    /// Membuat tabel, indeks, dan constraint autentikasi lalu menyemai akun default saat startup.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -103,19 +103,116 @@ public sealed class AuthSchemaBootstrapper : IHostedService
                 set join_order = ranked.new_join_order
                 from ranked
                 where sp.session_player_id = ranked.session_player_id;
+
+                update session_players
+                set role = 'PLAYER'
+                where coalesce(upper(role), '') <> 'PLAYER';
+
+                alter table session_players
+                alter column join_order set default 1;
+
+                if not exists (
+                  select 1
+                  from pg_constraint
+                  where conname = 'ck_session_players_join_order_positive'
+                    and conrelid = 'public.session_players'::regclass
+                ) then
+                  alter table session_players
+                  add constraint ck_session_players_join_order_positive
+                  check (join_order >= 1)
+                  not valid;
+                end if;
+
+                if not exists (
+                  select 1
+                  from pg_constraint
+                  where conname = 'ck_session_players_role'
+                    and conrelid = 'public.session_players'::regclass
+                ) then
+                  alter table session_players
+                  add constraint ck_session_players_role
+                  check (role in ('PLAYER'))
+                  not valid;
+                end if;
+
+                if exists (
+                  select 1
+                  from pg_constraint
+                  where conname = 'ck_session_players_join_order_positive'
+                    and conrelid = 'public.session_players'::regclass
+                ) then
+                  alter table session_players
+                  validate constraint ck_session_players_join_order_positive;
+                end if;
+
+                if exists (
+                  select 1
+                  from pg_constraint
+                  where conname = 'ck_session_players_role'
+                    and conrelid = 'public.session_players'::regclass
+                ) then
+                  alter table session_players
+                  validate constraint ck_session_players_role;
+                end if;
               end if;
             end $$;
+
+            do $$
+            begin
+              if to_regclass('public.events') is not null then
+                update events
+                set turn_number = 1
+                where turn_number <= 0;
+
+                if not exists (
+                  select 1
+                  from pg_constraint
+                  where conname = 'ck_events_turn_number_positive'
+                    and conrelid = 'public.events'::regclass
+                ) then
+                  alter table events
+                  add constraint ck_events_turn_number_positive
+                  check (turn_number >= 1)
+                  not valid;
+                end if;
+
+                if exists (
+                  select 1
+                  from pg_constraint
+                  where conname = 'ck_events_turn_number_positive'
+                    and conrelid = 'public.events'::regclass
+                ) then
+                  alter table events
+                  validate constraint ck_events_turn_number_positive;
+                end if;
+              end if;
+            end $$;
+
+            delete from user_player_links upl
+            using app_users u
+            where upl.user_id = u.user_id
+              and upper(u.role) <> 'PLAYER';
+
+            update players p
+            set instructor_user_id = null
+            from app_users u
+            where p.player_id = u.user_id
+              and upper(u.role) <> 'PLAYER'
+              and p.instructor_user_id = u.user_id;
 
             update players p
             set instructor_user_id = upl.user_id
             from user_player_links upl
+            join app_users u on u.user_id = upl.user_id
             where p.player_id = upl.player_id
+              and upper(u.role) = 'PLAYER'
               and p.instructor_user_id is null;
 
             insert into players (player_id, display_name, instructor_user_id, created_at)
             select u.user_id, u.username, u.user_id, u.created_at
             from app_users u
-            where not exists (
+            where upper(u.role) = 'PLAYER'
+              and not exists (
                 select 1
                 from user_player_links upl
                 where upl.user_id = u.user_id
@@ -129,7 +226,8 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             insert into user_player_links (link_id, user_id, player_id, created_at)
             select gen_random_uuid(), u.user_id, u.user_id, now()
             from app_users u
-            where not exists (
+            where upper(u.role) = 'PLAYER'
+              and not exists (
                 select 1
                 from user_player_links upl
                 where upl.user_id = u.user_id
@@ -208,12 +306,12 @@ public sealed class AuthSchemaBootstrapper : IHostedService
     }
 
     /// <summary>
-    /// Menjalankan fungsi StopAsync sebagai bagian dari alur file ini.
+    /// Tidak ada tugas cleanup yang dibutuhkan saat shutdown.
     /// </summary>
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <summary>
-    /// Menjalankan fungsi SeedUserAsync sebagai bagian dari alur file ini.
+    /// Menyisipkan satu akun default (jika belum ada) dan memastikan profil/link hanya untuk role PLAYER.
     /// </summary>
     private static async Task SeedUserAsync(
         NpgsqlConnection conn,
@@ -232,9 +330,10 @@ public sealed class AuthSchemaBootstrapper : IHostedService
             throw new InvalidOperationException($"AuthBootstrap untuk role {role} harus mengisi username dan password.");
         }
 
-        if (password.Length < 12)
+        if (password.Length < PasswordPolicy.MinPasswordLength)
         {
-            throw new InvalidOperationException($"AuthBootstrap password role {role} minimal 12 karakter.");
+            throw new InvalidOperationException(
+                $"AuthBootstrap password role {role} minimal {PasswordPolicy.MinPasswordLength} karakter.");
         }
 
         const string insertSql = """
@@ -271,10 +370,13 @@ public sealed class AuthSchemaBootstrapper : IHostedService
                 new { username, password, role },
                 cancellationToken: cancellationToken));
 
-        await conn.ExecuteAsync(
-            new CommandDefinition(
-                ensureProfileSql,
-                new { username },
-                cancellationToken: cancellationToken));
+        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            await conn.ExecuteAsync(
+                new CommandDefinition(
+                    ensureProfileSql,
+                    new { username },
+                    cancellationToken: cancellationToken));
+        }
     }
 }

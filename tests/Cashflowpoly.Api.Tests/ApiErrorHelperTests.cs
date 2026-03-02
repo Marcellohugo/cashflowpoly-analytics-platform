@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ApiErrorHelperTests.
+// Fungsi file: Menguji bahwa ApiErrorHelper menghasilkan response error dengan format dan field yang benar.
 using Cashflowpoly.Api.Controllers;
 using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Http;
@@ -7,13 +7,15 @@ using Xunit;
 namespace Cashflowpoly.Api.Tests;
 
 /// <summary>
-/// Menyatakan peran utama tipe ApiErrorHelperTests pada modul ini.
+/// Kelas pengujian unit untuk memvalidasi bahwa ApiErrorHelper membangun
+/// objek error response dengan field inti, trace ID, dan detail yang sesuai.
 /// </summary>
 public sealed class ApiErrorHelperTests
 {
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi BuildError_MapsCoreFields_AndTraceId sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa BuildError memetakan status code, message, dan traceId
+    /// dengan benar ke dalam objek ErrorResponse beserta detail error-nya.
     /// </summary>
     public void BuildError_MapsCoreFields_AndTraceId()
     {
@@ -35,7 +37,8 @@ public sealed class ApiErrorHelperTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi BuildError_ReturnsEmptyDetails_WhenNoDetailProvided sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa BuildError mengembalikan daftar detail kosong
+    /// ketika tidak ada ErrorDetail yang diberikan pada parameter.
     /// </summary>
     public void BuildError_ReturnsEmptyDetails_WhenNoDetailProvided()
     {

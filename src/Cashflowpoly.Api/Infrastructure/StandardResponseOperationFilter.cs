@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan komponen infrastruktur API untuk kebutuhan StandardResponseOperationFilter.
+// Fungsi file: Menyediakan Swagger/OpenAPI operation filter yang menambahkan response standar (400/401/403/404/409/422/429/500) pada setiap endpoint.
 using System.Reflection;
 using Cashflowpoly.Api.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -8,13 +8,15 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace Cashflowpoly.Api.Infrastructure;
 
 /// <summary>
-/// Menyatakan peran utama tipe StandardResponseOperationFilter pada modul ini.
+/// Operation filter Swagger yang otomatis menambahkan respons error standar dan success default ke semua operasi API berdasarkan konteks HTTP method, route, dan otorisasi.
 /// </summary>
 public sealed class StandardResponseOperationFilter : IOperationFilter
 {
     /// <summary>
-    /// Menjalankan fungsi Apply sebagai bagian dari alur file ini.
+    /// Menerapkan respons error standar dan success default pada operasi Swagger sesuai HTTP method, route pattern, dan atribut otorisasi.
     /// </summary>
+    /// <param name="operation">Operasi OpenAPI yang sedang diproses.</param>
+    /// <param name="context">Konteks filter berisi metadata endpoint.</param>
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var httpMethod = context.ApiDescription.HttpMethod?.ToUpperInvariant() ?? "GET";
@@ -51,7 +53,7 @@ public sealed class StandardResponseOperationFilter : IOperationFilter
     }
 
     /// <summary>
-    /// Menjalankan fungsi EnsureSuccessResponse sebagai bagian dari alur file ini.
+    /// Menambahkan respons success default (200/201/204) jika belum ada respons 2xx pada operasi.
     /// </summary>
     private static void EnsureSuccessResponse(OpenApiOperation operation, string httpMethod)
     {
@@ -73,7 +75,7 @@ public sealed class StandardResponseOperationFilter : IOperationFilter
     }
 
     /// <summary>
-    /// Menjalankan fungsi AddErrorResponse sebagai bagian dari alur file ini.
+    /// Menambahkan respons error dengan status code dan deskripsi tertentu beserta schema ErrorResponse pada operasi.
     /// </summary>
     private static void AddErrorResponse(
         OpenApiOperation operation,

@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain EventRepository melalui query dan command terenkapsulasi.
+// Fungsi file: Repository akses data event gameplay — penyimpanan event, sequence number, log validasi, dan proyeksi cashflow.
 using Dapper;
 using Npgsql;
 
@@ -12,7 +12,7 @@ public sealed class EventRepository
     private readonly NpgsqlDataSource _dataSource;
 
     /// <summary>
-    /// Menjalankan fungsi EventRepository sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource untuk koneksi ke tabel events, validation_logs, dan cashflow_projections.
     /// </summary>
     public EventRepository(NpgsqlDataSource dataSource)
     {
@@ -20,7 +20,7 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi EventIdExistsAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah event_id sudah ada di database (untuk idempotency).
     /// </summary>
     public async Task<bool> EventIdExistsAsync(Guid sessionId, Guid eventId, CancellationToken ct)
     {
@@ -36,7 +36,7 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi SequenceNumberExistsAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah sequence_number sudah digunakan dalam satu sesi.
     /// </summary>
     public async Task<bool> SequenceNumberExistsAsync(Guid sessionId, long sequenceNumber, CancellationToken ct)
     {
@@ -52,7 +52,7 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetMaxSequenceNumberAsync sebagai bagian dari alur file ini.
+    /// Mengambil sequence_number tertinggi pada satu sesi untuk penentuan urutan event berikutnya.
     /// </summary>
     public async Task<long?> GetMaxSequenceNumberAsync(Guid sessionId, CancellationToken ct)
     {
@@ -66,51 +66,62 @@ public sealed class EventRepository
         return await conn.ExecuteScalarAsync<long?>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
     }
 
+    /// <summary>
+    /// SQL INSERT untuk tabel events, digunakan oleh kedua overload InsertEventAsync.
+    /// </summary>
+    private const string InsertEventSql = """
+        insert into events (
+            event_pk,
+            event_id,
+            session_id,
+            player_id,
+            actor_type,
+            timestamp,
+            day_index,
+            weekday,
+            turn_number,
+            sequence_number,
+            action_type,
+            ruleset_version_id,
+            payload,
+            received_at,
+            client_request_id
+        )
+        values (
+            @EventPk,
+            @EventId,
+            @SessionId,
+            @PlayerId,
+            @ActorType,
+            @Timestamp,
+            @DayIndex,
+            @Weekday,
+            @TurnNumber,
+            @SequenceNumber,
+            @ActionType,
+            @RulesetVersionId,
+            @Payload::jsonb,
+            @ReceivedAt,
+            @ClientRequestId
+        )
+        """;
+
     public async Task InsertEventAsync(EventDb record, CancellationToken ct)
     {
-        const string sql = """
-            insert into events (
-                event_pk,
-                event_id,
-                session_id,
-                player_id,
-                actor_type,
-                timestamp,
-                day_index,
-                weekday,
-                turn_number,
-                sequence_number,
-                action_type,
-                ruleset_version_id,
-                payload,
-                received_at,
-                client_request_id
-            )
-            values (
-                @EventPk,
-                @EventId,
-                @SessionId,
-                @PlayerId,
-                @ActorType,
-                @Timestamp,
-                @DayIndex,
-                @Weekday,
-                @TurnNumber,
-                @SequenceNumber,
-                @ActionType,
-                @RulesetVersionId,
-                @Payload::jsonb,
-                @ReceivedAt,
-                @ClientRequestId
-            )
-            """;
-
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(sql, record, cancellationToken: ct));
+        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, record, cancellationToken: ct));
     }
 
     /// <summary>
-    /// Menjalankan fungsi InsertValidationLogAsync sebagai bagian dari alur file ini.
+    /// Menyisipkan event menggunakan koneksi dan transaksi yang sudah ada (untuk atomisitas dengan proyeksi).
+    /// </summary>
+    internal async Task InsertEventAsync(EventDb record, NpgsqlConnection conn, NpgsqlTransaction tx, CancellationToken ct)
+    {
+        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, record, tx, cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// Menyimpan catatan log validasi (valid/gagal) untuk satu event ke tabel validation_logs.
     /// </summary>
     public async Task InsertValidationLogAsync(
         Guid sessionId,
@@ -164,48 +175,67 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi InsertCashflowProjectionAsync sebagai bagian dari alur file ini.
+    /// SQL INSERT untuk tabel event_cashflow_projections, digunakan oleh kedua overload.
+    /// </summary>
+    private const string InsertProjectionSql = """
+        insert into event_cashflow_projections (
+            projection_id,
+            session_id,
+            player_id,
+            event_pk,
+            event_id,
+            timestamp,
+            direction,
+            amount,
+            category,
+            counterparty,
+            reference,
+            note
+        )
+        values (
+            @ProjectionId,
+            @SessionId,
+            @PlayerId,
+            @EventPk,
+            @EventId,
+            @Timestamp,
+            @Direction,
+            @Amount,
+            @Category,
+            @Counterparty,
+            @Reference,
+            @Note
+        )
+        on conflict (session_id, event_id) do nothing
+        """;
+
+    /// <summary>
+    /// Menyimpan proyeksi arus kas (cashflow projection) yang dihasilkan dari satu event.
     /// </summary>
     public async Task InsertCashflowProjectionAsync(CashflowProjectionDb projection, CancellationToken ct)
     {
-        const string sql = """
-            insert into event_cashflow_projections (
-                projection_id,
-                session_id,
-                player_id,
-                event_pk,
-                event_id,
-                timestamp,
-                direction,
-                amount,
-                category,
-                counterparty,
-                reference,
-                note
-            )
-            values (
-                @ProjectionId,
-                @SessionId,
-                @PlayerId,
-                @EventPk,
-                @EventId,
-                @Timestamp,
-                @Direction,
-                @Amount,
-                @Category,
-                @Counterparty,
-                @Reference,
-                @Note
-            )
-            on conflict (session_id, event_id) do nothing
-            """;
-
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(sql, projection, cancellationToken: ct));
+        await conn.ExecuteAsync(new CommandDefinition(InsertProjectionSql, projection, cancellationToken: ct));
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetCashflowProjectionsAsync sebagai bagian dari alur file ini.
+    /// Menyisipkan proyeksi arus kas menggunakan koneksi dan transaksi yang sudah ada.
+    /// </summary>
+    internal async Task InsertCashflowProjectionAsync(CashflowProjectionDb projection, NpgsqlConnection conn, NpgsqlTransaction tx, CancellationToken ct)
+    {
+        await conn.ExecuteAsync(new CommandDefinition(InsertProjectionSql, projection, tx, cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// Membuka koneksi database untuk digunakan dengan transaksi eksternal.
+    /// </summary>
+    internal async Task<NpgsqlConnection> OpenConnectionAsync(CancellationToken ct)
+    {
+        return await _dataSource.OpenConnectionAsync(ct);
+    }
+
+    /// <summary>
+    /// Mengambil seluruh proyeksi arus kas dalam satu sesi.
     /// </summary>
     public async Task<List<CashflowProjectionDb>> GetCashflowProjectionsAsync(Guid sessionId, CancellationToken ct)
     {
@@ -232,7 +262,7 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetEventsBySessionAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar event pada satu sesi mulai dari fromSeq dengan batas jumlah tertentu.
     /// </summary>
     public async Task<List<EventDb>> GetEventsBySessionAsync(Guid sessionId, long fromSeq, int limit, CancellationToken ct)
     {
@@ -265,7 +295,7 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetAllEventsBySessionAsync sebagai bagian dari alur file ini.
+    /// Mengambil seluruh event pada satu sesi, diurutkan berdasarkan sequence_number.
     /// </summary>
     public async Task<List<EventDb>> GetAllEventsBySessionAsync(Guid sessionId, CancellationToken ct)
     {
@@ -296,7 +326,7 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetEventByIdAsync sebagai bagian dari alur file ini.
+    /// Mengambil satu event berdasarkan session_id dan event_id.
     /// </summary>
     public async Task<EventDb?> GetEventByIdAsync(Guid sessionId, Guid eventId, CancellationToken ct)
     {
