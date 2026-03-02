@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain JwtSigningKeyProvider (JWT, audit, atau rate limiting).
+// Fungsi file: Penyedia signing key JWT dengan dukungan rotasi key — resolve dari config, file, env, dan JSON.
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -18,7 +18,7 @@ public sealed class JwtSigningKeyProvider
     private string _lastActiveKeyId = string.Empty;
 
     /// <summary>
-    /// Menjalankan fungsi JwtSigningKeyProvider sebagai bagian dari alur file ini.
+    /// Menerima opsi JWT dan logger untuk resolusi dan pemantauan rotasi signing key.
     /// </summary>
     public JwtSigningKeyProvider(IOptions<JwtOptions> options, ILogger<JwtSigningKeyProvider> logger)
     {
@@ -27,7 +27,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetActiveSigningMaterial sebagai bagian dari alur file ini.
+    /// Mengambil material signing key aktif berdasarkan jendela waktu ActivateAtUtc/RetireAtUtc.
     /// </summary>
     public JwtSigningMaterial GetActiveSigningMaterial()
     {
@@ -60,7 +60,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveValidationKeys sebagai bagian dari alur file ini.
+    /// Mengembalikan daftar SecurityKey yang masih valid (belum retire) untuk validasi token; opsional filter by kid.
     /// </summary>
     public IReadOnlyCollection<SecurityKey> ResolveValidationKeys(string? keyId)
     {
@@ -85,7 +85,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ValidateConfiguration sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa minimal satu key aktif dan daftar validasi tersedia.
     /// </summary>
     public void ValidateConfiguration()
     {
@@ -94,7 +94,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi IsActiveAt sebagai bagian dari alur file ini.
+    /// Memeriksa apakah key aktif pada waktu tertentu (sudah diaktifkan dan belum di-retire).
     /// </summary>
     private static bool IsActiveAt(ResolvedJwtSigningKey key, DateTimeOffset now)
     {
@@ -104,7 +104,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildSymmetricSecurityKey sebagai bagian dari alur file ini.
+    /// Membuat SymmetricSecurityKey dari string signing key dengan kid terlampir.
     /// </summary>
     private static SymmetricSecurityKey BuildSymmetricSecurityKey(string keyId, string signingKey)
     {
@@ -116,7 +116,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveConfiguredKeys sebagai bagian dari alur file ini.
+    /// Mengumpulkan seluruh key dari berbagai sumber (config, JSON string, file, env), lalu memvalidasi dan mengurutkannya.
     /// </summary>
     private static List<ResolvedJwtSigningKey> ResolveConfiguredKeys(JwtOptions options)
     {
@@ -202,7 +202,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi AppendKeysFromJson sebagai bagian dari alur file ini.
+    /// Memparsing JSON array berisi konfigurasi key dan menambahkannya ke daftar target.
     /// </summary>
     private static void AppendKeysFromJson(List<JwtSigningKeyOptions> target, string json)
     {
@@ -230,7 +230,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveFallbackSigningKey sebagai bagian dari alur file ini.
+    /// Mengambil signing key fallback dari opsi langsung, file, atau environment variable.
     /// </summary>
     private static string ResolveFallbackSigningKey(JwtOptions options)
     {
@@ -249,7 +249,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveSigningKey sebagai bagian dari alur file ini.
+    /// Mengambil signing key dari opsi inline atau dari file secret.
     /// </summary>
     private static string ResolveSigningKey(JwtSigningKeyOptions options)
     {
@@ -262,7 +262,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ReadEnvironmentVariable sebagai bagian dari alur file ini.
+    /// Membaca nilai environment variable; jika nama konfigurasi kosong, gunakan fallback.
     /// </summary>
     private static string ReadEnvironmentVariable(string configuredName, string fallbackName)
     {
@@ -271,7 +271,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menjalankan fungsi ReadSecretFile sebagai bagian dari alur file ini.
+    /// Membaca isi file secret dari path yang diberikan; mengembalikan string kosong jika file tidak ada.
     /// </summary>
     private static string ReadSecretFile(string path)
     {
@@ -290,7 +290,7 @@ public sealed class JwtSigningKeyProvider
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe ResolvedJwtSigningKey pada modul ini.
+    /// DTO internal hasil resolusi satu signing key beserta jendela waktu aktifnya.
     /// </summary>
     private sealed record ResolvedJwtSigningKey(
         string KeyId,
@@ -300,7 +300,7 @@ public sealed class JwtSigningKeyProvider
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe JwtSigningMaterial pada modul ini.
+/// Material signing JWT yang siap pakai: key ID, SecurityKey, dan SigningCredentials.
 /// </summary>
 public sealed record JwtSigningMaterial(
     string KeyId,

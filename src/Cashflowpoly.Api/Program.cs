@@ -1,4 +1,4 @@
-// Fungsi file: Mengonfigurasi bootstrap service, middleware, endpoint, dan keamanan untuk aplikasi API.
+// Fungsi file: Titik masuk aplikasi ASP.NET Core yang mendaftarkan seluruh service (database, JWT, rate limiter, Swagger, health check), middleware pipeline (exception handler, forwarded headers, request logging, autentikasi/otorisasi), dan endpoint routing untuk Cashflowpoly API.
 using System.Security.Claims;
 using System.Diagnostics;
 using System.Net;
@@ -249,15 +249,30 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Cashflowpoly API v1");
+    });
+}
 
 app.UseForwardedHeaders();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+if (enableLegacyApiCompatibility)
+{
+    app.Use(async (context, next) =>
+    {
+        if (LegacyApiCompatibilityHelper.TryRewritePath(context.Request.Path, out var rewrittenPath))
+        {
+            context.Request.Path = rewrittenPath;
+        }
+
+        await next();
+    });
+}
 app.UseRouting();
 
 app.Use(async (context, next) =>

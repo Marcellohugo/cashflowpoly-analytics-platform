@@ -1,11 +1,11 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain UserRepository melalui query dan command terenkapsulasi.
+// Fungsi file: Repository akses data user autentikasi — login, registrasi, link user-player, dan lookup username.
 using Dapper;
 using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
 /// <summary>
-/// Menyatakan peran utama tipe AuthenticatedUserDb pada modul ini.
+/// Record data user yang berhasil diautentikasi: ID, username, role, dan status aktif.
 /// </summary>
 public sealed record AuthenticatedUserDb(Guid UserId, string Username, string Role, bool IsActive);
 
@@ -17,7 +17,7 @@ public sealed class UserRepository
     private readonly NpgsqlDataSource _dataSource;
 
     /// <summary>
-    /// Menjalankan fungsi UserRepository sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource untuk koneksi ke database user.
     /// </summary>
     public UserRepository(NpgsqlDataSource dataSource)
     {
@@ -25,7 +25,7 @@ public sealed class UserRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi AuthenticateAsync sebagai bagian dari alur file ini.
+    /// Memverifikasi kredensial username dan password, mengembalikan data user jika cocok.
     /// </summary>
     public async Task<AuthenticatedUserDb?> AuthenticateAsync(string username, string password, CancellationToken ct)
     {
@@ -44,7 +44,7 @@ public sealed class UserRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi UsernameExistsAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah username sudah terdaftar (case-insensitive).
     /// </summary>
     public async Task<bool> UsernameExistsAsync(string username, CancellationToken ct)
     {
@@ -62,7 +62,7 @@ public sealed class UserRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CreateUserAsync sebagai bagian dari alur file ini.
+    /// Membuat akun user baru dalam transaksi: insert user dan (khusus role PLAYER) upsert profil + link user-player.
     /// </summary>
     public async Task<AuthenticatedUserDb> CreateUserAsync(
         string username,
@@ -103,30 +103,33 @@ public sealed class UserRepository
             role
         }, tx, cancellationToken: ct));
 
-        var createdAt = DateTimeOffset.UtcNow;
-        var canonicalPlayerId = userId;
-        await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
+        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            playerId = canonicalPlayerId,
-            displayName = profileDisplayName,
-            instructorUserId = userId,
-            createdAt
-        }, tx, cancellationToken: ct));
+            var createdAt = DateTimeOffset.UtcNow;
+            var canonicalPlayerId = userId;
+            await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
+            {
+                playerId = canonicalPlayerId,
+                displayName = profileDisplayName,
+                instructorUserId = userId,
+                createdAt
+            }, tx, cancellationToken: ct));
 
-        await conn.ExecuteAsync(new CommandDefinition(upsertUserPlayerLinkSql, new
-        {
-            linkId = Guid.NewGuid(),
-            userId,
-            playerId = canonicalPlayerId,
-            createdAt
-        }, tx, cancellationToken: ct));
+            await conn.ExecuteAsync(new CommandDefinition(upsertUserPlayerLinkSql, new
+            {
+                linkId = Guid.NewGuid(),
+                userId,
+                playerId = canonicalPlayerId,
+                createdAt
+            }, tx, cancellationToken: ct));
+        }
 
         await tx.CommitAsync(ct);
         return created;
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetLinkedPlayerIdAsync sebagai bagian dari alur file ini.
+    /// Mengambil player_id yang terhubung ke user via tabel user_player_links.
     /// </summary>
     public async Task<Guid?> GetLinkedPlayerIdAsync(Guid userId, CancellationToken ct)
     {
@@ -142,7 +145,7 @@ public sealed class UserRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetUsernamesByPlayerIdsAsync sebagai bagian dari alur file ini.
+    /// Mengambil mapping player_id ke username untuk sekumpulan ID pemain.
     /// </summary>
     public async Task<Dictionary<Guid, string>> GetUsernamesByPlayerIdsAsync(IReadOnlyCollection<Guid> playerIds, CancellationToken ct)
     {
@@ -178,7 +181,7 @@ public sealed class UserRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi EnsurePlayerLinkAsync sebagai bagian dari alur file ini.
+    /// Memastikan user memiliki profil pemain dan link; membuat keduanya jika belum ada dalam transaksi.
     /// </summary>
     public async Task<Guid> EnsurePlayerLinkAsync(Guid userId, string username, CancellationToken ct)
     {
@@ -242,7 +245,7 @@ public sealed class UserRepository
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe PlayerUsernameRow pada modul ini.
+    /// Record mapping player_id dan username dari join user_player_links dan app_users.
     /// </summary>
     private sealed class PlayerUsernameRow
     {

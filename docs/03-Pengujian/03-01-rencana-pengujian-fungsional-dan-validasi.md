@@ -267,7 +267,7 @@ Catatan:
   "timestamp": "2026-01-27T10:00:00Z",
   "day_index": 0,
   "weekday": "MON",
-  "turn_number": 0,
+  "turn_number": 1,
   "sequence_number": 1,
   "action_type": "turn.action.used",
   "ruleset_version_id": "UUID",

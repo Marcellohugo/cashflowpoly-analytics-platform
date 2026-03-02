@@ -1,17 +1,17 @@
-// Fungsi file: Mendefinisikan kontrak data API pada domain ErrorResponse.
+// Fungsi file: Mendefinisikan model respons error standar API, termasuk detail per-field dan trace ID untuk penelusuran masalah.
 using System.Text.Json.Serialization;
 
 namespace Cashflowpoly.Api.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe ErrorDetail pada modul ini.
+/// Detail kesalahan validasi pada satu field tertentu, berisi nama field dan jenis masalahnya.
 /// </summary>
 public sealed record ErrorDetail(
     [property: JsonPropertyName("field")] string Field,
     [property: JsonPropertyName("issue")] string Issue);
 
 /// <summary>
-/// Menyatakan peran utama tipe ErrorResponse pada modul ini.
+/// Respons error standar API yang mencakup kode error, pesan, daftar detail, dan trace ID.
 /// </summary>
 public sealed record ErrorResponse(
     [property: JsonPropertyName("error_code")] string ErrorCode,

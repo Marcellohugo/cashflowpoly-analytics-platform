@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain ApiIntegrationTestFixture.
+// Fungsi file: Menyediakan fixture pengujian integrasi dengan container PostgreSQL dan HttpClient yang terkonfigurasi.
 using Microsoft.AspNetCore.Mvc.Testing;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -7,7 +7,8 @@ using Xunit;
 namespace Cashflowpoly.Api.Tests.Infrastructure;
 
 /// <summary>
-/// Menyatakan peran utama tipe ApiIntegrationTestFixture pada modul ini.
+/// Fixture bersama untuk pengujian integrasi API yang mengelola lifecycle
+/// container PostgreSQL, migrasi skema, dan pembuatan HttpClient.
 /// </summary>
 public sealed class ApiIntegrationTestFixture : IAsyncLifetime
 {
@@ -21,7 +22,8 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     private string? _previousJwtSectionSigningKey;
 
     /// <summary>
-    /// Menjalankan fungsi ApiIntegrationTestFixture sebagai bagian dari alur file ini.
+    /// Membuat instance fixture dan mengonfigurasi container PostgreSQL
+    /// dengan kredensial dan nama database untuk pengujian integrasi.
     /// </summary>
     public ApiIntegrationTestFixture()
     {
@@ -33,12 +35,14 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Menjalankan fungsi InvalidOperationException sebagai bagian dari alur file ini.
+    /// Menyediakan HttpClient yang telah terkonfigurasi untuk pengujian integrasi.
+    /// Melempar exception jika belum diinisialisasi.
     /// </summary>
     public HttpClient Client => _client ?? throw new InvalidOperationException("HTTP client belum terinisialisasi.");
 
     /// <summary>
-    /// Menjalankan fungsi InitializeAsync sebagai bagian dari alur file ini.
+    /// Menjalankan container PostgreSQL, menerapkan skema SQL, mengatur
+    /// environment variable, dan membuat HttpClient melalui WebApplicationFactory.
     /// </summary>
     public async Task InitializeAsync()
     {
@@ -60,7 +64,8 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Menjalankan fungsi DisposeAsync sebagai bagian dari alur file ini.
+    /// Membersihkan resource: menutup HttpClient, factory, mengembalikan
+    /// environment variable, dan menghentikan container PostgreSQL.
     /// </summary>
     public async Task DisposeAsync()
     {
@@ -73,7 +78,8 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// Menjalankan fungsi ApplySchemaAsync sebagai bagian dari alur file ini.
+    /// Membaca file SQL skema dari direktori build dan mengeksekusinya
+    /// pada database PostgreSQL untuk menyiapkan tabel pengujian.
     /// </summary>
     private static async Task ApplySchemaAsync(string connectionString)
     {

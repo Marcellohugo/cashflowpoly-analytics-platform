@@ -16,6 +16,10 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = ".Cashflowpoly.Ui.Session";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.IdleTimeout = TimeSpan.FromHours(8);
 });
 builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
@@ -43,22 +47,21 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
-app.UseRouting();
+app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+app.UseRouting();
+
 app.UseSession();
 
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
-    var requestPath = path.Value ?? string.Empty;
     var isLoginPath = path.StartsWithSegments("/auth/login", StringComparison.OrdinalIgnoreCase);
     var isRegisterPath = path.StartsWithSegments("/auth/register", StringComparison.OrdinalIgnoreCase);
     var isLanguagePath = path.StartsWithSegments("/language", StringComparison.OrdinalIgnoreCase);
     var isHealthPath = path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
-    var isStaticAssetPath = System.IO.Path.HasExtension(requestPath)
-        || path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase)
+    var isStaticAssetPath = path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/js", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/lib", StringComparison.OrdinalIgnoreCase)
@@ -82,6 +85,8 @@ app.Use(async (context, next) =>
     if (DateTimeOffset.TryParse(tokenExpiresAtRaw, out var tokenExpiresAt) &&
         tokenExpiresAt <= DateTimeOffset.UtcNow)
     {
+        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionUserIdKey);
+        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionDisplayNameKey);
         context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey);
         context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionUsernameKey);
         context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionAccessTokenKey);

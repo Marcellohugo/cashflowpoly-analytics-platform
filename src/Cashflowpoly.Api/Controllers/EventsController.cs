@@ -1,5 +1,6 @@
-// Fungsi file: Mengelola endpoint API untuk domain EventsController termasuk validasi request dan respons standar.
+// Fungsi file: Controller ingest event gameplay — menerima, memvalidasi aturan domain, dan menyimpan event beserta proyeksi arus kas.
 using System.Text.Json;
+using System.Collections.Frozen;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Models;
@@ -22,52 +23,72 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 /// <summary>
-/// Menyatakan peran utama tipe EventsController pada modul ini.
+/// Controller REST untuk ingest event tunggal/batch, validasi aturan domain per action type, dan query histori event sesi.
 /// </summary>
 public sealed class EventsController : ControllerBase
 {
     /// <summary>
-    /// Menyatakan peran utama tipe ValidationOutcome pada modul ini.
+    /// Hasil validasi event: valid/tidak, kode status HTTP, dan detail error jika gagal.
     /// </summary>
     private sealed record ValidationOutcome(bool IsValid, int StatusCode, ErrorResponse? Error);
+    /// <summary>
+    /// Hasil validasi akses sesi: mencakup status, error, dan scoped player ID untuk role PLAYER.
+    /// </summary>
+    private sealed record SessionAccessOutcome(bool IsValid, int StatusCode, ErrorResponse? Error, Guid? ScopedPlayerId);
 
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Singleton outcome validasi sukses untuk menghindari alokasi berulang.
     /// </summary>
     private static readonly ValidationOutcome Valid = new(true, StatusCodes.Status200OK, null);
+    /// <summary>
+    /// Singleton outcome akses sesi sukses (tanpa scope player) untuk instruktur.
+    /// </summary>
+    private static readonly SessionAccessOutcome AccessValid = new(true, StatusCodes.Status200OK, null, null);
 
     private readonly SessionRepository _sessions;
     private readonly RulesetRepository _rulesets;
     private readonly EventRepository _events;
     private readonly PlayerRepository _players;
+    private readonly UserRepository _users;
 
     /// <summary>
     /// Controller untuk ingest event dan akses histori event.
     /// </summary>
-    public EventsController(SessionRepository sessions, RulesetRepository rulesets, EventRepository events, PlayerRepository players)
+    public EventsController(
+        SessionRepository sessions,
+        RulesetRepository rulesets,
+        EventRepository events,
+        PlayerRepository players,
+        UserRepository users)
     {
         _sessions = sessions;
         _rulesets = rulesets;
         _events = events;
         _players = players;
+        _users = users;
     }
 
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Himpunan actor type yang diizinkan: PLAYER dan SYSTEM.
     /// </summary>
-    private static readonly HashSet<string> AllowedActorTypes = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenSet<string> AllowedActorTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "PLAYER",
         "SYSTEM"
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Himpunan kode hari yang valid untuk field weekday event (MON–SUN).
     /// </summary>
-    private static readonly HashSet<string> AllowedWeekdays = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenSet<string> AllowedWeekdays = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
-    };
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly FrozenSet<string> AllowedEmergencyOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "SELL_NEED", "SELL_GOLD", "SELL_GOAL", "OTHER"
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private const int RulebookMissionPenaltyPoints = 10;
     private const int RulebookLoanPrincipal = 10;
@@ -78,7 +99,7 @@ public sealed class EventsController : ControllerBase
     [HttpPost("events")]
     [ProducesResponseType(typeof(EventStoredResponse), StatusCodes.Status201Created)]
     /// <summary>
-    /// Menjalankan fungsi CreateEvent sebagai bagian dari alur file ini.
+    /// Menerima satu event gameplay, memvalidasi aturan domain, menyimpan ke database, dan mencatat log validasi.
     /// </summary>
     public async Task<IActionResult> CreateEvent([FromBody] EventRequest request, CancellationToken ct)
     {
@@ -116,14 +137,23 @@ public sealed class EventsController : ControllerBase
     [HttpPost("events/batch")]
     [ProducesResponseType(typeof(EventBatchResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi CreateEventsBatch sebagai bagian dari alur file ini.
+    /// Menerima batch event gameplay, memvalidasi masing-masing, dan mengembalikan ringkasan sukses/gagal.
     /// </summary>
     public async Task<IActionResult> CreateEventsBatch([FromBody] EventBatchRequest request, CancellationToken ct)
     {
+        const int MaxBatchSize = 500;
+
         if (request.Events is null || request.Events.Count == 0)
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Daftar event batch wajib diisi",
                 new ErrorDetail("events", "REQUIRED")));
+        }
+
+        if (request.Events.Count > MaxBatchSize)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR",
+                "Batch maksimal 500 event",
+                new ErrorDetail("events", "MAX_LENGTH")));
         }
 
         var failed = new List<EventBatchFailed>();
@@ -156,6 +186,9 @@ public sealed class EventsController : ControllerBase
             catch (PostgresException ex) when (ex.SqlState == "23505")
             {
                 failed.Add(new EventBatchFailed(evt.EventId, "DUPLICATE"));
+                var dupError = ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Event sudah ada");
+                await _events.InsertValidationLogAsync(evt.SessionId, evt.EventId, null, false, dupError.ErrorCode, dupError.Message,
+                    BuildValidationDetailsJson(evt, dupError), ct);
             }
         }
 
@@ -165,14 +198,14 @@ public sealed class EventsController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}/events")]
     [ProducesResponseType(typeof(EventsBySessionResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi GetEventsBySession sebagai bagian dari alur file ini.
+    /// Mengambil daftar event sesi dengan pagination berbasis sequence number.
     /// </summary>
     public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] long fromSeq = 0, [FromQuery] int limit = 200, CancellationToken ct = default)
     {
-        var instructorScopeCheck = await ValidateInstructorSessionAccessAsync(sessionId, ct);
-        if (!instructorScopeCheck.IsValid)
+        var accessScopeCheck = await ValidateSessionAccessAsync(sessionId, ct);
+        if (!accessScopeCheck.IsValid)
         {
-            return StatusCode(instructorScopeCheck.StatusCode, instructorScopeCheck.Error);
+            return StatusCode(accessScopeCheck.StatusCode, accessScopeCheck.Error);
         }
 
         var session = await _sessions.GetSessionAsync(sessionId, ct);
@@ -199,20 +232,25 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ValidateEventAsync sebagai bagian dari alur file ini.
+    /// Menjalankan seluruh pipeline validasi event: akses sesi, keberadaan entitas, enum, domain rules, dan duplikasi.
     /// </summary>
     private async Task<ValidationOutcome> ValidateEventAsync(EventRequest request, CancellationToken ct)
     {
-        var instructorScopeCheck = await ValidateInstructorSessionAccessAsync(request.SessionId, ct);
-        if (!instructorScopeCheck.IsValid)
+        var accessScopeCheck = await ValidateSessionAccessAsync(request.SessionId, ct);
+        if (!accessScopeCheck.IsValid)
         {
-            return instructorScopeCheck;
+            return new ValidationOutcome(false, accessScopeCheck.StatusCode, accessScopeCheck.Error);
         }
 
         var session = await _sessions.GetSessionAsync(request.SessionId, ct);
         if (session is null)
         {
             return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Session tidak ditemukan");
+        }
+
+        if (!string.Equals(session.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Session harus berstatus STARTED untuk menerima event");
         }
 
         var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(request.RulesetVersionId, ct);
@@ -231,6 +269,15 @@ public sealed class EventsController : ControllerBase
         {
             return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Actor type tidak valid",
                 new ErrorDetail("actor_type", "INVALID_ENUM"));
+        }
+
+        if (accessScopeCheck.ScopedPlayerId.HasValue &&
+            !string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildOutcome(
+                StatusCodes.Status403Forbidden,
+                "FORBIDDEN",
+                "Player hanya dapat mengirim event actor PLAYER");
         }
 
         if (!AllowedWeekdays.Contains(request.Weekday))
@@ -261,6 +308,15 @@ public sealed class EventsController : ControllerBase
         {
             return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi untuk actor PLAYER",
                 new ErrorDetail("player_id", "REQUIRED"));
+        }
+
+        if (accessScopeCheck.ScopedPlayerId.HasValue &&
+            request.PlayerId != accessScopeCheck.ScopedPlayerId.Value)
+        {
+            return BuildOutcome(
+                StatusCodes.Status403Forbidden,
+                "FORBIDDEN",
+                "Player hanya dapat mengirim event miliknya");
         }
 
         if (request.PlayerId is not null)
@@ -320,7 +376,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi StoreEventAsync sebagai bagian dari alur file ini.
+    /// Menyimpan event ke tabel events, membangun proyeksi arus kas, dan menangani offset asuransi jika berlaku.
     /// </summary>
     private async Task<Guid> StoreEventAsync(EventRequest request, CancellationToken ct)
     {
@@ -345,13 +401,8 @@ public sealed class EventsController : ControllerBase
             ClientRequestId = request.ClientRequestId
         };
 
-        await _events.InsertEventAsync(record, ct);
-
-        if (TryBuildCashflowProjection(request, timestamp, eventPk, out var projection))
-        {
-            await _events.InsertCashflowProjectionAsync(projection, ct);
-        }
-
+        // Kumpulkan proyeksi sebelum transaksi
+        CashflowProjectionDb? insuranceOffset = null;
         if (request.PlayerId is { } insurancePlayerId &&
             string.Equals(request.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) &&
             TryReadInsuranceUsed(request.Payload, out var riskEventIdText) &&
@@ -367,7 +418,7 @@ public sealed class EventsController : ControllerBase
                     string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) &&
                     amount > 0)
                 {
-                    var offset = new CashflowProjectionDb
+                    insuranceOffset = new CashflowProjectionDb
                     {
                         ProjectionId = Guid.NewGuid(),
                         SessionId = request.SessionId,
@@ -382,10 +433,27 @@ public sealed class EventsController : ControllerBase
                         Reference = riskEventIdText,
                         Note = "Offset risiko via asuransi"
                     };
-                    await _events.InsertCashflowProjectionAsync(offset, ct);
                 }
             }
         }
+
+        // Simpan event + proyeksi dalam satu transaksi
+        await using var conn = await _events.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+
+        await _events.InsertEventAsync(record, conn, tx, ct);
+
+        if (TryBuildCashflowProjection(request, timestamp, eventPk, out var projection))
+        {
+            await _events.InsertCashflowProjectionAsync(projection, conn, tx, ct);
+        }
+
+        if (insuranceOffset is not null)
+        {
+            await _events.InsertCashflowProjectionAsync(insuranceOffset, conn, tx, ct);
+        }
+
+        await tx.CommitAsync(ct);
 
         return eventPk;
     }
@@ -412,7 +480,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildOutcome sebagai bagian dari alur file ini.
+    /// Membangun ValidationOutcome gagal dari kode status, kode error, dan pesan.
     /// </summary>
     private ValidationOutcome BuildOutcome(int statusCode, string code, string message, params ErrorDetail[] details)
     {
@@ -421,7 +489,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ValidateDomainRulesAsync sebagai bagian dari alur file ini.
+    /// Memvalidasi aturan domain spesifik per action type terhadap konfigurasi ruleset aktif.
     /// </summary>
     private async Task<ValidationOutcome> ValidateDomainRulesAsync(EventRequest request, RulesetConfig config, CancellationToken ct)
     {
@@ -1278,6 +1346,15 @@ public sealed class EventsController : ControllerBase
             }
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+
+            var hasPurchased = events.Any(e =>
+                e.PlayerId == request.PlayerId &&
+                string.Equals(e.ActionType, "insurance.multirisk.purchased", StringComparison.OrdinalIgnoreCase));
+            if (!hasPurchased)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Pemain belum membeli asuransi");
+            }
+
             var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
             if (riskEvent is null || !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
             {
@@ -1312,6 +1389,11 @@ public sealed class EventsController : ControllerBase
 
         if (string.Equals(actionType, "risk.emergency.used", StringComparison.OrdinalIgnoreCase))
         {
+            if (!string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur darurat hanya tersedia di mode MAHIR");
+            }
+
             if (request.PlayerId is null)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
@@ -1343,9 +1425,8 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("payload.direction", "INVALID_ENUM"));
             }
 
-            var allowedOptions = new[] { "SELL_NEED", "SELL_GOLD", "SELL_GOAL", "OTHER" };
             if (string.IsNullOrWhiteSpace(optionType) ||
-                !allowedOptions.Any(opt => string.Equals(opt, optionType, StringComparison.OrdinalIgnoreCase)))
+                !AllowedEmergencyOptions.Contains(optionType))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Option type tidak valid",
                     new ErrorDetail("payload.option_type", "INVALID_ENUM"));
@@ -1541,7 +1622,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetString sebagai bagian dari alur file ini.
+    /// Mengekstrak nilai string dari properti JSON payload.
     /// </summary>
     private static bool TryGetString(JsonElement payload, string propertyName, out string value)
     {
@@ -1561,7 +1642,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetOptionalString sebagai bagian dari alur file ini.
+    /// Mengekstrak nilai string opsional dari payload; mengembalikan true jika properti tidak ada.
     /// </summary>
     private static bool TryGetOptionalString(JsonElement payload, string propertyName, out string? value)
     {
@@ -1581,7 +1662,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetInt32 sebagai bagian dari alur file ini.
+    /// Mengekstrak nilai integer 32-bit dari properti JSON payload.
     /// </summary>
     private static bool TryGetInt32(JsonElement payload, string propertyName, out int value, bool required = true)
     {
@@ -1600,7 +1681,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetDouble sebagai bagian dari alur file ini.
+    /// Mengekstrak nilai double dari properti JSON payload.
     /// </summary>
     private static bool TryGetDouble(JsonElement payload, string propertyName, out double value, bool required = true)
     {
@@ -1619,7 +1700,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadTransaction sebagai bagian dari alur file ini.
+    /// Membaca direction, amount, category, dan counterparty dari payload event transaction.recorded.
     /// </summary>
     private static bool TryReadTransaction(JsonElement payload, out string direction, out double amount, out string category, out string? counterparty)
     {
@@ -1644,7 +1725,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadAmount sebagai bagian dari alur file ini.
+    /// Membaca nilai amount dari payload JSON event.
     /// </summary>
     private static bool TryReadAmount(JsonElement payload, out double amount)
     {
@@ -1652,7 +1733,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadGoldTrade sebagai bagian dari alur file ini.
+    /// Membaca trade_type, qty, unit_price, dan amount dari payload event gold_trade.
     /// </summary>
     private static bool TryReadGoldTrade(JsonElement payload, out string tradeType, out int qty, out int unitPrice, out int amount)
     {
@@ -1673,7 +1754,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadActionUsed sebagai bagian dari alur file ini.
+    /// Membaca jumlah aksi terpakai dan sisa dari payload event turn.action.used.
     /// </summary>
     private static bool TryReadActionUsed(JsonElement payload, out int used, out int remaining)
     {
@@ -1689,7 +1770,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadIngredientPurchase sebagai bagian dari alur file ini.
+    /// Membaca card_id dan amount dari payload event ingredient.purchased atau ingredient.discarded.
     /// </summary>
     private static bool TryReadIngredientPurchase(JsonElement payload, out string cardId, out int amount)
     {
@@ -1706,7 +1787,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadOrderClaim sebagai bagian dari alur file ini.
+    /// Membaca daftar kartu bahan yang dibutuhkan dan pendapatan dari payload event order.claimed.
     /// </summary>
     private static bool TryReadOrderClaim(JsonElement payload, out List<string> requiredCards, out int income)
     {
@@ -1738,7 +1819,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadNeedPurchase sebagai bagian dari alur file ini.
+    /// Membaca card_id, amount, dan points dari payload event pembelian kebutuhan.
     /// </summary>
     private static bool TryReadNeedPurchase(JsonElement payload, out string cardId, out int amount, out int points)
     {
@@ -1757,7 +1838,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadMissionAssigned sebagai bagian dari alur file ini.
+    /// Membaca mission_id, target_tertiary_card_id, dan penalty_points dari payload event misi.
     /// </summary>
     private static bool TryReadMissionAssigned(JsonElement payload, out string missionId, out string targetCardId, out int penaltyPoints)
     {
@@ -1776,7 +1857,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadTieBreaker sebagai bagian dari alur file ini.
+    /// Membaca nomor tie-breaker dari payload event tie_breaker.assigned.
     /// </summary>
     private static bool TryReadTieBreaker(JsonElement payload, out int number)
     {
@@ -1784,7 +1865,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadRankAwarded sebagai bagian dari alur file ini.
+    /// Membaca rank dan points dari payload event rank.awarded.
     /// </summary>
     private static bool TryReadRankAwarded(JsonElement payload, out int rank, out int points)
     {
@@ -1800,7 +1881,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadPointsAwarded sebagai bagian dari alur file ini.
+    /// Membaca nilai points dari payload event points.awarded.
     /// </summary>
     private static bool TryReadPointsAwarded(JsonElement payload, out int points)
     {
@@ -1808,7 +1889,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadSavingDeposit sebagai bagian dari alur file ini.
+    /// Membaca goal_id dan amount dari payload event saving.deposit.
     /// </summary>
     private static bool TryReadSavingDeposit(JsonElement payload, out string goalId, out int amount)
     {
@@ -1824,7 +1905,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadSavingGoalAchieved sebagai bagian dari alur file ini.
+    /// Membaca goal_id, points, dan cost dari payload event saving.goal.achieved.
     /// </summary>
     private static bool TryReadSavingGoalAchieved(JsonElement payload, out string goalId, out int points, out int cost)
     {
@@ -1842,7 +1923,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadRiskLife sebagai bagian dari alur file ini.
+    /// Membaca risk_id, direction, dan amount dari payload event risk.life.drawn.
     /// </summary>
     private static bool TryReadRiskLife(JsonElement payload, out string riskId, out string direction, out int amount)
     {
@@ -1861,7 +1942,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadInsuranceUsed sebagai bagian dari alur file ini.
+    /// Membaca risk_event_id dari payload event insurance.multirisk.used.
     /// </summary>
     private static bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId)
     {
@@ -1875,7 +1956,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadEmergencyOption sebagai bagian dari alur file ini.
+    /// Membaca risk_event_id, option_type, direction, dan amount dari payload event risk.emergency.used.
     /// </summary>
     private static bool TryReadEmergencyOption(
         JsonElement payload,
@@ -1901,7 +1982,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadLoanTaken sebagai bagian dari alur file ini.
+    /// Membaca loan_id, principal, installment, duration, dan penalty_points dari payload event pinjaman.
     /// </summary>
     private static bool TryReadLoanTaken(
         JsonElement payload,
@@ -1930,7 +2011,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadLoanRepay sebagai bagian dari alur file ini.
+    /// Membaca loan_id dan amount dari payload event loan.syariah.repaid.
     /// </summary>
     private static bool TryReadLoanRepay(JsonElement payload, out string loanId, out int amount)
     {
@@ -1946,7 +2027,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadInsurance sebagai bagian dari alur file ini.
+    /// Membaca nilai premium dari payload event insurance.multirisk.purchased.
     /// </summary>
     private static bool TryReadInsurance(JsonElement payload, out int premium)
     {
@@ -1954,7 +2035,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildIngredientInventory sebagai bagian dari alur file ini.
+    /// Membangun inventaris bahan pemain dari event ingredient purchased, order claimed, dan ingredient discarded.
     /// </summary>
     private static IngredientInventory BuildIngredientInventory(IEnumerable<EventDb> events, Guid playerId)
     {
@@ -1998,7 +2079,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeSavingBalance sebagai bagian dari alur file ini.
+    /// Menghitung saldo tabungan pemain untuk goal tertentu dari deposit, penarikan, dan pencapaian goal.
     /// </summary>
     private static int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, string goalId)
     {
@@ -2032,7 +2113,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ReadPayload sebagai bagian dari alur file ini.
+    /// Mem-parse string JSON payload event menjadi JsonElement.
     /// </summary>
     private static JsonElement ReadPayload(string payload)
     {
@@ -2041,7 +2122,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildValidationDetailsJson sebagai bagian dari alur file ini.
+    /// Membangun JSON detail validasi untuk log, berisi player_id, action_type, dan detail error.
     /// </summary>
     private static string? BuildValidationDetailsJson(EventRequest request, ErrorResponse? error)
     {
@@ -2061,19 +2142,19 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe IngredientInventory pada modul ini.
+    /// Model inventaris bahan pemain: total kartu dan jumlah per card ID.
     /// </summary>
     private sealed class IngredientInventory
     {
         internal int Total { get; set; }
         /// <summary>
-        /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+        /// Pemetaan card ID ke jumlah kartu bahan yang dimiliki.
         /// </summary>
         internal Dictionary<string, int> ByCardId { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Menjalankan fungsi EnsureSufficientBalanceAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah saldo pemain cukup untuk pengeluaran, berdasarkan proyeksi arus kas dan starting cash.
     /// </summary>
     private async Task<ValidationOutcome> EnsureSufficientBalanceAsync(
         EventRequest request,
@@ -2098,33 +2179,65 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ValidateInstructorSessionAccessAsync sebagai bagian dari alur file ini.
+    /// Memvalidasi akses sesi berdasarkan role JWT: instruktur harus pemilik sesi, player harus terdaftar di sesi.
     /// </summary>
-    private async Task<ValidationOutcome> ValidateInstructorSessionAccessAsync(Guid sessionId, CancellationToken ct)
+    private async Task<SessionAccessOutcome> ValidateSessionAccessAsync(Guid sessionId, CancellationToken ct)
     {
         var role = User.FindFirstValue(ClaimTypes.Role);
-        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return Valid;
-        }
-
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdRaw, out var instructorUserId))
+        if (!Guid.TryParse(userIdRaw, out var userId))
         {
-            return BuildOutcome(StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Token user tidak valid");
+            return BuildAccessOutcome(StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Token user tidak valid");
         }
 
-        var ownedSession = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
-        if (ownedSession is null)
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
         {
-            return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Session tidak ditemukan");
+            var ownedSession = await _sessions.GetSessionForInstructorAsync(sessionId, userId, ct);
+            if (ownedSession is null)
+            {
+                return BuildAccessOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Session tidak ditemukan");
+            }
+
+            return AccessValid;
         }
 
-        return Valid;
+        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
+            if (!linkedPlayerId.HasValue)
+            {
+                return BuildAccessOutcome(
+                    StatusCodes.Status403Forbidden,
+                    "FORBIDDEN",
+                    "Akun PLAYER belum terhubung ke profil pemain");
+            }
+
+            var inSession = await _players.IsPlayerInSessionAsync(sessionId, linkedPlayerId.Value, ct);
+            if (!inSession)
+            {
+                return BuildAccessOutcome(
+                    StatusCodes.Status403Forbidden,
+                    "FORBIDDEN",
+                    "Player tidak terdaftar di sesi ini");
+            }
+
+            return new SessionAccessOutcome(true, StatusCodes.Status200OK, null, linkedPlayerId.Value);
+        }
+
+        return BuildAccessOutcome(StatusCodes.Status403Forbidden, "FORBIDDEN", "Role tidak diizinkan");
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetPlayerBalanceAsync sebagai bagian dari alur file ini.
+    /// Membangun SessionAccessOutcome gagal dari kode status, kode error, dan pesan.
+    /// </summary>
+    private SessionAccessOutcome BuildAccessOutcome(int statusCode, string code, string message)
+    {
+        var error = ApiErrorHelper.BuildError(HttpContext, code, message);
+        return new SessionAccessOutcome(false, statusCode, error, null);
+    }
+
+    /// <summary>
+    /// Menghitung saldo kas pemain dari starting cash ditambah net proyeksi arus kas (IN − OUT).
     /// </summary>
     private async Task<double> GetPlayerBalanceAsync(Guid sessionId, Guid playerId, int startingCash, CancellationToken ct)
     {
@@ -2137,7 +2250,7 @@ public sealed class EventsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryBuildCashflowProjection sebagai bagian dari alur file ini.
+    /// Membangun proyeksi arus kas dari event gameplay berdasarkan action type dan payload-nya.
     /// </summary>
     private static bool TryBuildCashflowProjection(EventRequest request, DateTimeOffset timestamp, Guid eventPk, out CashflowProjectionDb projection)
     {

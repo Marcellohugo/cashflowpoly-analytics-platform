@@ -1,11 +1,11 @@
-// Fungsi file: Mendefinisikan aturan dan struktur domain inti untuk RulesetConfig.
+// Fungsi file: Mendefinisikan model domain konfigurasi ruleset (mode, constraint, scoring) dan parser JSON dengan validasi lengkap.
 using System.Text.Json;
 using Cashflowpoly.Api.Models;
 
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetConfig pada modul ini.
+/// Model domain konfigurasi ruleset berisi parameter permainan: mode, aksi per giliran, kas awal, constraint, dan scoring.
 /// </summary>
 internal sealed record RulesetConfig(
     string Mode,
@@ -31,7 +31,7 @@ internal sealed record RulesetConfig(
     RulesetScoringConfig? Scoring);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetScoringConfig pada modul ini.
+/// Konfigurasi skoring ruleset berisi pemetaan poin berdasarkan peringkat donasi, jumlah emas, dan peringkat pensiun.
 /// </summary>
 internal sealed record RulesetScoringConfig(
     IReadOnlyList<RankPoint> DonationRankPoints,
@@ -39,17 +39,17 @@ internal sealed record RulesetScoringConfig(
     IReadOnlyList<RankPoint> PensionRankPoints);
 
 /// <summary>
-/// Menyatakan peran utama tipe RankPoint pada modul ini.
+/// Pemetaan peringkat ke poin (untuk donasi dan pensiun).
 /// </summary>
 internal sealed record RankPoint(int Rank, int Points);
 
 /// <summary>
-/// Menyatakan peran utama tipe QtyPoint pada modul ini.
+/// Pemetaan jumlah (quantity) ke poin (untuk emas).
 /// </summary>
 internal sealed record QtyPoint(int Qty, int Points);
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerOrdering pada modul ini.
+/// Enum urutan pemain dalam sesi: berdasarkan join order, instruktur, urutan event, player ID, atau username.
 /// </summary>
 internal enum PlayerOrdering
 {
@@ -61,13 +61,17 @@ internal enum PlayerOrdering
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetConfigParser pada modul ini.
+/// Parser statis yang mengubah JSON konfigurasi ruleset menjadi objek <see cref="RulesetConfig"/> dengan validasi struktur dan batasan domain.
 /// </summary>
 internal static class RulesetConfigParser
 {
     /// <summary>
-    /// Menjalankan fungsi TryParse sebagai bagian dari alur file ini.
+    /// Mem-parse string JSON menjadi <see cref="RulesetConfig"/>, mengembalikan daftar error validasi jika gagal.
     /// </summary>
+    /// <param name="json">String JSON konfigurasi ruleset.</param>
+    /// <param name="config">Hasil parse konfigurasi, null jika gagal.</param>
+    /// <param name="errors">Daftar detail error validasi.</param>
+    /// <returns>True jika parsing dan validasi berhasil.</returns>
     internal static bool TryParse(string json, out RulesetConfig? config, out List<ErrorDetail> errors)
     {
         config = null;
@@ -86,8 +90,12 @@ internal static class RulesetConfigParser
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryParse sebagai bagian dari alur file ini.
+    /// Mem-parse JsonElement root menjadi <see cref="RulesetConfig"/> dengan validasi lengkap setiap field dan constraint domain.
     /// </summary>
+    /// <param name="root">Elemen JSON root dari konfigurasi ruleset.</param>
+    /// <param name="config">Hasil parse konfigurasi, null jika gagal.</param>
+    /// <param name="errors">Daftar detail error validasi.</param>
+    /// <returns>True jika parsing dan validasi berhasil.</returns>
     internal static bool TryParse(JsonElement root, out RulesetConfig? config, out List<ErrorDetail> errors)
     {
         config = null;
@@ -374,8 +382,11 @@ internal static class RulesetConfigParser
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryParsePlayerOrdering sebagai bagian dari alur file ini.
+    /// Mengonversi string urutan pemain (snake_case) ke enum <see cref="PlayerOrdering"/>.
     /// </summary>
+    /// <param name="rawValue">Nilai string mentah dari JSON.</param>
+    /// <param name="ordering">Hasil konversi enum.</param>
+    /// <returns>True jika konversi berhasil.</returns>
     private static bool TryParsePlayerOrdering(string rawValue, out PlayerOrdering ordering)
     {
         ordering = PlayerOrdering.JoinOrder;
@@ -410,7 +421,7 @@ internal static class RulesetConfigParser
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetObject sebagai bagian dari alur file ini.
+    /// Mengekstrak properti JSON bertipe object, menambah error jika tidak ditemukan atau bukan object.
     /// </summary>
     private static bool TryGetObject(JsonElement root, string name, out JsonElement element, List<ErrorDetail> errors)
     {
@@ -424,7 +435,7 @@ internal static class RulesetConfigParser
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetString sebagai bagian dari alur file ini.
+    /// Mengekstrak properti JSON bertipe string, menambah error jika tidak ditemukan atau bukan string.
     /// </summary>
     private static bool TryGetString(JsonElement root, string name, out string value, List<ErrorDetail> errors)
     {
@@ -440,7 +451,7 @@ internal static class RulesetConfigParser
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetInt sebagai bagian dari alur file ini.
+    /// Mengekstrak properti JSON bertipe integer, menambah error jika tidak ditemukan atau bukan angka.
     /// </summary>
     private static bool TryGetInt(JsonElement root, string name, out int value, List<ErrorDetail> errors)
     {
@@ -455,7 +466,7 @@ internal static class RulesetConfigParser
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetBool sebagai bagian dari alur file ini.
+    /// Mengekstrak properti JSON bertipe boolean, menambah error jika tidak ditemukan atau bukan boolean.
     /// </summary>
     private static bool TryGetBool(JsonElement root, string name, out bool value, List<ErrorDetail> errors)
     {

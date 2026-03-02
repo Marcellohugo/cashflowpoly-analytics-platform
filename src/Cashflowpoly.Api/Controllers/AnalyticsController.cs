@@ -1,4 +1,4 @@
-// Fungsi file: Mengelola endpoint API untuk domain AnalyticsController termasuk validasi request dan respons standar.
+// Fungsi file: Menyediakan endpoint analitika sesi (ringkasan, per-pemain, transaksi, metrik gameplay, ringkasan ruleset) dengan komputasi skor performa dan snapshot metrik.
 using System.Text.Json;
 using System.Security.Claims;
 using System.Globalization;
@@ -21,7 +21,7 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsController pada modul ini.
+/// Controller analitika yang menyediakan endpoint ringkasan sesi, analitik per pemain, histori transaksi, metrik gameplay, dan ringkasan ruleset.
 /// </summary>
 public sealed class AnalyticsController : ControllerBase
 {
@@ -32,12 +32,12 @@ public sealed class AnalyticsController : ControllerBase
     private readonly PlayerRepository _players;
     private readonly UserRepository _users;
     /// <summary>
-    /// Menjalankan fungsi CultureInfo sebagai bagian dari alur file ini.
+    /// Pembanding string untuk pengurutan username berdasarkan locale Indonesia (id-ID).
     /// </summary>
     private static readonly StringComparer UsernameOrderingComparer = StringComparer.Create(new CultureInfo("id-ID"), true);
 
     /// <summary>
-    /// Menjalankan fungsi AnalyticsController sebagai bagian dari alur file ini.
+    /// Menginisialisasi controller dengan dependensi repositori sesi, event, ruleset, metrik, pemain, dan user.
     /// </summary>
     public AnalyticsController(
         SessionRepository sessions,
@@ -104,13 +104,18 @@ public sealed class AnalyticsController : ControllerBase
         var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
         var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
 
+        if (activeRulesetVersionId.HasValue)
+        {
+            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
+        }
+
         return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName));
     }
 
     [HttpGet("sessions/{sessionId:guid}")]
     [ProducesResponseType(typeof(AnalyticsSessionResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi GetSessionAnalytics sebagai bagian dari alur file ini.
+    /// Mengambil ringkasan analitik sesi termasuk skor per pemain, cashflow, dan happiness.
     /// </summary>
     public async Task<IActionResult> GetSessionAnalytics(Guid sessionId, CancellationToken ct)
     {
@@ -165,18 +170,13 @@ public sealed class AnalyticsController : ControllerBase
             byPlayer = byPlayer.Where(item => item.PlayerId == scope.PlayerId.Value).ToList();
         }
 
-        if (activeRulesetVersionId.HasValue)
-        {
-            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
-        }
-
         return Ok(new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName));
     }
 
     [HttpGet("sessions/{sessionId:guid}/transactions")]
     [ProducesResponseType(typeof(TransactionHistoryResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi GetTransactions sebagai bagian dari alur file ini.
+    /// Mengambil histori transaksi cashflow per sesi dengan opsi filter per pemain.
     /// </summary>
     public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? playerId = null, CancellationToken ct = default)
     {
@@ -213,7 +213,7 @@ public sealed class AnalyticsController : ControllerBase
     [HttpGet("sessions/{sessionId:guid}/players/{playerId:guid}/gameplay")]
     [ProducesResponseType(typeof(GameplayMetricsResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi GetGameplayMetrics sebagai bagian dari alur file ini.
+    /// Mengambil snapshot metrik gameplay mentah dan turunan untuk pemain tertentu dalam sesi.
     /// </summary>
     public async Task<IActionResult> GetGameplayMetrics(Guid sessionId, Guid playerId, CancellationToken ct)
     {
@@ -257,7 +257,7 @@ public sealed class AnalyticsController : ControllerBase
     [HttpGet("rulesets/{rulesetId:guid}/summary")]
     [ProducesResponseType(typeof(RulesetAnalyticsSummaryResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi GetRulesetAnalyticsSummary sebagai bagian dari alur file ini.
+    /// Mengambil ringkasan analitik agregat untuk semua sesi yang menggunakan ruleset tertentu.
     /// </summary>
     public async Task<IActionResult> GetRulesetAnalyticsSummary(Guid rulesetId, CancellationToken ct)
     {
@@ -408,14 +408,20 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolvePlayerScopeAsync sebagai bagian dari alur file ini.
+    /// Menentukan scope pemain: null untuk instruktur (semua pemain), playerId untuk role PLAYER.
     /// </summary>
     private async Task<(Guid? PlayerId, IActionResult? Error)> ResolvePlayerScopeAsync(Guid? sessionId, CancellationToken ct)
     {
         var role = User.FindFirstValue(ClaimTypes.Role);
-        if (!string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
         {
             return (null, null);
+        }
+
+        if (!string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            return (null, StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak dikenali")));
         }
 
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -445,14 +451,20 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi EnsureInstructorSessionAccessAsync sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa instruktur memiliki akses ke sesi yang diminta.
     /// </summary>
     private async Task<IActionResult?> EnsureInstructorSessionAccessAsync(Guid sessionId, CancellationToken ct)
     {
         var role = User.FindFirstValue(ClaimTypes.Role);
-        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             return null;
+        }
+
+        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak dikenali"));
         }
 
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -470,7 +482,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetCurrentUserId sebagai bagian dari alur file ini.
+    /// Mencoba mengekstrak user ID dari claim JWT NameIdentifier.
     /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
@@ -479,7 +491,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildSummary sebagai bagian dari alur file ini.
+    /// Membangun ringkasan analitik sesi dari event, proyeksi cashflow, dan jumlah pelanggaran aturan.
     /// </summary>
     private static AnalyticsSessionSummary BuildSummary(List<EventDb> events, List<CashflowProjectionDb> projections, int rulesViolationsCount)
     {
@@ -490,7 +502,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeLearningPerformanceScore sebagai bagian dari alur file ini.
+    /// Menghitung skor performa pembelajaran berdasarkan cashflow, compliance, dan happiness dengan bobot tertimbang.
     /// </summary>
     private static double? ComputeLearningPerformanceScore(
         double cashInTotal,
@@ -511,7 +523,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeMissionPerformanceScore sebagai bagian dari alur file ini.
+    /// Menghitung skor performa misi berdasarkan penalti misi dan penalti pinjaman.
     /// </summary>
     private static double ComputeMissionPerformanceScore(double missionPenaltyTotal, double loanPenaltyTotal)
     {
@@ -520,7 +532,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi WeightedAverage sebagai bagian dari alur file ini.
+    /// Menghitung rata-rata tertimbang dari komponen yang memiliki nilai, mengabaikan komponen null.
     /// </summary>
     private static double? WeightedAverage(IEnumerable<(double? value, double weight)> components)
     {
@@ -541,7 +553,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi AverageNullable sebagai bagian dari alur file ini.
+    /// Menghitung rata-rata dari nilai-nilai nullable, mengabaikan null.
     /// </summary>
     private static double? AverageNullable(IEnumerable<double?> values)
     {
@@ -555,7 +567,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi Clamp sebagai bagian dari alur file ini.
+    /// Membatasi nilai numerik dalam rentang minimum dan maksimum.
     /// </summary>
     private static double Clamp(double value, double min, double max)
     {
@@ -563,7 +575,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ParseJsonElement sebagai bagian dari alur file ini.
+    /// Mem-parse string JSON menjadi JsonElement, mengembalikan null jika string kosong.
     /// </summary>
     private static JsonElement? ParseJsonElement(string? json)
     {
@@ -577,7 +589,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildByPlayerAsync sebagai bagian dari alur file ini.
+    /// Membangun daftar analitik per pemain berisi cashflow, happiness, compliance, dan skor performa.
     /// </summary>
     private async Task<List<AnalyticsByPlayerItem>> BuildByPlayerAsync(
         Guid sessionId,
@@ -677,7 +689,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi OrderPlayersByRulesetConfig sebagai bagian dari alur file ini.
+    /// Mengurutkan daftar pemain sesuai konfigurasi PlayerOrdering pada ruleset.
     /// </summary>
     private static List<AnalyticsByPlayerItem> OrderPlayersByRulesetConfig(
         List<AnalyticsByPlayerItem> players,
@@ -716,7 +728,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveOrderingUsername sebagai bagian dari alur file ini.
+    /// Mengambil username pemain untuk pengurutan, fallback ke placeholder jika tidak ditemukan.
     /// </summary>
     private static string ResolveOrderingUsername(Dictionary<Guid, string> usernamesByPlayer, Guid playerId)
     {
@@ -729,7 +741,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadTransaction sebagai bagian dari alur file ini.
+    /// Membaca direction, amount, dan category dari payload JSON transaksi.
     /// </summary>
     private static bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category)
     {
@@ -760,7 +772,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadAmount sebagai bagian dari alur file ini.
+    /// Membaca field amount dari payload JSON.
     /// </summary>
     private static bool TryReadAmount(string payloadJson, out double amount)
     {
@@ -783,7 +795,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadGoldTrade sebagai bagian dari alur file ini.
+    /// Membaca trade_type dan qty dari payload JSON perdagangan emas.
     /// </summary>
     private static bool TryReadGoldTrade(string payloadJson, out string tradeType, out int qty)
     {
@@ -810,7 +822,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi WriteSnapshotsAsync sebagai bagian dari alur file ini.
+    /// Menyimpan snapshot metrik sesi dan per-pemain ke database setelah komputasi ulang.
     /// </summary>
     private async Task WriteSnapshotsAsync(
         Guid sessionId,
@@ -829,12 +841,20 @@ public sealed class AnalyticsController : ControllerBase
         sessionMetrics["rules.violations.count"] = (sessionViolations, null);
         snapshots.AddRange(BuildMetricSnapshots(sessionId, null, rulesetVersionId, computedAt, sessionMetrics));
 
+        RulesetConfig? playerConfig = null;
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
+        if (rulesetVersion is not null &&
+            RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+        {
+            playerConfig = parsed;
+        }
+
         var players = events.Where(e => e.PlayerId.HasValue).Select(e => e.PlayerId!.Value).Distinct().ToList();
         foreach (var playerId in players)
         {
             var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
             var playerMetrics = await ComputePlayerMetricsAsync(sessionId, playerId, rulesetVersionId, events, projections,
-                hasHappiness ? breakdown : null, ct);
+                hasHappiness ? breakdown : null, playerConfig, ct);
             snapshots.AddRange(BuildMetricSnapshots(sessionId, playerId, rulesetVersionId, computedAt, playerMetrics));
         }
 
@@ -845,7 +865,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeSessionMetrics sebagai bagian dari alur file ini.
+    /// Menghitung metrik agregat level sesi: cashflow total, donasi, dan happiness.
     /// </summary>
     private static Dictionary<string, (double? Numeric, string? Json)> ComputeSessionMetrics(
         List<EventDb> events,
@@ -872,7 +892,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputePlayerMetricsAsync sebagai bagian dari alur file ini.
+    /// Menghitung metrik detail per pemain: cashflow, donasi, emas, inventaris, compliance, happiness, dan gameplay.
     /// </summary>
     private async Task<Dictionary<string, (double? Numeric, string? Json)>> ComputePlayerMetricsAsync(
         Guid sessionId,
@@ -881,18 +901,12 @@ public sealed class AnalyticsController : ControllerBase
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
         HappinessBreakdown? happiness,
+        RulesetConfig? config,
         CancellationToken ct)
     {
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
         var playerEvents = events.Where(e => e.PlayerId == playerId).ToList();
         var playerProjections = projections.Where(p => p.PlayerId == playerId).ToList();
-        RulesetConfig? config = null;
-        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
-        if (rulesetVersion is not null &&
-            RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
-        {
-            config = parsed;
-        }
 
         var cashIn = playerProjections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOut = playerProjections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
@@ -960,7 +974,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildMetricSnapshots sebagai bagian dari alur file ini.
+    /// Mengonversi dictionary metrik menjadi daftar record MetricSnapshotDb siap disimpan.
     /// </summary>
     private static List<MetricSnapshotDb> BuildMetricSnapshots(
         Guid sessionId,
@@ -989,7 +1003,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputePrimaryNeedComplianceAsync sebagai bagian dari alur file ini.
+    /// Menghitung tingkat kepatuhan kebutuhan primer pemain berdasarkan aturan ruleset per hari.
     /// </summary>
     private async Task<(double Rate, string? JsonDetail)> ComputePrimaryNeedComplianceAsync(
         Guid rulesetVersionId,
@@ -1019,7 +1033,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi EvaluatePrimaryNeedCompliance sebagai bagian dari alur file ini.
+    /// Mengevaluasi kepatuhan kebutuhan primer per hari dengan pengecekan urutan beli dan batas harian.
     /// </summary>
     private static (double Rate, List<object> Details, int EvaluatedDays, int CompliantDays) EvaluatePrimaryNeedCompliance(
         List<EventDb> playerEvents,
@@ -1093,7 +1107,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildIngredientInventory sebagai bagian dari alur file ini.
+    /// Membangun inventaris bahan berdasarkan event pembelian, klaim pesanan, dan discard.
     /// </summary>
     private static IngredientInventory BuildIngredientInventory(List<EventDb> events)
     {
@@ -1137,7 +1151,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeHappinessByPlayer sebagai bagian dari alur file ini.
+    /// Menghitung breakdown happiness per pemain termasuk donasi, emas, pensiun, dan penalti.
     /// </summary>
     private static Dictionary<Guid, HappinessBreakdown> ComputeHappinessByPlayer(
         List<EventDb> events,
@@ -1205,7 +1219,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildTieBreakerLookup sebagai bagian dari alur file ini.
+    /// Membangun lookup tie-breaker number per pemain dari event tie_breaker.assigned.
     /// </summary>
     private static Dictionary<Guid, int> BuildTieBreakerLookup(IEnumerable<EventDb> events)
     {
@@ -1222,7 +1236,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeDonationPointsFromScoring sebagai bagian dari alur file ini.
+    /// Menghitung poin donasi berdasarkan peringkat total donasi per hari Jumat sesuai tabel scoring.
     /// </summary>
     private static Dictionary<Guid, double> ComputeDonationPointsFromScoring(
         List<EventDb> events,
@@ -1267,7 +1281,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeGoldPointsFromScoring sebagai bagian dari alur file ini.
+    /// Menghitung poin emas berdasarkan jumlah emas yang dimiliki sesuai tabel gold_points_by_qty.
     /// </summary>
     private static Dictionary<Guid, double> ComputeGoldPointsFromScoring(
         List<EventDb> events,
@@ -1305,7 +1319,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputePensionPointsFromScoring sebagai bagian dari alur file ini.
+    /// Menghitung poin pensiun berdasarkan peringkat kas akhir sesi sesuai tabel pension_rank_points.
     /// </summary>
     private static Dictionary<Guid, double> ComputePensionPointsFromScoring(
         List<EventDb> events,
@@ -1350,7 +1364,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolvePointsByQty sebagai bagian dari alur file ini.
+    /// Mencari poin tertinggi dalam tabel qty-points yang sesuai dengan jumlah emas.
     /// </summary>
     private static int ResolvePointsByQty(int qty, IReadOnlyList<QtyPoint> table)
     {
@@ -1369,7 +1383,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi SumRankAwarded sebagai bagian dari alur file ini.
+    /// Menjumlahkan poin dari event rank.awarded untuk tipe aksi tertentu.
     /// </summary>
     private static double SumRankAwarded(IEnumerable<EventDb> events, string actionType)
     {
@@ -1378,7 +1392,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi SumPointsAwarded sebagai bagian dari alur file ini.
+    /// Menjumlahkan poin dari event points.awarded untuk tipe aksi tertentu.
     /// </summary>
     private static double SumPointsAwarded(IEnumerable<EventDb> events, string actionType)
     {
@@ -1387,7 +1401,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe HappinessBreakdown pada modul ini.
+    /// Breakdown poin happiness pemain: kebutuhan, bonus set, donasi, emas, pensiun, tabungan, dan penalti.
     /// </summary>
     private sealed record HappinessBreakdown(
         double Total,
@@ -1402,7 +1416,7 @@ public sealed class AnalyticsController : ControllerBase
         bool HasUnpaidLoan);
 
     /// <summary>
-    /// Menyatakan peran utama tipe MissionAssignment pada modul ini.
+    /// Data penugasan misi pemain berisi ID misi, target kartu tersier, poin penalti, dan flag kebutuhan.
     /// </summary>
     private sealed record MissionAssignment(
         string MissionId,
@@ -1412,7 +1426,7 @@ public sealed class AnalyticsController : ControllerBase
         bool RequireSecondary);
 
     /// <summary>
-    /// Menyatakan peran utama tipe LoanState pada modul ini.
+    /// State pinjaman pemain berisi ID pinjaman, pokok, poin penalti, dan jumlah yang telah dibayar.
     /// </summary>
     private sealed record LoanState(
         string LoanId,
@@ -1421,7 +1435,7 @@ public sealed class AnalyticsController : ControllerBase
         double RepaidAmount);
 
     /// <summary>
-    /// Menjalankan fungsi ComputeHappinessBreakdown sebagai bagian dari alur file ini.
+    /// Menghitung detail breakdown happiness satu pemain dari event kebutuhan, donasi, emas, tabungan, misi, dan pinjaman.
     /// </summary>
     private static HappinessBreakdown ComputeHappinessBreakdown(
         List<EventDb> playerEvents,
@@ -1553,24 +1567,24 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe IngredientInventory pada modul ini.
+    /// Model inventaris bahan: total kartu dan jumlah per card ID.
     /// </summary>
     private sealed class IngredientInventory
     {
         internal int Total { get; set; }
         /// <summary>
-        /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+        /// Pemetaan card ID ke jumlah kartu bahan yang dimiliki.
         /// </summary>
         internal Dictionary<string, int> ByCardId { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe GameplaySnapshot pada modul ini.
+    /// Record snapshot gameplay berisi JSON variabel mentah dan metrik turunan.
     /// </summary>
     private sealed record GameplaySnapshot(string RawJson, string DerivedJson);
 
     /// <summary>
-    /// Menjalankan fungsi BuildGameplaySnapshots sebagai bagian dari alur file ini.
+    /// Membangun snapshot gameplay mentah dan turunan dari event, proyeksi, konfigurasi, dan happiness pemain.
     /// </summary>
     private static GameplaySnapshot BuildGameplaySnapshots(
         List<EventDb> playerEvents,
@@ -2453,7 +2467,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi SafeRatio sebagai bagian dari alur file ini.
+    /// Menghitung rasio aman dengan perlindungan pembagian nol; opsional dikalikan 100 untuk persen.
     /// </summary>
     private static double? SafeRatio(double numerator, double denominator, bool percent = false)
     {
@@ -2467,7 +2481,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi StdDev sebagai bagian dari alur file ini.
+    /// Menghitung standar deviasi populasi dari kumpulan nilai numerik.
     /// </summary>
     private static double StdDev(IReadOnlyList<double> values)
     {
@@ -2482,7 +2496,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi IsActionEvent sebagai bagian dari alur file ini.
+    /// Memeriksa apakah tipe aksi termasuk event gameplay substantif (bukan meta-event seperti awarded/assigned).
     /// </summary>
     private static bool IsActionEvent(string actionType)
     {
@@ -2501,7 +2515,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadActionUsed sebagai bagian dari alur file ini.
+    /// Membaca jumlah aksi terpakai dan tersisa dari payload JSON event turn.action.used.
     /// </summary>
     private static bool TryReadActionUsed(string payloadJson, out int used, out int remaining)
     {
@@ -2527,7 +2541,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadGoldTradeDetailed sebagai bagian dari alur file ini.
+    /// Membaca detail lengkap perdagangan emas (tipe, kuantitas, harga satuan, jumlah) dari payload JSON.
     /// </summary>
     private static bool TryReadGoldTradeDetailed(
         string payloadJson,
@@ -2566,7 +2580,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadIngredientPurchaseDetailed sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pembelian bahan baku detail: card_id, ingredient_name, amount.
     /// </summary>
     private static bool TryReadIngredientPurchaseDetailed(
         string payloadJson,
@@ -2601,7 +2615,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadSavingDeposit sebagai bagian dari alur file ini.
+    /// Mem-parsing payload setoran tabungan: goal_id dan amount.
     /// </summary>
     private static bool TryReadSavingDeposit(string payloadJson, out string goalId, out int amount)
     {
@@ -2629,7 +2643,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadIngredientPurchase sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pembelian bahan baku ringkas: card_id dan amount.
     /// </summary>
     private static bool TryReadIngredientPurchase(string payloadJson, out string cardId, out int amount)
     {
@@ -2655,7 +2669,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadNeedPurchase sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pembelian kebutuhan: amount, card_id opsional, dan points opsional.
     /// </summary>
     private static bool TryReadNeedPurchase(string payloadJson, out int amount, out string cardId, out int points)
     {
@@ -2690,7 +2704,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadMissionAssigned sebagai bagian dari alur file ini.
+    /// Mem-parsing payload penugasan misi: mission_id, target kartu tersier, penalti, dan flag kebutuhan primer/sekunder.
     /// </summary>
     private static bool TryReadMissionAssigned(
         string payloadJson,
@@ -2740,7 +2754,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadTieBreaker sebagai bagian dari alur file ini.
+    /// Mem-parsing payload tie breaker: nomor undian.
     /// </summary>
     private static bool TryReadTieBreaker(string payloadJson, out int number)
     {
@@ -2763,7 +2777,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadRankAwarded sebagai bagian dari alur file ini.
+    /// Mem-parsing payload penghargaan peringkat: rank dan points.
     /// </summary>
     private static bool TryReadRankAwarded(string payloadJson, out int rank, out int points)
     {
@@ -2789,7 +2803,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadPointsAwarded sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pemberian poin: jumlah points.
     /// </summary>
     private static bool TryReadPointsAwarded(string payloadJson, out int points)
     {
@@ -2812,7 +2826,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadSavingGoalAchievedDetailed sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pencapaian target tabungan detail: goal_id, points, cost.
     /// </summary>
     private static bool TryReadSavingGoalAchievedDetailed(
         string payloadJson,
@@ -2852,7 +2866,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadSavingGoalAchieved sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pencapaian target tabungan ringkas: points.
     /// </summary>
     private static bool TryReadSavingGoalAchieved(string payloadJson, out int points)
     {
@@ -2875,7 +2889,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadLoanTaken sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pengambilan pinjaman: loan_id, principal, penalty_points.
     /// </summary>
     private static bool TryReadLoanTaken(string payloadJson, out string loanId, out int principal, out int penaltyPoints)
     {
@@ -2904,7 +2918,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadLoanRepay sebagai bagian dari alur file ini.
+    /// Mem-parsing payload pembayaran pinjaman: loan_id dan amount.
     /// </summary>
     private static bool TryReadLoanRepay(string payloadJson, out string loanId, out int amount)
     {
@@ -2930,7 +2944,7 @@ public sealed class AnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryReadOrderClaim sebagai bagian dari alur file ini.
+    /// Mem-parsing payload klaim pesanan: daftar kartu bahan baku yang diperlukan dan income.
     /// </summary>
     private static bool TryReadOrderClaim(string payloadJson, out List<string> requiredCards, out int income)
     {

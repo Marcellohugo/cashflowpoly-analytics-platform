@@ -1,15 +1,16 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain ErrorViewModel.
+// Fungsi file: Mendefinisikan model data untuk menampilkan halaman error dengan kode permintaan dan indikator tampilan.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe ErrorViewModel pada modul ini.
+/// ViewModel yang membawa data error seperti RequestId
+/// untuk ditampilkan pada halaman error standar aplikasi.
 /// </summary>
 public class ErrorViewModel
 {
     public string? RequestId { get; set; }
 
     /// <summary>
-    /// Menjalankan fungsi IsNullOrEmpty sebagai bagian dari alur file ini.
+    /// Menentukan apakah RequestId perlu ditampilkan; bernilai true jika RequestId tidak null atau kosong.
     /// </summary>
     public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 }

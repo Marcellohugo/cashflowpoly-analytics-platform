@@ -1,8 +1,8 @@
-// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain JwtOptions (JWT, audit, atau rate limiting).
+// Fungsi file: Model konfigurasi JWT — issuer, audience, signing key, rotasi key, dan masa berlaku token.
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>
-/// Menyatakan peran utama tipe JwtOptions pada modul ini.
+/// Opsi konfigurasi JWT: issuer, audience, berbagai sumber signing key, dan durasi token.
 /// </summary>
 public sealed class JwtOptions
 {
@@ -16,14 +16,14 @@ public sealed class JwtOptions
     public string SigningKeysJsonEnvironmentVariable { get; set; } = "JWT_SIGNING_KEYS_JSON";
     public string ActiveKeyId { get; set; } = "legacy";
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar konfigurasi signing key yang mendukung rotasi (multi-key).
     /// </summary>
     public List<JwtSigningKeyOptions> SigningKeys { get; set; } = new();
     public int AccessTokenMinutes { get; set; } = 480;
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe JwtSigningKeyOptions pada modul ini.
+/// Konfigurasi satu signing key: key ID, nilai key, file secret, dan jendela waktu aktif.
 /// </summary>
 public sealed class JwtSigningKeyOptions
 {

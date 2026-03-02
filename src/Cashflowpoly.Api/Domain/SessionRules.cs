@@ -2,7 +2,7 @@
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionRules pada modul ini.
+/// Konstanta aturan domain terkait batasan sesi permainan.
 /// </summary>
 public static class SessionRules
 {
