@@ -1,4 +1,4 @@
-// Fungsi file: Mengelola endpoint API untuk domain SecurityAuditController termasuk validasi request dan respons standar.
+// Fungsi file: Menyediakan endpoint untuk instruktur melihat log audit keamanan dengan filter event type dan user.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
@@ -15,14 +15,14 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 /// <summary>
-/// Menyatakan peran utama tipe SecurityAuditController pada modul ini.
+/// Controller audit keamanan yang menyediakan akses log audit untuk instruktur.
 /// </summary>
 public sealed class SecurityAuditController : ControllerBase
 {
     private readonly SecurityAuditRepository _securityAudit;
 
     /// <summary>
-    /// Menjalankan fungsi SecurityAuditController sebagai bagian dari alur file ini.
+    /// Menginisialisasi controller dengan repositori audit keamanan.
     /// </summary>
     public SecurityAuditController(SecurityAuditRepository securityAudit)
     {
@@ -32,8 +32,13 @@ public sealed class SecurityAuditController : ControllerBase
     [HttpGet("audit-logs")]
     [ProducesResponseType(typeof(SecurityAuditLogResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi GetAuditLogs sebagai bagian dari alur file ini.
+    /// Mengambil daftar log audit keamanan terbaru dengan opsi filter berdasarkan event type dan user ID.
     /// </summary>
+    /// <param name="limit">Jumlah maksimum log (1-500, default 100).</param>
+    /// <param name="eventType">Filter jenis event audit (opsional).</param>
+    /// <param name="userId">Filter berdasarkan user ID (opsional).</param>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <returns>200 OK dengan daftar log audit keamanan.</returns>
     public async Task<IActionResult> GetAuditLogs(
         [FromQuery] int limit = 100,
         [FromQuery] string? eventType = null,
@@ -68,7 +73,7 @@ public sealed class SecurityAuditController : ControllerBase
     }
 
     /// <summary>
-    /// Menjalankan fungsi ParseJsonElement sebagai bagian dari alur file ini.
+    /// Mem-parse string JSON menjadi JsonElement, mengembalikan null jika string kosong atau tidak valid.
     /// </summary>
     private static JsonElement? ParseJsonElement(string? json)
     {

@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain JwtSigningKeyProviderTests.
+// Fungsi file: Menguji bahwa JwtSigningKeyProvider memilih signing key aktif dengan benar dan menolak konfigurasi kosong.
 using Cashflowpoly.Api.Security;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -7,13 +7,15 @@ using Xunit;
 namespace Cashflowpoly.Api.Tests;
 
 /// <summary>
-/// Menyatakan peran utama tipe JwtSigningKeyProviderTests pada modul ini.
+/// Kelas pengujian unit untuk memvalidasi bahwa JwtSigningKeyProvider
+/// mengelola seleksi signing key aktif dan resolusi validation key dengan benar.
 /// </summary>
 public sealed class JwtSigningKeyProviderTests
 {
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi GetActiveSigningMaterial_Throws_WhenNoKeyConfigured sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa GetActiveSigningMaterial melempar InvalidOperationException
+    /// ketika tidak ada signing key yang dikonfigurasi sama sekali.
     /// </summary>
     public void GetActiveSigningMaterial_Throws_WhenNoKeyConfigured()
     {
@@ -30,7 +32,8 @@ public sealed class JwtSigningKeyProviderTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi GetActiveSigningMaterial_PicksLatestActiveKey sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa GetActiveSigningMaterial memilih key dengan tanggal aktivasi
+    /// terbaru yang belum di-retire, dan ResolveValidationKeys menyertakan key tersebut.
     /// </summary>
     public void GetActiveSigningMaterial_PicksLatestActiveKey()
     {

@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain EventAnalyticsIntegrationTests.
+// Fungsi file: Menguji alur integrasi ingest event, analitik sesi, urutan pemain, batas pemain, dan validasi domain.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -11,14 +11,15 @@ namespace Cashflowpoly.Api.Tests;
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
 /// <summary>
-/// Menyatakan peran utama tipe EventAnalyticsIntegrationTests pada modul ini.
+/// Kelas pengujian integrasi yang memvalidasi alur lengkap ingest event gameplay,
+/// perhitungan analitik sesi, riwayat transaksi, pengurutan pemain, dan pembatasan akses.
 /// </summary>
 public sealed class EventAnalyticsIntegrationTests
 {
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Menjalankan fungsi EventAnalyticsIntegrationTests sebagai bagian dari alur file ini.
+    /// Menginisialisasi instance pengujian dengan HttpClient dari fixture integrasi bersama.
     /// </summary>
     public EventAnalyticsIntegrationTests(ApiIntegrationTestFixture fixture)
     {
@@ -27,7 +28,8 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi IngestEvents_Then_AnalyticsAndTransactions_ReturnExpectedData sebagai bagian dari alur file ini.
+    /// Memvalidasi alur lengkap: ingest dua event transaksi lalu memverifikasi hasil
+    /// analitik sesi (cash in/out/net), data per pemain, riwayat transaksi, dan recompute.
     /// </summary>
     public async Task IngestEvents_Then_AnalyticsAndTransactions_ReturnExpectedData()
     {
@@ -244,7 +246,8 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi AddPlayersWithoutJoinOrder_AssignsPlayerTurnOrderByPlayerId sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa pemain yang ditambahkan tanpa join_order eksplisit
+    /// akan diurutkan berdasarkan PlayerId dan menerima join order 1, 2, 3.
     /// </summary>
     public async Task AddPlayersWithoutJoinOrder_AssignsPlayerTurnOrderByPlayerId()
     {
@@ -397,7 +400,8 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi AddPlayersByUsername_WithInstructorOrderRuleset_AssignsManualTurnOrder sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa urutan pemain mengikuti konfigurasi INSTRUCTOR_ORDER pada ruleset
+    /// ketika pemain ditambahkan via username dengan urutan manual yang ditentukan instruktur.
     /// </summary>
     public async Task AddPlayersByUsername_WithInstructorOrderRuleset_AssignsManualTurnOrder()
     {
@@ -516,7 +520,8 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi AddPlayerToSession_FifthPlayer_IsRejectedWithDomainRuleViolation sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa penambahan pemain kelima ke sesi ditolak dengan error
+    /// DOMAIN_RULE_VIOLATION karena melebihi batas maksimal 4 pemain per sesi.
     /// </summary>
     public async Task AddPlayerToSession_FifthPlayer_IsRejectedWithDomainRuleViolation()
     {
@@ -630,7 +635,8 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa path API legacy (/api/...) mengembalikan 404 Not Found
+    /// dan path versioned (/api/v1/...) berfungsi dengan benar.
     /// </summary>
     public async Task LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks()
     {
@@ -662,7 +668,8 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi IngestEvent_InvalidPayloadAndQuery_ReturnsBadRequest sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa ingest event dengan payload tidak valid (amount bukan angka,
+    /// day_index negatif) dan query parameter tidak valid mengembalikan 400 Bad Request.
     /// </summary>
     public async Task IngestEvent_InvalidPayloadAndQuery_ReturnsBadRequest()
     {
@@ -729,8 +736,133 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, invalidQueryResponse.StatusCode);
     }
 
+    [Fact]
     /// <summary>
-    /// Menjalankan fungsi CreateReadySessionAsync sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa PLAYER tidak dapat mengakses event atau mengirim event ke sesi
+    /// yang bukan miliknya, dan menerima error FORBIDDEN.
+    /// </summary>
+    public async Task Player_CannotAccessOrIngestEvents_OnForeignSession()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorAUsername = $"it_evt_scope_instructor_a_{suffix}";
+        var instructorBUsername = $"it_evt_scope_instructor_b_{suffix}";
+        const string instructorPassword = "IntegrationScopeInstructorPass!123";
+        const string playerPassword = "IntegrationInvalidPlayerPass!123";
+        var ownScopeSuffix = $"scope_own_{suffix}";
+        var foreignScopeSuffix = $"scope_foreign_{suffix}";
+
+        var instructorAToken = (await RegisterAsync(instructorAUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+        var instructorBToken = (await RegisterAsync(instructorBUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+
+        var ownSession = await CreateReadySessionAsync(instructorAToken, ownScopeSuffix);
+        var foreignSession = await CreateReadySessionAsync(instructorBToken, foreignScopeSuffix);
+
+        var playerUsername = $"it_evt_invalid_player_{ownScopeSuffix}";
+        var playerToken = (await LoginAsync(playerUsername, playerPassword)).AccessToken;
+
+        var ownEventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{ownSession.SessionId}/events?fromSeq=0&limit=10",
+            null,
+            playerToken);
+        Assert.Equal(HttpStatusCode.OK, ownEventsResponse.StatusCode);
+
+        var foreignEventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{foreignSession.SessionId}/events?fromSeq=0&limit=10",
+            null,
+            playerToken);
+        Assert.Equal(HttpStatusCode.Forbidden, foreignEventsResponse.StatusCode);
+
+        var foreignEventsError = await foreignEventsResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(foreignEventsError);
+        Assert.Equal("FORBIDDEN", foreignEventsError.ErrorCode);
+
+        var now = DateTimeOffset.UtcNow;
+        var foreignSystemEventPayload = new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = foreignSession.SessionId,
+            player_id = (Guid?)null,
+            actor_type = "SYSTEM",
+            timestamp = now.ToString("O"),
+            day_index = 0,
+            weekday = "MON",
+            turn_number = 1,
+            sequence_number = 1,
+            action_type = "transaction.recorded",
+            ruleset_version_id = foreignSession.RulesetVersionId,
+            payload = new
+            {
+                direction = "IN",
+                amount = 1,
+                category = "NEED_PRIMARY",
+                counterparty = "BANK"
+            }
+        };
+
+        var foreignIngestResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/events",
+            foreignSystemEventPayload,
+            playerToken);
+        Assert.Equal(HttpStatusCode.Forbidden, foreignIngestResponse.StatusCode);
+
+        var foreignIngestError = await foreignIngestResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(foreignIngestError);
+        Assert.Equal("FORBIDDEN", foreignIngestError.ErrorCode);
+    }
+
+    [Fact]
+    /// <summary>
+    /// Memvalidasi bahwa penambahan pemain dengan role tidak valid (bukan PLAYER/OBSERVER)
+    /// ditolak dengan error VALIDATION_ERROR dan detail field "role" INVALID_ENUM.
+    /// </summary>
+    public async Task AddPlayerToSession_InvalidRole_ReturnsBadRequest()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorUsername = $"it_evt_role_guard_instructor_{suffix}";
+        const string instructorPassword = "IntegrationRoleGuardInstructorPass!123";
+        var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
+
+        var setup = await CreateReadySessionAsync(instructorToken, $"role_guard_{suffix}");
+        var createPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            new
+            {
+                display_name = $"Player Role Guard {suffix}",
+                username = $"it_evt_role_guard_player_{suffix}",
+                password = "IntegrationRoleGuardPlayerPass!123"
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+
+        var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+        Assert.NotNull(createdPlayer);
+
+        var addWithInvalidRoleResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{setup.SessionId}/players",
+            new
+            {
+                player_id = createdPlayer.PlayerId,
+                role = "ADMIN"
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, addWithInvalidRoleResponse.StatusCode);
+
+        var error = await addWithInvalidRoleResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("VALIDATION_ERROR", error.ErrorCode);
+        Assert.Contains(error.Details, detail =>
+            string.Equals(detail.Field, "role", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(detail.Issue, "INVALID_ENUM", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Helper yang membuat ruleset, sesi, player, dan menjalankan sesi hingga siap
+    /// untuk menerima event, lalu mengembalikan ID sesi, player, dan versi ruleset aktif.
     /// </summary>
     private async Task<(Guid SessionId, Guid PlayerId, Guid RulesetVersionId)> CreateReadySessionAsync(
         string instructorToken,
@@ -825,7 +957,7 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi RegisterAsync sebagai bagian dari alur file ini.
+    /// Helper untuk mendaftarkan pengguna baru dan mengembalikan data registrasi.
     /// </summary>
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     {
@@ -839,7 +971,21 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi SendJsonAsync sebagai bagian dari alur file ini.
+    /// Helper untuk melakukan login dan mengembalikan data token akses.
+    /// </summary>
+    private async Task<LoginResponse> LoginAsync(string username, string password)
+    {
+        var payload = new LoginRequest(username, password);
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/login", payload);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(body);
+        return body;
+    }
+
+    /// <summary>
+    /// Helper untuk mengirim HTTP request dengan body JSON dan header Bearer token.
     /// </summary>
     private async Task<HttpResponseMessage> SendJsonAsync(
         HttpMethod method,
@@ -858,7 +1004,8 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildRulesetConfig sebagai bagian dari alur file ini.
+    /// Helper yang membangun objek konfigurasi ruleset lengkap untuk mode PEMULA
+    /// dengan parameter starting cash dan opsional pengaturan urutan pemain.
     /// </summary>
     private static object BuildRulesetConfig(
         int startingCash,

@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan SessionTimelineMapper.
+// Fungsi file: Memetakan daftar event transaksi gameplay dari API menjadi item timeline sesi yang dapat ditampilkan di UI.
 using System.Text.Json;
 using System.Globalization;
 using Cashflowpoly.Ui.Models;
@@ -6,13 +6,18 @@ using Cashflowpoly.Ui.Models;
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionTimelineMapper pada modul ini.
+/// Kelas statis untuk memetakan data event transaksi gameplay menjadi
+/// deskripsi timeline yang mudah dibaca pengguna dalam dua bahasa (Indonesia/Inggris).
 /// </summary>
 public static class SessionTimelineMapper
 {
     /// <summary>
-    /// Menjalankan fungsi MapTimeline sebagai bagian dari alur file ini.
+    /// Mengonversi daftar event mentah menjadi item timeline terurut berdasarkan
+    /// waktu dan nomor urut, dengan label dan deskripsi bilingual.
     /// </summary>
+    /// <param name="events">Daftar event dari API, boleh null.</param>
+    /// <param name="language">Kode bahasa ("id" atau "en"); default bahasa Indonesia.</param>
+    /// <returns>Daftar item timeline yang siap ditampilkan di UI.</returns>
     public static List<SessionTimelineEventViewModel> MapTimeline(List<EventRequestDto>? events, string? language = null)
     {
         if (events is null || events.Count == 0)
@@ -42,8 +47,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi ApplyPlayerDisplayNames sebagai bagian dari alur file ini.
+    /// Menetapkan nama tampilan pemain pada setiap item timeline berdasarkan
+    /// pemetaan PlayerId ke display name yang diberikan.
     /// </summary>
+    /// <param name="timeline">Koleksi item timeline yang akan diperbarui.</param>
+    /// <param name="playerDisplayNames">Pemetaan GUID pemain ke nama tampilan.</param>
     public static void ApplyPlayerDisplayNames(
         IEnumerable<SessionTimelineEventViewModel> timeline,
         IReadOnlyDictionary<Guid, string> playerDisplayNames)
@@ -60,8 +68,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveFlowLabel sebagai bagian dari alur file ini.
+    /// Menentukan label kategori alur (flow label) berdasarkan prefiks actionType,
+    /// misalnya "Setup", "Event Harian", "Risiko", dll.
     /// </summary>
+    /// <param name="actionType">Tipe aksi event dari payload API.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Label kategori alur dalam bahasa yang sesuai.</returns>
     private static string ResolveFlowLabel(string actionType, string language)
     {
         if (string.IsNullOrWhiteSpace(actionType))
@@ -114,8 +126,13 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildFlowDescription sebagai bagian dari alur file ini.
+    /// Membangun deskripsi naratif untuk setiap event berdasarkan actionType,
+    /// mendelegasikan ke fungsi deskripsi spesifik sesuai jenis aksi.
     /// </summary>
+    /// <param name="actionType">Tipe aksi event (misal "transaction.recorded").</param>
+    /// <param name="payload">Data payload JSON dari event.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi naratif event dalam bahasa yang sesuai.</returns>
     private static string BuildFlowDescription(string actionType, JsonElement payload, string language)
     {
         var text = actionType switch
@@ -151,8 +168,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeTransaction sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event transaksi kas masuk/keluar, termasuk nominal, kategori, dan pihak terkait.
     /// </summary>
+    /// <param name="payload">Data payload JSON event transaksi.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi transaksi dalam bahasa yang sesuai.</returns>
     private static string DescribeTransaction(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "direction", out var direction))
@@ -185,8 +205,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeFridayDonation sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event donasi Jumat, termasuk nominal yang didonasikan.
     /// </summary>
+    /// <param name="payload">Data payload JSON event donasi.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi donasi Jumat dalam bahasa yang sesuai.</returns>
     private static string DescribeFridayDonation(JsonElement payload, string language)
     {
         if (!TryGetNumber(payload, "amount", out var amount))
@@ -201,8 +224,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeGoldTrade sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event perdagangan emas hari Sabtu, termasuk jenis transaksi (beli/jual),
+    /// jumlah unit, harga per unit, dan total nominal.
     /// </summary>
+    /// <param name="payload">Data payload JSON event perdagangan emas.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi perdagangan emas dalam bahasa yang sesuai.</returns>
     private static string DescribeGoldTrade(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "trade_type", out var tradeType) ||
@@ -228,8 +255,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeIngredientPurchase sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pembelian kartu bahan, termasuk ID kartu dan biaya.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pembelian bahan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pembelian bahan dalam bahasa yang sesuai.</returns>
     private static string DescribeIngredientPurchase(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "card_id", out var cardId))
@@ -248,8 +278,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeIngredientDiscard sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pembuangan kartu bahan saat slot penuh, termasuk ID kartu dan jumlah.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pembuangan bahan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pembuangan bahan dalam bahasa yang sesuai.</returns>
     private static string DescribeIngredientDiscard(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "card_id", out var cardId))
@@ -268,8 +301,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeOrderClaim sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event klaim pesanan, termasuk jumlah bahan yang digunakan dan pemasukan yang diterima.
     /// </summary>
+    /// <param name="payload">Data payload JSON event klaim pesanan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi klaim pesanan dalam bahasa yang sesuai.</returns>
     private static string DescribeOrderClaim(JsonElement payload, string language)
     {
         var incomeText = TryGetNumber(payload, "income", out var income)
@@ -286,8 +322,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeOrderPassed sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pesanan yang dilewati (tidak diklaim), termasuk potensi pemasukan.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pesanan dilewati.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pesanan yang dilewati dalam bahasa yang sesuai.</returns>
     private static string DescribeOrderPassed(JsonElement payload, string language)
     {
         var ingredientCountText = TryGetArrayCount(payload, "required_ingredient_card_ids", out var count)
@@ -304,8 +343,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeFreelance sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pekerjaan freelance, termasuk nominal pemasukan yang diterima.
     /// </summary>
+    /// <param name="payload">Data payload JSON event freelance.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pekerjaan freelance dalam bahasa yang sesuai.</returns>
     private static string DescribeFreelance(JsonElement payload, string language)
     {
         if (!TryGetNumber(payload, "amount", out var amount))
@@ -320,8 +362,14 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeNeedPurchase sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pembelian kartu kebutuhan (primer/sekunder/tersier),
+    /// termasuk ID kartu, biaya, dan poin yang diperoleh.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pembelian kebutuhan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <param name="needTypeId">Label jenis kebutuhan dalam bahasa Indonesia.</param>
+    /// <param name="needTypeEn">Label jenis kebutuhan dalam bahasa Inggris.</param>
+    /// <returns>Deskripsi pembelian kebutuhan dalam bahasa yang sesuai.</returns>
     private static string DescribeNeedPurchase(JsonElement payload, string language, string needTypeId, string needTypeEn)
     {
         if (!TryGetString(payload, "card_id", out var cardId))
@@ -343,8 +391,13 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeSavingDeposit sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event setoran atau penarikan tabungan tujuan keuangan,
+    /// termasuk ID tujuan dan nominal.
     /// </summary>
+    /// <param name="payload">Data payload JSON event tabungan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <param name="isWithdrawn">True jika penarikan, false jika setoran.</param>
+    /// <returns>Deskripsi setoran/penarikan tabungan dalam bahasa yang sesuai.</returns>
     private static string DescribeSavingDeposit(JsonElement payload, string language, bool isWithdrawn)
     {
         if (!TryGetString(payload, "goal_id", out var goalId) || !TryGetNumber(payload, "amount", out var amount))
@@ -364,8 +417,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeSavingGoalAchieved sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event tercapainya target tabungan tujuan keuangan,
+    /// termasuk ID tujuan, poin, dan biaya.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pencapaian target tabungan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pencapaian target tabungan dalam bahasa yang sesuai.</returns>
     private static string DescribeSavingGoalAchieved(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "goal_id", out var goalId))
@@ -387,8 +444,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeLoanTaken sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pengambilan pinjaman syariah,
+    /// termasuk ID pinjaman, pokok, cicilan, dan durasi.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pengambilan pinjaman.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pengambilan pinjaman dalam bahasa yang sesuai.</returns>
     private static string DescribeLoanTaken(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "loan_id", out var loanId))
@@ -413,8 +474,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeLoanRepaid sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pelunasan pinjaman syariah, termasuk ID pinjaman dan nominal pembayaran.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pelunasan pinjaman.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pelunasan pinjaman dalam bahasa yang sesuai.</returns>
     private static string DescribeLoanRepaid(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "loan_id", out var loanId) || !TryGetNumber(payload, "amount", out var amount))
@@ -429,8 +493,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeRiskLife sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event kartu risiko kehidupan yang ditarik,
+    /// termasuk ID risiko, arah dampak (positif/negatif), dan nominal.
     /// </summary>
+    /// <param name="payload">Data payload JSON event risiko kehidupan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi event risiko kehidupan dalam bahasa yang sesuai.</returns>
     private static string DescribeRiskLife(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "risk_id", out var riskId) ||
@@ -453,8 +521,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeRiskEmergency sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event penggunaan opsi darurat akibat risiko,
+    /// termasuk jenis opsi, arah dampak, dan nominal.
     /// </summary>
+    /// <param name="payload">Data payload JSON event opsi darurat.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi penggunaan opsi darurat dalam bahasa yang sesuai.</returns>
     private static string DescribeRiskEmergency(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "option_type", out var optionType) ||
@@ -477,8 +549,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeInsurancePurchase sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pembelian asuransi multirisk, termasuk nominal premi.
     /// </summary>
+    /// <param name="payload">Data payload JSON event pembelian asuransi.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi pembelian asuransi dalam bahasa yang sesuai.</returns>
     private static string DescribeInsurancePurchase(JsonElement payload, string language)
     {
         if (!TryGetNumber(payload, "premium", out var premium))
@@ -493,8 +568,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeInsuranceUse sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event penggunaan klaim asuransi multirisk untuk event risiko tertentu.
     /// </summary>
+    /// <param name="payload">Data payload JSON event klaim asuransi.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi penggunaan asuransi dalam bahasa yang sesuai.</returns>
     private static string DescribeInsuranceUse(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "risk_event_id", out var riskEventId))
@@ -509,8 +587,13 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeRankAward sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pemberian peringkat (donasi/pensiun), termasuk peringkat dan poin.
     /// </summary>
+    /// <param name="payload">Data payload JSON event peringkat.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <param name="topicId">Label topik peringkat dalam bahasa Indonesia.</param>
+    /// <param name="topicEn">Label topik peringkat dalam bahasa Inggris.</param>
+    /// <returns>Deskripsi pemberian peringkat dalam bahasa yang sesuai.</returns>
     private static string DescribeRankAward(JsonElement payload, string language, string topicId, string topicEn)
     {
         if (!TryGetInt(payload, "rank", out var rank) || !TryGetNumber(payload, "points", out var points))
@@ -525,8 +608,13 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribePointsAward sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event pemberian bonus poin (misalnya poin emas), termasuk jumlah poin.
     /// </summary>
+    /// <param name="payload">Data payload JSON event bonus poin.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <param name="topicId">Label topik poin dalam bahasa Indonesia.</param>
+    /// <param name="topicEn">Label topik poin dalam bahasa Inggris.</param>
+    /// <returns>Deskripsi bonus poin dalam bahasa yang sesuai.</returns>
     private static string DescribePointsAward(JsonElement payload, string language, string topicId, string topicEn)
     {
         if (!TryGetNumber(payload, "points", out var points))
@@ -541,8 +629,11 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi DescribeTurnAction sebagai bagian dari alur file ini.
+    /// Mendeskripsikan event penggunaan aksi turn, termasuk jumlah aksi terpakai dan sisa.
     /// </summary>
+    /// <param name="payload">Data payload JSON event aksi turn.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi penggunaan aksi turn dalam bahasa yang sesuai.</returns>
     private static string DescribeTurnAction(JsonElement payload, string language)
     {
         if (!TryGetInt(payload, "used", out var used) || !TryGetInt(payload, "remaining", out var remaining))
@@ -557,8 +648,13 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildGenericDescription sebagai bagian dari alur file ini.
+    /// Membangun deskripsi generik untuk actionType yang tidak memiliki handler spesifik,
+    /// dengan menyertakan ringkasan field utama dari payload.
     /// </summary>
+    /// <param name="actionType">Tipe aksi event.</param>
+    /// <param name="payload">Data payload JSON event.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Deskripsi generik event dalam bahasa yang sesuai.</returns>
     private static string BuildGenericDescription(string actionType, JsonElement payload, string language)
     {
         var actionLabel = string.IsNullOrWhiteSpace(actionType) ? L(language, "aktivitas", "activity") : actionType;
@@ -576,8 +672,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildPayloadSummary sebagai bagian dari alur file ini.
+    /// Merangkum hingga 5 field utama dari payload JSON menjadi string ringkas
+    /// dengan label yang diterjemahkan sesuai bahasa aktif.
     /// </summary>
+    /// <param name="payload">Data payload JSON event.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>String ringkasan payload, atau kosong jika payload bukan objek.</returns>
     private static string BuildPayloadSummary(JsonElement payload, string language)
     {
         if (payload.ValueKind != JsonValueKind.Object)
@@ -622,8 +722,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolvePayloadKeyLabel sebagai bagian dari alur file ini.
+    /// Menerjemahkan nama field payload JSON (misalnya "amount", "direction")
+    /// menjadi label yang mudah dibaca dalam bahasa yang sesuai.
     /// </summary>
+    /// <param name="key">Nama field payload.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Label field yang diterjemahkan.</returns>
     private static string ResolvePayloadKeyLabel(string key, string language)
     {
         return key switch
@@ -647,8 +751,13 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi JsonElementToInlineText sebagai bagian dari alur file ini.
+    /// Mengonversi nilai JsonElement menjadi teks inline yang mudah dibaca,
+    /// dengan penanganan khusus untuk field "direction" dan "trade_type".
     /// </summary>
+    /// <param name="value">Elemen JSON yang akan dikonversi.</param>
+    /// <param name="key">Nama field asal untuk konteks penerjemahan.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Representasi teks inline dari nilai JSON.</returns>
     private static string JsonElementToInlineText(JsonElement value, string key, string language)
     {
         if (key == "direction" && value.ValueKind == JsonValueKind.String)
@@ -692,8 +801,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetString sebagai bagian dari alur file ini.
+    /// Mencoba mengambil nilai string dari properti payload JSON.
     /// </summary>
+    /// <param name="payload">Elemen JSON sumber.</param>
+    /// <param name="propertyName">Nama properti yang dicari.</param>
+    /// <param name="value">Nilai string hasil ekstraksi.</param>
+    /// <returns>True jika properti ditemukan dan bernilai string tidak kosong.</returns>
     private static bool TryGetString(JsonElement payload, string propertyName, out string value)
     {
         value = string.Empty;
@@ -709,8 +822,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetInt sebagai bagian dari alur file ini.
+    /// Mencoba mengambil nilai integer dari properti payload JSON.
     /// </summary>
+    /// <param name="payload">Elemen JSON sumber.</param>
+    /// <param name="propertyName">Nama properti yang dicari.</param>
+    /// <param name="value">Nilai integer hasil ekstraksi.</param>
+    /// <returns>True jika properti ditemukan dan bernilai numerik.</returns>
     private static bool TryGetInt(JsonElement payload, string propertyName, out int value)
     {
         value = 0;
@@ -731,8 +848,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetNumber sebagai bagian dari alur file ini.
+    /// Mencoba mengambil nilai numerik (double) dari properti payload JSON.
     /// </summary>
+    /// <param name="payload">Elemen JSON sumber.</param>
+    /// <param name="propertyName">Nama properti yang dicari.</param>
+    /// <param name="value">Nilai double hasil ekstraksi.</param>
+    /// <returns>True jika properti ditemukan dan bernilai numerik.</returns>
     private static bool TryGetNumber(JsonElement payload, string propertyName, out double value)
     {
         value = 0;
@@ -748,8 +869,12 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi TryGetArrayCount sebagai bagian dari alur file ini.
+    /// Mencoba mengambil jumlah elemen dari properti array dalam payload JSON.
     /// </summary>
+    /// <param name="payload">Elemen JSON sumber.</param>
+    /// <param name="propertyName">Nama properti array yang dicari.</param>
+    /// <param name="count">Jumlah elemen dalam array.</param>
+    /// <returns>True jika properti ditemukan dan bertipe array.</returns>
     private static bool TryGetArrayCount(JsonElement payload, string propertyName, out int count)
     {
         count = 0;
@@ -765,14 +890,20 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Menjalankan fungsi FormatNumber sebagai bagian dari alur file ini.
+    /// Memformat angka double menjadi string dengan maksimal 2 desimal menggunakan kultur invariant.
     /// </summary>
+    /// <param name="value">Nilai numerik yang akan diformat.</param>
+    /// <returns>String angka yang diformat.</returns>
     private static string FormatNumber(double value)
         => value.ToString("0.##", CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// Menjalankan fungsi L sebagai bagian dari alur file ini.
+    /// Helper bilingual: mengembalikan teks bahasa Indonesia atau Inggris sesuai kode bahasa aktif.
     /// </summary>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <param name="id">Teks dalam bahasa Indonesia.</param>
+    /// <param name="en">Teks dalam bahasa Inggris.</param>
+    /// <returns>Teks sesuai bahasa yang dipilih.</returns>
     private static string L(string language, string id, string en)
         => string.Equals(language, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase) ? en : id;
 }

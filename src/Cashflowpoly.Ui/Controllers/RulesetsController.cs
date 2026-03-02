@@ -1,4 +1,4 @@
-// Fungsi file: Mengelola alur halaman UI untuk domain RulesetsController termasuk komunikasi ke API backend.
+// Fungsi file: Menangani permintaan HTTP untuk halaman manajemen ruleset, termasuk daftar, pembuatan, edit, detail, aktivasi versi, dan penghapusan ruleset.
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -9,7 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Ui.Controllers;
 
 /// <summary>
-/// Controller UI untuk manajemen ruleset.
+/// Controller MVC yang mengelola tampilan dan interaksi halaman manajemen ruleset,
+/// termasuk CRUD ruleset, manajemen versi, aktivasi, dan komponen default.
 /// </summary>
 [Route("rulesets")]
 public sealed class RulesetsController : Controller
@@ -20,8 +21,9 @@ public sealed class RulesetsController : Controller
     private const string DefaultCatalogSource = "default-catalog";
 
     /// <summary>
-    /// Menjalankan fungsi RulesetsController sebagai bagian dari alur file ini.
+    /// Menginisialisasi controller ruleset dengan factory HTTP client untuk komunikasi ke API backend.
     /// </summary>
+    /// <param name="clientFactory">Factory untuk membuat instance <see cref="HttpClient"/> ke API backend.</param>
     public RulesetsController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
@@ -29,8 +31,10 @@ public sealed class RulesetsController : Controller
 
     [HttpGet("")]
     /// <summary>
-    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// Menampilkan halaman daftar semua ruleset beserta komponen default yang tersedia.
     /// </summary>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>View berisi daftar ruleset dan komponen default, atau pesan kesalahan.</returns>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         ViewData[RulesetErrorTempDataKey] = TempData[RulesetErrorTempDataKey] as string;
@@ -54,7 +58,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await TryReadJsonAsync<RulesetListResponseDto>(response.Content, ct);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponseDto>(ct);
         if (data is null)
         {
             return View(new RulesetListViewModel
@@ -80,7 +84,7 @@ public sealed class RulesetsController : Controller
         }
         else
         {
-            var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+            var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
             if (defaultsData is null)
             {
                 defaultComponentsErrorMessage = HttpContext.T("rulesets.error.invalid_default_components_response");
@@ -101,8 +105,9 @@ public sealed class RulesetsController : Controller
 
     [HttpGet("create")]
     /// <summary>
-    /// Menjalankan fungsi Create sebagai bagian dari alur file ini.
+    /// Menampilkan formulir pembuatan ruleset baru dengan konfigurasi JSON default (hanya instruktur).
     /// </summary>
+    /// <returns>View formulir pembuatan ruleset dengan template konfigurasi default.</returns>
     public IActionResult Create()
     {
         if (!HttpContext.Session.IsInstructor())
@@ -115,8 +120,11 @@ public sealed class RulesetsController : Controller
 
     [HttpPost("create")]
     /// <summary>
-    /// Menjalankan fungsi Create sebagai bagian dari alur file ini.
+    /// Memproses pengiriman formulir pembuatan ruleset baru ke API backend (hanya instruktur).
     /// </summary>
+    /// <param name="model">ViewModel berisi nama, deskripsi, dan konfigurasi JSON ruleset.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Redirect ke daftar ruleset jika berhasil, atau formulir dengan pesan kesalahan.</returns>
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -161,7 +169,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
             model.IsEditMode = false;
             model.ErrorMessage = error?.Message ?? HttpContext
                 .T("rulesets.error.create_failed")
@@ -174,8 +182,11 @@ public sealed class RulesetsController : Controller
 
     [HttpGet("{rulesetId:guid}/edit")]
     /// <summary>
-    /// Menjalankan fungsi Edit sebagai bagian dari alur file ini.
+    /// Menampilkan formulir edit ruleset yang sudah ada dengan data dari API backend (hanya instruktur).
     /// </summary>
+    /// <param name="rulesetId">Identifier unik ruleset yang akan diedit.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>View formulir edit berisi data ruleset, atau pesan kesalahan.</returns>
     public async Task<IActionResult> Edit(Guid rulesetId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -193,7 +204,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
             return View("Create", new CreateRulesetViewModel
             {
                 RulesetId = rulesetId,
@@ -204,7 +215,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await TryReadJsonAsync<RulesetDetailResponseDto>(response.Content, ct);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponseDto>(ct);
         if (data is null)
         {
             return View("Create", new CreateRulesetViewModel
@@ -227,8 +238,12 @@ public sealed class RulesetsController : Controller
 
     [HttpPost("{rulesetId:guid}/edit")]
     /// <summary>
-    /// Menjalankan fungsi Edit sebagai bagian dari alur file ini.
+    /// Memproses pengiriman formulir pembaruan ruleset ke API backend (hanya instruktur).
     /// </summary>
+    /// <param name="rulesetId">Identifier unik ruleset yang diperbarui.</param>
+    /// <param name="model">ViewModel berisi nama, deskripsi, dan konfigurasi JSON yang diperbarui.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Redirect ke halaman detail ruleset jika berhasil, atau formulir dengan pesan kesalahan.</returns>
     public async Task<IActionResult> Edit(Guid rulesetId, CreateRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -274,7 +289,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
             model.ErrorMessage = error?.Message ?? HttpContext
                 .T("rulesets.error.update_failed")
                 .Replace("{status}", ((int)response.StatusCode).ToString());
@@ -286,8 +301,14 @@ public sealed class RulesetsController : Controller
 
     [HttpGet("{rulesetId:guid}")]
     /// <summary>
-    /// Menjalankan fungsi Details sebagai bagian dari alur file ini.
+    /// Menampilkan halaman detail ruleset tertentu, termasuk daftar versi, komponen, dan opsi dari katalog default.
     /// </summary>
+    /// <param name="rulesetId">Identifier unik ruleset.</param>
+    /// <param name="version">Nomor versi spesifik yang ingin dilihat (opsional).</param>
+    /// <param name="source">Sumber data, misalnya "default-catalog" untuk komponen bawaan.</param>
+    /// <param name="defaultRulesetVersionId">Identifier versi dari katalog default (opsional).</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>View berisi detail ruleset, komponen aktif, dan informasi versi.</returns>
     public async Task<IActionResult> Details(Guid rulesetId, int? version, string? source, Guid? defaultRulesetVersionId, CancellationToken ct)
     {
         var fromDefaultCatalog = string.Equals(source, DefaultCatalogSource, StringComparison.OrdinalIgnoreCase);
@@ -302,7 +323,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
             if (fromDefaultCatalog)
             {
                 var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
@@ -314,7 +335,7 @@ public sealed class RulesetsController : Controller
 
                 if (defaultsResponse.IsSuccessStatusCode)
                 {
-                    var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+                    var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
                     var fallbackItem = defaultsData?.Items?.FirstOrDefault(item =>
                         item.RulesetId == rulesetId &&
                         (requestedVersion is null || item.Version == requestedVersion.Value) &&
@@ -351,7 +372,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await TryReadJsonAsync<RulesetDetailResponseDto>(response.Content, ct);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponseDto>(ct);
         if (data is null)
         {
             return View(new RulesetDetailViewModel
@@ -380,7 +401,7 @@ public sealed class RulesetsController : Controller
         }
         else
         {
-            components = await TryReadJsonAsync<RulesetComponentsResponseDto>(componentsResponse.Content, ct);
+            components = await componentsResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponseDto>(ct);
             if (components is null)
             {
                 componentsErrorMessage = HttpContext.T("rulesets.error.invalid_components_response");
@@ -440,7 +461,7 @@ public sealed class RulesetsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+        var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
         if (defaultsData is null)
         {
             TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.invalid_default_components_response");
@@ -465,8 +486,12 @@ public sealed class RulesetsController : Controller
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
     /// <summary>
-    /// Menjalankan fungsi ActivateVersion sebagai bagian dari alur file ini.
+    /// Mengaktifkan versi ruleset tertentu melalui API backend (hanya instruktur).
     /// </summary>
+    /// <param name="rulesetId">Identifier unik ruleset.</param>
+    /// <param name="version">Nomor versi yang akan diaktifkan.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Redirect ke halaman detail ruleset dengan pesan status.</returns>
     public async Task<IActionResult> ActivateVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -495,8 +520,12 @@ public sealed class RulesetsController : Controller
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/delete")]
     /// <summary>
-    /// Menjalankan fungsi DeleteVersion sebagai bagian dari alur file ini.
+    /// Menghapus versi ruleset tertentu melalui API backend (hanya instruktur).
     /// </summary>
+    /// <param name="rulesetId">Identifier unik ruleset.</param>
+    /// <param name="version">Nomor versi yang akan dihapus.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Redirect ke halaman detail ruleset dengan pesan sukses atau kesalahan.</returns>
     public async Task<IActionResult> DeleteVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -512,7 +541,7 @@ public sealed class RulesetsController : Controller
             return unauthorized;
         }
 
-        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NoContent)
+        if (!response.IsSuccessStatusCode)
         {
             TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
                 response,
@@ -531,8 +560,11 @@ public sealed class RulesetsController : Controller
 
     [HttpPost("{rulesetId:guid}/delete")]
     /// <summary>
-    /// Menjalankan fungsi Delete sebagai bagian dari alur file ini.
+    /// Menghapus seluruh ruleset beserta semua versinya melalui API backend (hanya instruktur).
     /// </summary>
+    /// <param name="rulesetId">Identifier unik ruleset yang akan dihapus.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Redirect ke daftar ruleset jika berhasil, atau ke detail dengan pesan kesalahan.</returns>
     public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -548,7 +580,7 @@ public sealed class RulesetsController : Controller
             return unauthorized;
         }
 
-        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NoContent)
+        if (!response.IsSuccessStatusCode)
         {
             TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
                 response,
@@ -562,8 +594,11 @@ public sealed class RulesetsController : Controller
 
     [HttpPost("bulk-delete")]
     /// <summary>
-    /// Menjalankan fungsi BulkDelete sebagai bagian dari alur file ini.
+    /// Menghapus beberapa ruleset sekaligus berdasarkan daftar ID yang dipilih (hanya instruktur).
     /// </summary>
+    /// <param name="rulesetIds">Daftar identifier ruleset yang akan dihapus.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Redirect ke daftar ruleset dengan ringkasan hasil penghapusan massal.</returns>
     public async Task<IActionResult> BulkDelete([FromForm(Name = "rulesetIds")] List<Guid>? rulesetIds, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -591,7 +626,7 @@ public sealed class RulesetsController : Controller
                 return unauthorized;
             }
 
-            if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            if (response.IsSuccessStatusCode)
             {
                 deletedCount++;
                 continue;
@@ -624,8 +659,9 @@ public sealed class RulesetsController : Controller
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildDefaultCreateViewModel sebagai bagian dari alur file ini.
+    /// Membuat ViewModel formulir pembuatan ruleset baru dengan template konfigurasi JSON default mode PEMULA.
     /// </summary>
+    /// <returns>ViewModel berisi konfigurasi JSON default untuk formulir pembuatan ruleset.</returns>
     private static CreateRulesetViewModel BuildDefaultCreateViewModel()
     {
         return new CreateRulesetViewModel
@@ -705,7 +741,7 @@ public sealed class RulesetsController : Controller
             return configNode;
         }
 
-        var defaultsData = await TryReadJsonAsync<DefaultRulesetComponentsResponseDto>(defaultsResponse.Content, ct);
+        var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
         if (defaultsData?.Items is null || defaultsData.Items.Count == 0)
         {
             return configNode;
@@ -763,18 +799,24 @@ public sealed class RulesetsController : Controller
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildRulesetApiErrorMessage sebagai bagian dari alur file ini.
+    /// Membangun pesan kesalahan dari respons API ruleset dengan fallback ke prefix dan status code.
     /// </summary>
+    /// <param name="response">Respons HTTP dari API backend.</param>
+    /// <param name="prefix">Prefix pesan kesalahan sebagai fallback.</param>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>String pesan kesalahan yang siap ditampilkan ke pengguna.</returns>
     private static async Task<string> BuildRulesetApiErrorMessage(HttpResponseMessage response, string prefix, CancellationToken ct)
     {
-        var error = await TryReadJsonAsync<ApiErrorResponseDto>(response.Content, ct);
+        var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
 
         return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
     }
 
     /// <summary>
-    /// Menjalankan fungsi SerializeIndentedJson sebagai bagian dari alur file ini.
+    /// Mengonversi JsonElement menjadi string JSON terformat rapi (indented) untuk ditampilkan di editor.
     /// </summary>
+    /// <param name="configJson">Data konfigurasi JSON yang akan diformat.</param>
+    /// <returns>String JSON terformat, atau "{}" jika data kosong atau tidak valid.</returns>
     private static string SerializeIndentedJson(JsonElement? configJson)
     {
         if (!configJson.HasValue)
@@ -792,25 +834,6 @@ public sealed class RulesetsController : Controller
         catch (JsonException)
         {
             return "{}";
-        }
-    }
-
-    /// <summary>
-    /// Membaca JSON dari konten HTTP dengan fallback default saat payload tidak kompatibel.
-    /// </summary>
-    private static async Task<T?> TryReadJsonAsync<T>(HttpContent content, CancellationToken ct)
-    {
-        try
-        {
-            return await content.ReadFromJsonAsync<T>(cancellationToken: ct);
-        }
-        catch (JsonException)
-        {
-            return default;
-        }
-        catch (NotSupportedException)
-        {
-            return default;
         }
     }
 }

@@ -1,9 +1,10 @@
-// Fungsi file: Mengelola endpoint API untuk domain AuthController termasuk validasi request dan respons standar.
+// Fungsi file: Menyediakan endpoint login dan registrasi pengguna dengan validasi kredensial, pencatatan audit keamanan, dan penerbitan JWT.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Models;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -16,7 +17,7 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
 /// <summary>
-/// Menyatakan peran utama tipe AuthController pada modul ini.
+/// Controller autentikasi yang menangani login dan registrasi pengguna tanpa otorisasi (AllowAnonymous).
 /// </summary>
 public sealed class AuthController : ControllerBase
 {
@@ -25,7 +26,7 @@ public sealed class AuthController : ControllerBase
     private readonly SecurityAuditService _securityAudit;
 
     /// <summary>
-    /// Menjalankan fungsi AuthController sebagai bagian dari alur file ini.
+    /// Menginisialisasi controller dengan dependensi repositori user, layanan JWT, dan audit keamanan.
     /// </summary>
     public AuthController(
         UserRepository users,
@@ -40,8 +41,11 @@ public sealed class AuthController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     /// <summary>
-    /// Menjalankan fungsi Login sebagai bagian dari alur file ini.
+    /// Memvalidasi kredensial pengguna, menerbitkan JWT token jika berhasil, dan mencatat audit login.
     /// </summary>
+    /// <param name="request">Data login berisi username dan password.</param>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <returns>200 OK dengan token jika berhasil, 400/401 jika gagal.</returns>
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -102,8 +106,11 @@ public sealed class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
     /// <summary>
-    /// Menjalankan fungsi Register sebagai bagian dari alur file ini.
+    /// Mendaftarkan pengguna baru (INSTRUCTOR/PLAYER), menerbitkan JWT, dan mencatat audit registrasi.
     /// </summary>
+    /// <param name="request">Data registrasi berisi username, password, role, dan display name opsional.</param>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <returns>201 Created dengan token jika berhasil, 400/409 jika gagal.</returns>
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -128,9 +135,12 @@ public sealed class AuthController : ControllerBase
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Username harus 3-80 karakter"));
         }
 
-        if (request.Password.Length < 6)
+        if (request.Password.Length < PasswordPolicy.MinPasswordLength)
         {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Password minimal 6 karakter"));
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Password minimal {PasswordPolicy.MinPasswordLength} karakter"));
         }
 
         if (string.IsNullOrWhiteSpace(request.Role))
@@ -145,8 +155,18 @@ public sealed class AuthController : ControllerBase
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Role tidak valid"));
         }
 
-        var exists = await _users.UsernameExistsAsync(username, ct);
-        if (exists)
+        var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? username : request.DisplayName.Trim();
+        if (displayName.Length > 80)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Display name maksimal 80 karakter"));
+        }
+
+        AuthenticatedUserDb created;
+        try
+        {
+            created = await _users.CreateUserAsync(username, request.Password, normalizedRole, displayName, ct);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505")
         {
             await _securityAudit.LogAsync(
                 HttpContext,
@@ -162,13 +182,6 @@ public sealed class AuthController : ControllerBase
             return Conflict(ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Username sudah digunakan"));
         }
 
-        var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? username : request.DisplayName.Trim();
-        if (displayName.Length > 80)
-        {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Display name maksimal 80 karakter"));
-        }
-
-        var created = await _users.CreateUserAsync(username, request.Password, normalizedRole, displayName, ct);
         if (string.Equals(created.Role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             await _users.EnsurePlayerLinkAsync(created.UserId, created.Username, ct);

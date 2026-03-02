@@ -79,8 +79,8 @@ create table if not exists session_players (
   session_player_id uuid primary key,
   session_id uuid not null references sessions(session_id) on delete cascade,
   player_id uuid not null references players(player_id) on delete restrict,
-  join_order int not null default 0,
-  role varchar(20) not null default 'PLAYER',
+  join_order int not null default 1 check (join_order >= 1),
+  role varchar(20) not null default 'PLAYER' constraint ck_session_players_role check (role in ('PLAYER')),
   created_at timestamptz not null default now(),
   unique(session_id, player_id)
 );
@@ -108,7 +108,7 @@ create table if not exists events (
   timestamp timestamptz not null,
   day_index int not null check (day_index >= 0),
   weekday varchar(3) not null check (weekday in ('MON','TUE','WED','THU','FRI','SAT','SUN')),
-  turn_number int not null check (turn_number >= 0),
+  turn_number int not null check (turn_number >= 1),
   sequence_number bigint not null check (sequence_number >= 0),
   action_type varchar(64) not null,
   ruleset_version_id uuid not null references ruleset_versions(ruleset_version_id) on delete restrict,

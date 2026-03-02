@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan komponen keamanan aplikasi untuk domain JwtTokenService (JWT, audit, atau rate limiting).
+// Fungsi file: Layanan penerbitan JWT access token untuk autentikasi pengguna.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Cashflowpoly.Api.Data;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>
-/// Menyatakan peran utama tipe JwtTokenService pada modul ini.
+/// Menerbitkan JWT access token yang ditandatangani dengan key aktif dari JwtSigningKeyProvider.
 /// </summary>
 public sealed class JwtTokenService
 {
@@ -15,17 +15,16 @@ public sealed class JwtTokenService
     private readonly JwtSigningKeyProvider _signingKeyProvider;
 
     /// <summary>
-    /// Menjalankan fungsi JwtTokenService sebagai bagian dari alur file ini.
+    /// Menerima opsi JWT dan penyedia signing key.
     /// </summary>
     public JwtTokenService(IOptions<JwtOptions> options, JwtSigningKeyProvider signingKeyProvider)
     {
         _options = options;
         _signingKeyProvider = signingKeyProvider;
-        _signingKeyProvider.ValidateConfiguration();
     }
 
     /// <summary>
-    /// Menjalankan fungsi IssueToken sebagai bagian dari alur file ini.
+    /// Membuat dan menandatangani JWT berisi claim identitas dan role pengguna.
     /// </summary>
     public IssuedToken IssueToken(AuthenticatedUserDb user)
     {
@@ -63,6 +62,6 @@ public sealed class JwtTokenService
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe IssuedToken pada modul ini.
+/// DTO hasil penerbitan token: string JWT dan waktu kedaluwarsa.
 /// </summary>
 public sealed record IssuedToken(string AccessToken, DateTimeOffset ExpiresAt);

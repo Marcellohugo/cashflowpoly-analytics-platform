@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain SessionRepository melalui query dan command terenkapsulasi.
+// Fungsi file: Repository akses data sesi permainan — CRUD sesi, status, dan aktivasi ruleset per sesi.
 using Dapper;
 using Npgsql;
 
@@ -12,7 +12,7 @@ public sealed class SessionRepository
     private readonly NpgsqlDataSource _dataSource;
 
     /// <summary>
-    /// Menjalankan fungsi SessionRepository sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource untuk koneksi ke database sesi.
     /// </summary>
     public SessionRepository(NpgsqlDataSource dataSource)
     {
@@ -20,7 +20,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetSessionAsync sebagai bagian dari alur file ini.
+    /// Mengambil data sesi berdasarkan session_id.
     /// </summary>
     public async Task<SessionDb?> GetSessionAsync(Guid sessionId, CancellationToken ct)
     {
@@ -35,7 +35,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetSessionForInstructorAsync sebagai bagian dari alur file ini.
+    /// Mengambil data sesi yang dimiliki instruktur tertentu.
     /// </summary>
     public async Task<SessionDb?> GetSessionForInstructorAsync(Guid sessionId, Guid instructorUserId, CancellationToken ct)
     {
@@ -52,7 +52,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CreateSessionAsync sebagai bagian dari alur file ini.
+    /// Membuat sesi baru dalam transaksi: insert sesi dan aktivasi ruleset awal.
     /// </summary>
     public async Task<Guid> CreateSessionAsync(
         string sessionName,
@@ -96,7 +96,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi UpdateStatusAsync sebagai bagian dari alur file ini.
+    /// Memperbarui status sesi beserta waktu mulai/selesai.
     /// </summary>
     public async Task<bool> UpdateStatusAsync(Guid sessionId, string status, DateTimeOffset? startedAt, DateTimeOffset? endedAt, CancellationToken ct)
     {
@@ -114,7 +114,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetActiveRulesetVersionIdAsync sebagai bagian dari alur file ini.
+    /// Mengambil ruleset_version_id yang aktif terakhir pada sesi.
     /// </summary>
     public async Task<Guid?> GetActiveRulesetVersionIdAsync(Guid sessionId, CancellationToken ct)
     {
@@ -131,7 +131,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListSessionsAsync sebagai bagian dari alur file ini.
+    /// Mengambil semua sesi diurutkan terbaru.
     /// </summary>
     public async Task<List<SessionDb>> ListSessionsAsync(CancellationToken ct)
     {
@@ -147,7 +147,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListSessionsByInstructorAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar sesi milik instruktur tertentu.
     /// </summary>
     public async Task<List<SessionDb>> ListSessionsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
@@ -164,7 +164,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListSessionsByPlayerAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar sesi yang diikuti pemain tertentu.
     /// </summary>
     public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid playerId, CancellationToken ct)
     {
@@ -182,7 +182,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ActivateRulesetAsync sebagai bagian dari alur file ini.
+    /// Mengaktifkan versi ruleset pada sesi dengan menyisipkan record aktivasi baru.
     /// </summary>
     public async Task ActivateRulesetAsync(Guid sessionId, Guid rulesetVersionId, string? activatedBy, CancellationToken ct)
     {

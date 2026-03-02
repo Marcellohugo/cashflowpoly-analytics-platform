@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan komponen infrastruktur API untuk kebutuhan OperationalMetricsTracker.
+// Fungsi file: Mengumpulkan dan menyimpan metrik operasional request API secara in-memory per endpoint, termasuk jumlah request, error rate, dan durasi rata-rata/P95.
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Routing;
 
@@ -34,8 +34,10 @@ public sealed class OperationalMetricsTracker
     }
 
     /// <summary>
-    /// Menjalankan fungsi Snapshot sebagai bagian dari alur file ini.
+    /// Menghasilkan snapshot metrik operasional saat ini dengan daftar endpoint teratas.
     /// </summary>
+    /// <param name="maxEndpoints">Jumlah maksimum endpoint yang ditampilkan dalam snapshot.</param>
+    /// <returns>Snapshot metrik operasional berisi total request, error rate, dan detail per endpoint.</returns>
     public OperationalMetricsSnapshot Snapshot(int maxEndpoints)
     {
         var endpoints = _endpoints.Values
@@ -57,7 +59,7 @@ public sealed class OperationalMetricsTracker
     }
 
     /// <summary>
-    /// Menjalankan fungsi ResolveRoutePattern sebagai bagian dari alur file ini.
+    /// Menentukan route pattern endpoint dari HttpContext, fallback ke path mentah jika tidak ada.
     /// </summary>
     private static string ResolveRoutePattern(HttpContext context)
     {
@@ -76,18 +78,18 @@ public sealed class OperationalMetricsTracker
     }
 
     /// <summary>
-    /// Menyatakan peran utama tipe EndpointMetricsAccumulator pada modul ini.
+    /// Akumulator thread-safe yang merekam metrik per endpoint: jumlah request, error, durasi, dan sampel.
     /// </summary>
     private sealed class EndpointMetricsAccumulator
     {
         private const int DurationSamplesLimit = 4096;
 
         /// <summary>
-        /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+        /// Objek pengunci untuk sinkronisasi akses ke data metrik.
         /// </summary>
         private readonly object _gate = new();
         /// <summary>
-        /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+        /// Antrian sampel durasi terbatas untuk perhitungan persentil.
         /// </summary>
         private readonly Queue<double> _durationSamples = new();
 
@@ -100,8 +102,10 @@ public sealed class OperationalMetricsTracker
         private DateTimeOffset _lastSeenAt;
 
         /// <summary>
-        /// Menjalankan fungsi EndpointMetricsAccumulator sebagai bagian dari alur file ini.
+        /// Membuat akumulator metrik baru untuk satu endpoint tertentu.
         /// </summary>
+        /// <param name="method">HTTP method (GET, POST, dll.).</param>
+        /// <param name="routePattern">Pola route endpoint.</param>
         public EndpointMetricsAccumulator(string method, string routePattern)
         {
             _method = method;
@@ -131,8 +135,9 @@ public sealed class OperationalMetricsTracker
         }
 
         /// <summary>
-        /// Menjalankan fungsi Snapshot sebagai bagian dari alur file ini.
+        /// Menghasilkan snapshot metrik saat ini untuk endpoint ini.
         /// </summary>
+        /// <returns>Metrik endpoint mencakup jumlah request, error rate, durasi rata-rata, dan P95.</returns>
         public EndpointOperationalMetric Snapshot()
         {
             lock (_gate)
@@ -157,8 +162,11 @@ public sealed class OperationalMetricsTracker
         }
 
         /// <summary>
-        /// Menjalankan fungsi ComputePercentile sebagai bagian dari alur file ini.
+        /// Menghitung nilai persentil dari kumpulan sampel durasi.
         /// </summary>
+        /// <param name="values">Kumpulan sampel durasi.</param>
+        /// <param name="percentile">Persentil yang diinginkan (1-100).</param>
+        /// <returns>Nilai persentil yang dihitung, 0 jika tidak ada data.</returns>
         private static double ComputePercentile(IEnumerable<double> values, int percentile)
         {
             var ordered = values.OrderBy(value => value).ToArray();
@@ -176,7 +184,7 @@ public sealed class OperationalMetricsTracker
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe OperationalMetricsSnapshot pada modul ini.
+/// Record snapshot metrik operasional secara keseluruhan pada titik waktu tertentu.
 /// </summary>
 public sealed record OperationalMetricsSnapshot(
     DateTimeOffset GeneratedAt,
@@ -186,7 +194,7 @@ public sealed record OperationalMetricsSnapshot(
     List<EndpointOperationalMetric> Endpoints);
 
 /// <summary>
-/// Menyatakan peran utama tipe EndpointOperationalMetric pada modul ini.
+/// Record metrik operasional untuk satu endpoint: request count, error rate, durasi, dan status terakhir.
 /// </summary>
 public sealed record EndpointOperationalMetric(
     string Method,

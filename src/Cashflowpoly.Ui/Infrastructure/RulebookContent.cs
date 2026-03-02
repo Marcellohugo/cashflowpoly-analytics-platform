@@ -1,16 +1,22 @@
-// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan RulebookContent.
+// Fungsi file: Membangun konten halaman rulebook Cashflowpoly dalam dua bahasa (Indonesia dan Inggris) sebagai ViewModel.
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>
-/// Menyatakan peran utama tipe RulebookContent pada modul ini.
+/// Kelas statis yang menyusun seluruh konten panduan permainan (rulebook)
+/// Cashflowpoly ke dalam struktur ViewModel bilingual (Indonesia/Inggris),
+/// mencakup aturan setup, alur permainan, aksi, dan perhitungan poin.
 /// </summary>
 public static class RulebookContent
 {
     /// <summary>
-    /// Menjalankan fungsi Build sebagai bagian dari alur file ini.
+    /// Membuat instance RulebookPageViewModel berisi seluruh seksi panduan permainan
+    /// (komponen, setup, alur bermain, aksi, poin) beserta tabel skor,
+    /// dengan teks disesuaikan berdasarkan bahasa yang dipilih.
     /// </summary>
+    /// <param name="language">Kode bahasa ("id" atau "en"); default bahasa Indonesia.</param>
+    /// <returns>ViewModel halaman rulebook yang siap ditampilkan di view.</returns>
     public static RulebookPageViewModel Build(string? language = null)
     {
         var normalizedLanguage = UiText.NormalizeLanguage(language);

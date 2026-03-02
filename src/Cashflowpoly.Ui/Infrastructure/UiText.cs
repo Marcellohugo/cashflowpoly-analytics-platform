@@ -1,17 +1,20 @@
-// Fungsi file: Menyediakan utilitas infrastruktur UI untuk kebutuhan UiText.
+// Fungsi file: Menyimpan seluruh kamus teks dwibahasa (ID/EN) untuk antarmuka pengguna dan menyediakan metode penerjemahan berdasarkan preferensi bahasa sesi.
 using Cashflowpoly.Ui.Models;
+using System.Collections.Frozen;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>
-/// Menyatakan peran utama tipe UiText pada modul ini.
+/// Kelas statis yang menyimpan kamus teks dwibahasa (Indonesia dan Inggris)
+/// serta menyediakan metode penerjemahan untuk seluruh label, pesan, dan status UI.
 /// </summary>
 public static class UiText
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Kamus utama berisi pasangan kunci teks dan terjemahannya dalam Bahasa Indonesia (Id) dan Inggris (En),
+    /// digunakan sebagai sumber tunggal untuk semua teks antarmuka pengguna.
     /// </summary>
-    private static readonly Dictionary<string, (string Id, string En)> Lexicon = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly FrozenDictionary<string, (string Id, string En)> Lexicon = new Dictionary<string, (string Id, string En)>(StringComparer.OrdinalIgnoreCase)
     {
         ["brand.chip"] = ("Lembar Petualang", "Adventurer's Ledger"),
 
@@ -897,11 +900,14 @@ public static class UiText
         ["state.true"] = ("Ya", "Yes"),
         ["state.false"] = ("Tidak", "No"),
         ["state.null"] = ("Kosong", "Null")
-    };
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Menjalankan fungsi NormalizeLanguage sebagai bagian dari alur file ini.
+    /// Menormalisasi kode bahasa yang diberikan menjadi salah satu dari dua nilai valid: "en" atau "id".
+    /// Jika input bukan "en", maka default ke Bahasa Indonesia ("id").
     /// </summary>
+    /// <param name="language">Kode bahasa dari sesi pengguna, boleh null.</param>
+    /// <returns>Kode bahasa yang sudah dinormalisasi ("en" atau "id").</returns>
     public static string NormalizeLanguage(string? language)
     {
         return string.Equals(language, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase)
@@ -910,8 +916,12 @@ public static class UiText
     }
 
     /// <summary>
-    /// Menjalankan fungsi TranslateSessionStatus sebagai bagian dari alur file ini.
+    /// Menerjemahkan status sesi permainan (CREATED, STARTED, ENDED, CANCELLED)
+    /// ke teks lokal sesuai bahasa aktif pengguna.
     /// </summary>
+    /// <param name="context">HttpContext yang berisi informasi sesi dan preferensi bahasa.</param>
+    /// <param name="status">Status sesi mentah dari API, misalnya "CREATED" atau "STARTED".</param>
+    /// <returns>Teks status sesi yang sudah diterjemahkan.</returns>
     public static string TranslateSessionStatus(HttpContext context, string? status)
     {
         var normalized = status?.Trim().ToUpperInvariant();
@@ -927,8 +937,12 @@ public static class UiText
     }
 
     /// <summary>
-    /// Menjalankan fungsi TranslateRulesetStatus sebagai bagian dari alur file ini.
+    /// Menerjemahkan status set aturan (ACTIVE, DRAFT, RETIRED)
+    /// ke teks lokal sesuai bahasa aktif pengguna.
     /// </summary>
+    /// <param name="context">HttpContext yang berisi informasi sesi dan preferensi bahasa.</param>
+    /// <param name="status">Status set aturan mentah dari API.</param>
+    /// <returns>Teks status set aturan yang sudah diterjemahkan.</returns>
     public static string TranslateRulesetStatus(HttpContext context, string? status)
     {
         var normalized = status?.Trim().ToUpperInvariant();
@@ -942,8 +956,12 @@ public static class UiText
     }
 
     /// <summary>
-    /// Menjalankan fungsi TranslateRulesetMode sebagai bagian dari alur file ini.
+    /// Menerjemahkan mode set aturan (PEMULA/BEGINNER, MAHIR/ADVANCED)
+    /// ke teks lokal sesuai bahasa aktif pengguna.
     /// </summary>
+    /// <param name="context">HttpContext yang berisi informasi sesi dan preferensi bahasa.</param>
+    /// <param name="mode">Mode set aturan mentah dari API, misalnya "PEMULA" atau "ADVANCED".</param>
+    /// <returns>Teks mode set aturan yang sudah diterjemahkan.</returns>
     public static string TranslateRulesetMode(HttpContext context, string? mode)
     {
         var normalized = mode?.Trim().ToUpperInvariant();
@@ -958,8 +976,12 @@ public static class UiText
     }
 
     /// <summary>
-    /// Menjalankan fungsi Translate sebagai bagian dari alur file ini.
+    /// Menerjemahkan kunci teks ke bahasa yang aktif pada sesi pengguna saat ini.
+    /// Jika kunci tidak ditemukan di Lexicon, mengembalikan kunci itu sendiri sebagai fallback.
     /// </summary>
+    /// <param name="context">HttpContext yang berisi informasi sesi dan preferensi bahasa.</param>
+    /// <param name="key">Kunci teks yang akan diterjemahkan, misalnya "nav.home" atau "auth.login".</param>
+    /// <returns>Teks terjemahan sesuai bahasa aktif, atau kunci asli jika tidak ditemukan.</returns>
     public static string Translate(HttpContext context, string key)
     {
         var lang = NormalizeLanguage(context.Session.GetString(AuthConstants.SessionLanguageKey));
@@ -973,25 +995,45 @@ public static class UiText
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe UiTextHttpContextExtensions pada modul ini.
+/// Kelas ekstensi untuk HttpContext agar View dan Controller dapat memanggil
+/// fungsi penerjemahan UiText secara singkat melalui metode ekstensi.
 /// </summary>
 public static class UiTextHttpContextExtensions
 {
     /// <summary>
-    /// Menjalankan fungsi Translate sebagai bagian dari alur file ini.
+    /// Pintasan (shortcut) untuk menerjemahkan kunci teks ke bahasa aktif sesi pengguna.
+    /// Memanggil <see cref="UiText.Translate"/> secara internal.
     /// </summary>
+    /// <param name="context">HttpContext saat ini.</param>
+    /// <param name="key">Kunci teks di kamus Lexicon, misalnya "nav.home".</param>
+    /// <returns>Teks terjemahan sesuai bahasa aktif.</returns>
     public static string T(this HttpContext context, string key) => UiText.Translate(context, key);
+
     /// <summary>
-    /// Menjalankan fungsi TranslateSessionStatus sebagai bagian dari alur file ini.
+    /// Pintasan untuk menerjemahkan status sesi permainan ke bahasa aktif.
+    /// Memanggil <see cref="UiText.TranslateSessionStatus"/> secara internal.
     /// </summary>
+    /// <param name="context">HttpContext saat ini.</param>
+    /// <param name="status">Status sesi mentah dari API.</param>
+    /// <returns>Teks status sesi yang sudah diterjemahkan.</returns>
     public static string TSessionStatus(this HttpContext context, string? status) => UiText.TranslateSessionStatus(context, status);
+
     /// <summary>
-    /// Menjalankan fungsi TranslateRulesetStatus sebagai bagian dari alur file ini.
+    /// Pintasan untuk menerjemahkan status set aturan ke bahasa aktif.
+    /// Memanggil <see cref="UiText.TranslateRulesetStatus"/> secara internal.
     /// </summary>
+    /// <param name="context">HttpContext saat ini.</param>
+    /// <param name="status">Status set aturan mentah dari API.</param>
+    /// <returns>Teks status set aturan yang sudah diterjemahkan.</returns>
     public static string TRulesetStatus(this HttpContext context, string? status) => UiText.TranslateRulesetStatus(context, status);
+
     /// <summary>
-    /// Menjalankan fungsi TranslateRulesetMode sebagai bagian dari alur file ini.
+    /// Pintasan untuk menerjemahkan mode set aturan ke bahasa aktif.
+    /// Memanggil <see cref="UiText.TranslateRulesetMode"/> secara internal.
     /// </summary>
+    /// <param name="context">HttpContext saat ini.</param>
+    /// <param name="mode">Mode set aturan mentah dari API.</param>
+    /// <returns>Teks mode set aturan yang sudah diterjemahkan.</returns>
     public static string TRulesetMode(this HttpContext context, string? mode) => UiText.TranslateRulesetMode(context, mode);
 }
 

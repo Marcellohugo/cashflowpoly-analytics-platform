@@ -1,8 +1,8 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain DbRecords melalui query dan command terenkapsulasi.
+// Fungsi file: Kumpulan record/class DTO untuk mapping baris database PostgreSQL ke objek C# via Dapper.
 namespace Cashflowpoly.Api.Data;
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetDb pada modul ini.
+/// Representasi baris tabel rulesets — konfigurasi aturan permainan.
 /// </summary>
 public sealed class RulesetDb
 {
@@ -15,7 +15,7 @@ public sealed class RulesetDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetVersionDb pada modul ini.
+/// Representasi baris tabel ruleset_versions — versi snapshot konfigurasi aturan.
 /// </summary>
 public sealed class RulesetVersionDb
 {
@@ -30,7 +30,7 @@ public sealed class RulesetVersionDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe DefaultRulesetComponentDb pada modul ini.
+/// Proyeksi gabungan ruleset + versi aktif untuk komponen default seed.
 /// </summary>
 public sealed class DefaultRulesetComponentDb
 {
@@ -43,7 +43,7 @@ public sealed class DefaultRulesetComponentDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionDb pada modul ini.
+/// Representasi baris tabel sessions — sesi permainan Cashflowpoly.
 /// </summary>
 public sealed class SessionDb
 {
@@ -58,7 +58,7 @@ public sealed class SessionDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerDb pada modul ini.
+/// Representasi baris tabel players — profil pemain.
 /// </summary>
 public sealed class PlayerDb
 {
@@ -69,7 +69,7 @@ public sealed class PlayerDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe EventDb pada modul ini.
+/// Representasi baris tabel events — event gameplay dari klien.
 /// </summary>
 public sealed class EventDb
 {
@@ -91,7 +91,7 @@ public sealed class EventDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe CashflowProjectionDb pada modul ini.
+/// Representasi baris tabel event_cashflow_projections — proyeksi arus kas per event.
 /// </summary>
 public sealed class CashflowProjectionDb
 {
@@ -110,7 +110,7 @@ public sealed class CashflowProjectionDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe MetricSnapshotDb pada modul ini.
+/// Representasi baris tabel metric_snapshots — snapshot metrik numerik.
 /// </summary>
 public sealed class MetricSnapshotDb
 {
@@ -125,7 +125,7 @@ public sealed class MetricSnapshotDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe MetricSnapshotJsonDb pada modul ini.
+/// Proyeksi ringan metric snapshot yang hanya berisi kolom JSON (untuk agregasi lanjut).
 /// </summary>
 public sealed class MetricSnapshotJsonDb
 {
@@ -135,7 +135,7 @@ public sealed class MetricSnapshotJsonDb
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe SecurityAuditLogDb pada modul ini.
+/// Representasi baris tabel security_audit_logs — catatan audit keamanan.
 /// </summary>
 public sealed class SecurityAuditLogDb
 {

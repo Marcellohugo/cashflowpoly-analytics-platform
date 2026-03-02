@@ -1,11 +1,11 @@
-// Fungsi file: Mendefinisikan kontrak data API pada domain ApiDtos.
+// Fungsi file: Mendefinisikan seluruh Data Transfer Object (DTO) untuk request dan response API, mencakup sesi, pemain, ruleset, event, analitika, autentikasi, dan audit keamanan.
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Cashflowpoly.Api.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe CreateSessionRequest pada modul ini.
+/// Request untuk membuat sesi permainan baru dengan nama, mode, dan ruleset.
 /// </summary>
 public sealed record CreateSessionRequest(
     [property: JsonPropertyName("session_name")] string SessionName,
@@ -13,17 +13,17 @@ public sealed record CreateSessionRequest(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId);
 
 /// <summary>
-/// Menyatakan peran utama tipe CreateSessionResponse pada modul ini.
+/// Respons berisi ID sesi yang baru dibuat.
 /// </summary>
 public sealed record CreateSessionResponse([property: JsonPropertyName("session_id")] Guid SessionId);
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionStatusResponse pada modul ini.
+/// Respons berisi status terkini dari sebuah sesi permainan.
 /// </summary>
 public sealed record SessionStatusResponse([property: JsonPropertyName("status")] string Status);
 
 /// <summary>
-/// Menyatakan peran utama tipe CreatePlayerRequest pada modul ini.
+/// Request untuk membuat pemain baru dengan display name, username, dan password.
 /// </summary>
 public sealed record CreatePlayerRequest(
     [property: JsonPropertyName("display_name")] string DisplayName,
@@ -31,19 +31,19 @@ public sealed record CreatePlayerRequest(
     [property: JsonPropertyName("password")] string Password);
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerResponse pada modul ini.
+/// Respons data pemain yang berisi ID dan display name.
 /// </summary>
 public sealed record PlayerResponse(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
     [property: JsonPropertyName("display_name")] string DisplayName);
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerListResponse pada modul ini.
+/// Respons berisi daftar pemain.
 /// </summary>
 public sealed record PlayerListResponse([property: JsonPropertyName("items")] List<PlayerResponse> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe AddSessionPlayerRequest pada modul ini.
+/// Request untuk menambahkan pemain ke sesi, bisa melalui player_id atau username.
 /// </summary>
 public sealed record AddSessionPlayerRequest(
     [property: JsonPropertyName("player_id")] Guid? PlayerId,
@@ -52,14 +52,14 @@ public sealed record AddSessionPlayerRequest(
     [property: JsonPropertyName("role")] string? Role);
 
 /// <summary>
-/// Menyatakan peran utama tipe AddSessionPlayerResponse pada modul ini.
+/// Respons setelah pemain ditambahkan ke sesi, berisi ID pemain dan urutan bergabung.
 /// </summary>
 public sealed record AddSessionPlayerResponse(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
     [property: JsonPropertyName("join_order")] int JoinOrder);
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionListItem pada modul ini.
+/// Item ringkasan sesi pada daftar sesi (ID, nama, mode, status, tanggal).
 /// </summary>
 public sealed record SessionListItem(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -71,26 +71,26 @@ public sealed record SessionListItem(
     [property: JsonPropertyName("ended_at")] DateTimeOffset? EndedAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionListResponse pada modul ini.
+/// Respons berisi daftar item sesi.
 /// </summary>
 public sealed record SessionListResponse([property: JsonPropertyName("items")] List<SessionListItem> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe ActivateRulesetRequest pada modul ini.
+/// Request untuk mengaktifkan versi ruleset tertentu pada sebuah sesi.
 /// </summary>
 public sealed record ActivateRulesetRequest(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("version")] int Version);
 
 /// <summary>
-/// Menyatakan peran utama tipe ActivateRulesetResponse pada modul ini.
+/// Respons aktivasi ruleset berisi ID sesi dan ID versi ruleset yang diaktifkan.
 /// </summary>
 public sealed record ActivateRulesetResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
     [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId);
 
 /// <summary>
-/// Menyatakan peran utama tipe CreateRulesetRequest pada modul ini.
+/// Request untuk membuat ruleset baru dengan nama, deskripsi, dan konfigurasi JSON.
 /// </summary>
 public sealed record CreateRulesetRequest(
     [property: JsonPropertyName("name")] string Name,
@@ -98,7 +98,7 @@ public sealed record CreateRulesetRequest(
     [property: JsonPropertyName("config")] JsonElement Config);
 
 /// <summary>
-/// Menyatakan peran utama tipe UpdateRulesetRequest pada modul ini.
+/// Request untuk memperbarui ruleset (nama, deskripsi, dan/atau konfigurasi).
 /// </summary>
 public sealed record UpdateRulesetRequest(
     [property: JsonPropertyName("name")] string? Name,
@@ -106,14 +106,14 @@ public sealed record UpdateRulesetRequest(
     [property: JsonPropertyName("config")] JsonElement? Config);
 
 /// <summary>
-/// Menyatakan peran utama tipe CreateRulesetResponse pada modul ini.
+/// Respons pembuatan/pembaruan ruleset berisi ID ruleset dan nomor versi.
 /// </summary>
 public sealed record CreateRulesetResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("version")] int Version);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetListItem pada modul ini.
+/// Item ringkasan ruleset pada daftar ruleset (ID, nama, versi terbaru, status).
 /// </summary>
 public sealed record RulesetListItem(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -122,12 +122,12 @@ public sealed record RulesetListItem(
     [property: JsonPropertyName("status")] string Status);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetListResponse pada modul ini.
+/// Respons berisi daftar item ruleset.
 /// </summary>
 public sealed record RulesetListResponse([property: JsonPropertyName("items")] List<RulesetListItem> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetVersionItem pada modul ini.
+/// Item versi ruleset pada daftar versi (ID versi, nomor versi, status, tanggal dibuat).
 /// </summary>
 public sealed record RulesetVersionItem(
     [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
@@ -136,7 +136,7 @@ public sealed record RulesetVersionItem(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetDetailResponse pada modul ini.
+/// Respons detail ruleset lengkap termasuk daftar versi dan konfigurasi JSON.
 /// </summary>
 public sealed record RulesetDetailResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -146,7 +146,7 @@ public sealed record RulesetDetailResponse(
     [property: JsonPropertyName("config_json")] JsonElement? ConfigJson);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetComponentsResponse pada modul ini.
+/// Respons komponen ruleset berisi katalog komponen permainan untuk versi tertentu.
 /// </summary>
 public sealed record RulesetComponentsResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -156,7 +156,7 @@ public sealed record RulesetComponentsResponse(
     [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
 
 /// <summary>
-/// Menyatakan peran utama tipe DefaultRulesetComponentItem pada modul ini.
+/// Item komponen ruleset bawaan dari seed, termasuk katalog komponen dan mode permainan.
 /// </summary>
 public sealed record DefaultRulesetComponentItem(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -168,13 +168,13 @@ public sealed record DefaultRulesetComponentItem(
     [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog);
 
 /// <summary>
-/// Menyatakan peran utama tipe DefaultRulesetComponentsResponse pada modul ini.
+/// Respons berisi daftar komponen ruleset bawaan.
 /// </summary>
 public sealed record DefaultRulesetComponentsResponse(
     [property: JsonPropertyName("items")] List<DefaultRulesetComponentItem> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventRequest pada modul ini.
+/// Request ingest event gameplay dari klien, berisi semua metadata dan payload event.
 /// </summary>
 public sealed record EventRequest(
     [property: JsonPropertyName("event_id")] Guid EventId,
@@ -192,40 +192,40 @@ public sealed record EventRequest(
     [property: JsonPropertyName("client_request_id")] string? ClientRequestId);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventStoredResponse pada modul ini.
+/// Respons konfirmasi bahwa event telah berhasil disimpan.
 /// </summary>
 public sealed record EventStoredResponse(
     [property: JsonPropertyName("stored")] bool Stored,
     [property: JsonPropertyName("event_id")] Guid EventId);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventBatchRequest pada modul ini.
+/// Request untuk mengirim batch beberapa event sekaligus.
 /// </summary>
 public sealed record EventBatchRequest([property: JsonPropertyName("events")] List<EventRequest> Events);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventBatchFailed pada modul ini.
+/// Informasi event yang gagal dalam batch beserta kode kesalahannya.
 /// </summary>
 public sealed record EventBatchFailed(
     [property: JsonPropertyName("event_id")] Guid EventId,
     [property: JsonPropertyName("error_code")] string ErrorCode);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventBatchResponse pada modul ini.
+/// Respons batch event berisi jumlah tersimpan dan daftar event yang gagal.
 /// </summary>
 public sealed record EventBatchResponse(
     [property: JsonPropertyName("stored_count")] int StoredCount,
     [property: JsonPropertyName("failed")] List<EventBatchFailed> Failed);
 
 /// <summary>
-/// Menyatakan peran utama tipe EventsBySessionResponse pada modul ini.
+/// Respons daftar event berdasarkan sesi, mencakup semua event yang tercatat.
 /// </summary>
 public sealed record EventsBySessionResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
     [property: JsonPropertyName("events")] List<EventRequest> Events);
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsSessionSummary pada modul ini.
+/// Ringkasan analitika sesi: jumlah event, total arus kas masuk/keluar, net, dan pelanggaran aturan.
 /// </summary>
 public sealed record AnalyticsSessionSummary(
     [property: JsonPropertyName("event_count")] int EventCount,
@@ -235,7 +235,7 @@ public sealed record AnalyticsSessionSummary(
     [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount);
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsByPlayerItem pada modul ini.
+/// Item analitika per pemain: arus kas, donasi, emas, pesanan, kepatuhan, dan poin kebahagiaan.
 /// </summary>
 public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
@@ -261,7 +261,7 @@ public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
 
 /// <summary>
-/// Menyatakan peran utama tipe AnalyticsSessionResponse pada modul ini.
+/// Respons analitika sesi lengkap termasuk ringkasan, data per pemain, dan info ruleset.
 /// </summary>
 public sealed record AnalyticsSessionResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -271,7 +271,7 @@ public sealed record AnalyticsSessionResponse(
     [property: JsonPropertyName("ruleset_name")] string? RulesetName);
 
 /// <summary>
-/// Menyatakan peran utama tipe GameplayMetricsResponse pada modul ini.
+/// Respons metrik gameplay per pemain berisi snapshot variabel fisik dan turunan.
 /// </summary>
 public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -281,7 +281,7 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("derived")] JsonElement? Derived);
 
 /// <summary>
-/// Menyatakan peran utama tipe TransactionHistoryItem pada modul ini.
+/// Item riwayat transaksi: timestamp, arah (IN/OUT), jumlah, dan kategori.
 /// </summary>
 public sealed record TransactionHistoryItem(
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
@@ -290,13 +290,13 @@ public sealed record TransactionHistoryItem(
     [property: JsonPropertyName("category")] string Category);
 
 /// <summary>
-/// Menyatakan peran utama tipe TransactionHistoryResponse pada modul ini.
+/// Respons berisi daftar riwayat transaksi arus kas.
 /// </summary>
 public sealed record TransactionHistoryResponse(
     [property: JsonPropertyName("items")] List<TransactionHistoryItem> Items);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetAnalyticsPlayerItem pada modul ini.
+/// Item analitika per pemain pada ringkasan ruleset: skor kinerja pembelajaran dan misi.
 /// </summary>
 public sealed record RulesetAnalyticsPlayerItem(
     [property: JsonPropertyName("player_id")] Guid PlayerId,
@@ -304,7 +304,7 @@ public sealed record RulesetAnalyticsPlayerItem(
     [property: JsonPropertyName("mission_performance_individual_score")] double? MissionPerformanceIndividualScore);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetAnalyticsSessionItem pada modul ini.
+/// Item analitika sesi pada ringkasan ruleset: jumlah event, skor agregat, dan data per pemain.
 /// </summary>
 public sealed record RulesetAnalyticsSessionItem(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -316,7 +316,7 @@ public sealed record RulesetAnalyticsSessionItem(
     [property: JsonPropertyName("players")] List<RulesetAnalyticsPlayerItem> Players);
 
 /// <summary>
-/// Menyatakan peran utama tipe RulesetAnalyticsSummaryResponse pada modul ini.
+/// Respons ringkasan analitika lintas sesi untuk sebuah ruleset.
 /// </summary>
 public sealed record RulesetAnalyticsSummaryResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -327,14 +327,14 @@ public sealed record RulesetAnalyticsSummaryResponse(
     [property: JsonPropertyName("sessions")] List<RulesetAnalyticsSessionItem> Sessions);
 
 /// <summary>
-/// Menyatakan peran utama tipe LoginRequest pada modul ini.
+/// Request login berisi username dan password.
 /// </summary>
 public sealed record LoginRequest(
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("password")] string Password);
 
 /// <summary>
-/// Menyatakan peran utama tipe LoginResponse pada modul ini.
+/// Respons login berisi data user, access token JWT, dan waktu kedaluwarsa.
 /// </summary>
 public sealed record LoginResponse(
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -344,7 +344,7 @@ public sealed record LoginResponse(
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe RegisterRequest pada modul ini.
+/// Request registrasi user baru berisi username, password, role, dan display name opsional.
 /// </summary>
 public sealed record RegisterRequest(
     [property: JsonPropertyName("username")] string Username,
@@ -353,7 +353,7 @@ public sealed record RegisterRequest(
     [property: JsonPropertyName("display_name")] string? DisplayName);
 
 /// <summary>
-/// Menyatakan peran utama tipe RegisterResponse pada modul ini.
+/// Respons registrasi berisi data user yang baru dibuat beserta access token JWT.
 /// </summary>
 public sealed record RegisterResponse(
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -363,7 +363,7 @@ public sealed record RegisterResponse(
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
 /// <summary>
-/// Menyatakan peran utama tipe SecurityAuditLogItem pada modul ini.
+/// Item log audit keamanan berisi informasi lengkap tentang event keamanan yang tercatat.
 /// </summary>
 public sealed record SecurityAuditLogItem(
     [property: JsonPropertyName("security_audit_log_id")] Guid SecurityAuditLogId,
@@ -382,7 +382,7 @@ public sealed record SecurityAuditLogItem(
     [property: JsonPropertyName("detail")] JsonElement? Detail);
 
 /// <summary>
-/// Menyatakan peran utama tipe SecurityAuditLogResponse pada modul ini.
+/// Respons berisi daftar log audit keamanan.
 /// </summary>
 public sealed record SecurityAuditLogResponse(
     [property: JsonPropertyName("items")] List<SecurityAuditLogItem> Items);

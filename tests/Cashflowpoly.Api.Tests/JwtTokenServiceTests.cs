@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain JwtTokenServiceTests.
+// Fungsi file: Menguji pembuatan dan validasi JWT token termasuk klaim, expiry, dan rotasi signing key.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Cashflowpoly.Api.Data;
@@ -10,43 +10,49 @@ using Xunit;
 namespace Cashflowpoly.Api.Tests;
 
 /// <summary>
-/// Menyatakan peran utama tipe JwtTokenServiceTests pada modul ini.
+/// Kelas pengujian unit untuk memvalidasi bahwa JwtTokenService menghasilkan token
+/// dengan klaim, issuer, audience, expiry, dan key ID yang benar.
 /// </summary>
 public sealed class JwtTokenServiceTests
 {
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Ctor_Throws_WhenSigningKeyMissing sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa JwtSigningKeyProvider.ValidateConfiguration melempar InvalidOperationException
+    /// ketika signing key tidak dikonfigurasi (kosong).
     /// </summary>
-    public void Ctor_Throws_WhenSigningKeyMissing()
+    public void ValidateConfiguration_Throws_WhenSigningKeyMissing()
     {
         var options = new JwtOptions
         {
             SigningKey = string.Empty
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => CreateSut(options));
+        var provider = CreateSigningKeyProvider(options);
+        var ex = Assert.Throws<InvalidOperationException>(() => provider.ValidateConfiguration());
         Assert.True(ex.Message.Contains("JWT signing key", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi Ctor_Throws_WhenSigningKeyTooShort sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa JwtSigningKeyProvider.ValidateConfiguration melempar InvalidOperationException
+    /// ketika signing key lebih pendek dari batas minimal 32 karakter.
     /// </summary>
-    public void Ctor_Throws_WhenSigningKeyTooShort()
+    public void ValidateConfiguration_Throws_WhenSigningKeyTooShort()
     {
         var options = new JwtOptions
         {
             SigningKey = "short-key"
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => CreateSut(options));
+        var provider = CreateSigningKeyProvider(options);
+        var ex = Assert.Throws<InvalidOperationException>(() => provider.ValidateConfiguration());
         Assert.Contains("minimal 32 karakter", ex.Message);
     }
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi IssueToken_ContainsExpectedClaims_AndExpiry sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa IssueToken menghasilkan JWT dengan klaim sub, name, role,
+    /// issuer, audience, kid, dan waktu kadaluarsa yang sesuai.
     /// </summary>
     public void IssueToken_ContainsExpectedClaims_AndExpiry()
     {
@@ -84,7 +90,8 @@ public sealed class JwtTokenServiceTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi IssueToken_UsesActiveKeyId_WhenMultipleKeysConfigured sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa IssueToken menggunakan key ID dari signing key aktif terbaru
+    /// ketika beberapa signing key dikonfigurasi dengan jadwal rotasi.
     /// </summary>
     public void IssueToken_UsesActiveKeyId_WhenMultipleKeysConfigured()
     {
@@ -122,12 +129,21 @@ public sealed class JwtTokenServiceTests
     }
 
     /// <summary>
-    /// Menjalankan fungsi CreateSut sebagai bagian dari alur file ini.
+    /// Helper untuk membuat instance JwtTokenService dengan opsi JWT yang ditentukan.
     /// </summary>
     private static JwtTokenService CreateSut(JwtOptions options)
     {
         var optionsWrapper = Options.Create(options);
         var provider = new JwtSigningKeyProvider(optionsWrapper, NullLogger<JwtSigningKeyProvider>.Instance);
         return new JwtTokenService(optionsWrapper, provider);
+    }
+
+    /// <summary>
+    /// Helper untuk membuat instance JwtSigningKeyProvider dengan opsi JWT yang ditentukan.
+    /// </summary>
+    private static JwtSigningKeyProvider CreateSigningKeyProvider(JwtOptions options)
+    {
+        var optionsWrapper = Options.Create(options);
+        return new JwtSigningKeyProvider(optionsWrapper, NullLogger<JwtSigningKeyProvider>.Instance);
     }
 }

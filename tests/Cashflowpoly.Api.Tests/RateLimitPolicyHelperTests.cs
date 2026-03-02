@@ -1,4 +1,4 @@
-// Fungsi file: Menguji perilaku dan kontrak komponen pada domain RateLimitPolicyHelperTests.
+// Fungsi file: Menguji bahwa RateLimitPolicyHelper menentukan batas request dan partition key berdasarkan path dan identitas pengguna.
 using System.Net;
 using System.Security.Claims;
 using Cashflowpoly.Api.Security;
@@ -8,7 +8,8 @@ using Xunit;
 namespace Cashflowpoly.Api.Tests;
 
 /// <summary>
-/// Menyatakan peran utama tipe RateLimitPolicyHelperTests pada modul ini.
+/// Kelas pengujian unit untuk memvalidasi bahwa RateLimitPolicyHelper
+/// menghitung permit limit per endpoint dan membangun partition key yang tepat.
 /// </summary>
 public sealed class RateLimitPolicyHelperTests
 {
@@ -18,7 +19,8 @@ public sealed class RateLimitPolicyHelperTests
     [InlineData("/api/events", 60)]
     [InlineData("/api/v1/auth/login", 60)]
     /// <summary>
-    /// Menjalankan fungsi ResolvePermitLimit_ReturnsExpectedValue sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa ResolvePermitLimit mengembalikan batas request yang sesuai
+    /// untuk setiap path endpoint API (events, sessions, auth, dll).
     /// </summary>
     public void ResolvePermitLimit_ReturnsExpectedValue(string path, int expectedLimit)
     {
@@ -28,7 +30,8 @@ public sealed class RateLimitPolicyHelperTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi BuildPartitionKey_UsesUserId_WhenAuthenticated sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa BuildPartitionKey menggunakan user ID dari klaim
+    /// NameIdentifier ketika pengguna sudah terotentikasi.
     /// </summary>
     public void BuildPartitionKey_UsesUserId_WhenAuthenticated()
     {
@@ -45,7 +48,8 @@ public sealed class RateLimitPolicyHelperTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi BuildPartitionKey_FallsBackToSubClaim_WhenNameIdentifierMissing sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa BuildPartitionKey menggunakan klaim "sub" sebagai fallback
+    /// ketika klaim NameIdentifier tidak tersedia pada ClaimsPrincipal.
     /// </summary>
     public void BuildPartitionKey_FallsBackToSubClaim_WhenNameIdentifierMissing()
     {
@@ -62,7 +66,8 @@ public sealed class RateLimitPolicyHelperTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi BuildPartitionKey_UsesRemoteIp_ForAnonymousRequest sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa BuildPartitionKey menggunakan alamat IP remote
+    /// sebagai partition key untuk request anonim tanpa autentikasi.
     /// </summary>
     public void BuildPartitionKey_UsesRemoteIp_ForAnonymousRequest()
     {
@@ -77,7 +82,8 @@ public sealed class RateLimitPolicyHelperTests
 
     [Fact]
     /// <summary>
-    /// Menjalankan fungsi BuildPartitionKey_UsesUnknown_WhenRemoteIpMissing sebagai bagian dari alur file ini.
+    /// Memvalidasi bahwa BuildPartitionKey mengembalikan "unknown" sebagai IP
+    /// ketika RemoteIpAddress pada koneksi tidak tersedia (null).
     /// </summary>
     public void BuildPartitionKey_UsesUnknown_WhenRemoteIpMissing()
     {

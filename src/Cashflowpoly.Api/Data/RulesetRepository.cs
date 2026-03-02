@@ -1,4 +1,4 @@
-// Fungsi file: Menyediakan akses data PostgreSQL untuk domain RulesetRepository melalui query dan command terenkapsulasi.
+// Fungsi file: Repository akses data ruleset dan versi ruleset — CRUD, aktivasi, listing, dan hash konfigurasi.
 using System.Security.Cryptography;
 using System.Text;
 using Cashflowpoly.Api.Models;
@@ -15,7 +15,7 @@ public sealed class RulesetRepository
     private readonly NpgsqlDataSource _dataSource;
 
     /// <summary>
-    /// Menjalankan fungsi RulesetRepository sebagai bagian dari alur file ini.
+    /// Menerima NpgsqlDataSource untuk koneksi ke tabel rulesets dan ruleset_versions.
     /// </summary>
     public RulesetRepository(NpgsqlDataSource dataSource)
     {
@@ -23,7 +23,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetRulesetAsync sebagai bagian dari alur file ini.
+    /// Mengambil data ruleset berdasarkan ruleset_id.
     /// </summary>
     public async Task<RulesetDb?> GetRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -38,7 +38,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetRulesetForInstructorAsync sebagai bagian dari alur file ini.
+    /// Mengambil data ruleset yang dimiliki instruktur tertentu.
     /// </summary>
     public async Task<RulesetDb?> GetRulesetForInstructorAsync(Guid rulesetId, Guid instructorUserId, CancellationToken ct)
     {
@@ -55,7 +55,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetLatestVersionAsync sebagai bagian dari alur file ini.
+    /// Mengambil versi terbaru (nomor tertinggi) dari ruleset tertentu.
     /// </summary>
     public async Task<RulesetVersionDb?> GetLatestVersionAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -72,7 +72,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetLatestActiveVersionAsync sebagai bagian dari alur file ini.
+    /// Mengambil versi ACTIVE terbaru dari ruleset tertentu.
     /// </summary>
     public async Task<RulesetVersionDb?> GetLatestActiveVersionAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -90,7 +90,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// Mengambil versi spesifik dari ruleset berdasarkan nomor versi.
     /// </summary>
     public async Task<RulesetVersionDb?> GetRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
@@ -105,7 +105,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetRulesetVersionByIdAsync sebagai bagian dari alur file ini.
+    /// Mengambil versi ruleset berdasarkan ruleset_version_id.
     /// </summary>
     public async Task<RulesetVersionDb?> GetRulesetVersionByIdAsync(Guid rulesetVersionId, CancellationToken ct)
     {
@@ -120,7 +120,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CreateRulesetAsync sebagai bagian dari alur file ini.
+    /// Membuat ruleset baru beserta versi pertama (v1 ACTIVE) dalam transaksi.
     /// </summary>
     public async Task<(Guid RulesetId, int Version)> CreateRulesetAsync(
         string name,
@@ -174,7 +174,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CreateRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// Membuat versi baru (DRAFT) untuk ruleset yang sudah ada, opsional memperbarui nama dan deskripsi.
     /// </summary>
     public async Task<int> CreateRulesetVersionAsync(
         Guid rulesetId,
@@ -184,11 +184,18 @@ public sealed class RulesetRepository
         string? createdBy,
         CancellationToken ct)
     {
-        var latest = await GetLatestVersionAsync(rulesetId, ct);
-        var nextVersion = (latest?.Version ?? 0) + 1;
-        var rulesetVersionId = Guid.NewGuid();
-        var createdAt = DateTimeOffset.UtcNow;
-        var configHash = ComputeHash(configJson);
+        const string lockRulesetSql = """
+            select ruleset_id, name, description, instructor_user_id, created_at, created_by
+            from rulesets
+            where ruleset_id = @rulesetId
+            for update
+            """;
+
+        const string nextVersionSql = """
+            select coalesce(max(version), 0) + 1
+            from ruleset_versions
+            where ruleset_id = @rulesetId
+            """;
 
         const string updateRuleset = """
             update rulesets
@@ -202,17 +209,30 @@ public sealed class RulesetRepository
             values (@rulesetVersionId, @rulesetId, @version, 'DRAFT', @configJson::jsonb, @configHash, @createdAt, @createdBy)
             """;
 
+        var rulesetVersionId = Guid.NewGuid();
+        var createdAt = DateTimeOffset.UtcNow;
+        var configHash = ComputeHash(configJson);
+
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
+        var lockedRuleset = await conn.QuerySingleOrDefaultAsync<RulesetDb>(
+            new CommandDefinition(lockRulesetSql, new { rulesetId }, tx, cancellationToken: ct));
+        if (lockedRuleset is null)
+        {
+            throw new InvalidOperationException("Ruleset tidak ditemukan.");
+        }
+
+        var nextVersion = await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(nextVersionSql, new { rulesetId }, tx, cancellationToken: ct));
+
         if (name is not null || description is not null)
         {
-            var existing = await GetRulesetAsync(rulesetId, ct);
             var updateDef = new CommandDefinition(updateRuleset, new
             {
                 rulesetId,
-                name = name ?? existing?.Name,
-                description = description ?? existing?.Description
+                name = name ?? lockedRuleset.Name,
+                description = description ?? lockedRuleset.Description
             }, tx, cancellationToken: ct);
             await conn.ExecuteAsync(updateDef);
         }
@@ -234,7 +254,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ActivateRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// Mengaktifkan versi ruleset: retire versi ACTIVE sebelumnya dan set versi target menjadi ACTIVE.
     /// </summary>
     public async Task<bool> ActivateRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
@@ -242,7 +262,7 @@ public sealed class RulesetRepository
             select 1
             from ruleset_versions
             where ruleset_id = @rulesetId and version = @version
-            limit 1
+            for update
             """;
 
         const string retireSql = """
@@ -261,14 +281,16 @@ public sealed class RulesetRepository
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+
         var exists = await conn.ExecuteScalarAsync<int?>(
-            new CommandDefinition(targetSql, new { rulesetId, version }, cancellationToken: ct));
+            new CommandDefinition(targetSql, new { rulesetId, version }, tx, cancellationToken: ct));
         if (!exists.HasValue)
         {
+            await tx.RollbackAsync(ct);
             return false;
         }
 
-        await using var tx = await conn.BeginTransactionAsync(ct);
         await conn.ExecuteAsync(new CommandDefinition(retireSql, new { rulesetId, version }, tx, cancellationToken: ct));
         await conn.ExecuteAsync(new CommandDefinition(activateSql, new { rulesetId, version }, tx, cancellationToken: ct));
         await tx.CommitAsync(ct);
@@ -276,7 +298,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi CountRulesetVersionsAsync sebagai bagian dari alur file ini.
+    /// Menghitung jumlah versi yang dimiliki ruleset tertentu.
     /// </summary>
     public async Task<int> CountRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -292,7 +314,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi IsRulesetVersionUsedAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah versi ruleset sedang digunakan oleh aktivasi sesi, event, atau snapshot.
     /// </summary>
     public async Task<bool> IsRulesetVersionUsedAsync(Guid rulesetVersionId, CancellationToken ct)
     {
@@ -316,7 +338,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi DeleteRulesetVersionAsync sebagai bagian dari alur file ini.
+    /// Menghapus versi spesifik dari ruleset.
     /// </summary>
     public async Task<bool> DeleteRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
@@ -333,7 +355,8 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListRulesetsByInstructorAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar ruleset milik instruktur tertentu beserta versi terbaru dan status pemakaian sesi.
+    /// Status bernilai 'ACTIVE' jika ruleset pernah diaktifkan di sesi, 'DRAFT' jika belum.
     /// </summary>
     public async Task<List<RulesetListItem>> ListRulesetsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
@@ -354,11 +377,9 @@ public sealed class RulesetRepository
                 coalesce(v.latest_version, 0) as latest_version,
                 case when exists (
                     select 1
-                    from ruleset_versions rv_used
-                    join session_ruleset_activations sra on sra.ruleset_version_id = rv_used.ruleset_version_id
-                    join sessions s on s.session_id = sra.session_id
-                    where rv_used.ruleset_id = r.ruleset_id
-                      and s.instructor_user_id = @instructorUserId
+                    from ruleset_versions rv2
+                    join session_ruleset_activations sra on sra.ruleset_version_id = rv2.ruleset_version_id
+                    where rv2.ruleset_id = r.ruleset_id
                 ) then 'ACTIVE' else 'DRAFT' end as status
             from rulesets r
             left join latest_versions v
@@ -374,7 +395,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListRulesetsByPlayerAsync sebagai bagian dari alur file ini.
+    /// Mengambil daftar ruleset yang digunakan dalam sesi yang diikuti pemain.
     /// </summary>
     public async Task<List<RulesetListItem>> ListRulesetsByPlayerAsync(Guid playerId, CancellationToken ct)
     {
@@ -415,7 +436,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListDefaultRulesetComponentsAsync sebagai bagian dari alur file ini.
+    /// Mengambil komponen ruleset default yang ditandai system-seed beserta config terbaru.
     /// </summary>
     public async Task<List<DefaultRulesetComponentDb>> ListDefaultRulesetComponentsAsync(CancellationToken ct)
     {
@@ -461,7 +482,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetRulesetForPlayerAsync sebagai bagian dari alur file ini.
+    /// Mengambil data ruleset jika pemain memiliki akses melalui sesi yang menggunakannya.
     /// </summary>
     public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid playerId, CancellationToken ct)
     {
@@ -485,7 +506,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ListRulesetVersionsAsync sebagai bagian dari alur file ini.
+    /// Mengambil seluruh versi dari ruleset tertentu diurutkan dari terbaru.
     /// </summary>
     public async Task<List<RulesetVersionDb>> ListRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -502,7 +523,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi IsRulesetUsedAsync sebagai bagian dari alur file ini.
+    /// Memeriksa apakah ruleset sedang digunakan oleh aktivasi sesi manapun.
     /// </summary>
     public async Task<bool> IsRulesetUsedAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -520,7 +541,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi DeleteRulesetAsync sebagai bagian dari alur file ini.
+    /// Menghapus ruleset beserta seluruh versinya (cascade).
     /// </summary>
     public async Task DeleteRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -534,18 +555,11 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Menjalankan fungsi ComputeHash sebagai bagian dari alur file ini.
+    /// Menghitung SHA-256 hash dari string konfigurasi JSON untuk deteksi perubahan.
     /// </summary>
     private static string ComputeHash(string input)
     {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
-        var sb = new StringBuilder(bytes.Length * 2);
-        foreach (var b in bytes)
-        {
-            sb.Append(b.ToString("x2"));
-        }
-
-        return sb.ToString();
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexStringLower(bytes);
     }
 }

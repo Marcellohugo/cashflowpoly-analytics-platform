@@ -1,4 +1,4 @@
-// Fungsi file: Mengelola alur halaman UI untuk domain HomeController termasuk komunikasi ke API backend.
+// Fungsi file: Menangani permintaan HTTP untuk halaman beranda, termasuk statistik realtime, halaman rulebook, dan penanganan error.
 using System.Diagnostics;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -9,12 +9,13 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Cashflowpoly.Ui.Controllers;
 
 /// <summary>
-/// Menyatakan peran utama tipe HomeController pada modul ini.
+/// Controller MVC yang mengelola halaman beranda aplikasi, menampilkan statistik realtime
+/// (jumlah sesi, pemain, ruleset), halaman rulebook, dan halaman error.
 /// </summary>
 public class HomeController : Controller
 {
     /// <summary>
-    /// Menjalankan fungsi FromSeconds sebagai bagian dari alur file ini.
+    /// Durasi cache statistik realtime beranda (20 detik) untuk mengurangi beban panggilan API.
     /// </summary>
     private static readonly TimeSpan RealtimeStatsCacheDuration = TimeSpan.FromSeconds(20);
 
@@ -22,8 +23,10 @@ public class HomeController : Controller
     private readonly IMemoryCache _memoryCache;
 
     /// <summary>
-    /// Menjalankan fungsi HomeController sebagai bagian dari alur file ini.
+    /// Menginisialisasi controller beranda dengan factory HTTP client dan cache memori.
     /// </summary>
+    /// <param name="clientFactory">Factory untuk membuat instance <see cref="HttpClient"/> ke API backend.</param>
+    /// <param name="memoryCache">Cache memori untuk menyimpan statistik realtime sementara.</param>
     public HomeController(IHttpClientFactory clientFactory, IMemoryCache memoryCache)
     {
         _clientFactory = clientFactory;
@@ -31,8 +34,10 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// Menjalankan fungsi Index sebagai bagian dari alur file ini.
+    /// Menampilkan halaman beranda dengan statistik realtime jumlah sesi, pemain, dan ruleset.
     /// </summary>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>View beranda dengan data statistik realtime.</returns>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var statsResult = await GetRealtimeStatsInternal(ct);
@@ -48,8 +53,10 @@ public class HomeController : Controller
 
     [HttpGet]
     /// <summary>
-    /// Menjalankan fungsi RealtimeStats sebagai bagian dari alur file ini.
+    /// Mengembalikan statistik realtime dalam format JSON untuk pembaruan dinamis di halaman beranda.
     /// </summary>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Objek JSON berisi jumlah sesi aktif, total sesi, pemain, ruleset, dan waktu sinkronisasi.</returns>
     public async Task<IActionResult> RealtimeStats(CancellationToken ct)
     {
         var statsResult = await GetRealtimeStatsInternal(ct);
@@ -71,8 +78,9 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// Menjalankan fungsi Rulebook sebagai bagian dari alur file ini.
+    /// Menampilkan halaman panduan aturan permainan (rulebook) sesuai bahasa yang dipilih pengguna.
     /// </summary>
+    /// <returns>View berisi konten rulebook dalam bahasa yang sesuai.</returns>
     public IActionResult Rulebook()
     {
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
@@ -80,8 +88,9 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// Menjalankan fungsi Privacy sebagai bagian dari alur file ini.
+    /// Mengarahkan halaman Privacy ke halaman Rulebook sebagai pengganti.
     /// </summary>
+    /// <returns>Redirect ke action Rulebook.</returns>
     public IActionResult Privacy()
     {
         return RedirectToAction(nameof(Rulebook));
@@ -89,16 +98,19 @@ public class HomeController : Controller
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     /// <summary>
-    /// Menjalankan fungsi Error sebagai bagian dari alur file ini.
+    /// Menampilkan halaman error generik dengan informasi request ID untuk pelacakan.
     /// </summary>
+    /// <returns>View error dengan ID permintaan saat ini.</returns>
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 
     /// <summary>
-    /// Menjalankan fungsi GetRealtimeStatsInternal sebagai bagian dari alur file ini.
+    /// Mengambil statistik realtime dari cache atau dari API backend secara paralel (sesi, pemain, ruleset).
     /// </summary>
+    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
+    /// <returns>Tuple berisi ViewModel statistik beranda dan hasil unauthorized jika ada.</returns>
     private async Task<(HomeIndexViewModel Model, IActionResult? UnauthorizedResult)> GetRealtimeStatsInternal(CancellationToken ct)
     {
         var cacheKey = BuildRealtimeStatsCacheKey();
@@ -133,7 +145,7 @@ public class HomeController : Controller
 
         if (sessionsResponse.IsSuccessStatusCode)
         {
-            var data = await sessionsResponse.Content.ReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+            var data = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
             sessions = data?.Items ?? new List<SessionListItemDto>();
         }
         else
@@ -143,7 +155,7 @@ public class HomeController : Controller
 
         if (playersResponse.IsSuccessStatusCode)
         {
-            var data = await playersResponse.Content.ReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+            var data = await playersResponse.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
             players = data?.Items ?? new List<PlayerResponseDto>();
         }
         else
@@ -153,7 +165,7 @@ public class HomeController : Controller
 
         if (rulesetsResponse.IsSuccessStatusCode)
         {
-            var data = await rulesetsResponse.Content.ReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
+            var data = await rulesetsResponse.Content.TryReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
             rulesets = data?.Items ?? new List<RulesetListItemDto>();
         }
         else
@@ -174,19 +186,26 @@ public class HomeController : Controller
                     .Replace("{details}", string.Join(", ", errorMessages))
         };
 
-        _memoryCache.Set(cacheKey, model, RealtimeStatsCacheDuration);
+        if (errorMessages.Count == 0)
+        {
+            _memoryCache.Set(cacheKey, model, RealtimeStatsCacheDuration);
+        }
 
         return (model, null);
     }
 
     /// <summary>
-    /// Menjalankan fungsi BuildRealtimeStatsCacheKey sebagai bagian dari alur file ini.
+    /// Membangun kunci cache unik berdasarkan ID sesi HTTP, pengguna, dan peran untuk isolasi data statistik.
     /// </summary>
+    /// <returns>String kunci cache yang unik per konteks pengguna.</returns>
     private string BuildRealtimeStatsCacheKey()
     {
         var sessionId = HttpContext.Session.Id;
-        return string.IsNullOrWhiteSpace(sessionId)
-            ? "home:realtime:anonymous"
-            : $"home:realtime:{sessionId}";
+        var userId = HttpContext.Session.GetString(AuthConstants.SessionUserIdKey);
+        var role = HttpContext.Session.GetString(AuthConstants.SessionRoleKey);
+        var sessionScope = string.IsNullOrWhiteSpace(sessionId) ? "anonymous-session" : sessionId;
+        var userScope = string.IsNullOrWhiteSpace(userId) ? "anonymous-user" : userId.Trim();
+        var roleScope = string.IsNullOrWhiteSpace(role) ? "unknown-role" : role.Trim().ToUpperInvariant();
+        return $"home:realtime:{sessionScope}:{userScope}:{roleScope}";
     }
 }

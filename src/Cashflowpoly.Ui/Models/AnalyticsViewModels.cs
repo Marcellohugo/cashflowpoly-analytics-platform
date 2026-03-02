@@ -1,33 +1,33 @@
-// Fungsi file: Mendefinisikan ViewModel/DTO UI untuk domain AnalyticsViewModels.
+// Fungsi file: Mendefinisikan ViewModel untuk halaman analitik, termasuk daftar sesi, detail sesi, detail pemain, perjalanan arus kas, dan direktori pemain.
 using System.Text.Json;
 
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionListViewModel pada modul ini.
+/// ViewModel halaman daftar sesi permainan yang memuat koleksi item sesi dan pesan error opsional.
 /// </summary>
 public sealed class SessionListViewModel
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar item sesi permainan yang diperoleh dari API untuk ditampilkan pada halaman daftar.
     /// </summary>
     public List<SessionListItemDto> Items { get; init; } = new();
     public string? ErrorMessage { get; init; }
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionDetailViewModel pada modul ini.
+/// ViewModel halaman detail sesi yang memuat data analitik sesi, peta nama pemain, timeline event, dan status sesi.
 /// </summary>
 public sealed class SessionDetailViewModel
 {
     public Guid SessionId { get; init; }
     public AnalyticsSessionResponseDto? Analytics { get; init; }
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Kamus pemetaan ID pemain ke nama tampilan untuk resolusi nama pada halaman detail sesi.
     /// </summary>
     public Dictionary<Guid, string> PlayerDisplayNames { get; init; } = new();
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar event timeline sesi yang menampilkan urutan aksi dalam permainan secara kronologis.
     /// </summary>
     public List<SessionTimelineEventViewModel> Timeline { get; init; } = new();
     public string? TimelineErrorMessage { get; init; }
@@ -36,7 +36,7 @@ public sealed class SessionDetailViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionTimelineEventViewModel pada modul ini.
+/// ViewModel satu event pada timeline sesi, memuat cap waktu, nomor urut, hari, giliran, tipe aktor, tipe aksi, dan deskripsi alur.
 /// </summary>
 public sealed class SessionTimelineEventViewModel
 {
@@ -54,7 +54,7 @@ public sealed class SessionTimelineEventViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerDetailViewModel pada modul ini.
+/// ViewModel halaman detail pemain yang memuat ringkasan analitik, riwayat transaksi, metrik gameplay mentah/turunan, dan statistik perjalanan arus kas.
 /// </summary>
 public sealed class PlayerDetailViewModel
 {
@@ -63,7 +63,7 @@ public sealed class PlayerDetailViewModel
     public string? PlayerDisplayName { get; init; }
     public AnalyticsByPlayerItemDto? Summary { get; init; }
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar riwayat transaksi keuangan pemain dalam sesi ini.
     /// </summary>
     public List<TransactionHistoryItemDto> Transactions { get; init; } = new();
     public JsonElement? GameplayRaw { get; init; }
@@ -75,7 +75,8 @@ public sealed class PlayerDetailViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerCashflowJourneyStatsViewModel pada modul ini.
+/// ViewModel statistik perjalanan arus kas pemain, memuat saldo awal/akhir, jumlah transaksi,
+/// total arus kas masuk/keluar, arus kas bersih, puncak/terendah, serta data seri untuk grafik.
 /// </summary>
 public sealed class PlayerCashflowJourneyStatsViewModel
 {
@@ -92,27 +93,27 @@ public sealed class PlayerCashflowJourneyStatsViewModel
     public DateTimeOffset? FirstTransactionAt { get; init; }
     public DateTimeOffset? LastTransactionAt { get; init; }
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Label sumbu waktu untuk grafik perjalanan arus kas pemain.
     /// </summary>
     public List<string> TimelineLabels { get; init; } = new();
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Seri data arus kas bersih berjalan (running net) untuk ditampilkan pada grafik.
     /// </summary>
     public List<double> RunningNetSeries { get; init; } = new();
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar detail transaksi dalam format teks untuk tooltip atau legenda grafik.
     /// </summary>
     public List<string> TransactionDetails { get; init; } = new();
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe SessionRulesetViewModel pada modul ini.
+/// ViewModel halaman pemilihan ruleset untuk sesi, memuat daftar ruleset yang tersedia dan pilihan yang dipilih.
 /// </summary>
 public sealed class SessionRulesetViewModel
 {
     public Guid SessionId { get; set; }
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar ruleset yang tersedia untuk dipilih dan dikaitkan dengan sesi permainan.
     /// </summary>
     public List<RulesetListItemDto> Rulesets { get; set; } = new();
     public Guid? SelectedRulesetId { get; set; }
@@ -121,23 +122,23 @@ public sealed class SessionRulesetViewModel
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerDirectoryViewModel pada modul ini.
+/// ViewModel halaman direktori pemain yang memuat daftar semua pemain dan pengelompokan pemain berdasarkan sesi.
 /// </summary>
 public sealed class PlayerDirectoryViewModel
 {
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar seluruh pemain yang terdaftar dalam sistem.
     /// </summary>
     public List<PlayerResponseDto> Players { get; init; } = new();
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar grup sesi yang masing-masing berisi data pemain peserta sesi tersebut.
     /// </summary>
     public List<PlayerSessionGroupViewModel> SessionGroups { get; init; } = new();
     public string? ErrorMessage { get; set; }
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerSessionGroupViewModel pada modul ini.
+/// ViewModel satu grup sesi dalam direktori pemain, memuat metadata sesi dan daftar pemain peserta.
 /// </summary>
 public sealed class PlayerSessionGroupViewModel
 {
@@ -147,13 +148,13 @@ public sealed class PlayerSessionGroupViewModel
     public DateTimeOffset? StartedAt { get; init; }
     public DateTimeOffset? EndedAt { get; init; }
     /// <summary>
-    /// Menjalankan fungsi new sebagai bagian dari alur file ini.
+    /// Daftar pemain peserta dalam grup sesi ini beserta metrik singkat mereka.
     /// </summary>
     public List<PlayerSessionEntryViewModel> Players { get; init; } = new();
 }
 
 /// <summary>
-/// Menyatakan peran utama tipe PlayerSessionEntryViewModel pada modul ini.
+/// ViewModel satu entri pemain dalam grup sesi, memuat urutan bergabung, nama tampilan, dan metrik keuangan ringkas.
 /// </summary>
 public sealed class PlayerSessionEntryViewModel
 {
