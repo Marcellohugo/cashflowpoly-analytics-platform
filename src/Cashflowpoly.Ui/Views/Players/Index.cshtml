@@ -191,8 +191,8 @@
                                 <span class="players-session-summary-main">
                                     <span class="font-semibold text-slate-900">@session.SessionName</span>
                                     <span class="text-xs text-slate-500">(@session.Players.Count @Context.T("players.count_suffix"))</span>
+                                    <span class="status-pill @statusClass">@Context.TSessionStatus(session.Status)</span>
                                 </span>
-                                <span class="status-pill @statusClass">@Context.TSessionStatus(session.Status)</span>
                             </summary>
 
                             <div class="players-session-meta mt-3">

@@ -355,7 +355,8 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Mengambil daftar ruleset milik instruktur tertentu beserta versi terbaru dan status.
+    /// Mengambil daftar ruleset milik instruktur tertentu beserta versi terbaru dan status pemakaian sesi.
+    /// Status bernilai 'ACTIVE' jika ruleset pernah diaktifkan di sesi, 'DRAFT' jika belum.
     /// </summary>
     public async Task<List<RulesetListItem>> ListRulesetsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
@@ -364,7 +365,6 @@ public sealed class RulesetRepository
                 select
                     rv.ruleset_id,
                     rv.version as latest_version,
-                    rv.status as latest_status,
                     row_number() over (
                         partition by rv.ruleset_id
                         order by rv.version desc
@@ -375,7 +375,12 @@ public sealed class RulesetRepository
                 r.ruleset_id,
                 r.name,
                 coalesce(v.latest_version, 0) as latest_version,
-                coalesce(v.latest_status, 'DRAFT') as status
+                case when exists (
+                    select 1
+                    from ruleset_versions rv2
+                    join session_ruleset_activations sra on sra.ruleset_version_id = rv2.ruleset_version_id
+                    where rv2.ruleset_id = r.ruleset_id
+                ) then 'ACTIVE' else 'DRAFT' end as status
             from rulesets r
             left join latest_versions v
                 on v.ruleset_id = r.ruleset_id and v.rn = 1
