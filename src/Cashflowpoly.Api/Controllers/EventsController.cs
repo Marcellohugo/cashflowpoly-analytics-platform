@@ -85,6 +85,9 @@ public sealed class EventsController : ControllerBase
         "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Opsi emergency action yang diperbolehkan oleh aturan domain.
+    /// </summary>
     private static readonly FrozenSet<string> AllowedEmergencyOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "SELL_NEED", "SELL_GOLD", "SELL_GOAL", "OTHER"

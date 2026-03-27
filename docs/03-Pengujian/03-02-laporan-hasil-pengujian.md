@@ -62,7 +62,7 @@ Kriteria kelulusan tercapai untuk cakupan dasar otomatis: tidak ada kegagalan pa
 
 Catatan:
 - Verifikasi pada tabel di atas dijalankan secara lokal berbasis CLI, koleksi Postman, dan browser.
-- Pipeline CI build+test telah tersedia di `.github/workflows/ci.yml`.
+- Verifikasi build/test/compose dapat dijalankan ulang secara lokal melalui `scripts/ops/run-local-checks.ps1`.
 
 Tambahan cek endpoint analitika:
 - `GET /api/v1/analytics/rulesets/{rulesetId}/summary` -> `200`

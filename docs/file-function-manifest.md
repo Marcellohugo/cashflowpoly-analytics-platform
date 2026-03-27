@@ -7,8 +7,6 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | .env.dev.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.dev.example. | - |
 | .env.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.example. | - |
 | .env.prod.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.prod.example. | - |
-| .github/workflows/cd.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file cd.yml. | - |
-| .github/workflows/ci.yml | CI/CD | inline | Menyediakan implementasi atau konfigurasi aktif pada file ci.yml. | - |
 | .gitattributes | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file .gitattributes. | Konfigurasi atribut Git lintas platform. |
 | .gitignore | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .gitignore. | - |
 | Cashflowpoly.sln | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.sln. | File solusi dikelola tooling. |
@@ -58,6 +56,8 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | README.md | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file README.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | scripts/audit/verify-file-function-coverage.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file verify-file-function-coverage.ps1. | - |
 | scripts/dev/ui-watch-entrypoint.sh | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file ui-watch-entrypoint.sh. | - |
+| scripts/ops/redeploy-production.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file redeploy-production.ps1. | - |
+| scripts/ops/run-local-checks.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file run-local-checks.ps1. | - |
 | scripts/perf/run-load-test.ps1 | Skrip | inline | Menyediakan implementasi atau konfigurasi aktif pada file run-load-test.ps1. | - |
 | src/Cashflowpoly.Api/appsettings.Development.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.Development.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | src/Cashflowpoly.Api/appsettings.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |

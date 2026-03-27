@@ -91,7 +91,6 @@ Struktur proyek yang dipakai:
 ```
 cashflowpoly-analytics-platform/
   .env
-  .github/
   Cashflowpoly.sln
   docker-compose.yml
   README.md

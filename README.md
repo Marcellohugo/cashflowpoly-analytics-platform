@@ -65,7 +65,6 @@ Catatan kontrak API:
 ```
 .
 +- .env
-+- .github/
 +- Cashflowpoly.sln
 +- README.md
 +- docker-compose.yml
@@ -112,9 +111,11 @@ Copy-Item .env.example .env.dev
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
 ```
 4. Ngoding seperti biasa, auto-reload jalan.
-5. Kalau sudah oke: commit lalu push ke branch `dev`.
-6. Saat mau rilis: merge/push ke branch `prod`.
-7. Selesai kerja, stop dev:
+5. Jika perlu verifikasi lokal sebelum merge/deploy:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1 -SkipIntegrationTests
+```
+6. Selesai kerja, stop dev:
 ```bash
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
@@ -125,19 +126,27 @@ Akses (sesuai env dev):
 
 ### PC Server (Production)
 1. Install Docker, Docker Compose, Git.
-2. Clone repo branch `prod`.
+2. Clone repo atau checkout revision yang ingin dideploy.
 3. Siapkan env prod (isi secret benar): `.env.prod`.
-4. Deploy awal:
-```bash
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
+4. Verifikasi lokal sebelum deploy (disarankan):
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1
 ```
-5. Verifikasi:
+5. Deploy awal atau redeploy:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+```
+Atau manual:
+```bash
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
+```
+6. Verifikasi:
 ```bash
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
 curl http://localhost/health/ready
 docker logs cashflowpoly-tunnel --tail 20
 ```
+Jika `CLOUDFLARE_TUNNEL_TOKEN` kosong, skrip deploy otomatis menjalankan production tanpa `cloudflared`.
 
 Catatan keamanan lokal:
 - Set `JWT_SIGNING_KEY` di `.env.dev` (dev) dan `.env.prod` (production), minimal 32 karakter.
@@ -253,7 +262,7 @@ Dokumen kunci:
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md`.
 - Artefak bukti formal tersimpan pada `docs/evidence/`.
-- CI pipeline build+test tersedia di `.github/workflows/ci.yml`.
+- Verifikasi lokal pengganti pipeline otomatis: `powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1`.
 
 ## Operasional DB (Backup/Restore)
 - Backup database dilakukan dengan mekanisme native PostgreSQL sesuai environment deployment.
