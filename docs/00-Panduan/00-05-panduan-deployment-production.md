@@ -3,14 +3,19 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Deployment Production
-- Versi: 1.1
-- Tanggal: 23 Februari 2026
+- Versi: 1.2
+- Tanggal: 27 Maret 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan
-Dokumen ini disusun untuk memandu proses deployment Cashflowpoly Analytics Platform ke lingkungan production menggunakan Docker Compose, Nginx reverse proxy, dan Cloudflare Tunnel agar sistem dapat diakses dari mana saja melalui domain `tugasakhirmarco.my.id`.
+Dokumen ini memandu deployment Cashflowpoly Analytics Platform ke lingkungan production menggunakan Docker Compose, build image lokal dari source, Nginx reverse proxy, dan Cloudflare Tunnel.
+
+Perubahan utama versi ini:
+- deployment tidak lagi bergantung pada workflow CI/CD eksternal,
+- service `api` dan `ui` dibangun langsung dari source lokal saat deploy,
+- auto-redeploy berbasis registry image dan Watchtower tidak dipakai lagi.
 
 ---
 
@@ -68,57 +73,56 @@ Cloudflare Edge (SSL termination)
 | Docker Desktop | 24.x | `docker --version` |
 | Docker Compose V2 | 2.20+ | `docker compose version` |
 | Git | 2.x | `git --version` |
+| PowerShell | 5.1+ / 7+ | `$PSVersionTable.PSVersion` |
 
-### 3.2 Akun & Layanan
+### 3.2 Akun dan Layanan
 
 | Layanan | Fungsi | Keterangan |
 |---|---|---|
-| [Cloudflare](https://dash.cloudflare.com) | DNS & Tunnel | Free plan |
+| [Cloudflare](https://dash.cloudflare.com) | DNS dan Tunnel | Free plan |
 | Domain `tugasakhirmarco.my.id` | Domain publik permanen | Dibeli di [MyDomaiNesia](https://my.domainesia.com) |
-| [GitHub](https://github.com) | Repository & CI/CD | Free plan |
+
+Catatan:
+- Remote Git boleh berada di GitHub, GitLab, atau server Git lain.
+- Workflow CI/CD eksternal tidak lagi diperlukan untuk build, test, maupun release.
 
 ---
 
-## 4. Langkah Deployment
+## 4. Variabel Environment Penting
 
-### 4.1 Persiapan File Environment
+Salin template:
 
-1. **Salin template** `.env.example` ke `.env`:
-   ```powershell
-   Copy-Item .env.example .env
-   ```
+```powershell
+Copy-Item .env.prod.example .env.prod
+notepad .env.prod
+```
 
-2. **Edit `.env`** dan ganti semua nilai default:
-   ```powershell
-   notepad .env
-   ```
+Variabel yang wajib diisi:
 
-3. **Variabel yang wajib diubah:**
+| Variabel | Contoh Nilai | Keterangan |
+|---|---|---|
+| `POSTGRES_PASSWORD` | `Str0ng!P@ssw0rd` | Password database |
+| `JWT_SIGNING_KEY` | (random 48 karakter) | Minimal 32 karakter |
+| `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` | `true` | Hanya untuk bootstrap awal |
+| `AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME` | `admin` | Username instructor |
+| `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | `Admin@123!` | Password instructor |
+| `AUTH_BOOTSTRAP_PLAYER_USERNAME` | `player1` | Username player |
+| `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | `Player@123!` | Password player |
+| `CLOUDFLARE_TUNNEL_TOKEN` | `eyJ...` | Isi jika ingin akses publik via tunnel |
 
-   | Variabel | Contoh Nilai | Keterangan |
-   |---|---|---|
-   | `POSTGRES_PASSWORD` | `Str0ng!P@ssw0rd` | Password database, jangan gunakan default |
-   | `JWT_SIGNING_KEY` | (random 48 karakter) | Generate: `openssl rand -base64 48` |
-   | `IMAGE_TAG` | `prod-latest` | Wajib untuk server production agar tidak menarik image branch `dev` |
-   | `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` | `true` | Set `true` untuk buat user pertama |
-   | `AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME` | `admin` | Username instructor |
-   | `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | `Admin@123!` | Password instructor |
-   | `AUTH_BOOTSTRAP_PLAYER_USERNAME` | `player1` | Username player |
-   | `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | `Player@123!` | Password player |
-   | `GHCR_USERNAME` | `username-github` | Isi jika image GHCR private |
-   | `GHCR_TOKEN` | `ghp_xxx...` | Personal access token `read:packages` untuk pull image private |
-
-   > **Penting**: Setelah seed user berhasil (login pertama sukses), ubah `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` ke `false` agar tidak seed ulang.
+Catatan:
+- Variabel registry image lama dan variabel Watchtower sudah tidak dipakai lagi.
+- Setelah user bootstrap berhasil dibuat dan login pertama sukses, ubah `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` menjadi `false`.
 
 ---
 
-### 4.2 Deploy Mode Development (Tanpa Nginx)
+## 5. Deploy Development
 
-Mode ini mengekspos port API dan UI langsung. Cocok untuk pengembangan lokal.
+Mode ini untuk pengembangan lokal dengan auto-reload:
 
 ```powershell
 docker context use default
-Copy-Item .env.example .env.dev
+Copy-Item .env.dev.example .env.dev
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
 ```
 
@@ -127,453 +131,354 @@ Akses:
 - API: `http://localhost:5041`
 - Swagger: `http://localhost:5041/swagger`
 
----
-
-### 4.3 Deploy Mode Production (Dengan Nginx)
-
-Mode ini mengarahkan semua traffic melalui Nginx reverse proxy. Port API dan UI tidak terekspos langsung.
+Stop:
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
 
-Akses:
-- Dashboard: `http://localhost`
-- API: `http://localhost/api/`
-- Swagger: `http://localhost/swagger`
-- Health: `http://localhost/health/ready`
-
-Catatan:
-- `docker-compose.prod.yml` memakai image dari GHCR (bukan build lokal) untuk service `api` dan `ui`.
-- Default fallback tag production adalah `prod-latest`.
-
----
-
-### 4.4 Alur End-to-End (PC Developer dan PC Target Deploy)
-
-Alur ini memastikan deployment bisa dipicu dari mana saja, tetapi tetap aman untuk production.
-
-#### Alur dari PC Developer
-
-1. Ubah kode di branch `dev`, lalu `commit` dan `push` ke `origin/dev`.
-2. Workflow `CI - Build & Test` berjalan.
-3. Jika CI sukses, workflow `CD - Build & Push Images` mem-publish image:
-   - branch `dev`: tag `dev-latest` dan `SHA`.
-   - branch `prod`: tag `prod-latest`, `latest`, dan `SHA`.
-4. Saat siap rilis, dorong perubahan ke branch `prod`.
-
-#### Alur di PC Target Deploy (Docker Desktop)
-
-1. Jalankan deploy awal:
-   ```powershell
-   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
-   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
-   ```
-2. Pastikan `IMAGE_TAG=prod-latest` pada `.env`.
-3. Service `watchtower` akan cek image baru sesuai `WATCHTOWER_POLL_INTERVAL` (default 30 detik).
-4. Ketika image `prod-latest` baru tersedia, container `api` dan `ui` akan auto pull dan rolling restart.
-
-#### Batasan Auto-Deploy
-
-- Auto-update berlaku untuk update image container (`api` dan `ui`).
-- Perubahan file konfigurasi (contoh: `.env`, `docker-compose*.yml`, `nginx/default.conf`) tetap butuh deploy manual ulang (`docker compose ... up -d`).
-
----
-
-### 4.5 Mengaktifkan Cloudflare Tunnel (Akses Publik)
-
-Cloudflare Tunnel memungkinkan sistem diakses dari mana saja melalui internet tanpa membuka port di firewall atau memerlukan IP publik statis.
-
-#### Named Tunnel dengan Domain `tugasakhirmarco.my.id`
-
-Named Tunnel memberikan URL permanen di domain sendiri. URL tetap sama walaupun container di-restart atau pindah mesin.
-
-> **Catatan**: Jika belum memiliki domain, dapat menggunakan Quick Tunnel sebagai alternatif sementara. Quick Tunnel memberikan URL random `*.trycloudflare.com` yang berubah setiap restart. Caranya: ganti `command` di `docker-compose.prod.yml` menjadi `tunnel --url http://nginx:80`, lalu cek URL di `docker logs cashflowpoly-tunnel`.
-
-**Langkah setup pertama kali:**
-
-1. **Domain `tugasakhirmarco.my.id`** dibeli di [MyDomaiNesia](https://my.domainesia.com).
-
-2. **Tambahkan domain ke Cloudflare**:
-   - Login ke [Cloudflare Dashboard](https://dash.cloudflare.com)
-   - Klik **"Add a site"** -> masukkan `tugasakhirmarco.my.id`
-   - Pilih plan **Free**
-   - Cloudflare memberikan 2 nameserver:
-     ```
-     liv.ns.cloudflare.com
-     quinton.ns.cloudflare.com
-     ```
-
-3. **Ganti nameserver di MyDomaiNesia**:
-   - Login ke [MyDomaiNesia](https://my.domainesia.com) -> **Domains** -> `tugasakhirmarco.my.id` -> **Nameservers**
-   - Ganti nameserver default ke:
-     - Nameserver 1: `liv.ns.cloudflare.com`
-     - Nameserver 2: `quinton.ns.cloudflare.com`
-   - Klik **"Change Nameservers"**
-   - Tunggu propagasi DNS (5 menit - 24 jam, tergantung registry `.my.id`/PANDI)
-   - Status di Cloudflare Overview akan berubah ke **"Active"** setelah propagasi selesai
-
-4. **Buat tunnel di Cloudflare**:
-   - Cloudflare Dashboard -> **Networking** -> **Tunnels**
-   - Klik **"Create a tunnel"** -> pilih **Cloudflared** -> beri nama: `cashflowpoly`
-   - Cloudflare akan menampilkan **Tunnel Token** (string panjang `eyJ...`)
-   - Copy token tersebut
-
-5. **Tambahkan route**:
-   - Di halaman tunnel -> tab **Routes** -> **"+ Add route"**
-   - Pilih **"Published application"**
-   - Isi:
-     - **Subdomain**: *(kosongkan)*
-     - **Domain**: pilih `tugasakhirmarco.my.id` dari dropdown
-     - **Path**: *(kosongkan)*
-     - **Service URL**: `http://nginx:80`
-   - Klik **"Add route"**
-
-6. **Simpan token ke `.env`**:
-   ```dotenv
-   CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNGQ0N2......
-   ```
-
-7. **Pastikan `docker-compose.prod.yml`** menggunakan Named Tunnel:
-   ```yaml
-   cloudflared:
-     image: cloudflare/cloudflared:latest
-     container_name: cashflowpoly-tunnel
-     restart: unless-stopped
-     profiles: ["tunnel"]
-     command: tunnel --no-autoupdate --protocol http2 run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-     depends_on:
-       nginx:
-         condition: service_healthy
-     networks:
-       - cashflowpoly-net
-   ```
-
-8. **Jalankan**:
-   ```powershell
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d
-   ```
-
-9. **Verifikasi** tunnel berjalan:
-   ```powershell
-   docker logs cashflowpoly-tunnel --tail 10
-   ```
-   Pastikan muncul pesan:
-   ```
-   INF Registered tunnel connection connIndex=0 ...
-   INF Updated to new configuration config="..." ...
-   ```
-
-10. **Cek DNS propagasi**:
-    ```powershell
-    nslookup tugasakhirmarco.my.id 8.8.8.8
-    ```
-    Jika sudah resolve, output akan menampilkan IP Cloudflare (104.x.x.x atau 172.x.x.x).
-    Jika belum, jalankan `ipconfig /flushdns` dan tunggu beberapa menit.
-
-11. **Akses sistem** melalui domain permanen:
-
-    | Halaman | URL |
-    |---|---|
-    | Dashboard UI | `https://tugasakhirmarco.my.id` |
-    | API Landing | `https://tugasakhirmarco.my.id/api/` |
-    | Swagger UI | `https://tugasakhirmarco.my.id/swagger` |
-    | Health Check | `https://tugasakhirmarco.my.id/health/ready` |
-    | Login API | `POST https://tugasakhirmarco.my.id/api/v1/auth/login` |
-
----
-
-## 5. Manajemen Container
-
-### 5.1 Perintah Docker Compose Manual
+Verifikasi lokal sebelum merge atau deploy:
 
 ```powershell
-# Lihat status semua container
-docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1 -SkipIntegrationTests
+```
 
-# Lihat log container tertentu
+---
+
+## 6. Deploy Production
+
+### 6.1 Persiapan Source
+
+Masuk ke revision yang ingin dideploy:
+
+```powershell
+git pull
+```
+
+Atau checkout commit/tag/branch yang diinginkan sebelum menjalankan deploy.
+
+### 6.2 Verifikasi Lokal Sebelum Deploy
+
+Disarankan menjalankan verifikasi penuh:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1
+```
+
+Catatan:
+- integration test membutuhkan Docker daemon aktif,
+- jika hanya ingin build dan test cepat, gunakan `-SkipIntegrationTests`.
+
+### 6.3 Deploy Production dengan Skrip
+
+Perintah utama:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+```
+
+Perilaku skrip:
+- membaca `.env.prod` secara default,
+- membangun image `api` dan `ui` langsung dari source lokal,
+- menjalankan `db`, `api`, `ui`, dan `nginx`,
+- otomatis menambahkan `cloudflared` jika `CLOUDFLARE_TUNNEL_TOKEN` terisi,
+- menampilkan status container setelah deploy.
+
+Jika ingin mematikan tunnel secara eksplisit:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1 -WithoutTunnel
+```
+
+### 6.4 Deploy Production Manual
+
+Tanpa skrip helper:
+
+```powershell
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
+```
+
+Jika tidak memakai Cloudflare Tunnel:
+
+```powershell
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
+```
+
+### 6.5 Verifikasi Setelah Deploy
+
+```powershell
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+curl http://localhost/health/ready
+docker logs cashflowpoly-nginx --tail 20
+docker logs cashflowpoly-tunnel --tail 20
+```
+
+Ekspektasi:
+- `db`, `api`, `ui`, dan `nginx` berstatus `healthy`,
+- `cloudflared` berstatus `running` jika tunnel diaktifkan,
+- endpoint `/health/ready` mengembalikan `200`.
+
+### 6.6 Alur Update Kode Manual
+
+Alur rilis yang disarankan:
+1. Ubah source di mesin pengembang.
+2. Jalankan `scripts/ops/run-local-checks.ps1`.
+3. Commit dan push ke remote Git bila diperlukan.
+4. Di mesin server, tarik revision terbaru dengan `git pull`.
+5. Jalankan `scripts/ops/redeploy-production.ps1`.
+6. Verifikasi health check dan login aplikasi.
+
+Catatan:
+- Tidak ada publish image otomatis ke registry.
+- Tidak ada auto-update container saat source berubah.
+- Setiap perubahan source, Dockerfile, `.env.prod`, atau `nginx/default.conf` perlu redeploy manual.
+
+---
+
+## 7. Cloudflare Tunnel
+
+Cloudflare Tunnel memungkinkan aplikasi diakses publik tanpa membuka port langsung ke internet.
+
+### 7.1 Setup Pertama Kali
+
+1. Tambahkan domain `tugasakhirmarco.my.id` ke Cloudflare.
+2. Ganti nameserver domain ke nameserver Cloudflare yang diberikan.
+3. Buat Named Tunnel bernama `cashflowpoly`.
+4. Tambahkan route ke `http://nginx:80`.
+5. Salin token tunnel ke `.env.prod`:
+
+```dotenv
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNGQ0N2......
+```
+
+6. Jalankan deploy production dengan skrip atau perintah manual berprofil `tunnel`.
+
+### 7.2 Verifikasi Tunnel
+
+```powershell
+docker logs cashflowpoly-tunnel --tail 20
+nslookup tugasakhirmarco.my.id 8.8.8.8
+```
+
+Jika tunnel aktif, domain publik yang diharapkan:
+
+| Halaman | URL |
+|---|---|
+| Dashboard UI | `https://tugasakhirmarco.my.id` |
+| API Landing | `https://tugasakhirmarco.my.id/api/` |
+| Swagger UI | `https://tugasakhirmarco.my.id/swagger` |
+| Health Check | `https://tugasakhirmarco.my.id/health/ready` |
+
+---
+
+## 8. Manajemen Container
+
+### 8.1 Perintah Operasional Harian
+
+```powershell
+# Status container
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+
+# Log container
 docker logs cashflowpoly-api --tail 50
 docker logs cashflowpoly-ui --tail 50
 docker logs cashflowpoly-nginx --tail 50
-docker logs cashflowpoly-tunnel --tail 50
 
-# Restart satu container
-docker compose -f docker-compose.yml -f docker-compose.prod.yml restart api
+# Restart service tertentu
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml restart api
 
-# Redeploy image terbaru untuk API
-docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build --force-recreate --no-deps api
+# Rebuild dan redeploy service aplikasi
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build api ui nginx
 
-# Hentikan semua (data database tetap aman)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+# Hentikan semua service production
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down
 
-# Hentikan semua DAN hapus volume database (perhatian: data hilang!)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml down -v
+# Hentikan semua service dan hapus volume database
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down -v
 ```
+
+### 8.2 Kapan Harus Rebuild
+
+Jalankan `up -d --build` jika ada perubahan pada:
+- source code API/UI,
+- Dockerfile,
+- dependensi NuGet/npm,
+- file konfigurasi yang di-copy saat image build.
+
+Jalankan `up -d` tanpa `--build` biasanya cukup jika hanya mengubah `.env.prod` atau konfigurasi compose yang tidak mempengaruhi hasil image.
 
 ---
 
-## 6. Pindah Mesin (Migrasi)
+## 9. Pindah Mesin
 
-Jika perlu memindahkan deployment dari PC pribadi ke PC lab atau mesin lain:
-
-### 6.1 Langkah di Mesin Baru
+### 9.1 Langkah di Mesin Baru
 
 ```powershell
-# 1. Clone repository
-git clone https://github.com/Marcellohugo/cashflowpoly-analytics-platform.git
+git clone <remote-git-anda> cashflowpoly-analytics-platform
 cd cashflowpoly-analytics-platform
-git checkout prod
 
-# 2. Salin file .env (JANGAN commit .env ke Git)
-# Copy manual dari mesin lama, atau buat ulang dari template:
-Copy-Item .env.example .env.prod
-notepad .env.prod    # Isi semua variabel
+Copy-Item .env.prod.example .env.prod
+notepad .env.prod
 
-# 3. Deploy production (script akan pull image dan recreate service)
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
-
-# 4. Verifikasi
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
 ```
 
-### 6.2 Catatan Penting Saat Pindah Mesin
+### 9.2 Catatan Migrasi
 
 | Aspek | Dampak |
 |---|---|
-| **URL `tugasakhirmarco.my.id`** | Tetap sama - tidak berubah, selama tunnel token dan route sama |
-| **URL Quick Tunnel (jika dipakai)** | Berubah - URL random baru setiap restart |
-| **Data database** | Database dibuat ulang (kosong). Jika perlu data lama, backup dulu dengan `pg_dump` |
-| **File `.env`** | Harus di-copy manual (tidak ada di Git) |
-| **Konfigurasi lainnya** | Semua ikut di Git |
+| URL domain publik | Tetap sama selama route dan token tunnel sama |
+| Database | Kosong jika volume tidak dipindahkan |
+| File `.env.prod` | Harus dipindahkan atau dibuat ulang |
+| Source code | Ditarik ulang dari remote Git |
 
-### 6.3 Backup & Restore Database
+### 9.3 Backup dan Restore Database
 
 ```powershell
 # Backup di mesin lama
 docker exec cashflowpoly-db pg_dump -U cashflowpoly cashflowpoly > backup.sql
 
-# Restore di mesin baru (setelah container jalan)
+# Restore di mesin baru
 Get-Content backup.sql | docker exec -i cashflowpoly-db psql -U cashflowpoly cashflowpoly
 ```
 
 ---
 
-## 7. CI/CD dengan GitHub Actions
+## 10. Verifikasi Deployment
 
-Repository ini menyertakan pipeline CI/CD pada dua workflow:
-- `.github/workflows/ci.yml` untuk build dan test.
-- `.github/workflows/cd.yml` untuk build dan push image ke GHCR.
-
-### 7.1 Pipeline Jobs
-
-```
-push ke dev/prod -> [Build & Test] -> [Docker Build & Push] -> [Watchtower auto-update di server target]
-```
-
-| Job | Fungsi | Trigger |
-|---|---|---|
-| **Build & Test** | Restore/build per-`csproj`, validasi `docker compose config` (dev+prod), lalu test non-integration + integration | push & PR di semua branch |
-| **Docker Build & Push** | Build image API/UI lalu push ke GHCR dengan tag sesuai branch dan SHA commit | push ke `dev` atau `prod` (setelah CI sukses), atau manual via `workflow_dispatch` |
-| **Auto-Redeploy (Watchtower)** | Menarik image terbaru untuk service berlabel (`api`, `ui`) lalu restart container | polling berkala di server target |
-
-Aturan tag image:
-- Push ke `dev`: publish `dev-latest` dan `<SHA>`.
-- Push ke `prod`: publish `prod-latest`, `latest`, dan `<SHA>`.
-- Server production disarankan tetap memakai `IMAGE_TAG=prod-latest`.
-
-### 7.2 Secrets yang Dibutuhkan
-
-Untuk workflow CI/CD saat ini:
-- `ci.yml` tidak butuh secret khusus.
-- `cd.yml` memakai `GITHUB_TOKEN` bawaan GitHub Actions untuk push image ke GHCR.
-
-Untuk deploy manual di server target (opsional, jika image private), siapkan variabel environment berikut di mesin server:
-
-| Secret | Nilai | Keterangan |
-|---|---|---|
-| `GHCR_USERNAME` | Username GitHub | Untuk login registry GHCR saat deploy manual |
-| `GHCR_TOKEN` | Personal Access Token (`read:packages`) | Token pull image dari GHCR (jika image private) |
-
-### 7.3 Monitoring CI/CD
-
-- Buka tab **Actions** di repository GitHub
-- Setiap push ke `dev` atau `prod` akan memicu pipeline
-- Status pipeline: sukses atau gagal
-- Klik job yang gagal untuk melihat log error
-
----
-
-## 8. Verifikasi Deployment
-
-Setelah deploy selesai, verifikasi seluruh endpoint:
-
-### 8.1 Health Check
+### 10.1 Health Check
 
 ```powershell
-# Via localhost (dari mesin yang sama)
 Invoke-WebRequest -Uri "http://localhost/health/ready" -UseBasicParsing
-
-# Via domain publik
 Invoke-WebRequest -Uri "https://tugasakhirmarco.my.id/health/ready" -UseBasicParsing
 ```
 
-Ekspektasi: Status `200`, body `Healthy`.
+Ekspektasi: status `200`, body `Healthy`.
 
-### 8.2 Dashboard UI
+### 10.2 Dashboard UI
 
-Buka browser: `https://tugasakhirmarco.my.id`
+Buka `https://tugasakhirmarco.my.id`.
 
-Ekspektasi: Halaman login atau dashboard tampil.
+Ekspektasi: halaman login atau dashboard tampil.
 
-### 8.3 API Landing Page
+### 10.3 API Landing
 
-Buka browser: `https://tugasakhirmarco.my.id/api/`
+Buka `https://tugasakhirmarco.my.id/api/`.
 
-Ekspektasi: Halaman landing API dengan link ke Swagger.
+Ekspektasi: halaman landing API tampil.
 
-### 8.4 Swagger UI
+### 10.4 Swagger UI
 
-Buka browser: `https://tugasakhirmarco.my.id/swagger`
+Buka `https://tugasakhirmarco.my.id/swagger`.
 
-Ekspektasi: Swagger UI menampilkan daftar endpoint API.
+Ekspektasi: daftar endpoint API tampil lengkap.
 
-### 8.5 Login API
+### 10.5 Login API
 
 ```powershell
 $body = @{ username = "admin"; password = "Admin@123!" } | ConvertTo-Json
 Invoke-RestMethod -Uri "https://tugasakhirmarco.my.id/api/v1/auth/login" -Method POST -Body $body -ContentType "application/json"
 ```
 
-Ekspektasi: Response berisi JWT token.
+Ekspektasi: response berisi JWT token.
 
 ---
 
-## 9. Pemecahan Masalah
+## 11. Pemecahan Masalah
 
-### 9.1 Container Tidak Healthy
+### 11.1 Container Tidak Healthy
 
 ```powershell
-# Cek status
-docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-
-# Cek log container yang bermasalah
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
 docker logs cashflowpoly-api --tail 50
 docker logs cashflowpoly-nginx --tail 50
 ```
 
 | Gejala | Kemungkinan Penyebab | Solusi |
 |---|---|---|
-| API unhealthy | Connection string salah | Cek `POSTGRES_PASSWORD` di `.env` |
-| Nginx unhealthy | API/UI belum ready | Tunggu startup (15-30 detik) |
-| Tunnel tidak konek | Token salah | Cek `CLOUDFLARE_TUNNEL_TOKEN` di `.env` |
-| Database error | Skema belum diinisiasi | Hapus volume: `docker compose down -v` lalu `up` ulang |
+| API unhealthy | Connection string atau secret JWT salah | Cek `.env.prod` |
+| Nginx unhealthy | API/UI belum ready | Tunggu startup lalu cek log |
+| Tunnel tidak konek | Token salah atau kosong | Cek `CLOUDFLARE_TUNNEL_TOKEN` |
+| Build gagal | Dependensi belum sinkron | Jalankan `scripts/ops/run-local-checks.ps1` |
 
-### 9.2 Domain Tidak Bisa Diakses
+### 11.2 Domain Tidak Bisa Diakses
 
 | Gejala | Solusi |
 |---|---|
-| `DNS_PROBE_FINISHED_NXDOMAIN` | Nameserver belum propagasi. Tunggu 1-24 jam |
-| `502 Bad Gateway` | Nginx sudah jalan tapi API/UI belum ready. Cek log API |
-| `522 Connection timed out` | Cloudflared container mati. Restart: `docker restart cashflowpoly-tunnel` |
-| Halaman Cloudflare error | Cek SSL/TLS mode di Cloudflare -> set ke **Flexible** atau **Full** |
+| `DNS_PROBE_FINISHED_NXDOMAIN` | Nameserver belum propagasi |
+| `502 Bad Gateway` | API/UI belum ready atau Nginx salah route |
+| `522 Connection timed out` | Container `cloudflared` mati |
 
-### 9.3 Swagger Halaman Kosong (Blank)
+### 11.3 Swagger Blank
 
-Jika Swagger UI blank (putih):
-1. Buka Developer Tools (F12) -> tab Network
-2. Cek apakah file `.js` dan `.css` Swagger return 200 dengan ukuran besar (>100KB)
-3. Jika ukurannya kecil (~5KB), artinya static assets diarahkan ke UI, bukan API
-4. Pastikan `nginx/default.conf` memiliki rule khusus untuk Swagger static assets:
-   ```nginx
-   location ~* ^/swagger/.*\.(css|js|png|ico|map|json)$ {
-       proxy_pass http://api_backend;
-   }
-   ```
+Pastikan `nginx/default.conf` memiliki route static asset Swagger ke backend API, lalu redeploy Nginx:
 
-### 9.4 DNS Cache Lokal
-
-Jika domain sudah aktif tapi PC sendiri belum bisa akses:
 ```powershell
-# Flush DNS cache
-ipconfig /flushdns
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build nginx
+```
 
-# Coba akses lagi
+### 11.4 DNS Cache Lokal
+
+```powershell
+ipconfig /flushdns
 nslookup tugasakhirmarco.my.id 8.8.8.8
 ```
 
 ---
 
-## 10. File Konfigurasi Deployment
-
-Berikut daftar file yang berkaitan dengan deployment:
+## 12. File Konfigurasi dan Skrip
 
 | File | Fungsi |
 |---|---|
-| `docker-compose.yml` | Definisi service dasar (db, api, ui) |
-| `docker-compose.prod.yml` | Override production (Nginx, Cloudflare Tunnel) |
-| `.env` | Variabel environment (tidak di-commit ke Git) |
-| `.env.example` | Template variabel environment |
-| `nginx/default.conf` | Konfigurasi Nginx reverse proxy |
-| `.github/workflows/ci.yml` | Pipeline CI build & test |
-| `.github/workflows/cd.yml` | Pipeline CD build & push image |
-| `src/Cashflowpoly.Api/Dockerfile` | Multi-stage Docker build untuk API |
-| `src/Cashflowpoly.Ui/Dockerfile` | Multi-stage Docker build untuk UI |
-| `database/00_create_schema.sql` | Skrip inisiasi skema database |
+| `docker-compose.yml` | Definisi service dasar (`db`, `api`, `ui`) |
+| `docker-compose.prod.yml` | Override production, reverse proxy, tunnel |
+| `.env.prod.example` | Template environment production |
+| `scripts/ops/run-local-checks.ps1` | Verifikasi build, test, dan compose lokal |
+| `scripts/ops/redeploy-production.ps1` | Build ulang dan jalankan ulang stack production |
+| `nginx/default.conf` | Konfigurasi reverse proxy |
+| `src/Cashflowpoly.Api/Dockerfile` | Build image API |
+| `src/Cashflowpoly.Ui/Dockerfile` | Build image UI |
+| `database/00_create_schema.sql` | Inisiasi skema database |
 
 ---
 
-## 11. Ringkasan Perintah
+## 13. Ringkasan Perintah
 
-### Deploy Cepat (Copy-Paste)
+### 13.1 Pertama Kali
 
 ```powershell
-# ===== PERTAMA KALI =====
-# 1. Buat .env.prod
-Copy-Item .env.example .env.prod
-notepad .env.prod     # Edit semua variabel secret + IMAGE_TAG=prod-latest
+Copy-Item .env.prod.example .env.prod
+notepad .env.prod
+powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1
+powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+```
 
-# 2. Deploy production
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
+### 13.2 Setelah Ada Perubahan Kode
 
-# 3. Cek status
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+```powershell
+git pull
+powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1 -SkipIntegrationTests
+powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+```
 
-# 4. Cek tunnel
-docker logs cashflowpoly-tunnel --tail 10
+### 13.3 Lihat Log
 
-# ===== SEHARI-HARI =====
-# Rilis perubahan kode:
-# a) push perubahan ke branch prod dari PC developer
-# b) tunggu CI/CD sukses
-# c) watchtower di server target auto-update container
-
-# Jika perlu paksa redeploy manual
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel pull api ui db nginx cloudflared watchtower
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d db api ui nginx watchtower cloudflared
-
-# Lihat log
+```powershell
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=50
 ```
 
 ---
 
-## 12. Daftar Periksa Deployment
+## 14. Daftar Periksa Deployment
 
-Sistem terdeploy dengan benar jika:
+Sistem dianggap terdeploy dengan benar jika:
 
-- [ ] File `.env` sudah diisi dengan nilai yang benar (bukan default)
-- [ ] `IMAGE_TAG` pada `.env` production bernilai `prod-latest`
-- [ ] Semua container berstatus **healthy**: `db`, `api`, `ui`, `nginx`
-- [ ] Container `cloudflared` berstatus **running** (jika menggunakan tunnel)
-- [ ] Container `watchtower` berstatus **running** untuk auto-redeploy
+- [ ] File `.env.prod` sudah diisi dengan nilai non-default
+- [ ] `POSTGRES_PASSWORD` dan `JWT_SIGNING_KEY` valid
+- [ ] Semua container utama (`db`, `api`, `ui`, `nginx`) berstatus sehat
+- [ ] `cloudflared` berjalan jika tunnel diaktifkan
 - [ ] Endpoint `/health/ready` mengembalikan `200 Healthy`
-- [ ] Dashboard UI dapat diakses di `/`
-- [ ] Swagger UI dapat diakses di `/swagger`
-- [ ] Login API (`/api/v1/auth/login`) mengembalikan JWT token
-- [ ] Domain `https://tugasakhirmarco.my.id` dapat diakses dari perangkat lain (HP, PC lain)
-- [ ] SSL/HTTPS aktif (disediakan otomatis oleh Cloudflare)
-
+- [ ] Dashboard UI dapat diakses
+- [ ] Swagger UI dapat diakses
+- [ ] Login API mengembalikan JWT token
+- [ ] Redeploy manual dengan `scripts/ops/redeploy-production.ps1` berhasil dijalankan

@@ -3,39 +3,28 @@
 # Production deployment dengan Nginx reverse proxy
 #
 # Penggunaan:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api ui
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build --force-recreate api ui
+#   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
+#   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
 #
 # File ini meng-override docker-compose.yml untuk production:
+# - Memakai build lokal dari source untuk API dan UI
 # - Menambah Nginx sebagai reverse proxy (port 80/443)
 # - Environment diset Production
 # - Port internal API & UI tidak di-expose langsung
 
 services:
   api:
-    build: !reset null
-    image: ${API_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/api}:${IMAGE_TAG:-prod-latest}
-    pull_policy: always
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
     ports: !override []
     # Hapus port mapping langsung, semua traffic lewat Nginx
 
   ui:
-    build: !reset null
-    image: ${UI_IMAGE_REPO:-ghcr.io/marcellohugo/cashflowpoly-analytics-platform/ui}:${IMAGE_TAG:-prod-latest}
-    pull_policy: always
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
     ports: !override []
 
   db:
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     ports: !override []
     # Database tidak di-expose ke luar di production
 
@@ -77,21 +66,4 @@ services:
         condition: service_healthy
     networks:
       - cashflowpoly-net
-
-  # Auto-redeploy image API/UI/DB saat Docker daemon hidup kembali.
-  # Tidak perlu menjalankan script deploy manual setelah Docker Desktop start.
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: cashflowpoly-watchtower
-    restart: unless-stopped
-    environment:
-      DOCKER_API_VERSION: ${WATCHTOWER_DOCKER_API_VERSION:-1.44}
-    command:
-      - --label-enable
-      - --rolling-restart
-      - --cleanup
-      - --interval
-      - ${WATCHTOWER_POLL_INTERVAL:-30}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
 
