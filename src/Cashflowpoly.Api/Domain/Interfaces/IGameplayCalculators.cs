@@ -2,7 +2,7 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface ICashTimelineCalculator
+public interface ICashTimelineCalculator
 {
     AnalyticsCashTimeline Compute(
         IReadOnlyCollection<EventDb> playerEvents,
@@ -10,7 +10,7 @@ internal interface ICashTimelineCalculator
         int startingCoins);
 }
 
-internal interface IDonationGameplayCalculator
+public interface IDonationGameplayCalculator
 {
     AnalyticsDonationGameplayMetrics Compute(
         IEnumerable<EventDb> playerEvents,
@@ -18,31 +18,31 @@ internal interface IDonationGameplayCalculator
         double coinsNetEndGame);
 }
 
-internal interface ISavingGoalCalculator
+public interface ISavingGoalCalculator
 {
     AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents);
 }
 
-internal interface IIngredientMealCalculator
+public interface IIngredientMealCalculator
 {
     AnalyticsIngredientMealMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections);
 }
 
-internal interface IGoldGameplayCalculator
+public interface IGoldGameplayCalculator
 {
     AnalyticsGoldGameplayMetrics Compute(IEnumerable<EventDb> playerEvents);
 }
 
-internal interface INeedMissionCalculator
+public interface INeedMissionCalculator
 {
     AnalyticsNeedMissionMetrics Compute(
         IEnumerable<EventDb> playerEvents,
         IEnumerable<CashflowProjectionDb> playerProjections);
 }
 
-internal interface IRiskLoanCalculator
+public interface IRiskLoanCalculator
 {
     AnalyticsRiskLoanMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
@@ -52,7 +52,7 @@ internal interface IRiskLoanCalculator
         double totalIncome);
 }
 
-internal interface IActionUsageCalculator
+public interface IActionUsageCalculator
 {
     AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
@@ -61,7 +61,7 @@ internal interface IActionUsageCalculator
         int actionsPerTurn);
 }
 
-internal interface IIncomeDiversificationCalculator
+public interface IIncomeDiversificationCalculator
 {
     AnalyticsIncomeDiversificationMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
@@ -71,7 +71,7 @@ internal interface IIncomeDiversificationCalculator
         int goldInvestmentEarned);
 }
 
-internal interface IDerivedRatioCalculator
+public interface IDerivedRatioCalculator
 {
     AnalyticsDerivedRatioMetrics Compute(
         double essentialIngredientExpenses,

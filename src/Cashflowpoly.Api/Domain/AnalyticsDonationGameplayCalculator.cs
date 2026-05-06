@@ -6,15 +6,15 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsDonationAmountByDay(
+public sealed record AnalyticsDonationAmountByDay(
     [property: JsonPropertyName("day_index")] int DayIndex,
     [property: JsonPropertyName("amount")] double Amount);
 
-internal sealed record AnalyticsDonationRankByDay(
+public sealed record AnalyticsDonationRankByDay(
     [property: JsonPropertyName("day_index")] int DayIndex,
     [property: JsonPropertyName("rank")] int? Rank);
 
-internal sealed record AnalyticsDonationGameplayMetrics(
+public sealed record AnalyticsDonationGameplayMetrics(
     IReadOnlyList<AnalyticsDonationAmountByDay> DonationAmountPerFriday,
     IReadOnlyList<AnalyticsDonationRankByDay> DonationRankPerFriday,
     double DonationTotalCoins,

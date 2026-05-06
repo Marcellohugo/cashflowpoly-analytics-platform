@@ -4,17 +4,17 @@ using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record EventDomainValidationResult(
+public sealed record EventDomainValidationResult(
     bool IsValid,
     int StatusCode,
     string? ErrorCode,
     string? Message,
     IReadOnlyList<ErrorDetail> Details)
 {
-    internal static readonly EventDomainValidationResult Valid =
+    public static readonly EventDomainValidationResult Valid =
         new(true, StatusCodes.Status200OK, null, null, Array.Empty<ErrorDetail>());
 
-    internal static EventDomainValidationResult Fail(
+    public static EventDomainValidationResult Fail(
         int statusCode,
         string errorCode,
         string message,

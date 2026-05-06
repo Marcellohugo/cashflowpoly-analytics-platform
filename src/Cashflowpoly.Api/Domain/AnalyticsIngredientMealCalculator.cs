@@ -4,7 +4,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsIngredientMealMetrics(
+public sealed record AnalyticsIngredientMealMetrics(
     AnalyticsIngredientInventory Inventory,
     IReadOnlyDictionary<string, int> IngredientTypesHeld,
     int IngredientsCollected,

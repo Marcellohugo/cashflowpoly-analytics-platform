@@ -5,7 +5,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsMath;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsNeedMissionMetrics(
+public sealed record AnalyticsNeedMissionMetrics(
     int NeedCardsPurchased,
     int PrimaryNeeds,
     int SecondaryNeeds,

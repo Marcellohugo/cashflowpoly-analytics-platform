@@ -2,7 +2,7 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IHappinessCalculator
+public interface IHappinessCalculator
 {
     Dictionary<Guid, AnalyticsHappinessBreakdown> ComputeByPlayer(
         List<EventDb> events,

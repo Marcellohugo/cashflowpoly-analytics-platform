@@ -4,14 +4,14 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IEventDerivedStateCalculator
+public interface IEventDerivedStateCalculator
 {
     EventIngredientInventory BuildIngredientInventory(IEnumerable<EventDb> events, Guid playerId);
 
     int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, string goalId);
 }
 
-internal interface IEventPlayerBalanceCalculator
+public interface IEventPlayerBalanceCalculator
 {
     double Compute(
         Guid playerId,
@@ -19,7 +19,7 @@ internal interface IEventPlayerBalanceCalculator
         IReadOnlyCollection<CashflowProjectionDb> projections);
 }
 
-internal interface IEventInsuranceOffsetBuilder
+public interface IEventInsuranceOffsetBuilder
 {
     bool TryReadRiskEventReference(
         EventRequest request,

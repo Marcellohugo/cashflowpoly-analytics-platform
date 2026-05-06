@@ -4,7 +4,7 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IEventCashflowProjectionBuilder
+public interface IEventCashflowProjectionBuilder
 {
     bool TryBuild(
         EventRequest request,
