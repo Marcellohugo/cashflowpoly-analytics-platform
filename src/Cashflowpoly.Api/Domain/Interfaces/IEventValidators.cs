@@ -3,7 +3,7 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-public interface IEventShapeValidator
+public interface IEventRequestShapeValidator
 {
     EventDomainValidationResult Validate(EventRequest request, Guid? scopedPlayerId);
 }
