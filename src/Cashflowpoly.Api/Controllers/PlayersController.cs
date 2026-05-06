@@ -1,7 +1,7 @@
 // Fungsi file: Menyediakan endpoint manajemen pemain (buat, daftar) dan penugasan pemain ke sesi permainan.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -101,13 +101,12 @@ public sealed class PlayersController : ControllerBase
             return Conflict(ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Username sudah digunakan"));
         }
 
-        var createdUser = await _users.CreateUserAsync(username, request.Password, "PLAYER", request.DisplayName.Trim(), ct);
-        var updated = await _players.UpdatePlayerProfileAsync(createdUser.UserId, request.DisplayName.Trim(), instructorUserId, ct);
-        if (!updated)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                ApiErrorHelper.BuildError(HttpContext, "INTERNAL_ERROR", "Gagal sinkronisasi profil player"));
-        }
+        var createdUser = await _users.CreatePlayerUserAsync(
+            username,
+            request.Password,
+            request.DisplayName.Trim(),
+            instructorUserId,
+            ct);
 
         return Created($"/api/v1/players/{createdUser.UserId}", new PlayerResponse(createdUser.UserId, request.DisplayName.Trim()));
     }

@@ -254,6 +254,7 @@ public sealed record LoginResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("display_name")] string? DisplayName,
     [property: JsonPropertyName("access_token")] string AccessToken,
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
@@ -273,5 +274,6 @@ public sealed record RegisterResponseDto(
     [property: JsonPropertyName("user_id")] Guid UserId,
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("display_name")] string? DisplayName,
     [property: JsonPropertyName("access_token")] string AccessToken,
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);

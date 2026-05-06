@@ -1,6 +1,5 @@
 // Fungsi file: Menangani permintaan HTTP untuk autentikasi pengguna, termasuk login, registrasi, dan logout melalui sesi HTTP.
 using System.Net.Http.Json;
-using System.Net.Http.Headers;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
@@ -90,8 +89,9 @@ public sealed class AuthController : Controller
         HttpContext.Session.SetString(AuthConstants.SessionRoleKey, data.Role.ToUpperInvariant());
         HttpContext.Session.SetString(AuthConstants.SessionUserIdKey, data.UserId.ToString());
         HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, data.Username);
-        var displayName = await ResolveDisplayNameAsync(data.AccessToken, data.UserId, data.Username, HttpContext.RequestAborted);
-        HttpContext.Session.SetString(AuthConstants.SessionDisplayNameKey, displayName);
+        HttpContext.Session.SetString(
+            AuthConstants.SessionDisplayNameKey,
+            string.IsNullOrWhiteSpace(data.DisplayName) ? data.Username : data.DisplayName);
         HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, data.AccessToken);
         HttpContext.Session.SetString(
             AuthConstants.SessionTokenExpiresAtKey,
@@ -184,8 +184,9 @@ public sealed class AuthController : Controller
         HttpContext.Session.SetString(AuthConstants.SessionRoleKey, created.Role.ToUpperInvariant());
         HttpContext.Session.SetString(AuthConstants.SessionUserIdKey, created.UserId.ToString());
         HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, created.Username);
-        var displayName = await ResolveDisplayNameAsync(created.AccessToken, created.UserId, created.Username, HttpContext.RequestAborted);
-        HttpContext.Session.SetString(AuthConstants.SessionDisplayNameKey, displayName);
+        HttpContext.Session.SetString(
+            AuthConstants.SessionDisplayNameKey,
+            string.IsNullOrWhiteSpace(created.DisplayName) ? created.Username : created.DisplayName);
         HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, created.AccessToken);
         HttpContext.Session.SetString(
             AuthConstants.SessionTokenExpiresAtKey,
@@ -216,29 +217,5 @@ public sealed class AuthController : Controller
         return RedirectToAction(nameof(Login));
     }
 
-    /// <summary>
-    /// Mengambil nama tampilan pengguna dari API players berdasarkan token akses dan userId.
-    /// </summary>
-    /// <param name="accessToken">Token akses JWT untuk otorisasi API.</param>
-    /// <param name="userId">Identifier unik pengguna.</param>
-    /// <param name="fallback">Nama fallback jika nama tampilan tidak ditemukan.</param>
-    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
-    /// <returns>Nama tampilan pengguna, atau fallback jika tidak ditemukan.</returns>
-    private async Task<string> ResolveDisplayNameAsync(string accessToken, Guid userId, string fallback, CancellationToken ct)
-    {
-        var client = _clientFactory.CreateClient("Api");
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/players");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-        var response = await client.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            return fallback;
-        }
-
-        var players = await response.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
-        var displayName = players?.Items.FirstOrDefault(item => item.PlayerId == userId)?.DisplayName;
-        return string.IsNullOrWhiteSpace(displayName) ? fallback : displayName;
-    }
 }
 

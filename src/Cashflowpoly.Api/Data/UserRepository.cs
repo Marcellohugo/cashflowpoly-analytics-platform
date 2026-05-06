@@ -1,5 +1,6 @@
 // Fungsi file: Repository akses data user autentikasi — login, registrasi, link user-player, dan lookup username.
 using Dapper;
+using Cashflowpoly.Api.Domain;
 using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
@@ -71,6 +72,33 @@ public sealed class UserRepository
         string? displayName,
         CancellationToken ct)
     {
+        return await CreateUserAsync(username, password, role, displayName, playerOwnerUserId: null, ct);
+    }
+
+    /// <summary>
+    /// Membuat akun user PLAYER beserta profil pemain yang langsung dimiliki instruktur.
+    /// </summary>
+    public async Task<AuthenticatedUserDb> CreatePlayerUserAsync(
+        string username,
+        string password,
+        string displayName,
+        Guid instructorUserId,
+        CancellationToken ct)
+    {
+        return await CreateUserAsync(username, password, "PLAYER", displayName, instructorUserId, ct);
+    }
+
+    /// <summary>
+    /// Membuat akun user baru dalam transaksi dengan owner profil pemain opsional.
+    /// </summary>
+    private async Task<AuthenticatedUserDb> CreateUserAsync(
+        string username,
+        string password,
+        string role,
+        string? displayName,
+        Guid? playerOwnerUserId,
+        CancellationToken ct)
+    {
         const string insertUserSql = """
             insert into app_users (user_id, username, password_hash, role, is_active, created_at)
             values (@userId, @username, crypt(@password, gen_salt('bf', 10)), @role, true, now())
@@ -106,12 +134,13 @@ public sealed class UserRepository
         if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             var createdAt = DateTimeOffset.UtcNow;
-            var canonicalPlayerId = userId;
+            var canonicalPlayerId = PlayerIdentityPolicy.GetCanonicalPlayerId(userId);
+            var resolvedOwnerUserId = PlayerIdentityPolicy.ResolvePlayerOwnerUserId(userId, playerOwnerUserId);
             await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
             {
                 playerId = canonicalPlayerId,
                 displayName = profileDisplayName,
-                instructorUserId = userId,
+                instructorUserId = resolvedOwnerUserId,
                 createdAt
             }, tx, cancellationToken: ct));
 
@@ -142,6 +171,31 @@ public sealed class UserRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// Mengambil display name user dari profil pemain untuk PLAYER, fallback ke username untuk role lain.
+    /// </summary>
+    public async Task<string> GetDisplayNameAsync(Guid userId, string username, string role, CancellationToken ct)
+    {
+        if (!string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            return username;
+        }
+
+        const string sql = """
+            select p.display_name
+            from user_player_links upl
+            join players p on p.player_id = upl.player_id
+            where upl.user_id = @userId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var displayName = await conn.QuerySingleOrDefaultAsync<string?>(
+            new CommandDefinition(sql, new { userId }, cancellationToken: ct));
+
+        return string.IsNullOrWhiteSpace(displayName) ? username : displayName;
     }
 
     /// <summary>
@@ -222,13 +276,14 @@ public sealed class UserRepository
             return linked.Value;
         }
 
-        var playerId = userId;
+        var playerId = PlayerIdentityPolicy.GetCanonicalPlayerId(userId);
+        var resolvedOwnerUserId = PlayerIdentityPolicy.ResolvePlayerOwnerUserId(userId, instructorUserId: null);
         var createdAt = DateTimeOffset.UtcNow;
         await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
         {
             playerId,
             displayName = username,
-            instructorUserId = userId,
+            instructorUserId = resolvedOwnerUserId,
             createdAt
         }, tx, cancellationToken: ct));
 

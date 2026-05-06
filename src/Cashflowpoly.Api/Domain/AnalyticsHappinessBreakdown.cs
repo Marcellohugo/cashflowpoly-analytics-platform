@@ -1,0 +1,17 @@
+// Fungsi file: Model breakdown poin happiness pemain untuk komputasi analitik.
+namespace Cashflowpoly.Api.Domain;
+
+/// <summary>
+/// Breakdown poin happiness pemain: kebutuhan, bonus set, donasi, emas, pensiun, tabungan, dan penalti.
+/// </summary>
+internal sealed record AnalyticsHappinessBreakdown(
+    double Total,
+    double NeedPoints,
+    double NeedSetBonusPoints,
+    double DonationPoints,
+    double GoldPoints,
+    double PensionPoints,
+    double SavingGoalPointsEffective,
+    double MissionPenaltyPoints,
+    double LoanPenaltyPoints,
+    bool HasUnpaidLoan);

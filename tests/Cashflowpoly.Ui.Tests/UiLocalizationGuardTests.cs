@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 using Xunit;
 
-namespace Cashflowpoly.Api.Tests;
+namespace Cashflowpoly.Ui.Tests;
 
 /// <summary>
 /// Kelas pengujian unit yang memastikan semua key terjemahan yang digunakan di UI
@@ -60,8 +60,12 @@ public sealed class UiLocalizationGuardTests
     public void TranslationKeys_UsedByUiControllersAndViews_MustExistInUiTextLexicon()
     {
         var uiRoot = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui");
-        var uiTextPath = Path.Combine(uiRoot, "Infrastructure", "UiText.cs");
-        var lexiconContent = File.ReadAllText(uiTextPath);
+        var infrastructureRoot = Path.Combine(uiRoot, "Infrastructure");
+        var lexiconContent = string.Join(
+            Environment.NewLine,
+            Directory
+                .EnumerateFiles(infrastructureRoot, "UiText*.cs", SearchOption.TopDirectoryOnly)
+                .Select(File.ReadAllText));
         var lexiconKeys = LexiconKeyRegex
             .Matches(lexiconContent)
             .Select(match => match.Groups["key"].Value)
