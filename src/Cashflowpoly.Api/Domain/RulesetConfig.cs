@@ -1,6 +1,6 @@
 // Fungsi file: Mendefinisikan model domain konfigurasi ruleset (mode, constraint, scoring) dan parser JSON dengan validasi lengkap.
 using System.Text.Json;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 

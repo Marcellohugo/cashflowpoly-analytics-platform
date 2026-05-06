@@ -115,7 +115,7 @@ public sealed class RulesetsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        return View(BuildDefaultCreateViewModel());
+        return View(RulesetFormHelper.BuildDefaultCreateViewModel());
     }
 
     [HttpPost("create")]
@@ -232,7 +232,7 @@ public sealed class RulesetsController : Controller
             IsEditMode = true,
             Name = data.Name,
             Description = data.Description,
-            ConfigJson = SerializeIndentedJson(data.ConfigJson)
+            ConfigJson = RulesetFormHelper.SerializeIndentedJson(data.ConfigJson)
         });
     }
 
@@ -509,7 +509,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+            TempData[RulesetErrorTempDataKey] = await RulesetFormHelper.BuildRulesetApiErrorMessage(
                 response,
                 HttpContext.T("rulesets.error.activate_version_failed"),
                 ct);
@@ -543,7 +543,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+            TempData[RulesetErrorTempDataKey] = await RulesetFormHelper.BuildRulesetApiErrorMessage(
                 response,
                 HttpContext.T("rulesets.error.delete_version_failed"),
                 ct);
@@ -582,7 +582,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            TempData[RulesetErrorTempDataKey] = await BuildRulesetApiErrorMessage(
+            TempData[RulesetErrorTempDataKey] = await RulesetFormHelper.BuildRulesetApiErrorMessage(
                 response,
                 HttpContext.T("rulesets.error.delete_failed"),
                 ct);
@@ -659,63 +659,6 @@ public sealed class RulesetsController : Controller
     }
 
     /// <summary>
-    /// Membuat ViewModel formulir pembuatan ruleset baru dengan template konfigurasi JSON default mode PEMULA.
-    /// </summary>
-    /// <returns>ViewModel berisi konfigurasi JSON default untuk formulir pembuatan ruleset.</returns>
-    private static CreateRulesetViewModel BuildDefaultCreateViewModel()
-    {
-        return new CreateRulesetViewModel
-        {
-            IsEditMode = false,
-            ConfigJson = """
-            {
-              "mode": "PEMULA",
-              "actions_per_turn": 2,
-              "starting_cash": 20,
-              "weekday_rules": {
-                "friday": { "feature": "DONATION", "enabled": true },
-                "saturday": { "feature": "GOLD_TRADE", "enabled": true },
-                "sunday": { "feature": "REST", "enabled": true }
-              },
-              "constraints": {
-                "cash_min": 0,
-                "max_ingredient_total": 6,
-                "max_same_ingredient": 3,
-                "primary_need_max_per_day": 1,
-                "require_primary_before_others": true
-              },
-              "donation": { "min_amount": 1, "max_amount": 999999 },
-              "gold_trade": { "allow_buy": true, "allow_sell": true },
-              "advanced": {
-                "loan": { "enabled": false },
-                "insurance": { "enabled": false },
-                "saving_goal": { "enabled": false }
-              },
-              "freelance": { "income": 1 },
-              "scoring": {
-                "donation_rank_points": [
-                  { "rank": 1, "points": 7 },
-                  { "rank": 2, "points": 5 },
-                  { "rank": 3, "points": 2 }
-                ],
-                "gold_points_by_qty": [
-                  { "qty": 1, "points": 3 },
-                  { "qty": 2, "points": 5 },
-                  { "qty": 3, "points": 8 },
-                  { "qty": 4, "points": 12 }
-                ],
-                "pension_rank_points": [
-                  { "rank": 1, "points": 5 },
-                  { "rank": 2, "points": 3 },
-                  { "rank": 3, "points": 1 }
-                ]
-              }
-            }
-            """
-        };
-    }
-
-    /// <summary>
     /// Menambahkan component_catalog default berdasarkan mode bila konfigurasi belum memilikinya.
     /// </summary>
     private async Task<JsonNode?> EnsureComponentCatalogAsync(JsonNode? configNode, HttpClient client, CancellationToken ct)
@@ -730,7 +673,7 @@ public sealed class RulesetsController : Controller
             return configNode;
         }
 
-        if (!TryResolveMode(configObject, out var mode))
+        if (!RulesetFormHelper.TryResolveMode(configObject, out var mode))
         {
             return configNode;
         }
@@ -771,70 +714,5 @@ public sealed class RulesetsController : Controller
         return configNode;
     }
 
-    /// <summary>
-    /// Menentukan mode ruleset (PEMULA/MAHIR) dari konfigurasi JSON.
-    /// </summary>
-    private static bool TryResolveMode(JsonObject configObject, out string mode)
-    {
-        mode = string.Empty;
-        if (!configObject.TryGetPropertyValue("mode", out var modeNode))
-        {
-            return false;
-        }
-
-        if (modeNode is not JsonValue modeValue || !modeValue.TryGetValue<string>(out var rawMode))
-        {
-            return false;
-        }
-
-        var modeText = rawMode?.Trim().ToUpperInvariant();
-        if (!string.Equals(modeText, "PEMULA", StringComparison.Ordinal) &&
-            !string.Equals(modeText, "MAHIR", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        mode = modeText!;
-        return true;
-    }
-
-    /// <summary>
-    /// Membangun pesan kesalahan dari respons API ruleset dengan fallback ke prefix dan status code.
-    /// </summary>
-    /// <param name="response">Respons HTTP dari API backend.</param>
-    /// <param name="prefix">Prefix pesan kesalahan sebagai fallback.</param>
-    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
-    /// <returns>String pesan kesalahan yang siap ditampilkan ke pengguna.</returns>
-    private static async Task<string> BuildRulesetApiErrorMessage(HttpResponseMessage response, string prefix, CancellationToken ct)
-    {
-        var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
-
-        return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
-    }
-
-    /// <summary>
-    /// Mengonversi JsonElement menjadi string JSON terformat rapi (indented) untuk ditampilkan di editor.
-    /// </summary>
-    /// <param name="configJson">Data konfigurasi JSON yang akan diformat.</param>
-    /// <returns>String JSON terformat, atau "{}" jika data kosong atau tidak valid.</returns>
-    private static string SerializeIndentedJson(JsonElement? configJson)
-    {
-        if (!configJson.HasValue)
-        {
-            return "{}";
-        }
-
-        try
-        {
-            return JsonSerializer.Serialize(configJson.Value, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-        }
-        catch (JsonException)
-        {
-            return "{}";
-        }
-    }
 }
 

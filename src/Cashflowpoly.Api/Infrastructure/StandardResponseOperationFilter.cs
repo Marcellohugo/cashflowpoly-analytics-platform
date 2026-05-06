@@ -1,6 +1,6 @@
 // Fungsi file: Menyediakan Swagger/OpenAPI operation filter yang menambahkan response standar (400/401/403/404/409/422/429/500) pada setiap endpoint.
 using System.Reflection;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;

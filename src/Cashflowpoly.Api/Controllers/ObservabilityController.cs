@@ -1,6 +1,6 @@
 // Fungsi file: Menyediakan endpoint observabilitas untuk menampilkan metrik operasional API kepada instruktur.
 using Cashflowpoly.Api.Infrastructure;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

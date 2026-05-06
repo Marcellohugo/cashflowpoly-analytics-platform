@@ -1,7 +1,7 @@
 // Fungsi file: Menyediakan endpoint untuk instruktur melihat log audit keamanan dengan filter event type dan user.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

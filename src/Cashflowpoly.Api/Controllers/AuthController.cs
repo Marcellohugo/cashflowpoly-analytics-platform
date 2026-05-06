@@ -1,6 +1,6 @@
 // Fungsi file: Menyediakan endpoint login dan registrasi pengguna dengan validasi kredensial, pencatatan audit keamanan, dan penerbitan JWT.
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -87,6 +87,7 @@ public sealed class AuthController : ControllerBase
             await _users.EnsurePlayerLinkAsync(user.UserId, user.Username, ct);
         }
 
+        var displayName = await _users.GetDisplayNameAsync(user.UserId, user.Username, user.Role, ct);
         var issued = _tokens.IssueToken(user);
         await _securityAudit.LogAsync(
             HttpContext,
@@ -100,7 +101,7 @@ public sealed class AuthController : ControllerBase
                 role = user.Role
             },
             ct);
-        return Ok(new LoginResponse(user.UserId, user.Username, user.Role, issued.AccessToken, issued.ExpiresAt));
+        return Ok(new LoginResponse(user.UserId, user.Username, user.Role, displayName, issued.AccessToken, issued.ExpiresAt));
     }
 
     [HttpPost("register")]
@@ -201,6 +202,6 @@ public sealed class AuthController : ControllerBase
             ct);
         return StatusCode(
             StatusCodes.Status201Created,
-            new RegisterResponse(created.UserId, created.Username, created.Role, issued.AccessToken, issued.ExpiresAt));
+            new RegisterResponse(created.UserId, created.Username, created.Role, displayName, issued.AccessToken, issued.ExpiresAt));
     }
 }

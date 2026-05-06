@@ -1,5 +1,5 @@
 // Fungsi file: Menyediakan helper statis untuk membangun ErrorResponse terstandar dengan dukungan lokalisasi ID↔EN berdasarkan Accept-Language.
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using System.Collections.Frozen;
 
 namespace Cashflowpoly.Api.Controllers;
