@@ -4,7 +4,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsIncomeDiversificationMetrics(
+public sealed record AnalyticsIncomeDiversificationMetrics(
     double FreelanceIncome,
     double MealIncome,
     double GoldIncome,

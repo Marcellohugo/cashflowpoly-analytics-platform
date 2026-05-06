@@ -4,7 +4,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsMath;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsDerivedRatioMetrics(
+public sealed record AnalyticsDerivedRatioMetrics(
     double? ExpenseEfficiency,
     double? BusinessProfitMargin,
     double? GoalAttemptRate,

@@ -7,7 +7,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsGameplaySnapshot(string RawJson, string DerivedJson);
+public sealed record AnalyticsGameplaySnapshot(string RawJson, string DerivedJson);
 
 internal static class AnalyticsGameplaySnapshotBuilder
 {

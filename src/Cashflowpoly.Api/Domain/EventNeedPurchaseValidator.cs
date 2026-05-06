@@ -6,7 +6,7 @@ using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record EventNeedPurchaseValidation(
+public sealed record EventNeedPurchaseValidation(
     EventDomainValidationResult Validation,
     int? OutgoingAmount);
 

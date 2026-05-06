@@ -4,7 +4,7 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Breakdown poin happiness pemain: kebutuhan, bonus set, donasi, emas, pensiun, tabungan, dan penalti.
 /// </summary>
-internal sealed record AnalyticsHappinessBreakdown(
+public sealed record AnalyticsHappinessBreakdown(
     double Total,
     double NeedPoints,
     double NeedSetBonusPoints,

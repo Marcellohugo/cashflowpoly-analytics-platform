@@ -7,7 +7,7 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Model domain konfigurasi ruleset berisi parameter permainan: mode, aksi per giliran, kas awal, constraint, dan scoring.
 /// </summary>
-internal sealed record RulesetConfig(
+public sealed record RulesetConfig(
     string Mode,
     int ActionsPerTurn,
     int StartingCash,
@@ -33,7 +33,7 @@ internal sealed record RulesetConfig(
 /// <summary>
 /// Konfigurasi skoring ruleset berisi pemetaan poin berdasarkan peringkat donasi, jumlah emas, dan peringkat pensiun.
 /// </summary>
-internal sealed record RulesetScoringConfig(
+public sealed record RulesetScoringConfig(
     IReadOnlyList<RankPoint> DonationRankPoints,
     IReadOnlyList<QtyPoint> GoldPointsByQty,
     IReadOnlyList<RankPoint> PensionRankPoints);
@@ -41,17 +41,17 @@ internal sealed record RulesetScoringConfig(
 /// <summary>
 /// Pemetaan peringkat ke poin (untuk donasi dan pensiun).
 /// </summary>
-internal sealed record RankPoint(int Rank, int Points);
+public sealed record RankPoint(int Rank, int Points);
 
 /// <summary>
 /// Pemetaan jumlah (quantity) ke poin (untuk emas).
 /// </summary>
-internal sealed record QtyPoint(int Qty, int Points);
+public sealed record QtyPoint(int Qty, int Points);
 
 /// <summary>
 /// Enum urutan pemain dalam sesi: berdasarkan join order, instruktur, urutan event, player ID, atau username.
 /// </summary>
-internal enum PlayerOrdering
+public enum PlayerOrdering
 {
     JoinOrder,
     InstructorOrder,

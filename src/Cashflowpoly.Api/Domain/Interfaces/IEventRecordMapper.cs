@@ -3,7 +3,7 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IEventRecordMapper
+public interface IEventRecordMapper
 {
     EventRequest ToEventRequest(EventDb record);
 }

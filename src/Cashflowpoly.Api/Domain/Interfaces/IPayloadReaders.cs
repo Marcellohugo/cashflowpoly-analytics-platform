@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IAnalyticsPayloadReader
+public interface IAnalyticsPayloadReader
 {
     bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category);
     bool TryReadAmount(string payloadJson, out double amount);
@@ -25,7 +25,7 @@ internal interface IAnalyticsPayloadReader
     bool TryReadOrderClaim(string payloadJson, out List<string> requiredCards, out int income);
 }
 
-internal interface IEventPayloadReader
+public interface IEventPayloadReader
 {
     JsonElement ReadPayload(string payload);
     bool TryGetString(JsonElement payload, string propertyName, out string value);

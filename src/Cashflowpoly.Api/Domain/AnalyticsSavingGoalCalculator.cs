@@ -4,7 +4,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsSavingGoalMetrics(
+public sealed record AnalyticsSavingGoalMetrics(
     IReadOnlyDictionary<string, int> SavingDepositsByGoal,
     IReadOnlyDictionary<string, int> SavingWithdrawalsByGoal,
     IReadOnlyDictionary<string, int> SavingGoalCostsByGoal,

@@ -5,7 +5,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsRiskLoanMetrics(
+public sealed record AnalyticsRiskLoanMetrics(
     IReadOnlyList<int> RiskCostsPerCard,
     int RiskCostsTotal,
     int RiskCardsDrawn,

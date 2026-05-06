@@ -2,7 +2,7 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IGameplaySnapshotBuilder
+public interface IGameplaySnapshotBuilder
 {
     AnalyticsGameplaySnapshot Build(
         List<EventDb> playerEvents,

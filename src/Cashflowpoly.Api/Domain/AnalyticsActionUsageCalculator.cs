@@ -6,7 +6,7 @@ using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsActionUsageMetrics(
+public sealed record AnalyticsActionUsageMetrics(
     IReadOnlyList<AnalyticsActionSequence> ActionSequences,
     IReadOnlyList<AnalyticsActionRepetition> ActionRepetitions,
     IReadOnlyList<AnalyticsActionSlot> ActionSlotTimeline,
@@ -18,18 +18,18 @@ internal sealed record AnalyticsActionUsageMetrics(
     double? ActionEfficiencyPercent,
     double ActionDiversityAverage);
 
-internal sealed record AnalyticsActionSequence(
+public sealed record AnalyticsActionSequence(
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("actions")] IReadOnlyList<string> Actions);
 
-internal sealed record AnalyticsActionRepetition(
+public sealed record AnalyticsActionRepetition(
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("total_actions")] int TotalActions,
     [property: JsonPropertyName("distinct_actions")] int DistinctActions,
     [property: JsonPropertyName("repeated_actions")] int RepeatedActions,
     [property: JsonPropertyName("diversity_score")] double DiversityScore);
 
-internal sealed record AnalyticsActionSlot(
+public sealed record AnalyticsActionSlot(
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("action_type")] string ActionType,

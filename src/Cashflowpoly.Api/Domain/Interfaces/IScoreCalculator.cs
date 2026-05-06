@@ -3,7 +3,7 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IScoreCalculator
+public interface IScoreCalculator
 {
     AnalyticsSessionSummary BuildSummary(
         List<EventDb> events,

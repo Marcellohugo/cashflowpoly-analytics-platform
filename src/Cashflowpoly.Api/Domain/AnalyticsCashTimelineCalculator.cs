@@ -4,19 +4,19 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record AnalyticsTurnAmount(
+public sealed record AnalyticsTurnAmount(
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("amount")] double Amount);
 
-internal sealed record AnalyticsTurnNet(
+public sealed record AnalyticsTurnNet(
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("net")] double Net);
 
-internal sealed record AnalyticsTurnCoins(
+public sealed record AnalyticsTurnCoins(
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("coins")] double Coins);
 
-internal sealed record AnalyticsCashTimeline(
+public sealed record AnalyticsCashTimeline(
     int StartingCoins,
     double CashInTotal,
     double CashOutTotal,

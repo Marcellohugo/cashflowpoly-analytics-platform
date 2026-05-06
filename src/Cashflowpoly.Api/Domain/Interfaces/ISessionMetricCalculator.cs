@@ -2,7 +2,7 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface ISessionMetricCalculator
+public interface ISessionMetricCalculator
 {
     Dictionary<string, (double? Numeric, string? Json)> ComputeSessionMetrics(
         List<EventDb> events,

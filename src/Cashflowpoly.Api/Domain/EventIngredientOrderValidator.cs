@@ -7,7 +7,7 @@ using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal sealed record EventIngredientOrderValidation(
+public sealed record EventIngredientOrderValidation(
     EventDomainValidationResult Validation,
     int? OutgoingAmount);
 

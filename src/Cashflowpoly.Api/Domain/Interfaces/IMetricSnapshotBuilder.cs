@@ -2,7 +2,7 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal interface IMetricSnapshotBuilder
+public interface IMetricSnapshotBuilder
 {
     List<MetricSnapshotDb> BuildMetricSnapshots(
         Guid sessionId,
