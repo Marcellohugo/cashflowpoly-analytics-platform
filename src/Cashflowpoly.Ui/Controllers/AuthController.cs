@@ -1,5 +1,6 @@
 // Fungsi file: Menangani permintaan HTTP untuk autentikasi pengguna, termasuk login, registrasi, dan logout melalui sesi HTTP.
 using System.Net.Http.Json;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
@@ -65,18 +66,18 @@ public sealed class AuthController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var payload = new LoginRequestDto(model.Username.Trim(), model.Password);
+        var payload = new LoginRequest(model.Username.Trim(), model.Password);
         var response = await client.PostAsJsonAsync("api/v1/auth/login", payload);
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>();
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>();
             model.ErrorMessage = error?.Message ?? HttpContext.T("auth.error.login_failed");
             model.Password = string.Empty;
             return View("Login", model);
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<LoginResponseDto>();
+        var data = await response.Content.TryReadFromJsonAsync<LoginResponse>();
         if (data is null ||
             !AuthConstants.IsValidRole(data.Role) ||
             string.IsNullOrWhiteSpace(data.AccessToken))
@@ -156,7 +157,7 @@ public sealed class AuthController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var payload = new RegisterRequestDto(
+        var payload = new RegisterRequest(
             model.Username.Trim(),
             model.Password,
             model.Role.ToUpperInvariant(),
@@ -165,14 +166,14 @@ public sealed class AuthController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>();
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>();
             model.ErrorMessage = error?.Message ?? HttpContext.T("auth.error.register_failed");
             model.Password = string.Empty;
             model.ConfirmPassword = string.Empty;
             return View(model);
         }
 
-        var created = await response.Content.TryReadFromJsonAsync<RegisterResponseDto>();
+        var created = await response.Content.TryReadFromJsonAsync<RegisterResponse>();
         if (created is null || string.IsNullOrWhiteSpace(created.AccessToken))
         {
             model.ErrorMessage = HttpContext.T("auth.error.register_response_invalid");

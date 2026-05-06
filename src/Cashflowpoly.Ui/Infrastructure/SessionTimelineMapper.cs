@@ -1,6 +1,7 @@
 // Fungsi file: Memetakan daftar event transaksi gameplay dari API menjadi item timeline sesi yang dapat ditampilkan di UI.
 using System.Text.Json;
 using System.Globalization;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
@@ -18,7 +19,7 @@ public static class SessionTimelineMapper
     /// <param name="events">Daftar event dari API, boleh null.</param>
     /// <param name="language">Kode bahasa ("id" atau "en"); default bahasa Indonesia.</param>
     /// <returns>Daftar item timeline yang siap ditampilkan di UI.</returns>
-    public static List<SessionTimelineEventViewModel> MapTimeline(List<EventRequestDto>? events, string? language = null)
+    public static List<SessionTimelineEventViewModel> MapTimeline(List<EventRequest>? events, string? language = null)
     {
         if (events is null || events.Count == 0)
         {
