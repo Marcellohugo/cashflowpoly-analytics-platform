@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -58,7 +59,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponseDto>(ct);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(ct);
         if (data is null)
         {
             return View(new RulesetListViewModel
@@ -67,7 +68,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var defaultComponentItems = new List<DefaultRulesetComponentItemDto>();
+        var defaultComponentItems = new List<DefaultRulesetComponentItem>();
         string? defaultComponentsErrorMessage = null;
         var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
         unauthorized = this.HandleUnauthorizedApiResponse(defaultsResponse);
@@ -84,20 +85,20 @@ public sealed class RulesetsController : Controller
         }
         else
         {
-            var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
+            var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
             if (defaultsData is null)
             {
                 defaultComponentsErrorMessage = HttpContext.T("rulesets.error.invalid_default_components_response");
             }
             else
             {
-                defaultComponentItems = defaultsData.Items ?? new List<DefaultRulesetComponentItemDto>();
+                defaultComponentItems = defaultsData.Items ?? new List<DefaultRulesetComponentItem>();
             }
         }
 
         return View(new RulesetListViewModel
         {
-            Items = data.Items ?? new List<RulesetListItemDto>(),
+            Items = data.Items ?? new List<RulesetListItem>(),
             DefaultComponentItems = defaultComponentItems,
             DefaultComponentsErrorMessage = defaultComponentsErrorMessage
         });
@@ -169,7 +170,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
             model.IsEditMode = false;
             model.ErrorMessage = error?.Message ?? HttpContext
                 .T("rulesets.error.create_failed")
@@ -204,7 +205,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
             return View("Create", new CreateRulesetViewModel
             {
                 RulesetId = rulesetId,
@@ -215,7 +216,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponseDto>(ct);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponse>(ct);
         if (data is null)
         {
             return View("Create", new CreateRulesetViewModel
@@ -289,7 +290,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
             model.ErrorMessage = error?.Message ?? HttpContext
                 .T("rulesets.error.update_failed")
                 .Replace("{status}", ((int)response.StatusCode).ToString());
@@ -323,7 +324,7 @@ public sealed class RulesetsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
             if (fromDefaultCatalog)
             {
                 var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
@@ -335,7 +336,7 @@ public sealed class RulesetsController : Controller
 
                 if (defaultsResponse.IsSuccessStatusCode)
                 {
-                    var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
+                    var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
                     var fallbackItem = defaultsData?.Items?.FirstOrDefault(item =>
                         item.RulesetId == rulesetId &&
                         (requestedVersion is null || item.Version == requestedVersion.Value) &&
@@ -344,13 +345,13 @@ public sealed class RulesetsController : Controller
                     {
                         return View(new RulesetDetailViewModel
                         {
-                            Ruleset = new RulesetDetailResponseDto(
+                            Ruleset = new RulesetDetailResponse(
                                 fallbackItem.RulesetId,
                                 fallbackItem.Name,
                                 fallbackItem.Description,
-                                new List<RulesetVersionItemDto>(),
+                                new List<RulesetVersionItem>(),
                                 null),
-                            Components = new RulesetComponentsResponseDto(
+                            Components = new RulesetComponentsResponse(
                                 fallbackItem.RulesetId,
                                 fallbackItem.RulesetVersionId,
                                 fallbackItem.Version,
@@ -372,7 +373,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponseDto>(ct);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponse>(ct);
         if (data is null)
         {
             return View(new RulesetDetailViewModel
@@ -381,7 +382,7 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        RulesetComponentsResponseDto? components = null;
+        RulesetComponentsResponse? components = null;
         string? componentsErrorMessage = null;
         var componentsPath = requestedVersion.HasValue
             ? $"api/v1/rulesets/{rulesetId}/components?version={requestedVersion.Value}"
@@ -401,7 +402,7 @@ public sealed class RulesetsController : Controller
         }
         else
         {
-            components = await componentsResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponseDto>(ct);
+            components = await componentsResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponse>(ct);
             if (components is null)
             {
                 componentsErrorMessage = HttpContext.T("rulesets.error.invalid_components_response");
@@ -461,7 +462,7 @@ public sealed class RulesetsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
+        var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
         if (defaultsData is null)
         {
             TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.invalid_default_components_response");
@@ -684,7 +685,7 @@ public sealed class RulesetsController : Controller
             return configNode;
         }
 
-        var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponseDto>(ct);
+        var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
         if (defaultsData?.Items is null || defaultsData.Items.Count == 0)
         {
             return configNode;

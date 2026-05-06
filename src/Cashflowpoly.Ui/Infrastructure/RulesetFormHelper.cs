@@ -1,6 +1,7 @@
 // Fungsi file: Menyediakan helper formulir ruleset untuk default config, format JSON, mode resolver, dan pesan error API.
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
@@ -86,7 +87,7 @@ public static class RulesetFormHelper
 
     public static async Task<string> BuildRulesetApiErrorMessage(HttpResponseMessage response, string prefix, CancellationToken ct)
     {
-        var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(ct);
+        var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
         return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
     }
 

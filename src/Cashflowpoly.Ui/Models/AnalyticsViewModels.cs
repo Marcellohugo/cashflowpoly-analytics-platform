@@ -1,5 +1,6 @@
 // Fungsi file: Mendefinisikan ViewModel untuk halaman analitik, termasuk daftar sesi, detail sesi, detail pemain, perjalanan arus kas, dan direktori pemain.
 using System.Text.Json;
+using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Ui.Models;
 
@@ -11,7 +12,7 @@ public sealed class SessionListViewModel
     /// <summary>
     /// Daftar item sesi permainan yang diperoleh dari API untuk ditampilkan pada halaman daftar.
     /// </summary>
-    public List<SessionListItemDto> Items { get; init; } = new();
+    public List<SessionListItem> Items { get; init; } = new();
     public string? ErrorMessage { get; init; }
 }
 
@@ -21,7 +22,7 @@ public sealed class SessionListViewModel
 public sealed class SessionDetailViewModel
 {
     public Guid SessionId { get; init; }
-    public AnalyticsSessionResponseDto? Analytics { get; init; }
+    public AnalyticsSessionResponse? Analytics { get; init; }
     /// <summary>
     /// Kamus pemetaan ID pemain ke nama tampilan untuk resolusi nama pada halaman detail sesi.
     /// </summary>
@@ -61,11 +62,11 @@ public sealed class PlayerDetailViewModel
     public Guid SessionId { get; init; }
     public Guid PlayerId { get; init; }
     public string? PlayerDisplayName { get; init; }
-    public AnalyticsByPlayerItemDto? Summary { get; init; }
+    public AnalyticsByPlayerItem? Summary { get; init; }
     /// <summary>
     /// Daftar riwayat transaksi keuangan pemain dalam sesi ini.
     /// </summary>
-    public List<TransactionHistoryItemDto> Transactions { get; init; } = new();
+    public List<TransactionHistoryItem> Transactions { get; init; } = new();
     public JsonElement? GameplayRaw { get; init; }
     public JsonElement? GameplayDerived { get; init; }
     public DateTimeOffset? GameplayComputedAt { get; init; }
@@ -115,7 +116,7 @@ public sealed class SessionRulesetViewModel
     /// <summary>
     /// Daftar ruleset yang tersedia untuk dipilih dan dikaitkan dengan sesi permainan.
     /// </summary>
-    public List<RulesetListItemDto> Rulesets { get; set; } = new();
+    public List<RulesetListItem> Rulesets { get; set; } = new();
     public Guid? SelectedRulesetId { get; set; }
     public int? SelectedVersion { get; set; }
     public string? ErrorMessage { get; set; }
@@ -129,7 +130,7 @@ public sealed class PlayerDirectoryViewModel
     /// <summary>
     /// Daftar seluruh pemain yang terdaftar dalam sistem.
     /// </summary>
-    public List<PlayerResponseDto> Players { get; init; } = new();
+    public List<PlayerResponse> Players { get; init; } = new();
     /// <summary>
     /// Daftar grup sesi yang masing-masing berisi data pemain peserta sesi tersebut.
     /// </summary>

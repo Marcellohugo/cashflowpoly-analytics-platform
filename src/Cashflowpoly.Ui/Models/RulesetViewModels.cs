@@ -1,4 +1,6 @@
 // Fungsi file: Mendefinisikan ViewModel untuk halaman daftar, pembuatan, dan detail ruleset permainan.
+using Cashflowpoly.Contracts;
+
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
@@ -9,11 +11,11 @@ public sealed class RulesetListViewModel
     /// <summary>
     /// Daftar item ruleset yang tersedia untuk ditampilkan pada halaman daftar.
     /// </summary>
-    public List<RulesetListItemDto> Items { get; init; } = new();
+    public List<RulesetListItem> Items { get; init; } = new();
     /// <summary>
     /// Daftar komponen default bawaan dari katalog ruleset untuk referensi pengguna.
     /// </summary>
-    public List<DefaultRulesetComponentItemDto> DefaultComponentItems { get; init; } = new();
+    public List<DefaultRulesetComponentItem> DefaultComponentItems { get; init; } = new();
     public string? ErrorMessage { get; init; }
     public string? DefaultComponentsErrorMessage { get; init; }
 }
@@ -36,8 +38,8 @@ public sealed class CreateRulesetViewModel
 /// </summary>
 public sealed class RulesetDetailViewModel
 {
-    public RulesetDetailResponseDto? Ruleset { get; init; }
-    public RulesetComponentsResponseDto? Components { get; init; }
+    public RulesetDetailResponse? Ruleset { get; init; }
+    public RulesetComponentsResponse? Components { get; init; }
     public string? ErrorMessage { get; init; }
     public string? InfoMessage { get; init; }
     public string? ComponentsErrorMessage { get; init; }

@@ -1,5 +1,6 @@
 // Fungsi file: Menangani permintaan HTTP untuk halaman direktori pemain, menampilkan daftar pemain yang dikelompokkan berdasarkan sesi beserta statistik analitik masing-masing.
 using System.Net.Http.Json;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -56,8 +57,8 @@ public sealed class PlayerDirectoryController : Controller
             });
         }
 
-        var playerData = await response.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
-        var players = playerData?.Items ?? new List<PlayerResponseDto>();
+        var playerData = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
+        var players = playerData?.Items ?? new List<PlayerResponse>();
 
         var sessionsResponse = await client.GetAsync("api/v1/sessions", ct);
         unauthorized = this.HandleUnauthorizedApiResponse(sessionsResponse);
@@ -71,8 +72,8 @@ public sealed class PlayerDirectoryController : Controller
 
         if (sessionsResponse.IsSuccessStatusCode)
         {
-            var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
-            var sessions = sessionsData?.Items ?? new List<SessionListItemDto>();
+            var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
+            var sessions = sessionsData?.Items ?? new List<SessionListItem>();
             var playerMap = players.ToDictionary(x => x.PlayerId, x => x.DisplayName);
 
             var analyticsTasks = sessions.Select(async session =>
@@ -80,10 +81,10 @@ public sealed class PlayerDirectoryController : Controller
                 var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
                 if (!analyticsResponse.IsSuccessStatusCode)
                 {
-                    return (session, analytics: (AnalyticsSessionResponseDto?)null);
+                    return (session, analytics: (AnalyticsSessionResponse?)null);
                 }
 
-                var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+                var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
                 return (session, analytics);
             });
 

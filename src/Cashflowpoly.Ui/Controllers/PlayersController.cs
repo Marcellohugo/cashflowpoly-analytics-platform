@@ -1,6 +1,7 @@
 // Fungsi file: Menangani permintaan HTTP untuk halaman detail pemain dalam sesi, termasuk analitik, riwayat transaksi, metrik gameplay, dan grafik perjalanan cashflow.
 using System.Net.Http.Json;
 using System.Text.Json;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,7 @@ public sealed class PlayersController : Controller
 
         if (!analyticsResponse.IsSuccessStatusCode)
         {
-            var error = await analyticsResponse.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await analyticsResponse.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
             return View(new PlayerDetailViewModel
             {
                 SessionId = sessionId,
@@ -59,7 +60,7 @@ public sealed class PlayersController : Controller
             });
         }
 
-        var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
         var summary = analytics?.ByPlayer.FirstOrDefault(p => p.PlayerId == playerId);
 
         var txResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/transactions?playerId={playerId}", ct);
@@ -71,7 +72,7 @@ public sealed class PlayersController : Controller
 
         if (!txResponse.IsSuccessStatusCode)
         {
-            var error = await txResponse.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await txResponse.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
             return View(new PlayerDetailViewModel
             {
                 SessionId = sessionId,
@@ -84,10 +85,10 @@ public sealed class PlayersController : Controller
             });
         }
 
-        var tx = await txResponse.Content.TryReadFromJsonAsync<TransactionHistoryResponseDto>(cancellationToken: ct);
-        var transactions = tx?.Items ?? new List<TransactionHistoryItemDto>();
+        var tx = await txResponse.Content.TryReadFromJsonAsync<TransactionHistoryResponse>(cancellationToken: ct);
+        var transactions = tx?.Items ?? new List<TransactionHistoryItem>();
         string? gameplayError = null;
-        GameplayMetricsResponseDto? gameplay = null;
+        GameplayMetricsResponse? gameplay = null;
         var gameplayResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay", ct);
         unauthorized = this.HandleUnauthorizedApiResponse(gameplayResponse);
         if (unauthorized is not null)
@@ -97,11 +98,11 @@ public sealed class PlayersController : Controller
 
         if (gameplayResponse.IsSuccessStatusCode)
         {
-            gameplay = await gameplayResponse.Content.TryReadFromJsonAsync<GameplayMetricsResponseDto>(cancellationToken: ct);
+            gameplay = await gameplayResponse.Content.TryReadFromJsonAsync<GameplayMetricsResponse>(cancellationToken: ct);
         }
         else
         {
-            var error = await gameplayResponse.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await gameplayResponse.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
             gameplayError = error?.Message ?? HttpContext
                 .T("players.error.load_gameplay_failed")
                 .Replace("{status}", ((int)gameplayResponse.StatusCode).ToString());
@@ -143,7 +144,7 @@ public sealed class PlayersController : Controller
             return null;
         }
 
-        var players = await response.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
+        var players = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
         return players?.Items.FirstOrDefault(item => item.PlayerId == playerId)?.DisplayName;
     }
 
@@ -154,7 +155,7 @@ public sealed class PlayersController : Controller
     /// <param name="transactions">Daftar item riwayat transaksi pemain.</param>
     /// <param name="startingCash">Jumlah kas awal pemain di awal permainan.</param>
     /// <returns>ViewModel statistik perjalanan cashflow dengan data seri untuk grafik.</returns>
-    private static PlayerCashflowJourneyStatsViewModel BuildCashflowJourneyStats(List<TransactionHistoryItemDto> transactions, double startingCash)
+    private static PlayerCashflowJourneyStatsViewModel BuildCashflowJourneyStats(List<TransactionHistoryItem> transactions, double startingCash)
     {
         var orderedTransactions = transactions
             .OrderBy(item => item.Timestamp)

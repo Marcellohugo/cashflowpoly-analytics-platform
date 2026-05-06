@@ -1,8 +1,9 @@
 // Fungsi file: Menangani permintaan HTTP untuk halaman sesi permainan, termasuk daftar sesi, detail analitik, timeline event, dan manajemen aktivasi ruleset pada sesi.
 using System.Net.Http.Json;
+using System.Net;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
-using System.Net;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
@@ -59,10 +60,10 @@ public sealed class SessionsController : Controller
             });
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+        var data = await response.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
         return View(new SessionListViewModel
         {
-            Items = data?.Items ?? new List<SessionListItemDto>()
+            Items = data?.Items ?? new List<SessionListItem>()
         });
     }
 
@@ -115,7 +116,7 @@ public sealed class SessionsController : Controller
             });
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);
+        var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
         var timeline = SessionTimelineMapper.MapTimeline(data?.Events, language);
         var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, ct);
@@ -199,7 +200,7 @@ public sealed class SessionsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
             return await BuildRulesetFormErrorResult(
                 sessionId,
                 model,
@@ -278,7 +279,7 @@ public sealed class SessionsController : Controller
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.TryReadFromJsonAsync<ApiErrorResponseDto>(cancellationToken: ct);
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
             var fallbackPlayerDisplayNames = await playerDisplayNamesTask;
             var (fallbackTimeline, fallbackTimelineError) = await timelineTask;
             SessionTimelineMapper.ApplyPlayerDisplayNames(fallbackTimeline, fallbackPlayerDisplayNames);
@@ -296,7 +297,7 @@ public sealed class SessionsController : Controller
             }, null);
         }
 
-        var analytics = await response.Content.TryReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+        var analytics = await response.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
         var playerDisplayNames = await playerDisplayNamesTask;
         var (timeline, timelineError) = await timelineTask;
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
@@ -328,7 +329,7 @@ public sealed class SessionsController : Controller
             return null;
         }
 
-        var data = await sessionResponse.Content.TryReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
+        var data = await sessionResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
         return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
     }
 
@@ -338,7 +339,7 @@ public sealed class SessionsController : Controller
     /// <param name="client">HTTP client untuk komunikasi ke API backend.</param>
     /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
     /// <returns>Tuple berisi daftar ruleset, hasil unauthorized jika ada, dan pesan kesalahan opsional.</returns>
-    private async Task<(List<RulesetListItemDto> Rulesets, IActionResult? UnauthorizedResult, string? ErrorMessage)> LoadRulesetOptionsAsync(
+    private async Task<(List<RulesetListItem> Rulesets, IActionResult? UnauthorizedResult, string? ErrorMessage)> LoadRulesetOptionsAsync(
         HttpClient client,
         CancellationToken ct)
     {
@@ -346,20 +347,20 @@ public sealed class SessionsController : Controller
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
-            return (new List<RulesetListItemDto>(), unauthorized, null);
+            return (new List<RulesetListItem>(), unauthorized, null);
         }
 
         if (!response.IsSuccessStatusCode)
         {
             return (
-                new List<RulesetListItemDto>(),
+                new List<RulesetListItem>(),
                 null,
                 HttpContext.T("sessions.error.load_rulesets_failed")
                     .Replace("{status}", ((int)response.StatusCode).ToString()));
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
-        return (data?.Items ?? new List<RulesetListItemDto>(), null, null);
+        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(cancellationToken: ct);
+        return (data?.Items ?? new List<RulesetListItem>(), null, null);
     }
 
     /// <summary>
@@ -378,8 +379,8 @@ public sealed class SessionsController : Controller
             return new Dictionary<Guid, string>();
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
-        return (data?.Items ?? new List<PlayerResponseDto>())
+        var data = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
+        return (data?.Items ?? new List<PlayerResponse>())
             .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
             .GroupBy(item => item.PlayerId)
             .ToDictionary(group => group.Key, group => group.First().DisplayName);
@@ -408,7 +409,7 @@ public sealed class SessionsController : Controller
                     .Replace("{status}", ((int)response.StatusCode).ToString()));
         }
 
-        var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponseDto>(cancellationToken: ct);
+        var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
         if (data?.Events is null || data.Events.Count == 0)
         {
             return (new List<SessionTimelineEventViewModel>(), null);

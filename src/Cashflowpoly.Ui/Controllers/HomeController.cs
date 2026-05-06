@@ -1,8 +1,9 @@
 // Fungsi file: Menangani permintaan HTTP untuk halaman beranda, termasuk statistik realtime, halaman rulebook, dan penanganan error.
 using System.Diagnostics;
+using System.Net.Http.Json;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -139,14 +140,14 @@ public class HomeController : Controller
         }
 
         var errorMessages = new List<string>();
-        var sessions = new List<SessionListItemDto>();
-        var players = new List<PlayerResponseDto>();
-        var rulesets = new List<RulesetListItemDto>();
+        var sessions = new List<SessionListItem>();
+        var players = new List<PlayerResponse>();
+        var rulesets = new List<RulesetListItem>();
 
         if (sessionsResponse.IsSuccessStatusCode)
         {
-            var data = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
-            sessions = data?.Items ?? new List<SessionListItemDto>();
+            var data = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
+            sessions = data?.Items ?? new List<SessionListItem>();
         }
         else
         {
@@ -155,8 +156,8 @@ public class HomeController : Controller
 
         if (playersResponse.IsSuccessStatusCode)
         {
-            var data = await playersResponse.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
-            players = data?.Items ?? new List<PlayerResponseDto>();
+            var data = await playersResponse.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
+            players = data?.Items ?? new List<PlayerResponse>();
         }
         else
         {
@@ -165,8 +166,8 @@ public class HomeController : Controller
 
         if (rulesetsResponse.IsSuccessStatusCode)
         {
-            var data = await rulesetsResponse.Content.TryReadFromJsonAsync<RulesetListResponseDto>(cancellationToken: ct);
-            rulesets = data?.Items ?? new List<RulesetListItemDto>();
+            var data = await rulesetsResponse.Content.TryReadFromJsonAsync<RulesetListResponse>(cancellationToken: ct);
+            rulesets = data?.Items ?? new List<RulesetListItem>();
         }
         else
         {
