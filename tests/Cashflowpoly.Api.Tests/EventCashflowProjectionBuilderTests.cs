@@ -16,7 +16,7 @@ public sealed class EventCashflowProjectionBuilderTests
             actionType: "day.friday.donation",
             payloadJson: """{"amount":5}""");
 
-        var ok = EventCashflowProjectionBuilder.TryBuild(
+        var ok = new EventCashflowProjectionBuilder().TryBuild(
             request,
             DateTimeOffset.Parse("2026-01-02T03:04:05Z"),
             Guid.NewGuid(),
@@ -41,7 +41,7 @@ public sealed class EventCashflowProjectionBuilderTests
             actionType: "day.saturday.gold_trade",
             payloadJson: """{"trade_type":"SELL","qty":2,"unit_price":6,"amount":12}""");
 
-        var ok = EventCashflowProjectionBuilder.TryBuild(request, timestamp, eventPk, out var projection);
+        var ok = new EventCashflowProjectionBuilder().TryBuild(request, timestamp, eventPk, out var projection);
 
         Assert.True(ok);
         Assert.NotNull(projection);
@@ -69,7 +69,7 @@ public sealed class EventCashflowProjectionBuilderTests
                 }
                 """);
 
-        var ok = EventCashflowProjectionBuilder.TryBuild(
+        var ok = new EventCashflowProjectionBuilder().TryBuild(
             request,
             DateTimeOffset.Parse("2026-01-02T03:04:05Z"),
             Guid.NewGuid(),

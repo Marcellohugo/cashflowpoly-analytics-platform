@@ -43,7 +43,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
             LoanPenaltyPoints: 0,
             HasUnpaidLoan: false);
 
-        var snapshot = AnalyticsGameplaySnapshotBuilder.Build(playerEvents, projections, allEvents, config: null, happiness);
+        var snapshot = new GameplaySnapshotBuilder().Build(playerEvents, projections, allEvents, config: null, happiness);
 
         using var rawDoc = JsonDocument.Parse(snapshot.RawJson);
         using var derivedDoc = JsonDocument.Parse(snapshot.DerivedJson);

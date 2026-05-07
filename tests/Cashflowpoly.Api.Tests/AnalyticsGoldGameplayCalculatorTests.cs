@@ -19,7 +19,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
             CreateEvent(playerId, "transaction.recorded", """{"amount":99}""")
         };
 
-        var metrics = AnalyticsGoldGameplayCalculator.Compute(events);
+        var metrics = new GoldGameplayCalculator().Compute(events);
 
         Assert.Equal(5, metrics.GoldBuyQty);
         Assert.Equal(1, metrics.GoldSellQty);

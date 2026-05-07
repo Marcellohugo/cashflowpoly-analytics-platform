@@ -14,7 +14,7 @@ public sealed class EventRequestShapeValidatorTests
     {
         var request = CreateRequest() with { ActorType = "BANK" };
 
-        var result = EventRequestShapeValidator.Validate(request, scopedPlayerId: null);
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
 
         Assert.False(result.IsValid);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
@@ -29,7 +29,7 @@ public sealed class EventRequestShapeValidatorTests
         var playerId = Guid.NewGuid();
         var request = CreateRequest() with { ActorType = "SYSTEM", PlayerId = playerId };
 
-        var result = EventRequestShapeValidator.Validate(request, scopedPlayerId: playerId);
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: playerId);
 
         Assert.False(result.IsValid);
         Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
@@ -44,7 +44,7 @@ public sealed class EventRequestShapeValidatorTests
         var scopedPlayerId = Guid.NewGuid();
         var request = CreateRequest() with { PlayerId = Guid.NewGuid() };
 
-        var result = EventRequestShapeValidator.Validate(request, scopedPlayerId);
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId);
 
         Assert.False(result.IsValid);
         Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
@@ -58,7 +58,7 @@ public sealed class EventRequestShapeValidatorTests
         var playerId = Guid.NewGuid();
         var request = CreateRequest() with { PlayerId = playerId };
 
-        var result = EventRequestShapeValidator.Validate(request, scopedPlayerId: playerId);
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: playerId);
 
         Assert.True(result.IsValid);
         Assert.Equal(StatusCodes.Status200OK, result.StatusCode);

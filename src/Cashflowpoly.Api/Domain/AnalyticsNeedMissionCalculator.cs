@@ -1,6 +1,5 @@
 // Fungsi file: Menghitung metrik kebutuhan dan misi gameplay dari event pemain.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 
 namespace Cashflowpoly.Api.Domain;
@@ -19,9 +18,11 @@ public sealed record AnalyticsNeedMissionMetrics(
     double? FulfillmentDiversity,
     int? MissionAchievement);
 
-internal static class AnalyticsNeedMissionCalculator
+internal sealed class NeedMissionCalculator : INeedMissionCalculator
 {
-    internal static AnalyticsNeedMissionMetrics Compute(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsNeedMissionMetrics Compute(
         IEnumerable<EventDb> playerEvents,
         IEnumerable<CashflowProjectionDb> playerProjections)
     {
@@ -35,7 +36,7 @@ internal static class AnalyticsNeedMissionCalculator
         foreach (var evt in playerEvents)
         {
             if (evt.ActionType == "need.primary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out var primaryCardId, out _))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var primaryCardId, out _))
             {
                 primaryNeeds += 1;
                 if (!string.IsNullOrWhiteSpace(primaryCardId))
@@ -45,7 +46,7 @@ internal static class AnalyticsNeedMissionCalculator
             }
 
             if (evt.ActionType == "need.secondary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out var secondaryCardId, out _))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var secondaryCardId, out _))
             {
                 secondaryNeeds += 1;
                 if (!string.IsNullOrWhiteSpace(secondaryCardId))
@@ -55,7 +56,7 @@ internal static class AnalyticsNeedMissionCalculator
             }
 
             if (evt.ActionType == "need.tertiary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
             {
                 tertiaryNeeds += 1;
                 if (!string.IsNullOrWhiteSpace(cardId))
@@ -65,7 +66,7 @@ internal static class AnalyticsNeedMissionCalculator
             }
 
             if (evt.ActionType == "mission.assigned" &&
-                TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
+                _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
             }

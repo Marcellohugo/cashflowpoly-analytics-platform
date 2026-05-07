@@ -17,7 +17,7 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
             BuildEvent("need.primary.purchased", dayIndex: 2, sequenceNumber: 3)
         };
 
-        var result = AnalyticsPrimaryNeedComplianceEvaluator.Evaluate(events, BuildConfig());
+        var result = new PrimaryNeedComplianceEvaluator().Evaluate(events, BuildConfig());
 
         Assert.Equal(0.5, result.Rate);
         Assert.Equal(2, result.EvaluatedDays);
@@ -30,7 +30,7 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
     [Fact]
     public void Evaluate_ReturnsZero_WhenConfigMissing()
     {
-        var result = AnalyticsPrimaryNeedComplianceEvaluator.Evaluate(
+        var result = new PrimaryNeedComplianceEvaluator().Evaluate(
             [BuildEvent("need.primary.purchased", dayIndex: 1, sequenceNumber: 1)],
             config: null);
 

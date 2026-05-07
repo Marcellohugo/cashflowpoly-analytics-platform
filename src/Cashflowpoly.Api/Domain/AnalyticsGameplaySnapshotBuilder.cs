@@ -3,15 +3,26 @@ using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
 public sealed record AnalyticsGameplaySnapshot(string RawJson, string DerivedJson);
 
-internal static class AnalyticsGameplaySnapshotBuilder
+internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
 {
-    internal static AnalyticsGameplaySnapshot Build(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+    private static readonly CashTimelineCalculator _cashTimeline = new();
+    private static readonly DonationGameplayCalculator _donationCalc = new();
+    private static readonly SavingGoalCalculator _savingGoalCalc = new();
+    private static readonly IngredientMealCalculator _ingredientMealCalc = new();
+    private static readonly NeedMissionCalculator _needMissionCalc = new();
+    private static readonly GoldGameplayCalculator _goldCalc = new();
+    private static readonly RiskLoanCalculator _riskLoanCalc = new();
+    private static readonly ActionUsageCalculator _actionUsageCalc = new();
+    private static readonly IncomeDiversificationCalculator _incomeDivCalc = new();
+    private static readonly DerivedRatioCalculator _derivedRatioCalc = new();
+
+    public AnalyticsGameplaySnapshot Build(
         List<EventDb> playerEvents,
         List<CashflowProjectionDb> playerProjections,
         List<EventDb> allEvents,
@@ -21,7 +32,7 @@ internal static class AnalyticsGameplaySnapshotBuilder
         var notesRaw = new List<string>();
         var notesDerived = new List<string>();
 
-        var cashTimeline = AnalyticsCashTimelineCalculator.Compute(
+        var cashTimeline = _cashTimeline.Compute(
             playerEvents,
             playerProjections,
             config?.StartingCash ?? 0);
@@ -31,13 +42,13 @@ internal static class AnalyticsGameplaySnapshotBuilder
         var coinsNetEndGame = cashTimeline.CoinsNetEndGame;
         var coinsHeldCurrent = cashTimeline.CoinsHeldCurrent;
 
-        var donationMetrics = AnalyticsDonationGameplayCalculator.Compute(playerEvents, allEvents, coinsNetEndGame);
+        var donationMetrics = _donationCalc.Compute(playerEvents, allEvents, coinsNetEndGame);
         var donationTotal = donationMetrics.DonationTotalCoins;
 
-        var savingGoalMetrics = AnalyticsSavingGoalCalculator.Compute(playerEvents);
+        var savingGoalMetrics = _savingGoalCalc.Compute(playerEvents);
         var coinsSaved = savingGoalMetrics.CoinsSaved;
 
-        var ingredientMealMetrics = AnalyticsIngredientMealCalculator.Compute(playerEvents, playerProjections);
+        var ingredientMealMetrics = _ingredientMealCalc.Compute(playerEvents, playerProjections);
         var inventory = ingredientMealMetrics.Inventory;
         var ingredientsCollected = ingredientMealMetrics.IngredientsCollected;
         var ingredientTypesHeld = ingredientMealMetrics.IngredientTypesHeld;
@@ -52,26 +63,26 @@ internal static class AnalyticsGameplaySnapshotBuilder
         var essentialIngredientExpenses = ingredientMealMetrics.EssentialIngredientExpenses;
         var maxTurnNumber = ingredientMealMetrics.MaxTurnNumber;
 
-        var needMissionMetrics = AnalyticsNeedMissionCalculator.Compute(playerEvents, playerProjections);
+        var needMissionMetrics = _needMissionCalc.Compute(playerEvents, playerProjections);
 
-        var goldMetrics = AnalyticsGoldGameplayCalculator.Compute(playerEvents);
+        var goldMetrics = _goldCalc.Compute(playerEvents);
         var goldInvestmentEarned = goldMetrics.GoldInvestmentEarned;
         var goldInvestmentSpent = goldMetrics.GoldInvestmentSpent;
         var goldInvestmentNet = goldMetrics.GoldInvestmentNet;
 
         var pensionRank = playerEvents
             .Where(e => e.ActionType == "pension.rank.awarded")
-            .Select(e => TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0)
+            .Select(e => _payloadReader.TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0)
             .FirstOrDefault(rank => rank > 0);
 
-        var riskLoanMetrics = AnalyticsRiskLoanCalculator.Compute(
+        var riskLoanMetrics = _riskLoanCalc.Compute(
             playerEvents,
             playerProjections,
             startingCoins,
             coinsNetEndGame,
             cashInTotal);
 
-        var actionMetrics = AnalyticsActionUsageCalculator.Compute(
+        var actionMetrics = _actionUsageCalc.Compute(
             playerEvents,
             playerProjections,
             maxTurnNumber,
@@ -248,7 +259,7 @@ internal static class AnalyticsGameplaySnapshotBuilder
         var riskMitigationEffectiveness = riskLoanMetrics.RiskMitigationEffectiveness;
 
         var netWorthIndex = SafeRatio(coinsNetEndGame, startingCoins, true);
-        var incomeDiversificationMetrics = AnalyticsIncomeDiversificationCalculator.Compute(
+        var incomeDiversificationMetrics = _incomeDivCalc.Compute(
             playerEvents,
             playerProjections,
             totalIncome,
@@ -277,7 +288,7 @@ internal static class AnalyticsGameplaySnapshotBuilder
         var actionEfficiencyPercent = actionMetrics.ActionEfficiencyPercent;
         var actionDiversityAverage = actionMetrics.ActionDiversityAverage;
 
-        var derivedRatioMetrics = AnalyticsDerivedRatioCalculator.Compute(
+        var derivedRatioMetrics = _derivedRatioCalc.Compute(
             essentialIngredientExpenses,
             totalExpenses,
             mealOrderIncomeTotal,

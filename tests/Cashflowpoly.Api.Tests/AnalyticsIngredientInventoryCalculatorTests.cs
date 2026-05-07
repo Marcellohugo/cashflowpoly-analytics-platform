@@ -18,7 +18,7 @@ public sealed class AnalyticsIngredientInventoryCalculatorTests
             BuildEvent("ingredient.discarded", """{"card_id":"flour","amount":1}""")
         };
 
-        var inventory = AnalyticsIngredientInventoryCalculator.BuildIngredientInventory(events);
+        var inventory = new IngredientInventoryCalculator().BuildIngredientInventory(events);
 
         Assert.Equal(0, inventory.Total);
         Assert.Equal(0, inventory.ByCardId["flour"]);
@@ -35,7 +35,7 @@ public sealed class AnalyticsIngredientInventoryCalculatorTests
             BuildEvent("ingredient.discarded", """{"card_id":"unknown","amount":2}""")
         };
 
-        var inventory = AnalyticsIngredientInventoryCalculator.BuildIngredientInventory(events);
+        var inventory = new IngredientInventoryCalculator().BuildIngredientInventory(events);
 
         Assert.Equal(2, inventory.Total);
         Assert.Equal(2, inventory.ByCardId["flour"]);

@@ -2,8 +2,6 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventDerivedStateCalculator;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -11,11 +9,13 @@ public sealed record EventSavingGoalValidation(
     EventDomainValidationResult Validation,
     int? OutgoingAmount);
 
-internal static class EventSavingGoalValidator
+internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
 {
+    private static readonly EventPayloadReader _payloadReader = new();
+    private static readonly EventDerivedStateCalculator _derivedState = new();
     private const int RulebookSavingMaxDeposit = 15;
 
-    internal static bool TryValidate(
+    public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
@@ -38,7 +38,7 @@ internal static class EventSavingGoalValidator
         return false;
     }
 
-    private static EventSavingGoalValidation ValidateDeposit(
+    private EventSavingGoalValidation ValidateDeposit(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
@@ -49,7 +49,7 @@ internal static class EventSavingGoalValidator
             return new EventSavingGoalValidation(featureValidation, null);
         }
 
-        if (!TryReadSavingDeposit(request.Payload, out var goalId, out var amount))
+        if (!_payloadReader.TryReadSavingDeposit(request.Payload, out var goalId, out var amount))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -70,7 +70,7 @@ internal static class EventSavingGoalValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Maksimal tabungan per aksi adalah 15 koin");
         }
 
-        var balance = ComputeSavingBalance(history, request.PlayerId!.Value, goalId);
+        var balance = _derivedState.ComputeSavingBalance(history, request.PlayerId!.Value, goalId);
         if (!isCreate && balance < amount)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi");
@@ -79,7 +79,7 @@ internal static class EventSavingGoalValidator
         return new EventSavingGoalValidation(EventDomainValidationResult.Valid, isCreate ? amount : null);
     }
 
-    private static EventSavingGoalValidation ValidateGoalAchieved(
+    private EventSavingGoalValidation ValidateGoalAchieved(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
@@ -90,7 +90,7 @@ internal static class EventSavingGoalValidator
             return new EventSavingGoalValidation(featureValidation, null);
         }
 
-        if (!TryReadSavingGoalAchieved(request.Payload, out var goalId, out var points, out var cost))
+        if (!_payloadReader.TryReadSavingGoalAchieved(request.Payload, out var goalId, out var points, out var cost))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -117,7 +117,7 @@ internal static class EventSavingGoalValidator
                 new ErrorDetail("payload.cost", "OUT_OF_RANGE"));
         }
 
-        var balance = ComputeSavingBalance(history, request.PlayerId!.Value, goalId);
+        var balance = _derivedState.ComputeSavingBalance(history, request.PlayerId!.Value, goalId);
         if (cost > 0 && balance < cost)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi untuk goal");
@@ -126,7 +126,7 @@ internal static class EventSavingGoalValidator
         return new EventSavingGoalValidation(EventDomainValidationResult.Valid, null);
     }
 
-    private static EventDomainValidationResult ValidateFeatureAndPlayer(EventRequest request, RulesetConfig config)
+    private EventDomainValidationResult ValidateFeatureAndPlayer(EventRequest request, RulesetConfig config)
     {
         if (!config.SavingGoalEnabled)
         {
@@ -148,7 +148,7 @@ internal static class EventSavingGoalValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidateSavingDepositPayload(string goalId, int amount)
+    private EventDomainValidationResult ValidateSavingDepositPayload(string goalId, int amount)
     {
         if (string.IsNullOrWhiteSpace(goalId))
         {
@@ -171,7 +171,7 @@ internal static class EventSavingGoalValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventSavingGoalValidation Fail(
+    private EventSavingGoalValidation Fail(
         int statusCode,
         string errorCode,
         string message,

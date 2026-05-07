@@ -2,7 +2,6 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -10,9 +9,11 @@ public sealed record EventNeedPurchaseValidation(
     EventDomainValidationResult Validation,
     int? OutgoingAmount);
 
-internal static class EventNeedPurchaseValidator
+internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
 {
-    internal static bool TryValidate(
+    private static readonly EventPayloadReader _payloadReader = new();
+
+    public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
@@ -35,7 +36,7 @@ internal static class EventNeedPurchaseValidator
         return false;
     }
 
-    private static EventNeedPurchaseValidation ValidatePrimary(
+    private EventNeedPurchaseValidation ValidatePrimary(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
@@ -73,7 +74,7 @@ internal static class EventNeedPurchaseValidator
         return new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, amount);
     }
 
-    private static EventNeedPurchaseValidation ValidateSecondaryOrTertiary(
+    private EventNeedPurchaseValidation ValidateSecondaryOrTertiary(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
@@ -100,10 +101,10 @@ internal static class EventNeedPurchaseValidator
         return new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, request.PlayerId is null ? null : amount);
     }
 
-    private static EventDomainValidationResult ValidatePayload(EventRequest request, bool primary, out int amount)
+    private EventDomainValidationResult ValidatePayload(EventRequest request, bool primary, out int amount)
     {
         amount = 0;
-        if (!TryReadNeedPurchase(request.Payload, out var cardId, out amount, out var points))
+        if (!_payloadReader.TryReadNeedPurchase(request.Payload, out var cardId, out amount, out var points))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -151,7 +152,7 @@ internal static class EventNeedPurchaseValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventNeedPurchaseValidation Fail(
+    private EventNeedPurchaseValidation Fail(
         int statusCode,
         string errorCode,
         string message,

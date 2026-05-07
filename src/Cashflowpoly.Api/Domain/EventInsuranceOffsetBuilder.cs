@@ -2,13 +2,14 @@
 using System.Diagnostics.CodeAnalysis;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventInsuranceOffsetBuilder
+internal sealed class EventInsuranceOffsetBuilder : IEventInsuranceOffsetBuilder
 {
-    internal static bool TryReadRiskEventReference(
+    private static readonly EventPayloadReader _payloadReader = new();
+
+    public bool TryReadRiskEventReference(
         EventRequest request,
         out string riskEventIdText,
         out Guid riskEventId)
@@ -17,7 +18,7 @@ internal static class EventInsuranceOffsetBuilder
         riskEventId = Guid.Empty;
         if (request.PlayerId is null ||
             !string.Equals(request.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) ||
-            !TryReadInsuranceUsed(request.Payload, out riskEventIdText))
+            !_payloadReader.TryReadInsuranceUsed(request.Payload, out riskEventIdText))
         {
             return false;
         }
@@ -25,7 +26,7 @@ internal static class EventInsuranceOffsetBuilder
         return Guid.TryParse(riskEventIdText, out riskEventId);
     }
 
-    internal static bool TryBuild(
+    public bool TryBuild(
         EventRequest request,
         DateTimeOffset timestamp,
         Guid eventPk,
@@ -46,8 +47,8 @@ internal static class EventInsuranceOffsetBuilder
             return false;
         }
 
-        var riskPayload = ReadPayload(riskEvent.Payload);
-        if (!TryReadRiskLife(riskPayload, out _, out var direction, out var amount) ||
+        var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
+        if (!_payloadReader.TryReadRiskLife(riskPayload, out _, out var direction, out var amount) ||
             !string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
             amount <= 0)
         {

@@ -20,7 +20,7 @@ public sealed class AnalyticsPlayerOrderingTests
             BuildPlayer(second)
         };
 
-        var ordered = AnalyticsPlayerOrdering.OrderPlayers(
+        var ordered = new PlayerOrderingService().OrderPlayers(
             players,
             PlayerOrdering.JoinOrder,
             new Dictionary<Guid, int> { [first] = 2, [second] = 1 },
@@ -43,7 +43,7 @@ public sealed class AnalyticsPlayerOrderingTests
             BuildPlayer(first)
         };
 
-        var ordered = AnalyticsPlayerOrdering.OrderPlayers(
+        var ordered = new PlayerOrderingService().OrderPlayers(
             players,
             PlayerOrdering.Username,
             new Dictionary<Guid, int>(),
@@ -68,7 +68,7 @@ public sealed class AnalyticsPlayerOrderingTests
             BuildPlayer(second)
         };
 
-        var ordered = AnalyticsPlayerOrdering.OrderPlayers(
+        var ordered = new PlayerOrderingService().OrderPlayers(
             players,
             PlayerOrdering.EventSequence,
             new Dictionary<Guid, int> { [first] = 1, [second] = 2 },

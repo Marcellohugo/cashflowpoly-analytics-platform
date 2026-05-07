@@ -2,15 +2,15 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventAssignmentValidator
+internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 {
+    private static readonly EventPayloadReader _payloadReader = new();
     private const int RulebookMissionPenaltyPoints = 10;
 
-    internal static bool TryValidate(
+    public bool TryValidate(
         EventRequest request,
         IEnumerable<EventDb> history,
         out EventDomainValidationResult result)
@@ -31,7 +31,7 @@ internal static class EventAssignmentValidator
         return false;
     }
 
-    private static EventDomainValidationResult ValidateMission(EventRequest request, IEnumerable<EventDb> history)
+    private EventDomainValidationResult ValidateMission(EventRequest request, IEnumerable<EventDb> history)
     {
         var playerCheck = RequirePlayer(request);
         if (!playerCheck.IsValid)
@@ -39,7 +39,7 @@ internal static class EventAssignmentValidator
             return playerCheck;
         }
 
-        if (!TryReadMissionAssigned(request.Payload, out var missionId, out var targetCardId, out var penaltyPoints))
+        if (!_payloadReader.TryReadMissionAssigned(request.Payload, out var missionId, out var targetCardId, out var penaltyPoints))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -88,7 +88,7 @@ internal static class EventAssignmentValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidateTieBreaker(EventRequest request, IEnumerable<EventDb> history)
+    private EventDomainValidationResult ValidateTieBreaker(EventRequest request, IEnumerable<EventDb> history)
     {
         var playerCheck = RequirePlayer(request);
         if (!playerCheck.IsValid)
@@ -96,7 +96,7 @@ internal static class EventAssignmentValidator
             return playerCheck;
         }
 
-        if (!TryReadTieBreaker(request.Payload, out var number))
+        if (!_payloadReader.TryReadTieBreaker(request.Payload, out var number))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -128,7 +128,7 @@ internal static class EventAssignmentValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult RequirePlayer(EventRequest request)
+    private EventDomainValidationResult RequirePlayer(EventRequest request)
     {
         if (request.PlayerId is not null)
         {

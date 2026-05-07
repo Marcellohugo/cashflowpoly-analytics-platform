@@ -19,7 +19,7 @@ public sealed class AnalyticsMetricSnapshotBuilderTests
             ["gameplay.raw.variables"] = (null, """{"coins":20}""")
         };
 
-        var snapshots = AnalyticsMetricSnapshotBuilder.BuildMetricSnapshots(
+        var snapshots = new MetricSnapshotBuilder().BuildMetricSnapshots(
             sessionId,
             playerId,
             rulesetVersionId,

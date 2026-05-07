@@ -1,32 +1,32 @@
 // Fungsi file: Menghitung inventaris bahan pemain dari event analitik gameplay.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
 /// Kalkulator inventaris bahan analitik dari event pembelian, klaim pesanan, dan discard.
 /// </summary>
-internal static class AnalyticsIngredientInventoryCalculator
+internal sealed class IngredientInventoryCalculator : IIngredientInventoryCalculator
 {
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
     /// <summary>
     /// Membangun inventaris bahan berdasarkan event pembelian, klaim pesanan, dan discard.
     /// </summary>
-    internal static AnalyticsIngredientInventory BuildIngredientInventory(List<EventDb> events)
+    public AnalyticsIngredientInventory BuildIngredientInventory(List<EventDb> events)
     {
         var inventory = new AnalyticsIngredientInventory();
 
         foreach (var evt in events)
         {
             if (evt.ActionType == "ingredient.purchased" &&
-                TryReadIngredientPurchase(evt.Payload, out var cardId, out var amount))
+                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out var amount))
             {
                 inventory.Total += amount;
                 inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + amount : amount;
             }
 
             if (evt.ActionType == "order.claimed" &&
-                TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
+                _payloadReader.TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
             {
                 foreach (var card in requiredCards)
                 {
@@ -39,7 +39,7 @@ internal static class AnalyticsIngredientInventoryCalculator
             }
 
             if (evt.ActionType == "ingredient.discarded" &&
-                TryReadIngredientPurchase(evt.Payload, out var discardCardId, out var discardAmount) &&
+                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var discardCardId, out var discardAmount) &&
                 inventory.ByCardId.TryGetValue(discardCardId, out var discardQty))
             {
                 var newQty = Math.Max(0, discardQty - discardAmount);

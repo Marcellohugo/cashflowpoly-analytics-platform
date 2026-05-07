@@ -2,20 +2,21 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventTurnProgressValidator
+internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 {
-    internal static bool RequiresHistory(EventRequest request, RulesetConfig config)
+    private static readonly EventPayloadReader _payloadReader = new();
+
+    public bool RequiresHistory(EventRequest request, RulesetConfig config)
     {
         return string.Equals(request.ActionType, "turn.action.used", StringComparison.OrdinalIgnoreCase) ||
                (string.Equals(request.ActionType, "turn.ended", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase));
     }
 
-    internal static bool TryValidate(
+    public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
@@ -38,12 +39,12 @@ internal static class EventTurnProgressValidator
         return false;
     }
 
-    private static EventDomainValidationResult ValidateActionUsed(
+    private EventDomainValidationResult ValidateActionUsed(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
     {
-        if (!TryReadActionUsed(request.Payload, out var used, out var remaining))
+        if (!_payloadReader.TryReadActionUsed(request.Payload, out var used, out var remaining))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -76,7 +77,7 @@ internal static class EventTurnProgressValidator
                      e.TurnNumber == request.TurnNumber &&
                      e.ActionType == "turn.action.used"))
         {
-            if (TryReadActionUsed(ReadPayload(evt.Payload), out var usedValue, out _))
+            if (_payloadReader.TryReadActionUsed(_payloadReader.ReadPayload(evt.Payload), out var usedValue, out _))
             {
                 usedSoFar += usedValue;
             }
@@ -93,7 +94,7 @@ internal static class EventTurnProgressValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidateTurnEndedMahir(EventRequest request, IEnumerable<EventDb> history)
+    private EventDomainValidationResult ValidateTurnEndedMahir(EventRequest request, IEnumerable<EventDb> history)
     {
         var turnEvents = history.Where(e => e.TurnNumber == request.TurnNumber && e.PlayerId.HasValue).ToList();
 

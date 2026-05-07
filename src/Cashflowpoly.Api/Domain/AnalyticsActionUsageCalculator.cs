@@ -2,7 +2,6 @@
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -35,16 +34,18 @@ public sealed record AnalyticsActionSlot(
     [property: JsonPropertyName("action_type")] string ActionType,
     [property: JsonIgnore] long SequenceNumber);
 
-internal static class AnalyticsActionUsageCalculator
+internal sealed class ActionUsageCalculator : IActionUsageCalculator
 {
-    internal static AnalyticsActionUsageMetrics Compute(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         int maxTurnNumber,
         int actionsPerTurn)
     {
         var actionEvents = playerEvents
-            .Where(e => IsActionEvent(e.ActionType))
+            .Where(e => _payloadReader.IsActionEvent(e.ActionType))
             .OrderBy(e => e.SequenceNumber)
             .ToList();
 

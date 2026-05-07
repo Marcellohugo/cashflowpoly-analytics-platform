@@ -1,6 +1,5 @@
 // Fungsi file: Menghitung metrik emas gameplay dari histori event pemain.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -14,9 +13,11 @@ public sealed record AnalyticsGoldGameplayMetrics(
     int GoldInvestmentEarned,
     int GoldInvestmentNet);
 
-internal static class AnalyticsGoldGameplayCalculator
+internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
 {
-    internal static AnalyticsGoldGameplayMetrics Compute(IEnumerable<EventDb> playerEvents)
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsGoldGameplayMetrics Compute(IEnumerable<EventDb> playerEvents)
     {
         var goldBuyQty = 0;
         var goldSellQty = 0;
@@ -27,7 +28,7 @@ internal static class AnalyticsGoldGameplayCalculator
 
         foreach (var evt in playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade"))
         {
-            if (!TryReadGoldTradeDetailed(evt.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
+            if (!_payloadReader.TryReadGoldTradeDetailed(evt.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
             {
                 continue;
             }

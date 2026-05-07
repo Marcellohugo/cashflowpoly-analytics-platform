@@ -7,14 +7,14 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Helper pengurutan pemain analitik untuk menjaga controller tetap tipis.
 /// </summary>
-internal static class AnalyticsPlayerOrdering
+internal sealed class PlayerOrderingService : IPlayerOrdering
 {
     private static readonly StringComparer UsernameOrderingComparer = StringComparer.Create(new CultureInfo("id-ID"), true);
 
     /// <summary>
     /// Mengurutkan daftar pemain sesuai konfigurasi PlayerOrdering pada ruleset.
     /// </summary>
-    internal static List<AnalyticsByPlayerItem> OrderPlayers(
+    public List<AnalyticsByPlayerItem> OrderPlayers(
         List<AnalyticsByPlayerItem> players,
         PlayerOrdering ordering,
         Dictionary<Guid, int> playerJoinOrders,
@@ -51,22 +51,22 @@ internal static class AnalyticsPlayerOrdering
         };
     }
 
-    private static int ResolveJoinOrder(Dictionary<Guid, int> playerJoinOrders, Guid playerId)
+    private int ResolveJoinOrder(Dictionary<Guid, int> playerJoinOrders, Guid playerId)
     {
         return playerJoinOrders.TryGetValue(playerId, out var joinOrder) ? joinOrder : int.MaxValue;
     }
 
-    private static long ResolveFirstSequence(Dictionary<Guid, long> firstEventSequenceByPlayer, Guid playerId)
+    private long ResolveFirstSequence(Dictionary<Guid, long> firstEventSequenceByPlayer, Guid playerId)
     {
         return firstEventSequenceByPlayer.TryGetValue(playerId, out var firstSeq) ? firstSeq : long.MaxValue;
     }
 
-    private static bool HasOrderingUsername(Dictionary<Guid, string> usernamesByPlayer, Guid playerId)
+    private bool HasOrderingUsername(Dictionary<Guid, string> usernamesByPlayer, Guid playerId)
     {
         return usernamesByPlayer.TryGetValue(playerId, out var username) && !string.IsNullOrWhiteSpace(username);
     }
 
-    private static string ResolveOrderingUsername(Dictionary<Guid, string> usernamesByPlayer, Guid playerId)
+    private string ResolveOrderingUsername(Dictionary<Guid, string> usernamesByPlayer, Guid playerId)
     {
         return usernamesByPlayer.TryGetValue(playerId, out var username) && !string.IsNullOrWhiteSpace(username)
             ? username.Trim()

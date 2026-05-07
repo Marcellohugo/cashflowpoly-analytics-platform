@@ -15,7 +15,7 @@ public sealed class EventEconomyActionValidatorTests
     {
         var request = CreateRequest("transaction.recorded", """{"direction":"OUT","amount":6,"category":"CUSTOM","counterparty":"BANK"}""");
 
-        var handled = EventEconomyActionValidator.TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
         Assert.True(handled);
         Assert.True(result.Validation.IsValid);
@@ -27,7 +27,7 @@ public sealed class EventEconomyActionValidatorTests
     {
         var request = CreateRequest("day.friday.donation", """{"amount":3}""", weekday: "MON");
 
-        var handled = EventEconomyActionValidator.TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -49,7 +49,7 @@ public sealed class EventEconomyActionValidatorTests
             CreateEvent(playerId, "day.saturday.gold_trade", """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5}""")
         };
 
-        var handled = EventEconomyActionValidator.TryValidate(request, CreateConfig(), history, out var result);
+        var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);

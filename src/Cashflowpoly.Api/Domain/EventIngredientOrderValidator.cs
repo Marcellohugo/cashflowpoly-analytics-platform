@@ -2,8 +2,6 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventDerivedStateCalculator;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -11,9 +9,12 @@ public sealed record EventIngredientOrderValidation(
     EventDomainValidationResult Validation,
     int? OutgoingAmount);
 
-internal static class EventIngredientOrderValidator
+internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValidator
 {
-    internal static bool TryValidate(
+    private static readonly EventPayloadReader _payloadReader = new();
+    private static readonly EventDerivedStateCalculator _derivedState = new();
+
+    public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
@@ -41,12 +42,12 @@ internal static class EventIngredientOrderValidator
         return false;
     }
 
-    private static EventIngredientOrderValidation ValidatePurchase(
+    private EventIngredientOrderValidation ValidatePurchase(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
     {
-        if (!TryReadIngredientPurchase(request.Payload, out var cardId, out var amount))
+        if (!_payloadReader.TryReadIngredientPurchase(request.Payload, out var cardId, out var amount))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -61,7 +62,7 @@ internal static class EventIngredientOrderValidator
             return new EventIngredientOrderValidation(commonValidation, null);
         }
 
-        var inventory = BuildIngredientInventory(history, request.PlayerId!.Value);
+        var inventory = _derivedState.BuildIngredientInventory(history, request.PlayerId!.Value);
         if (inventory.Total + amount > config.MaxIngredientTotal)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Total kartu bahan melebihi batas ruleset");
@@ -76,7 +77,7 @@ internal static class EventIngredientOrderValidator
         return new EventIngredientOrderValidation(EventDomainValidationResult.Valid, amount);
     }
 
-    private static EventIngredientOrderValidation ValidateDiscard(EventRequest request, IEnumerable<EventDb> history)
+    private EventIngredientOrderValidation ValidateDiscard(EventRequest request, IEnumerable<EventDb> history)
     {
         if (request.PlayerId is null)
         {
@@ -87,7 +88,7 @@ internal static class EventIngredientOrderValidator
                 new ErrorDetail("player_id", "REQUIRED"));
         }
 
-        if (!TryReadIngredientPurchase(request.Payload, out var cardId, out var amount))
+        if (!_payloadReader.TryReadIngredientPurchase(request.Payload, out var cardId, out var amount))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -102,7 +103,7 @@ internal static class EventIngredientOrderValidator
             return new EventIngredientOrderValidation(amountValidation, null);
         }
 
-        var inventory = BuildIngredientInventory(history, request.PlayerId.Value);
+        var inventory = _derivedState.BuildIngredientInventory(history, request.PlayerId.Value);
         var currentQty = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty : 0;
         if (currentQty < amount)
         {
@@ -112,7 +113,7 @@ internal static class EventIngredientOrderValidator
         return new EventIngredientOrderValidation(EventDomainValidationResult.Valid, null);
     }
 
-    private static EventIngredientOrderValidation ValidateOrderClaim(EventRequest request, IEnumerable<EventDb> history)
+    private EventIngredientOrderValidation ValidateOrderClaim(EventRequest request, IEnumerable<EventDb> history)
     {
         if (request.PlayerId is null)
         {
@@ -123,7 +124,7 @@ internal static class EventIngredientOrderValidator
                 new ErrorDetail("player_id", "REQUIRED"));
         }
 
-        if (!TryReadOrderClaim(request.Payload, out var requiredCards, out var income))
+        if (!_payloadReader.TryReadOrderClaim(request.Payload, out var requiredCards, out var income))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -141,7 +142,7 @@ internal static class EventIngredientOrderValidator
                 new ErrorDetail("payload.income", "OUT_OF_RANGE"));
         }
 
-        var inventory = BuildIngredientInventory(history, request.PlayerId.Value);
+        var inventory = _derivedState.BuildIngredientInventory(history, request.PlayerId.Value);
         foreach (var card in requiredCards)
         {
             if (!inventory.ByCardId.TryGetValue(card, out var qty) || qty <= 0)
@@ -155,7 +156,7 @@ internal static class EventIngredientOrderValidator
         return new EventIngredientOrderValidation(EventDomainValidationResult.Valid, null);
     }
 
-    private static EventDomainValidationResult ValidatePositiveAmountAndPlayer(EventRequest request, int amount)
+    private EventDomainValidationResult ValidatePositiveAmountAndPlayer(EventRequest request, int amount)
     {
         var amountValidation = ValidatePositiveAmount(amount);
         if (!amountValidation.IsValid)
@@ -175,7 +176,7 @@ internal static class EventIngredientOrderValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidatePositiveAmount(int amount)
+    private EventDomainValidationResult ValidatePositiveAmount(int amount)
     {
         if (amount > 0)
         {
@@ -189,7 +190,7 @@ internal static class EventIngredientOrderValidator
             new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
     }
 
-    private static EventIngredientOrderValidation Fail(
+    private EventIngredientOrderValidation Fail(
         int statusCode,
         string errorCode,
         string message,

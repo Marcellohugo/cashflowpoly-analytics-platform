@@ -22,7 +22,7 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
             CreateProjection(sessionId, playerId, "IN", 10, "DONATION_RECEIVED")
         };
 
-        var metrics = AnalyticsIncomeDiversificationCalculator.Compute(
+        var metrics = new IncomeDiversificationCalculator().Compute(
             events,
             projections,
             totalIncome: 40,
@@ -44,7 +44,7 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
     [Fact]
     public void Compute_ReportsIncomeNoteWhenTotalIncomeIsZero()
     {
-        var metrics = AnalyticsIncomeDiversificationCalculator.Compute(
+        var metrics = new IncomeDiversificationCalculator().Compute(
             Array.Empty<EventDb>(),
             Array.Empty<CashflowProjectionDb>(),
             totalIncome: 0,

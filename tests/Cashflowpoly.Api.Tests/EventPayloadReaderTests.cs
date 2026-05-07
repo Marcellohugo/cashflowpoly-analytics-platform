@@ -12,7 +12,7 @@ public sealed class EventPayloadReaderTests
     {
         var payload = Parse("""{"card_id":" ","amount":4,"points":2}""");
 
-        var ok = EventPayloadReader.TryReadNeedPurchase(payload, out var cardId, out var amount, out var points);
+        var ok = new EventPayloadReader().TryReadNeedPurchase(payload, out var cardId, out var amount, out var points);
 
         Assert.False(ok);
         Assert.Equal(string.Empty, cardId);
@@ -32,7 +32,7 @@ public sealed class EventPayloadReaderTests
             }
             """);
 
-        var ok = EventPayloadReader.TryReadEmergencyOption(
+        var ok = new EventPayloadReader().TryReadEmergencyOption(
             payload,
             out var riskEventId,
             out var optionType,
@@ -51,7 +51,7 @@ public sealed class EventPayloadReaderTests
     {
         var payload = Parse("""{"required_ingredient_card_ids":["card-1",7],"income":10}""");
 
-        var ok = EventPayloadReader.TryReadOrderClaim(payload, out var requiredCards, out var income);
+        var ok = new EventPayloadReader().TryReadOrderClaim(payload, out var requiredCards, out var income);
 
         Assert.False(ok);
         Assert.Empty(requiredCards);

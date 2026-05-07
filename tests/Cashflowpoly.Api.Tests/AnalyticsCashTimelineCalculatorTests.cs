@@ -27,7 +27,7 @@ public sealed class AnalyticsCashTimelineCalculatorTests
             CreateProjection(Guid.NewGuid(), sessionId, playerId, "OUT", 99)
         };
 
-        var timeline = AnalyticsCashTimelineCalculator.Compute(events, projections, startingCoins: 20);
+        var timeline = new CashTimelineCalculator().Compute(events, projections, startingCoins: 20);
 
         Assert.Equal(20, timeline.StartingCoins);
         Assert.Equal(10, timeline.CashInTotal);

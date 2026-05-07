@@ -1,18 +1,18 @@
 // Fungsi file: Menghitung metrik agregat level sesi untuk snapshot analitik.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
 /// Kalkulator murni untuk metric snapshot level sesi.
 /// </summary>
-internal static class AnalyticsSessionMetricCalculator
+internal sealed class SessionMetricCalculator : ISessionMetricCalculator
 {
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
     /// <summary>
     /// Menghitung metrik agregat level sesi: cashflow total, donasi, dan happiness.
     /// </summary>
-    internal static Dictionary<string, (double? Numeric, string? Json)> ComputeSessionMetrics(
+    public Dictionary<string, (double? Numeric, string? Json)> ComputeSessionMetrics(
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
         Dictionary<Guid, AnalyticsHappinessBreakdown> happinessByPlayer)
@@ -26,7 +26,7 @@ internal static class AnalyticsSessionMetricCalculator
         metrics["cashflow.net.total"] = (cashIn - cashOut, null);
 
         var donationTotal = events.Where(e => e.ActionType == "day.friday.donation")
-            .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+            .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
             .Sum();
         metrics["donation.total"] = (donationTotal, null);
 

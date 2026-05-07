@@ -32,7 +32,7 @@ public sealed class EventRecordMapperTests
             ClientRequestId = "client-123"
         };
 
-        var request = EventRecordMapper.ToEventRequest(record);
+        var request = new EventRecordMapper().ToEventRequest(record);
 
         Assert.Equal(eventId, request.EventId);
         Assert.Equal(sessionId, request.SessionId);

@@ -30,7 +30,7 @@ public sealed class AnalyticsIngredientMealCalculatorTests
             CreateProjection(orderId, sessionId, playerId, "IN", 12, "ORDER_INCOME")
         };
 
-        var metrics = AnalyticsIngredientMealCalculator.Compute(events, projections);
+        var metrics = new IngredientMealCalculator().Compute(events, projections);
 
         Assert.Equal(4, metrics.IngredientsCollected);
         Assert.Equal(1, metrics.Inventory.Total);

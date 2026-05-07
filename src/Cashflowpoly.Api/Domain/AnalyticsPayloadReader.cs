@@ -6,12 +6,12 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Parser payload event gameplay yang dipakai oleh pipeline analitik.
 /// </summary>
-internal static class AnalyticsPayloadReader
+internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
 {
     /// <summary>
     /// Membaca direction, amount, dan category dari payload JSON transaksi.
     /// </summary>
-    internal static bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category)
+    public bool TryReadTransaction(string payloadJson, out string direction, out double amount, out string category)
     {
         direction = string.Empty;
         category = string.Empty;
@@ -42,7 +42,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Membaca field amount dari payload JSON.
     /// </summary>
-    internal static bool TryReadAmount(string payloadJson, out double amount)
+    public bool TryReadAmount(string payloadJson, out double amount)
     {
         amount = 0;
         try
@@ -65,7 +65,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Membaca trade_type dan qty dari payload JSON perdagangan emas.
     /// </summary>
-    internal static bool TryReadGoldTrade(string payloadJson, out string tradeType, out int qty)
+    public bool TryReadGoldTrade(string payloadJson, out string tradeType, out int qty)
     {
         tradeType = string.Empty;
         qty = 0;
@@ -92,7 +92,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Memeriksa apakah tipe aksi termasuk event gameplay substantif (bukan meta-event seperti awarded/assigned).
     /// </summary>
-    internal static bool IsActionEvent(string actionType)
+    public bool IsActionEvent(string actionType)
     {
         if (string.IsNullOrWhiteSpace(actionType))
         {
@@ -111,7 +111,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Membaca jumlah aksi terpakai dan tersisa dari payload JSON event turn.action.used.
     /// </summary>
-    internal static bool TryReadActionUsed(string payloadJson, out int used, out int remaining)
+    public bool TryReadActionUsed(string payloadJson, out int used, out int remaining)
     {
         used = 0;
         remaining = 0;
@@ -137,7 +137,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Membaca detail lengkap perdagangan emas (tipe, kuantitas, harga satuan, jumlah) dari payload JSON.
     /// </summary>
-    internal static bool TryReadGoldTradeDetailed(
+    public bool TryReadGoldTradeDetailed(
         string payloadJson,
         out string tradeType,
         out int qty,
@@ -176,7 +176,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pembelian bahan baku detail: card_id, ingredient_name, amount.
     /// </summary>
-    internal static bool TryReadIngredientPurchaseDetailed(
+    public bool TryReadIngredientPurchaseDetailed(
         string payloadJson,
         out string cardId,
         out string ingredientName,
@@ -211,7 +211,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload setoran tabungan: goal_id dan amount.
     /// </summary>
-    internal static bool TryReadSavingDeposit(string payloadJson, out string goalId, out int amount)
+    public bool TryReadSavingDeposit(string payloadJson, out string goalId, out int amount)
     {
         goalId = string.Empty;
         amount = 0;
@@ -239,7 +239,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pembelian bahan baku ringkas: card_id dan amount.
     /// </summary>
-    internal static bool TryReadIngredientPurchase(string payloadJson, out string cardId, out int amount)
+    public bool TryReadIngredientPurchase(string payloadJson, out string cardId, out int amount)
     {
         cardId = string.Empty;
         amount = 0;
@@ -265,7 +265,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pembelian kebutuhan: amount, card_id opsional, dan points opsional.
     /// </summary>
-    internal static bool TryReadNeedPurchase(string payloadJson, out int amount, out string cardId, out int points)
+    public bool TryReadNeedPurchase(string payloadJson, out int amount, out string cardId, out int points)
     {
         amount = 0;
         cardId = string.Empty;
@@ -300,7 +300,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload penugasan misi: mission_id, target kartu tersier, penalti, dan flag kebutuhan primer/sekunder.
     /// </summary>
-    internal static bool TryReadMissionAssigned(
+    public bool TryReadMissionAssigned(
         string payloadJson,
         out string missionId,
         out string targetTertiaryCardId,
@@ -350,7 +350,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload tie breaker: nomor undian.
     /// </summary>
-    internal static bool TryReadTieBreaker(string payloadJson, out int number)
+    public bool TryReadTieBreaker(string payloadJson, out int number)
     {
         number = 0;
         try
@@ -373,7 +373,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload penghargaan peringkat: rank dan points.
     /// </summary>
-    internal static bool TryReadRankAwarded(string payloadJson, out int rank, out int points)
+    public bool TryReadRankAwarded(string payloadJson, out int rank, out int points)
     {
         rank = 0;
         points = 0;
@@ -399,7 +399,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pemberian poin: jumlah points.
     /// </summary>
-    internal static bool TryReadPointsAwarded(string payloadJson, out int points)
+    public bool TryReadPointsAwarded(string payloadJson, out int points)
     {
         points = 0;
         try
@@ -422,7 +422,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pencapaian target tabungan detail: goal_id, points, cost.
     /// </summary>
-    internal static bool TryReadSavingGoalAchievedDetailed(
+    public bool TryReadSavingGoalAchievedDetailed(
         string payloadJson,
         out string goalId,
         out int points,
@@ -462,7 +462,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pencapaian target tabungan ringkas: points.
     /// </summary>
-    internal static bool TryReadSavingGoalAchieved(string payloadJson, out int points)
+    public bool TryReadSavingGoalAchieved(string payloadJson, out int points)
     {
         points = 0;
         try
@@ -485,7 +485,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pengambilan pinjaman: loan_id, principal, penalty_points.
     /// </summary>
-    internal static bool TryReadLoanTaken(string payloadJson, out string loanId, out int principal, out int penaltyPoints)
+    public bool TryReadLoanTaken(string payloadJson, out string loanId, out int principal, out int penaltyPoints)
     {
         loanId = string.Empty;
         principal = 0;
@@ -514,7 +514,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload pembayaran pinjaman: loan_id dan amount.
     /// </summary>
-    internal static bool TryReadLoanRepay(string payloadJson, out string loanId, out int amount)
+    public bool TryReadLoanRepay(string payloadJson, out string loanId, out int amount)
     {
         loanId = string.Empty;
         amount = 0;
@@ -540,7 +540,7 @@ internal static class AnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload klaim pesanan: daftar kartu bahan baku yang diperlukan dan income.
     /// </summary>
-    internal static bool TryReadOrderClaim(string payloadJson, out List<string> requiredCards, out int income)
+    public bool TryReadOrderClaim(string payloadJson, out List<string> requiredCards, out int income)
     {
         requiredCards = new List<string>();
         income = 0;

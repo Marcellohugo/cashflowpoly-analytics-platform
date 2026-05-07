@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventRequestShapeValidator
+internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
 {
     private static readonly FrozenSet<string> AllowedActorTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -18,7 +18,7 @@ internal static class EventRequestShapeValidator
         "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    internal static EventDomainValidationResult Validate(EventRequest request, Guid? scopedPlayerId)
+    public EventDomainValidationResult Validate(EventRequest request, Guid? scopedPlayerId)
     {
         if (!AllowedActorTypes.Contains(request.ActorType))
         {

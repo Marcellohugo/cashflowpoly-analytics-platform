@@ -6,12 +6,12 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Evaluator murni untuk compliance kebutuhan primer per hari.
 /// </summary>
-internal static class AnalyticsPrimaryNeedComplianceEvaluator
+internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEvaluator
 {
     /// <summary>
     /// Mengevaluasi kepatuhan kebutuhan primer per hari dengan pengecekan urutan beli dan batas harian.
     /// </summary>
-    internal static PrimaryNeedComplianceResult Evaluate(List<EventDb> playerEvents, RulesetConfig? config)
+    public PrimaryNeedComplianceResult Evaluate(List<EventDb> playerEvents, RulesetConfig? config)
     {
         if (config is null)
         {

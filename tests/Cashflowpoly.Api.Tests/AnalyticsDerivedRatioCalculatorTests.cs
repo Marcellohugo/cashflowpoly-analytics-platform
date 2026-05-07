@@ -40,7 +40,7 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
             CreateEvent("insurance.multirisk.purchased")
         };
 
-        var metrics = AnalyticsDerivedRatioCalculator.Compute(
+        var metrics = new DerivedRatioCalculator().Compute(
             essentialIngredientExpenses: 5,
             totalExpenses: 20,
             mealOrderIncomeTotal: 30,

@@ -6,12 +6,12 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Builder snapshot metrik yang siap disimpan ke tabel metric_snapshots.
 /// </summary>
-internal static class AnalyticsMetricSnapshotBuilder
+internal sealed class MetricSnapshotBuilder : IMetricSnapshotBuilder
 {
     /// <summary>
     /// Mengonversi dictionary metrik menjadi daftar record MetricSnapshotDb siap disimpan.
     /// </summary>
-    internal static List<MetricSnapshotDb> BuildMetricSnapshots(
+    public List<MetricSnapshotDb> BuildMetricSnapshots(
         Guid sessionId,
         Guid? playerId,
         Guid rulesetVersionId,

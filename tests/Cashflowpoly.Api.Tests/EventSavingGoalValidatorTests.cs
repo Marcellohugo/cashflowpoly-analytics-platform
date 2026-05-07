@@ -15,7 +15,7 @@ public sealed class EventSavingGoalValidatorTests
     {
         var request = CreateRequest("transaction.recorded", """{"amount":1}""", Guid.NewGuid());
 
-        var handled = EventSavingGoalValidator.TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
         Assert.False(handled);
         Assert.True(result.Validation.IsValid);
@@ -26,7 +26,7 @@ public sealed class EventSavingGoalValidatorTests
     {
         var request = CreateRequest("saving.deposit.created", """{"goal_id":"goal-a","amount":5}""", Guid.NewGuid());
 
-        var handled = EventSavingGoalValidator.TryValidate(request, CreateConfig(enabled: false), Array.Empty<EventDb>(), out var result);
+        var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(enabled: false), Array.Empty<EventDb>(), out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -39,7 +39,7 @@ public sealed class EventSavingGoalValidatorTests
     {
         var request = CreateRequest("saving.deposit.created", """{"goal_id":"goal-a","amount":15}""", Guid.NewGuid());
 
-        var handled = EventSavingGoalValidator.TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
         Assert.True(handled);
         Assert.True(result.Validation.IsValid);
@@ -56,7 +56,7 @@ public sealed class EventSavingGoalValidatorTests
             CreateEvent("saving.deposit.created", """{"goal_id":"goal-a","amount":5}""", playerId)
         };
 
-        var handled = EventSavingGoalValidator.TryValidate(request, CreateConfig(), history, out var result);
+        var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -73,7 +73,7 @@ public sealed class EventSavingGoalValidatorTests
             CreateEvent("saving.deposit.created", """{"goal_id":"goal-a","amount":5}""", playerId)
         };
 
-        var handled = EventSavingGoalValidator.TryValidate(request, CreateConfig(), history, out var result);
+        var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);

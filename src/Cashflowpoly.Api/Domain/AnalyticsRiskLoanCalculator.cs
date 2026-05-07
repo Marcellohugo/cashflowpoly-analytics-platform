@@ -1,7 +1,6 @@
 // Fungsi file: Menghitung metrik risiko, asuransi, emergency option, dan pinjaman gameplay.
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -28,9 +27,11 @@ public sealed record AnalyticsRiskLoanMetrics(
     double? LoanRepaymentDiscipline,
     double? DebtRatio);
 
-internal static class AnalyticsRiskLoanCalculator
+internal sealed class RiskLoanCalculator : IRiskLoanCalculator
 {
-    internal static AnalyticsRiskLoanMetrics Compute(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsRiskLoanMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         int startingCoins,
@@ -100,19 +101,19 @@ internal static class AnalyticsRiskLoanCalculator
             SafeRatio(loansUnpaid, loansTaken));
     }
 
-    private static Dictionary<string, LoanState> BuildLoanStates(IEnumerable<EventDb> playerEvents)
+    private Dictionary<string, LoanState> BuildLoanStates(IEnumerable<EventDb> playerEvents)
     {
         var loanStates = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         foreach (var evt in playerEvents)
         {
             if (evt.ActionType == "loan.syariah.taken" &&
-                TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPoints))
+                _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPoints))
             {
                 loanStates[loanId] = new LoanState(loanId, principal, penaltyPoints, 0);
             }
 
             if (evt.ActionType == "loan.syariah.repaid" &&
-                TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount) &&
+                _payloadReader.TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount) &&
                 loanStates.TryGetValue(repayLoanId, out var state))
             {
                 loanStates[repayLoanId] = state with { RepaidAmount = state.RepaidAmount + repayAmount };

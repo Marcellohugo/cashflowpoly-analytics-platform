@@ -21,7 +21,7 @@ public sealed class EventDerivedStateCalculatorTests
             BuildEvent(otherPlayerId, "ingredient.purchased", """{"card_id":"flour","amount":10}""")
         };
 
-        var inventory = EventDerivedStateCalculator.BuildIngredientInventory(events, playerId);
+        var inventory = new EventDerivedStateCalculator().BuildIngredientInventory(events, playerId);
 
         Assert.Equal(0, inventory.Total);
         Assert.Equal(0, inventory.ByCardId["flour"]);
@@ -41,7 +41,7 @@ public sealed class EventDerivedStateCalculatorTests
             BuildEvent(Guid.NewGuid(), "saving.deposit.created", """{"goal_id":"bike","amount":99}""")
         };
 
-        var balance = EventDerivedStateCalculator.ComputeSavingBalance(events, playerId, "bike");
+        var balance = new EventDerivedStateCalculator().ComputeSavingBalance(events, playerId, "bike");
 
         Assert.Equal(2, balance);
     }
