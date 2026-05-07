@@ -37,7 +37,7 @@ public sealed class AnalyticsSessionMetricCalculatorTests
             [Guid.NewGuid()] = new(-2, 0, 0, 0, 0, 0, 0, 1, 1, true)
         };
 
-        var metrics = AnalyticsSessionMetricCalculator.ComputeSessionMetrics(events, projections, happinessByPlayer);
+        var metrics = new SessionMetricCalculator().ComputeSessionMetrics(events, projections, happinessByPlayer);
 
         Assert.Equal(12, metrics["cashflow.in.total"].Numeric);
         Assert.Equal(4, metrics["cashflow.out.total"].Numeric);

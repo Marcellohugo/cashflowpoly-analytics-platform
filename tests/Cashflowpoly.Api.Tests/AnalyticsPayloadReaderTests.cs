@@ -15,7 +15,7 @@ public sealed class AnalyticsPayloadReaderTests
     /// </summary>
     public void TryReadActionUsed_ReturnsUsedAndRemaining_WhenPayloadIsValid()
     {
-        var ok = AnalyticsPayloadReader.TryReadActionUsed("""{"used":2,"remaining":1}""", out var used, out var remaining);
+        var ok = new AnalyticsPayloadReader().TryReadActionUsed("""{"used":2,"remaining":1}""", out var used, out var remaining);
 
         Assert.True(ok);
         Assert.Equal(2, used);
@@ -28,7 +28,7 @@ public sealed class AnalyticsPayloadReaderTests
     /// </summary>
     public void TryReadNeedPurchase_ReturnsDefaults_WhenOptionalFieldsAreMissing()
     {
-        var ok = AnalyticsPayloadReader.TryReadNeedPurchase("""{"amount":4}""", out var amount, out var cardId, out var points);
+        var ok = new AnalyticsPayloadReader().TryReadNeedPurchase("""{"amount":4}""", out var amount, out var cardId, out var points);
 
         Assert.True(ok);
         Assert.Equal(4, amount);
@@ -42,7 +42,7 @@ public sealed class AnalyticsPayloadReaderTests
     /// </summary>
     public void TryReadOrderClaim_ReturnsFalse_WhenRequiredCardsAreBlank()
     {
-        var ok = AnalyticsPayloadReader.TryReadOrderClaim(
+        var ok = new AnalyticsPayloadReader().TryReadOrderClaim(
             """{"required_ingredient_card_ids":[""," "],"income":10}""",
             out var requiredCards,
             out var income);
@@ -62,7 +62,7 @@ public sealed class AnalyticsPayloadReaderTests
     /// </summary>
     public void IsActionEvent_ClassifiesMetaEvents(string actionType, bool expected)
     {
-        Assert.Equal(expected, AnalyticsPayloadReader.IsActionEvent(actionType));
+        Assert.Equal(expected, new AnalyticsPayloadReader().IsActionEvent(actionType));
     }
 
     [Fact]

@@ -19,9 +19,9 @@ public sealed record AnalyticsDerivedRatioMetrics(
     double? GrowthPatternRatio,
     double? RiskAppetiteScoreNormalized);
 
-internal static class AnalyticsDerivedRatioCalculator
+internal sealed class DerivedRatioCalculator : IDerivedRatioCalculator
 {
-    internal static AnalyticsDerivedRatioMetrics Compute(
+    public AnalyticsDerivedRatioMetrics Compute(
         double essentialIngredientExpenses,
         double totalExpenses,
         int mealOrderIncomeTotal,

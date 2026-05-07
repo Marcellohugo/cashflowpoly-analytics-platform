@@ -3,9 +3,9 @@ using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventPlayerBalanceCalculator
+internal sealed class EventPlayerBalanceCalculator : IEventPlayerBalanceCalculator
 {
-    internal static double Compute(
+    public double Compute(
         Guid playerId,
         int startingCash,
         IReadOnlyCollection<CashflowProjectionDb> projections)

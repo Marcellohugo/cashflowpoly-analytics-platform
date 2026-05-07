@@ -5,9 +5,9 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventRecordMapper
+internal sealed class EventRecordMapper : IEventRecordMapper
 {
-    internal static EventRequest ToEventRequest(EventDb record)
+    public EventRequest ToEventRequest(EventDb record)
     {
         using var document = JsonDocument.Parse(record.Payload);
         var payload = document.RootElement.Clone();

@@ -15,7 +15,7 @@ public sealed class EventTurnProgressValidatorTests
     {
         var request = CreateRequest("turn.action.used", """{"used":1,"remaining":2}""");
 
-        var requiresHistory = EventTurnProgressValidator.RequiresHistory(request, CreateConfig());
+        var requiresHistory = new EventTurnProgressValidator().RequiresHistory(request, CreateConfig());
 
         Assert.True(requiresHistory);
     }
@@ -31,7 +31,7 @@ public sealed class EventTurnProgressValidatorTests
             CreateEvent("turn.action.used", """{"used":2,"remaining":1}""", sessionId, playerId, turnNumber: 1)
         };
 
-        var handled = EventTurnProgressValidator.TryValidate(request, CreateConfig(actionsPerTurn: 3), history, out var result);
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(actionsPerTurn: 3), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -51,7 +51,7 @@ public sealed class EventTurnProgressValidatorTests
             CreateEvent("turn.action.used", """{"used":1,"remaining":2}""", sessionId, playerId, turnNumber: 1)
         };
 
-        var handled = EventTurnProgressValidator.TryValidate(request, CreateConfig(actionsPerTurn: 3), history, out var result);
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(actionsPerTurn: 3), history, out var result);
 
         Assert.True(handled);
         Assert.True(result.IsValid);
@@ -68,7 +68,7 @@ public sealed class EventTurnProgressValidatorTests
             CreateEvent("order.claimed", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, turnNumber: 1)
         };
 
-        var handled = EventTurnProgressValidator.TryValidate(request, CreateConfig(mode: "MAHIR"), history, out var result);
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);

@@ -1,6 +1,5 @@
 // Fungsi file: Menghitung state tabungan dan ringkasan financial goals dari histori event gameplay.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -17,9 +16,11 @@ public sealed record AnalyticsSavingGoalMetrics(
     int FinancialGoalsCoinsTotalInvested,
     int FinancialGoalsIncompleteCoinsWasted);
 
-internal static class AnalyticsSavingGoalCalculator
+internal sealed class SavingGoalCalculator : ISavingGoalCalculator
 {
-    internal static AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents)
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents)
     {
         var savingDepositsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var savingWithdrawalsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -29,7 +30,7 @@ internal static class AnalyticsSavingGoalCalculator
         foreach (var evt in playerEvents)
         {
             if (evt.ActionType == "saving.deposit.created" &&
-                TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
+                _payloadReader.TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
             {
                 savingDepositsByGoal[goalId] = savingDepositsByGoal.TryGetValue(goalId, out var existing)
                     ? existing + amount
@@ -37,7 +38,7 @@ internal static class AnalyticsSavingGoalCalculator
             }
 
             if (evt.ActionType == "saving.deposit.withdrawn" &&
-                TryReadSavingDeposit(evt.Payload, out var withdrawGoalId, out var withdrawAmount))
+                _payloadReader.TryReadSavingDeposit(evt.Payload, out var withdrawGoalId, out var withdrawAmount))
             {
                 savingWithdrawalsByGoal[withdrawGoalId] = savingWithdrawalsByGoal.TryGetValue(withdrawGoalId, out var existing)
                     ? existing + withdrawAmount
@@ -45,7 +46,7 @@ internal static class AnalyticsSavingGoalCalculator
             }
 
             if (evt.ActionType == "saving.goal.achieved" &&
-                TryReadSavingGoalAchievedDetailed(evt.Payload, out var achievedGoalId, out _, out var cost))
+                _payloadReader.TryReadSavingGoalAchievedDetailed(evt.Payload, out var achievedGoalId, out _, out var cost))
             {
                 savingGoalsAchieved.Add(achievedGoalId);
                 savingGoalCostsByGoal[achievedGoalId] = savingGoalCostsByGoal.TryGetValue(achievedGoalId, out var existing)

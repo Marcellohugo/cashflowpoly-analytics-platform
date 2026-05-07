@@ -1,18 +1,18 @@
 // Fungsi file: Menghitung poin happiness analitik pemain dari event gameplay, cashflow, dan scoring ruleset.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
 /// Kalkulator murni untuk breakdown happiness pemain.
 /// </summary>
-internal static class AnalyticsHappinessCalculator
+internal sealed class HappinessCalculator : IHappinessCalculator
 {
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
     /// <summary>
     /// Menghitung breakdown happiness per pemain termasuk donasi, emas, pensiun, dan penalti.
     /// </summary>
-    internal static Dictionary<Guid, AnalyticsHappinessBreakdown> ComputeByPlayer(
+    public Dictionary<Guid, AnalyticsHappinessBreakdown> ComputeByPlayer(
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
         RulesetConfig? config)
@@ -80,7 +80,7 @@ internal static class AnalyticsHappinessCalculator
     /// <summary>
     /// Menghitung detail breakdown happiness satu pemain dari event kebutuhan, donasi, emas, tabungan, misi, dan pinjaman.
     /// </summary>
-    internal static AnalyticsHappinessBreakdown ComputeBreakdown(
+    public AnalyticsHappinessBreakdown ComputeBreakdown(
         List<EventDb> playerEvents,
         double donationPoints,
         double goldPoints,
@@ -98,21 +98,21 @@ internal static class AnalyticsHappinessCalculator
         foreach (var evt in playerEvents)
         {
             if (evt.ActionType == "need.primary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValue))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValue))
             {
                 primaryCount += 1;
                 needPoints += needPointsValue;
             }
 
             if (evt.ActionType == "need.secondary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValueSecondary))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValueSecondary))
             {
                 secondaryCount += 1;
                 needPoints += needPointsValueSecondary;
             }
 
             if (evt.ActionType == "need.tertiary.purchased" &&
-                TryReadNeedPurchase(evt.Payload, out _, out var tertiaryCardId, out var needPointsValueTertiary))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var tertiaryCardId, out var needPointsValueTertiary))
             {
                 tertiaryCount += 1;
                 needPoints += needPointsValueTertiary;
@@ -123,22 +123,22 @@ internal static class AnalyticsHappinessCalculator
             }
 
             if (evt.ActionType == "mission.assigned" &&
-                TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
+                _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
             }
 
-            if (evt.ActionType == "saving.goal.achieved" && TryReadSavingGoalAchieved(evt.Payload, out var savingPoints))
+            if (evt.ActionType == "saving.goal.achieved" && _payloadReader.TryReadSavingGoalAchieved(evt.Payload, out var savingPoints))
             {
                 savingGoalPoints += savingPoints;
             }
 
-            if (evt.ActionType == "loan.syariah.taken" && TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
+            if (evt.ActionType == "loan.syariah.taken" && _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
             {
                 loans[loanId] = new LoanState(loanId, principal, penaltyPointsValue, 0);
             }
 
-            if (evt.ActionType == "loan.syariah.repaid" && TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount))
+            if (evt.ActionType == "loan.syariah.repaid" && _payloadReader.TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount))
             {
                 if (loans.TryGetValue(repayLoanId, out var state))
                 {
@@ -209,7 +209,7 @@ internal static class AnalyticsHappinessCalculator
             hasUnpaidLoan);
     }
 
-    private static Dictionary<Guid, int> BuildTieBreakerLookup(IEnumerable<EventDb> events)
+    private Dictionary<Guid, int> BuildTieBreakerLookup(IEnumerable<EventDb> events)
     {
         return events.Where(e => e.PlayerId.HasValue && e.ActionType == "tie_breaker.assigned")
             .OrderBy(e => e.SequenceNumber)
@@ -219,11 +219,11 @@ internal static class AnalyticsHappinessCalculator
                 g =>
                 {
                     var last = g.Last();
-                    return TryReadTieBreaker(last.Payload, out var number) ? number : 0;
+                    return _payloadReader.TryReadTieBreaker(last.Payload, out var number) ? number : 0;
                 });
     }
 
-    private static Dictionary<Guid, double> ComputeDonationPointsFromScoring(
+    private Dictionary<Guid, double> ComputeDonationPointsFromScoring(
         List<EventDb> events,
         RulesetScoringConfig scoring,
         Dictionary<Guid, int> tieBreakers)
@@ -240,7 +240,7 @@ internal static class AnalyticsHappinessCalculator
                 .GroupBy(e => e.PlayerId!.Value)
                 .Select(g =>
                 {
-                    var total = g.Sum(e => TryReadAmount(e.Payload, out var amount) ? amount : 0);
+                    var total = g.Sum(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0);
                     tieBreakers.TryGetValue(g.Key, out var tieNumber);
                     return new { PlayerId = g.Key, Amount = total, Tie = tieNumber };
                 })
@@ -265,7 +265,7 @@ internal static class AnalyticsHappinessCalculator
         return result;
     }
 
-    private static Dictionary<Guid, double> ComputeGoldPointsFromScoring(
+    private Dictionary<Guid, double> ComputeGoldPointsFromScoring(
         List<EventDb> events,
         RulesetScoringConfig scoring)
     {
@@ -279,7 +279,7 @@ internal static class AnalyticsHappinessCalculator
                 g => g.Key,
                 g => g.Sum(e =>
                 {
-                    if (!TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
+                    if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
                     {
                         return 0;
                     }
@@ -300,7 +300,7 @@ internal static class AnalyticsHappinessCalculator
         return result;
     }
 
-    private static Dictionary<Guid, double> ComputePensionPointsFromScoring(
+    private Dictionary<Guid, double> ComputePensionPointsFromScoring(
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
         RulesetConfig config,
@@ -342,7 +342,7 @@ internal static class AnalyticsHappinessCalculator
         return result;
     }
 
-    private static int ResolvePointsByQty(int qty, IReadOnlyList<QtyPoint> table)
+    private int ResolvePointsByQty(int qty, IReadOnlyList<QtyPoint> table)
     {
         var bestQty = 0;
         var bestPoints = 0;
@@ -358,16 +358,16 @@ internal static class AnalyticsHappinessCalculator
         return bestPoints;
     }
 
-    internal static double SumRankAwarded(IEnumerable<EventDb> events, string actionType)
+    public double SumRankAwarded(IEnumerable<EventDb> events, string actionType)
     {
         return events.Where(e => e.ActionType == actionType)
-            .Sum(e => TryReadRankAwarded(e.Payload, out _, out var points) ? points : 0);
+            .Sum(e => _payloadReader.TryReadRankAwarded(e.Payload, out _, out var points) ? points : 0);
     }
 
-    internal static double SumPointsAwarded(IEnumerable<EventDb> events, string actionType)
+    public double SumPointsAwarded(IEnumerable<EventDb> events, string actionType)
     {
         return events.Where(e => e.ActionType == actionType)
-            .Sum(e => TryReadPointsAwarded(e.Payload, out var points) ? points : 0);
+            .Sum(e => _payloadReader.TryReadPointsAwarded(e.Payload, out var points) ? points : 0);
     }
 
     private sealed record MissionAssignment(

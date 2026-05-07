@@ -26,7 +26,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
             CreateProjection(sessionId, playerId, "OUT", 7, "NEED_TERTIARY")
         };
 
-        var metrics = AnalyticsNeedMissionCalculator.Compute(events, projections);
+        var metrics = new NeedMissionCalculator().Compute(events, projections);
 
         Assert.Equal(3, metrics.NeedCardsPurchased);
         Assert.Equal(1, metrics.PrimaryNeeds);
@@ -55,7 +55,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
             CreateEvent(playerId, sessionId, "need.secondary.purchased", """{"card_id":"book","amount":1,"points":1}""")
         };
 
-        var metrics = AnalyticsNeedMissionCalculator.Compute(events, Array.Empty<CashflowProjectionDb>());
+        var metrics = new NeedMissionCalculator().Compute(events, Array.Empty<CashflowProjectionDb>());
 
         Assert.True(metrics.IsCollectorNeedProfile);
         Assert.True(metrics.IsSpecialistNeedProfile);

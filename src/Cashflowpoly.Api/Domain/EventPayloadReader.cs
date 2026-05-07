@@ -6,12 +6,12 @@ namespace Cashflowpoly.Api.Domain;
 /// <summary>
 /// Helper murni untuk membaca payload event gameplay.
 /// </summary>
-internal static class EventPayloadReader
+internal sealed class EventPayloadReader : IEventPayloadReader
 {
     /// <summary>
     /// Mem-parse string JSON payload event menjadi JsonElement.
     /// </summary>
-    internal static JsonElement ReadPayload(string payload)
+    public JsonElement ReadPayload(string payload)
     {
         using var document = JsonDocument.Parse(payload);
         return document.RootElement.Clone();
@@ -20,7 +20,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Mengekstrak nilai string dari properti JSON payload.
     /// </summary>
-    internal static bool TryGetString(JsonElement payload, string propertyName, out string value)
+    public bool TryGetString(JsonElement payload, string propertyName, out string value)
     {
         value = string.Empty;
         if (!payload.TryGetProperty(propertyName, out var property))
@@ -40,7 +40,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Mengekstrak nilai string opsional dari payload; mengembalikan true jika properti tidak ada.
     /// </summary>
-    internal static bool TryGetOptionalString(JsonElement payload, string propertyName, out string? value)
+    public bool TryGetOptionalString(JsonElement payload, string propertyName, out string? value)
     {
         value = null;
         if (!payload.TryGetProperty(propertyName, out var property))
@@ -60,7 +60,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Mengekstrak nilai integer 32-bit dari properti JSON payload.
     /// </summary>
-    internal static bool TryGetInt32(JsonElement payload, string propertyName, out int value, bool required = true)
+    public bool TryGetInt32(JsonElement payload, string propertyName, out int value, bool required = true)
     {
         value = 0;
         if (!payload.TryGetProperty(propertyName, out var property))
@@ -79,7 +79,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Mengekstrak nilai double dari properti JSON payload.
     /// </summary>
-    internal static bool TryGetDouble(JsonElement payload, string propertyName, out double value, bool required = true)
+    public bool TryGetDouble(JsonElement payload, string propertyName, out double value, bool required = true)
     {
         value = 0;
         if (!payload.TryGetProperty(propertyName, out var property))
@@ -98,7 +98,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca direction, amount, category, dan counterparty dari payload event transaction.recorded.
     /// </summary>
-    internal static bool TryReadTransaction(JsonElement payload, out string direction, out double amount, out string category, out string? counterparty)
+    public bool TryReadTransaction(JsonElement payload, out string direction, out double amount, out string category, out string? counterparty)
     {
         direction = string.Empty;
         category = string.Empty;
@@ -118,7 +118,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca nilai amount dari payload JSON event.
     /// </summary>
-    internal static bool TryReadAmount(JsonElement payload, out double amount)
+    public bool TryReadAmount(JsonElement payload, out double amount)
     {
         return TryGetDouble(payload, "amount", out amount);
     }
@@ -126,7 +126,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca trade_type, qty, unit_price, dan amount dari payload event gold_trade.
     /// </summary>
-    internal static bool TryReadGoldTrade(JsonElement payload, out string tradeType, out int qty, out int unitPrice, out int amount)
+    public bool TryReadGoldTrade(JsonElement payload, out string tradeType, out int qty, out int unitPrice, out int amount)
     {
         tradeType = string.Empty;
         qty = 0;
@@ -147,7 +147,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca jumlah aksi terpakai dan sisa dari payload event turn.action.used.
     /// </summary>
-    internal static bool TryReadActionUsed(JsonElement payload, out int used, out int remaining)
+    public bool TryReadActionUsed(JsonElement payload, out int used, out int remaining)
     {
         used = 0;
         remaining = 0;
@@ -163,7 +163,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca card_id dan amount dari payload event ingredient.purchased atau ingredient.discarded.
     /// </summary>
-    internal static bool TryReadIngredientPurchase(JsonElement payload, out string cardId, out int amount)
+    public bool TryReadIngredientPurchase(JsonElement payload, out string cardId, out int amount)
     {
         cardId = string.Empty;
         amount = 0;
@@ -180,7 +180,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca daftar kartu bahan yang dibutuhkan dan pendapatan dari payload event order.claimed.
     /// </summary>
-    internal static bool TryReadOrderClaim(JsonElement payload, out List<string> requiredCards, out int income)
+    public bool TryReadOrderClaim(JsonElement payload, out List<string> requiredCards, out int income)
     {
         requiredCards = new List<string>();
         income = 0;
@@ -213,7 +213,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca card_id, amount, dan points dari payload event pembelian kebutuhan.
     /// </summary>
-    internal static bool TryReadNeedPurchase(JsonElement payload, out string cardId, out int amount, out int points)
+    public bool TryReadNeedPurchase(JsonElement payload, out string cardId, out int amount, out int points)
     {
         cardId = string.Empty;
         amount = 0;
@@ -238,7 +238,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca mission_id, target_tertiary_card_id, dan penalty_points dari payload event misi.
     /// </summary>
-    internal static bool TryReadMissionAssigned(JsonElement payload, out string missionId, out string targetCardId, out int penaltyPoints)
+    public bool TryReadMissionAssigned(JsonElement payload, out string missionId, out string targetCardId, out int penaltyPoints)
     {
         missionId = string.Empty;
         targetCardId = string.Empty;
@@ -257,7 +257,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca nomor tie-breaker dari payload event tie_breaker.assigned.
     /// </summary>
-    internal static bool TryReadTieBreaker(JsonElement payload, out int number)
+    public bool TryReadTieBreaker(JsonElement payload, out int number)
     {
         return TryGetInt32(payload, "number", out number);
     }
@@ -265,7 +265,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca rank dan points dari payload event rank.awarded.
     /// </summary>
-    internal static bool TryReadRankAwarded(JsonElement payload, out int rank, out int points)
+    public bool TryReadRankAwarded(JsonElement payload, out int rank, out int points)
     {
         rank = 0;
         points = 0;
@@ -281,7 +281,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca nilai points dari payload event points.awarded.
     /// </summary>
-    internal static bool TryReadPointsAwarded(JsonElement payload, out int points)
+    public bool TryReadPointsAwarded(JsonElement payload, out int points)
     {
         return TryGetInt32(payload, "points", out points);
     }
@@ -289,7 +289,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca goal_id dan amount dari payload event saving.deposit.
     /// </summary>
-    internal static bool TryReadSavingDeposit(JsonElement payload, out string goalId, out int amount)
+    public bool TryReadSavingDeposit(JsonElement payload, out string goalId, out int amount)
     {
         goalId = string.Empty;
         amount = 0;
@@ -305,7 +305,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca goal_id, points, dan cost dari payload event saving.goal.achieved.
     /// </summary>
-    internal static bool TryReadSavingGoalAchieved(JsonElement payload, out string goalId, out int points, out int cost)
+    public bool TryReadSavingGoalAchieved(JsonElement payload, out string goalId, out int points, out int cost)
     {
         goalId = string.Empty;
         points = 0;
@@ -323,7 +323,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca risk_id, direction, dan amount dari payload event risk.life.drawn.
     /// </summary>
-    internal static bool TryReadRiskLife(JsonElement payload, out string riskId, out string direction, out int amount)
+    public bool TryReadRiskLife(JsonElement payload, out string riskId, out string direction, out int amount)
     {
         riskId = string.Empty;
         direction = string.Empty;
@@ -342,7 +342,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca risk_event_id dari payload event insurance.multirisk.used.
     /// </summary>
-    internal static bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId)
+    public bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId)
     {
         riskEventId = string.Empty;
         if (!TryGetString(payload, "risk_event_id", out riskEventId))
@@ -356,7 +356,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca risk_event_id, option_type, direction, dan amount dari payload event risk.emergency.used.
     /// </summary>
-    internal static bool TryReadEmergencyOption(
+    public bool TryReadEmergencyOption(
         JsonElement payload,
         out string riskEventId,
         out string optionType,
@@ -382,7 +382,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca loan_id, principal, installment, duration, dan penalty_points dari payload event pinjaman.
     /// </summary>
-    internal static bool TryReadLoanTaken(
+    public bool TryReadLoanTaken(
         JsonElement payload,
         out string loanId,
         out int principal,
@@ -411,7 +411,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca loan_id dan amount dari payload event loan.syariah.repaid.
     /// </summary>
-    internal static bool TryReadLoanRepay(JsonElement payload, out string loanId, out int amount)
+    public bool TryReadLoanRepay(JsonElement payload, out string loanId, out int amount)
     {
         loanId = string.Empty;
         amount = 0;
@@ -427,7 +427,7 @@ internal static class EventPayloadReader
     /// <summary>
     /// Membaca nilai premium dari payload event insurance.multirisk.purchased.
     /// </summary>
-    internal static bool TryReadInsurance(JsonElement payload, out int premium)
+    public bool TryReadInsurance(JsonElement payload, out int premium)
     {
         return TryGetInt32(payload, "premium", out premium);
     }

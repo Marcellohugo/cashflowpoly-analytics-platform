@@ -1,6 +1,5 @@
 // Fungsi file: Menghitung kontribusi sumber income dan indeks diversifikasi income gameplay.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -14,9 +13,11 @@ public sealed record AnalyticsIncomeDiversificationMetrics(
     double? IncomeDiversification,
     bool RequiresIncomeNote);
 
-internal static class AnalyticsIncomeDiversificationCalculator
+internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCalculator
 {
-    internal static AnalyticsIncomeDiversificationMetrics Compute(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsIncomeDiversificationMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         double totalIncome,
@@ -28,7 +29,7 @@ internal static class AnalyticsIncomeDiversificationCalculator
             .Sum(p => (double)p.Amount);
         var freelanceIncome = playerEvents
             .Where(e => e.ActionType == "work.freelance.completed")
-            .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+            .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
             .Sum();
         var mealIncome = (double)mealOrderIncomeTotal;
         var goldIncome = (double)goldInvestmentEarned;

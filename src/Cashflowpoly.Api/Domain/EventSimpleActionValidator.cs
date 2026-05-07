@@ -1,13 +1,14 @@
 // Fungsi file: Memvalidasi action event sederhana yang tidak membutuhkan histori event atau query database.
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventSimpleActionValidator
+internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
 {
-    internal static bool TryValidate(
+    private static readonly EventPayloadReader _payloadReader = new();
+
+    public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         out EventDomainValidationResult result)
@@ -49,7 +50,7 @@ internal static class EventSimpleActionValidator
         return false;
     }
 
-    private static EventDomainValidationResult ValidateOrderPassed(EventRequest request, System.Text.Json.JsonElement payload)
+    private EventDomainValidationResult ValidateOrderPassed(EventRequest request, System.Text.Json.JsonElement payload)
     {
         var playerCheck = RequirePlayer(request);
         if (!playerCheck.IsValid)
@@ -57,7 +58,7 @@ internal static class EventSimpleActionValidator
             return playerCheck;
         }
 
-        if (!TryReadOrderClaim(payload, out _, out var income))
+        if (!_payloadReader.TryReadOrderClaim(payload, out _, out var income))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -78,7 +79,7 @@ internal static class EventSimpleActionValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidateFreelanceCompleted(
+    private EventDomainValidationResult ValidateFreelanceCompleted(
         EventRequest request,
         System.Text.Json.JsonElement payload,
         int expectedIncome)
@@ -89,7 +90,7 @@ internal static class EventSimpleActionValidator
             return playerCheck;
         }
 
-        if (!TryReadAmount(payload, out var amount))
+        if (!_payloadReader.TryReadAmount(payload, out var amount))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -119,7 +120,7 @@ internal static class EventSimpleActionValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidateRankAwarded(
+    private EventDomainValidationResult ValidateRankAwarded(
         EventRequest request,
         System.Text.Json.JsonElement payload,
         string invalidPayloadMessage)
@@ -130,7 +131,7 @@ internal static class EventSimpleActionValidator
             return playerCheck;
         }
 
-        if (!TryReadRankAwarded(payload, out var rank, out var points))
+        if (!_payloadReader.TryReadRankAwarded(payload, out var rank, out var points))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -151,7 +152,7 @@ internal static class EventSimpleActionValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult ValidateGoldPointsAwarded(
+    private EventDomainValidationResult ValidateGoldPointsAwarded(
         EventRequest request,
         System.Text.Json.JsonElement payload)
     {
@@ -161,7 +162,7 @@ internal static class EventSimpleActionValidator
             return playerCheck;
         }
 
-        if (!TryReadPointsAwarded(payload, out var points))
+        if (!_payloadReader.TryReadPointsAwarded(payload, out var points))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -182,7 +183,7 @@ internal static class EventSimpleActionValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private static EventDomainValidationResult RequirePlayer(EventRequest request)
+    private EventDomainValidationResult RequirePlayer(EventRequest request)
     {
         if (request.PlayerId is not null)
         {

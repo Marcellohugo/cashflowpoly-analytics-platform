@@ -1,6 +1,5 @@
 // Fungsi file: Menghitung metrik ingredient dan meal-order gameplay dari event pemain.
 using Cashflowpoly.Api.Data;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -19,9 +18,12 @@ public sealed record AnalyticsIngredientMealMetrics(
     double MealOrdersPerTurnAverage,
     double EssentialIngredientExpenses);
 
-internal static class AnalyticsIngredientMealCalculator
+internal sealed class IngredientMealCalculator : IIngredientMealCalculator
 {
-    internal static AnalyticsIngredientMealMetrics Compute(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+    private static readonly IngredientInventoryCalculator _inventoryCalculator = new();
+
+    public AnalyticsIngredientMealMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections)
     {
@@ -29,7 +31,7 @@ internal static class AnalyticsIngredientMealCalculator
         var ingredientsCollected = 0;
         foreach (var evt in playerEvents.Where(e => e.ActionType == "ingredient.purchased"))
         {
-            if (TryReadIngredientPurchaseDetailed(evt.Payload, out var cardId, out var ingredientName, out var amount))
+            if (_payloadReader.TryReadIngredientPurchaseDetailed(evt.Payload, out var cardId, out var ingredientName, out var amount))
             {
                 ingredientsCollected += amount;
                 if (!string.IsNullOrWhiteSpace(cardId) && !string.IsNullOrWhiteSpace(ingredientName))
@@ -37,7 +39,7 @@ internal static class AnalyticsIngredientMealCalculator
                     ingredientPurchaseMap[cardId] = ingredientName;
                 }
             }
-            else if (TryReadIngredientPurchase(evt.Payload, out var fallbackCardId, out var fallbackAmount))
+            else if (_payloadReader.TryReadIngredientPurchase(evt.Payload, out var fallbackCardId, out var fallbackAmount))
             {
                 ingredientsCollected += fallbackAmount;
                 if (!string.IsNullOrWhiteSpace(fallbackCardId) && !ingredientPurchaseMap.ContainsKey(fallbackCardId))
@@ -47,7 +49,7 @@ internal static class AnalyticsIngredientMealCalculator
             }
         }
 
-        var inventory = AnalyticsIngredientInventoryCalculator.BuildIngredientInventory(playerEvents.ToList());
+        var inventory = _inventoryCalculator.BuildIngredientInventory(playerEvents.ToList());
         var ingredientTypesHeld = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var (cardId, qty) in inventory.ByCardId)
         {
@@ -62,12 +64,12 @@ internal static class AnalyticsIngredientMealCalculator
 
         var ingredientsUsedTotal = playerEvents
             .Where(e => e.ActionType == "order.claimed")
-            .Select(e => TryReadOrderClaim(e.Payload, out var cards, out _) ? cards.Count : 0)
+            .Select(e => _payloadReader.TryReadOrderClaim(e.Payload, out var cards, out _) ? cards.Count : 0)
             .Sum();
 
         var ingredientsWasted = playerEvents
             .Where(e => e.ActionType == "ingredient.discarded")
-            .Select(e => TryReadIngredientPurchase(e.Payload, out _, out var amount) ? amount : 0)
+            .Select(e => _payloadReader.TryReadIngredientPurchase(e.Payload, out _, out var amount) ? amount : 0)
             .Sum();
 
         var ingredientInvestmentTotal = playerProjections
@@ -77,7 +79,7 @@ internal static class AnalyticsIngredientMealCalculator
         var mealOrderIncomeValues = new List<int>();
         foreach (var evt in playerEvents.Where(e => e.ActionType == "order.claimed"))
         {
-            if (TryReadOrderClaim(evt.Payload, out _, out var income))
+            if (_payloadReader.TryReadOrderClaim(evt.Payload, out _, out var income))
             {
                 mealOrderIncomeValues.Add(income);
             }
@@ -106,7 +108,7 @@ internal static class AnalyticsIngredientMealCalculator
             essentialIngredientExpenses);
     }
 
-    private static double ComputeEssentialIngredientExpenses(IEnumerable<EventDb> playerEvents)
+    private double ComputeEssentialIngredientExpenses(IEnumerable<EventDb> playerEvents)
     {
         var purchaseCostByCardId = new Dictionary<string, Queue<double>>(StringComparer.OrdinalIgnoreCase);
         var essentialIngredientExpenses = 0d;
@@ -114,7 +116,7 @@ internal static class AnalyticsIngredientMealCalculator
         foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
         {
             if (evt.ActionType == "ingredient.purchased" &&
-                TryReadIngredientPurchase(evt.Payload, out var purchasedCardId, out var purchaseAmount) &&
+                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var purchasedCardId, out var purchaseAmount) &&
                 !string.IsNullOrWhiteSpace(purchasedCardId))
             {
                 if (!purchaseCostByCardId.TryGetValue(purchasedCardId, out var queue))
@@ -127,7 +129,7 @@ internal static class AnalyticsIngredientMealCalculator
             }
 
             if (evt.ActionType == "order.claimed" &&
-                TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
+                _payloadReader.TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
             {
                 foreach (var requiredCard in requiredCards)
                 {

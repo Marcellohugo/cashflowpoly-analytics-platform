@@ -24,7 +24,7 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
             CreateEvent(Guid.NewGuid(), "turn.ended", "{}", dayIndex: 19, weekday: "FRI")
         }).ToList();
 
-        var metrics = AnalyticsDonationGameplayCalculator.Compute(playerEvents, allEvents, coinsNetEndGame: 100);
+        var metrics = new DonationGameplayCalculator().Compute(playerEvents, allEvents, coinsNetEndGame: 100);
 
         Assert.Equal(35, metrics.DonationTotalCoins);
         Assert.Equal(2, metrics.DonationChampionCardsEarned);
@@ -61,7 +61,7 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
     [Fact]
     public void Compute_ReturnsNullDerivedMetricsWhenNoDonationAndNoFriday()
     {
-        var metrics = AnalyticsDonationGameplayCalculator.Compute(
+        var metrics = new DonationGameplayCalculator().Compute(
             Array.Empty<EventDb>(),
             Array.Empty<EventDb>(),
             coinsNetEndGame: 0);

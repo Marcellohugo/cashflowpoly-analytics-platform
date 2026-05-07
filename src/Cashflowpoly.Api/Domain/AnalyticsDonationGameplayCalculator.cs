@@ -2,7 +2,6 @@
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -26,9 +25,11 @@ public sealed record AnalyticsDonationGameplayMetrics(
     double? FridayParticipationRate,
     double? DonationCommitmentScore);
 
-internal static class AnalyticsDonationGameplayCalculator
+internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
 {
-    internal static AnalyticsDonationGameplayMetrics Compute(
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+
+    public AnalyticsDonationGameplayMetrics Compute(
         IEnumerable<EventDb> playerEvents,
         IEnumerable<EventDb> allEvents,
         double coinsNetEndGame)
@@ -39,7 +40,7 @@ internal static class AnalyticsDonationGameplayCalculator
             .GroupBy(e => e.DayIndex)
             .Select(g => new AnalyticsDonationAmountByDay(
                 g.Key,
-                g.Sum(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)))
+                g.Sum(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)))
             .OrderBy(item => item.DayIndex)
             .ToList();
         var donationTotal = donationByDay.Sum(item => item.Amount);
@@ -52,7 +53,7 @@ internal static class AnalyticsDonationGameplayCalculator
                 var rank = 0;
                 foreach (var evt in g)
                 {
-                    if (TryReadRankAwarded(evt.Payload, out var awardedRank, out _))
+                    if (_payloadReader.TryReadRankAwarded(evt.Payload, out var awardedRank, out _))
                     {
                         rank = awardedRank;
                         break;

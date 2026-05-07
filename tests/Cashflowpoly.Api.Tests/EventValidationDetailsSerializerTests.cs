@@ -13,7 +13,7 @@ public sealed class EventValidationDetailsSerializerTests
     {
         var request = CreateEventRequest(Guid.NewGuid(), "transaction.recorded");
 
-        var json = EventValidationDetailsSerializer.BuildValidationDetailsJson(request, null);
+        var json = new EventValidationDetailsSerializer().BuildValidationDetailsJson(request, null);
 
         Assert.Null(json);
     }
@@ -29,7 +29,7 @@ public sealed class EventValidationDetailsSerializerTests
             new List<ErrorDetail> { new("payload.amount", "OUT_OF_RANGE") },
             "trace-123");
 
-        var json = EventValidationDetailsSerializer.BuildValidationDetailsJson(request, error);
+        var json = new EventValidationDetailsSerializer().BuildValidationDetailsJson(request, error);
 
         using var document = JsonDocument.Parse(json!);
         var root = document.RootElement;

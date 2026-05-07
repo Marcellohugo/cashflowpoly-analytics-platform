@@ -4,9 +4,9 @@ using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
-internal static class EventValidationDetailsSerializer
+internal sealed class EventValidationDetailsSerializer : IEventValidationDetailsSerializer
 {
-    internal static string? BuildValidationDetailsJson(EventRequest request, ErrorResponse? error)
+    public string? BuildValidationDetailsJson(EventRequest request, ErrorResponse? error)
     {
         if (error is null)
         {

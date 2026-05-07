@@ -14,7 +14,7 @@ public sealed class EventSimpleActionValidatorTests
     {
         var request = CreateRequest("transaction.recorded", """{"direction":"IN","amount":1,"category":"PAYCHECK"}""");
 
-        var handled = EventSimpleActionValidator.TryValidate(request, CreateConfig(), out var result);
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
         Assert.False(handled);
         Assert.True(result.IsValid);
@@ -28,7 +28,7 @@ public sealed class EventSimpleActionValidatorTests
             PlayerId = null
         };
 
-        var handled = EventSimpleActionValidator.TryValidate(request, CreateConfig(), out var result);
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -42,7 +42,7 @@ public sealed class EventSimpleActionValidatorTests
     {
         var request = CreateRequest("work.freelance.completed", """{"amount":7}""");
 
-        var handled = EventSimpleActionValidator.TryValidate(request, CreateConfig(freelanceIncome: 5), out var result);
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(freelanceIncome: 5), out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -56,7 +56,7 @@ public sealed class EventSimpleActionValidatorTests
     {
         var request = CreateRequest("gold.points.awarded", """{"points":-1}""");
 
-        var handled = EventSimpleActionValidator.TryValidate(request, CreateConfig(), out var result);
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -69,7 +69,7 @@ public sealed class EventSimpleActionValidatorTests
     {
         var request = CreateRequest("pension.rank.awarded", """{"rank":2,"points":10}""");
 
-        var handled = EventSimpleActionValidator.TryValidate(request, CreateConfig(), out var result);
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
         Assert.True(handled);
         Assert.True(result.IsValid);

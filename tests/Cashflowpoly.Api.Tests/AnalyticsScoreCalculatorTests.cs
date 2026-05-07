@@ -28,7 +28,7 @@ public sealed class AnalyticsScoreCalculatorTests
             new() { Direction = "IN", Amount = 3 }
         };
 
-        var summary = AnalyticsScoreCalculator.BuildSummary(events, projections, rulesViolationsCount: 4);
+        var summary = new ScoreCalculator().BuildSummary(events, projections, rulesViolationsCount: 4);
 
         Assert.Equal(2, summary.EventCount);
         Assert.Equal(15, summary.CashInTotal);
@@ -43,7 +43,7 @@ public sealed class AnalyticsScoreCalculatorTests
     /// </summary>
     public void ComputeLearningPerformanceScore_UsesWeightedComponents()
     {
-        var score = AnalyticsScoreCalculator.ComputeLearningPerformanceScore(
+        var score = new ScoreCalculator().ComputeLearningPerformanceScore(
             cashInTotal: 8,
             cashOutTotal: 3,
             happinessPointsTotal: 10,
@@ -58,7 +58,7 @@ public sealed class AnalyticsScoreCalculatorTests
     /// </summary>
     public void AverageNullable_IgnoresNullAndRounds()
     {
-        var value = AnalyticsScoreCalculator.AverageNullable(new double?[] { 10, null, 11.555 });
+        var value = new ScoreCalculator().AverageNullable(new double?[] { 10, null, 11.555 });
 
         Assert.Equal(10.78, value);
     }

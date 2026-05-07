@@ -15,7 +15,7 @@ public sealed class EventNeedPurchaseValidatorTests
     {
         var request = CreateRequest("transaction.recorded", """{"amount":1}""");
 
-        var handled = EventNeedPurchaseValidator.TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
         Assert.False(handled);
         Assert.True(result.Validation.IsValid);
@@ -32,7 +32,7 @@ public sealed class EventNeedPurchaseValidatorTests
             CreateEvent("need.primary.purchased", """{"card_id":"water","amount":3,"points":1}""", playerId, dayIndex: 0)
         };
 
-        var handled = EventNeedPurchaseValidator.TryValidate(request, CreateConfig(primaryNeedMaxPerDay: 1), history, out var result);
+        var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(primaryNeedMaxPerDay: 1), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -47,7 +47,7 @@ public sealed class EventNeedPurchaseValidatorTests
         var playerId = Guid.NewGuid();
         var request = CreateRequest("need.secondary.purchased", """{"card_id":"book","amount":4,"points":1}""", playerId);
 
-        var handled = EventNeedPurchaseValidator.TryValidate(request, CreateConfig(requirePrimaryBeforeOthers: true), Array.Empty<EventDb>(), out var result);
+        var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(requirePrimaryBeforeOthers: true), Array.Empty<EventDb>(), out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -65,7 +65,7 @@ public sealed class EventNeedPurchaseValidatorTests
             CreateEvent("need.primary.purchased", """{"card_id":"rice","amount":3,"points":1}""", playerId, dayIndex: 0)
         };
 
-        var handled = EventNeedPurchaseValidator.TryValidate(request, CreateConfig(requirePrimaryBeforeOthers: true), history, out var result);
+        var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(requirePrimaryBeforeOthers: true), history, out var result);
 
         Assert.True(handled);
         Assert.True(result.Validation.IsValid);

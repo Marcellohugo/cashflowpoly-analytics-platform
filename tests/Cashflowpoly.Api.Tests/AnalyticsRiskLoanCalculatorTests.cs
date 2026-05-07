@@ -30,7 +30,7 @@ public sealed class AnalyticsRiskLoanCalculatorTests
             CreateProjection(Guid.NewGuid(), sessionId, playerId, "OUT", 1, "INSURANCE_PREMIUM")
         };
 
-        var metrics = AnalyticsRiskLoanCalculator.Compute(events, projections, startingCoins: 20, coinsNetEndGame: 30, totalIncome: 50);
+        var metrics = new RiskLoanCalculator().Compute(events, projections, startingCoins: 20, coinsNetEndGame: 30, totalIncome: 50);
 
         Assert.Equal(new[] { 6, 4 }, metrics.RiskCostsPerCard);
         Assert.Equal(10, metrics.RiskCostsTotal);

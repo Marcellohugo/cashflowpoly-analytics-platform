@@ -2,7 +2,6 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -10,9 +9,11 @@ public sealed record EventEconomyActionValidation(
     EventDomainValidationResult Validation,
     double? OutgoingAmount);
 
-internal static class EventEconomyActionValidator
+internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
 {
-    internal static bool TryValidate(
+    private static readonly EventPayloadReader _payloadReader = new();
+
+    public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
@@ -40,9 +41,9 @@ internal static class EventEconomyActionValidator
         return false;
     }
 
-    private static EventEconomyActionValidation ValidateTransaction(EventRequest request)
+    private EventEconomyActionValidation ValidateTransaction(EventRequest request)
     {
-        if (!TryReadTransaction(request.Payload, out var direction, out var amount, out var category, out var counterparty))
+        if (!_payloadReader.TryReadTransaction(request.Payload, out var direction, out var amount, out var category, out var counterparty))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -96,7 +97,7 @@ internal static class EventEconomyActionValidator
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, outgoing);
     }
 
-    private static EventEconomyActionValidation ValidateFridayDonation(EventRequest request, RulesetConfig config)
+    private EventEconomyActionValidation ValidateFridayDonation(EventRequest request, RulesetConfig config)
     {
         if (!config.FridayEnabled)
         {
@@ -112,7 +113,7 @@ internal static class EventEconomyActionValidator
                 new ErrorDetail("weekday", "INVALID_VALUE"));
         }
 
-        if (!TryReadAmount(request.Payload, out var amount))
+        if (!_payloadReader.TryReadAmount(request.Payload, out var amount))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -129,7 +130,7 @@ internal static class EventEconomyActionValidator
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, request.PlayerId is null ? null : amount);
     }
 
-    private static EventEconomyActionValidation ValidateGoldTrade(
+    private EventEconomyActionValidation ValidateGoldTrade(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history)
@@ -148,7 +149,7 @@ internal static class EventEconomyActionValidator
                 new ErrorDetail("weekday", "INVALID_VALUE"));
         }
 
-        if (!TryReadGoldTrade(request.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
+        if (!_payloadReader.TryReadGoldTrade(request.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -198,7 +199,7 @@ internal static class EventEconomyActionValidator
                          e.PlayerId == request.PlayerId &&
                          e.ActionType == "day.saturday.gold_trade"))
             {
-                if (!TryReadGoldTrade(ReadPayload(evt.Payload), out var evtTradeType, out var evtQty, out _, out _))
+                if (!_payloadReader.TryReadGoldTrade(_payloadReader.ReadPayload(evt.Payload), out var evtTradeType, out var evtQty, out _, out _))
                 {
                     continue;
                 }
@@ -218,7 +219,7 @@ internal static class EventEconomyActionValidator
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, outgoing);
     }
 
-    private static EventEconomyActionValidation Fail(
+    private EventEconomyActionValidation Fail(
         int statusCode,
         string errorCode,
         string message,

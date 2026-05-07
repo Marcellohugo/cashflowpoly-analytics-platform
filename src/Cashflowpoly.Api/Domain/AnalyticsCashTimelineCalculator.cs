@@ -27,9 +27,9 @@ public sealed record AnalyticsCashTimeline(
     IReadOnlyList<AnalyticsTurnNet> NetIncomePerTurn,
     IReadOnlyList<AnalyticsTurnCoins> CoinsProgression);
 
-internal static class AnalyticsCashTimelineCalculator
+internal sealed class CashTimelineCalculator : ICashTimelineCalculator
 {
-    internal static AnalyticsCashTimeline Compute(
+    public AnalyticsCashTimeline Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         int startingCoins)

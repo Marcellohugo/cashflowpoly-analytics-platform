@@ -17,7 +17,7 @@ public sealed class AnalyticsHappinessCalculatorTests
             BuildEvent("need.tertiary.purchased", """{"amount":4,"card_id":"tertiary-bike","points":3}""")
         };
 
-        var breakdown = AnalyticsHappinessCalculator.ComputeBreakdown(
+        var breakdown = new HappinessCalculator().ComputeBreakdown(
             playerEvents,
             donationPoints: 0,
             goldPoints: 0,
@@ -38,7 +38,7 @@ public sealed class AnalyticsHappinessCalculatorTests
             BuildEvent("loan.syariah.repaid", """{"loan_id":"loan-1","amount":4}""")
         };
 
-        var breakdown = AnalyticsHappinessCalculator.ComputeBreakdown(
+        var breakdown = new HappinessCalculator().ComputeBreakdown(
             playerEvents,
             donationPoints: 0,
             goldPoints: 0,
@@ -69,7 +69,7 @@ public sealed class AnalyticsHappinessCalculatorTests
             [new QtyPoint(1, 3), new QtyPoint(2, 5)],
             []));
 
-        var byPlayer = AnalyticsHappinessCalculator.ComputeByPlayer(events, [], config);
+        var byPlayer = new HappinessCalculator().ComputeByPlayer(events, [], config);
 
         Assert.Equal(10, byPlayer[firstPlayerId].Total);
         Assert.Equal(5, byPlayer[firstPlayerId].DonationPoints);

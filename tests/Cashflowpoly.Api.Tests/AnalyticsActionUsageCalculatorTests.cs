@@ -29,7 +29,7 @@ public sealed class AnalyticsActionUsageCalculatorTests
             CreateProjection(orderEventId, sessionId, playerId, "IN", 12, "ORDER_INCOME")
         };
 
-        var metrics = AnalyticsActionUsageCalculator.Compute(events, projections, maxTurnNumber: 4, actionsPerTurn: 2);
+        var metrics = new ActionUsageCalculator().Compute(events, projections, maxTurnNumber: 4, actionsPerTurn: 2);
 
         Assert.Equal(2, metrics.ActionSequences.Count);
         Assert.Equal(1, metrics.ActionSequences[0].TurnNumber);

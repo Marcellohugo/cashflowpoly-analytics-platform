@@ -22,7 +22,7 @@ public sealed class AnalyticsSavingGoalCalculatorTests
             CreateEvent(playerId, "saving.goal.achieved", """{"goal_id":"goal-c","points":5,"cost":3}""")
         };
 
-        var result = AnalyticsSavingGoalCalculator.Compute(events);
+        var result = new SavingGoalCalculator().Compute(events);
 
         Assert.Equal(30, result.SavingDepositsByGoal["goal-a"]);
         Assert.Equal(7, result.SavingDepositsByGoal["goal-b"]);
@@ -46,7 +46,7 @@ public sealed class AnalyticsSavingGoalCalculatorTests
     [Fact]
     public void Compute_HandlesMissingGoalActivity()
     {
-        var result = AnalyticsSavingGoalCalculator.Compute(Array.Empty<EventDb>());
+        var result = new SavingGoalCalculator().Compute(Array.Empty<EventDb>());
 
         Assert.Empty(result.SavingDepositsByGoal);
         Assert.Empty(result.SavingBalancesByGoal);

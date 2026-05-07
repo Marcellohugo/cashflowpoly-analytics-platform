@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using System.Security.Claims;
-using static Cashflowpoly.Api.Domain.EventPayloadReader;
-
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
@@ -44,6 +42,21 @@ public sealed class EventsController : ControllerBase
     /// Singleton outcome akses sesi sukses (tanpa scope player) untuk instruktur.
     /// </summary>
     private static readonly SessionAccessOutcome AccessValid = new(true, StatusCodes.Status200OK, null, null);
+
+    private static readonly EventPayloadReader _payloadReader = new();
+    private static readonly EventValidationDetailsSerializer _validationSerializer = new();
+    private static readonly EventRecordMapper _recordMapper = new();
+    private static readonly EventRequestShapeValidator _shapeValidator = new();
+    private static readonly EventInsuranceOffsetBuilder _insuranceOffsetBuilder = new();
+    private static readonly EventCashflowProjectionBuilder _projectionBuilder = new();
+    private static readonly EventSimpleActionValidator _simpleActionValidator = new();
+    private static readonly EventTurnProgressValidator _turnProgressValidator = new();
+    private static readonly EventNeedPurchaseValidator _needPurchaseValidator = new();
+    private static readonly EventIngredientOrderValidator _ingredientOrderValidator = new();
+    private static readonly EventSavingGoalValidator _savingGoalValidator = new();
+    private static readonly EventEconomyActionValidator _economyActionValidator = new();
+    private static readonly EventAssignmentValidator _assignmentValidator = new();
+    private static readonly EventPlayerBalanceCalculator _playerBalanceCalc = new();
 
     private readonly SessionRepository _sessions;
     private readonly RulesetRepository _rulesets;
@@ -97,7 +110,7 @@ public sealed class EventsController : ControllerBase
                 false,
                 validation.Error?.ErrorCode,
                 validation.Error?.Message,
-                EventValidationDetailsSerializer.BuildValidationDetailsJson(request, validation.Error),
+                _validationSerializer.BuildValidationDetailsJson(request, validation.Error),
                 ct);
 
             return StatusCode(validation.StatusCode, validation.Error);
@@ -113,7 +126,7 @@ public sealed class EventsController : ControllerBase
         {
             var error = ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Event sudah ada");
             await _events.InsertValidationLogAsync(request.SessionId, request.EventId, null, false, error.ErrorCode, error.Message,
-                EventValidationDetailsSerializer.BuildValidationDetailsJson(request, error), ct);
+                _validationSerializer.BuildValidationDetailsJson(request, error), ct);
             return Conflict(error);
         }
     }
@@ -156,7 +169,7 @@ public sealed class EventsController : ControllerBase
                     false,
                     validation.Error?.ErrorCode,
                     validation.Error?.Message,
-                    EventValidationDetailsSerializer.BuildValidationDetailsJson(evt, validation.Error),
+                    _validationSerializer.BuildValidationDetailsJson(evt, validation.Error),
                     ct);
                 continue;
             }
@@ -172,7 +185,7 @@ public sealed class EventsController : ControllerBase
                 failed.Add(new EventBatchFailed(evt.EventId, "DUPLICATE"));
                 var dupError = ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Event sudah ada");
                 await _events.InsertValidationLogAsync(evt.SessionId, evt.EventId, null, false, dupError.ErrorCode, dupError.Message,
-                    EventValidationDetailsSerializer.BuildValidationDetailsJson(evt, dupError), ct);
+                    _validationSerializer.BuildValidationDetailsJson(evt, dupError), ct);
             }
         }
 
@@ -211,7 +224,7 @@ public sealed class EventsController : ControllerBase
         }
 
         var events = await _events.GetEventsBySessionAsync(sessionId, fromSeq, limit, ct);
-        var responseEvents = events.Select(EventRecordMapper.ToEventRequest).ToList();
+        var responseEvents = events.Select(_recordMapper.ToEventRequest).ToList();
         return Ok(new EventsBySessionResponse(sessionId, responseEvents));
     }
 
@@ -249,7 +262,7 @@ public sealed class EventsController : ControllerBase
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset version tidak aktif");
         }
 
-        var shapeValidation = EventRequestShapeValidator.Validate(request, accessScopeCheck.ScopedPlayerId);
+        var shapeValidation = _shapeValidator.Validate(request, accessScopeCheck.ScopedPlayerId);
         if (!shapeValidation.IsValid)
         {
             return BuildOutcome(shapeValidation);
@@ -333,10 +346,10 @@ public sealed class EventsController : ControllerBase
 
         // Kumpulkan proyeksi sebelum transaksi
         CashflowProjectionDb? insuranceOffset = null;
-        if (EventInsuranceOffsetBuilder.TryReadRiskEventReference(request, out _, out var riskEventId))
+        if (_insuranceOffsetBuilder.TryReadRiskEventReference(request, out _, out var riskEventId))
         {
             var riskEvent = await _events.GetEventByIdAsync(request.SessionId, riskEventId, ct);
-            EventInsuranceOffsetBuilder.TryBuild(request, timestamp, eventPk, riskEvent, out insuranceOffset);
+            _insuranceOffsetBuilder.TryBuild(request, timestamp, eventPk, riskEvent, out insuranceOffset);
         }
 
         // Simpan event + proyeksi dalam satu transaksi
@@ -345,7 +358,7 @@ public sealed class EventsController : ControllerBase
 
         await _events.InsertEventAsync(record, conn, tx, ct);
 
-        if (EventCashflowProjectionBuilder.TryBuild(request, timestamp, eventPk, out var projection))
+        if (_projectionBuilder.TryBuild(request, timestamp, eventPk, out var projection))
         {
             await _events.InsertCashflowProjectionAsync(projection, conn, tx, ct);
         }
@@ -387,15 +400,15 @@ public sealed class EventsController : ControllerBase
         var actionType = request.ActionType;
         var payload = request.Payload;
 
-        if (EventSimpleActionValidator.TryValidate(request, config, out var simpleValidation))
+        if (_simpleActionValidator.TryValidate(request, config, out var simpleValidation))
         {
             return BuildOutcome(simpleValidation);
         }
 
-        if (EventTurnProgressValidator.RequiresHistory(request, config))
+        if (_turnProgressValidator.RequiresHistory(request, config))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
-            if (EventTurnProgressValidator.TryValidate(request, config, events, out var turnValidation))
+            if (_turnProgressValidator.TryValidate(request, config, events, out var turnValidation))
             {
                 return BuildOutcome(turnValidation);
             }
@@ -406,7 +419,7 @@ public sealed class EventsController : ControllerBase
             string.Equals(actionType, "need.tertiary.purchased", StringComparison.OrdinalIgnoreCase))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
-            if (EventNeedPurchaseValidator.TryValidate(request, config, events, out var needValidation))
+            if (_needPurchaseValidator.TryValidate(request, config, events, out var needValidation))
             {
                 if (!needValidation.Validation.IsValid)
                 {
@@ -431,7 +444,7 @@ public sealed class EventsController : ControllerBase
             string.Equals(actionType, "order.claimed", StringComparison.OrdinalIgnoreCase))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
-            if (EventIngredientOrderValidator.TryValidate(request, config, events, out var ingredientValidation))
+            if (_ingredientOrderValidator.TryValidate(request, config, events, out var ingredientValidation))
             {
                 if (!ingredientValidation.Validation.IsValid)
                 {
@@ -456,7 +469,7 @@ public sealed class EventsController : ControllerBase
             string.Equals(actionType, "saving.goal.achieved", StringComparison.OrdinalIgnoreCase))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
-            if (EventSavingGoalValidator.TryValidate(request, config, events, out var savingValidation))
+            if (_savingGoalValidator.TryValidate(request, config, events, out var savingValidation))
             {
                 if (!savingValidation.Validation.IsValid)
                 {
@@ -483,7 +496,7 @@ public sealed class EventsController : ControllerBase
             IEnumerable<EventDb> events = string.Equals(actionType, "day.saturday.gold_trade", StringComparison.OrdinalIgnoreCase)
                 ? await _events.GetAllEventsBySessionAsync(request.SessionId, ct)
                 : Array.Empty<EventDb>();
-            if (EventEconomyActionValidator.TryValidate(request, config, events, out var economyValidation))
+            if (_economyActionValidator.TryValidate(request, config, events, out var economyValidation))
             {
                 if (!economyValidation.Validation.IsValid)
                 {
@@ -507,7 +520,7 @@ public sealed class EventsController : ControllerBase
             string.Equals(actionType, "tie_breaker.assigned", StringComparison.OrdinalIgnoreCase))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
-            if (EventAssignmentValidator.TryValidate(request, events, out var assignmentValidation))
+            if (_assignmentValidator.TryValidate(request, events, out var assignmentValidation))
             {
                 return BuildOutcome(assignmentValidation);
             }
@@ -526,7 +539,7 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("player_id", "REQUIRED"));
             }
 
-            if (!TryReadRiskLife(payload, out var riskId, out var direction, out var amount))
+            if (!_payloadReader.TryReadRiskLife(payload, out var riskId, out var direction, out var amount))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload risiko tidak valid",
                     new ErrorDetail("payload.amount", "REQUIRED"));
@@ -583,7 +596,7 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("player_id", "REQUIRED"));
             }
 
-            if (!TryReadInsuranceUsed(payload, out var riskEventIdText))
+            if (!_payloadReader.TryReadInsuranceUsed(payload, out var riskEventIdText))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload insurance used tidak valid",
                     new ErrorDetail("payload.risk_event_id", "REQUIRED"));
@@ -616,8 +629,8 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
             }
 
-            var riskPayload = ReadPayload(riskEvent.Payload);
-            if (!TryReadRiskLife(riskPayload, out _, out var direction, out var amount) ||
+            var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
+            if (!_payloadReader.TryReadRiskLife(riskPayload, out _, out var direction, out var amount) ||
                 !string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
                 amount <= 0)
             {
@@ -626,7 +639,7 @@ public sealed class EventsController : ControllerBase
 
             var alreadyUsed = events.Any(e =>
                 string.Equals(e.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) &&
-                TryReadInsuranceUsed(ReadPayload(e.Payload), out var usedRiskEventId) &&
+                _payloadReader.TryReadInsuranceUsed(_payloadReader.ReadPayload(e.Payload), out var usedRiskEventId) &&
                 string.Equals(usedRiskEventId, riskEventIdText, StringComparison.OrdinalIgnoreCase));
 
             if (alreadyUsed)
@@ -650,7 +663,7 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("player_id", "REQUIRED"));
             }
 
-            if (!TryReadEmergencyOption(payload, out var riskEventIdText, out var optionType, out var direction, out var amount))
+            if (!_payloadReader.TryReadEmergencyOption(payload, out var riskEventIdText, out var optionType, out var direction, out var amount))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload emergency option tidak valid",
                     new ErrorDetail("payload.risk_event_id", "REQUIRED"));
@@ -694,8 +707,8 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
             }
 
-            var riskPayload = ReadPayload(riskEvent.Payload);
-            if (!TryReadRiskLife(riskPayload, out _, out var riskDirection, out _) ||
+            var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
+            if (!_payloadReader.TryReadRiskLife(riskPayload, out _, out var riskDirection, out _) ||
                 !string.Equals(riskDirection, "OUT", StringComparison.OrdinalIgnoreCase))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Emergency option hanya berlaku untuk risiko OUT");
@@ -726,7 +739,7 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("player_id", "REQUIRED"));
             }
 
-            if (!TryReadLoanTaken(payload, out var loanId, out var principal, out var installment, out var duration, out var penaltyPoints))
+            if (!_payloadReader.TryReadLoanTaken(payload, out var loanId, out var principal, out var installment, out var duration, out var penaltyPoints))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload loan taken tidak valid",
                     new ErrorDetail("payload.loan_id", "REQUIRED"));
@@ -758,7 +771,7 @@ public sealed class EventsController : ControllerBase
             var exists = events.Any(e =>
                 e.PlayerId == request.PlayerId &&
                 e.ActionType == "loan.syariah.taken" &&
-                TryReadLoanTaken(ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
+                _payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
                 string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
             if (exists)
             {
@@ -781,7 +794,7 @@ public sealed class EventsController : ControllerBase
                     new ErrorDetail("player_id", "REQUIRED"));
             }
 
-            if (!TryReadLoanRepay(payload, out var loanId, out var amount))
+            if (!_payloadReader.TryReadLoanRepay(payload, out var loanId, out var amount))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload loan repaid tidak valid",
                     new ErrorDetail("payload.loan_id", "REQUIRED"));
@@ -797,7 +810,7 @@ public sealed class EventsController : ControllerBase
             var loan = events.FirstOrDefault(e =>
                 e.PlayerId == request.PlayerId &&
                 e.ActionType == "loan.syariah.taken" &&
-                TryReadLoanTaken(ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
+                _payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
                 string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
 
             if (loan is null)
@@ -806,7 +819,7 @@ public sealed class EventsController : ControllerBase
             }
 
             var principal = 0;
-            if (TryReadLoanTaken(ReadPayload(loan.Payload), out _, out var principalValue, out _, out _, out _))
+            if (_payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(loan.Payload), out _, out var principalValue, out _, out _, out _))
             {
                 principal = principalValue;
             }
@@ -814,9 +827,9 @@ public sealed class EventsController : ControllerBase
             var repaidSoFar = events.Where(e =>
                     e.PlayerId == request.PlayerId &&
                     e.ActionType == "loan.syariah.repaid" &&
-                    TryReadLoanRepay(ReadPayload(e.Payload), out var existingLoanId, out _) &&
+                    _payloadReader.TryReadLoanRepay(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _) &&
                     string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase))
-                .Sum(e => TryReadLoanRepay(ReadPayload(e.Payload), out _, out var repaidAmount) ? repaidAmount : 0);
+                .Sum(e => _payloadReader.TryReadLoanRepay(_payloadReader.ReadPayload(e.Payload), out _, out var repaidAmount) ? repaidAmount : 0);
 
             if (principal > 0 && repaidSoFar + amount > principal)
             {
@@ -839,7 +852,7 @@ public sealed class EventsController : ControllerBase
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur asuransi tidak aktif");
             }
 
-            if (!TryReadInsurance(payload, out var premium))
+            if (!_payloadReader.TryReadInsurance(payload, out var premium))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload insurance tidak valid",
                     new ErrorDetail("payload.premium", "REQUIRED"));
@@ -886,7 +899,7 @@ public sealed class EventsController : ControllerBase
         }
 
         var projections = await _events.GetCashflowProjectionsAsync(request.SessionId, ct);
-        var currentBalance = EventPlayerBalanceCalculator.Compute(request.PlayerId.Value, config.StartingCash, projections);
+        var currentBalance = _playerBalanceCalc.Compute(request.PlayerId.Value, config.StartingCash, projections);
         var projectedBalance = currentBalance - outgoingAmount;
 
         if (projectedBalance < config.CashMin)

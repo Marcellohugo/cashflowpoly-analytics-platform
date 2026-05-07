@@ -32,7 +32,7 @@ public sealed class EventInsuranceOffsetBuilderTests
             Payload = """{"risk_id":"risk-a","direction":"OUT","amount":7}"""
         };
 
-        var ok = EventInsuranceOffsetBuilder.TryBuild(request, timestamp, eventPk, riskEvent, out var projection);
+        var ok = new EventInsuranceOffsetBuilder().TryBuild(request, timestamp, eventPk, riskEvent, out var projection);
 
         Assert.True(ok);
         Assert.NotNull(projection);

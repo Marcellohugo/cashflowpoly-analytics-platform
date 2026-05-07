@@ -23,7 +23,7 @@ public sealed class EventAssignmentValidatorTests
             CreateEvent(playerId, "mission.assigned", """{"mission_id":"m-old","target_tertiary_card_id":"phone","penalty_points":10}""")
         };
 
-        var handled = EventAssignmentValidator.TryValidate(request, history, out var result);
+        var handled = new EventAssignmentValidator().TryValidate(request, history, out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -36,7 +36,7 @@ public sealed class EventAssignmentValidatorTests
     {
         var request = CreateRequest(Guid.NewGuid(), "tie_breaker.assigned", """{"number":3}""");
 
-        var handled = EventAssignmentValidator.TryValidate(request, Array.Empty<EventDb>(), out var result);
+        var handled = new EventAssignmentValidator().TryValidate(request, Array.Empty<EventDb>(), out var result);
 
         Assert.True(handled);
         Assert.True(result.IsValid);

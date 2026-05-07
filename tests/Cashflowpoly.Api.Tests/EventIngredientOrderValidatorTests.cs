@@ -15,7 +15,7 @@ public sealed class EventIngredientOrderValidatorTests
     {
         var request = CreateRequest("transaction.recorded", """{"amount":1}""", Guid.NewGuid());
 
-        var handled = EventIngredientOrderValidator.TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
         Assert.False(handled);
         Assert.True(result.Validation.IsValid);
@@ -32,7 +32,7 @@ public sealed class EventIngredientOrderValidatorTests
             CreateEvent("ingredient.purchased", """{"card_id":"egg","amount":2}""", playerId)
         };
 
-        var handled = EventIngredientOrderValidator.TryValidate(request, CreateConfig(maxIngredientTotal: 3), history, out var result);
+        var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(maxIngredientTotal: 3), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -51,7 +51,7 @@ public sealed class EventIngredientOrderValidatorTests
             CreateEvent("ingredient.purchased", """{"card_id":"flour","amount":1}""", playerId)
         };
 
-        var handled = EventIngredientOrderValidator.TryValidate(request, CreateConfig(), history, out var result);
+        var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
@@ -69,7 +69,7 @@ public sealed class EventIngredientOrderValidatorTests
             CreateEvent("ingredient.purchased", """{"card_id":"egg","amount":1}""", playerId)
         };
 
-        var handled = EventIngredientOrderValidator.TryValidate(request, CreateConfig(), history, out var result);
+        var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
         Assert.True(result.Validation.IsValid);

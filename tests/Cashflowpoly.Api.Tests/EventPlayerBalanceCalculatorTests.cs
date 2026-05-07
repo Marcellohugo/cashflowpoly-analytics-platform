@@ -19,7 +19,7 @@ public sealed class EventPlayerBalanceCalculatorTests
             CreateProjection(otherPlayerId, "OUT", 99)
         };
 
-        var balance = EventPlayerBalanceCalculator.Compute(playerId, startingCash: 20, projections);
+        var balance = new EventPlayerBalanceCalculator().Compute(playerId, startingCash: 20, projections);
 
         Assert.Equal(27, balance);
     }

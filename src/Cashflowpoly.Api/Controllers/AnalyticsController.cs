@@ -6,9 +6,6 @@ using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using static Cashflowpoly.Api.Domain.AnalyticsPayloadReader;
-using static Cashflowpoly.Api.Domain.AnalyticsScoreCalculator;
-
 namespace Cashflowpoly.Api.Controllers;
 
 [ApiController]
@@ -26,6 +23,16 @@ namespace Cashflowpoly.Api.Controllers;
 /// </summary>
 public sealed class AnalyticsController : ControllerBase
 {
+    private static readonly AnalyticsPayloadReader _payloadReader = new();
+    private static readonly ScoreCalculator _scoreCalc = new();
+    private static readonly HappinessCalculator _happinessCalc = new();
+    private static readonly IngredientInventoryCalculator _inventoryCalc = new();
+    private static readonly PrimaryNeedComplianceEvaluator _complianceEvaluator = new();
+    private static readonly PlayerOrderingService _playerOrdering = new();
+    private static readonly SessionMetricCalculator _sessionMetricCalc = new();
+    private static readonly MetricSnapshotBuilder _metricSnapshotBuilder = new();
+    private static readonly GameplaySnapshotBuilder _gameplaySnapshotBuilder = new();
+
     private readonly SessionRepository _sessions;
     private readonly EventRepository _events;
     private readonly RulesetRepository _rulesets;
@@ -95,8 +102,8 @@ public sealed class AnalyticsController : ControllerBase
             }
         }
 
-        var happinessByPlayer = AnalyticsHappinessCalculator.ComputeByPlayer(events, projections, config);
-        var summary = BuildSummary(events, projections, violations);
+        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
+        var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
         var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
 
@@ -157,8 +164,8 @@ public sealed class AnalyticsController : ControllerBase
             }
         }
 
-        var happinessByPlayer = AnalyticsHappinessCalculator.ComputeByPlayer(events, projections, config);
-        var summary = BuildSummary(events, projections, violations);
+        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
+        var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
         var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
         if (scope.PlayerId.HasValue)
@@ -330,7 +337,7 @@ public sealed class AnalyticsController : ControllerBase
                 config = parsed;
             }
 
-            var happinessByPlayer = AnalyticsHappinessCalculator.ComputeByPlayer(events, projections, config);
+            var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
             var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(session.SessionId, ct);
             var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
             var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
@@ -343,21 +350,21 @@ public sealed class AnalyticsController : ControllerBase
                     "compliance.primary_need.rate",
                     ct);
 
-                var learningScore = ComputeLearningPerformanceScore(
+                var learningScore = _scoreCalc.ComputeLearningPerformanceScore(
                     player.CashInTotal,
                     player.CashOutTotal,
                     player.HappinessPointsTotal,
                     complianceRate);
 
-                var missionScore = ComputeMissionPerformanceScore(
+                var missionScore = _scoreCalc.ComputeMissionPerformanceScore(
                     player.MissionPenaltyTotal,
                     player.LoanPenaltyTotal);
 
                 allPlayerItems.Add(new RulesetAnalyticsPlayerItem(player.PlayerId, learningScore, missionScore));
             }
 
-            var learningAggregate = AverageNullable(allPlayerItems.Select(item => item.LearningPerformanceIndividualScore));
-            var missionAggregate = AverageNullable(allPlayerItems.Select(item => item.MissionPerformanceIndividualScore));
+            var learningAggregate = _scoreCalc.AverageNullable(allPlayerItems.Select(item => item.LearningPerformanceIndividualScore));
+            var missionAggregate = _scoreCalc.AverageNullable(allPlayerItems.Select(item => item.MissionPerformanceIndividualScore));
             var visiblePlayers = scopedPlayerId.HasValue
                 ? allPlayerItems.Where(item => item.PlayerId == scopedPlayerId.Value).ToList()
                 : allPlayerItems;
@@ -391,8 +398,8 @@ public sealed class AnalyticsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        var learningOverall = AverageNullable(sessionItems.Select(item => item.LearningPerformanceAggregateScore));
-        var missionOverall = AverageNullable(sessionItems.Select(item => item.MissionPerformanceAggregateScore));
+        var learningOverall = _scoreCalc.AverageNullable(sessionItems.Select(item => item.LearningPerformanceAggregateScore));
+        var missionOverall = _scoreCalc.AverageNullable(sessionItems.Select(item => item.MissionPerformanceAggregateScore));
 
         return Ok(new RulesetAnalyticsSummaryResponse(
             rulesetId,
@@ -546,13 +553,13 @@ public sealed class AnalyticsController : ControllerBase
 
             var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };
             var donationTotal = playerEvents.Where(e => e.ActionType == "day.friday.donation")
-                .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+                .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
                 .Sum();
 
             var goldQty = playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade")
                 .Select(e =>
                 {
-                    if (!TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
+                    if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
                     {
                         return 0;
                     }
@@ -562,16 +569,16 @@ public sealed class AnalyticsController : ControllerBase
                 .Sum();
 
             var ordersCompletedCount = playerEvents.Count(e => e.ActionType == "order.claimed");
-            var inventoryIngredientTotal = AnalyticsIngredientInventoryCalculator.BuildIngredientInventory(playerEvents).Total;
+            var inventoryIngredientTotal = _inventoryCalc.BuildIngredientInventory(playerEvents).Total;
             var actionsUsedTotal = playerEvents.Where(e => e.ActionType == "turn.action.used")
-                .Select(e => TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
+                .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
                 .Sum();
-            var compliancePrimaryNeedRate = AnalyticsPrimaryNeedComplianceEvaluator.Evaluate(playerEvents, config).Rate;
+            var compliancePrimaryNeedRate = _complianceEvaluator.Evaluate(playerEvents, config).Rate;
             var rulesViolationsCount = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
 
             var happiness = happinessByPlayer.TryGetValue(playerId, out var breakdown)
                 ? breakdown
-                : AnalyticsHappinessCalculator.ComputeBreakdown(playerEvents, 0, 0, 0);
+                : _happinessCalc.ComputeBreakdown(playerEvents, 0, 0, 0);
 
             result.Add(new AnalyticsByPlayerItem(
                 playerId,
@@ -597,7 +604,7 @@ public sealed class AnalyticsController : ControllerBase
                 happiness.HasUnpaidLoan));
         }
 
-        return AnalyticsPlayerOrdering.OrderPlayers(
+        return _playerOrdering.OrderPlayers(
             result,
             config?.PlayerOrdering ?? PlayerOrdering.JoinOrder,
             playerJoinOrders,
@@ -620,10 +627,10 @@ public sealed class AnalyticsController : ControllerBase
         var computedAt = DateTimeOffset.UtcNow;
         var snapshots = new List<MetricSnapshotDb>();
 
-        var sessionMetrics = AnalyticsSessionMetricCalculator.ComputeSessionMetrics(events, projections, happinessByPlayer);
+        var sessionMetrics = _sessionMetricCalc.ComputeSessionMetrics(events, projections, happinessByPlayer);
         var sessionViolations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
         sessionMetrics["rules.violations.count"] = (sessionViolations, null);
-        snapshots.AddRange(AnalyticsMetricSnapshotBuilder.BuildMetricSnapshots(sessionId, null, rulesetVersionId, computedAt, sessionMetrics));
+        snapshots.AddRange(_metricSnapshotBuilder.BuildMetricSnapshots(sessionId, null, rulesetVersionId, computedAt, sessionMetrics));
 
         RulesetConfig? playerConfig = null;
         var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
@@ -639,7 +646,7 @@ public sealed class AnalyticsController : ControllerBase
             var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
             var playerMetrics = await ComputePlayerMetricsAsync(sessionId, playerId, rulesetVersionId, events, projections,
                 hasHappiness ? breakdown : null, playerConfig, ct);
-            snapshots.AddRange(AnalyticsMetricSnapshotBuilder.BuildMetricSnapshots(sessionId, playerId, rulesetVersionId, computedAt, playerMetrics));
+            snapshots.AddRange(_metricSnapshotBuilder.BuildMetricSnapshots(sessionId, playerId, rulesetVersionId, computedAt, playerMetrics));
         }
 
         if (snapshots.Count > 0)
@@ -672,14 +679,14 @@ public sealed class AnalyticsController : ControllerBase
         metrics["cashflow.net.total"] = (cashIn - cashOut, null);
 
         var donationTotal = playerEvents.Where(e => e.ActionType == "day.friday.donation")
-            .Select(e => TryReadAmount(e.Payload, out var amount) ? amount : 0)
+            .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
             .Sum();
         metrics["donation.total"] = (donationTotal, null);
 
         var goldQty = playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade")
             .Select(e =>
             {
-                if (!TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
+                if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
                 {
                     return 0;
                 }
@@ -692,11 +699,11 @@ public sealed class AnalyticsController : ControllerBase
         var ordersCompleted = playerEvents.Count(e => e.ActionType == "order.claimed");
         metrics["orders.completed.count"] = (ordersCompleted, null);
 
-        var inventory = AnalyticsIngredientInventoryCalculator.BuildIngredientInventory(playerEvents);
+        var inventory = _inventoryCalc.BuildIngredientInventory(playerEvents);
         metrics["inventory.ingredient.total"] = (inventory.Total, null);
 
         var actionsUsed = playerEvents.Where(e => e.ActionType == "turn.action.used")
-            .Select(e => TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
+            .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
             .Sum();
         metrics["actions.used.total"] = (actionsUsed, null);
 
@@ -706,11 +713,11 @@ public sealed class AnalyticsController : ControllerBase
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
         metrics["rules.violations.count"] = (violations, null);
 
-        var resolvedHappiness = happiness ?? AnalyticsHappinessCalculator.ComputeBreakdown(
+        var resolvedHappiness = happiness ?? _happinessCalc.ComputeBreakdown(
             playerEvents,
-            AnalyticsHappinessCalculator.SumRankAwarded(playerEvents, "donation.rank.awarded"),
-            AnalyticsHappinessCalculator.SumPointsAwarded(playerEvents, "gold.points.awarded"),
-            AnalyticsHappinessCalculator.SumRankAwarded(playerEvents, "pension.rank.awarded"));
+            _happinessCalc.SumRankAwarded(playerEvents, "donation.rank.awarded"),
+            _happinessCalc.SumPointsAwarded(playerEvents, "gold.points.awarded"),
+            _happinessCalc.SumRankAwarded(playerEvents, "pension.rank.awarded"));
 
         metrics["happiness.points.total"] = (resolvedHappiness.Total, null);
         metrics["happiness.need.points"] = (resolvedHappiness.NeedPoints, null);
@@ -723,7 +730,7 @@ public sealed class AnalyticsController : ControllerBase
         metrics["happiness.loan.penalty"] = (resolvedHappiness.LoanPenaltyPoints, null);
         metrics["loan.unpaid.flag"] = (resolvedHappiness.HasUnpaidLoan ? 1 : 0, null);
 
-        var gameplaySnapshots = AnalyticsGameplaySnapshotBuilder.Build(playerEvents, playerProjections, events, config, resolvedHappiness);
+        var gameplaySnapshots = _gameplaySnapshotBuilder.Build(playerEvents, playerProjections, events, config, resolvedHappiness);
         metrics["gameplay.raw.variables"] = (null, gameplaySnapshots.RawJson);
         metrics["gameplay.derived.metrics"] = (null, gameplaySnapshots.DerivedJson);
 
@@ -744,7 +751,7 @@ public sealed class AnalyticsController : ControllerBase
             return (0, null);
         }
 
-        var evaluation = AnalyticsPrimaryNeedComplianceEvaluator.Evaluate(playerEvents, config);
+        var evaluation = _complianceEvaluator.Evaluate(playerEvents, config);
         if (evaluation.EvaluatedDays == 0)
         {
             return (0, null);
