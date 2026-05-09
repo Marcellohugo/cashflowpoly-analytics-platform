@@ -1,6 +1,7 @@
 // Fungsi file: Menyediakan endpoint CRUD sesi permainan (buat, mulai, akhiri, aktifkan ruleset) dengan otorisasi role instruktur.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
+using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;

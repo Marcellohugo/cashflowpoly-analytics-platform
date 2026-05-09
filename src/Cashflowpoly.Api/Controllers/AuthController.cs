@@ -1,5 +1,6 @@
 // Fungsi file: Menyediakan endpoint login dan registrasi pengguna dengan validasi kredensial, pencatatan audit keamanan, dan penerbitan JWT.
 using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;

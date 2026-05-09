@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
-using Cashflowpoly.Api.Controllers;
+using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;
@@ -66,13 +66,21 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> RecomputeAsync(
         Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, user, ct);
-        if (instructorScopeError is not null)
+        var role = user.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        if (!isInstructor && !isPlayer)
         {
-            return (null, instructorScopeError.Value.StatusCode, instructorScopeError.Value.Error);
+            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
         }
 
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
+        if (errorResponse is not null)
+        {
+            return (null, errorStatus, errorResponse);
+        }
+
+        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
             return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
@@ -118,13 +126,21 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetSessionAnalyticsAsync(
         Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, user, ct);
-        if (instructorScopeError is not null)
+        var role = user.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        if (!isInstructor && !isPlayer)
         {
-            return (null, instructorScopeError.Value.StatusCode, instructorScopeError.Value.Error);
+            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
         }
 
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
+        if (errorResponse is not null)
+        {
+            return (null, errorStatus, errorResponse);
+        }
+
+        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
             return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
@@ -175,13 +191,21 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
         Guid sessionId, Guid? playerId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, user, ct);
-        if (instructorScopeError is not null)
+        var role = user.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        if (!isInstructor && !isPlayer)
         {
-            return (null, instructorScopeError.Value.StatusCode, instructorScopeError.Value.Error);
+            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
         }
 
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
+        if (errorResponse is not null)
+        {
+            return (null, errorStatus, errorResponse);
+        }
+
+        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
             return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
@@ -208,13 +232,21 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(GameplayMetricsResponse? Result, int StatusCode, ErrorResponse? Error)> GetGameplayMetricsAsync(
         Guid sessionId, Guid playerId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var instructorScopeError = await EnsureInstructorSessionAccessAsync(sessionId, user, ct);
-        if (instructorScopeError is not null)
+        var role = user.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        if (!isInstructor && !isPlayer)
         {
-            return (null, instructorScopeError.Value.StatusCode, instructorScopeError.Value.Error);
+            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
         }
 
-        var session = await _sessions.GetSessionAsync(sessionId, ct);
+        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
+        if (errorResponse is not null)
+        {
+            return (null, errorStatus, errorResponse);
+        }
+
+        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
             return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
@@ -373,17 +405,13 @@ internal sealed class AnalyticsService : IAnalyticsService
                 return (null, 404, BuildError("NOT_FOUND", "Ruleset tidak ditemukan"));
             }
         }
-        else if (ruleset is null)
-        {
-            return (null, 404, BuildError("NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
 
         var learningOverall = _scoreCalc.AverageNullable(sessionItems.Select(item => item.LearningPerformanceAggregateScore));
         var missionOverall = _scoreCalc.AverageNullable(sessionItems.Select(item => item.MissionPerformanceAggregateScore));
 
         return (new RulesetAnalyticsSummaryResponse(
             rulesetId,
-            ruleset.Name,
+            ruleset!.Name,
             sessionItems.Count,
             learningOverall,
             missionOverall,
@@ -428,32 +456,26 @@ internal sealed class AnalyticsService : IAnalyticsService
         return (playerId.Value, null);
     }
 
-    private async Task<(int StatusCode, ErrorResponse Error)?> EnsureInstructorSessionAccessAsync(
-        Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
+    private async Task<(SessionDb? Session, int StatusCode, ErrorResponse? Error)> EnsureInstructorSessionAccessAsync(
+        Guid sessionId, ClaimsPrincipal user, bool isInstructor, CancellationToken ct)
     {
-        var role = user.FindFirstValue(ClaimTypes.Role);
-        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        if (!isInstructor)
         {
-            return null;
-        }
-
-        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return (403, BuildError("FORBIDDEN", "Role tidak dikenali"));
+            return (null, 0, null);
         }
 
         if (!TryGetCurrentUserId(user, out var instructorUserId))
         {
-            return (401, BuildError("UNAUTHORIZED", "Token user tidak valid"));
+            return (null, 401, BuildError("UNAUTHORIZED", "Token user tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return (404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        return null;
+        return (session, 0, null);
     }
 
     private static bool TryGetCurrentUserId(ClaimsPrincipal user, out Guid userId)

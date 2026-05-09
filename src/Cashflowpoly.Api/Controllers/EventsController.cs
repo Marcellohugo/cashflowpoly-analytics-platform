@@ -2,6 +2,7 @@
 using System.Collections.Frozen;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
+using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
