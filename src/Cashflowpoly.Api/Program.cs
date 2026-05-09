@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Diagnostics;
 using System.Net;
 using System.Threading.RateLimiting;
+using Dapper;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
@@ -33,7 +34,6 @@ var enableLegacyApiCompatibility = builder.Configuration.GetValue<bool>("Feature
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
-builder.Services.Configure<AuthBootstrapOptions>(builder.Configuration.GetSection("AuthBootstrap"));
 builder.Services.AddSingleton<JwtSigningKeyProvider>();
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddSingleton<OperationalMetricsTracker>();
@@ -218,8 +218,6 @@ builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<SecurityAuditRepository>();
 builder.Services.AddScoped<SecurityAuditService>();
-builder.Services.AddHostedService<AuthSchemaBootstrapper>();
-
 // Domain calculators
 builder.Services.AddScoped<IHappinessCalculator, HappinessCalculator>();
 builder.Services.AddScoped<IIngredientInventoryCalculator, IngredientInventoryCalculator>();
@@ -260,6 +258,22 @@ builder.Services.AddScoped<Cashflowpoly.Api.Services.IAnalyticsService, Cashflow
 builder.Services.AddScoped<Cashflowpoly.Api.Services.IEventIngestionService, Cashflowpoly.Api.Services.EventIngestionService>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var bootstrapOptions = app.Configuration.GetSection("AuthBootstrap").Get<AuthBootstrapOptions>();
+    if (bootstrapOptions is { SeedDefaultUsers: true })
+    {
+        var dataSource = scope.ServiceProvider.GetRequiredService<Npgsql.NpgsqlDataSource>();
+        await using var seedConn = await dataSource.OpenConnectionAsync();
+        await SeedBootstrapUserAsync(seedConn, bootstrapOptions.InstructorUsername, bootstrapOptions.InstructorPassword, "INSTRUCTOR", CancellationToken.None);
+        await SeedBootstrapUserAsync(seedConn, bootstrapOptions.PlayerUsername, bootstrapOptions.PlayerPassword, "PLAYER", CancellationToken.None);
+    }
+}
+
 var requestLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("RequestAudit");
 var exceptionLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("UnhandledException");
 var metricsTracker = app.Services.GetRequiredService<OperationalMetricsTracker>();
@@ -362,3 +376,70 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapControllers().RequireRateLimiting("api");
 
 app.Run();
+
+static async Task SeedBootstrapUserAsync(
+    Npgsql.NpgsqlConnection conn,
+    string? username,
+    string? password,
+    string role,
+    CancellationToken cancellationToken)
+{
+    if (string.IsNullOrWhiteSpace(username) && string.IsNullOrWhiteSpace(password))
+    {
+        return;
+    }
+
+    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+    {
+        throw new InvalidOperationException($"AuthBootstrap untuk role {role} harus mengisi username dan password.");
+    }
+
+    if (password.Length < Cashflowpoly.Api.Security.PasswordPolicy.MinPasswordLength)
+    {
+        throw new InvalidOperationException(
+            $"AuthBootstrap password role {role} minimal {Cashflowpoly.Api.Security.PasswordPolicy.MinPasswordLength} karakter.");
+    }
+
+    const string insertSql = """
+        insert into app_users (user_id, username, password_hash, role, is_active)
+        select gen_random_uuid(), @username, crypt(@password, gen_salt('bf', 10)), @role, true
+        where not exists (select 1 from app_users where lower(username) = lower(@username));
+        """;
+
+    const string ensureProfileSql = """
+        insert into players (player_id, display_name, instructor_user_id, created_at)
+        select u.user_id, u.username, u.user_id, now()
+        from app_users u
+        where lower(u.username) = lower(@username)
+          and not exists (
+              select 1
+              from players p
+              where p.player_id = u.user_id
+          );
+
+        insert into user_player_links (link_id, user_id, player_id, created_at)
+        select gen_random_uuid(), u.user_id, u.user_id, now()
+        from app_users u
+        where lower(u.username) = lower(@username)
+          and not exists (
+              select 1
+              from user_player_links upl
+              where upl.user_id = u.user_id
+          );
+        """;
+
+    await conn.ExecuteAsync(
+        new Dapper.CommandDefinition(
+            insertSql,
+            new { username, password, role },
+            cancellationToken: cancellationToken));
+
+    if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+    {
+        await conn.ExecuteAsync(
+            new Dapper.CommandDefinition(
+                ensureProfileSql,
+                new { username },
+                cancellationToken: cancellationToken));
+    }
+}
