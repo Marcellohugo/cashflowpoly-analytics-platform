@@ -1,5 +1,5 @@
 // Fungsi file: Menguji bahwa ApiErrorHelper menghasilkan response error dengan format dan field yang benar.
-using Cashflowpoly.Api.Controllers;
+using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
 using Xunit;

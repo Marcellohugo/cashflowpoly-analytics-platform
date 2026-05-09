@@ -2,7 +2,7 @@
 using Cashflowpoly.Contracts;
 using System.Collections.Frozen;
 
-namespace Cashflowpoly.Api.Controllers;
+namespace Cashflowpoly.Api.Infrastructure;
 
 /// <summary>
 /// Helper statis untuk membangun respons error terstandar dengan terjemahan otomatis Indonesia↔Inggris berdasarkan header Accept-Language.
