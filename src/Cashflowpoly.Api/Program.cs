@@ -8,6 +8,7 @@ using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -206,6 +207,8 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 });
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 builder.Services.AddSingleton(Npgsql.NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<RulesetRepository>();
 builder.Services.AddScoped<SessionRepository>();
