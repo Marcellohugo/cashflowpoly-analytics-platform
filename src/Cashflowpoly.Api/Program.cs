@@ -254,6 +254,7 @@ builder.Services.AddScoped<IIncomeDiversificationCalculator, IncomeDiversificati
 builder.Services.AddScoped<IDerivedRatioCalculator, DerivedRatioCalculator>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Cashflowpoly.Api.Services.IAnalyticsService, Cashflowpoly.Api.Services.AnalyticsService>();
+builder.Services.AddScoped<Cashflowpoly.Api.Services.IEventIngestionService, Cashflowpoly.Api.Services.EventIngestionService>();
 
 var app = builder.Build();
 var requestLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("RequestAudit");
