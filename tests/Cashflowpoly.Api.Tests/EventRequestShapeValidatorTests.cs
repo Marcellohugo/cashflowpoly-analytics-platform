@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi envelope event sebelum validasi domain/action spesifik.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;

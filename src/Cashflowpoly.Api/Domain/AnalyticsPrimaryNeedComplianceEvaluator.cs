@@ -1,4 +1,3 @@
-// Fungsi file: Mengevaluasi kepatuhan kebutuhan primer pemain berdasarkan event dan ruleset.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

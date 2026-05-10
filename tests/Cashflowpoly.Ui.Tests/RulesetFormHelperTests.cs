@@ -1,4 +1,3 @@
-// Fungsi file: Menguji helper formulir ruleset agar default config dan JSON formatting tidak tertahan di controller.
 using System.Net;
 using System.Text;
 using System.Text.Json;

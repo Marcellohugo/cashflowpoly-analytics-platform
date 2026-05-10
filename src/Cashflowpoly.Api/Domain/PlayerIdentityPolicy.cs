@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan aturan identitas kanonik antara app_users dan players.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

@@ -1,4 +1,3 @@
-// Fungsi file: Memformat label metrik dan detail transaksi pemain untuk halaman detail.
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;

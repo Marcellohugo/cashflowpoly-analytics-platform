@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan helper formulir ruleset untuk default config, format JSON, mode resolver, dan pesan error API.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cashflowpoly.Contracts;

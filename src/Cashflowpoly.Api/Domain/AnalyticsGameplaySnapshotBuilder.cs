@@ -1,4 +1,3 @@
-// Fungsi file: Membangun JSON snapshot gameplay mentah dan metrik turunan per pemain.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;

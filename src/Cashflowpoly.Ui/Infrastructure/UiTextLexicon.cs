@@ -1,4 +1,3 @@
-// Fungsi file: Menggabungkan potongan leksikon UI per domain menjadi kamus terjemahan beku.
 using System.Collections.Frozen;
 
 namespace Cashflowpoly.Ui.Infrastructure;

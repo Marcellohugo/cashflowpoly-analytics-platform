@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan meter dan instrumen OpenTelemetry untuk metrik HTTP request API.
 using System.Diagnostics.Metrics;
 
 namespace Cashflowpoly.Api.Infrastructure.Telemetry;

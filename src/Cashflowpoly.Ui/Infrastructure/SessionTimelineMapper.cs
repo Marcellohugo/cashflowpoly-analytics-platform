@@ -1,4 +1,3 @@
-// Fungsi file: Memetakan daftar event transaksi gameplay dari API menjadi item timeline sesi yang dapat ditampilkan di UI.
 using System.Text.Json;
 using System.Globalization;
 using Cashflowpoly.Contracts;

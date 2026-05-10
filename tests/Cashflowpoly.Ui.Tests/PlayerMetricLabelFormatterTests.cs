@@ -1,4 +1,3 @@
-// Fungsi file: Menguji formatter label metrik dan detail transaksi halaman detail pemain.
 using System.Globalization;
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;

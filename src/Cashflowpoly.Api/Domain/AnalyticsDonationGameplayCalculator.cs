@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung metrik donasi gameplay mentah dan turunan dari histori event.
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;

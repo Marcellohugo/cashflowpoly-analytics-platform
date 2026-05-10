@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung inventaris bahan pemain dari event analitik gameplay.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

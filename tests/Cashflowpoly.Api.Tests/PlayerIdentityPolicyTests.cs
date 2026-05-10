@@ -1,4 +1,3 @@
-// Fungsi file: Menguji aturan identitas kanonik antara akun user dan profil pemain.
 using Cashflowpoly.Api.Domain;
 using Xunit;
 

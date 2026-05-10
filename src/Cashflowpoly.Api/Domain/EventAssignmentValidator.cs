@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi assignment misi dan tie breaker yang bergantung pada histori pemain.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;

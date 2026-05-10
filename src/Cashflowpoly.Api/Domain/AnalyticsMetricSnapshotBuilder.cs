@@ -1,4 +1,3 @@
-// Fungsi file: Membangun record snapshot metrik analitik dari hasil kalkulasi.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

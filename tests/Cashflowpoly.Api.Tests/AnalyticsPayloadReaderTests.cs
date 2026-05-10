@@ -1,4 +1,3 @@
-// Fungsi file: Menguji parser payload dan helper matematika analitik yang dipakai komputasi metrik.
 using Cashflowpoly.Api.Domain;
 using Xunit;
 

@@ -1,4 +1,3 @@
-// Fungsi file: Mengonfigurasi bootstrap service, session, middleware, dan routing untuk aplikasi UI MVC.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

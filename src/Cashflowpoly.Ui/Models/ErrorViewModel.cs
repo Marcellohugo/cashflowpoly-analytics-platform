@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan model data untuk menampilkan halaman error dengan kode permintaan dan indikator tampilan.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>

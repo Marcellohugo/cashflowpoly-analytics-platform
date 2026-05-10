@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi action event sederhana yang tidak membutuhkan histori event atau query database.
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
 

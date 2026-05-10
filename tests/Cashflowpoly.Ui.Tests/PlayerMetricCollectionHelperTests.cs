@@ -1,4 +1,3 @@
-// Fungsi file: Menguji helper koleksi rows/charts metrik pada halaman detail pemain.
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;
 

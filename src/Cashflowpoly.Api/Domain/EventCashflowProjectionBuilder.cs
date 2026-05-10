@@ -1,4 +1,3 @@
-// Fungsi file: Membangun proyeksi arus kas dari event gameplay secara murni.
 using System.Diagnostics.CodeAnalysis;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;

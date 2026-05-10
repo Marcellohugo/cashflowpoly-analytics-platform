@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung metrik kebutuhan dan misi gameplay dari event pemain.
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 

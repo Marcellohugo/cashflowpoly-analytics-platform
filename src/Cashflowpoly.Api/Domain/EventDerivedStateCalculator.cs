@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung state turunan pemain dari event gameplay historis.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

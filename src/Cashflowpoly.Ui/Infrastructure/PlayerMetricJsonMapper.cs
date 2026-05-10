@@ -1,4 +1,3 @@
-// Fungsi file: Memetakan JSON metrik pemain menjadi baris dan grup tampilan untuk halaman detail pemain.
 using System.Text.Json;
 
 namespace Cashflowpoly.Ui.Infrastructure;

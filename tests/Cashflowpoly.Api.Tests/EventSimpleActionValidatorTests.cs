@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi action event sederhana yang tidak membutuhkan query repository.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;

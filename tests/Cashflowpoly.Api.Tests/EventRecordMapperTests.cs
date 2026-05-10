@@ -1,4 +1,3 @@
-// Fungsi file: Menguji mapping baris event database kembali menjadi DTO event API.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

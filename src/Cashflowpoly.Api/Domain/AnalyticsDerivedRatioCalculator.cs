@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung rasio derived gameplay lintas goal, aksi, kebutuhan, profit, dan risiko.
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 

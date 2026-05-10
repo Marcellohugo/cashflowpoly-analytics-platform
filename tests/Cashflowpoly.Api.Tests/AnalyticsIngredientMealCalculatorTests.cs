@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi ingredient dan meal-order gameplay dari event pemain.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

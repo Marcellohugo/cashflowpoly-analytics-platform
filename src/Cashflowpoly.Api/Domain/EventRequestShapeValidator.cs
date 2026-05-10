@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi envelope dasar event sebelum validasi repository dan aturan action spesifik.
 using System.Collections.Frozen;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;

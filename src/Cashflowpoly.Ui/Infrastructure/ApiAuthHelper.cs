@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan helper untuk menangani respons 401 Unauthorized dari API dengan membersihkan sesi dan mengarahkan ulang ke halaman login.
 using System.Net;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;

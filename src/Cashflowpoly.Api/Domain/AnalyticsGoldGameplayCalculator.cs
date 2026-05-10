@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung metrik emas gameplay dari histori event pemain.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

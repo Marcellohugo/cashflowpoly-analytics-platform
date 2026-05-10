@@ -1,4 +1,3 @@
-// Fungsi file: Menyimpan aturan domain yang terkait sesi permainan.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung kontribusi sumber income dan indeks diversifikasi income gameplay.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

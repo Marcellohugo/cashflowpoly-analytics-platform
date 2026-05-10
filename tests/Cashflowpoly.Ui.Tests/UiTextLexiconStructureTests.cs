@@ -1,4 +1,3 @@
-// Fungsi file: Menguji struktur leksikon UI agar kamus terjemahan tidak kembali menjadi satu file besar.
 using Xunit;
 
 namespace Cashflowpoly.Ui.Tests;

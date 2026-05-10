@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan konstanta autentikasi sesi, serta ViewModel untuk formulir login dan registrasi pengguna.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>

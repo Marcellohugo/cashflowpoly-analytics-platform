@@ -1,4 +1,3 @@
-// Fungsi file: Menguji builder payload chart metrik pemain tanpa bergantung pada Razor/browser.
 using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;

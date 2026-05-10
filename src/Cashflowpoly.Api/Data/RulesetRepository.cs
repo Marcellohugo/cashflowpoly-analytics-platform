@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data ruleset dan versi ruleset — CRUD, aktivasi, listing, dan hash konfigurasi.
 using System.Security.Cryptography;
 using System.Text;
 using Cashflowpoly.Contracts;

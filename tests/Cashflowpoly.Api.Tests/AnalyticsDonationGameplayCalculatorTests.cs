@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi metrik donasi gameplay dari histori event.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

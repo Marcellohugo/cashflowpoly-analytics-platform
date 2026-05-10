@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi assignment misi dan tie breaker berbasis histori event.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

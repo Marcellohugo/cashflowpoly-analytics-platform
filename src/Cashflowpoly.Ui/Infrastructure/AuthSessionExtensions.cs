@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan extension method pada ISession untuk membaca peran dan status autentikasi pengguna.
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
 

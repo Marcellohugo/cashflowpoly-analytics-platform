@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi state turunan event seperti inventaris bahan dan saldo tabungan.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

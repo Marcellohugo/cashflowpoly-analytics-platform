@@ -1,4 +1,3 @@
-// Fungsi file: Menangani permintaan HTTP untuk halaman direktori pemain, menampilkan daftar pemain yang dikelompokkan berdasarkan sesi beserta statistik analitik masing-masing.
 using System.Net.Http.Json;
 using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
@@ -7,31 +6,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
 
-/// <summary>
-/// Controller MVC yang mengelola halaman direktori pemain lintas sesi,
-/// menampilkan daftar semua pemain beserta ringkasan statistik per sesi (hanya instruktur).
-/// </summary>
 [Route("players")]
 public sealed class PlayerDirectoryController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
-    /// <summary>
-    /// Menginisialisasi controller direktori pemain dengan factory HTTP client untuk komunikasi ke API backend.
-    /// </summary>
-    /// <param name="clientFactory">Factory untuk membuat instance <see cref="HttpClient"/> ke API backend.</param>
     public PlayerDirectoryController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("")]
-    /// <summary>
-    /// Menampilkan halaman direktori pemain dengan daftar pemain yang dikelompokkan berdasarkan sesi
-    /// dan dilengkapi statistik analitik (hanya instruktur).
-    /// </summary>
-    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
-    /// <returns>View berisi daftar pemain per sesi dengan statistik, atau redirect jika bukan instruktur.</returns>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())

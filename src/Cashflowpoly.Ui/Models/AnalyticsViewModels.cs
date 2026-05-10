@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan ViewModel untuk halaman analitik, termasuk daftar sesi, detail sesi, detail pemain, perjalanan arus kas, dan direktori pemain.
 using System.Text.Json;
 using Cashflowpoly.Contracts;
 

@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi event ekonomi sederhana: transaksi, donasi Jumat, dan perdagangan emas.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

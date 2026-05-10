@@ -1,4 +1,3 @@
-// Fungsi file: Menguji builder offset cashflow untuk klaim asuransi risiko.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

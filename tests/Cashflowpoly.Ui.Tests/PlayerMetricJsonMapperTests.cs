@@ -1,4 +1,3 @@
-// Fungsi file: Menguji mapper JSON metrik pemain yang dipakai halaman detail pemain UI.
 using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;

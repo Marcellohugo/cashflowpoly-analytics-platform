@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan parser payload JSON event gameplay untuk komputasi analitik.
 using System.Text.Json;
 
 namespace Cashflowpoly.Api.Domain;

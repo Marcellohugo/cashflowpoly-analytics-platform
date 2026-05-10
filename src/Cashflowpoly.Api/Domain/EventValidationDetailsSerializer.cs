@@ -1,4 +1,3 @@
-// Fungsi file: Membentuk payload JSON detail validasi event untuk audit/logging internal.
 using System.Text.Json;
 using Cashflowpoly.Contracts;
 

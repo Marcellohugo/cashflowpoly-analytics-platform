@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi timeline kas gameplay dari proyeksi cashflow per event.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

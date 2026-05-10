@@ -1,4 +1,3 @@
-// Fungsi file: Memetakan baris event database menjadi DTO event API yang siap dikembalikan ke klien.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;

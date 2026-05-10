@@ -1,4 +1,3 @@
-// Fungsi file: Menguji alur integrasi ingest event, analitik sesi, urutan pemain, batas pemain, dan validasi domain.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;

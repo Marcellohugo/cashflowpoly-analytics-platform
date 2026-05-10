@@ -1,4 +1,3 @@
-// Fungsi file: Menguji evaluator compliance kebutuhan primer berdasarkan event pemain dan ruleset.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

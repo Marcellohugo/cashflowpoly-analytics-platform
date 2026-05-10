@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan ViewModel untuk halaman beranda (dashboard) yang menampilkan ringkasan statistik sesi, pemain, dan ruleset.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>

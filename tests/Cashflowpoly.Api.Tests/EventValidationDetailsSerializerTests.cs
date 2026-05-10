@@ -1,4 +1,3 @@
-// Fungsi file: Menguji format JSON detail validasi yang dicatat ke log event.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;

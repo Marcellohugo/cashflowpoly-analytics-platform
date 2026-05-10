@@ -1,4 +1,3 @@
-// Fungsi file: Menguji builder proyeksi arus kas dari event gameplay tanpa akses database.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;

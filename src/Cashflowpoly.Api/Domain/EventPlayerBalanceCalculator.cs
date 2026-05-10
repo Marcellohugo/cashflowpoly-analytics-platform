@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung saldo pemain dari starting cash dan proyeksi arus kas.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

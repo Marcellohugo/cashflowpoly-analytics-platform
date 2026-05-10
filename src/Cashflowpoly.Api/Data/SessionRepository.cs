@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data sesi permainan — CRUD sesi, status, dan aktivasi ruleset per sesi.
 using Dapper;
 using Npgsql;
 
