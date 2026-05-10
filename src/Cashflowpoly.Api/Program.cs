@@ -38,7 +38,6 @@ var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
 builder.Services.AddSingleton<JwtSigningKeyProvider>();
 builder.Services.AddSingleton<JwtTokenService>();
-builder.Services.AddSingleton<OperationalMetricsTracker>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -283,7 +282,6 @@ using (var scope = app.Services.CreateScope())
 
 var requestLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("RequestAudit");
 var exceptionLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("UnhandledException");
-var metricsTracker = app.Services.GetRequiredService<OperationalMetricsTracker>();
 app.Services.GetRequiredService<JwtSigningKeyProvider>().ValidateConfiguration();
 
 app.UseExceptionHandler(errorApp =>
