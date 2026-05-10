@@ -1,4 +1,3 @@
-// Fungsi file: Menguji bahwa endpoint observability dan audit log membatasi akses sesuai role INSTRUCTOR/PLAYER.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;

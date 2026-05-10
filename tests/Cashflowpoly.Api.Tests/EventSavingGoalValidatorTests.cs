@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi event tabungan dan pencapaian goal berbasis histori saldo tabungan.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

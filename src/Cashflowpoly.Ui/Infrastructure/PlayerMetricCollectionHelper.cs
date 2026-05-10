@@ -1,4 +1,3 @@
-// Fungsi file: Helper koleksi row/chart metrik pemain untuk penyusunan section UI.
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>

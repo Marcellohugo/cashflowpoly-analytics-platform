@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi penggunaan aksi gameplay dari event dan proyeksi pemain.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

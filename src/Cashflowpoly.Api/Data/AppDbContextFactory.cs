@@ -1,4 +1,3 @@
-// Fungsi file: Design-time factory untuk dotnet-ef migrations — menghindari kebutuhan koneksi database saat generate migration.
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 

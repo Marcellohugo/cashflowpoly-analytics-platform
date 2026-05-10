@@ -1,4 +1,3 @@
-// Fungsi file: Controller REST tipis untuk ingest event gameplay — mendelegasikan seluruh logika bisnis ke EventIngestionService.
 using Cashflowpoly.Api.Services;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -17,9 +16,6 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-/// <summary>
-/// Controller REST untuk ingest event tunggal/batch dan query histori event sesi.
-/// </summary>
 public sealed class EventsController : ControllerBase
 {
     private readonly IEventIngestionService _ingestion;
@@ -28,9 +24,6 @@ public sealed class EventsController : ControllerBase
 
     [HttpPost("events")]
     [ProducesResponseType(typeof(EventStoredResponse), StatusCodes.Status201Created)]
-    /// <summary>
-    /// Menerima satu event gameplay, memvalidasi aturan domain, dan menyimpan ke database.
-    /// </summary>
     public async Task<IActionResult> CreateEvent([FromBody] EventRequest request, CancellationToken ct)
     {
         var (result, status, error) = await _ingestion.IngestEventAsync(request, User, ct);
@@ -39,9 +32,6 @@ public sealed class EventsController : ControllerBase
 
     [HttpPost("events/batch")]
     [ProducesResponseType(typeof(EventBatchResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Menerima batch event gameplay dan mengembalikan ringkasan sukses/gagal.
-    /// </summary>
     public async Task<IActionResult> CreateEventsBatch([FromBody] EventBatchRequest request, CancellationToken ct)
     {
         var (result, status, error) = await _ingestion.IngestBatchAsync(request, User, ct);
@@ -50,9 +40,6 @@ public sealed class EventsController : ControllerBase
 
     [HttpGet("sessions/{sessionId:guid}/events")]
     [ProducesResponseType(typeof(EventsBySessionResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Mengambil daftar event sesi dengan pagination berbasis sequence number.
-    /// </summary>
     public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] long fromSeq = 0, [FromQuery] int limit = 200, CancellationToken ct = default)
     {
         var (result, status, error) = await _ingestion.GetEventsBySessionAsync(sessionId, User, fromSeq, limit, ct);

@@ -1,4 +1,3 @@
-// Fungsi file: Kumpulan record/class DTO untuk mapping baris database PostgreSQL ke objek C# via Dapper.
 namespace Cashflowpoly.Api.Data;
 
 /// <summary>

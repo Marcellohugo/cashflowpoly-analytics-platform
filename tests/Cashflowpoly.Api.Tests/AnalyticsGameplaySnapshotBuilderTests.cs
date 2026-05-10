@@ -1,4 +1,3 @@
-// Fungsi file: Menguji builder snapshot gameplay mentah dan turunan dari event/proyeksi pemain.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

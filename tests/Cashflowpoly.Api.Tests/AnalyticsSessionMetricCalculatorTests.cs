@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi metrik agregat sesi analitik tanpa akses database.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

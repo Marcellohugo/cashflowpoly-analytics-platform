@@ -1,4 +1,3 @@
-// Fungsi file: Titik masuk aplikasi ASP.NET Core yang mendaftarkan seluruh service (database, JWT, rate limiter, Swagger, health check), middleware pipeline (exception handler, forwarded headers, request logging, autentikasi/otorisasi), dan endpoint routing untuk Cashflowpoly API.
 using System.Security.Claims;
 using System.Diagnostics;
 using System.Net;
@@ -32,8 +31,6 @@ if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException("ConnectionStrings:Default belum dikonfigurasi.");
 }
-var enableLegacyApiCompatibility = builder.Configuration.GetValue<bool>("FeatureFlags:EnableLegacyApiCompatibility");
-
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
 builder.Services.AddSingleton<JwtSigningKeyProvider>();
@@ -322,18 +319,6 @@ if (app.Environment.IsDevelopment())
 app.UseForwardedHeaders();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-if (enableLegacyApiCompatibility)
-{
-    app.Use(async (context, next) =>
-    {
-        if (LegacyApiCompatibilityHelper.TryRewritePath(context.Request.Path, out var rewrittenPath))
-        {
-            context.Request.Path = rewrittenPath;
-        }
-
-        await next();
-    });
-}
 app.UseRouting();
 
 app.Use(async (context, next) =>

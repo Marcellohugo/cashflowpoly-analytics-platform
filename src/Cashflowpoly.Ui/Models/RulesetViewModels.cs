@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan ViewModel untuk halaman daftar, pembuatan, dan detail ruleset permainan.
 using Cashflowpoly.Contracts;
 
 namespace Cashflowpoly.Ui.Models;

@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung ringkasan sesi dan skor performa analitik.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 

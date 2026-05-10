@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulator happiness analitik yang dipakai ringkasan dan snapshot gameplay.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

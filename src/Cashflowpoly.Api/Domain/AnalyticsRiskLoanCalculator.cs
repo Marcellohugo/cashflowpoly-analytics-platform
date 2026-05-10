@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung metrik risiko, asuransi, emergency option, dan pinjaman gameplay.
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 

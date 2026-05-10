@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan helper matematika murni untuk komputasi metrik analitik.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

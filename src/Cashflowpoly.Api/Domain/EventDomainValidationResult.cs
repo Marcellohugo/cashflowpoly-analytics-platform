@@ -1,4 +1,3 @@
-// Fungsi file: Merepresentasikan hasil validasi domain event sebelum dikonversi menjadi ErrorResponse API.
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;
 

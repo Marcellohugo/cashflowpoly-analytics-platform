@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung timeline kas gameplay dari proyeksi cashflow dan turn event.
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 

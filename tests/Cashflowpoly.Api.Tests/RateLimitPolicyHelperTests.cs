@@ -1,4 +1,3 @@
-// Fungsi file: Menguji bahwa RateLimitPolicyHelper menentukan batas request dan partition key berdasarkan path dan identitas pengguna.
 using System.Net;
 using System.Security.Claims;
 using Cashflowpoly.Api.Security;

@@ -1,4 +1,3 @@
-// Fungsi file: Model hasil evaluasi compliance kebutuhan primer untuk analitik.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

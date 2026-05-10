@@ -1,4 +1,3 @@
-// Fungsi file: Menguji bahwa setiap action pada API controller memiliki metadata ProducesResponseType untuk sukses dan error.
 using System.Reflection;
 using Cashflowpoly.Api.Controllers;
 using Microsoft.AspNetCore.Http;

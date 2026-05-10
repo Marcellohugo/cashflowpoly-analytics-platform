@@ -1,4 +1,3 @@
-// Fungsi file: Menguji bahwa script chart halaman detail pemain diekstrak ke asset statis.
 using Xunit;
 
 namespace Cashflowpoly.Ui.Tests;

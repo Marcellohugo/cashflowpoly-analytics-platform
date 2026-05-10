@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulator skor dan ringkasan analitik sesi.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

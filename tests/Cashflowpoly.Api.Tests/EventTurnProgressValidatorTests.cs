@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi progress giliran berdasarkan histori event sesi.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

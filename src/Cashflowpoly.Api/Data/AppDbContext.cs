@@ -1,4 +1,3 @@
-// Fungsi file: EF Core DbContext digunakan hanya untuk manajemen skema via migrasi — semua query tetap menggunakan Dapper.
 using Microsoft.EntityFrameworkCore;
 
 namespace Cashflowpoly.Api.Data;

@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data event gameplay — penyimpanan event, sequence number, log validasi, dan proyeksi cashflow.
 using Dapper;
 using Npgsql;
 

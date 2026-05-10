@@ -1,4 +1,3 @@
-// Fungsi file: Menangani permintaan HTTP untuk autentikasi pengguna, termasuk login, registrasi, dan logout melalui sesi HTTP.
 using System.Net.Http.Json;
 using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
@@ -9,29 +8,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace Cashflowpoly.Ui.Controllers;
 
 [Route("auth")]
-/// <summary>
-/// Controller MVC yang mengelola alur autentikasi pengguna, termasuk login,
-/// registrasi akun baru, dan logout dengan pengelolaan token sesi.
-/// </summary>
 public sealed class AuthController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
-    /// <summary>
-    /// Menginisialisasi controller autentikasi dengan factory HTTP client untuk komunikasi ke API backend.
-    /// </summary>
-    /// <param name="clientFactory">Factory untuk membuat instance <see cref="HttpClient"/> ke API backend.</param>
     public AuthController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("login")]
-    /// <summary>
-    /// Menampilkan halaman formulir login, atau mengarahkan ke beranda jika pengguna sudah terautentikasi.
-    /// </summary>
-    /// <param name="returnUrl">URL tujuan setelah login berhasil (opsional).</param>
-    /// <returns>View formulir login atau redirect ke beranda.</returns>
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
         var existingRole = HttpContext.Session.GetString(AuthConstants.SessionRoleKey);
@@ -51,11 +37,6 @@ public sealed class AuthController : Controller
 
     [HttpPost("login")]
     [ValidateAntiForgeryToken]
-    /// <summary>
-    /// Memproses pengiriman formulir login, memvalidasi kredensial melalui API, dan menyimpan token sesi jika berhasil.
-    /// </summary>
-    /// <param name="model">ViewModel berisi username, password, dan URL tujuan setelah login.</param>
-    /// <returns>Redirect ke halaman tujuan jika berhasil, atau formulir login dengan pesan kesalahan.</returns>
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
@@ -107,11 +88,6 @@ public sealed class AuthController : Controller
     }
 
     [HttpGet("register")]
-    /// <summary>
-    /// Menampilkan halaman formulir registrasi akun baru.
-    /// </summary>
-    /// <param name="returnUrl">URL tujuan setelah registrasi berhasil (opsional).</param>
-    /// <returns>View formulir registrasi.</returns>
     public IActionResult Register([FromQuery] string? returnUrl = null)
     {
         return View(new RegisterViewModel
@@ -122,11 +98,6 @@ public sealed class AuthController : Controller
 
     [HttpPost("register")]
     [ValidateAntiForgeryToken]
-    /// <summary>
-    /// Memproses pengiriman formulir registrasi, membuat akun baru melalui API, dan langsung login jika berhasil.
-    /// </summary>
-    /// <param name="model">ViewModel berisi display name, username, password, konfirmasi password, dan peran.</param>
-    /// <returns>Redirect ke halaman tujuan jika berhasil, atau formulir registrasi dengan pesan kesalahan.</returns>
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (string.IsNullOrWhiteSpace(model.DisplayName) ||
@@ -203,10 +174,6 @@ public sealed class AuthController : Controller
 
     [HttpPost("logout")]
     [ValidateAntiForgeryToken]
-    /// <summary>
-    /// Menghapus semua data autentikasi dari sesi HTTP dan mengarahkan pengguna ke halaman login.
-    /// </summary>
-    /// <returns>Redirect ke halaman login.</returns>
     public IActionResult Logout()
     {
         HttpContext.Session.Remove(AuthConstants.SessionUserIdKey);

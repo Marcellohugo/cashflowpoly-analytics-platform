@@ -1,4 +1,3 @@
-// Fungsi file: Menguji builder snapshot metrik analitik dari dictionary metric.
 using Cashflowpoly.Api.Domain;
 using Xunit;
 

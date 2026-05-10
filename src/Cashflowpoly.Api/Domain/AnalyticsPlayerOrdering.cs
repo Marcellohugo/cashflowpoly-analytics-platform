@@ -1,4 +1,3 @@
-// Fungsi file: Mengurutkan item analitik pemain berdasarkan konfigurasi ruleset.
 using System.Globalization;
 using Cashflowpoly.Contracts;
 

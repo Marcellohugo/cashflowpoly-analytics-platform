@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung metrik agregat level sesi untuk snapshot analitik.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

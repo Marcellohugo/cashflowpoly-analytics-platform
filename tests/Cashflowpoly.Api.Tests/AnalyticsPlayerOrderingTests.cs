@@ -1,4 +1,3 @@
-// Fungsi file: Menguji pengurutan pemain analitik berdasarkan konfigurasi ruleset.
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Contracts;
 using Xunit;

@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data user autentikasi — login, registrasi, link user-player, dan lookup username.
 using Dapper;
 using Cashflowpoly.Api.Domain;
 using Npgsql;

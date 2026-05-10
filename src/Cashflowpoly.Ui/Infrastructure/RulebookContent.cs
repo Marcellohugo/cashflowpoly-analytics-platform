@@ -1,4 +1,3 @@
-// Fungsi file: Membangun konten halaman rulebook Cashflowpoly dalam dua bahasa (Indonesia dan Inggris) sebagai ViewModel.
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;

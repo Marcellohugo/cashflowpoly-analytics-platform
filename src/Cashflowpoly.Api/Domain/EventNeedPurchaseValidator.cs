@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi event pembelian kebutuhan primer, sekunder, dan tersier berbasis ruleset dan histori.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;

@@ -1,4 +1,3 @@
-// Fungsi file: Menguji parser payload event gameplay yang dipakai validasi domain dan proyeksi cashflow.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Xunit;

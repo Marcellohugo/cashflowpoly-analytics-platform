@@ -1,4 +1,3 @@
-// Fungsi file: Menguji bahwa semua key terjemahan UI terdaftar di leksikon dan tidak ada teks hardcoded di view/controller.
 using System.Text.RegularExpressions;
 using Xunit;
 

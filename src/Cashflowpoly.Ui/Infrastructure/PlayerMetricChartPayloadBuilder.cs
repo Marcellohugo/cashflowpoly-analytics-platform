@@ -1,4 +1,3 @@
-// Fungsi file: Membangun payload JSON chart metrik pemain untuk halaman detail.
 using System.Globalization;
 using System.Text.Json;
 

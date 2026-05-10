@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi saldo pemain dari starting cash dan proyeksi cashflow.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

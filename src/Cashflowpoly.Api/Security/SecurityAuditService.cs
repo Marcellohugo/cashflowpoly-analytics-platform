@@ -1,4 +1,3 @@
-// Fungsi file: Layanan pencatatan audit keamanan — menyimpan log autentikasi, otorisasi, dan rate-limit ke database.
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;

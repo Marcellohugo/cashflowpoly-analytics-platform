@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan helper statis untuk membangun ErrorResponse terstandar dengan dukungan lokalisasi ID↔EN berdasarkan Accept-Language.
 using Cashflowpoly.Contracts;
 using System.Collections.Frozen;
 

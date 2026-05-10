@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi event tabungan tujuan dan pencapaian goal berbasis histori saldo tabungan.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;

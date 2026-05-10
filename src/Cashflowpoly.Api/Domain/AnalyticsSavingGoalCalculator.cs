@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung state tabungan dan ringkasan financial goals dari histori event gameplay.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

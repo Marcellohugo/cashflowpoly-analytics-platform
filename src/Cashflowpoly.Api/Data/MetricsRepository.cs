@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data snapshot metrik — penyisipan batch dan query metrik gameplay/numerik.
 using Dapper;
 using Npgsql;
 

@@ -1,4 +1,3 @@
-// Fungsi file: Helper kebijakan rate limiting — menentukan limit dan partition key berdasarkan path dan identitas pengguna.
 using System.Security.Claims;
 
 namespace Cashflowpoly.Api.Security;

@@ -1,4 +1,3 @@
-// Fungsi file: Menangani permintaan HTTP untuk halaman detail pemain dalam sesi, termasuk analitik, riwayat transaksi, metrik gameplay, dan grafik perjalanan cashflow.
 using System.Net.Http.Json;
 using System.Text.Json;
 using Cashflowpoly.Contracts;
@@ -8,33 +7,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
 
-/// <summary>
-/// Controller MVC yang mengelola tampilan detail pemain dalam konteks sesi permainan,
-/// termasuk ringkasan analitik, riwayat transaksi, metrik gameplay, dan grafik perjalanan cashflow.
-/// </summary>
 [Route("sessions/{sessionId:guid}/players")]
 public sealed class PlayersController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
-    /// <summary>
-    /// Menginisialisasi controller pemain dengan factory HTTP client untuk komunikasi ke API backend.
-    /// </summary>
-    /// <param name="clientFactory">Factory untuk membuat instance <see cref="HttpClient"/> ke API backend.</param>
     public PlayersController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("{playerId:guid}")]
-    /// <summary>
-    /// Menampilkan halaman detail pemain pada sesi tertentu, meliputi ringkasan analitik,
-    /// riwayat transaksi, metrik gameplay, dan grafik perjalanan cashflow.
-    /// </summary>
-    /// <param name="sessionId">Identifier unik sesi permainan.</param>
-    /// <param name="playerId">Identifier unik pemain.</param>
-    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
-    /// <returns>View berisi detail lengkap pemain dalam konteks sesi.</returns>
     public async Task<IActionResult> Details(Guid sessionId, Guid playerId, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
@@ -129,13 +112,6 @@ public sealed class PlayersController : Controller
         });
     }
 
-    /// <summary>
-    /// Mengambil nama tampilan pemain dari API berdasarkan PlayerId.
-    /// </summary>
-    /// <param name="client">HTTP client untuk komunikasi ke API backend.</param>
-    /// <param name="playerId">Identifier unik pemain yang dicari nama tampilannya.</param>
-    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
-    /// <returns>Nama tampilan pemain, atau null jika tidak ditemukan.</returns>
     private static async Task<string?> ResolvePlayerDisplayNameAsync(HttpClient client, Guid playerId, CancellationToken ct)
     {
         var response = await client.GetAsync("api/v1/players", ct);
@@ -148,13 +124,6 @@ public sealed class PlayersController : Controller
         return players?.Items.FirstOrDefault(item => item.PlayerId == playerId)?.DisplayName;
     }
 
-    /// <summary>
-    /// Membangun statistik perjalanan cashflow pemain dari daftar transaksi, termasuk saldo berjalan,
-    /// total kas masuk/keluar, dan data seri untuk grafik.
-    /// </summary>
-    /// <param name="transactions">Daftar item riwayat transaksi pemain.</param>
-    /// <param name="startingCash">Jumlah kas awal pemain di awal permainan.</param>
-    /// <returns>ViewModel statistik perjalanan cashflow dengan data seri untuk grafik.</returns>
     private static PlayerCashflowJourneyStatsViewModel BuildCashflowJourneyStats(List<TransactionHistoryItem> transactions, double startingCash)
     {
         var orderedTransactions = transactions
@@ -218,12 +187,6 @@ public sealed class PlayersController : Controller
         };
     }
 
-    /// <summary>
-    /// Mencoba membaca nilai kas awal (starting_coins) dari data mentah metrik gameplay.
-    /// </summary>
-    /// <param name="raw">Elemen JSON mentah dari respons metrik gameplay.</param>
-    /// <param name="startingCash">Nilai kas awal jika berhasil dibaca.</param>
-    /// <returns>True jika nilai starting_coins berhasil ditemukan dan diparsing.</returns>
     private static bool TryReadStartingCashFromGameplayRaw(JsonElement? raw, out double startingCash)
     {
         startingCash = 0;
@@ -250,11 +213,6 @@ public sealed class PlayersController : Controller
         };
     }
 
-    /// <summary>
-    /// Menentukan nilai kas awal default berdasarkan nama ruleset (10 untuk mode mahir/advanced, 20 untuk lainnya).
-    /// </summary>
-    /// <param name="rulesetName">Nama ruleset yang digunakan pada sesi.</param>
-    /// <returns>Nilai kas awal default sebagai angka desimal.</returns>
     private static double InferDefaultStartingCash(string? rulesetName)
     {
         if (string.IsNullOrWhiteSpace(rulesetName))

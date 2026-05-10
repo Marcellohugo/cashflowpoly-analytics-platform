@@ -1,4 +1,3 @@
-// Fungsi file: Implementasi health check yang memverifikasi konektivitas ke database PostgreSQL untuk readiness probe.
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 

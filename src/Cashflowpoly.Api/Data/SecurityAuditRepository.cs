@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data audit log keamanan — penyisipan dan query log event keamanan.
 using Dapper;
 using Npgsql;
 

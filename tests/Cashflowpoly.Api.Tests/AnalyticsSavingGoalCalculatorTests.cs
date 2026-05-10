@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi tabungan dan financial goals dari histori event gameplay.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

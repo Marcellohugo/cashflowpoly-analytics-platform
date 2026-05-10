@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung poin happiness analitik pemain dari event gameplay, cashflow, dan scoring ruleset.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

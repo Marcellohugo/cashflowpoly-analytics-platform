@@ -1,4 +1,3 @@
-// Fungsi file: Menyediakan endpoint manajemen pemain (buat, daftar) dan penugasan pemain ke sesi permainan.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
@@ -11,9 +10,6 @@ using System.Text.Json;
 
 namespace Cashflowpoly.Api.Controllers;
 
-/// <summary>
-/// Controller untuk manajemen pemain dan relasi pemain ke sesi.
-/// </summary>
 [ApiController]
 [Route("api/v1/players")]
 [Authorize]
@@ -25,9 +21,6 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-/// <summary>
-/// Controller manajemen pemain dan relasi pemain-sesi dengan dukungan instructor order dari ruleset.
-/// </summary>
 public sealed class PlayersController : ControllerBase
 {
     private readonly PlayerRepository _players;
@@ -35,9 +28,6 @@ public sealed class PlayersController : ControllerBase
     private readonly RulesetRepository _rulesets;
     private readonly UserRepository _users;
 
-    /// <summary>
-    /// Menginisialisasi controller dengan dependensi repositori pemain, sesi, ruleset, dan user.
-    /// </summary>
     public PlayersController(PlayerRepository players, SessionRepository sessions, RulesetRepository rulesets, UserRepository users)
     {
         _players = players;
@@ -49,12 +39,6 @@ public sealed class PlayersController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(PlayerResponse), StatusCodes.Status201Created)]
-    /// <summary>
-    /// Membuat profil pemain baru beserta akun user PLAYER berdasarkan data yang diberikan instruktur.
-    /// </summary>
-    /// <param name="request">Data pemain baru: username, password, display name.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>201 Created dengan ID dan display name pemain baru.</returns>
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -114,11 +98,6 @@ public sealed class PlayersController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(PlayerListResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Menampilkan daftar pemain milik instruktur atau pemain yang terkait dengan akun PLAYER yang sedang login.
-    /// </summary>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan daftar pemain.</returns>
     public async Task<IActionResult> ListPlayers(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -157,13 +136,6 @@ public sealed class PlayersController : ControllerBase
     [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(AddSessionPlayerResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Menambahkan pemain ke sesi permainan dengan penentuan join order otomatis atau manual berdasarkan ruleset.
-    /// </summary>
-    /// <param name="sessionId">ID sesi target.</param>
-    /// <param name="request">Data penugasan berisi player ID/username, role, dan join order opsional.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan player ID dan join order yang ditetapkan.</returns>
     public async Task<IActionResult> AddPlayerToSession(Guid sessionId, [FromBody] AddSessionPlayerRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -299,18 +271,12 @@ public sealed class PlayersController : ControllerBase
         return Ok(new AddSessionPlayerResponse(playerId, joinOrder));
     }
 
-    /// <summary>
-    /// Mencoba mengekstrak user ID dari claim JWT NameIdentifier.
-    /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    /// <summary>
-    /// Membangun lookup username→join order dari konfigurasi JSON field instructor_player_usernames.
-    /// </summary>
     private static Dictionary<string, int> BuildInstructorOrderLookup(string configJson)
     {
         var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

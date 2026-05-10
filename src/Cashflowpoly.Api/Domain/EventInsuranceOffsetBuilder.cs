@@ -1,4 +1,3 @@
-// Fungsi file: Membangun proyeksi offset cashflow saat risiko ditangkal asuransi.
 using System.Diagnostics.CodeAnalysis;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;

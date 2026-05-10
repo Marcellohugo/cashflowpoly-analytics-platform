@@ -1,4 +1,3 @@
-// Fungsi file: Menyimpan potongan leksikon UI domain Core.
 namespace Cashflowpoly.Ui.Infrastructure;
 
 internal static partial class UiTextLexicon

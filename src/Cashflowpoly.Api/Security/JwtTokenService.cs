@@ -1,4 +1,3 @@
-// Fungsi file: Layanan penerbitan JWT access token untuk autentikasi pengguna.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Cashflowpoly.Api.Data;

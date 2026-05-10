@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kontrak JSON respons autentikasi API.
 using System.Text.Json;
 using Cashflowpoly.Contracts;
 using Xunit;

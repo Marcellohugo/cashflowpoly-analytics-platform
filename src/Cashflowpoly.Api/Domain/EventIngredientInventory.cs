@@ -1,4 +1,3 @@
-// Fungsi file: Model state inventaris bahan yang dihitung dari rangkaian event gameplay.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

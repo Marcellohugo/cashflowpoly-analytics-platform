@@ -1,4 +1,3 @@
-// Fungsi file: Menguji validasi pembelian kebutuhan gameplay berbasis ruleset dan histori event.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;

@@ -1,4 +1,3 @@
-// Fungsi file: Menghitung metrik penggunaan aksi, repetisi, slot aksi, dan efisiensi aksi gameplay.
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;

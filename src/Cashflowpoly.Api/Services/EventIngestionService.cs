@@ -1,4 +1,3 @@
-// Fungsi file: Service untuk ingest event gameplay — memvalidasi aturan domain dan menyimpan event beserta proyeksi arus kas.
 using System.Collections.Frozen;
 using System.Security.Claims;
 using Cashflowpoly.Api.Data;

@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi event ekonomi sederhana seperti transaksi manual, donasi Jumat, dan perdagangan emas.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;

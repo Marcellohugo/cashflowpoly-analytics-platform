@@ -1,4 +1,3 @@
-// Fungsi file: Memvalidasi progress giliran berdasarkan histori event sesi.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Contracts;
 using Microsoft.AspNetCore.Http;

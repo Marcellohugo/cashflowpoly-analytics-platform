@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan ViewModel untuk menampilkan halaman buku aturan (rulebook) permainan, termasuk bagian-bagian aturan dan tabel penilaian.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>

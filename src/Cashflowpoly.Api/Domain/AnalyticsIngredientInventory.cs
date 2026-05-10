@@ -1,4 +1,3 @@
-// Fungsi file: Model inventaris bahan untuk kalkulasi analitik pemain.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

@@ -1,4 +1,3 @@
-// Fungsi file: Menguji kalkulasi diversifikasi sumber income gameplay.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;

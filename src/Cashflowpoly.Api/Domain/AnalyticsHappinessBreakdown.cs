@@ -1,4 +1,3 @@
-// Fungsi file: Model breakdown poin happiness pemain untuk komputasi analitik.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
