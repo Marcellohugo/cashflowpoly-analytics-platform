@@ -18,6 +18,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpenTelemetry.Metrics;
+using Cashflowpoly.Api.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -207,6 +209,11 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 });
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddMeter(AppMetrics.MeterName)
+        .AddPrometheusExporter());
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddSingleton(Npgsql.NpgsqlDataSource.Create(connectionString));
@@ -341,7 +348,12 @@ app.Use(async (context, next) =>
     await next();
     var durationMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
 
-    metricsTracker.Record(context, durationMs);
+    AppMetrics.RequestsTotal.Add(1);
+    AppMetrics.RequestDurationMs.Record(durationMs);
+    if (context.Response.StatusCode >= 400)
+    {
+        AppMetrics.RequestErrorsTotal.Add(1);
+    }
 
     var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
     var role = context.User.FindFirstValue(ClaimTypes.Role) ?? "anonymous";
@@ -374,6 +386,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     Predicate = check => check.Tags.Contains("ready")
 });
 app.MapControllers().RequireRateLimiting("api");
+app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
 
