@@ -328,7 +328,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, userId, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
@@ -343,7 +343,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else
@@ -407,7 +407,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, userId, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
@@ -422,7 +422,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else
@@ -512,21 +512,4 @@ public sealed class RulesetsController : ControllerBase
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    private async Task<RulesetDb?> TryGetDefaultSeedRulesetAsync(Guid rulesetId, CancellationToken ct)
-    {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
-        if (ruleset is null)
-        {
-            return null;
-        }
-
-        var createdBy = ruleset.CreatedBy?.Trim();
-        if (!string.IsNullOrWhiteSpace(createdBy) &&
-            createdBy.StartsWith("system-seed-components", StringComparison.OrdinalIgnoreCase))
-        {
-            return ruleset;
-        }
-
-        return null;
-    }
 }

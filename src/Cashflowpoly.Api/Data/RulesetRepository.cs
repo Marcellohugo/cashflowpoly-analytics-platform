@@ -522,6 +522,22 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
+    /// Mengambil ruleset jika merupakan seed default sistem (created_by dimulai dengan "system-seed-components").
+    /// </summary>
+    public async Task<RulesetDb?> GetDefaultSeedRulesetAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select ruleset_id, name, description, instructor_user_id, created_at, created_by
+            from rulesets
+            where ruleset_id = @rulesetId
+              and lower(trim(created_by)) like 'system-seed-components%'
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<RulesetDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+    }
+
+    /// <summary>
     /// Memeriksa apakah ruleset sedang digunakan oleh aktivasi sesi manapun.
     /// </summary>
     public async Task<bool> IsRulesetUsedAsync(Guid rulesetId, CancellationToken ct)
