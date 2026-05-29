@@ -144,20 +144,19 @@ Sistem berjalan baik jika:
 ---
 
 ## 8. Menjalankan Uji Beban Dasar
-Setelah API dan DB aktif, jalankan:
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041
-```
+Setelah API dan DB aktif, jalankan skenario request berulang ke endpoint berikut menggunakan HTTP client atau tool uji beban yang tersedia:
+- `POST /api/v1/events`
+- `GET /api/v1/analytics/sessions/{sessionId}`
 
-Hasil default tersimpan pada folder `docs/evidence/<tanggal>/load-test-summary.md`.
+Verifikasi target minimum:
+- P95 ingest event <= 500 ms
+- P95 analytics sesi <= 1500 ms
+- error rate 0% pada skenario baseline
 
 ---
 
-## 9. Lokasi Evidence Formal
-Artefak formal verifikasi (build/test/compose/load/security/observability) disimpan di:
-```text
-docs/evidence/
-```
+## 9. Pencatatan Evidence Formal
+Artefak formal verifikasi (build/test/compose/load/security/observability) dicatat pada media dokumentasi pengujian yang dipakai tim atau penguji.
 
 ---
 

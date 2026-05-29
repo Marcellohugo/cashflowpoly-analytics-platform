@@ -619,13 +619,12 @@ Fitur dinyatakan selesai jika:
 6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 
 ### 14.4 Baseline uji performa dan evidence formal
-1. Jalankan script load test baseline:
-   - `powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041`
+1. Jalankan skenario request berulang ke endpoint ingest event dan analytics sesi dengan HTTP client atau tool uji beban yang tersedia.
 2. Verifikasi target minimum:
    - P95 ingest event <= 500 ms,
    - P95 analytics sesi <= 1500 ms,
    - error rate 0% pada skenario baseline.
-3. Simpan artefak ke folder `docs/evidence/<tanggal>/`:
+3. Simpan artefak pada media dokumentasi pengujian yang dipakai:
    - output build/test,
    - status compose/health,
    - ringkasan load test,

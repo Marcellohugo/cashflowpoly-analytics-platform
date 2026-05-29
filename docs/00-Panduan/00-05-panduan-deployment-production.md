@@ -140,7 +140,18 @@ docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch
 Verifikasi lokal sebelum merge atau deploy:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1 -SkipIntegrationTests
+dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
+dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
+dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
+dotnet restore tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj
+dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restore /warnaserror
+dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
+docker compose --env-file .env.dev.example -f docker-compose.yml -f docker-compose.watch.yml config
+docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
+dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
 
 ---
@@ -162,37 +173,24 @@ Atau checkout commit/tag/branch yang diinginkan sebelum menjalankan deploy.
 Disarankan menjalankan verifikasi penuh:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1
+dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
+dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
+dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
+dotnet restore tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj
+dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restore /warnaserror
+dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
+docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release
+dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
 
 Catatan:
 - integration test membutuhkan Docker daemon aktif,
-- jika hanya ingin build dan test cepat, gunakan `-SkipIntegrationTests`.
+- jika hanya ingin build dan test cepat, cukup jalankan `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"` dan `dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release`.
 
-### 6.3 Deploy Production dengan Skrip
-
-Perintah utama:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
-```
-
-Perilaku skrip:
-- membaca `.env.prod` secara default,
-- membangun image `api` dan `ui` langsung dari source lokal,
-- menjalankan `db`, `api`, `ui`, dan `nginx`,
-- otomatis menambahkan `cloudflared` jika `CLOUDFLARE_TUNNEL_TOKEN` terisi,
-- menampilkan status container setelah deploy.
-
-Jika ingin mematikan tunnel secara eksplisit:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1 -WithoutTunnel
-```
-
-### 6.4 Deploy Production Manual
-
-Tanpa skrip helper:
+### 6.3 Deploy Production
 
 ```powershell
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
@@ -204,7 +202,7 @@ Jika tidak memakai Cloudflare Tunnel:
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
-### 6.5 Verifikasi Setelah Deploy
+### 6.4 Verifikasi Setelah Deploy
 
 ```powershell
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
@@ -218,14 +216,14 @@ Ekspektasi:
 - `cloudflared` berstatus `running` jika tunnel diaktifkan,
 - endpoint `/health/ready` mengembalikan `200`.
 
-### 6.6 Alur Update Kode Manual
+### 6.5 Alur Update Kode Manual
 
 Alur rilis yang disarankan:
 1. Ubah source di mesin pengembang.
-2. Jalankan `scripts/ops/run-local-checks.ps1`.
+2. Jalankan verifikasi lokal dengan `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config`.
 3. Commit dan push ke remote Git bila diperlukan.
 4. Di mesin server, tarik revision terbaru dengan `git pull`.
-5. Jalankan `scripts/ops/redeploy-production.ps1`.
+5. Jalankan `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx` dan tambahkan `--profile tunnel cloudflared` bila tunnel dipakai.
 6. Verifikasi health check dan login aplikasi.
 
 Catatan:
@@ -251,7 +249,7 @@ Cloudflare Tunnel memungkinkan aplikasi diakses publik tanpa membuka port langsu
 CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNGQ0N2......
 ```
 
-6. Jalankan deploy production dengan skrip atau perintah manual berprofil `tunnel`.
+6. Jalankan deploy production dengan perintah manual berprofil `tunnel`.
 
 ### 7.2 Verifikasi Tunnel
 
@@ -320,7 +318,7 @@ cd cashflowpoly-analytics-platform
 Copy-Item .env.prod.example .env.prod
 notepad .env.prod
 
-powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 9.2 Catatan Migrasi
@@ -399,7 +397,7 @@ docker logs cashflowpoly-nginx --tail 50
 | API unhealthy | Connection string atau secret JWT salah | Cek `.env.prod` |
 | Nginx unhealthy | API/UI belum ready | Tunggu startup lalu cek log |
 | Tunnel tidak konek | Token salah atau kosong | Cek `CLOUDFLARE_TUNNEL_TOKEN` |
-| Build gagal | Dependensi belum sinkron | Jalankan `scripts/ops/run-local-checks.ps1` |
+| Build gagal | Dependensi belum sinkron | Jalankan ulang `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config` secara berurutan |
 
 ### 11.2 Domain Tidak Bisa Diakses
 
@@ -426,15 +424,13 @@ nslookup tugasakhirmarco.my.id 8.8.8.8
 
 ---
 
-## 12. File Konfigurasi dan Skrip
+## 12. File Konfigurasi
 
 | File | Fungsi |
 |---|---|
 | `docker-compose.yml` | Definisi service dasar (`db`, `api`, `ui`) |
 | `docker-compose.prod.yml` | Override production, reverse proxy, tunnel |
 | `.env.prod.example` | Template environment production |
-| `scripts/ops/run-local-checks.ps1` | Verifikasi build, test, dan compose lokal |
-| `scripts/ops/redeploy-production.ps1` | Build ulang dan jalankan ulang stack production |
 | `nginx/default.conf` | Konfigurasi reverse proxy |
 | `src/Cashflowpoly.Api/Dockerfile` | Build image API |
 | `src/Cashflowpoly.Ui/Dockerfile` | Build image UI |
@@ -449,16 +445,29 @@ nslookup tugasakhirmarco.my.id 8.8.8.8
 ```powershell
 Copy-Item .env.prod.example .env.prod
 notepad .env.prod
-powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1
-powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
+dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
+dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
+dotnet restore tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj
+dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restore /warnaserror
+dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
+docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release
+dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 13.2 Setelah Ada Perubahan Kode
 
 ```powershell
 git pull
-powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1 -SkipIntegrationTests
-powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
+dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release
+dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release
+dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
+dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 13.3 Lihat Log
@@ -481,4 +490,4 @@ Sistem dianggap terdeploy dengan benar jika:
 - [ ] Dashboard UI dapat diakses
 - [ ] Swagger UI dapat diakses
 - [ ] Login API mengembalikan JWT token
-- [ ] Redeploy manual dengan `scripts/ops/redeploy-production.ps1` berhasil dijalankan
+- [ ] Redeploy manual dengan `docker compose ... up -d --build` berhasil dijalankan

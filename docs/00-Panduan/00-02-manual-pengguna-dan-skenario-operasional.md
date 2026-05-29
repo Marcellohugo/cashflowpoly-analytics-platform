@@ -255,13 +255,7 @@ Instruktur menyiapkan bukti uji dan bukti tampilan untuk laporan.
    - integritas referensi event (`event_pk`) pada proyeksi/log
 
 ### Format penyimpanan bukti
-Instruktur menyimpan bukti pada folder:
-```
-docs/evidence/
-  api/
-  ui/
-  db/
-```
+Instruktur menyimpan bukti pada folder kerja atau media arsip pengujian yang disepakati, dengan pemisahan minimal untuk artefak `api`, `ui`, dan `db`.
 
 ---
 

@@ -56,13 +56,13 @@ Kriteria kelulusan tercapai untuk cakupan dasar otomatis: tidak ada kegagalan pa
 | Uji asap RBAC | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
 | Uji asap rate-limit | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
 | Uji asap UI Web | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |
-| Uji beban dasar | `scripts/perf/run-load-test.ps1` | PASS | Ingest P95 18.72 ms, Analytics P95 867.26 ms, error rate 0% |
+| Uji beban dasar | Skenario request berulang ke endpoint ingest dan analytics | PASS | Ingest P95 18.72 ms, Analytics P95 867.26 ms, error rate 0% |
 | Observability API | `GET /api/v1/observability/metrics` | PASS | respons `200`, metrik endpoint tersedia |
 | Security audit API | `GET /api/v1/security/audit-logs` | PASS | respons `200`, jejak event keamanan tersedia |
 
 Catatan:
 - Verifikasi pada tabel di atas dijalankan secara lokal berbasis CLI, koleksi Postman, dan browser.
-- Verifikasi build/test/compose dapat dijalankan ulang secara lokal melalui `scripts/ops/run-local-checks.ps1`.
+- Verifikasi build/test/compose dapat dijalankan ulang secara lokal melalui rangkaian perintah `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config`.
 
 Tambahan cek endpoint analitika:
 - `GET /api/v1/analytics/rulesets/{rulesetId}/summary` -> `200`
@@ -95,7 +95,7 @@ Temuan blocker: **tidak ada**.
 
 Catatan residual:
 1. Uji beban jangka panjang (durasi > 30 menit, concurrency tinggi) belum dieksekusi pada sesi ini.
-2. Evidence screenshot UI khusus sidang belum ditambahkan; artefak teknis disimpan terstruktur pada `docs/evidence/<tanggal>/`.
+2. Evidence screenshot UI khusus sidang belum ditambahkan; artefak teknis masih perlu diarsipkan bersama laporan pengujian.
 
 ---
 
