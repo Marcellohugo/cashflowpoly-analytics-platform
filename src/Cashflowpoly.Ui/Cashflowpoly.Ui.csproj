@@ -9,4 +9,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Cashflowpoly.Contracts\Cashflowpoly.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

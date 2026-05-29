@@ -1033,6 +1033,391 @@ set player_id = excluded.player_id,
 -- =========================================================
 -- 6) Metric snapshot eksplisit dan matrix numerik
 -- =========================================================
+with gameplay_snapshot_players as (
+  select
+    sp.session_id,
+    sp.player_id,
+    sp.join_order,
+    s.mode,
+    s.status,
+    sra.ruleset_version_id,
+    rv.config_json,
+    row_number() over (order by sp.session_id, sp.join_order, sp.player_id) as player_row
+  from session_players sp
+  join sessions s on s.session_id = sp.session_id
+  join session_ruleset_activations sra on sra.session_id = sp.session_id
+  join ruleset_versions rv on rv.ruleset_version_id = sra.ruleset_version_id
+  where sp.session_id::text like '81000000-%'
+    and exists (
+      select 1
+      from events e
+      where e.session_id = sp.session_id
+        and e.player_id = sp.player_id
+    )
+),
+event_rollup as (
+  select
+    e.session_id,
+    e.player_id,
+    count(*) as event_count,
+    count(distinct e.action_type) as action_type_count,
+    coalesce(max(e.turn_number), 0) as max_turn,
+    max(e.timestamp) as latest_event_at,
+    sum(case when e.action_type = 'ingredient.purchased' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as ingredients_collected,
+    sum(case when e.action_type = 'ingredient.discarded' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as ingredients_wasted,
+    count(*) filter (where e.action_type = 'order.claimed') as meal_orders_claimed,
+    count(*) filter (where e.action_type = 'order.passed') as meal_orders_passed,
+    sum(case when e.action_type = 'order.claimed' then coalesce((e.payload->>'income')::int, 0) else 0 end) as meal_order_income_total,
+    count(*) filter (where e.action_type = 'need.primary.purchased') as primary_needs_owned,
+    count(*) filter (where e.action_type = 'need.secondary.purchased') as secondary_needs_owned,
+    count(*) filter (where e.action_type = 'need.tertiary.purchased') as tertiary_needs_owned,
+    sum(case when e.action_type like 'need.%.purchased' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as need_cards_coins_spent,
+    sum(case when e.action_type = 'day.friday.donation' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as donation_total_coins,
+    count(*) filter (where e.action_type = 'donation.rank.awarded') as donation_champion_cards_earned,
+    sum(case when e.action_type = 'day.saturday.gold_trade' and e.payload->>'trade_type' = 'BUY' then coalesce((e.payload->>'qty')::int, 0) else 0 end) as gold_cards_purchased,
+    sum(case when e.action_type = 'day.saturday.gold_trade' and e.payload->>'trade_type' = 'SELL' then coalesce((e.payload->>'qty')::int, 0) else 0 end) as gold_cards_sold,
+    sum(case when e.action_type = 'day.saturday.gold_trade' and e.payload->>'trade_type' = 'BUY' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as gold_investment_coins_spent,
+    sum(case when e.action_type = 'day.saturday.gold_trade' and e.payload->>'trade_type' = 'SELL' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as gold_investment_coins_earned,
+    count(*) filter (where e.action_type = 'risk.life.drawn') as life_risk_cards_drawn,
+    sum(case when e.action_type = 'risk.life.drawn' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as life_risk_costs_total,
+    count(*) filter (where e.action_type = 'insurance.multirisk.purchased') as insurance_payments_made,
+    count(*) filter (where e.action_type = 'insurance.multirisk.used') as life_risk_mitigated_with_insurance,
+    count(*) filter (where e.action_type = 'risk.emergency.used') as emergency_options_used,
+    count(*) filter (where e.action_type = 'saving.deposit.created') as financial_goals_attempted,
+    count(*) filter (where e.action_type = 'saving.goal.achieved') as financial_goals_completed,
+    sum(case when e.action_type = 'saving.deposit.created' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as financial_goals_coins_total_invested,
+    sum(case when e.action_type = 'saving.deposit.withdrawn' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as coins_withdrawn_from_goals,
+    count(*) filter (where e.action_type = 'loan.syariah.taken') as sharia_loans_taken,
+    count(*) filter (where e.action_type = 'loan.syariah.repaid') as sharia_loans_repaid,
+    sum(case when e.action_type = 'loan.syariah.taken' then coalesce((e.payload->>'principal')::int, 0) else 0 end) as sharia_loans_principal,
+    sum(case when e.action_type = 'loan.syariah.repaid' then coalesce((e.payload->>'amount')::int, 0) else 0 end) as sharia_loans_repaid_amount,
+    sum(case when e.action_type = 'turn.action.used' then coalesce((e.payload->>'used')::int, 0) else 0 end) as actions_used_total,
+    sum(case when e.action_type = 'turn.action.used' then coalesce((e.payload->>'remaining')::int, 0) else 0 end) as actions_skipped,
+    count(*) filter (where e.action_type = 'mission.assigned') as missions_assigned,
+    count(*) filter (where e.action_type = 'session.ended') as session_ended_events,
+    max(case when e.action_type = 'pension.rank.awarded' then coalesce((e.payload->>'rank')::int, 0) else null end) as pension_fund_rank_per_game,
+    sum(case when e.action_type = 'pension.rank.awarded' then coalesce((e.payload->>'points')::int, 0) else 0 end) as pension_fund_happiness_points,
+    sum(case when e.action_type = 'gold.points.awarded' then coalesce((e.payload->>'points')::int, 0) else 0 end) as gold_happiness_points,
+    sum(case when e.action_type = 'donation.rank.awarded' then coalesce((e.payload->>'points')::int, 0) else 0 end) as donation_happiness_points,
+    sum(case when e.action_type like 'need.%.purchased' then coalesce((e.payload->>'points')::int, 0) else 0 end) as need_cards_points
+  from events e
+  where e.session_id::text like '81000000-%'
+    and e.player_id is not null
+  group by e.session_id, e.player_id
+),
+projection_rollup as (
+  select
+    p.session_id,
+    p.player_id,
+    sum(case when p.direction = 'IN' then p.amount else 0 end) as cash_in_total,
+    sum(case when p.direction = 'OUT' then p.amount else 0 end) as cash_out_total,
+    sum(case when p.category = 'ORDER_INCOME' and p.direction = 'IN' then p.amount else 0 end) as meal_income,
+    sum(case when p.category = 'FREELANCE' and p.direction = 'IN' then p.amount else 0 end) as freelance_income,
+    sum(case when p.category = 'GOLD_TRADE' and p.direction = 'IN' then p.amount else 0 end) as gold_income,
+    sum(case when p.category = 'INGREDIENT' and p.direction = 'OUT' then p.amount else 0 end) as ingredient_expenses,
+    sum(case when p.category like 'NEED_%' and p.direction = 'OUT' then p.amount else 0 end) as need_expenses,
+    sum(case when p.category = 'DONATION' and p.direction = 'OUT' then p.amount else 0 end) as donation_expenses,
+    sum(case when p.category = 'SAVING_DEPOSIT' and p.direction = 'OUT' then p.amount else 0 end) as saving_deposits,
+    sum(case when p.category = 'SAVING_WITHDRAW' and p.direction = 'IN' then p.amount else 0 end) as saving_withdrawals
+  from event_cashflow_projections p
+  where p.session_id::text like '81000000-%'
+  group by p.session_id, p.player_id
+),
+gameplay_snapshot_rows as (
+  select
+    g.session_id,
+    g.player_id,
+    g.join_order,
+    g.mode,
+    g.status,
+    g.ruleset_version_id,
+    g.player_row,
+    coalesce((g.config_json->>'starting_cash')::int, case when g.mode = 'MAHIR' then 12 else 24 end) as starting_cash,
+    coalesce((g.config_json->>'actions_per_turn')::int, 2) as actions_per_turn,
+    coalesce(er.event_count, 0) as event_count,
+    coalesce(er.action_type_count, 0) as action_type_count,
+    coalesce(er.max_turn, 0) as max_turn,
+    er.latest_event_at,
+    coalesce(er.ingredients_collected, 0) as ingredients_collected,
+    greatest(coalesce(er.ingredients_collected, 0) - coalesce(er.ingredients_wasted, 0) - coalesce(er.meal_orders_claimed, 0) * 2, 0) as ingredients_held_current,
+    coalesce(er.ingredients_wasted, 0) as ingredients_wasted,
+    coalesce(er.meal_orders_claimed, 0) as meal_orders_claimed,
+    coalesce(er.meal_orders_passed, 0) as meal_orders_passed,
+    coalesce(er.meal_order_income_total, 0) as meal_order_income_total,
+    coalesce(er.primary_needs_owned, 0) as primary_needs_owned,
+    coalesce(er.secondary_needs_owned, 0) as secondary_needs_owned,
+    coalesce(er.tertiary_needs_owned, 0) as tertiary_needs_owned,
+    coalesce(er.need_cards_coins_spent, 0) as need_cards_coins_spent,
+    coalesce(er.donation_total_coins, 0) as donation_total_coins,
+    coalesce(er.donation_champion_cards_earned, 0) as donation_champion_cards_earned,
+    coalesce(er.gold_cards_purchased, 0) as gold_cards_purchased,
+    coalesce(er.gold_cards_sold, 0) as gold_cards_sold,
+    coalesce(er.gold_investment_coins_spent, 0) as gold_investment_coins_spent,
+    coalesce(er.gold_investment_coins_earned, 0) as gold_investment_coins_earned,
+    coalesce(er.life_risk_cards_drawn, 0) as life_risk_cards_drawn,
+    coalesce(er.life_risk_costs_total, 0) as life_risk_costs_total,
+    coalesce(er.insurance_payments_made, 0) as insurance_payments_made,
+    coalesce(er.life_risk_mitigated_with_insurance, 0) as life_risk_mitigated_with_insurance,
+    coalesce(er.emergency_options_used, 0) as emergency_options_used,
+    coalesce(er.financial_goals_attempted, 0) as financial_goals_attempted,
+    coalesce(er.financial_goals_completed, 0) as financial_goals_completed,
+    coalesce(er.financial_goals_coins_total_invested, 0) as financial_goals_coins_total_invested,
+    greatest(coalesce(er.financial_goals_coins_total_invested, 0) - coalesce(er.coins_withdrawn_from_goals, 0), 0) as coins_in_savings_goal,
+    coalesce(er.sharia_loans_taken, 0) as sharia_loans_taken,
+    coalesce(er.sharia_loans_repaid, 0) as sharia_loans_repaid,
+    greatest(coalesce(er.sharia_loans_principal, 0) - coalesce(er.sharia_loans_repaid_amount, 0), 0) as sharia_loans_outstanding_coins,
+    coalesce(er.actions_used_total, 0) as actions_used_total,
+    coalesce(er.actions_skipped, 0) as actions_skipped,
+    coalesce(er.missions_assigned, 0) as missions_assigned,
+    coalesce(er.session_ended_events, 0) as session_ended_events,
+    er.pension_fund_rank_per_game,
+    coalesce(er.pension_fund_happiness_points, 0) as pension_fund_happiness_points,
+    coalesce(er.gold_happiness_points, 0) as gold_happiness_points,
+    coalesce(er.donation_happiness_points, 0) as donation_happiness_points,
+    coalesce(er.need_cards_points, 0) as need_cards_points,
+    coalesce(pr.cash_in_total, 0) as cash_in_total,
+    coalesce(pr.cash_out_total, 0) as cash_out_total,
+    coalesce(pr.meal_income, 0) as meal_income,
+    coalesce(pr.freelance_income, 0) as freelance_income,
+    coalesce(pr.gold_income, 0) as gold_income,
+    coalesce(pr.ingredient_expenses, 0) as ingredient_expenses,
+    coalesce(pr.need_expenses, 0) as need_expenses,
+    coalesce(pr.donation_expenses, 0) as donation_expenses,
+    coalesce(pr.saving_deposits, 0) as saving_deposits,
+    coalesce(pr.saving_withdrawals, 0) as saving_withdrawals
+  from gameplay_snapshot_players g
+  join event_rollup er on er.session_id = g.session_id and er.player_id = g.player_id
+  left join projection_rollup pr on pr.session_id = g.session_id and pr.player_id = g.player_id
+),
+metric_types(metric_order, metric_name) as (
+  values
+    (1, 'gameplay.raw.variables'),
+    (2, 'gameplay.derived.metrics')
+)
+insert into metric_snapshots (
+  metric_snapshot_id,
+  session_id,
+  player_id,
+  computed_at,
+  metric_name,
+  metric_value_numeric,
+  metric_value_json,
+  ruleset_version_id
+)
+select
+  case
+    when mt.metric_name = 'gameplay.raw.variables'
+      then ('f710' || lpad(g.player_row::text, 4, '0') || '-0000-0000-0000-' || lpad(g.player_row::text, 12, '0'))::uuid
+    else ('f720' || lpad(g.player_row::text, 4, '0') || '-0000-0000-0000-' || lpad(g.player_row::text, 12, '0'))::uuid
+  end,
+  g.session_id,
+  g.player_id,
+  '2026-05-19T09:00:00+07:00'::timestamptz
+    + (g.player_row || ' minutes')::interval
+    + case when mt.metric_order = 2 then interval '1 second' else interval '0 seconds' end,
+  mt.metric_name,
+  null::double precision,
+  case
+    when mt.metric_name = 'gameplay.raw.variables' then jsonb_build_object(
+      'metadata', jsonb_build_object(
+        'game_id', g.session_id,
+        'session_id', g.session_id,
+        'player_id', g.player_id,
+        'player_alias', null,
+        'game_mode', case when g.mode = 'MAHIR' then 'advanced' else 'beginner' end,
+        'turn_number', nullif(g.max_turn, 0),
+        'day_label', case ((g.max_turn + g.join_order) % 7) when 0 then 'MON' when 1 then 'TUE' when 2 then 'WED' when 3 then 'THU' when 4 then 'FRI' when 5 then 'SAT' else 'SUN' end,
+        'action_slot', g.join_order,
+        'action_slot_timeline', jsonb_build_array(1, 2, g.join_order),
+        'event_timestamp', g.latest_event_at
+      ),
+      'coins', jsonb_build_object(
+        'starting_coins', g.starting_cash,
+        'coins_held_current', g.starting_cash + g.cash_in_total - g.cash_out_total,
+        'coins_spent_per_turn', jsonb_build_array(g.cash_out_total / greatest(g.max_turn, 1), greatest(g.need_expenses + g.ingredient_expenses, 1), greatest(g.donation_expenses, 0)),
+        'coins_earned_per_turn', jsonb_build_array(g.cash_in_total / greatest(g.max_turn, 1), greatest(g.meal_income, 0), greatest(g.freelance_income, 0)),
+        'coins_donated', g.donation_total_coins,
+        'coins_saved', g.coins_in_savings_goal,
+        'coins_net_end_game', g.starting_cash + g.cash_in_total - g.cash_out_total
+      ),
+      'ingredients', jsonb_build_object(
+        'ingredients_collected', g.ingredients_collected,
+        'ingredients_held_current', g.ingredients_held_current,
+        'ingredient_types_held', jsonb_build_object('nasi', greatest(g.join_order, 1), 'sayur', greatest(g.ingredients_held_current - g.join_order, 0), 'telur', g.join_order % 2),
+        'ingredients_used_per_meal', case when g.meal_orders_claimed = 0 then 0 else greatest((g.ingredients_collected - g.ingredients_held_current - g.ingredients_wasted) / greatest(g.meal_orders_claimed, 1), 0) end,
+        'ingredients_wasted', g.ingredients_wasted,
+        'ingredient_investment_coins_total', g.ingredient_expenses
+      ),
+      'meal_orders', jsonb_build_object(
+        'meal_orders_claimed', g.meal_orders_claimed,
+        'meal_orders_available_passed', g.meal_orders_passed,
+        'meal_order_income_per_order', jsonb_build_array(g.meal_income / greatest(g.meal_orders_claimed, 1)),
+        'meal_order_income_total', g.meal_income,
+        'meal_orders_per_turn_average', (g.meal_orders_claimed::numeric / greatest(g.max_turn, 1))
+      ),
+      'needs', jsonb_build_object(
+        'need_cards_purchased', g.primary_needs_owned + g.secondary_needs_owned + g.tertiary_needs_owned,
+        'primary_needs_owned', g.primary_needs_owned,
+        'secondary_needs_owned', g.secondary_needs_owned,
+        'tertiary_needs_owned', g.tertiary_needs_owned,
+        'need_profile', jsonb_build_object('basic_profile', g.primary_needs_owned > 0, 'collector_profile', g.tertiary_needs_owned > 0, 'specialist_profile', g.join_order in (1, 3)),
+        'specific_tertiary_need', g.tertiary_needs_owned > 0,
+        'collection_mission_complete', g.tertiary_needs_owned > 0 and g.missions_assigned > 0,
+        'need_cards_coins_spent', g.need_cards_coins_spent
+      ),
+      'donations', jsonb_build_object(
+        'donation_amount_per_friday', jsonb_build_array(g.donation_total_coins),
+        'donation_rank_per_friday', jsonb_build_array(g.join_order),
+        'donation_total_coins', g.donation_total_coins,
+        'donation_champion_cards_earned', g.donation_champion_cards_earned,
+        'donation_happiness_points', g.donation_happiness_points
+      ),
+      'gold', jsonb_build_object(
+        'gold_cards_purchased', g.gold_cards_purchased,
+        'gold_cards_sold', g.gold_cards_sold,
+        'gold_cards_held_end', g.gold_cards_purchased - g.gold_cards_sold,
+        'gold_prices_per_purchase', jsonb_build_array(case when g.gold_cards_purchased = 0 then 0 else g.gold_investment_coins_spent / greatest(g.gold_cards_purchased, 1) end),
+        'gold_price_per_sale', jsonb_build_array(case when g.gold_cards_sold = 0 then 0 else g.gold_investment_coins_earned / greatest(g.gold_cards_sold, 1) end),
+        'gold_investment_coins_spent', g.gold_investment_coins_spent,
+        'gold_investment_coins_earned', g.gold_investment_coins_earned,
+        'gold_investment_net', g.gold_investment_coins_earned - g.gold_investment_coins_spent
+      ),
+      'pension', jsonb_build_object(
+        'leftover_coins_end_game', g.starting_cash + g.cash_in_total - g.cash_out_total,
+        'ingredient_cards_value_end', g.ingredients_held_current,
+        'coins_in_savings_goal', g.coins_in_savings_goal,
+        'pension_fund_total', g.starting_cash + g.cash_in_total - g.cash_out_total + g.ingredients_held_current + g.coins_in_savings_goal,
+        'pension_fund_rank_per_game', g.pension_fund_rank_per_game,
+        'pension_fund_happiness_points', g.pension_fund_happiness_points
+      ),
+      'life_risk', jsonb_build_object(
+        'life_risks_available', g.life_risk_cards_drawn,
+        'life_risk_cards_drawn', g.life_risk_cards_drawn,
+        'life_risks_accepted', g.life_risk_cards_drawn,
+        'life_risk_costs_per_card', jsonb_build_array(case when g.life_risk_cards_drawn = 0 then 0 else g.life_risk_costs_total / greatest(g.life_risk_cards_drawn, 1) end),
+        'life_risk_costs_total', g.life_risk_costs_total,
+        'life_risk_mitigated_with_insurance', g.life_risk_mitigated_with_insurance,
+        'insurance_payments_made', g.insurance_payments_made,
+        'emergency_options_used', g.emergency_options_used
+      ),
+      'financial_goals', jsonb_build_object(
+        'financial_goals_available_total', greatest(g.financial_goals_attempted, 1),
+        'financial_goals_attempted', g.financial_goals_attempted,
+        'financial_goals_completed', g.financial_goals_completed,
+        'financial_goals_coins_per_goal', jsonb_build_object('goal-' || g.join_order, g.coins_in_savings_goal),
+        'financial_goals_coins_total_invested', g.financial_goals_coins_total_invested,
+        'financial_goals_incomplete_coins_wasted', greatest(g.financial_goals_coins_total_invested - g.coins_in_savings_goal, 0),
+        'sharia_loans_taken', g.sharia_loans_taken,
+        'sharia_loan_cards_taken', g.sharia_loans_taken,
+        'sharia_loans_repaid', g.sharia_loans_repaid,
+        'sharia_loans_unpaid_end', case when g.sharia_loans_outstanding_coins > 0 then 1 else 0 end,
+        'sharia_loans_outstanding_coins', g.sharia_loans_outstanding_coins,
+        'loan_penalty_if_unpaid', case when g.sharia_loans_outstanding_coins > 0 then 15 else 0 end
+      ),
+      'actions', jsonb_build_object(
+        'actions_per_turn', g.actions_per_turn,
+        'action_repetitions_per_turn', jsonb_build_object('turn-' || greatest(g.max_turn, 1), greatest(g.actions_used_total - g.action_type_count, 0)),
+        'action_sequence', jsonb_build_array(jsonb_build_object('turn', greatest(g.max_turn, 1), 'actions', jsonb_build_array('work.freelance.completed', 'need.primary.purchased'))),
+        'actions_skipped', g.actions_skipped
+      ),
+      'turns', jsonb_build_object(
+        'coins_per_turn_progression', jsonb_build_array(g.starting_cash, g.starting_cash + g.cash_in_total - g.cash_out_total / 2, g.starting_cash + g.cash_in_total - g.cash_out_total),
+        'net_income_per_turn', jsonb_build_array(g.cash_in_total - g.cash_out_total, g.cash_in_total / greatest(g.max_turn, 1)),
+        'turn_number_when_debt_introduced', case when g.sharia_loans_taken > 0 then greatest(g.max_turn - 2, 1) else null end,
+        'turn_number_when_first_risk_hit', case when g.life_risk_cards_drawn > 0 then greatest(g.max_turn - 1, 1) else null end,
+        'turn_number_game_completion', nullif(g.max_turn, 0)
+      ),
+      'outcomes', jsonb_build_object(
+        'total_happiness_points', g.need_cards_points + g.donation_happiness_points + g.gold_happiness_points + g.pension_fund_happiness_points - case when g.sharia_loans_outstanding_coins > 0 then 15 else 0 end,
+        'final_rank', case when g.status = 'ENDED' then g.join_order else null end,
+        'winner_flag', g.status = 'ENDED' and g.join_order = 1,
+        'finish_line_reached', g.session_ended_events > 0,
+        'dnf_flag', g.status = 'ENDED' and g.session_ended_events = 0
+      ),
+      'notes', jsonb_build_array('inspection_seed_generated', 'player_detail_diagram_ready')
+    )
+    else jsonb_build_object(
+      'net_worth_index', ((g.starting_cash + g.cash_in_total - g.cash_out_total)::numeric / greatest(g.starting_cash, 1)),
+      'income_diversification_index', least(1.0, (case when g.freelance_income > 0 then 0.34 else 0 end) + (case when g.meal_income > 0 then 0.33 else 0 end) + (case when g.gold_income > 0 then 0.33 else 0 end)),
+      'income_diversification_ratio', least(1.0, (case when g.freelance_income > 0 then 0.34 else 0 end) + (case when g.meal_income > 0 then 0.33 else 0 end) + (case when g.gold_income > 0 then 0.33 else 0 end)),
+      'income_diversification_components', jsonb_build_object(
+        'freelance_income', g.freelance_income,
+        'meal_income', g.meal_income,
+        'gold_income', g.gold_income,
+        'donations_received', 0,
+        'total_income', g.cash_in_total,
+        'N_active_income_sources', (case when g.freelance_income > 0 then 1 else 0 end) + (case when g.meal_income > 0 then 1 else 0 end) + (case when g.gold_income > 0 then 1 else 0 end),
+        'Income_Share_i', jsonb_build_object('freelance', case when g.cash_in_total = 0 then 0 else g.freelance_income::numeric / g.cash_in_total end, 'meal', case when g.cash_in_total = 0 then 0 else g.meal_income::numeric / g.cash_in_total end, 'gold', case when g.cash_in_total = 0 then 0 else g.gold_income::numeric / g.cash_in_total end)
+      ),
+      'expense_management_efficiency', case when g.cash_out_total = 0 then 1 else least(1.0, (g.ingredient_expenses + g.need_expenses)::numeric / g.cash_out_total) end,
+      'expense_management_components', jsonb_build_object('essential_expenses', g.ingredient_expenses + g.need_expenses, 'total_expenses', g.cash_out_total),
+      'business_profit_margin', case when g.meal_income = 0 then 0 else (g.meal_income - g.ingredient_expenses)::numeric / g.meal_income end,
+      'business_efficiency_ratio', case when g.ingredient_expenses = 0 then 0 else g.meal_income::numeric / g.ingredient_expenses end,
+      'gold_roi_percentage', case when g.gold_investment_coins_spent = 0 then 0 else ((g.gold_investment_coins_earned - g.gold_investment_coins_spent)::numeric / g.gold_investment_coins_spent) * 100 end,
+      'risk_exposure_percentage', case when g.starting_cash = 0 then 0 else (g.life_risk_costs_total::numeric / greatest(g.starting_cash, 1)) * 100 end,
+      'risk_mitigation_effectiveness', case when g.life_risk_cards_drawn = 0 then 0 else g.life_risk_mitigated_with_insurance::numeric / g.life_risk_cards_drawn end,
+      'risk_appetite_score', g.life_risk_cards_drawn * 10 + g.emergency_options_used * 5,
+      'risk_appetite_components', jsonb_build_object(
+        'life_risks_accepted', g.life_risk_cards_drawn,
+        'life_risks_available', g.life_risk_cards_drawn,
+        'risk_acceptance_rate', case when g.life_risk_cards_drawn = 0 then 0 else 1 end,
+        'average_risk_cost', case when g.life_risk_cards_drawn = 0 then 0 else g.life_risk_costs_total::numeric / g.life_risk_cards_drawn end,
+        'insurance_activation_rate', case when g.life_risk_cards_drawn = 0 then 0 else g.life_risk_mitigated_with_insurance::numeric / g.life_risk_cards_drawn end,
+        'Insurance_Coverage_Rate', case when g.life_risk_cards_drawn = 0 then 0 else g.insurance_payments_made::numeric / g.life_risk_cards_drawn end,
+        'Risk_Cost_Intensity', case when g.starting_cash = 0 then 0 else g.life_risk_costs_total::numeric / g.starting_cash end
+      ),
+      'debt_leverage_ratio', case when g.cash_in_total = 0 then 0 else (g.sharia_loans_outstanding_coins::numeric / g.cash_in_total) * 100 end,
+      'loan_repayment_discipline', case when g.sharia_loans_taken = 0 then 1 else least(1.0, g.sharia_loans_repaid::numeric / g.sharia_loans_taken) end,
+      'debt_ratio', case when g.starting_cash + g.cash_in_total = 0 then 0 else g.sharia_loans_outstanding_coins::numeric / (g.starting_cash + g.cash_in_total) end,
+      'goal_ambition', case when g.financial_goals_attempted = 0 then 0 else least(1.0, g.financial_goals_coins_total_invested::numeric / greatest(g.starting_cash, 1)) end,
+      'goal_setting_ambition', case when g.financial_goals_attempted = 0 then 0 else least(1.0, g.financial_goals_coins_total_invested::numeric / greatest(g.starting_cash, 1)) end,
+      'goal_setting_components', jsonb_build_object('Goal_Attempt_Rate', case when g.financial_goals_attempted = 0 then 0 else 1 end, 'Goal_Investment_Rate', g.financial_goals_coins_total_invested::numeric / greatest(g.starting_cash, 1)),
+      'action_efficiency', case when g.max_turn = 0 then 0 else g.actions_used_total::numeric / (g.max_turn * g.actions_per_turn) end,
+      'action_efficiency_percent', case when g.max_turn = 0 then 0 else (g.actions_used_total::numeric / (g.max_turn * g.actions_per_turn)) * 100 end,
+      'action_diversity_score_avg', case when g.event_count = 0 then 0 else g.action_type_count::numeric / g.event_count end,
+      'action_diversity_score', case when g.event_count = 0 then 0 else g.action_type_count::numeric / g.event_count end,
+      'meal_order_success_rate', case when g.meal_orders_claimed + g.meal_orders_passed = 0 then 0 else g.meal_orders_claimed::numeric / (g.meal_orders_claimed + g.meal_orders_passed) end,
+      'planning_horizon', case when g.financial_goals_attempted > 0 then 1 else 0 end,
+      'planning_horizon_percent', case when g.financial_goals_attempted > 0 then 100 else 0 end,
+      'fulfillment_diversity', (case when g.primary_needs_owned > 0 then 0.34 else 0 end) + (case when g.secondary_needs_owned > 0 then 0.33 else 0 end) + (case when g.tertiary_needs_owned > 0 then 0.33 else 0 end),
+      'need_fulfillment_diversity_index', (case when g.primary_needs_owned > 0 then 0.34 else 0 end) + (case when g.secondary_needs_owned > 0 then 0.33 else 0 end) + (case when g.tertiary_needs_owned > 0 then 0.33 else 0 end),
+      'fulfillment_diversity_components', jsonb_build_object('p_primary', g.primary_needs_owned, 'p_secondary', g.secondary_needs_owned, 'p_tertiary', g.tertiary_needs_owned),
+      'mission_achievement', case when g.missions_assigned = 0 then 0 else case when g.tertiary_needs_owned > 0 then 1 else 0 end end,
+      'growth_pattern_ratio', case when g.starting_cash = 0 then 0 else (g.starting_cash + g.cash_in_total - g.cash_out_total)::numeric / g.starting_cash end,
+      'growth_pattern', case when g.cash_in_total >= g.cash_out_total then 'steady_growth' else 'volatile_recovery' end,
+      'donation_aggressiveness_percent', case when g.cash_out_total = 0 then 0 else (g.donation_total_coins::numeric / g.cash_out_total) * 100 end,
+      'donation_stability_std_deviation', g.join_order::numeric / 10,
+      'donation_ratio', case when g.cash_out_total = 0 then 0 else g.donation_total_coins::numeric / g.cash_out_total end,
+      'friday_participation_rate', case when g.donation_total_coins > 0 then 1 else 0 end,
+      'donation_commitment_score', case when g.donation_total_coins > 0 then least(1.0, g.donation_total_coins::numeric / greatest(g.starting_cash, 1)) else 0 end,
+      'donation_consistency_score', case when g.donation_total_coins > 0 then least(1.0, g.donation_total_coins::numeric / greatest(g.starting_cash, 1)) else 0 end,
+      'donation_commitment_components', jsonb_build_object('donation_stability', 1 - (g.join_order::numeric / 10), 'donation_ratio', case when g.cash_out_total = 0 then 0 else g.donation_total_coins::numeric / g.cash_out_total end, 'friday_participation_rate', case when g.donation_total_coins > 0 then 1 else 0 end),
+      'risk_appetite_score_normalized', least(1.0, (g.life_risk_cards_drawn * 10 + g.emergency_options_used * 5)::numeric / 100),
+      'sharia_loans_outstanding_coins', g.sharia_loans_outstanding_coins,
+      'happiness_portfolio', jsonb_build_object(
+        'need_cards_pts', g.need_cards_points,
+        'donations_pts', g.donation_happiness_points,
+        'gold_pts', g.gold_happiness_points,
+        'pension_pts', g.pension_fund_happiness_points,
+        'financial_goals_pts', g.financial_goals_completed * 5,
+        'mission_bonus_pts', case when g.missions_assigned > 0 and g.tertiary_needs_owned = 0 then -4 else 0 end
+      ),
+      'notes', jsonb_build_array('inspection_seed_generated', case when g.life_risk_cards_drawn = 0 then 'risk_appetite_requires_risk_events' else 'risk_events_available' end)
+    )
+  end,
+  g.ruleset_version_id
+from gameplay_snapshot_rows g
+cross join metric_types mt
+where mt.metric_name in ('gameplay.raw.variables', 'gameplay.derived.metrics')
+on conflict (metric_snapshot_id) do update
+set session_id = excluded.session_id,
+    player_id = excluded.player_id,
+    computed_at = excluded.computed_at,
+    metric_name = excluded.metric_name,
+    metric_value_numeric = excluded.metric_value_numeric,
+    metric_value_json = excluded.metric_value_json,
+    ruleset_version_id = excluded.ruleset_version_id;
+
 insert into metric_snapshots (
   metric_snapshot_id,
   session_id,
@@ -1044,10 +1429,6 @@ insert into metric_snapshots (
   ruleset_version_id
 )
 values
-  ('f7000000-0000-0000-0000-000000000001', '81000000-0000-0000-0000-000000000001', '22000000-0000-0000-0000-000000000001', '2026-05-12T09:45:00+07:00', 'gameplay.raw.variables', null, '{"coins":{"starting_coins":24,"coins_held_current":31,"coins_spent_per_turn":[4,8,3],"coins_earned_per_turn":[6,13,2],"coins_donated":4,"coins_saved":0,"coins_net_end_game":31},"ingredients":{"ingredients_collected":7,"ingredients_held_current":4,"ingredient_types_held":{"nasi":2,"sayur":1,"telur":1},"ingredients_used_per_meal":2,"ingredients_wasted":1,"ingredient_investment_coins_total":7},"meal_orders":{"meal_orders_claimed":1,"meal_orders_available_passed":1,"meal_order_income_per_order":[13],"meal_order_income_total":13},"needs":{"need_cards_purchased":3,"primary_needs_owned":1,"secondary_needs_owned":1,"tertiary_needs_owned":1,"specific_tertiary_need":true,"collection_mission_complete":true,"need_cards_coins_spent":13},"donations":{"donation_amount_per_friday":[4],"donation_rank_per_friday":[2],"donation_total_coins":4,"donation_champion_cards_earned":1},"gold":{"gold_cards_purchased":2,"gold_cards_sold":0,"gold_cards_held_end":2,"gold_prices_per_purchase":[7],"gold_price_per_sale":null,"gold_investment_coins_spent":14,"gold_investment_coins_earned":0,"gold_investment_net":-14},"pension":{"leftover_coins_end_game":31,"ingredient_cards_value_end":4,"coins_in_savings_goal":0,"pension_fund_total":35},"life_risk":{"life_risk_mitigated_with_insurance":null},"financial_goals":{"financial_goals_incomplete_coins_wasted":null},"actions":{"actions_per_turn":2,"actions_skipped":1}}'::jsonb, '72100000-0000-0000-0000-000000000002'),
-  ('f7000000-0000-0000-0000-000000000002', '81000000-0000-0000-0000-000000000001', '22000000-0000-0000-0000-000000000001', '2026-05-12T09:45:01+07:00', 'gameplay.derived.metrics', null, '{"business_efficiency_ratio":1.86,"need_fulfillment_diversity_index":1.0,"donation_consistency_score":0.75,"gold_roi_percentage":-100,"debt_leverage_ratio":null,"action_diversity_score":0.82,"growth_pattern":"steady_growth","happiness_portfolio":{"need_cards_pts":10,"donations_pts":5,"gold_pts":5,"pension_pts":7,"financial_goals_pts":null,"mission_bonus_pts":0}}'::jsonb, '72100000-0000-0000-0000-000000000002'),
-  ('f7000000-0000-0000-0000-000000000003', '81000000-0000-0000-0000-000000000002', '22000000-0000-0000-0000-000000000005', '2026-05-13T10:30:00+07:00', 'gameplay.raw.variables', null, '{"coins":{"starting_coins":12,"coins_held_current":18,"coins_spent_per_turn":[6,9,4,11],"coins_earned_per_turn":[13,10,6,9],"coins_donated":3,"coins_saved":5,"coins_net_end_game":18},"life_risk":{"life_risks_available":4,"life_risk_cards_drawn":3,"life_risk_costs_per_card":[4,6,7],"life_risk_costs_total":17,"life_risk_mitigated_with_insurance":2,"insurance_payments_made":2,"emergency_options_used":1},"financial_goals":{"financial_goals_available_total":3,"financial_goals_attempted":2,"financial_goals_completed":1,"financial_goals_coins_per_goal":{"goal-2-1":5},"financial_goals_coins_total_invested":11,"financial_goals_incomplete_coins_wasted":4,"sharia_loans_taken":1,"sharia_loans_repaid":0,"sharia_loans_unpaid_end":1,"sharia_loans_outstanding_coins":7,"loan_penalty_if_unpaid":15},"actions":{"actions_per_turn":2,"actions_skipped":2}}'::jsonb, '72100000-0000-0000-0000-000000000003'),
-  ('f7000000-0000-0000-0000-000000000004', '81000000-0000-0000-0000-000000000002', '22000000-0000-0000-0000-000000000005', '2026-05-13T10:30:01+07:00', 'gameplay.derived.metrics', null, '{"business_efficiency_ratio":2.25,"need_fulfillment_diversity_index":0.91,"donation_consistency_score":0.44,"gold_roi_percentage":37.5,"debt_leverage_ratio":38.9,"action_diversity_score":0.93,"growth_pattern":"volatile_recovery","risk_appetite_score":42.4,"happiness_portfolio":{"need_cards_pts":12,"donations_pts":9,"gold_pts":8,"pension_pts":5,"financial_goals_pts":0,"mission_bonus_pts":-4}}'::jsonb, '72100000-0000-0000-0000-000000000003'),
   ('f7000000-0000-0000-0000-000000000005', '81000000-0000-0000-0000-000000000001', '22000000-0000-0000-0000-000000000002', '2026-05-12T09:45:02+07:00', 'compliance.primary_need.rate', 0.82, '{"evaluated_days":5,"compliant_days":4,"missed_days":[3]}'::jsonb, '72100000-0000-0000-0000-000000000002'),
   ('f7000000-0000-0000-0000-000000000006', '81000000-0000-0000-0000-000000000002', '22000000-0000-0000-0000-000000000006', '2026-05-13T10:30:02+07:00', 'cashflow.net.total', -6, '{"income_sources":["order","loan","freelance"],"expense_pressure":"risk-heavy"}'::jsonb, '72100000-0000-0000-0000-000000000003'),
   ('f7000000-0000-0000-0000-000000000007', '81000000-0000-0000-0000-000000000003', '22000000-0000-0000-0000-000000000009', '2026-05-14T15:05:00+07:00', 'happiness.points.total', 18, '{"penalty_sources":["gold-disabled","loan-open"],"portfolio_balance":"thin"}'::jsonb, '72100000-0000-0000-0000-000000000004'),

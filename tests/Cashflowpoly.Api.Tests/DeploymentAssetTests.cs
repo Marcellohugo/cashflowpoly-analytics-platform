@@ -37,6 +37,22 @@ public sealed class DeploymentAssetTests
     }
 
     [Fact]
+    public void ApiAndUiProjects_ReferenceSharedContractsProject()
+    {
+        var apiProjectPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Cashflowpoly.Api.csproj");
+        var uiProjectPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Cashflowpoly.Ui.csproj");
+
+        Assert.True(File.Exists(apiProjectPath), "Project API harus tersedia.");
+        Assert.True(File.Exists(uiProjectPath), "Project UI harus tersedia.");
+
+        var apiProject = File.ReadAllText(apiProjectPath);
+        var uiProject = File.ReadAllText(uiProjectPath);
+
+        Assert.Contains(@"..\Cashflowpoly.Contracts\Cashflowpoly.Contracts.csproj", apiProject, StringComparison.Ordinal);
+        Assert.Contains(@"..\Cashflowpoly.Contracts\Cashflowpoly.Contracts.csproj", uiProject, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InspectionSeedAsset_IsDocumentedForLocalVerification()
     {
         var seedPath = Path.Combine(RepoRoot, "database", "02_seed_full_inspection.sql");

@@ -59,6 +59,50 @@ public sealed class InspectionSeedConsolidationTests
     }
 
     [Fact]
+    public void InspectionSeed_ShouldGenerateGameplaySnapshotsForPlayerDetailDiagrams()
+    {
+        var seedPath = Path.Combine(RepoRoot, "database", "02_seed_full_inspection.sql");
+        var seedContent = File.ReadAllText(seedPath);
+
+        Assert.Contains("gameplay_snapshot_players", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'f710' || lpad", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'f720' || lpad", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("metric_name in ('gameplay.raw.variables', 'gameplay.derived.metrics')", seedContent, StringComparison.OrdinalIgnoreCase);
+
+        var requiredRawKeys = new[]
+        {
+            "metadata",
+            "coins",
+            "ingredients",
+            "meal_orders",
+            "needs",
+            "donations",
+            "gold",
+            "pension",
+            "life_risk",
+            "financial_goals",
+            "actions",
+            "turns",
+            "outcomes",
+            "notes"
+        };
+        var requiredDerivedKeys = new[]
+        {
+            "net_worth_index",
+            "income_diversification_components",
+            "expense_management_components",
+            "risk_appetite_components",
+            "happiness_portfolio",
+            "notes"
+        };
+
+        foreach (var key in requiredRawKeys.Concat(requiredDerivedKeys))
+        {
+            Assert.Contains($"'{key}'", seedContent, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
     public void InspectionSeed_ShouldUpsertSeedUsersAndPlayersWithoutDeletingReusableAccounts()
     {
         var seedPath = Path.Combine(RepoRoot, "database", "02_seed_full_inspection.sql");
