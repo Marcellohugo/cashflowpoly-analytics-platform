@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Cashflowpoly.Api\Cashflowpoly.Api.csproj" />
-    <ProjectReference Include="..\..\src\Cashflowpoly.Contracts\Cashflowpoly.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

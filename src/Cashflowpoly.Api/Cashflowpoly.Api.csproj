@@ -11,10 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Cashflowpoly.Contracts\Cashflowpoly.Contracts.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="..\..\database\01_seed_default_rulesets_components.sql" Link="database\01_seed_default_rulesets_components.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
