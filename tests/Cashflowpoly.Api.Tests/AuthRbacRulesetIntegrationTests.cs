@@ -152,6 +152,20 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.True(components.ComponentCatalog.HasValue);
         Assert.Equal(JsonValueKind.Object, components.ComponentCatalog!.Value.ValueKind);
 
+        var duplicateConfigUpdatePayload = new
+        {
+            name = $"Ruleset IT {suffix} duplicate",
+            description = "Integration test duplicate config",
+            config = BuildRulesetConfig(startingCash: 20)
+        };
+
+        var duplicateConfigUpdate = await SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            duplicateConfigUpdatePayload,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.Conflict, duplicateConfigUpdate.StatusCode);
+
         var updateRulesetPayload = new
         {
             name = $"Ruleset IT {suffix} V2",

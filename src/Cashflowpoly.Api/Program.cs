@@ -262,11 +262,10 @@ builder.Services.AddScoped<Cashflowpoly.Api.Services.IEventIngestionService, Cas
 
 var app = builder.Build();
 
+await DatabaseInitialization.InitializeAsync(app.Services, CancellationToken.None);
+
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
     var bootstrapOptions = app.Configuration.GetSection("AuthBootstrap").Get<AuthBootstrapOptions>();
     if (bootstrapOptions is { SeedDefaultUsers: true })
     {

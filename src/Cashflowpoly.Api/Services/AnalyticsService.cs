@@ -10,6 +10,8 @@ namespace Cashflowpoly.Api.Services;
 
 internal sealed class AnalyticsService : IAnalyticsService
 {
+    private sealed record ActiveRulesetContext(Guid? VersionId, Guid? RulesetId, string? Name, RulesetConfig? Config);
+
     private readonly SessionRepository _sessions;
     private readonly EventRepository _events;
     private readonly RulesetRepository _rulesets;
@@ -66,84 +68,36 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> RecomputeAsync(
         Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var role = user.FindFirstValue(ClaimTypes.Role);
-        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
-        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
-        if (!isInstructor && !isPlayer)
+        var access = await ResolveSessionAccessAsync(sessionId, user, ct);
+        if (access.Error is not null)
         {
-            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
-        }
-
-        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
-        if (errorResponse is not null)
-        {
-            return (null, errorStatus, errorResponse);
-        }
-
-        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
-        if (session is null)
-        {
-            return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, access.StatusCode, access.Error);
         }
 
         var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
-
-        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
-        RulesetConfig? config = null;
-        Guid? activeRulesetId = null;
-        string? activeRulesetName = null;
-        if (activeRulesetVersionId.HasValue)
-        {
-            var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
-            if (rulesetVersion is not null)
-            {
-                activeRulesetId = rulesetVersion.RulesetId;
-                var ruleset = await _rulesets.GetRulesetAsync(rulesetVersion.RulesetId, ct);
-                activeRulesetName = ruleset?.Name;
-
-                if (RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
-                {
-                    config = parsed;
-                }
-            }
-        }
-
-        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
+        var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
+        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerJoinOrders, ct);
 
-        if (activeRulesetVersionId.HasValue)
+        if (activeRuleset.VersionId.HasValue)
         {
-            await WriteSnapshotsAsync(sessionId, activeRulesetVersionId.Value, events, projections, config, happinessByPlayer, ct);
+            await WriteSnapshotsAsync(sessionId, activeRuleset.VersionId.Value, events, projections, activeRuleset.Config, happinessByPlayer, ct);
         }
 
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name), 200, null);
     }
 
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetSessionAnalyticsAsync(
         Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var role = user.FindFirstValue(ClaimTypes.Role);
-        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
-        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
-        if (!isInstructor && !isPlayer)
+        var access = await ResolveSessionAccessAsync(sessionId, user, ct);
+        if (access.Error is not null)
         {
-            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
-        }
-
-        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
-        if (errorResponse is not null)
-        {
-            return (null, errorStatus, errorResponse);
-        }
-
-        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
-        if (session is null)
-        {
-            return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, access.StatusCode, access.Error);
         }
 
         var scope = await ResolvePlayerScopeAsync(sessionId, user, ct);
@@ -155,60 +109,26 @@ internal sealed class AnalyticsService : IAnalyticsService
         var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
-
-        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
-        RulesetConfig? config = null;
-        Guid? activeRulesetId = null;
-        string? activeRulesetName = null;
-        if (activeRulesetVersionId.HasValue)
-        {
-            var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
-            if (rulesetVersion is not null)
-            {
-                activeRulesetId = rulesetVersion.RulesetId;
-                var ruleset = await _rulesets.GetRulesetAsync(rulesetVersion.RulesetId, ct);
-                activeRulesetName = ruleset?.Name;
-
-                if (RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
-                {
-                    config = parsed;
-                }
-            }
-        }
-
-        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
+        var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
+        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerJoinOrders, ct);
         if (scope.PlayerId.HasValue)
         {
             byPlayer = byPlayer.Where(item => item.PlayerId == scope.PlayerId.Value).ToList();
         }
 
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRulesetId, activeRulesetName), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name), 200, null);
     }
 
     public async Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
         Guid sessionId, Guid? playerId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var role = user.FindFirstValue(ClaimTypes.Role);
-        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
-        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
-        if (!isInstructor && !isPlayer)
+        var access = await ResolveSessionAccessAsync(sessionId, user, ct);
+        if (access.Error is not null)
         {
-            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
-        }
-
-        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
-        if (errorResponse is not null)
-        {
-            return (null, errorStatus, errorResponse);
-        }
-
-        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
-        if (session is null)
-        {
-            return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, access.StatusCode, access.Error);
         }
 
         var scope = await ResolvePlayerScopeAsync(sessionId, user, ct);
@@ -232,24 +152,10 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(GameplayMetricsResponse? Result, int StatusCode, ErrorResponse? Error)> GetGameplayMetricsAsync(
         Guid sessionId, Guid playerId, ClaimsPrincipal user, CancellationToken ct)
     {
-        var role = user.FindFirstValue(ClaimTypes.Role);
-        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
-        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
-        if (!isInstructor && !isPlayer)
+        var access = await ResolveSessionAccessAsync(sessionId, user, ct);
+        if (access.Error is not null)
         {
-            return (null, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
-        }
-
-        var (fetchedSession, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
-        if (errorResponse is not null)
-        {
-            return (null, errorStatus, errorResponse);
-        }
-
-        var session = fetchedSession ?? await _sessions.GetSessionAsync(sessionId, ct);
-        if (session is null)
-        {
-            return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, access.StatusCode, access.Error);
         }
 
         var scope = await ResolvePlayerScopeAsync(sessionId, user, ct);
@@ -418,6 +324,54 @@ internal sealed class AnalyticsService : IAnalyticsService
             sessionItems), 200, null);
     }
 
+    private async Task<(SessionDb? Session, bool IsInstructor, int StatusCode, ErrorResponse? Error)> ResolveSessionAccessAsync(
+        Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
+    {
+        var role = user.FindFirstValue(ClaimTypes.Role);
+        var isInstructor = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase);
+        var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
+        if (!isInstructor && !isPlayer)
+        {
+            return (null, false, 403, BuildError("FORBIDDEN", "Role tidak dikenali"));
+        }
+
+        var (session, errorStatus, errorResponse) = await EnsureInstructorSessionAccessAsync(sessionId, user, isInstructor, ct);
+        if (errorResponse is not null)
+        {
+            return (null, isInstructor, errorStatus, errorResponse);
+        }
+
+        session ??= await _sessions.GetSessionAsync(sessionId, ct);
+        if (session is null)
+        {
+            return (null, isInstructor, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        return (session, isInstructor, 200, null);
+    }
+
+    private async Task<ActiveRulesetContext> GetActiveRulesetContextAsync(Guid sessionId, CancellationToken ct)
+    {
+        var versionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
+        if (!versionId.HasValue)
+        {
+            return new ActiveRulesetContext(null, null, null, null);
+        }
+
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(versionId.Value, ct);
+        if (rulesetVersion is null)
+        {
+            return new ActiveRulesetContext(versionId.Value, null, null, null);
+        }
+
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetVersion.RulesetId, ct);
+        var config = RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _)
+            ? parsed
+            : null;
+
+        return new ActiveRulesetContext(versionId.Value, rulesetVersion.RulesetId, ruleset?.Name, config);
+    }
+
     private async Task<(Guid? PlayerId, (int StatusCode, ErrorResponse ErrorResponse)? Error)> ResolvePlayerScopeAsync(
         Guid? sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
@@ -492,7 +446,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             return ApiErrorHelper.BuildError(httpContext, code, message);
         }
 
-        return new ErrorResponse(code, message, new List<ErrorDetail>(), "unknown");
+        return new ErrorResponse(code, message, [], "unknown");
     }
 
     private static JsonElement? ParseJsonElement(string? json)
@@ -544,31 +498,15 @@ internal sealed class AnalyticsService : IAnalyticsService
         {
             var playerEvents = eventsByPlayer.TryGetValue(playerId, out var items)
                 ? items
-                : new List<EventDb>();
+                : [];
             var joinOrder = playerJoinOrders.TryGetValue(playerId, out var assignedJoinOrder) ? assignedJoinOrder : 0;
 
             var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };
-            var donationTotal = playerEvents.Where(e => e.ActionType == "day.friday.donation")
-                .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
-                .Sum();
-
-            var goldQty = playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade")
-                .Select(e =>
-                {
-                    if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
-                    {
-                        return 0;
-                    }
-
-                    return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
-                })
-                .Sum();
-
+            var donationTotal = SumDonationTotal(playerEvents);
+            var goldQty = SumGoldQuantity(playerEvents);
             var ordersCompletedCount = playerEvents.Count(e => e.ActionType == "order.claimed");
             var inventoryIngredientTotal = _inventoryCalc.BuildIngredientInventory(playerEvents).Total;
-            var actionsUsedTotal = playerEvents.Where(e => e.ActionType == "turn.action.used")
-                .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
-                .Sum();
+            var actionsUsedTotal = SumActionsUsed(playerEvents);
             var compliancePrimaryNeedRate = _complianceEvaluator.Evaluate(playerEvents, config).Rate;
             var rulesViolationsCount = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
 
@@ -625,12 +563,15 @@ internal sealed class AnalyticsService : IAnalyticsService
         sessionMetrics["rules.violations.count"] = (sessionViolations, null);
         snapshots.AddRange(_metricSnapshotBuilder.BuildMetricSnapshots(sessionId, null, rulesetVersionId, computedAt, sessionMetrics));
 
-        RulesetConfig? playerConfig = null;
-        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
-        if (rulesetVersion is not null &&
-            RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+        var playerConfig = config;
+        if (playerConfig is null)
         {
-            playerConfig = parsed;
+            var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
+            if (rulesetVersion is not null &&
+                RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
+            {
+                playerConfig = parsed;
+            }
         }
 
         var players = events.Where(e => e.PlayerId.HasValue).Select(e => e.PlayerId!.Value).Distinct().ToList();
@@ -668,22 +609,10 @@ internal sealed class AnalyticsService : IAnalyticsService
         metrics["cashflow.out.total"] = (cashOut, null);
         metrics["cashflow.net.total"] = (cashIn - cashOut, null);
 
-        var donationTotal = playerEvents.Where(e => e.ActionType == "day.friday.donation")
-            .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
-            .Sum();
+        var donationTotal = SumDonationTotal(playerEvents);
         metrics["donation.total"] = (donationTotal, null);
 
-        var goldQty = playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade")
-            .Select(e =>
-            {
-                if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
-                {
-                    return 0;
-                }
-
-                return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
-            })
-            .Sum();
+        var goldQty = SumGoldQuantity(playerEvents);
         metrics["gold.qty.current"] = (goldQty, null);
 
         var ordersCompleted = playerEvents.Count(e => e.ActionType == "order.claimed");
@@ -692,9 +621,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         var inventory = _inventoryCalc.BuildIngredientInventory(playerEvents);
         metrics["inventory.ingredient.total"] = (inventory.Total, null);
 
-        var actionsUsed = playerEvents.Where(e => e.ActionType == "turn.action.used")
-            .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
-            .Sum();
+        var actionsUsed = SumActionsUsed(playerEvents);
         metrics["actions.used.total"] = (actionsUsed, null);
 
         var compliance = await ComputePrimaryNeedComplianceAsync(rulesetVersionId, playerEvents, ct);
@@ -726,6 +653,32 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         return metrics;
     }
+
+    private double SumDonationTotal(IEnumerable<EventDb> events)
+        => events
+            .Where(e => e.ActionType == "day.friday.donation")
+            .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
+            .Sum();
+
+    private int SumGoldQuantity(IEnumerable<EventDb> events)
+        => events
+            .Where(e => e.ActionType == "day.saturday.gold_trade")
+            .Select(e =>
+            {
+                if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
+                {
+                    return 0;
+                }
+
+                return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
+            })
+            .Sum();
+
+    private int SumActionsUsed(IEnumerable<EventDb> events)
+        => events
+            .Where(e => e.ActionType == "turn.action.used")
+            .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
+            .Sum();
 
     private async Task<(double Rate, string? JsonDetail)> ComputePrimaryNeedComplianceAsync(
         Guid rulesetVersionId,

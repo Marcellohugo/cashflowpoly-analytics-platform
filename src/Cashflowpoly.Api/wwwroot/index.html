@@ -132,36 +132,6 @@
             color: #dcf0ff;
         }
 
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .button {
-            text-decoration: none;
-            border-radius: 12px;
-            font-weight: 700;
-            padding: 10px 15px;
-            transition: transform 0.15s ease, opacity 0.15s ease;
-        }
-
-        .button:hover {
-            transform: translateY(-1px);
-            opacity: 0.94;
-        }
-
-        .button-main {
-            background: linear-gradient(120deg, var(--accent), #ff7e2d);
-            color: #2a1100;
-        }
-
-        .button-ghost {
-            border: 1px solid rgba(255, 255, 255, 0.34);
-            color: #def1ff;
-            background: rgba(255, 255, 255, 0.04);
-        }
-
         .right {
             position: relative;
             display: grid;
@@ -230,15 +200,6 @@
                 padding: 6px 9px;
             }
 
-            .actions {
-                width: 100%;
-            }
-
-            .button {
-                width: 100%;
-                text-align: center;
-            }
-
             .right {
                 padding: 10px 14px 14px;
             }
@@ -264,10 +225,6 @@
                 <span class="chip" data-t="chip_jwt"></span>
                 <span class="chip" data-t="chip_rate"></span>
             </div>
-            <div class="actions">
-                <a class="button button-main" href="/swagger" data-t="cta_swagger"></a>
-                <a class="button button-ghost" href="/swagger/v1/swagger.json" data-t="cta_openapi"></a>
-            </div>
         </section>
 
         <section class="right">
@@ -289,9 +246,7 @@
                     subtitle: "Layanan API untuk autentikasi, event ingestion, manajemen ruleset, sesi permainan, dan perhitungan analitika Cashflowpoly.",
                     chip_api: "REST /api/v1",
                     chip_jwt: "Autentikasi JWT",
-                    chip_rate: "Rate Limit Aktif",
-                    cta_swagger: "Buka Swagger",
-                    cta_openapi: "Lihat OpenAPI JSON"
+                    chip_rate: "Rate Limit Aktif"
                 },
                 en: {
                     badge: "Backend Service",
@@ -299,9 +254,7 @@
                     subtitle: "API service for authentication, event ingestion, ruleset management, gameplay sessions, and Cashflowpoly analytics computation.",
                     chip_api: "REST /api/v1",
                     chip_jwt: "JWT Authentication",
-                    chip_rate: "Rate Limit Enabled",
-                    cta_swagger: "Open Swagger",
-                    cta_openapi: "View OpenAPI JSON"
+                    chip_rate: "Rate Limit Enabled"
                 }
             };
 

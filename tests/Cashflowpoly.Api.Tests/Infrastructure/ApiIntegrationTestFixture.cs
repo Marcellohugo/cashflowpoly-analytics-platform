@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -7,7 +6,8 @@ namespace Cashflowpoly.Api.Tests.Infrastructure;
 
 /// <summary>
 /// Fixture bersama untuk pengujian integrasi API yang mengelola lifecycle
-/// container PostgreSQL, migrasi skema, dan pembuatan HttpClient.
+/// container PostgreSQL kosong dan pembuatan HttpClient agar startup API
+/// mengeksekusi migrasi aslinya sendiri.
 /// </summary>
 public sealed class ApiIntegrationTestFixture : IAsyncLifetime
 {
@@ -40,13 +40,12 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     public HttpClient Client => _client ?? throw new InvalidOperationException("HTTP client belum terinisialisasi.");
 
     /// <summary>
-    /// Menjalankan container PostgreSQL, menerapkan skema SQL, mengatur
-    /// environment variable, dan membuat HttpClient melalui WebApplicationFactory.
+    /// Menjalankan container PostgreSQL kosong, mengatur environment variable,
+    /// dan membuat HttpClient melalui WebApplicationFactory.
     /// </summary>
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
-        await ApplySchemaAsync(_dbContainer.GetConnectionString());
 
         _previousConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Default");
         _previousJwtSigningKey = Environment.GetEnvironmentVariable("JWT_SIGNING_KEY");
@@ -74,26 +73,5 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("JWT_SIGNING_KEY", _previousJwtSigningKey);
         Environment.SetEnvironmentVariable("Jwt__SigningKey", _previousJwtSectionSigningKey);
         await _dbContainer.DisposeAsync();
-    }
-
-    /// <summary>
-    /// Membaca file SQL skema dari direktori build dan mengeksekusinya
-    /// pada database PostgreSQL untuk menyiapkan tabel pengujian.
-    /// </summary>
-    private static async Task ApplySchemaAsync(string connectionString)
-    {
-        var schemaPath = Path.Combine(AppContext.BaseDirectory, "database", "00_create_schema.sql");
-        if (!File.Exists(schemaPath))
-        {
-            throw new FileNotFoundException($"Schema SQL tidak ditemukan pada path '{schemaPath}'.");
-        }
-
-        var schemaSql = await File.ReadAllTextAsync(schemaPath);
-
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync();
-
-        await using var command = new NpgsqlCommand(schemaSql, connection);
-        await command.ExecuteNonQueryAsync();
     }
 }

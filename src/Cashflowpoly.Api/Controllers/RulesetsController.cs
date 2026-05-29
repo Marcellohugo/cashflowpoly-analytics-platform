@@ -6,6 +6,7 @@ using Cashflowpoly.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -91,13 +92,26 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var configJson = request.Config.Value.GetRawText();
-        var nextVersion = await _rulesets.CreateRulesetVersionAsync(
-            rulesetId,
-            request.Name,
-            request.Description,
-            configJson,
-            GetActorName(),
-            ct);
+        int nextVersion;
+        try
+        {
+            nextVersion = await _rulesets.CreateRulesetVersionAsync(
+                rulesetId,
+                request.Name,
+                request.Description,
+                configJson,
+                GetActorName(),
+                ct);
+        }
+        catch (PostgresException ex) when (
+            ex.SqlState == PostgresErrorCodes.UniqueViolation &&
+            string.Equals(ex.ConstraintName, "ruleset_versions_ruleset_id_config_hash_key", StringComparison.Ordinal))
+        {
+            return Conflict(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DUPLICATE",
+                "Konfigurasi ruleset tersebut sudah pernah dibuat sebagai versi ruleset ini"));
+        }
 
         return Ok(new CreateRulesetResponse(rulesetId, nextVersion));
     }
