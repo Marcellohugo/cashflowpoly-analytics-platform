@@ -34,49 +34,43 @@ public static class PlayerMetricChartPayloadBuilder
         bool isRawDomain,
         Func<string, string> translate)
     {
-        var numericRows = rows
+        var candidateRows = rows
             .Where(row => !string.IsNullOrWhiteSpace(row.Path))
+            .ToList();
+        var numericRows = candidateRows
             .Where(row => PlayerMetricLabelFormatter.TryParseMetricNumber(row.Value, out _))
             .ToList();
 
-        var summaryRows = numericRows
-            .Where(row => PlayerMetricLabelFormatter.IsPreferredCombinedSummaryPath(row.Path))
-            .ToList();
-        if (summaryRows.Count == 0)
+        var summaryRows = SelectSummaryRows(numericRows);
+        var useZeroFallback = false;
+        if (summaryRows.Count == 0 && numericRows.Count > 0)
         {
-            summaryRows = numericRows
-                .Where(row => PlayerMetricLabelFormatter.IsFallbackCombinedSummaryPath(row.Path))
-                .ToList();
+            summaryRows = numericRows.Take(8).ToList();
         }
 
         if (summaryRows.Count == 0)
         {
-            return null;
+            summaryRows = SelectSummaryRows(candidateRows);
+            useZeroFallback = summaryRows.Count > 0;
         }
 
-        var points = new List<(string Path, string Label, double Value, string Formula)>();
-        var labelUsage = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in summaryRows)
+        if (summaryRows.Count == 0 && candidateRows.Count > 0)
         {
-            if (PlayerMetricLabelFormatter.TryParseMetricNumber(row.Value, out var value))
-            {
-                var baseLabel = PlayerMetricLabelFormatter.FormatMetricPathLabel(row.Path, translate).Trim();
-                if (string.IsNullOrWhiteSpace(baseLabel))
-                {
-                    baseLabel = translate("players.details.metric_fallback");
-                }
+            summaryRows = candidateRows.Take(8).ToList();
+            useZeroFallback = true;
+        }
 
-                if (!labelUsage.TryGetValue(baseLabel, out var usageCount))
-                {
-                    labelUsage[baseLabel] = 1;
-                    points.Add((row.Path, baseLabel, value, BuildFormulaHint(row.Path, isRawDomain, translate)));
-                    continue;
-                }
-
-                usageCount += 1;
-                labelUsage[baseLabel] = usageCount;
-                points.Add((row.Path, $"{baseLabel} ({usageCount})", value, BuildFormulaHint(row.Path, isRawDomain, translate)));
-            }
+        var points = BuildChartPoints(summaryRows, isRawDomain, translate, useZeroFallback);
+        if (points.Count == 0)
+        {
+            points =
+            [
+                (
+                    string.Empty,
+                    translate("players.details.metric_fallback"),
+                    0d,
+                    BuildSummaryFallbackDetail(isRawDomain, translate))
+            ];
         }
 
         const int maxPoints = 36;
@@ -106,6 +100,59 @@ public static class PlayerMetricChartPayloadBuilder
         };
 
         return ($"{domainTitle}: {translate("players.details.combined_snapshot")}", JsonSerializer.Serialize(payload));
+    }
+
+    private static List<(string Path, string Value)> SelectSummaryRows(IEnumerable<(string Path, string Value)> rows)
+    {
+        var preferredRows = rows
+            .Where(row => PlayerMetricLabelFormatter.IsPreferredCombinedSummaryPath(row.Path))
+            .ToList();
+        if (preferredRows.Count > 0)
+        {
+            return preferredRows;
+        }
+
+        return rows
+            .Where(row => PlayerMetricLabelFormatter.IsFallbackCombinedSummaryPath(row.Path))
+            .ToList();
+    }
+
+    private static List<(string Path, string Label, double Value, string Formula)> BuildChartPoints(
+        IEnumerable<(string Path, string Value)> rows,
+        bool isRawDomain,
+        Func<string, string> translate,
+        bool allowZeroFallback)
+    {
+        var points = new List<(string Path, string Label, double Value, string Formula)>();
+        var labelUsage = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in rows)
+        {
+            var hasNumericValue = PlayerMetricLabelFormatter.TryParseMetricNumber(row.Value, out var value);
+            if (!hasNumericValue && !allowZeroFallback)
+            {
+                continue;
+            }
+
+            var resolvedValue = hasNumericValue ? value : 0d;
+            var baseLabel = PlayerMetricLabelFormatter.FormatMetricPathLabel(row.Path, translate).Trim();
+            if (string.IsNullOrWhiteSpace(baseLabel))
+            {
+                baseLabel = translate("players.details.metric_fallback");
+            }
+
+            if (!labelUsage.TryGetValue(baseLabel, out var usageCount))
+            {
+                labelUsage[baseLabel] = 1;
+                points.Add((row.Path, baseLabel, resolvedValue, BuildFormulaHint(row.Path, isRawDomain, translate)));
+                continue;
+            }
+
+            usageCount += 1;
+            labelUsage[baseLabel] = usageCount;
+            points.Add((row.Path, $"{baseLabel} ({usageCount})", resolvedValue, BuildFormulaHint(row.Path, isRawDomain, translate)));
+        }
+
+        return points;
     }
 
     /// <summary>
@@ -339,6 +386,13 @@ public static class PlayerMetricChartPayloadBuilder
         }
 
         return WithSource("players.details.formula.derived.default");
+    }
+
+    private static string BuildSummaryFallbackDetail(bool isRawDomain, Func<string, string> translate)
+    {
+        return isRawDomain
+            ? translate("players.details.source_raw_summary")
+            : translate("players.details.source_derived_summary");
     }
 
     private static void BuildSeriesFromObjectArray(

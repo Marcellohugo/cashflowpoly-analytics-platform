@@ -205,16 +205,6 @@
                 }
             </div>
 
-            <div class="ruleset-detail-guide-shell mt-4" aria-label="@Context.T("rulesets.detail.guide_title")">
-                <p class="ruleset-detail-guide-title">@Context.T("rulesets.detail.guide_title")</p>
-                <ol class="ruleset-detail-guide">
-                    <li>@Context.T("rulesets.detail.guide_step_identity")</li>
-                    <li>@Context.T("rulesets.detail.guide_step_versions")</li>
-                    <li>@Context.T("rulesets.detail.guide_step_components")</li>
-                    <li>@Context.T("rulesets.detail.guide_step_config")</li>
-                </ol>
-            </div>
-
             <div class="ruleset-overview-grid mt-4">
                 <article class="ruleset-overview-card">
                     <p class="ruleset-overview-label">@Context.T("rulesets.total_versions")</p>
@@ -466,8 +456,10 @@
                         </div>
 
                         <div class="ruleset-form-section">
-                            <h3>@Context.T("rulesets.form.core_setup")</h3>
-                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.core_setup")</p>
+                            <div class="ruleset-section-head">
+                                <p class="ruleset-section-title">@Context.T("rulesets.form.core_setup")</p>
+                                <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.core_setup")</p>
+                            </div>
                             <div class="grid gap-3 md:grid-cols-2 mt-3">
                                 <div>
                                     <label class="form-label">@Context.T("rulesets.form.mode")</label>
@@ -541,8 +533,10 @@
                         </div>
 
                         <div class="ruleset-form-section">
-                            <h3>@Context.T("rulesets.form.weekday_features")</h3>
-                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.weekday_features")</p>
+                            <div class="ruleset-section-head">
+                                <p class="ruleset-section-title">@Context.T("rulesets.form.weekday_features")</p>
+                                <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.weekday_features")</p>
+                            </div>
                             <div class="grid gap-3 md:grid-cols-3 mt-3">
                                 <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "friday", "enabled"), true) ? "checked" : null) /></label>
                                 <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "saturday", "enabled"), true) ? "checked" : null) /></label>
@@ -551,8 +545,10 @@
                         </div>
 
                         <div class="ruleset-form-section">
-                            <h3>@Context.T("rulesets.form.constraints")</h3>
-                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.constraints")</p>
+                            <div class="ruleset-section-head">
+                                <p class="ruleset-section-title">@Context.T("rulesets.form.constraints")</p>
+                                <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.constraints")</p>
+                            </div>
                             <div class="grid gap-3 md:grid-cols-2 mt-3">
                                 <div>
                                     <label class="form-label">@Context.T("rulesets.form.cash_min")</label>
@@ -587,8 +583,10 @@
                         </div>
 
                         <div class="ruleset-form-section">
-                            <h3>@Context.T("rulesets.form.economy_advanced")</h3>
-                            <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.help.economy_advanced")</p>
+                            <div class="ruleset-section-head">
+                                <p class="ruleset-section-title">@Context.T("rulesets.form.economy_advanced")</p>
+                                <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.economy_advanced")</p>
+                            </div>
                             <div class="grid gap-3 md:grid-cols-2 mt-3">
                                 <div>
                                     <label class="form-label">@Context.T("rulesets.form.donation_min")</label>

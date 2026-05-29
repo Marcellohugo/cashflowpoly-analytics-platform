@@ -171,7 +171,7 @@
                             <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
                         }
                         <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
-                        <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" asp-area="" asp-controller="Home" asp-action="Rulebook">@Context.T("nav.privacy")</a>
+                        <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" href="/rulebook">@Context.T("nav.privacy")</a>
                     </div>
 
                     <div class="nav-pill nav-right">
@@ -303,7 +303,7 @@
         <footer class="border-t border-white/70">
             <div class="footer-shell">
                 <span>&copy; @DateTime.Now.Year - @brandName</span>
-                <a class="hover:text-slate-700" href="@($"{Url.Action("Rulebook", "Home")}#rulebook-copyright")">@Context.T("footer.rulebook_copyright")</a>
+                <a class="hover:text-slate-700" href="/rulebook#rulebook-copyright">@Context.T("footer.rulebook_copyright")</a>
             </div>
         </footer>
     }

@@ -4,11 +4,9 @@ internal static partial class UiTextLexicon
 {
     private static partial void AddCore(Dictionary<string, (string Id, string En)> terms)
     {
-        terms["brand.chip"] = ("Lembar Petualang", "Adventurer's Ledger");
         terms["nav.home"] = ("Beranda", "Home");
         terms["nav.sessions"] = ("Sesi Permainan", "Game Sessions");
         terms["nav.players"] = ("Direktori Pemain", "Player Directory");
-        terms["nav.analytics"] = ("Analitika", "Analytics");
         terms["nav.ruleset"] = ("Set Aturan", "Rulesets");
         terms["nav.privacy"] = ("Buku Aturan", "Rulebook");
         terms["auth.login"] = ("Masuk", "Sign In");
@@ -43,6 +41,7 @@ internal static partial class UiTextLexicon
         terms["auth.login_note.centralized_ruleset"] = ("Manajemen Set Aturan terpusat", "Centralized ruleset management");
         terms["auth.error.login_required"] = ("Nama Pengguna dan Kata Sandi wajib diisi.", "Username and password are required.");
         terms["auth.error.login_failed"] = ("Login gagal.", "Login failed.");
+        terms["auth.error.api_unavailable"] = ("API belum aktif. Jalankan service API lalu coba lagi.", "The API service is not running. Start the API service and try again.");
         terms["auth.error.login_response_invalid"] = ("Respons login tidak valid.", "Invalid login response.");
         terms["auth.error.register_required"] = ("Nama tampilan, Nama Pengguna, Kata Sandi, dan konfirmasi Kata Sandi wajib diisi.", "Display name, username, password, and confirmation are required.");
         terms["auth.error.role_invalid"] = ("Peran tidak valid.", "Invalid role.");
@@ -54,7 +53,6 @@ internal static partial class UiTextLexicon
         terms["lang.code.en"] = ("EN", "EN");
         terms["lang.option.id"] = ("Bahasa Indonesia (ID)", "Indonesian (ID)");
         terms["lang.option.en"] = ("Bahasa Inggris (EN)", "English (EN)");
-        terms["profile.settings"] = ("Pengaturan Web", "Web Settings");
         terms["profile.role"] = ("Peran", "Role");
         terms["layout.skip_to_content"] = ("Lewati ke konten", "Skip to content");
         terms["layout.toggle_nav"] = ("Buka/tutup menu navigasi", "Toggle navigation menu");
@@ -67,7 +65,7 @@ internal static partial class UiTextLexicon
         terms["layout.quickstart.show"] = ("Tampilkan panduan", "Show guide");
         terms["layout.quickstart.current"] = ("Anda sedang di langkah ini", "You are currently on this step");
         terms["layout.quickstart.open_menu"] = ("Buka menu", "Open menu");
-        terms["layout.quickstart.instructor.title"] = ("Alur cepat instruktur", "Instructor quick flow");
+        terms["layout.quickstart.instructor.title"] = ("Panduan instruktur", "Instructor guide");
         terms["layout.quickstart.instructor.subtitle"] = ("Ikuti 4 langkah ini agar setup, eksekusi sesi, dan evaluasi berjalan rapi.", "Follow these 4 steps to keep setup, session execution, and evaluation organized.");
         terms["layout.quickstart.instructor.step1.title"] = ("Siapkan Set Aturan", "Prepare Rulesets");
         terms["layout.quickstart.instructor.step1.desc"] = ("Buat atau pilih versi aturan yang paling sesuai untuk sesi belajar.", "Create or pick the most suitable ruleset version for the learning session.");
@@ -77,7 +75,7 @@ internal static partial class UiTextLexicon
         terms["layout.quickstart.instructor.step3.desc"] = ("Buka Direktori Pemain untuk melihat detail performa dan progres individu.", "Open Player Directory to inspect detailed performance and individual progress.");
         terms["layout.quickstart.instructor.step4.title"] = ("Finalisasi aturan", "Finalize rules");
         terms["layout.quickstart.instructor.step4.desc"] = ("Gunakan Buku Aturan sebagai acuan sebelum menjalankan sesi berikutnya.", "Use the Rulebook as reference before running the next session.");
-        terms["layout.quickstart.player.title"] = ("Alur cepat pemain", "Player quick flow");
+        terms["layout.quickstart.player.title"] = ("Panduan pemain", "Player guide");
         terms["layout.quickstart.player.subtitle"] = ("Pahami langkah inti berikut agar mudah membaca progres permainan Anda.", "Understand these core steps to read your gameplay progress easily.");
         terms["layout.quickstart.player.step1.title"] = ("Pilih sesi", "Pick a session");
         terms["layout.quickstart.player.step1.desc"] = ("Masuk ke Sesi Permainan dan pilih sesi yang sedang berlangsung.", "Go to Game Sessions and choose the ongoing session.");
@@ -95,26 +93,13 @@ internal static partial class UiTextLexicon
         terms["home.player_title"] = ("Pantau progres permainan Anda secara Waktu Nyata.", "Track your game progress in real time.");
         terms["home.player_subtitle"] = ("Lihat status sesi, Set Aturan yang dapat Anda akses, dan ringkasan performa pribadi tanpa perlu membuka menu instruktur.", "View session status, accessible rulesets, and your personal performance summary without opening the instructor menu.");
         terms["home.cta.sessions"] = ("Buka Sesi", "Open Sessions");
-        terms["home.cta.analytics"] = ("Buka Analitika", "Open Analytics");
         terms["home.cta.my_progress"] = ("Lihat progres saya", "View my progress");
         terms["home.cta.open_ruleset"] = ("Buka Set Aturan", "Open rulesets");
-        terms["home.feature.1"] = ("Validasi Buku Aturan dan skor otomatis.", "Automatic rulebook validation and scoring.");
-        terms["home.feature.2"] = ("Aktivasi Set Aturan per sesi dengan cepat.", "Quick per-session ruleset activation.");
-        terms["home.feature.3"] = ("Cuplikan arus kas dan pelanggaran.", "Cashflow and violation snapshots.");
-        terms["home.feature.4"] = ("Ringkasan pemain siap untuk evaluasi.", "Player summaries ready for evaluation.");
-        terms["home.player.feature.1"] = ("Pilih sesi dari menu Sesi Permainan untuk membuka rincian progres tanpa mengetik ID sesi manual.", "Pick a session from Game Sessions to open progress details without typing a session ID manually.");
-        terms["home.player.feature.2"] = ("Lihat metrik Arus Kas dan poin Anda dalam satu Dasbor.", "See your cashflow and points in one dashboard.");
-        terms["home.player.feature.3"] = ("Cek Set Aturan aktif untuk memahami target skor dan penalti.", "Check active rulesets to understand score targets and penalties.");
-        terms["home.player.feature.4"] = ("Pantau pembaruan data otomatis setiap 30 detik.", "Monitor automatic data updates every 30 seconds.");
         terms["home.total_sessions"] = ("Total Sesi", "Total Sessions");
         terms["home.my_sessions"] = ("Sesi saya", "My sessions");
         terms["home.peers_in_session"] = ("Teman satu sesi", "Session peers");
         terms["home.available_rulesets"] = ("Set Aturan tersedia", "Available rulesets");
         terms["home.active_sessions"] = ("Sesi Aktif", "Active Sessions");
-        terms["home.realtime"] = ("Waktu Nyata", "Real-time");
-        terms["home.live"] = ("LANGSUNG", "LIVE");
-        terms["home.server_time"] = ("Waktu server lokal", "Local server time");
-        terms["home.sync_label"] = ("Sinkron data", "Data sync");
         terms["home.auto_refresh_note"] = ("Data diperbarui otomatis setiap 30 detik.", "Data refreshes automatically every 30 seconds.");
         terms["home.empty_workspace.title"] = ("Workspace masih kosong", "Workspace is still empty");
         terms["home.empty_workspace.instructor"] = ("Mulai dari menu Set Aturan, lalu buat atau aktifkan sesi agar data analitika mulai terisi.", "Start from Rulesets, then create or activate sessions so analytics data starts populating.");
@@ -124,7 +109,6 @@ internal static partial class UiTextLexicon
         terms["home.error.partial_realtime_failed"] = ("Sebagian data waktu nyata gagal dimuat ({details}).", "Some realtime data failed to load ({details}).");
         terms["home.ruleset_active"] = ("Set Aturan Aktif", "Active Ruleset");
         terms["home.players_monitored"] = ("Pemain Dipantau", "Players Monitored");
-        terms["home.snapshot_demo"] = ("Cuplikan singkat untuk demo tampilan.", "Quick snapshot for UI demo.");
         terms["home.guide.menu"] = ("Panduan Menu", "Menu Guide");
         terms["home.guide.title"] = ("Kumpulan cara penggunaan", "Usage playbook");
         terms["home.guide.subtitle"] = ("Gunakan panduan cepat ini supaya alur kerja dari Persiapan sampai Rincian Sesi dan Analitika Sesi lebih rapi.", "Use this quick guide to keep the workflow from setup to Session Details and Session Analytics organized.");
@@ -134,13 +118,11 @@ internal static partial class UiTextLexicon
         terms["home.guide.ruleset.title"] = ("Set Aturan", "Rulesets");
         terms["home.guide.ruleset.desc"] = ("Buat Set Aturan baru, cek versi, aktifkan versi yang tepat sebelum sesi dimulai.", "Create a new ruleset, review versions, and activate the right one before a session starts.");
         terms["home.guide.ruleset.link"] = ("Buka menu Set Aturan", "Open Rulesets");
-        terms["home.guide.analytics.title"] = ("Analitika", "Analytics");
-        terms["home.guide.analytics.desc"] = ("Buka Rincian Sesi dari daftar sesi untuk melihat ringkasan arus kas, metrik misi, dan performa pemain.", "Open Session Details from the session list to view cashflow summaries, mission metrics, and player performance.");
-        terms["home.guide.analytics.link"] = ("Buka Rincian Sesi", "Open Session Details");
         terms["home.guide.players.title"] = ("Pemain", "Players");
         terms["home.guide.players.desc"] = ("Lihat direktori pemain untuk validasi identitas sebelum meninjau Rincian metrik.", "Review the player directory to validate identities before inspecting metric details.");
         terms["home.guide.players.link"] = ("Buka menu Pemain", "Open Players");
-        terms["home.quick_flow.title"] = ("Alur Penggunaan Cepat", "Quick Workflow");
+        terms["home.quick_flow.title"] = ("Panduan penggunaan", "Usage guide");
+        terms["home.quick_flow.subtitle"] = ("Ikuti urutan kerja ini agar setup, aktivasi aturan, dan analitika tetap konsisten.", "Follow this workflow so setup, ruleset activation, and analytics stay consistent.");
         terms["home.quick_flow.step1"] = ("Persiapan Set Aturan yang dibutuhkan di menu Set Aturan.", "Set up required rulesets in the Rulesets menu.");
         terms["home.quick_flow.step2"] = ("Masuk menu Sesi, pilih sesi, lalu aktifkan Set Aturan.", "Go to Sessions, choose a session, then activate a ruleset.");
         terms["home.quick_flow.step3"] = ("Kirim aktivitas permainan dari aplikasi permainan ke sistem.", "Send gameplay events from the game app into the system.");
@@ -159,6 +141,7 @@ internal static partial class UiTextLexicon
         terms["home.player_guide.rulebook.desc"] = ("Buka Buku Aturan kapan saja saat butuh klarifikasi aturan permainan.", "Open the rulebook anytime when you need rule clarifications.");
         terms["home.player_guide.rulebook.link"] = ("Buka Buku Aturan", "Open Rulebook");
         terms["home.player_flow.title"] = ("Alur Pemain yang Disarankan", "Recommended Player Flow");
+        terms["home.player_flow.subtitle"] = ("Gunakan alur ini untuk membaca progres pribadi dari sesi sampai set aturan aktif.", "Use this flow to read personal progress from session details through the active ruleset.");
         terms["home.player_flow.step1"] = ("Masuk ke Sesi Permainan lalu pilih sesi yang sedang Anda ikuti.", "Open Game Sessions then choose the session you are in.");
         terms["home.player_flow.step2"] = ("Pantau Bersih Arus Kas dan poin kebutuhan untuk evaluasi keputusan harian.", "Monitor net cashflow and need points to evaluate daily decisions.");
         terms["home.player_flow.step3"] = ("Periksa penalti misi dan status pinjaman untuk menghindari skor turun.", "Check mission penalties and loan status to avoid score drops.");

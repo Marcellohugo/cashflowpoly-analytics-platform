@@ -136,38 +136,38 @@ public static class PlayerMetricJsonMapper
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
-            {
-                var hasProperty = false;
-                foreach (var property in element.EnumerateObject())
                 {
-                    hasProperty = true;
-                    var nextPath = string.IsNullOrWhiteSpace(path) ? property.Name : $"{path}.{property.Name}";
-                    Visit(property.Value, nextPath, output, trueText, falseText, nullText);
-                }
+                    var hasProperty = false;
+                    foreach (var property in element.EnumerateObject())
+                    {
+                        hasProperty = true;
+                        var nextPath = string.IsNullOrWhiteSpace(path) ? property.Name : $"{path}.{property.Name}";
+                        Visit(property.Value, nextPath, output, trueText, falseText, nullText);
+                    }
 
-                if (!hasProperty && !string.IsNullOrWhiteSpace(path))
-                {
-                    output.Add((path, "{}"));
-                }
+                    if (!hasProperty && !string.IsNullOrWhiteSpace(path))
+                    {
+                        output.Add((path, "{}"));
+                    }
 
-                break;
-            }
+                    break;
+                }
             case JsonValueKind.Array:
-            {
-                var index = 0;
-                foreach (var item in element.EnumerateArray())
                 {
-                    Visit(item, $"{path}[{index}]", output, trueText, falseText, nullText);
-                    index += 1;
-                }
+                    var index = 0;
+                    foreach (var item in element.EnumerateArray())
+                    {
+                        Visit(item, $"{path}[{index}]", output, trueText, falseText, nullText);
+                        index += 1;
+                    }
 
-                if (index == 0 && !string.IsNullOrWhiteSpace(path))
-                {
-                    output.Add((path, "[]"));
-                }
+                    if (index == 0 && !string.IsNullOrWhiteSpace(path))
+                    {
+                        output.Add((path, "[]"));
+                    }
 
-                break;
-            }
+                    break;
+                }
             case JsonValueKind.String:
             case JsonValueKind.True:
             case JsonValueKind.False:

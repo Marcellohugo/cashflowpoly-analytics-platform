@@ -2805,13 +2805,25 @@ body > footer .footer-shell {
 .session-stats-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    grid-template-columns: 1fr !important;
     width: 100%;
     min-width: 0;
 }
 
+@media (min-width: 640px) {
+    .session-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .session-stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+}
+
 .session-total-card {
-    grid-column: auto;
+    grid-column: auto !important;
 }
 
 .ruleset-unified {

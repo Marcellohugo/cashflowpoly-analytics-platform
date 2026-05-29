@@ -27,7 +27,10 @@
 
     <div class="mt-6 ruleset-activation-layout">
         <aside class="metric-panel ruleset-activation-guide">
-            <h3>@Context.T("sessions.ruleset_guide")</h3>
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("sessions.ruleset_guide")</p>
+                <p class="ruleset-section-subtitle">@Context.T("sessions.ruleset_note")</p>
+            </div>
             <div class="metric-list">
                 <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("sessions.ruleset_step1")</span></div>
                 <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("sessions.ruleset_step2")</span></div>
@@ -43,6 +46,10 @@
 
         <form class="form-panel form-grid ruleset-activation-form" method="post">
             @Html.AntiForgeryToken()
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("sessions.ruleset_form_title")</p>
+                <p class="ruleset-section-subtitle">@Context.T("sessions.ruleset_form_subtitle")</p>
+            </div>
             <div class="form-field">
                 <label class="form-label" for="session-ruleset-id">@Context.T("common.ruleset")</label>
                 <select class="form-input"

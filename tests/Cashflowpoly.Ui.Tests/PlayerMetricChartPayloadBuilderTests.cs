@@ -64,6 +64,41 @@ public sealed class PlayerMetricChartPayloadBuilderTests
         Assert.Equal("Coins: Trend", charts[0].Title);
     }
 
+    [Fact]
+    public void BuildMergedRowChart_FallsBackToZeroBarsWhenRowsAreNonNumeric()
+    {
+        var chart = PlayerMetricChartPayloadBuilder.BuildMergedRowChart(
+            "Financial",
+            [("coins_net_end_game", "n/a")],
+            isRawDomain: true,
+            Translate);
+
+        Assert.NotNull(chart);
+
+        using var doc = JsonDocument.Parse(chart.Value.Json);
+        var root = doc.RootElement;
+        Assert.Equal("bar", root.GetProperty("chartType").GetString());
+        Assert.Equal("Ending Coins", root.GetProperty("labels")[0].GetString());
+        Assert.Equal(0, root.GetProperty("series")[0].GetProperty("values")[0].GetDouble());
+    }
+
+    [Fact]
+    public void BuildMergedRowChart_ReturnsGenericZeroChartWhenRowsAreMissing()
+    {
+        var chart = PlayerMetricChartPayloadBuilder.BuildMergedRowChart(
+            "Financial",
+            [],
+            isRawDomain: false,
+            Translate);
+
+        Assert.NotNull(chart);
+
+        using var doc = JsonDocument.Parse(chart.Value.Json);
+        var root = doc.RootElement;
+        Assert.Equal("Metric", root.GetProperty("labels")[0].GetString());
+        Assert.Equal(0, root.GetProperty("series")[0].GetProperty("values")[0].GetDouble());
+    }
+
     private static string Translate(string key)
     {
         return key switch

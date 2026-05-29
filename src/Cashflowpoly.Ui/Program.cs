@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+var useHttpsRedirection = Cashflowpoly.Ui.Infrastructure.HttpsRedirectionPolicy.ShouldUseHttpsRedirection(builder.Configuration);
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -16,9 +17,7 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = Cashflowpoly.Ui.Infrastructure.HttpsRedirectionPolicy.ResolveCookieSecurePolicy(builder.Configuration);
     options.IdleTimeout = TimeSpan.FromHours(8);
 });
 builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
@@ -46,7 +45,10 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-app.UseHttpsRedirection();
+if (useHttpsRedirection)
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseStaticFiles();
 app.UseRouting();
@@ -119,6 +121,10 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready")
 });
+app.MapControllerRoute(
+    name: "rulebook",
+    pattern: "rulebook",
+    defaults: new { controller = "Home", action = "Rulebook" });
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

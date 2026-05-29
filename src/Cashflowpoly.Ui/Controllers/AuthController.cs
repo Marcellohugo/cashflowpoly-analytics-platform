@@ -48,7 +48,23 @@ public sealed class AuthController : Controller
 
         var client = _clientFactory.CreateClient("Api");
         var payload = new LoginRequest(model.Username.Trim(), model.Password);
-        var response = await client.PostAsJsonAsync("api/v1/auth/login", payload);
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsJsonAsync("api/v1/auth/login", payload);
+        }
+        catch (HttpRequestException)
+        {
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
+            model.Password = string.Empty;
+            return View("Login", model);
+        }
+        catch (TaskCanceledException)
+        {
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
+            model.Password = string.Empty;
+            return View("Login", model);
+        }
 
         if (!response.IsSuccessStatusCode)
         {
@@ -133,7 +149,25 @@ public sealed class AuthController : Controller
             model.Password,
             model.Role.ToUpperInvariant(),
             model.DisplayName.Trim());
-        var response = await client.PostAsJsonAsync("api/v1/auth/register", payload);
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsJsonAsync("api/v1/auth/register", payload);
+        }
+        catch (HttpRequestException)
+        {
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
+            model.Password = string.Empty;
+            model.ConfirmPassword = string.Empty;
+            return View(model);
+        }
+        catch (TaskCanceledException)
+        {
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
+            model.Password = string.Empty;
+            model.ConfirmPassword = string.Empty;
+            return View(model);
+        }
 
         if (!response.IsSuccessStatusCode)
         {

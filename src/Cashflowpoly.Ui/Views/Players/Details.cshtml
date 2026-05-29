@@ -363,13 +363,6 @@
     var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
     var playerTurnOrder = Model.Summary?.JoinOrder ?? 1;
     var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
-    var detailGuideSteps = new[]
-    {
-        Context.T("players.detail.guide_step1"),
-        Context.T("players.detail.guide_step2"),
-        Context.T("players.detail.guide_step3"),
-        Context.T("players.detail.guide_step4")
-    };
 }
 
 <section class="section-shell player-detail-overhaul">
@@ -404,16 +397,6 @@
            asp-route-sessionId="@Model.SessionId">@Context.T("players.detail.nav_back_session")</a>
     </div>
 
-    <div class="player-detail-guide-shell mt-4" aria-label="@Context.T("players.detail.guide_title")">
-        <p class="player-detail-guide-title">@Context.T("players.detail.guide_title")</p>
-        <ol class="player-detail-guide">
-            @foreach (var step in detailGuideSteps)
-            {
-                <li>@step</li>
-            }
-        </ol>
-    </div>
-
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="mt-4 alert alert-error" aria-live="polite">
@@ -429,12 +412,10 @@
     }
 
     <div id="cashflow-journey" class="players-fusion-metrics player-detail-section">
-        <div class="players-fusion-head">
-            <div class="page-intro-main">
-                <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
-                <h2 class="headline text-xl">@Context.T("players.cashflow_journey.title")</h2>
-                <p class="subhead text-sm">@Context.T("players.cashflow_journey.subtitle")</p>
-            </div>
+        <div class="players-fusion-head ruleset-section-head">
+            <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
+            <h2 class="ruleset-section-title">@Context.T("players.cashflow_journey.title")</h2>
+            <p class="ruleset-section-subtitle">@Context.T("players.cashflow_journey.subtitle")</p>
         </div>
 
         @if (!hasCashflowJourney)
@@ -533,12 +514,10 @@
     else
     {
         <div id="physical-variables" class="players-fusion-metrics player-detail-section">
-            <div class="players-fusion-head">
-                <div class="page-intro-main">
-                    <p class="eyebrow">@Context.T("gameplay.raw")</p>
-                    <h2 class="headline text-xl">@Context.T("players.details.raw_title")</h2>
-                    <p class="subhead text-sm">@Context.T("players.details.raw_subtitle")</p>
-                </div>
+            <div class="players-fusion-head ruleset-section-head">
+                <p class="eyebrow">@Context.T("gameplay.raw")</p>
+                <h2 class="ruleset-section-title">@Context.T("players.details.raw_title")</h2>
+                <p class="ruleset-section-subtitle">@Context.T("players.details.raw_subtitle")</p>
             </div>
 
             <div class="metric-domain-layout mt-6">
@@ -606,12 +585,10 @@
         </div>
 
         <div id="derived-metrics" class="players-fusion-metrics player-detail-section">
-            <div class="players-fusion-head">
-                <div class="page-intro-main">
-                    <p class="eyebrow">@Context.T("gameplay.derived")</p>
-                    <h2 class="headline text-xl">@Context.T("players.details.derived_title")</h2>
-                    <p class="subhead text-sm">@Context.T("players.details.derived_subtitle")</p>
-                </div>
+            <div class="players-fusion-head ruleset-section-head">
+                <p class="eyebrow">@Context.T("gameplay.derived")</p>
+                <h2 class="ruleset-section-title">@Context.T("players.details.derived_title")</h2>
+                <p class="ruleset-section-subtitle">@Context.T("players.details.derived_subtitle")</p>
             </div>
 
             <div class="metric-domain-layout mt-6">

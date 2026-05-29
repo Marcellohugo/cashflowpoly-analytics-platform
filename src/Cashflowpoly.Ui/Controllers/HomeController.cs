@@ -57,13 +57,19 @@ public class HomeController : Controller
 
     public IActionResult Rulebook()
     {
+        var requestPath = HttpContext.Request.Path.Value?.TrimEnd('/');
+        if (string.Equals(requestPath, "/Home/Rulebook", StringComparison.OrdinalIgnoreCase))
+        {
+            return Redirect("/rulebook");
+        }
+
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
         return View("Privacy", model: RulebookContent.Build(language));
     }
 
     public IActionResult Privacy()
     {
-        return RedirectToAction(nameof(Rulebook));
+        return Redirect("/rulebook");
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -7,24 +7,6 @@
     var totalSessions = Model.Items.Count;
     var startedCount = Model.Items.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase));
     var endedCount = Model.Items.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase));
-    var guideTitle = isInstructor
-        ? Context.T("sessions.index.guide_title.instructor")
-        : Context.T("sessions.index.guide_title.player");
-    var guideSteps = isInstructor
-        ? new[]
-        {
-            Context.T("sessions.index.guide.instructor.step1"),
-            Context.T("sessions.index.guide.instructor.step2"),
-            Context.T("sessions.index.guide.instructor.step3"),
-            Context.T("sessions.index.guide.instructor.step4")
-        }
-        : new[]
-        {
-            Context.T("sessions.index.guide.player.step1"),
-            Context.T("sessions.index.guide.player.step2"),
-            Context.T("sessions.index.guide.player.step3"),
-            Context.T("sessions.index.guide.player.step4")
-        };
     var listTitle = isInstructor
         ? Context.T("sessions.index.list_title.instructor")
         : Context.T("sessions.index.list_title.player");
@@ -45,16 +27,6 @@
         <div class="page-intro-actions">
             <div class="badge @(isInstructor ? "badge-amber" : "badge-emerald")">@(isInstructor ? Context.T("sessions.live_log") : Context.T("sessions.readonly"))</div>
         </div>
-    </div>
-
-    <div class="mt-4 sessions-index-guide-shell" aria-label="@guideTitle">
-        <p class="sessions-index-guide-title">@guideTitle</p>
-        <ol class="sessions-index-guide">
-            @foreach (var step in guideSteps)
-            {
-                <li>@step</li>
-            }
-        </ol>
     </div>
 
     <div class="mt-6 ruleset-unified sessions-index-shell">
@@ -91,7 +63,7 @@
                 <p class="ruleset-section-title">@(isInstructor ? Context.T("sessions.tips.instructor.title") : Context.T("sessions.tips.player.title"))</p>
                 <p class="ruleset-section-subtitle">@Context.T("sessions.index.status_help")</p>
             </div>
-            <details class="mt-3 data-toggle">
+            <details class="mt-3 data-toggle" open>
                 <summary>@(isInstructor ? Context.T("sessions.tips.instructor.title") : Context.T("sessions.tips.player.title"))</summary>
                 <div class="mt-3 metric-panel">
                     <div class="metric-list">
