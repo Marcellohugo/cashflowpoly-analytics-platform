@@ -1,7 +1,7 @@
-// Fungsi file: Menyediakan endpoint CRUD sesi permainan (buat, mulai, akhiri, aktifkan ruleset) dengan otorisasi role instruktur.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Api.Infrastructure;
+using Cashflowpoly.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,9 +19,6 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-/// <summary>
-/// Controller sesi permainan yang mengelola pembuatan, start, end, dan aktivasi ruleset per sesi.
-/// </summary>
 public sealed class SessionsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
@@ -29,9 +26,6 @@ public sealed class SessionsController : ControllerBase
     private readonly PlayerRepository _players;
     private readonly UserRepository _users;
 
-    /// <summary>
-    /// Menginisialisasi controller dengan dependensi repositori ruleset, sesi, pemain, dan user.
-    /// </summary>
     public SessionsController(
         RulesetRepository rulesets,
         SessionRepository sessions,
@@ -44,9 +38,6 @@ public sealed class SessionsController : ControllerBase
         _users = users;
     }
 
-    /// <summary>
-    /// Mengembalikan daftar sesi yang ada.
-    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(SessionListResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListSessions(CancellationToken ct)
@@ -95,12 +86,6 @@ public sealed class SessionsController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(CreateSessionResponse), StatusCodes.Status201Created)]
-    /// <summary>
-    /// Membuat sesi permainan baru dengan nama, mode, dan ruleset yang ditentukan instruktur.
-    /// </summary>
-    /// <param name="request">Data pembuatan sesi berisi nama, mode, dan ruleset ID.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>201 Created dengan ID sesi baru.</returns>
     public async Task<IActionResult> CreateSession([FromBody] CreateSessionRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -147,12 +132,6 @@ public sealed class SessionsController : ControllerBase
     [HttpPost("{sessionId:guid}/start")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(SessionStatusResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Memulai sesi permainan yang berstatus CREATED, memvalidasi jumlah pemain tidak melebihi batas.
-    /// </summary>
-    /// <param name="sessionId">ID sesi yang akan dimulai.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan status baru STARTED.</returns>
     public async Task<IActionResult> StartSession(Guid sessionId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -189,12 +168,6 @@ public sealed class SessionsController : ControllerBase
     [HttpPost("{sessionId:guid}/end")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(SessionStatusResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Mengakhiri sesi permainan yang berstatus STARTED.
-    /// </summary>
-    /// <param name="sessionId">ID sesi yang akan diakhiri.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan status baru ENDED.</returns>
     public async Task<IActionResult> EndSession(Guid sessionId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -222,13 +195,6 @@ public sealed class SessionsController : ControllerBase
     [HttpPost("{sessionId:guid}/ruleset/activate")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(ActivateRulesetResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Mengaktifkan versi ruleset tertentu pada sesi, memvalidasi kepemilikan dan status versi.
-    /// </summary>
-    /// <param name="sessionId">ID sesi target.</param>
-    /// <param name="request">Data berisi ruleset ID dan nomor versi.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan ID sesi dan ruleset version yang diaktifkan.</returns>
     public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -277,18 +243,12 @@ public sealed class SessionsController : ControllerBase
         return Ok(new ActivateRulesetResponse(sessionId, rulesetVersion.RulesetVersionId));
     }
 
-    /// <summary>
-    /// Mengambil nama aktor dari claim JWT (Name atau NameIdentifier).
-    /// </summary>
     private string? GetActorName()
     {
         return User.FindFirstValue(ClaimTypes.Name) ??
                User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
-    /// <summary>
-    /// Mencoba mengekstrak user ID dari claim JWT NameIdentifier.
-    /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);

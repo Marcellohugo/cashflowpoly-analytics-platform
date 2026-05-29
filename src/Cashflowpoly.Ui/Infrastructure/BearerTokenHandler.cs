@@ -1,4 +1,3 @@
-// Fungsi file: Menangani penyisipan otomatis token Bearer dari sesi pengguna ke setiap HTTP request menuju API backend.
 using System.Net.Http.Headers;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;

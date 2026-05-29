@@ -1,4 +1,3 @@
-// Fungsi file: Penyedia signing key JWT dengan dukungan rotasi key — resolve dari config, file, env, dan JSON.
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;

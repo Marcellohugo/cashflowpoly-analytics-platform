@@ -29,24 +29,19 @@
         </div>
     </div>
 
-    <div class="mt-4 ruleset-index-guide-shell" aria-label="@Context.T("rulesets.index.guide_title")">
-        <p class="ruleset-index-guide-title">@Context.T("rulesets.index.guide_title")</p>
-        <ol class="ruleset-index-guide">
-            <li>@Context.T("rulesets.index.guide_step1")</li>
-            <li>@Context.T("rulesets.index.guide_step2")</li>
-            <li>@Context.T("rulesets.index.guide_step3")</li>
-            <li>@Context.T("rulesets.index.guide_step4")</li>
-        </ol>
-    </div>
-
     <div class="mt-6 ruleset-unified ruleset-index-shell">
-        <div class="ruleset-unified-head">
-            <div>
-                <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.total_rulesets")</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">@Model.Items.Count</p>
+        <section class="ruleset-index-section">
+            <div class="ruleset-section-head ruleset-section-head-row">
+                <div>
+                    <p class="ruleset-section-title">@Context.T("rulesets.index.summary_title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.unified_subtitle")</p>
+                </div>
+                <div class="ruleset-index-count-block">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.total_rulesets")</p>
+                    <p class="ruleset-index-count">@Model.Items.Count</p>
+                </div>
             </div>
-            <p class="text-sm text-slate-600">@Context.T("rulesets.unified_subtitle")</p>
-        </div>
+        </section>
 
         @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
@@ -68,30 +63,37 @@
             </div>
         }
 
-        <details class="mt-4 data-toggle">
-            <summary>@Context.T("rulesets.tips.title")</summary>
-            <div class="mt-3 metric-panel">
-                <div class="metric-list">
-                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("rulesets.tip.create")</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("rulesets.tip.versioning")</span></div>
-                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 3</span><span class="metric-value">@Context.T("rulesets.tip.safety")</span></div>
+        <section class="ruleset-index-section mt-4">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("rulesets.tips.title")</p>
+                <p class="ruleset-section-subtitle">@Context.T("rulesets.index.tips_subtitle")</p>
+            </div>
+
+            <details class="mt-3 data-toggle" open>
+                <summary>@Context.T("rulesets.tips.title")</summary>
+                <div class="mt-3 metric-panel">
+                    <div class="metric-list">
+                        <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("rulesets.tip.create")</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("rulesets.tip.versioning")</span></div>
+                        <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 3</span><span class="metric-value">@Context.T("rulesets.tip.safety")</span></div>
+                    </div>
+                </div>
+            </details>
+
+            <div class="mt-4 ux-legend" aria-label="@Context.T("rulesets.legend.title")">
+                <p class="ux-legend-title">@Context.T("rulesets.legend.title")</p>
+                <div class="ux-legend-items">
+                    <span class="ux-legend-item">
+                        <span class="status-pill status-active">@Context.T("rulesets.usage_status.active")</span>
+                        <span class="ux-legend-note">@Context.T("rulesets.legend.active_hint")</span>
+                    </span>
+                    <span class="ux-legend-item">
+                        <span class="status-pill status-draft">@Context.T("rulesets.usage_status.draft")</span>
+                        <span class="ux-legend-note">@Context.T("rulesets.legend.draft_hint")</span>
+                    </span>
                 </div>
             </div>
-        </details>
-
-        <div class="mt-4 ux-legend" aria-label="@Context.T("rulesets.legend.title")">
-            <p class="ux-legend-title">@Context.T("rulesets.legend.title")</p>
-            <div class="ux-legend-items">
-                <span class="ux-legend-item">
-                    <span class="status-pill status-active">@Context.T("rulesets.usage_status.active")</span>
-                    <span class="ux-legend-note">@Context.T("rulesets.legend.active_hint")</span>
-                </span>
-                <span class="ux-legend-item">
-                    <span class="status-pill status-draft">@Context.T("rulesets.usage_status.draft")</span>
-                    <span class="ux-legend-note">@Context.T("rulesets.legend.draft_hint")</span>
-                </span>
-            </div>
-        </div>
+        </section>
 
         <section class="ruleset-index-section mt-4">
             <div class="ruleset-section-head">
@@ -285,14 +287,13 @@
         <div class="ruleset-stream-divider mt-5"></div>
 
         <section class="ruleset-index-section mt-5">
-            <div class="ruleset-unified-head">
+            <div class="ruleset-section-head ruleset-section-head-row">
                 <div>
                     <p class="ruleset-section-title">@Context.T("rulesets.default_components.title")</p>
-                    <p class="ruleset-section-subtitle">@Context.T("rulesets.default_components.subtitle")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.default_components.subtitle") @Context.T("rulesets.index.default_help")</p>
                 </div>
                 <p class="ruleset-index-count">@Model.DefaultComponentItems.Count</p>
             </div>
-            <p class="mt-2 text-xs text-slate-500">@Context.T("rulesets.index.default_help")</p>
 
             @if (!string.IsNullOrWhiteSpace(Model.DefaultComponentsErrorMessage))
             {

@@ -1,4 +1,3 @@
-// Fungsi file: Mendefinisikan koleksi xUnit untuk pengujian integrasi API dengan shared fixture PostgreSQL.
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests.Infrastructure;

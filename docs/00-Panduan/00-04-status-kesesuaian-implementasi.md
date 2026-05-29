@@ -30,10 +30,10 @@ Acuan utama:
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik tersedia untuk seluruh role. |
 | Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman detail sesi (`/sessions/{sessionId}`). |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
-| Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Smoke script dan Postman collection sudah menggunakan login + token Bearer. |
+| Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Langkah smoke berbasis CLI dan Postman collection sudah menggunakan login + token Bearer. |
 | Observability operasional | Sesuai | Endpoint observability (`GET /api/v1/observability/metrics`) tersedia dengan metrik jumlah request, error rate, avg/p95 latency per endpoint; trace ID diseragamkan pada header/log. |
 | Hardening keamanan produksi (baseline) | Sesuai | Rotasi JWT multi-key berbasis `kid` + window aktivasi/retire, dukungan secret env/file untuk integrasi vault/secret manager, dan audit log keamanan persisten tersedia. |
-| Baseline uji performa | Sesuai | Script load test repeatable tersedia di `scripts/perf/run-load-test.ps1` dan menghasilkan laporan evidence markdown. |
+| Baseline uji performa | Sesuai | Baseline performa dapat diulang memakai skenario request berulang ke endpoint ingest event dan analytics sesi, lalu dicatat pada laporan pengujian. |
 
 ---
 

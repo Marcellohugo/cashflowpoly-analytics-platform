@@ -1,11 +1,12 @@
-// Fungsi file: Menyediakan endpoint CRUD ruleset dan versinya (buat, update, aktifkan, hapus, daftar, detail, komponen) dengan otorisasi role.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Api.Infrastructure;
+using Cashflowpoly.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -20,26 +21,17 @@ namespace Cashflowpoly.Api.Controllers;
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status422UnprocessableEntity)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-/// <summary>
-/// Controller ruleset yang mengelola pembuatan, pembaruan, aktivasi, dan penghapusan ruleset beserta versinya.
-/// </summary>
 public sealed class RulesetsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
     private readonly UserRepository _users;
 
-    /// <summary>
-    /// Menginisialisasi controller dengan dependensi repositori ruleset dan user.
-    /// </summary>
     public RulesetsController(RulesetRepository rulesets, UserRepository users)
     {
         _rulesets = rulesets;
         _users = users;
     }
 
-    /// <summary>
-    /// Membuat ruleset baru beserta versi awal.
-    /// </summary>
 
     [HttpPost]
     [Authorize(Roles = "INSTRUCTOR")]
@@ -76,13 +68,6 @@ public sealed class RulesetsController : ControllerBase
     [HttpPut("{rulesetId:guid}")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Memperbarui ruleset dengan membuat versi baru berisi konfigurasi JSON yang telah divalidasi.
-    /// </summary>
-    /// <param name="rulesetId">ID ruleset yang diperbarui.</param>
-    /// <param name="request">Data pembaruan berisi nama, deskripsi, dan konfigurasi baru.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan ID ruleset dan nomor versi baru.</returns>
     public async Task<IActionResult> UpdateRuleset(Guid rulesetId, [FromBody] UpdateRulesetRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -107,13 +92,26 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var configJson = request.Config.Value.GetRawText();
-        var nextVersion = await _rulesets.CreateRulesetVersionAsync(
-            rulesetId,
-            request.Name,
-            request.Description,
-            configJson,
-            GetActorName(),
-            ct);
+        int nextVersion;
+        try
+        {
+            nextVersion = await _rulesets.CreateRulesetVersionAsync(
+                rulesetId,
+                request.Name,
+                request.Description,
+                configJson,
+                GetActorName(),
+                ct);
+        }
+        catch (PostgresException ex) when (
+            ex.SqlState == PostgresErrorCodes.UniqueViolation &&
+            string.Equals(ex.ConstraintName, "ruleset_versions_ruleset_id_config_hash_key", StringComparison.Ordinal))
+        {
+            return Conflict(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DUPLICATE",
+                "Konfigurasi ruleset tersebut sudah pernah dibuat sebagai versi ruleset ini"));
+        }
 
         return Ok(new CreateRulesetResponse(rulesetId, nextVersion));
     }
@@ -121,13 +119,6 @@ public sealed class RulesetsController : ControllerBase
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(CreateRulesetResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Mengaktifkan versi ruleset tertentu setelah memvalidasi kepemilikan dan konfigurasi.
-    /// </summary>
-    /// <param name="rulesetId">ID ruleset.</param>
-    /// <param name="version">Nomor versi yang akan diaktifkan.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan ID ruleset dan versi yang diaktifkan.</returns>
     public async Task<IActionResult> ActivateRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -163,9 +154,6 @@ public sealed class RulesetsController : ControllerBase
     [HttpDelete("{rulesetId:guid}/versions/{version:int}")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    /// <summary>
-    /// Menghapus versi ruleset tertentu jika aman untuk dihapus.
-    /// </summary>
     public async Task<IActionResult> DeleteRulesetVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -231,11 +219,6 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(RulesetListResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Menampilkan daftar ruleset milik instruktur atau yang terkait dengan sesi pemain yang sedang login.
-    /// </summary>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan daftar ruleset.</returns>
     public async Task<IActionResult> ListRulesets(CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -273,12 +256,6 @@ public sealed class RulesetsController : ControllerBase
     [HttpGet("components/defaults")]
     [HttpGet("/api/v1/game-components")]
     [ProducesResponseType(typeof(DefaultRulesetComponentsResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Menampilkan daftar komponen default ruleset seed dengan opsi filter berdasarkan mode permainan.
-    /// </summary>
-    /// <param name="mode">Filter mode permainan: PEMULA atau MAHIR (opsional).</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan daftar komponen default ruleset.</returns>
     public async Task<IActionResult> ListDefaultRulesetComponents([FromQuery] string? mode, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out _))
@@ -351,12 +328,6 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpGet("{rulesetId:guid}")]
     [ProducesResponseType(typeof(RulesetDetailResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Mengambil detail ruleset beserta daftar versi dan konfigurasi JSON versi terakhir.
-    /// </summary>
-    /// <param name="rulesetId">ID ruleset yang diminta.</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan detail ruleset, versi, dan konfigurasi.</returns>
     public async Task<IActionResult> GetRulesetDetail(Guid rulesetId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -371,7 +342,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, userId, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
@@ -386,7 +357,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else
@@ -427,13 +398,6 @@ public sealed class RulesetsController : ControllerBase
 
     [HttpGet("{rulesetId:guid}/components")]
     [ProducesResponseType(typeof(RulesetComponentsResponse), StatusCodes.Status200OK)]
-    /// <summary>
-    /// Mengambil komponen (component_catalog) dari versi ruleset tertentu atau versi aktif/terakhir.
-    /// </summary>
-    /// <param name="rulesetId">ID ruleset.</param>
-    /// <param name="version">Nomor versi spesifik (opsional, default versi aktif/terakhir).</param>
-    /// <param name="ct">Token pembatalan.</param>
-    /// <returns>200 OK dengan komponen ruleset dan metadata versi.</returns>
     public async Task<IActionResult> GetRulesetComponents(Guid rulesetId, [FromQuery] int? version, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var userId))
@@ -457,7 +421,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, userId, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
@@ -472,7 +436,7 @@ public sealed class RulesetsController : ControllerBase
             ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
             if (ruleset is null)
             {
-                ruleset = await TryGetDefaultSeedRulesetAsync(rulesetId, ct);
+                ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
             }
         }
         else
@@ -524,9 +488,6 @@ public sealed class RulesetsController : ControllerBase
             componentCatalog));
     }
 
-    /// <summary>
-    /// Menghapus ruleset jika belum pernah dipakai pada sesi.
-    /// </summary>
     [HttpDelete("{rulesetId:guid}")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -553,42 +514,16 @@ public sealed class RulesetsController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Mengambil nama aktor dari claim JWT (Name atau NameIdentifier).
-    /// </summary>
     private string? GetActorName()
     {
         return User.FindFirstValue(ClaimTypes.Name) ??
                User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
-    /// <summary>
-    /// Mencoba mengekstrak user ID dari claim JWT NameIdentifier.
-    /// </summary>
     private bool TryGetCurrentUserId(out Guid userId)
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    /// <summary>
-    /// Mengambil ruleset default hasil seed komponen yang dapat diakses lintas pengguna secara read-only.
-    /// </summary>
-    private async Task<RulesetDb?> TryGetDefaultSeedRulesetAsync(Guid rulesetId, CancellationToken ct)
-    {
-        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
-        if (ruleset is null)
-        {
-            return null;
-        }
-
-        var createdBy = ruleset.CreatedBy?.Trim();
-        if (!string.IsNullOrWhiteSpace(createdBy) &&
-            createdBy.StartsWith("system-seed-components", StringComparison.OrdinalIgnoreCase))
-        {
-            return ruleset;
-        }
-
-        return null;
-    }
 }

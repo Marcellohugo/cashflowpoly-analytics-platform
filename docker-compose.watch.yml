@@ -21,7 +21,18 @@ services:
     build:
       context: .
       dockerfile: src/Cashflowpoly.Ui/Dockerfile.dev
-    command: ["/bin/sh", "/src/scripts/dev/ui-watch-entrypoint.sh"]
+    command:
+      - /bin/sh
+      - -lc
+      - |
+          set -eu
+          cd /src/src/Cashflowpoly.Ui
+          npm ci --no-audit --no-fund
+          npm run tailwind:watch &
+          tailwind_pid=$!
+          trap 'if kill -0 "$$tailwind_pid" 2>/dev/null; then kill "$$tailwind_pid" 2>/dev/null || true; wait "$$tailwind_pid" 2>/dev/null || true; fi' INT TERM EXIT
+          cd /src
+          dotnet watch --non-interactive --project src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj run --no-launch-profile
     environment:
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"

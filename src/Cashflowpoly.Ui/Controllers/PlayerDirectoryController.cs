@@ -1,36 +1,22 @@
-// Fungsi file: Menangani permintaan HTTP untuk halaman direktori pemain, menampilkan daftar pemain yang dikelompokkan berdasarkan sesi beserta statistik analitik masing-masing.
 using System.Net.Http.Json;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cashflowpoly.Ui.Controllers;
 
-/// <summary>
-/// Controller MVC yang mengelola halaman direktori pemain lintas sesi,
-/// menampilkan daftar semua pemain beserta ringkasan statistik per sesi (hanya instruktur).
-/// </summary>
 [Route("players")]
 public sealed class PlayerDirectoryController : Controller
 {
     private readonly IHttpClientFactory _clientFactory;
 
-    /// <summary>
-    /// Menginisialisasi controller direktori pemain dengan factory HTTP client untuk komunikasi ke API backend.
-    /// </summary>
-    /// <param name="clientFactory">Factory untuk membuat instance <see cref="HttpClient"/> ke API backend.</param>
     public PlayerDirectoryController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
     }
 
     [HttpGet("")]
-    /// <summary>
-    /// Menampilkan halaman direktori pemain dengan daftar pemain yang dikelompokkan berdasarkan sesi
-    /// dan dilengkapi statistik analitik (hanya instruktur).
-    /// </summary>
-    /// <param name="ct">Token pembatalan untuk membatalkan permintaan.</param>
-    /// <returns>View berisi daftar pemain per sesi dengan statistik, atau redirect jika bukan instruktur.</returns>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -56,8 +42,8 @@ public sealed class PlayerDirectoryController : Controller
             });
         }
 
-        var playerData = await response.Content.TryReadFromJsonAsync<PlayerListResponseDto>(cancellationToken: ct);
-        var players = playerData?.Items ?? new List<PlayerResponseDto>();
+        var playerData = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
+        var players = playerData?.Items ?? new List<PlayerResponse>();
 
         var sessionsResponse = await client.GetAsync("api/v1/sessions", ct);
         unauthorized = this.HandleUnauthorizedApiResponse(sessionsResponse);
@@ -71,8 +57,8 @@ public sealed class PlayerDirectoryController : Controller
 
         if (sessionsResponse.IsSuccessStatusCode)
         {
-            var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponseDto>(cancellationToken: ct);
-            var sessions = sessionsData?.Items ?? new List<SessionListItemDto>();
+            var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
+            var sessions = sessionsData?.Items ?? new List<SessionListItem>();
             var playerMap = players.ToDictionary(x => x.PlayerId, x => x.DisplayName);
 
             var analyticsTasks = sessions.Select(async session =>
@@ -80,10 +66,10 @@ public sealed class PlayerDirectoryController : Controller
                 var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
                 if (!analyticsResponse.IsSuccessStatusCode)
                 {
-                    return (session, analytics: (AnalyticsSessionResponseDto?)null);
+                    return (session, analytics: (AnalyticsSessionResponse?)null);
                 }
 
-                var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponseDto>(cancellationToken: ct);
+                var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
                 return (session, analytics);
             });
 

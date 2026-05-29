@@ -1,9 +1,8 @@
-// Fungsi file: Menguji alur end-to-end autentikasi, otorisasi RBAC, dan manajemen ruleset termasuk CRUD dan versioning.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Api.Tests.Infrastructure;
 using Xunit;
 
@@ -152,6 +151,20 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.Equal("PEMULA", components.Mode);
         Assert.True(components.ComponentCatalog.HasValue);
         Assert.Equal(JsonValueKind.Object, components.ComponentCatalog!.Value.ValueKind);
+
+        var duplicateConfigUpdatePayload = new
+        {
+            name = $"Ruleset IT {suffix} duplicate",
+            description = "Integration test duplicate config",
+            config = BuildRulesetConfig(startingCash: 20)
+        };
+
+        var duplicateConfigUpdate = await SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            duplicateConfigUpdatePayload,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.Conflict, duplicateConfigUpdate.StatusCode);
 
         var updateRulesetPayload = new
         {

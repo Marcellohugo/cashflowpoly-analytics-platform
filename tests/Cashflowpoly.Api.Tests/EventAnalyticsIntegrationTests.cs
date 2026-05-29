@@ -1,8 +1,7 @@
-// Fungsi file: Menguji alur integrasi ingest event, analitik sesi, urutan pemain, batas pemain, dan validasi domain.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Api.Tests.Infrastructure;
 using Xunit;
 

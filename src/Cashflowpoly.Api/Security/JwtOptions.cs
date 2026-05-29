@@ -1,4 +1,3 @@
-// Fungsi file: Model konfigurasi JWT — issuer, audience, signing key, rotasi key, dan masa berlaku token.
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>

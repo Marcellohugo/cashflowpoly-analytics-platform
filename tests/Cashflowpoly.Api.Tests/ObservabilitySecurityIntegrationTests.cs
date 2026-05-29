@@ -1,9 +1,8 @@
-// Fungsi file: Menguji bahwa endpoint observability dan audit log membatasi akses sesuai role INSTRUCTOR/PLAYER.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Cashflowpoly.Api.Tests.Infrastructure;
 using Xunit;
 
@@ -12,7 +11,7 @@ namespace Cashflowpoly.Api.Tests;
 [Collection("ApiIntegration")]
 [Trait("Category", "Integration")]
 /// <summary>
-/// Kelas pengujian integrasi yang memvalidasi bahwa endpoint observability metrics
+/// Kelas pengujian integrasi yang memvalidasi bahwa endpoint observability summary
 /// dan security audit logs menerapkan pembatasan akses berbasis role dengan benar.
 /// </summary>
 public sealed class ObservabilitySecurityIntegrationTests
@@ -29,7 +28,7 @@ public sealed class ObservabilitySecurityIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Memvalidasi bahwa INSTRUCTOR dapat mengakses observability metrics dan audit logs,
+    /// Memvalidasi bahwa INSTRUCTOR dapat mengakses observability summary dan audit logs,
     /// sedangkan PLAYER ditolak dengan status 403 Forbidden pada kedua endpoint.
     /// </summary>
     public async Task Observability_And_SecurityAudit_RespectRoleAccess()
@@ -48,14 +47,14 @@ public sealed class ObservabilitySecurityIntegrationTests
 
         var instructorObservability = await SendAsync(
             HttpMethod.Get,
-            "/api/v1/observability/metrics?top=5",
+            "/api/v1/observability/metrics/summary",
             instructorLogin.AccessToken);
         Assert.Equal(HttpStatusCode.OK, instructorObservability.StatusCode);
-        await AssertJsonHasPropertyAsync(instructorObservability, "totalRequests");
+        await AssertJsonHasPropertyAsync(instructorObservability, "message");
 
         var playerObservability = await SendAsync(
             HttpMethod.Get,
-            "/api/v1/observability/metrics?top=5",
+            "/api/v1/observability/metrics/summary",
             playerLogin.AccessToken);
         Assert.Equal(HttpStatusCode.Forbidden, playerObservability.StatusCode);
 

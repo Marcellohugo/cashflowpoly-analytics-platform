@@ -71,6 +71,7 @@ Catatan kontrak API:
 +- database/
 |  +- 00_create_schema.sql
 |  +- 01_seed_default_rulesets_components.sql
+|  +- 02_seed_full_inspection.sql
 +- docs/
 |  +- Img/
 |  +- 00-Panduan/
@@ -110,18 +111,30 @@ Copy-Item .env.example .env.dev
 ```bash
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
 ```
-4. Ngoding seperti biasa, auto-reload jalan.
-5. Jika perlu verifikasi lokal sebelum merge/deploy:
+4. Pada startup pertama, API akan menjalankan migration EF lalu memastikan seed `01_seed_default_rulesets_components.sql` dan `02_seed_full_inspection.sql` terpasang.
+5. Ngoding seperti biasa, auto-reload jalan.
+6. Jika perlu verifikasi lokal sebelum merge/deploy:
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1 -SkipIntegrationTests
+dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
+dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
+dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
+dotnet restore tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj
+dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restore /warnaserror
+dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
+docker compose --env-file .env.dev.example -f docker-compose.yml -f docker-compose.watch.yml config
+docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
+dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
-6. Selesai kerja, stop dev:
+7. Selesai kerja, stop dev:
 ```bash
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
 ```
 
 Akses (sesuai env dev):
-- API + Swagger: `http://localhost:5041/swagger`
+- API + Swagger (hanya saat `ASPNETCORE_ENVIRONMENT=Development`): `http://localhost:5041/swagger`
 - UI MVC: `http://localhost:5203`
 
 ### PC Server (Production)
@@ -130,14 +143,20 @@ Akses (sesuai env dev):
 3. Siapkan env prod (isi secret benar): `.env.prod`.
 4. Verifikasi lokal sebelum deploy (disarankan):
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1
+dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
+dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
+dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
+dotnet restore tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj
+dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restore /warnaserror
+dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
+dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
+docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release
+dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
 5. Deploy awal atau redeploy:
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/ops/redeploy-production.ps1
-```
-Atau manual:
-```bash
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
 ```
 6. Verifikasi:
@@ -155,10 +174,44 @@ Catatan keamanan lokal:
   - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
 - Registrasi publik untuk semua role (`INSTRUCTOR` dan `PLAYER`) tersedia melalui endpoint `POST /api/v1/auth/register`.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
+- Dataset inspeksi penuh ikut dipasang otomatis saat startup API melalui seed gabungan `database/02_seed_full_inspection.sql`.
 
 Rute UI utama:
 - Analitika sesi: `/Analytics`
 - Manajemen ruleset: `/Rulesets`
+
+### Akun inspeksi
+Akun aktif:
+- `mira.hartanto` / `MiraAudit!2026` (`INSTRUCTOR`)
+- `bayu.prakasa` / `BayuAudit!2026` (`INSTRUCTOR`)
+- `sindy.lestari` / `SindyAudit!2026` (`INSTRUCTOR`)
+- `nadia.putri` / `NadiaAudit!2026` (`PLAYER`)
+- `rangga.maulana` / `RanggaAudit!2026` (`PLAYER`)
+- `safira.anindya` / `SafiraAudit!2026` (`PLAYER`)
+- `teo.prasetyo` / `TeoAudit!2026` (`PLAYER`)
+- `ulfa.ramadhani` / `UlfaAudit!2026` (`PLAYER`)
+- `vina.anggraini` / `VinaAudit!2026` (`PLAYER`)
+- `wahyu.firmansyah` / `WahyuAudit!2026` (`PLAYER`)
+- `xenia.kusuma` / `XeniaAudit!2026` (`PLAYER`)
+- `yudha.permana` / `YudhaAudit!2026` (`PLAYER`)
+- `zara.nuraini` / `ZaraAudit!2026` (`PLAYER`)
+- `adit.suryana` / `AditAudit!2026` (`PLAYER`)
+- `chandra.gunawan` / `ChandraAudit!2026` (`PLAYER`)
+- `dinda.ayu` / `DindaAudit!2026` (`PLAYER`)
+- `elang.nugroho` / `ElangAudit!2026` (`PLAYER`)
+- `fiona.melati` / `FionaAudit!2026` (`PLAYER`)
+
+Akun nonaktif untuk inspeksi kasus gagal login:
+- `arman.wijaya` / `ArmanAudit!2026` (`INSTRUCTOR`, `is_active=false`)
+- `bella.kartika` / `BellaAudit!2026` (`PLAYER`, `is_active=false`)
+
+### Matriks inspeksi dataset
+- `mira.hartanto` memiliki sesi `810...001`, `810...002`, dan `810...007` untuk memeriksa mode `PEMULA` dan `MAHIR`, ruleset dengan versi `RETIRED/ACTIVE`, sesi `CREATED` dan `ENDED`, serta kombinasi kebutuhan, donasi, emas, pinjaman, asuransi, tabungan, dan risiko.
+- `bayu.prakasa` memiliki sesi `810...003`, `810...004`, dan `810...008` untuk memeriksa ruleset Sabtu nonaktif, sesi `STARTED`, sesi `ENDED`, username ordering, validation log, dan pemain aktif/nonaktif.
+- `sindy.lestari` memiliki sesi `810...005` dan `810...006` untuk memeriksa sesi live mode `MAHIR`, ruleset draft, penolakan aktivasi, dan skenario tabungan/risiko.
+- `arman.wijaya` dan `bella.kartika` sengaja nonaktif agar kasus gagal login dan filtering akun aktif dapat diperiksa.
+- Dataset inspeksi sekarang mencakup `20` akun, `8` sesi, lebih dari `190` event, `120` proyeksi arus kas, `220` metric snapshot, serta audit log dan validation log untuk memeriksa analytics, compliance, observability, keamanan, dan variabel metrik fisik/turunan dari dokumen metrik.
+- Action type yang tercakup meliputi `session.created`, `session.started`, `session.ended`, `turn.action.used`, `mission.assigned`, seluruh pembelian kebutuhan `primary/secondary/tertiary`, `ingredient.purchased`, `ingredient.discarded`, `order.claimed`, `order.passed`, `work.freelance.completed`, `day.friday.donation`, `day.saturday.gold_trade`, `gold.points.awarded`, `saving.deposit.created`, `saving.deposit.withdrawn`, `saving.goal.achieved`, `loan.syariah.taken`, `loan.syariah.repaid`, `insurance.multirisk.purchased`, `insurance.multirisk.used`, `risk.life.drawn`, `risk.emergency.used`, `pension.rank.awarded`, `donation.rank.awarded`, dan `tie_breaker.assigned`.
 
 ### 2) Sambungkan DBeaver ke PostgreSQL
 Gunakan konfigurasi berikut:
@@ -168,7 +221,10 @@ Gunakan konfigurasi berikut:
 - User: `cashflowpoly`
 - Password: `cashflowpoly`
 
-DBeaver menampilkan tabel pada schema `public` setelah PostgreSQL menjalankan skrip pada folder `database/` saat volume database masih kosong (`00_create_schema.sql` lalu `01_seed_default_rulesets_components.sql`).
+DBeaver menampilkan tabel pada schema `public` setelah service API selesai startup. Jalur startup yang benar sekarang adalah:
+- migration EF membuat atau menyelaraskan schema database
+- API memastikan seed `database/01_seed_default_rulesets_components.sql`
+- API memastikan seed `database/02_seed_full_inspection.sql`
 
 ### 3) Hentikan layanan
 Untuk development:
@@ -188,9 +244,12 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 
 ## Menjalankan lokal tanpa Docker
 ### 1) Siapkan PostgreSQL
-Buat database dan user, lalu jalankan:
+Buat database dan user. Jalur yang direkomendasikan adalah langsung menjalankan API karena migration dan seed akan dipasang otomatis saat startup.
+
+Jika ingin memuat SQL secara manual tanpa menunggu startup API, jalankan:
 1. `database/00_create_schema.sql`
-2. `database/01_seed_default_rulesets_components.sql` (seed ruleset default + katalog komponen mode pemula/mahir)
+2. `database/01_seed_default_rulesets_components.sql`
+3. `database/02_seed_full_inspection.sql`
 
 ### 2) Atur konfigurasi API dan UI
 API memakai koneksi database dari `ConnectionStrings:Default`.
@@ -224,7 +283,8 @@ Endpoint tambahan yang tersedia:
 - `GET /api/v1/rulesets/components/defaults` daftar ruleset default komponen (mode pemula + mahir)
 - `GET /api/v1/rulesets/{rulesetId}/components` detail komponen ruleset dari `component_catalog` (opsional `?version=`).
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
-- `GET /api/v1/observability/metrics` ringkasan metrik operasional endpoint (request count, error rate, latency)
+- `GET /api/v1/observability/metrics/summary` ringkasan singkat observability yang menunjuk ke endpoint Prometheus API
+- `GET /metrics` metrik operasional API dalam format Prometheus (akses langsung ke service API)
 - `GET /api/v1/security/audit-logs` ringkasan audit log keamanan
 - `GET /health/live` liveness API/UI
 - `GET /health/ready` readiness API/UI
@@ -255,14 +315,14 @@ Dokumen kunci:
 - Integration test API (auth + RBAC + ruleset + analytics flow) dijalankan via xUnit + Testcontainers, jadi Docker daemon wajib aktif saat `dotnet test`.
 - Jalankan hanya integration test: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category=Integration"`.
 - Jalankan test non-integration (lebih cepat): `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"`.
-- Jalankan load test baseline: `powershell -ExecutionPolicy Bypass -File scripts/perf/run-load-test.ps1 -BaseUrl http://localhost:5041`.
+- Jalankan load test baseline dengan tool HTTP pilihan tim menggunakan skenario request berulang ke endpoint ingest event dan analytics sesi.
 - Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md`.
-- Artefak bukti formal tersimpan pada `docs/evidence/`.
-- Verifikasi lokal pengganti pipeline otomatis: `powershell -ExecutionPolicy Bypass -File scripts/ops/run-local-checks.ps1`.
+- Artefak bukti formal disimpan pada media dokumentasi pengujian yang dipakai tim atau penguji.
+- Verifikasi lokal dilakukan dengan rangkaian perintah `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config`.
 
 ## Operasional DB (Backup/Restore)
 - Backup database dilakukan dengan mekanisme native PostgreSQL sesuai environment deployment.

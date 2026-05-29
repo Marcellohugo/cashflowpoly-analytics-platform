@@ -1,4 +1,3 @@
-// Fungsi file: Repository akses data pemain — CRUD pemain, relasi sesi-pemain, dan pengaturan join order.
 using Dapper;
 using Npgsql;
 

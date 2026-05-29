@@ -1,13 +1,14 @@
-// Fungsi file: Titik masuk aplikasi ASP.NET Core yang mendaftarkan seluruh service (database, JWT, rate limiter, Swagger, health check), middleware pipeline (exception handler, forwarded headers, request logging, autentikasi/otorisasi), dan endpoint routing untuk Cashflowpoly API.
 using System.Security.Claims;
 using System.Diagnostics;
 using System.Net;
 using System.Threading.RateLimiting;
-using Cashflowpoly.Api.Controllers;
-using Cashflowpoly.Api.Data;
+using Dapper;
 using Cashflowpoly.Api.Infrastructure;
+using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -16,6 +17,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpenTelemetry.Metrics;
+using Cashflowpoly.Api.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,14 +31,10 @@ if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException("ConnectionStrings:Default belum dikonfigurasi.");
 }
-var enableLegacyApiCompatibility = builder.Configuration.GetValue<bool>("FeatureFlags:EnableLegacyApiCompatibility");
-
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
-builder.Services.Configure<AuthBootstrapOptions>(builder.Configuration.GetSection("AuthBootstrap"));
 builder.Services.AddSingleton<JwtSigningKeyProvider>();
 builder.Services.AddSingleton<JwtTokenService>();
-builder.Services.AddSingleton<OperationalMetricsTracker>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -206,6 +205,13 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 });
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddMeter(AppMetrics.MeterName)
+        .AddPrometheusExporter());
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 builder.Services.AddSingleton(Npgsql.NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<RulesetRepository>();
 builder.Services.AddScoped<SessionRepository>();
@@ -215,12 +221,63 @@ builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<SecurityAuditRepository>();
 builder.Services.AddScoped<SecurityAuditService>();
-builder.Services.AddHostedService<AuthSchemaBootstrapper>();
+// Domain calculators
+builder.Services.AddScoped<IHappinessCalculator, HappinessCalculator>();
+builder.Services.AddScoped<IIngredientInventoryCalculator, IngredientInventoryCalculator>();
+builder.Services.AddScoped<IPrimaryNeedComplianceEvaluator, PrimaryNeedComplianceEvaluator>();
+builder.Services.AddScoped<ISessionMetricCalculator, SessionMetricCalculator>();
+builder.Services.AddScoped<IMetricSnapshotBuilder, MetricSnapshotBuilder>();
+builder.Services.AddScoped<IPlayerOrdering, PlayerOrderingService>();
+builder.Services.AddScoped<IScoreCalculator, ScoreCalculator>();
+builder.Services.AddScoped<IAnalyticsPayloadReader, AnalyticsPayloadReader>();
+builder.Services.AddScoped<IEventPayloadReader, EventPayloadReader>();
+builder.Services.AddScoped<IGameplaySnapshotBuilder, GameplaySnapshotBuilder>();
+builder.Services.AddScoped<IEventCashflowProjectionBuilder, EventCashflowProjectionBuilder>();
+builder.Services.AddScoped<IEventRecordMapper, EventRecordMapper>();
+builder.Services.AddScoped<IEventValidationDetailsSerializer, EventValidationDetailsSerializer>();
+builder.Services.AddScoped<IEventRequestShapeValidator, EventRequestShapeValidator>();
+builder.Services.AddScoped<IEventSimpleActionValidator, EventSimpleActionValidator>();
+builder.Services.AddScoped<IEventTurnProgressValidator, EventTurnProgressValidator>();
+builder.Services.AddScoped<IEventNeedPurchaseValidator, EventNeedPurchaseValidator>();
+builder.Services.AddScoped<IEventIngredientOrderValidator, EventIngredientOrderValidator>();
+builder.Services.AddScoped<IEventSavingGoalValidator, EventSavingGoalValidator>();
+builder.Services.AddScoped<IEventEconomyActionValidator, EventEconomyActionValidator>();
+builder.Services.AddScoped<IEventAssignmentValidator, EventAssignmentValidator>();
+builder.Services.AddScoped<IEventDerivedStateCalculator, EventDerivedStateCalculator>();
+builder.Services.AddScoped<IEventPlayerBalanceCalculator, EventPlayerBalanceCalculator>();
+builder.Services.AddScoped<IEventInsuranceOffsetBuilder, EventInsuranceOffsetBuilder>();
+builder.Services.AddScoped<ICashTimelineCalculator, CashTimelineCalculator>();
+builder.Services.AddScoped<IDonationGameplayCalculator, DonationGameplayCalculator>();
+builder.Services.AddScoped<ISavingGoalCalculator, SavingGoalCalculator>();
+builder.Services.AddScoped<IIngredientMealCalculator, IngredientMealCalculator>();
+builder.Services.AddScoped<IGoldGameplayCalculator, GoldGameplayCalculator>();
+builder.Services.AddScoped<INeedMissionCalculator, NeedMissionCalculator>();
+builder.Services.AddScoped<IRiskLoanCalculator, RiskLoanCalculator>();
+builder.Services.AddScoped<IActionUsageCalculator, ActionUsageCalculator>();
+builder.Services.AddScoped<IIncomeDiversificationCalculator, IncomeDiversificationCalculator>();
+builder.Services.AddScoped<IDerivedRatioCalculator, DerivedRatioCalculator>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Cashflowpoly.Api.Services.IAnalyticsService, Cashflowpoly.Api.Services.AnalyticsService>();
+builder.Services.AddScoped<Cashflowpoly.Api.Services.IEventIngestionService, Cashflowpoly.Api.Services.EventIngestionService>();
 
 var app = builder.Build();
+
+await DatabaseInitialization.InitializeAsync(app.Services, CancellationToken.None);
+
+using (var scope = app.Services.CreateScope())
+{
+    var bootstrapOptions = app.Configuration.GetSection("AuthBootstrap").Get<AuthBootstrapOptions>();
+    if (bootstrapOptions is { SeedDefaultUsers: true })
+    {
+        var dataSource = scope.ServiceProvider.GetRequiredService<Npgsql.NpgsqlDataSource>();
+        await using var seedConn = await dataSource.OpenConnectionAsync();
+        await SeedBootstrapUserAsync(seedConn, bootstrapOptions.InstructorUsername, bootstrapOptions.InstructorPassword, "INSTRUCTOR", CancellationToken.None);
+        await SeedBootstrapUserAsync(seedConn, bootstrapOptions.PlayerUsername, bootstrapOptions.PlayerPassword, "PLAYER", CancellationToken.None);
+    }
+}
+
 var requestLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("RequestAudit");
 var exceptionLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("UnhandledException");
-var metricsTracker = app.Services.GetRequiredService<OperationalMetricsTracker>();
 app.Services.GetRequiredService<JwtSigningKeyProvider>().ValidateConfiguration();
 
 app.UseExceptionHandler(errorApp =>
@@ -261,18 +318,6 @@ if (app.Environment.IsDevelopment())
 app.UseForwardedHeaders();
 app.UseDefaultFiles();
 app.UseStaticFiles();
-if (enableLegacyApiCompatibility)
-{
-    app.Use(async (context, next) =>
-    {
-        if (LegacyApiCompatibilityHelper.TryRewritePath(context.Request.Path, out var rewrittenPath))
-        {
-            context.Request.Path = rewrittenPath;
-        }
-
-        await next();
-    });
-}
 app.UseRouting();
 
 app.Use(async (context, next) =>
@@ -285,7 +330,12 @@ app.Use(async (context, next) =>
     await next();
     var durationMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
 
-    metricsTracker.Record(context, durationMs);
+    AppMetrics.RequestsTotal.Add(1);
+    AppMetrics.RequestDurationMs.Record(durationMs);
+    if (context.Response.StatusCode >= 400)
+    {
+        AppMetrics.RequestErrorsTotal.Add(1);
+    }
 
     var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
     var role = context.User.FindFirstValue(ClaimTypes.Role) ?? "anonymous";
@@ -318,5 +368,73 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     Predicate = check => check.Tags.Contains("ready")
 });
 app.MapControllers().RequireRateLimiting("api");
+app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
+
+static async Task SeedBootstrapUserAsync(
+    Npgsql.NpgsqlConnection conn,
+    string? username,
+    string? password,
+    string role,
+    CancellationToken cancellationToken)
+{
+    if (string.IsNullOrWhiteSpace(username) && string.IsNullOrWhiteSpace(password))
+    {
+        return;
+    }
+
+    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+    {
+        throw new InvalidOperationException($"AuthBootstrap untuk role {role} harus mengisi username dan password.");
+    }
+
+    if (password.Length < Cashflowpoly.Api.Security.PasswordPolicy.MinPasswordLength)
+    {
+        throw new InvalidOperationException(
+            $"AuthBootstrap password role {role} minimal {Cashflowpoly.Api.Security.PasswordPolicy.MinPasswordLength} karakter.");
+    }
+
+    const string insertSql = """
+        insert into app_users (user_id, username, password_hash, role, is_active)
+        select gen_random_uuid(), @username, crypt(@password, gen_salt('bf', 10)), @role, true
+        where not exists (select 1 from app_users where lower(username) = lower(@username));
+        """;
+
+    const string ensureProfileSql = """
+        insert into players (player_id, display_name, instructor_user_id, created_at)
+        select u.user_id, u.username, u.user_id, now()
+        from app_users u
+        where lower(u.username) = lower(@username)
+          and not exists (
+              select 1
+              from players p
+              where p.player_id = u.user_id
+          );
+
+        insert into user_player_links (link_id, user_id, player_id, created_at)
+        select gen_random_uuid(), u.user_id, u.user_id, now()
+        from app_users u
+        where lower(u.username) = lower(@username)
+          and not exists (
+              select 1
+              from user_player_links upl
+              where upl.user_id = u.user_id
+          );
+        """;
+
+    await conn.ExecuteAsync(
+        new Dapper.CommandDefinition(
+            insertSql,
+            new { username, password, role },
+            cancellationToken: cancellationToken));
+
+    if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+    {
+        await conn.ExecuteAsync(
+            new Dapper.CommandDefinition(
+                ensureProfileSql,
+                new { username },
+                cancellationToken: cancellationToken));
+    }
+}

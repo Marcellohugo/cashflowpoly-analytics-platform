@@ -1,4 +1,3 @@
-// Fungsi file: Opsi konfigurasi bootstrap autentikasi (seed user default) dan kebijakan password.
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>

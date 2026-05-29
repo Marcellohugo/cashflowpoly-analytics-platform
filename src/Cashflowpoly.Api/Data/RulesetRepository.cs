@@ -1,7 +1,6 @@
-// Fungsi file: Repository akses data ruleset dan versi ruleset — CRUD, aktivasi, listing, dan hash konfigurasi.
 using System.Security.Cryptography;
 using System.Text;
-using Cashflowpoly.Api.Models;
+using Cashflowpoly.Contracts;
 using Dapper;
 using Npgsql;
 
@@ -520,6 +519,22 @@ public sealed class RulesetRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<RulesetVersionDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
         return items.ToList();
+    }
+
+    /// <summary>
+    /// Mengambil ruleset jika merupakan seed default sistem (created_by dimulai dengan "system-seed-components").
+    /// </summary>
+    public async Task<RulesetDb?> GetDefaultSeedRulesetAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select ruleset_id, name, description, instructor_user_id, created_at, created_by
+            from rulesets
+            where ruleset_id = @rulesetId
+              and lower(trim(created_by)) like 'system-seed-components%'
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<RulesetDb>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
     }
 
     /// <summary>

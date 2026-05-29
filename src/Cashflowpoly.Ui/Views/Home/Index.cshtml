@@ -4,9 +4,6 @@
 @{
     ViewData["Title"] = Context.T("nav.home");
     var isInstructor = Context.Session.IsInstructor();
-    var progressPercent = Model.TotalSessions == 0
-        ? 0
-        : (int)Math.Round((double)Model.ActiveSessions / Model.TotalSessions * 100);
     var heroBadge = isInstructor ? Context.T("home.badge") : Context.T("home.player_badge");
     var heroTitle = isInstructor
         ? Context.T("home.title")
@@ -25,129 +22,76 @@
 }
 
 <section class="section-shell home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
-    <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <div>
-            <span class="badge @(isInstructor ? "badge-emerald" : "badge-amber")">@heroBadge</span>
-            <h1 class="headline text-4xl md:text-5xl">@heroTitle</h1>
-            <p class="subhead">
-                @heroSubtitle
-            </p>
-            <div class="mt-6 flex flex-wrap gap-3">
+    <div class="home-console-layout">
+        <div class="home-console-intro">
+            <div class="home-console-header">
+                <span class="badge @(isInstructor ? "badge-emerald" : "badge-amber")">@heroBadge</span>
+            </div>
+            <div class="home-console-copy">
+                <h1 class="headline text-4xl md:text-5xl">@heroTitle</h1>
+                <p class="subhead home-console-subhead">
+                    @heroSubtitle
+                </p>
+            </div>
+            <div class="home-console-actions">
                 <a class="btn-primary" asp-controller="@primaryCtaController" asp-action="Index">@primaryCtaText</a>
                 <a class="btn-ghost" asp-controller="@secondaryCtaController" asp-action="Index">@secondaryCtaText</a>
             </div>
-            @if (isInstructor)
-            {
-                <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span>@Context.T("home.feature.1")</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
-                        <span>@Context.T("home.feature.2")</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
-                        <span>@Context.T("home.feature.3")</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
-                        <span>@Context.T("home.feature.4")</span>
-                    </li>
-                </ul>
-            }
-            else
-            {
-                <ul class="mt-6 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-sky-500"></span>
-                        <span>@Context.T("home.player.feature.1")</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span>@Context.T("home.player.feature.2")</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-amber-500"></span>
-                        <span>@Context.T("home.player.feature.3")</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-rose-500"></span>
-                        <span>@Context.T("home.player.feature.4")</span>
-                    </li>
-                </ul>
-            }
         </div>
-        <div class="glass-surface p-5">
-            <div class="space-y-4">
-                <div class="flex items-center justify-between text-sm text-slate-600">
-                    <span class="inline-flex items-center gap-2">
-                        <span class="live-dot"></span>
-                        @Context.T("home.realtime")
-                    </span>
-                    <span class="badge badge-emerald">@Context.T("home.live")</span>
-                </div>
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-500">@Context.T("home.server_time")</p>
-                    <p id="home-live-time" class="text-3xl font-semibold text-slate-900">@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
-                    <p class="mt-1 text-xs text-slate-500">@Context.T("home.sync_label"): <span id="home-last-synced">@Model.LastSyncedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span></p>
-                </div>
-                <div class="h-2 w-full rounded-full bg-slate-100">
-                    <div id="home-progress-bar"
-                         class="h-2 rounded-full @(isInstructor ? "home-progress-instructor" : "home-progress-player")"
-                         style="width:@progressPercent%"></div>
-                </div>
-                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-                {
-                    <div id="home-realtime-error" class="alert alert-warning text-xs" aria-live="polite">
-                        @Model.ErrorMessage
-                    </div>
-                }
-                else
-                {
-                    <div id="home-realtime-error" class="hidden alert alert-warning text-xs" aria-live="polite"></div>
-                }
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@totalSessionsLabel</p>
-                        <p id="home-total-sessions" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalSessions</p>
-                    </div>
-                    <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@Context.T("home.active_sessions")</p>
-                        <p id="home-active-sessions" class="mt-2 text-lg font-semibold text-slate-900">@Model.ActiveSessions</p>
-                    </div>
-                    <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@totalPlayersLabel</p>
-                        <p id="home-total-players" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalPlayers</p>
-                    </div>
-                    <div class="stat-card">
-                        <p class="text-xs uppercase text-slate-500">@totalRulesetsLabel</p>
-                        <p id="home-total-rulesets" class="mt-2 text-lg font-semibold text-slate-900">@Model.TotalRulesets</p>
-                    </div>
-                </div>
-                @if (!hasWorkspaceData)
-                {
-                    <div class="home-empty-state" aria-live="polite">
-                        <p class="home-empty-state-title">@Context.T("home.empty_workspace.title")</p>
-                        <p class="home-empty-state-body">@(isInstructor
-                            ? Context.T("home.empty_workspace.instructor")
-                            : Context.T("home.empty_workspace.player"))</p>
-                    </div>
-                }
-                <p class="text-xs text-slate-500">@Context.T("home.auto_refresh_note")</p>
+        <div class="home-console-progress-shell">
+            <div class="home-console-progress-meta">
+                <span>@Context.T("home.active_sessions")</span>
+                <span><strong>@Model.ActiveSessions</strong> / <strong>@Model.TotalSessions</strong></span>
             </div>
         </div>
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div id="home-realtime-error" class="alert alert-warning text-xs" aria-live="polite">
+                @Model.ErrorMessage
+            </div>
+        }
+        else
+        {
+            <div id="home-realtime-error" class="hidden alert alert-warning text-xs" aria-live="polite"></div>
+        }
+        <div class="home-console-metrics">
+            <div class="home-console-metric">
+                <p class="home-console-metric-label">@totalSessionsLabel</p>
+                <p id="home-total-sessions" class="home-console-metric-value">@Model.TotalSessions</p>
+            </div>
+            <div class="home-console-metric">
+                <p class="home-console-metric-label">@Context.T("home.active_sessions")</p>
+                <p id="home-active-sessions" class="home-console-metric-value">@Model.ActiveSessions</p>
+            </div>
+            <div class="home-console-metric">
+                <p class="home-console-metric-label">@totalPlayersLabel</p>
+                <p id="home-total-players" class="home-console-metric-value">@Model.TotalPlayers</p>
+            </div>
+            <div class="home-console-metric">
+                <p class="home-console-metric-label">@totalRulesetsLabel</p>
+                <p id="home-total-rulesets" class="home-console-metric-value">@Model.TotalRulesets</p>
+            </div>
+        </div>
+        @if (!hasWorkspaceData)
+        {
+            <div class="home-empty-state" aria-live="polite">
+                <p class="home-empty-state-title">@Context.T("home.empty_workspace.title")</p>
+                <p class="home-empty-state-body">@(isInstructor
+                    ? Context.T("home.empty_workspace.instructor")
+                    : Context.T("home.empty_workspace.player"))</p>
+            </div>
+        }
+        <p class="home-console-note">@Context.T("home.auto_refresh_note")</p>
     </div>
 </section>
 
 @if (isInstructor)
 {
     <section class="section-shell mt-6">
-        <div>
+        <div class="ruleset-section-head">
             <p class="eyebrow">@Context.T("home.guide.menu")</p>
-            <h2 class="headline text-3xl">@Context.T("home.guide.title")</h2>
-            <p class="subhead">@Context.T("home.guide.subtitle")</p>
+            <h2 class="ruleset-section-title">@Context.T("home.guide.title")</h2>
+            <p class="ruleset-section-subtitle">@Context.T("home.guide.subtitle")</p>
         </div>
 
         <div class="mt-6 tips-grid">
@@ -169,7 +113,10 @@
         </div>
 
         <div class="mt-6 metric-panel">
-            <h3>@Context.T("home.quick_flow.title")</h3>
+            <div class="ruleset-section-head">
+                <h3 class="ruleset-section-title">@Context.T("home.quick_flow.title")</h3>
+                <p class="ruleset-section-subtitle">@Context.T("home.quick_flow.subtitle")</p>
+            </div>
             <div class="metric-list">
                 <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">@Context.T("home.quick_flow.step1")</span></div>
                 <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">@Context.T("home.quick_flow.step2")</span></div>
@@ -183,10 +130,10 @@
 else
 {
     <section class="section-shell mt-6 player-guide">
-        <div>
+        <div class="ruleset-section-head">
             <p class="eyebrow">@Context.T("home.player_guide.menu")</p>
-            <h2 class="headline text-3xl">@Context.T("home.player_guide.title")</h2>
-            <p class="subhead">@Context.T("home.player_guide.subtitle")</p>
+            <h2 class="ruleset-section-title">@Context.T("home.player_guide.title")</h2>
+            <p class="ruleset-section-subtitle">@Context.T("home.player_guide.subtitle")</p>
         </div>
 
         <div class="mt-6 tips-grid">
@@ -208,12 +155,15 @@ else
             <article class="tip-card">
                 <h3>@Context.T("home.player_guide.rulebook.title")</h3>
                 <p>@Context.T("home.player_guide.rulebook.desc")</p>
-                <a asp-controller="Home" asp-action="Rulebook">@Context.T("home.player_guide.rulebook.link")</a>
+                <a href="/rulebook">@Context.T("home.player_guide.rulebook.link")</a>
             </article>
         </div>
 
         <div class="mt-6 metric-panel">
-            <h3>@Context.T("home.player_flow.title")</h3>
+            <div class="ruleset-section-head">
+                <h3 class="ruleset-section-title">@Context.T("home.player_flow.title")</h3>
+                <p class="ruleset-section-subtitle">@Context.T("home.player_flow.subtitle")</p>
+            </div>
             <div class="metric-list">
                 <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">@Context.T("home.player_flow.step1")</span></div>
                 <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">@Context.T("home.player_flow.step2")</span></div>
@@ -227,26 +177,15 @@ else
 @section Scripts {
     <script>
         (() => {
-            const el = document.getElementById("home-live-time");
-            if (!el) return;
             const totalSessionsEl = document.getElementById("home-total-sessions");
             const activeSessionsEl = document.getElementById("home-active-sessions");
             const totalPlayersEl = document.getElementById("home-total-players");
             const totalRulesetsEl = document.getElementById("home-total-rulesets");
-            const lastSyncedEl = document.getElementById("home-last-synced");
-            const progressBarEl = document.getElementById("home-progress-bar");
             const realtimeErrorEl = document.getElementById("home-realtime-error");
             const realtimeStatusTemplate = @Html.Raw(JsonSerializer.Serialize(Context.T("home.error.realtime_status")));
             const realtimeNetworkMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("home.error.realtime_network")));
             const realtimePollIntervalMs = 30000;
             let realtimeTimerId = null;
-
-            const tick = () => {
-                const now = new Date();
-                const pad = (v) => v.toString().padStart(2, "0");
-                const text = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-                el.textContent = text;
-            };
 
             const setError = (message) => {
                 if (!realtimeErrorEl) return;
@@ -279,18 +218,11 @@ else
                     const activeSessions = Number(data.activeSessions ?? 0);
                     const totalPlayers = Number(data.totalPlayers ?? 0);
                     const totalRulesets = Number(data.totalRulesets ?? 0);
-                    const progressPercent = totalSessions === 0 ? 0 : Math.round((activeSessions / totalSessions) * 100);
 
                     if (totalSessionsEl) totalSessionsEl.textContent = `${totalSessions}`;
                     if (activeSessionsEl) activeSessionsEl.textContent = `${activeSessions}`;
                     if (totalPlayersEl) totalPlayersEl.textContent = `${totalPlayers}`;
                     if (totalRulesetsEl) totalRulesetsEl.textContent = `${totalRulesets}`;
-                    if (progressBarEl) progressBarEl.style.width = `${progressPercent}%`;
-                    if (lastSyncedEl && data.lastSyncedAt) {
-                        const syncedAt = new Date(data.lastSyncedAt);
-                        const pad = (v) => v.toString().padStart(2, "0");
-                        lastSyncedEl.textContent = `${pad(syncedAt.getDate())}/${pad(syncedAt.getMonth() + 1)}/${syncedAt.getFullYear()} ${pad(syncedAt.getHours())}:${pad(syncedAt.getMinutes())}:${pad(syncedAt.getSeconds())}`;
-                    }
 
                     setError(data.errorMessage);
                 } catch {
@@ -323,8 +255,6 @@ else
                 stopRealtimeSync();
             };
 
-            tick();
-            setInterval(tick, 1000);
             document.addEventListener("visibilitychange", handleVisibilityChange);
             handleVisibilityChange();
         })();

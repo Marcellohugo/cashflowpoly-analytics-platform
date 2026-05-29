@@ -7,7 +7,7 @@
     "tailwindcss": "^3.4.17"
   },
   "scripts": {
-    "tailwind:build": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css",
+    "tailwind:build": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --minify",
     "tailwind:watch": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --watch"
   }
 }
