@@ -1,4 +1,6 @@
 # Fungsi file: Mendefinisikan orkestrasi layanan utama aplikasi pada lingkungan kontainer.
+name: cashflowpoly-analytics-platform
+
 services:
   db:
     image: postgres:16
@@ -22,7 +24,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Cashflowpoly.Api/Dockerfile
     container_name: cashflowpoly-api
     restart: unless-stopped
@@ -59,7 +61,7 @@ services:
 
   ui:
     build:
-      context: .
+      context: ../..
       dockerfile: src/Cashflowpoly.Ui/Dockerfile
     container_name: cashflowpoly-ui
     restart: unless-stopped

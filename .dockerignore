@@ -5,9 +5,12 @@
 .env
 .env.dev
 .env.prod
+config/env/.env
+config/env/.env.dev
+config/env/.env.prod
 
-cloudflared/credentials.json
-nginx/ssl/*
+infra/cloudflared/credentials.json
+infra/nginx/ssl/*
 
 **/bin/
 **/obj/
