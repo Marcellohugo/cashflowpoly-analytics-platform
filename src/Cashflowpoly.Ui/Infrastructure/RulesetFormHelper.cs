@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;

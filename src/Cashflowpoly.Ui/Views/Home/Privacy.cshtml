@@ -1,19 +1,339 @@
-@* Fungsi file: Merender halaman Buku Aturan Cashflowpoly dengan struktur referensi yang mudah dipindai. *@
+@* Fungsi file: Merender halaman Buku Aturan Cashflowpoly dalam format handbook ringkas untuk dibaca dan dipakai saat bermain. *@
 @model Cashflowpoly.Ui.Models.RulebookPageViewModel
 @using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = Context.T("privacy.title");
-    var sections = Model.Sections ?? new System.Collections.Generic.List<Cashflowpoly.Ui.Models.RulebookSectionViewModel>();
     var scoring = Model.Scoring ?? new System.Collections.Generic.List<Cashflowpoly.Ui.Models.RulebookScoreItemViewModel>();
     var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
     var isEnglish = string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase);
-    var totalPoints = 0;
-    foreach (var section in sections)
-    {
-        totalPoints += section.Points.Count;
-    }
 
     string L(string id, string en) => isEnglish ? en : id;
+
+    var guideSteps = new[]
+    {
+        new
+        {
+            StepId = "Langkah 1",
+            StepEn = "Step 1",
+            TitleId = "Tentukan mode dulu",
+            TitleEn = "Pick the mode first",
+            PointsId = new[]
+            {
+                "Pilih mode pemula bila ingin fokus pada bahan, pesanan, kebutuhan, dan emas.",
+                "Pilih mode mahir bila ingin menambah risiko kehidupan, asuransi, tabungan, dan pinjaman syariah.",
+                "Pisahkan komponen yang belum dipakai agar meja tetap rapi."
+            },
+            PointsEn = new[]
+            {
+                "Choose beginner mode to focus on ingredients, orders, needs, and gold.",
+                "Choose advanced mode to add life risk, insurance, savings, and sharia loans.",
+                "Set unused components aside so the table stays clean."
+            }
+        },
+        new
+        {
+            StepId = "Langkah 2",
+            StepEn = "Step 2",
+            TitleId = "Siapkan meja permainan",
+            TitleEn = "Set up the table",
+            PointsId = new[]
+            {
+                "Susun papan poin, penghasilan, lalu pengeluaran seperti urutan di PDF.",
+                "Buka 5 kartu pesanan, 5 kebutuhan primer, dan 5 bahan masakan.",
+                "Mode mahir menambah papan tabungan tujuan keuangan, risiko kehidupan, serta asuransi dan bank syariah."
+            },
+            PointsEn = new[]
+            {
+                "Arrange point, income, and expense boards in the same order shown in the PDF.",
+                "Open 5 order cards, 5 primary-needs cards, and 5 ingredient cards.",
+                "Advanced mode adds financial-goal savings, life risk, and insurance plus sharia bank boards."
+            }
+        },
+        new
+        {
+            StepId = "Langkah 3",
+            StepEn = "Step 3",
+            TitleId = "Jalankan giliran",
+            TitleEn = "Run the turns",
+            PointsId = new[]
+            {
+                "Tentukan pemain pertama dengan kartu tie breaker, lalu setiap pemain menerima 2 token aksi.",
+                "Satu giliran = maksimal 2 aksi, boleh sama atau berbeda.",
+                "Setelah semua pemain selesai, Mr. Cashflowpoly maju satu tanggal dan semua token aksi kembali ke pemain."
+            },
+            PointsEn = new[]
+            {
+                "Use the tie-breaker card to choose the first player, then give each player 2 action tokens.",
+                "One turn means up to 2 actions, either the same or different.",
+                "After everyone finishes, Mr. Cashflowpoly moves forward one date and all action tokens return to the players."
+            }
+        },
+        new
+        {
+            StepId = "Langkah 4",
+            StepEn = "Step 4",
+            TitleId = "Tutup sesi dengan poin",
+            TitleEn = "Close the session with scoring",
+            PointsId = new[]
+            {
+                "Jumlahkan kebutuhan, bonus set, donasi, emas, dan dana pensiun.",
+                "Tambahkan tujuan keuangan hanya bila pinjaman syariah sudah lunas.",
+                "Jika total poin sama, pakai angka tie breaker terbesar."
+            },
+            PointsEn = new[]
+            {
+                "Add up needs, set bonus, donation, gold, and pension points.",
+                "Add financial goals only when all sharia loans are fully repaid.",
+                "If totals are tied, use the highest tie-breaker number."
+            }
+        }
+    };
+
+    var visualPanels = new[]
+    {
+        new
+        {
+            Id = "rb-stage-setup",
+            PageId = "Hal. 5",
+            PageEn = "Pg. 5",
+            TitleId = "Setup mode pemula",
+            TitleEn = "Beginner mode setup",
+            Image = "~/images/rulebook/setup-mode-pemula.jpg",
+            AltId = "Setup mode pemula",
+            AltEn = "Beginner mode setup",
+            NotesId = new[]
+            {
+                "Baris atas dipakai untuk poin kebahagiaan, baris tengah untuk penghasilan, dan baris bawah untuk pengeluaran.",
+                "Periksa aturan slot bahan: tidak boleh ada 3 kartu bahan sejenis di slot terbuka."
+            },
+            NotesEn = new[]
+            {
+                "The top row is for happiness points, the middle row for income, and the bottom row for expenses.",
+                "Check the ingredient-slot rule: no 3 identical ingredient cards may stay open at once."
+            }
+        },
+        new
+        {
+            Id = "rb-stage-advanced",
+            PageId = "Hal. 7",
+            PageEn = "Pg. 7",
+            TitleId = "Tambahan untuk mode mahir",
+            TitleEn = "Advanced mode additions",
+            Image = "~/images/rulebook/setup-mode-mahir.jpg",
+            AltId = "Setup mode mahir",
+            AltEn = "Advanced mode setup",
+            NotesId = new[]
+            {
+                "Mode mahir tetap memakai setup dasar mode pemula.",
+                "Tambahan pentingnya ada di tabungan tujuan keuangan, risiko kehidupan, dan asuransi serta bank syariah."
+            },
+            NotesEn = new[]
+            {
+                "Advanced mode still starts from the beginner setup.",
+                "The key additions are financial-goal savings, life risk, and insurance plus sharia bank boards."
+            }
+        },
+        new
+        {
+            Id = "rb-stage-player",
+            PageId = "Hal. 11",
+            PageEn = "Pg. 11",
+            TitleId = "Alur giliran sampai finish",
+            TitleEn = "Turn flow until finish",
+            Image = "~/images/rulebook/alur-giliran.jpg",
+            AltId = "Alur giliran permainan",
+            AltEn = "Gameplay turn flow",
+            NotesId = new[]
+            {
+                "Setiap pemain menghabiskan 2 token aksi per giliran.",
+                "Jumat dipakai peduli donasi, Sabtu dipakai investasi emas, dan Minggu langsung dilewati."
+            },
+            NotesEn = new[]
+            {
+                "Each player spends 2 action tokens per turn.",
+                "Friday is for donation care, Saturday is for gold investment, and Sunday is skipped."
+            }
+        },
+        new
+        {
+            Id = "rb-stage-turn",
+            PageId = "Hal. 13-17",
+            PageEn = "Pg. 13-17",
+            TitleId = "Aksi utama mode pemula",
+            TitleEn = "Core beginner-mode actions",
+            Image = "~/images/rulebook/aksi-kebutuhan-freelance.jpg",
+            AltId = "Aksi kebutuhan dan kerja lepas",
+            AltEn = "Needs and freelance actions",
+            NotesId = new[]
+            {
+                "Empat aksi utamanya adalah beli bahan, klaim pesanan, beli kebutuhan, dan kerja lepas.",
+                "Slot kartu kosong baru diisi ulang setelah pemain selesai menjalankan 2 aksi."
+            },
+            NotesEn = new[]
+            {
+                "The four core actions are buying ingredients, claiming orders, buying needs, and freelance work.",
+                "Empty card slots refill only after the player finishes 2 actions."
+            }
+        },
+        new
+        {
+            Id = "rb-stage-special",
+            PageId = "Hal. 19-23",
+            PageEn = "Pg. 19-23",
+            TitleId = "Mode mahir dan hari khusus",
+            TitleEn = "Advanced mode and special days",
+            Image = "~/images/rulebook/aksi-risiko-asuransi.jpg",
+            AltId = "Risiko dan asuransi",
+            AltEn = "Risk and insurance",
+            NotesId = new[]
+            {
+                "Di mode mahir, klaim pesanan memicu kartu risiko kehidupan.",
+                "Jika biaya risiko terlalu besar, pemain bisa memakai asuransi aktif, menjual aset, atau mengambil pinjaman syariah."
+            },
+            NotesEn = new[]
+            {
+                "In advanced mode, claiming an order also triggers a life-risk card.",
+                "If the risk cost is too high, the player may use active insurance, sell assets, or take a sharia loan."
+            }
+        },
+        new
+        {
+            Id = "rb-stage-friday",
+            PageId = "Hal. 23",
+            PageEn = "Pg. 23",
+            TitleId = "Donasi Jumat dan emas Sabtu",
+            TitleEn = "Friday donations and Saturday gold",
+            Image = "~/images/rulebook/aksi-donasi-emas.jpg",
+            AltId = "Donasi dan investasi emas",
+            AltEn = "Donation and gold investment",
+            NotesId = new[]
+            {
+                "Donasi Jumat dilakukan tertutup lalu dibuka bersama untuk menentukan peringkat.",
+                "Harga emas Sabtu ditentukan oleh kartu harga emas yang dibuka pada hari itu."
+            },
+            NotesEn = new[]
+            {
+                "Friday donations are made in secret and revealed together to determine the ranking.",
+                "Saturday gold price follows the gold-price card opened that day."
+            }
+        }
+    };
+
+    var referenceCards = new[]
+    {
+        new
+        {
+            TitleId = "Mode pemula",
+            TitleEn = "Beginner mode",
+            EyebrowId = "Aksi inti",
+            EyebrowEn = "Core actions",
+            PointsId = new[]
+            {
+                "Beli 1 bahan dan bayar sesuai harga kartu.",
+                "Klaim 1 pesanan dengan menyerahkan bahan yang diminta.",
+                "Beli kebutuhan primer dulu sebelum masuk ke sekunder atau tersier.",
+                "Kerja lepas memberi 1 koin dari bank."
+            },
+            PointsEn = new[]
+            {
+                "Buy 1 ingredient and pay the card price.",
+                "Claim 1 order by submitting the required ingredients.",
+                "Buy a primary need before moving to secondary or tertiary needs.",
+                "Freelance work gives 1 coin from the bank."
+            }
+        },
+        new
+        {
+            TitleId = "Mode mahir",
+            TitleEn = "Advanced mode",
+            EyebrowId = "Tambahan aturan",
+            EyebrowEn = "Extra rules",
+            PointsId = new[]
+            {
+                "Klaim pesanan sekaligus menarik 1 kartu risiko kehidupan.",
+                "Aktifkan asuransi dengan 1 token aksi dan bayar premi 1 koin.",
+                "Menabung tujuan keuangan maksimal 15 koin per aksi.",
+                "Pinjaman yang belum lunas menghanguskan poin tujuan keuangan."
+            },
+            PointsEn = new[]
+            {
+                "Claiming an order also draws 1 life-risk card.",
+                "Activate insurance with 1 action token and a 1-coin premium.",
+                "Financial-goal savings are capped at 15 coins per action.",
+                "Unpaid loans void financial-goal points."
+            }
+        },
+        new
+        {
+            TitleId = "Hari khusus",
+            TitleEn = "Special days",
+            EyebrowId = "Tanpa token aksi",
+            EyebrowEn = "No action tokens",
+            PointsId = new[]
+            {
+                "Jumat: semua pemain donasi tertutup, lalu ditentukan juara 1, 2, dan 3.",
+                "Sabtu: buka harga emas, lalu pemain bebas beli atau jual emas.",
+                "Minggu: tidak ada aksi, langsung lanjut ke hari berikutnya."
+            },
+            PointsEn = new[]
+            {
+                "Friday: all players donate in secret, then ranks 1, 2, and 3 are assigned.",
+                "Saturday: reveal the gold price, then players may buy or sell gold.",
+                "Sunday: no action happens and play moves to the next day."
+            }
+        },
+        new
+        {
+            TitleId = "Catatan arus kas",
+            TitleEn = "Cashflow notes",
+            EyebrowId = "Opsional",
+            EyebrowEn = "Optional",
+            PointsId = new[]
+            {
+                "Catat pemasukan di kolom (+) dan pengeluaran di kolom (-).",
+                "Donasi Jumat dan transaksi emas Sabtu tetap masuk ke catatan kas.",
+                "Di akhir sesi, hitung saldo awal, total pemasukan, total pengeluaran, lalu saldo akhir."
+            },
+            PointsEn = new[]
+            {
+                "Record income in the (+) column and expenses in the (-) column.",
+                "Friday donations and Saturday gold transactions still belong in the cashflow notes.",
+                "At the end of the session, calculate starting balance, total income, total expense, and ending balance."
+            }
+        }
+    };
+
+    var scoreFlow = new[]
+    {
+        new
+        {
+            TitleId = "Jumlahkan poin dasar",
+            TitleEn = "Count base points",
+            DescId = "Mulai dari seluruh kartu kebutuhan yang dimiliki pemain.",
+            DescEn = "Start from every needs card the player owns."
+        },
+        new
+        {
+            TitleId = "Tambahkan bonus",
+            TitleEn = "Add bonuses",
+            DescId = "Masukkan bonus set, donasi, emas, dan dana pensiun.",
+            DescEn = "Add set bonuses, donation, gold, and pension points."
+        },
+        new
+        {
+            TitleId = "Cek mode mahir",
+            TitleEn = "Check advanced mode",
+            DescId = "Tujuan keuangan hanya dihitung bila pinjaman syariah lunas.",
+            DescEn = "Financial goals count only when sharia loans are fully repaid."
+        },
+        new
+        {
+            TitleId = "Kurangi penalti",
+            TitleEn = "Subtract penalties",
+            DescId = "Kurangi misi koleksi gagal dan pinjaman yang belum lunas.",
+            DescEn = "Subtract failed collection missions and unpaid loans."
+        }
+    };
 }
 
 <section class="section-shell rulebook-page" id="rb-top">
@@ -27,216 +347,149 @@
             }
         </div>
         <div class="page-intro-actions">
-            <span class="hint-chip">@Context.T("privacy.total_sections"): @sections.Count</span>
-            <span class="hint-chip">@Context.T("privacy.total_points"): @totalPoints</span>
+            <span class="hint-chip">@L("Ringkas untuk dibaca saat main", "Condensed for live play")</span>
         </div>
     </div>
 
-    <div class="rulebook-flow-map" aria-label='@L("Alur utama buku aturan", "Main rulebook flow")'>
-        <a href="#rb-stage-setup">@L("Setup Meja", "Table Setup")</a>
-        <a href="#rb-stage-player">@L("Setup Pemain", "Player Setup")</a>
-        <a href="#rb-stage-turn">@L("2 Aksi / Giliran", "2 Actions / Turn")</a>
-        <a href="#rb-stage-special">@L("Hari Khusus", "Special Days")</a>
-        <a href="#rb-stage-score">@L("Skoring", "Scoring")</a>
+    <div class="rulebook-flow-map" aria-label='@L("Navigasi buku aturan", "Rulebook navigation")'>
+        <a href="#rb-guide">@L("Mulai", "Start")</a>
+        <a href="#rb-stage-setup">@L("Setup", "Setup")</a>
+        <a href="#rb-stage-turn">@L("Main", "Play")</a>
+        <a href="#rb-reference">@L("Referensi", "Reference")</a>
+        <a href="#rb-scoring">@L("Poin", "Scoring")</a>
     </div>
 
     <div class="rulebook-page-grid">
         <div class="rulebook-main">
+            <section id="rb-guide" class="rulebook-surface rulebook-anchor-target">
+                <div class="rulebook-section-head">
+                    <div>
+                        <p class="eyebrow">@L("Panduan ringkas", "Quick guide")</p>
+                        <h2 class="rulebook-heading">@L("Panduan ringkas untuk mulai main", "Quick guide to start playing")</h2>
+                    </div>
+                    <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
+                </div>
+                <p class="rulebook-surface-lead">@L("Baca bagian ini dari kiri ke kanan bila Anda baru menyiapkan sesi. Setelah itu, cukup lompat ke gambar atau referensi cepat di bawah.", "Read this section from left to right when you are setting up a session for the first time. After that, jump straight to the visuals or quick reference below.")</p>
+
+                <div class="rulebook-guide-grid">
+                    @foreach (var step in guideSteps)
+                    {
+                        <article class="rulebook-guide-card">
+                            <p class="rulebook-kicker">@L(step.StepId, step.StepEn)</p>
+                            <h3>@L(step.TitleId, step.TitleEn)</h3>
+                            <ul class="rulebook-list">
+                                @foreach (var point in isEnglish ? step.PointsEn : step.PointsId)
+                                {
+                                    <li>@point</li>
+                                }
+                            </ul>
+                        </article>
+                    }
+                </div>
+            </section>
+
             <section id="rb-visual" class="rulebook-surface">
                 <div class="rulebook-section-head">
                     <div>
-                        <p class="eyebrow">@L("Rujukan PDF", "PDF Reference")</p>
-                        <h2 class="rulebook-heading">@L("Alur permainan dari setup sampai skoring", "Gameplay flow from setup to scoring")</h2>
+                        <p class="eyebrow">@L("Visual setup dan flow", "Setup and flow visuals")</p>
+                        <h2 class="rulebook-heading">@L("Gambar besar untuk titik yang paling sering dicek", "Large visuals for the points you check most often")</h2>
                     </div>
                     <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
                 </div>
+                <p class="rulebook-surface-lead">@L("Setiap gambar hanya ditemani catatan inti. Tidak ada paragraf panjang supaya Anda bisa cepat melihat meja dan lanjut bermain.", "Each visual comes with only the key notes. No long paragraphs, so you can inspect the board quickly and keep the session moving.")</p>
 
-                <div class="rulebook-stage-grid">
-                    <article id="rb-stage-setup" class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/setup-mode-pemula.jpg" asp-append-version="true" alt='@L("Setup mode pemula", "Beginner mode setup")' loading="lazy" />
-                        <div>
-                            <h3>@L("Setup Mode Pemula", "Beginner Setup")</h3>
-                            <p>@L("Papan poin, penghasilan, pengeluaran, bank koin, bahan, pesanan, dan kebutuhan primer dibaca sebagai dasar semua transaksi awal.", "Point, income, expense, coin bank, ingredient, order, and primary-need boards define the baseline for early transactions.")</p>
-                        </div>
-                    </article>
-                    <article class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/setup-mode-mahir.jpg" asp-append-version="true" alt='@L("Setup mode mahir", "Advanced mode setup")' loading="lazy" />
-                        <div>
-                            <h3>@L("Setup Mode Mahir", "Advanced Setup")</h3>
-                            <p>@L("Mode mahir menambah target tabungan, risiko kehidupan, asuransi, dan bank syariah sehingga metrik risiko dan pinjaman bisa diperiksa.", "Advanced mode adds saving goals, life risks, insurance, and sharia bank so risk and debt metrics can be inspected.")</p>
-                        </div>
-                    </article>
-                    <article id="rb-stage-player" class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/alur-giliran.jpg" asp-append-version="true" alt='@L("Alur giliran permainan", "Gameplay turn flow")' loading="lazy" />
-                        <div>
-                            <h3>@L("Setup Pemain dan Giliran", "Player Setup and Turns")</h3>
-                            <p>@L("Setiap pemain punya 2 token aksi. Urutan, hari, dan sequence event dipakai untuk membaca kepatuhan giliran.", "Each player has 2 action tokens. Order, day, and event sequence are used to read turn compliance.")</p>
-                        </div>
-                    </article>
-                    <article id="rb-stage-turn" class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/aksi-kebutuhan-freelance.jpg" asp-append-version="true" alt='@L("Aksi kebutuhan dan kerja lepas", "Needs and freelance actions")' loading="lazy" />
-                        <div>
-                            <h3>@L("Aksi Utama", "Core Actions")</h3>
-                            <p>@L("Bahan, klaim pesanan, beli kebutuhan, dan kerja lepas adalah alur utama untuk kas, inventory, kebutuhan, dan efisiensi order.", "Ingredients, order claims, need purchases, and freelance work drive cash, inventory, needs, and order efficiency.")</p>
-                        </div>
-                    </article>
-                    <article id="rb-stage-special" class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/aksi-risiko-asuransi.jpg" asp-append-version="true" alt='@L("Risiko dan asuransi", "Risk and insurance")' loading="lazy" />
-                        <div>
-                            <h3>@L("Risiko, Asuransi, Pinjaman", "Risk, Insurance, Debt")</h3>
-                            <p>@L("Risiko kehidupan, klaim asuransi, opsi darurat, pinjaman, dan tabungan membentuk metrik ketahanan finansial.", "Life risks, insurance claims, emergency options, loans, and savings form the financial resilience metrics.")</p>
-                        </div>
-                    </article>
-                    <article class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/aksi-donasi-emas.jpg" asp-append-version="true" alt='@L("Donasi dan investasi emas", "Donation and gold investment")' loading="lazy" />
-                        <div>
-                            <h3>@L("Jumat dan Sabtu", "Friday and Saturday")</h3>
-                            <p>@L("Donasi Jumat dan investasi emas Sabtu memengaruhi poin sosial, ROI emas, dan strategi likuiditas.", "Friday donations and Saturday gold investment affect social points, gold ROI, and liquidity strategy.")</p>
-                        </div>
-                    </article>
-                    <article id="rb-stage-score" class="rulebook-stage-card">
-                        <img class="rulebook-stage-shot" src="~/images/rulebook/perhitungan-poin.jpg" asp-append-version="true" alt='@L("Perhitungan poin kebahagiaan", "Happiness point calculation")' loading="lazy" />
-                        <div>
-                            <h3>@L("Perhitungan Poin", "Point Calculation")</h3>
-                            <p>@L("Poin kebutuhan, bonus set, donasi, emas, dana pensiun, tujuan keuangan, penalti misi, dan penalti pinjaman dihitung di akhir sesi.", "Need points, set bonus, donation, gold, pension, financial goals, mission penalty, and loan penalty are calculated at session end.")</p>
-                        </div>
-                    </article>
-                </div>
-            </section>
-
-            <section id="rb-reference" class="rulebook-surface">
-                <div class="rulebook-section-head">
-                    <div>
-                        <p class="eyebrow">@L("Metrik ke aturan", "Metrics to rules")</p>
-                        <h2 class="rulebook-heading">@L("Apa yang dilihat di analitika dan sumber aturannya", "What analytics show and where the rule comes from")</h2>
-                    </div>
-                    <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
-                </div>
-                <div class="table-wrap rulebook-table-shell">
-                    <table class="w-full text-left text-sm rulebook-reference-table">
-                        <thead class="table-head">
-                            <tr>
-                                <th class="px-4 py-3">@L("Domain", "Domain")</th>
-                                <th class="px-4 py-3">@L("Yang dicek", "What to inspect")</th>
-                                <th class="px-4 py-3">@L("Rujukan PDF", "PDF reference")</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td class="px-4 py-3 font-semibold">@L("Kas", "Cash")</td><td class="px-4 py-3">@L("Saldo awal, kas masuk, kas keluar, saldo akhir, dan arus kas bersih.", "Starting cash, cash in, cash out, ending cash, and net cashflow.")</td><td class="px-4 py-3">@L("Catatan Arus Kas, Hal. 25", "Cashflow Notes, Pg. 25")</td></tr>
-                            <tr><td class="px-4 py-3 font-semibold">@L("Bahan dan Pesanan", "Ingredients and Orders")</td><td class="px-4 py-3">@L("Pembelian bahan, bahan terpakai, order berhasil, order terlewat, dan efisiensi bisnis.", "Ingredient purchases, used ingredients, completed orders, passed orders, and business efficiency.")</td><td class="px-4 py-3">@L("Hal. 13-15", "Pg. 13-15")</td></tr>
-                            <tr><td class="px-4 py-3 font-semibold">@L("Kebutuhan dan Misi", "Needs and Mission")</td><td class="px-4 py-3">@L("Primer, sekunder, tersier, misi koleksi, bonus set, dan penalti misi.", "Primary, secondary, tertiary needs, collection mission, set bonus, and mission penalty.")</td><td class="px-4 py-3">@L("Hal. 17 dan 27", "Pg. 17 and 27")</td></tr>
-                            <tr><td class="px-4 py-3 font-semibold">@L("Risiko dan Pinjaman", "Risk and Debt")</td><td class="px-4 py-3">@L("Risiko kehidupan, asuransi, opsi darurat, pinjaman syariah, pelunasan, dan penalti pinjaman.", "Life risks, insurance, emergency options, sharia loan, repayment, and loan penalty.")</td><td class="px-4 py-3">@L("Hal. 19-21 dan 27", "Pg. 19-21 and 27")</td></tr>
-                            <tr><td class="px-4 py-3 font-semibold">@L("Donasi, Emas, Pensiun", "Donation, Gold, Pension")</td><td class="px-4 py-3">@L("Peringkat donasi, transaksi emas, ROI emas, dana pensiun, dan komposisi poin akhir.", "Donation rank, gold trades, gold ROI, pension fund, and final point portfolio.")</td><td class="px-4 py-3">@L("Hal. 23 dan 27", "Pg. 23 and 27")</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="rulebook-surface">
-                <div class="rulebook-section-head">
-                    <div>
-                        <p class="eyebrow">@L("Alur per mode", "Mode flow")</p>
-                        <h2 class="rulebook-heading">@L("Alur permainan dari awal sampai akhir sesi", "Gameplay flow from start to session end")</h2>
-                    </div>
-                    <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
-                </div>
-                <div class="rulebook-mode-flow-grid">
-                    <article class="rulebook-mode-flow-card">
-                        <h3>@L("Mode Pemula", "Beginner Mode")</h3>
-                        <ol>
-                            <li>@L("Siapkan papan poin, bank koin, kartu bahan, kartu pesanan, kartu kebutuhan, kartu emas, kartu donasi, misi koleksi, dan dana pensiun.", "Set up point board, coin bank, ingredient cards, order cards, need cards, gold cards, donation cards, collection mission, and pension fund.")</li>
-                            <li>@L("Setiap pemain menerima layar pemain, token aksi, koin awal, target misi, dan urutan giliran.", "Each player receives player screen, action tokens, starting coins, mission target, and turn order.")</li>
-                            <li>@L("Pada setiap giliran, pemain memakai maksimal 2 token aksi untuk membeli bahan, klaim pesanan, membeli kebutuhan, bekerja lepas, mencatat transaksi, atau aksi hari khusus.", "On each turn, the player spends up to 2 action tokens for ingredients, orders, needs, freelance work, transaction notes, or special-day actions.")</li>
-                            <li>@L("Jumat dipakai untuk donasi, Sabtu untuk investasi emas, lalu seluruh arus kas masuk dan keluar dicatat sebagai dasar analitika.", "Friday is used for donation, Saturday for gold investment, then all cash in and cash out are recorded for analytics.")</li>
-                            <li>@L("Sesi berakhir dengan perhitungan poin kebutuhan, bonus set, donasi, emas, dana pensiun, tie breaker, dan penalti misi koleksi.", "The session ends with need points, set bonus, donation, gold, pension fund, tie breaker, and collection mission penalty.")</li>
-                        </ol>
-                    </article>
-                    <article class="rulebook-mode-flow-card">
-                        <h3>@L("Mode Mahir", "Advanced Mode")</h3>
-                        <ol>
-                            <li>@L("Mulai dari seluruh setup mode pemula, lalu tambahkan papan tujuan keuangan, kartu risiko kehidupan, asuransi, tabungan, dan bank syariah.", "Start from the beginner setup, then add financial goal board, life risk cards, insurance, savings, and sharia bank.")</li>
-                            <li>@L("Setiap pemain mendapat target keuangan tambahan dan harus mengelola risiko, perlindungan asuransi, pinjaman, serta pelunasan.", "Each player receives additional financial goals and must manage risk, insurance protection, loans, and repayment.")</li>
-                            <li>@L("Giliran tetap memakai 2 token aksi, tetapi pilihan aksi bertambah: menabung, mengambil atau melunasi pinjaman, membeli asuransi, memakai klaim, dan merespons risiko.", "Turns still use 2 action tokens, but actions expand to saving, taking or repaying loans, buying insurance, using claims, and responding to risks.")</li>
-                            <li>@L("Setiap kejadian risiko, premi, klaim, tabungan, dan pinjaman dicatat agar metrik ketahanan finansial dan leverage bisa dibaca jelas.", "Each risk event, premium, claim, saving, and loan is recorded so resilience and leverage metrics are readable.")</li>
-                            <li>@L("Akhir sesi menghitung semua poin mode pemula ditambah poin tujuan keuangan, status pinjaman, perlindungan risiko, serta penalti pinjaman yang belum lunas.", "Session end counts all beginner-mode points plus financial goal points, loan status, risk protection, and penalty for unpaid loans.")</li>
-                        </ol>
-                    </article>
-                </div>
-                <div class="rulebook-unified">
-                    <div class="rulebook-stream">
-                        @if (sections.Count == 0)
-                        {
-                            <div class="alert alert-info">
-                                @Context.T("privacy.empty_sections")
+                <div class="rulebook-visual-stack">
+                    @foreach (var panel in visualPanels)
+                    {
+                        <article class="rulebook-visual-panel rulebook-anchor-target" id="@panel.Id">
+                            <img class="rulebook-stage-shot" src="@panel.Image" asp-append-version="true" alt='@L(panel.AltId, panel.AltEn)' loading="lazy" />
+                            <div class="rulebook-visual-copy">
+                                <p class="eyebrow">@L(panel.PageId, panel.PageEn)</p>
+                                <h3>@L(panel.TitleId, panel.TitleEn)</h3>
+                                <ul class="rulebook-list">
+                                    @foreach (var note in isEnglish ? panel.NotesEn : panel.NotesId)
+                                    {
+                                        <li>@note</li>
+                                    }
+                                </ul>
                             </div>
-                        }
-                        else
-                        {
-                            @for (var index = 0; index < sections.Count; index++)
-                            {
-                                var sectionItem = sections[index];
-                                var anchor = $"rb-section-{index + 1}";
-                                <article class="rulebook-stream-item" id="@anchor">
-                                    <div class="rulebook-stream-head">
-                                        <div class="rulebook-heading-wrap">
-                                            <span class="rulebook-section-chip">@L($"Bagian {index + 1}", $"Section {index + 1}")</span>
-                                            <h2 class="rulebook-heading">@sectionItem.Heading</h2>
-                                        </div>
-                                        <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
-                                    </div>
-                                    <p class="rulebook-desc">@sectionItem.Description</p>
-                                    <ul class="rulebook-list">
-                                        @foreach (var point in sectionItem.Points)
-                                        {
-                                            <li>@point</li>
-                                        }
-                                    </ul>
-                                </article>
-                            }
-                        }
-                    </div>
+                        </article>
+                    }
                 </div>
             </section>
 
-            <section id="rb-scoring" class="rulebook-surface">
+            <section id="rb-reference" class="rulebook-surface rulebook-anchor-target">
                 <div class="rulebook-section-head">
                     <div>
-                        <p class="eyebrow">@L("Akhir sesi", "Session end")</p>
-                        <h2 class="rulebook-heading">@Context.T("privacy.happiness_summary")</h2>
+                        <p class="eyebrow">@L("Referensi cepat", "Quick reference")</p>
+                        <h2 class="rulebook-heading">@L("Referensi cepat saat bermain", "Quick reference during play")</h2>
                     </div>
                     <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
                 </div>
-                <div class="table-wrap rulebook-table-shell">
-                    <table class="w-full text-left text-sm rulebook-scoring-table">
-                        <thead class="table-head">
-                            <tr>
-                                <th class="px-4 py-3">@Context.T("privacy.category")</th>
-                                <th class="px-4 py-3">@Context.T("privacy.rule")</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @if (scoring.Count == 0)
-                        {
-                            <tr>
-                                <td class="px-4 py-4 text-slate-500" colspan="2">@Context.T("privacy.empty_scoring")</td>
-                            </tr>
-                        }
-                        else
-                        {
-                            @foreach (var item in scoring)
-                            {
-                                <tr class="border-t border-slate-200">
-                                    <td class="px-4 py-3 font-semibold text-slate-900">@item.Category</td>
-                                    <td class="px-4 py-3 text-slate-700">@item.Rule</td>
-                                </tr>
-                            }
-                        }
-                        </tbody>
-                    </table>
+                <p class="rulebook-surface-lead">@L("Bagian ini dipakai seperti cheat sheet. Buka saat giliran berjalan dan Anda butuh jawaban singkat, bukan penjelasan panjang.", "Use this section like a cheat sheet. Open it while turns are running and you need a short answer, not a long explanation.")</p>
+
+                <div class="rulebook-reference-grid">
+                    @foreach (var card in referenceCards)
+                    {
+                        <article class="rulebook-reference-card">
+                            <p class="rulebook-kicker">@L(card.EyebrowId, card.EyebrowEn)</p>
+                            <h3>@L(card.TitleId, card.TitleEn)</h3>
+                            <ul class="rulebook-list">
+                                @foreach (var point in isEnglish ? card.PointsEn : card.PointsId)
+                                {
+                                    <li>@point</li>
+                                }
+                            </ul>
+                        </article>
+                    }
                 </div>
             </section>
 
-            <article id="rulebook-copyright" class="rulebook-surface rulebook-copyright">
+            <section id="rb-scoring" class="rulebook-surface rulebook-anchor-target">
+                <div class="rulebook-section-head">
+                    <div>
+                        <p class="eyebrow">@L("Perhitungan akhir", "Final scoring")</p>
+                        <h2 class="rulebook-heading">@L("Hitung poin tanpa bolak-balik halaman", "Score without jumping between pages")</h2>
+                    </div>
+                    <a class="rulebook-top-link" href="#rb-top">@Context.T("privacy.back_to_top")</a>
+                </div>
+                <p class="rulebook-surface-lead">@L("Urutan di bawah mengikuti logika perhitungan poin pada PDF: hitung, tambah, cek syarat mode mahir, lalu kurangi penalti.", "The order below follows the scoring logic from the PDF: count, add, check advanced-mode conditions, then subtract penalties.")</p>
+
+                <div class="rulebook-score-visual">
+                    <img class="rulebook-stage-shot" src="~/images/rulebook/perhitungan-poin.jpg" asp-append-version="true" alt='@L("Perhitungan poin kebahagiaan", "Happiness point calculation")' loading="lazy" />
+                </div>
+
+                <div class="rulebook-score-flow">
+                    @foreach (var item in scoreFlow)
+                    {
+                        <article class="rulebook-score-step">
+                            <h3>@L(item.TitleId, item.TitleEn)</h3>
+                            <p>@L(item.DescId, item.DescEn)</p>
+                        </article>
+                    }
+                </div>
+
+                @if (scoring.Count == 0)
+                {
+                    <div class="alert alert-info">
+                        @Context.T("privacy.empty_scoring")
+                    </div>
+                }
+                else
+                {
+                    <div class="rulebook-score-grid">
+                        @foreach (var item in scoring)
+                        {
+                            <article class="rulebook-score-card">
+                                <h3>@item.Category</h3>
+                                <p>@item.Rule</p>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+
+            <article id="rulebook-copyright" class="rulebook-surface rulebook-copyright rulebook-anchor-target">
                 <h2>@Context.T("privacy.copyright_title")</h2>
                 <p>@Context.T("privacy.copyright_desc")</p>
             </article>

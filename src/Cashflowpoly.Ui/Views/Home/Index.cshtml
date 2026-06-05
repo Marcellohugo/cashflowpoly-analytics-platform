@@ -112,19 +112,22 @@
             </article>
         </div>
 
-        <div class="mt-6 metric-panel">
-            <div class="ruleset-section-head">
-                <h3 class="ruleset-section-title">@Context.T("home.quick_flow.title")</h3>
-                <p class="ruleset-section-subtitle">@Context.T("home.quick_flow.subtitle")</p>
-            </div>
-            <div class="metric-list">
-                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">@Context.T("home.quick_flow.step1")</span></div>
-                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">@Context.T("home.quick_flow.step2")</span></div>
-                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">@Context.T("home.quick_flow.step3")</span></div>
-                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">@Context.T("home.quick_flow.step4")</span></div>
-                <div class="metric-row"><span class="metric-key">5</span><span class="metric-value">@Context.T("home.quick_flow.step5")</span></div>
-            </div>
+        <div class="ruleset-section-head mt-6">
+            <p class="ruleset-section-title">@Context.T("home.quick_flow.title")</p>
+            <p class="ruleset-section-subtitle">@Context.T("home.quick_flow.subtitle")</p>
         </div>
+        <details class="mt-3 data-toggle" open>
+            <summary>@Context.T("home.quick_flow.title")</summary>
+            <div class="mt-3 metric-panel">
+                <div class="metric-list">
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 1</span><span class="metric-value">@Context.T("home.quick_flow.step1")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 2</span><span class="metric-value">@Context.T("home.quick_flow.step2")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 3</span><span class="metric-value">@Context.T("home.quick_flow.step3")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 4</span><span class="metric-value">@Context.T("home.quick_flow.step4")</span></div>
+                    <div class="metric-row"><span class="metric-key">@Context.T("sessions.step") 5</span><span class="metric-value">@Context.T("home.quick_flow.step5")</span></div>
+                </div>
+            </div>
+        </details>
     </section>
 }
 else

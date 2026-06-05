@@ -11,7 +11,7 @@ internal static partial class UiTextLexicon
         terms["players.total_sessions"] = ("Total Sesi Diikuti", "Total Sessions Joined");
         terms["players.index.source_hint"] = ("Data disusun dari daftar pemain dan analitika sesi terbaru.", "Data is compiled from player directory and latest session analytics.");
         terms["players.index.summary_title"] = ("Ringkasan Direktori Pemain", "Player Directory Summary");
-        terms["players.index.summary_subtitle"] = ("Gunakan ringkasan ini untuk cepat melihat cakupan data pemain dan kondisi sesi.", "Use this summary to quickly assess player data coverage and session conditions.");
+        terms["players.index.summary_subtitle"] = ("Gunakan ringkasan ini untuk cepat melihat jumlah pemain yang tersedia.", "Use this summary to quickly see the number of available players.");
         terms["players.index.players_with_data"] = ("Pemain dengan Data Sesi", "Players with Session Data");
         terms["players.index.sessions_with_data"] = ("Sesi dengan Data Pemain", "Sessions with Player Data");
         terms["players.index.status_help"] = ("Status sesi membantu menentukan prioritas analisis pemain yang perlu ditinjau dahulu.", "Session status helps prioritize which player analyses should be reviewed first.");

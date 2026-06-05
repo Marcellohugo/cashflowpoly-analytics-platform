@@ -29,6 +29,7 @@
     var isPlayersSection = string.Equals(currentController, "PlayerDirectory", StringComparison.OrdinalIgnoreCase)
         || string.Equals(currentController, "Players", StringComparison.OrdinalIgnoreCase);
     var isRulesetsSection = string.Equals(currentController, "Rulesets", StringComparison.OrdinalIgnoreCase);
+    var isComponentsSection = string.Equals(currentController, "Components", StringComparison.OrdinalIgnoreCase);
     Func<bool, string> navClass = isActive => isActive ? "nav-link is-active" : "nav-link";
     var hideFooter = ViewData["HideFooter"] as bool? ?? false;
     var hideHeader = ViewData["HideHeader"] as bool? ?? false;
@@ -136,6 +137,7 @@
     <link rel="icon" type="image/x-icon" href="~/images/cashflowpoly-favicon.ico" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="@roleThemeClass">
     <a class="skip-link" href="#content">@Context.T("layout.skip_to_content")</a>
@@ -171,6 +173,7 @@
                             <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
                         }
                         <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
+                        <a class="@navClass(isComponentsSection)" aria-current="@(isComponentsSection ? "page" : null)" data-nav="components" asp-area="" asp-controller="Components" asp-action="Index">@Context.T("nav.components")</a>
                         <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" href="/rulebook">@Context.T("nav.privacy")</a>
                     </div>
 

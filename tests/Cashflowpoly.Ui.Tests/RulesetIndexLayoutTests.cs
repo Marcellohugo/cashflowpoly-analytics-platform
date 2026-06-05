@@ -22,6 +22,8 @@ public sealed class RulesetIndexLayoutTests
         Assert.Contains("rulesets.tip.create", viewContent);
         Assert.Contains("rulesets.tip.versioning", viewContent);
         Assert.Contains("rulesets.tip.safety", viewContent);
+        Assert.DoesNotContain("rulesets.default_components.title", viewContent);
+        Assert.DoesNotContain("DefaultComponentItems", viewContent);
     }
 
     private static string ResolveRepositoryRoot()

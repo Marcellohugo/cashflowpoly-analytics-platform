@@ -26,8 +26,8 @@ public static class RulebookContent
         {
             Title = L("Cashflowpoly - Entrepreneur Edition", "Cashflowpoly - Entrepreneur Edition"),
             Subtitle = L(
-                "Panduan pemain: setup, alur aksi, dan perhitungan poin (A-M)",
-                "Player guide: setup, action flow, and scoring rules (A-M)"),
+                "Pegang halaman ini untuk setup, giliran, dan hitung poin.",
+                "Use this page for setup, turn flow, and scoring."),
             Sections = new List<RulebookSectionViewModel>
             {
                 new()
@@ -267,22 +267,27 @@ public static class RulebookContent
                 new()
                 {
                     Category = L("Poin Juara Dana Pensiun", "Pension Champion Points"),
-                    Rule = L("Juara 1 = +5, juara 2 = +3, juara 3 = +1.", "Rank 1 = +5, rank 2 = +3, rank 3 = +1.")
+                    Rule = L("Hitung dari sisa koin akhir, sisa bahan masakan, dan sisa tabungan; juara 1 = +5, juara 2 = +3, juara 3 = +1.", "Count ending cash, leftover ingredient cards, and remaining savings; rank 1 = +5, rank 2 = +3, rank 3 = +1.")
                 },
                 new()
                 {
                     Category = L("Poin Tujuan Keuangan", "Financial Goal Points"),
-                    Rule = L("Berlaku jika tidak ada pinjaman syariah yang tersisa.", "Valid only when no sharia loan remains.")
+                    Rule = L("Hanya dihitung di mode mahir bila seluruh pinjaman syariah sudah lunas.", "Count only in advanced mode when every sharia loan is fully repaid.")
                 },
                 new()
                 {
                     Category = L("Minus Misi Koleksi", "Collection Mission Penalty"),
-                    Rule = L("Penalti tetap -10 poin jika target koleksi tidak terpenuhi.", "Fixed -10 point penalty if collection target is not achieved.")
+                    Rule = L("Minus 10 poin bila misi koleksi tidak terpenuhi.", "Subtract 10 points when the collection mission is not completed.")
                 },
                 new()
                 {
                     Category = L("Minus Pinjaman Syariah", "Sharia Loan Penalty"),
                     Rule = L("Penalti tetap -15 poin untuk pinjaman yang belum lunas.", "Fixed -15 point penalty for unpaid loans.")
+                },
+                new()
+                {
+                    Category = L("Tie Breaker", "Tie Breaker"),
+                    Rule = L("Jika total poin sama, pemenang ditentukan oleh angka terbesar pada kartu tie breaker pemain.", "If total points are tied, the player with the highest tie-breaker card number wins.")
                 }
             }
         };

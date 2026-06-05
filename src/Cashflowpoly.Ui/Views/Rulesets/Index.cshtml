@@ -20,7 +20,8 @@
             @if (isInstructor)
             {
                 <a class="btn-primary"
-                   asp-controller="Rulesets" asp-action="Create">@Context.T("rulesets.create")</a>
+                   asp-controller="Rulesets"
+                   asp-action="Create">@Context.T("rulesets.create")</a>
             }
             else
             {
@@ -152,13 +153,11 @@
                 @Html.AntiForgeryToken()
                 <div data-ruleset-bulk-hidden-inputs></div>
             </form>
-
-            <div class="mt-3 ruleset-bulk-toolbar">
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <span class="hint-chip">
-                    @Context.T("rulesets.selected"): <strong class="ml-1" data-ruleset-selected-count>0</strong>
+                    @Context.T("rulesets.selected_count"): <span data-ruleset-selected-count>0</span>
                 </span>
-                <span class="ruleset-index-bulk-hint">@Context.T("rulesets.index.bulk_hint")</span>
-                <button class="btn-primary"
+                <button class="btn-ghost btn-compact"
                         type="submit"
                         form="ruleset-bulk-form"
                         data-ruleset-bulk-delete
@@ -172,7 +171,7 @@
                     <tr>
                         @if (isInstructor)
                         {
-                            <th class="px-4 py-3 text-center">
+                            <th class="px-4 py-3">
                                 <input type="checkbox"
                                        data-ruleset-select-all
                                        aria-label="@Context.T("rulesets.select_all")" />
@@ -210,11 +209,11 @@
                             data-latest-version="@item.LatestVersion">
                             @if (isInstructor)
                             {
-                                <td class="px-4 py-3 text-center" data-label="@Context.T("rulesets.select")">
+                                <td class="px-4 py-3" data-label="@Context.T("common.action")">
                                     <input type="checkbox"
                                            value="@item.RulesetId"
-                                           data-ruleset-select
-                                           aria-label="@Context.T("rulesets.select_one")" />
+                                           data-ruleset-row-checkbox
+                                           aria-label="@($"{Context.T("rulesets.select_one")} {item.Name}")" />
                                 </td>
                             }
                             <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.Name</td>
@@ -283,64 +282,6 @@
             </div>
         }
         </section>
-
-        <div class="ruleset-stream-divider mt-5"></div>
-
-        <section class="ruleset-index-section mt-5">
-            <div class="ruleset-section-head ruleset-section-head-row">
-                <div>
-                    <p class="ruleset-section-title">@Context.T("rulesets.default_components.title")</p>
-                    <p class="ruleset-section-subtitle">@Context.T("rulesets.default_components.subtitle") @Context.T("rulesets.index.default_help")</p>
-                </div>
-                <p class="ruleset-index-count">@Model.DefaultComponentItems.Count</p>
-            </div>
-
-            @if (!string.IsNullOrWhiteSpace(Model.DefaultComponentsErrorMessage))
-            {
-                <div class="mt-4 alert alert-error" aria-live="polite">
-                    @Model.DefaultComponentsErrorMessage
-                </div>
-            }
-
-            @if (Model.DefaultComponentItems.Count == 0)
-            {
-                <div class="mt-4 alert alert-info">
-                    @Context.T("rulesets.default_components.empty")
-                </div>
-            }
-            else
-            {
-                <div class="mt-4 grid gap-3 md:grid-cols-2 ruleset-default-grid">
-                    @foreach (var item in Model.DefaultComponentItems)
-                    {
-                        <article class="metric-panel ruleset-default-card">
-                            <div class="flex items-center justify-between gap-2">
-                                <p class="text-sm font-semibold text-slate-900">@item.Name</p>
-                                <span class="version-pill">@($"v{item.Version}")</span>
-                            </div>
-                            <p class="mt-2 text-xs text-slate-600">
-                                @Context.T("common.mode"): @Context.TRulesetMode(item.Mode)
-                            </p>
-                            <p class="mt-1 text-xs text-slate-600">
-                                @Context.T("common.description"): @(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)
-                            </p>
-                            <p class="mt-1 text-[11px] text-slate-500">
-                                @Context.T("common.ruleset_id"): <span class="font-mono">@item.RulesetId</span>
-                            </p>
-                            <p class="mt-1 text-[11px] text-slate-500">
-                                @Context.T("rulesets.components.ruleset_version_id"): <span class="font-mono">@item.RulesetVersionId</span>
-                            </p>
-                            <div class="mt-3 ruleset-default-card-action">
-                                <a class="table-link"
-                                   asp-controller="Rulesets"
-                                   asp-action="DefaultComponentDetails"
-                                   asp-route-rulesetVersionId="@item.RulesetVersionId">@Context.T("rulesets.default_components.open_detail")</a>
-                            </div>
-                        </article>
-                    }
-                </div>
-            }
-        </section>
     </div>
 </section>
 
@@ -355,16 +296,16 @@
             const nextButton = document.querySelector("[data-ruleset-next]");
             const pageInfo = document.querySelector("[data-ruleset-page-info]");
             const tbody = document.querySelector("[data-ruleset-tbody]");
+            const selectAllCheckbox = document.querySelector("[data-ruleset-select-all]");
+            const selectedCount = document.querySelector("[data-ruleset-selected-count]");
+            const bulkDeleteButton = document.querySelector("[data-ruleset-bulk-delete]");
+            const bulkInputsHost = document.querySelector("[data-ruleset-bulk-hidden-inputs]");
             if (!searchInput || !sortSelect || !pageSizeSelect || !resetButton || !tbody) {
                 return;
             }
 
             const rows = Array.from(tbody.querySelectorAll("[data-ruleset-row]"));
             const emptyFilterRow = tbody.querySelector("[data-empty-filter-row]");
-            const selectAllCheckbox = document.querySelector("[data-ruleset-select-all]");
-            const selectedCount = document.querySelector("[data-ruleset-selected-count]");
-            const bulkDeleteButton = document.querySelector("[data-ruleset-bulk-delete]");
-            const bulkInputsHost = document.querySelector("[data-ruleset-bulk-hidden-inputs]");
             const selectedRulesetIds = new Set();
             let currentPageRows = [];
             let currentPage = 1;
@@ -372,53 +313,6 @@
             if (rows.length === 0) {
                 return;
             }
-
-            const refreshBulkSelectionState = () => {
-                rows.forEach((row) => {
-                    const checkbox = row.querySelector("[data-ruleset-select]");
-                    if (!checkbox) {
-                        return;
-                    }
-
-                    checkbox.checked = selectedRulesetIds.has(checkbox.value);
-                });
-
-                if (selectedCount) {
-                    selectedCount.textContent = `${selectedRulesetIds.size}`;
-                }
-
-                if (bulkDeleteButton) {
-                    bulkDeleteButton.disabled = selectedRulesetIds.size === 0;
-                }
-
-                if (bulkInputsHost) {
-                    bulkInputsHost.innerHTML = "";
-                    Array.from(selectedRulesetIds).forEach((rulesetId) => {
-                        const input = document.createElement("input");
-                        input.type = "hidden";
-                        input.name = "rulesetIds";
-                        input.value = rulesetId;
-                        bulkInputsHost.appendChild(input);
-                    });
-                }
-
-                if (selectAllCheckbox) {
-                    const pageCheckboxes = currentPageRows
-                        .map((row) => row.querySelector("[data-ruleset-select]"))
-                        .filter((checkbox) => checkbox);
-                    const pageSelected = pageCheckboxes.filter((checkbox) => checkbox.checked).length;
-                    if (pageCheckboxes.length === 0) {
-                        selectAllCheckbox.checked = false;
-                        selectAllCheckbox.indeterminate = false;
-                        selectAllCheckbox.disabled = true;
-                        return;
-                    }
-
-                    selectAllCheckbox.disabled = false;
-                    selectAllCheckbox.checked = pageSelected === pageCheckboxes.length;
-                    selectAllCheckbox.indeterminate = pageSelected > 0 && pageSelected < pageCheckboxes.length;
-                }
-            };
 
             const getSortValue = (row, mode) => {
                 const name = row.dataset.name ?? "";
@@ -452,6 +346,42 @@
 
                     return 0;
                 });
+            };
+
+            const refreshBulkSelectionState = () => {
+                const visibleCheckboxes = currentPageRows
+                    .map((row) => row.querySelector("[data-ruleset-row-checkbox]"))
+                    .filter(Boolean);
+
+                visibleCheckboxes.forEach((checkbox) => {
+                    checkbox.checked = selectedRulesetIds.has(checkbox.value);
+                });
+
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = visibleCheckboxes.length > 0 &&
+                        visibleCheckboxes.every((checkbox) => checkbox.checked);
+                    selectAllCheckbox.indeterminate = visibleCheckboxes.some((checkbox) => checkbox.checked) &&
+                        !selectAllCheckbox.checked;
+                }
+
+                if (selectedCount) {
+                    selectedCount.textContent = `${selectedRulesetIds.size}`;
+                }
+
+                if (bulkDeleteButton) {
+                    bulkDeleteButton.disabled = selectedRulesetIds.size === 0;
+                }
+
+                if (bulkInputsHost) {
+                    bulkInputsHost.innerHTML = "";
+                    Array.from(selectedRulesetIds).forEach((rulesetId) => {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = "rulesetIds";
+                        input.value = rulesetId;
+                        bulkInputsHost.appendChild(input);
+                    });
+                }
             };
 
             const refreshRows = () => {
@@ -548,10 +478,10 @@
             }
 
             if (selectAllCheckbox) {
-                selectAllCheckbox.addEventListener("change", (event) => {
-                    const isChecked = !!event.target.checked;
+                selectAllCheckbox.addEventListener("change", () => {
+                    const isChecked = selectAllCheckbox.checked;
                     currentPageRows.forEach((row) => {
-                        const checkbox = row.querySelector("[data-ruleset-select]");
+                        const checkbox = row.querySelector("[data-ruleset-row-checkbox]");
                         if (!checkbox) {
                             return;
                         }
@@ -567,7 +497,7 @@
             }
 
             rows.forEach((row) => {
-                const checkbox = row.querySelector("[data-ruleset-select]");
+                const checkbox = row.querySelector("[data-ruleset-row-checkbox]");
                 if (!checkbox) {
                     return;
                 }

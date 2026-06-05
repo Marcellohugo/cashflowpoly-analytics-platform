@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -44,9 +44,9 @@ public sealed class PlayersController : Controller
         }
 
         var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
-        var summary = analytics?.ByPlayer.FirstOrDefault(p => p.PlayerId == playerId);
+        var summary = analytics?.ByPlayer.FirstOrDefault(p => p.UserId == playerId);
 
-        var txResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/transactions?playerId={playerId}", ct);
+        var txResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/transactions?userId={playerId}", ct);
         unauthorized = this.HandleUnauthorizedApiResponse(txResponse);
         if (unauthorized is not null)
         {
@@ -121,7 +121,7 @@ public sealed class PlayersController : Controller
         }
 
         var players = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
-        return players?.Items.FirstOrDefault(item => item.PlayerId == playerId)?.DisplayName;
+        return players?.Items.FirstOrDefault(item => item.UserId == playerId)?.DisplayName;
     }
 
     private static PlayerCashflowJourneyStatsViewModel BuildCashflowJourneyStats(List<TransactionHistoryItem> transactions, double startingCash)

@@ -4,15 +4,17 @@
 
 <script>
     (() => {
-        const boardTrackEl = document.getElementById("session-board-track");
+        const filterEl = document.getElementById("session-journey-filter");
+        const feedEl = document.getElementById("session-journey-feed");
         const errorEl = document.getElementById("session-journey-error");
         const syncedEl = document.getElementById("session-journey-synced");
         const insightTotalEl = document.getElementById("session-journey-insight-total");
+        const insightPlayersEl = document.getElementById("session-journey-insight-players");
         const insightDayTurnEl = document.getElementById("session-journey-insight-day-turn");
-        const insightActorEl = document.getElementById("session-journey-insight-actor");
+        const insightPlayerEl = document.getElementById("session-journey-insight-player");
         const insightActionEl = document.getElementById("session-journey-insight-action");
 
-        if (!boardTrackEl || !errorEl || !syncedEl) {
+        if (!filterEl || !feedEl || !errorEl || !syncedEl) {
             return;
         }
 
@@ -20,18 +22,16 @@
         const activeLanguage = @Html.Raw(JsonSerializer.Serialize(UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey))));
         const browserLocale = activeLanguage === "en" ? "en-US" : "id-ID";
         const emptyMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.no_events")));
+        const playerEmptyMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_player_empty")));
+        const filteredEmptyMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_filtered_empty")));
         const realtimeStatusTemplate = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.realtime_status")));
         const realtimeNetworkMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.realtime_network")));
         const activityFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.activity_default")));
+        const allPlayersLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_filter_all")));
+        const playerFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.player")));
         const dayLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.day_label")));
         const turnLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.turn_label")));
         const seqLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_seq")));
-        const actorLabels = {
-            PLAYER: @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.player"))),
-            SYSTEM: @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.system"))),
-            INSTRUCTOR: @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.instructor"))),
-            OTHER: @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.other")))
-        };
         const playerLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames));
         const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
         const pollIntervalMs = 10000;
@@ -42,12 +42,14 @@
         let timeline = [];
         let pollingTimerId = null;
         let lastSequence = 0;
+        let selectedPlayerKey = "all";
 
         const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
         const toNumber = (value, fallback = 0) => {
             const numericValue = Number(value);
             return Number.isFinite(numericValue) ? numericValue : fallback;
         };
+        const displayDayNumber = (dayIndex) => Math.max(1, toNumber(dayIndex, 1));
         const readValue = (obj, camelKey, pascalKey) => {
             if (!obj || typeof obj !== "object") {
                 return undefined;
@@ -88,18 +90,12 @@
             return "generic";
         };
         const actorLabel = (item) => {
-            const bucket = actorBucket(item.actorType);
-            if (bucket === "PLAYER") {
-                if (item.playerDisplayName) {
-                    return item.playerDisplayName;
-                }
-                const lookupName = playerLookup[String(item.playerId ?? "").toLowerCase()];
-                return lookupName || actorLabels.PLAYER;
+            if (item.playerDisplayName) {
+                return item.playerDisplayName;
             }
 
-            if (bucket === "SYSTEM") return actorLabels.SYSTEM;
-            if (bucket === "INSTRUCTOR") return actorLabels.INSTRUCTOR;
-            return actorLabels.OTHER;
+            const lookupName = playerLookup[String(item.playerId ?? "").toLowerCase()];
+            return lookupName || playerFallbackLabel;
         };
         const actionLabel = (item) => item.flowLabel || item.actionType || activityFallbackLabel;
         const normalizeTimeline = (rawTimeline) => {
@@ -133,6 +129,15 @@
                     return String(a.timestamp ?? "").localeCompare(String(b.timestamp ?? ""));
                 });
         };
+        const resolvePlayerKey = (item) => {
+            const playerId = String(item.playerId ?? "").trim().toLowerCase();
+            if (playerId) {
+                return playerId;
+            }
+
+            const normalizedLabel = actorLabel(item).trim().toLowerCase();
+            return normalizedLabel ? `name:${normalizedLabel}` : "player";
+        };
         const formatDateTime = (rawValue) => {
             const dt = new Date(rawValue);
             if (Number.isNaN(dt.getTime())) {
@@ -148,29 +153,46 @@
                 second: "2-digit"
             });
         };
-        const clearFocusedItems = () => {
-            boardTrackEl.querySelectorAll(".session-board-node.is-focused").forEach((node) => {
-                node.classList.remove("is-focused");
+        const isVisiblePlayerEvent = (item) =>
+            actorBucket(item.actorType) === "PLAYER" &&
+            item.actionType !== "turn.action.used";
+        const getPlayerTimeline = () => timeline.filter(isVisiblePlayerEvent);
+        const buildPlayerOptions = (playerTimeline) => {
+            const seen = new Set();
+            const options = [];
+
+            playerTimeline.forEach((item) => {
+                const key = resolvePlayerKey(item);
+                if (seen.has(key)) {
+                    return;
+                }
+
+                seen.add(key);
+                options.push({
+                    key,
+                    label: actorLabel(item)
+                });
             });
+
+            return options;
         };
-        const focusBySequence = (sequenceNumber) => {
-            const normalizedSeq = toNumber(sequenceNumber, 0);
-            if (normalizedSeq <= 0) {
-                return;
+        const getVisibleTimeline = (playerTimeline) => {
+            if (selectedPlayerKey === "all") {
+                return playerTimeline;
             }
 
-            clearFocusedItems();
-            const boardNode = boardTrackEl.querySelector(`.session-board-node[data-seq="${normalizedSeq}"]`);
-
-            if (boardNode) {
-                boardNode.classList.add("is-focused");
-                boardNode.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-            }
+            return playerTimeline.filter((item) => resolvePlayerKey(item) === selectedPlayerKey);
         };
-        const bindJourneyInteractions = () => {
-            boardTrackEl.querySelectorAll(".session-board-node[data-seq]").forEach((node) => {
-                node.addEventListener("click", () => {
-                    focusBySequence(node.getAttribute("data-seq"));
+        const bindFilterInteractions = () => {
+            filterEl.querySelectorAll("[data-player-key]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const nextPlayerKey = button.getAttribute("data-player-key") || "all";
+                    if (nextPlayerKey === selectedPlayerKey) {
+                        return;
+                    }
+
+                    selectedPlayerKey = nextPlayerKey;
+                    renderAll();
                 });
             });
         };
@@ -195,55 +217,96 @@
             });
             timeline = Array.from(map.values()).sort((a, b) => a.sequenceNumber - b.sequenceNumber);
         };
-        const renderJourneyBoard = () => {
-            const boardEvents = timeline;
-            if (boardEvents.length === 0) {
-                boardTrackEl.innerHTML = `<div class="session-journey-empty">${escapeHtml(emptyMessage)}</div>`;
+        const renderFilters = (playerOptions) => {
+            if (selectedPlayerKey !== "all" && !playerOptions.some((option) => option.key === selectedPlayerKey)) {
+                selectedPlayerKey = "all";
+            }
+
+            const buttons = [
+                `
+                    <button type="button"
+                            class="session-journey-filter-btn ${selectedPlayerKey === "all" ? "is-active" : ""}"
+                            data-player-key="all">${escapeHtml(allPlayersLabel)}</button>
+                `
+            ];
+
+            playerOptions.forEach((option) => {
+                buttons.push(`
+                    <button type="button"
+                            class="session-journey-filter-btn ${selectedPlayerKey === option.key ? "is-active" : ""}"
+                            data-player-key="${escapeHtml(option.key)}">${escapeHtml(option.label)}</button>
+                `);
+            });
+
+            filterEl.innerHTML = buttons.join("");
+            bindFilterInteractions();
+        };
+        const renderJourneyFeed = (playerTimeline, visibleTimeline) => {
+            if (playerTimeline.length === 0) {
+                feedEl.innerHTML = `<li class="session-journey-empty">${escapeHtml(timeline.length === 0 ? emptyMessage : playerEmptyMessage)}</li>`;
                 return;
             }
 
-            boardTrackEl.innerHTML = boardEvents.map((item, index) => {
-                const laneClass = index % 2 === 0 ? "lane-top" : "lane-bottom";
-                const actorClass = `actor-${actorBucket(item.actorType).toLowerCase()}`;
-                const flowClass = `flow-${flowBucket(item.actionType)}`;
-                const dayTurnLabel = `${dayLabel} ${item.dayIndex + 1} | ${turnLabel} ${item.turnNumber}`;
+            if (visibleTimeline.length === 0) {
+                feedEl.innerHTML = `<li class="session-journey-empty">${escapeHtml(filteredEmptyMessage)}</li>`;
+                return;
+            }
+
+            feedEl.innerHTML = visibleTimeline.map((item, index) => {
+                const displaySequenceNumber = index + 1;
+                const dayTurnLabel = `${dayLabel} ${displayDayNumber(item.dayIndex)} | ${turnLabel} ${item.turnNumber}`;
                 const detailLabel = item.flowDescription || activityFallbackLabel;
                 return `
-                    <article class="session-board-node ${laneClass} ${actorClass} ${flowClass}" data-seq="${item.sequenceNumber}">
-                        <div class="session-board-node-head">
-                            <span class="session-board-pin">${index + 1}</span>
-                            <span class="session-board-seq">${escapeHtml(seqLabel)} ${item.sequenceNumber}</span>
+                    <li class="session-journey-feed-item"
+                        data-player-key="${escapeHtml(resolvePlayerKey(item))}"
+                        data-flow="${escapeHtml(flowBucket(item.actionType))}">
+                        <div class="session-journey-feed-head">
+                            <div class="session-journey-feed-player">
+                                <p class="session-journey-feed-player-name">${escapeHtml(actorLabel(item))}</p>
+                                <div class="session-journey-feed-meta">
+                                    <span class="session-journey-feed-seq">${escapeHtml(seqLabel)} ${displaySequenceNumber}</span>
+                                    <span class="session-journey-feed-dayturn">${escapeHtml(dayTurnLabel)}</span>
+                                </div>
+                            </div>
+                            <span class="session-journey-feed-time">${escapeHtml(formatDateTime(item.timestamp))}</span>
                         </div>
-                        <h4 class="session-board-title">${escapeHtml(actionLabel(item))}</h4>
-                        <p class="session-board-subtitle">${escapeHtml(actorLabel(item))}</p>
-                        <p class="session-board-meta">${escapeHtml(dayTurnLabel)} | ${escapeHtml(item.weekday || "-")}</p>
-                        <p class="session-board-detail">${escapeHtml(detailLabel)}</p>
-                    </article>`;
+                        <p class="session-journey-feed-title">${escapeHtml(actionLabel(item))}</p>
+                        <p class="session-journey-feed-subtitle">${escapeHtml(item.weekday || "-")}</p>
+                        <p class="session-journey-feed-detail">${escapeHtml(detailLabel)}</p>
+                    </li>`;
             }).join("");
         };
-        const renderJourneyInsights = () => {
-            if (!insightTotalEl || !insightDayTurnEl || !insightActorEl || !insightActionEl) {
+        const renderJourneyInsights = (visibleTimeline) => {
+            if (!insightTotalEl || !insightPlayersEl || !insightDayTurnEl || !insightPlayerEl || !insightActionEl) {
                 return;
             }
 
-            if (timeline.length === 0) {
+            if (visibleTimeline.length === 0) {
                 insightTotalEl.textContent = "0";
+                insightPlayersEl.textContent = "0";
                 insightDayTurnEl.textContent = "-";
-                insightActorEl.textContent = "-";
+                insightPlayerEl.textContent = "-";
                 insightActionEl.textContent = "-";
                 return;
             }
 
-            const latestItem = timeline[timeline.length - 1];
-            insightTotalEl.textContent = `${timeline.length}`;
-            insightDayTurnEl.textContent = `${dayLabel} ${latestItem.dayIndex + 1} | ${turnLabel} ${latestItem.turnNumber}`;
-            insightActorEl.textContent = actorLabel(latestItem);
+            const latestItem = visibleTimeline[visibleTimeline.length - 1];
+            const activePlayers = new Set(visibleTimeline.map((item) => resolvePlayerKey(item)));
+
+            insightTotalEl.textContent = `${visibleTimeline.length}`;
+            insightPlayersEl.textContent = `${activePlayers.size}`;
+            insightDayTurnEl.textContent = `${dayLabel} ${displayDayNumber(latestItem.dayIndex)} | ${turnLabel} ${latestItem.turnNumber}`;
+            insightPlayerEl.textContent = actorLabel(latestItem);
             insightActionEl.textContent = actionLabel(latestItem);
         };
         const renderAll = () => {
-            renderJourneyBoard();
-            renderJourneyInsights();
-            bindJourneyInteractions();
+            const playerTimeline = getPlayerTimeline();
+            const playerOptions = buildPlayerOptions(playerTimeline);
+            const visibleTimeline = getVisibleTimeline(playerTimeline);
+
+            renderFilters(playerOptions);
+            renderJourneyInsights(visibleTimeline);
+            renderJourneyFeed(playerTimeline, visibleTimeline);
             lastSequence = timeline.length > 0
                 ? Math.max(...timeline.map((item) => item.sequenceNumber))
                 : 0;
