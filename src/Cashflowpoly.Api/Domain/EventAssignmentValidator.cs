@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -74,7 +74,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
         }
 
         var alreadyAssigned = history.Any(e =>
-            e.PlayerId == request.PlayerId &&
+            e.UserId == request.UserId &&
             e.ActionType == "mission.assigned");
         if (alreadyAssigned)
         {
@@ -114,7 +114,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
         }
 
         var alreadyAssigned = history.Any(e =>
-            e.PlayerId == request.PlayerId &&
+            e.UserId == request.UserId &&
             e.ActionType == "tie_breaker.assigned");
         if (alreadyAssigned)
         {
@@ -129,7 +129,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 
     private EventDomainValidationResult RequirePlayer(EventRequest request)
     {
-        if (request.PlayerId is not null)
+        if (request.UserId is not null)
         {
             return EventDomainValidationResult.Valid;
         }
@@ -138,6 +138,6 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
             StatusCodes.Status400BadRequest,
             "VALIDATION_ERROR",
             "Player wajib diisi",
-            new ErrorDetail("player_id", "REQUIRED"));
+            new ErrorDetail("user_id", "REQUIRED"));
     }
 }

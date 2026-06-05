@@ -16,8 +16,8 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         List<CashflowProjectionDb> projections,
         RulesetConfig? config)
     {
-        var playerGroups = events.Where(e => e.PlayerId.HasValue)
-            .GroupBy(e => e.PlayerId!.Value)
+        var playerGroups = events.Where(e => e.UserId.HasValue)
+            .GroupBy(e => e.UserId!.Value)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         var donationPointsByPlayer = new Dictionary<Guid, double>();
@@ -210,9 +210,9 @@ internal sealed class HappinessCalculator : IHappinessCalculator
 
     private Dictionary<Guid, int> BuildTieBreakerLookup(IEnumerable<EventDb> events)
     {
-        return events.Where(e => e.PlayerId.HasValue && e.ActionType == "tie_breaker.assigned")
+        return events.Where(e => e.UserId.HasValue && e.ActionType == "tie_breaker.assigned")
             .OrderBy(e => e.SequenceNumber)
-            .GroupBy(e => e.PlayerId!.Value)
+            .GroupBy(e => e.UserId!.Value)
             .ToDictionary(
                 g => g.Key,
                 g =>
@@ -230,23 +230,23 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         var pointsByRank = scoring.DonationRankPoints.ToDictionary(item => item.Rank, item => item.Points);
         var result = new Dictionary<Guid, double>();
 
-        var fridayGroups = events.Where(e => e.ActionType == "day.friday.donation" && e.PlayerId.HasValue)
+        var fridayGroups = events.Where(e => e.ActionType == "day.friday.donation" && e.UserId.HasValue)
             .GroupBy(e => e.DayIndex);
 
         foreach (var dayGroup in fridayGroups)
         {
             var totals = dayGroup
-                .GroupBy(e => e.PlayerId!.Value)
+                .GroupBy(e => e.UserId!.Value)
                 .Select(g =>
                 {
                     var total = g.Sum(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0);
                     tieBreakers.TryGetValue(g.Key, out var tieNumber);
-                    return new { PlayerId = g.Key, Amount = total, Tie = tieNumber };
+                    return new { UserId = g.Key, Amount = total, Tie = tieNumber };
                 })
                 .Where(item => item.Amount > 0)
                 .OrderByDescending(item => item.Amount)
                 .ThenByDescending(item => item.Tie)
-                .ThenBy(item => item.PlayerId)
+                .ThenBy(item => item.UserId)
                 .ToList();
 
             var rank = 1;
@@ -254,7 +254,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             {
                 if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
                 {
-                    result[item.PlayerId] = result.TryGetValue(item.PlayerId, out var existing) ? existing + points : points;
+                    result[item.UserId] = result.TryGetValue(item.UserId, out var existing) ? existing + points : points;
                 }
 
                 rank += 1;
@@ -272,8 +272,8 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             .OrderBy(item => item.Qty)
             .ToList();
 
-        var goldQtyByPlayer = events.Where(e => e.ActionType == "day.saturday.gold_trade" && e.PlayerId.HasValue)
-            .GroupBy(e => e.PlayerId!.Value)
+        var goldQtyByPlayer = events.Where(e => e.ActionType == "day.saturday.gold_trade" && e.UserId.HasValue)
+            .GroupBy(e => e.UserId!.Value)
             .ToDictionary(
                 g => g.Key,
                 g => g.Sum(e =>
@@ -309,21 +309,21 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                            ?? new Dictionary<int, int>();
 
         var cashByPlayer = projections
-            .GroupBy(p => p.PlayerId)
+            .GroupBy(p => p.UserId)
             .ToDictionary(
                 g => g.Key,
                 g => config.StartingCash + g.Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount));
 
-        var players = events.Where(e => e.PlayerId.HasValue).Select(e => e.PlayerId!.Value).Distinct().ToList();
+        var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
         var ranking = players.Select(playerId =>
             {
                 cashByPlayer.TryGetValue(playerId, out var cash);
                 tieBreakers.TryGetValue(playerId, out var tieNumber);
-                return new { PlayerId = playerId, Cash = cash, Tie = tieNumber };
+                return new { UserId = playerId, Cash = cash, Tie = tieNumber };
             })
             .OrderByDescending(item => item.Cash)
             .ThenByDescending(item => item.Tie)
-            .ThenBy(item => item.PlayerId)
+            .ThenBy(item => item.UserId)
             .ToList();
 
         var result = new Dictionary<Guid, double>();
@@ -332,7 +332,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         {
             if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
             {
-                result[item.PlayerId] = points;
+                result[item.UserId] = points;
             }
 
             rank += 1;

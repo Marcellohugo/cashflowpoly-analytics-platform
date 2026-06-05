@@ -16,7 +16,7 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
     {
         var inventory = new EventIngredientInventory();
 
-        foreach (var evt in events.Where(e => e.PlayerId == playerId))
+        foreach (var evt in events.Where(e => e.UserId == playerId))
         {
             if (evt.ActionType == "ingredient.purchased" &&
                 _payloadReader.TryReadIngredientPurchase(_payloadReader.ReadPayload(evt.Payload), out var cardId, out var amount))
@@ -58,7 +58,7 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
     {
         var balance = 0;
 
-        foreach (var evt in events.Where(e => e.PlayerId == playerId))
+        foreach (var evt in events.Where(e => e.UserId == playerId))
         {
             if (evt.ActionType == "saving.deposit.created" &&
                 _payloadReader.TryReadSavingDeposit(_payloadReader.ReadPayload(evt.Payload), out var existingGoalId, out var amount) &&

@@ -25,7 +25,6 @@
   <ItemGroup>
     <None Include="..\..\database\00_create_schema.sql" Link="database\00_create_schema.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\database\01_seed_default_rulesets_components.sql" Link="database\01_seed_default_rulesets_components.sql" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\database\02_seed_full_inspection.sql" Link="database\02_seed_full_inspection.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

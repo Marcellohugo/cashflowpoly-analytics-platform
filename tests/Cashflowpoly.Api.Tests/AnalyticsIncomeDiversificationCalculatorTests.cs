@@ -61,7 +61,7 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
         {
             EventId = Guid.NewGuid(),
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
@@ -85,7 +85,7 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
         {
             ProjectionId = Guid.NewGuid(),
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             EventPk = Guid.NewGuid(),
             EventId = Guid.NewGuid(),
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),

@@ -18,7 +18,7 @@ public sealed class EventRecordMapperTests
         {
             EventId = eventId,
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             ActorType = "player",
             Timestamp = timestamp,
             DayIndex = 7,
@@ -35,7 +35,7 @@ public sealed class EventRecordMapperTests
 
         Assert.Equal(eventId, request.EventId);
         Assert.Equal(sessionId, request.SessionId);
-        Assert.Equal(playerId, request.PlayerId);
+        Assert.Equal(playerId, request.UserId);
         Assert.Equal("player", request.ActorType);
         Assert.Equal(timestamp, request.Timestamp);
         Assert.Equal(7, request.DayIndex);

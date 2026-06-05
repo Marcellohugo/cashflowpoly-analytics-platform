@@ -22,6 +22,7 @@ public sealed class RulesetVersionDb
     public Guid RulesetId { get; set; }
     public int Version { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string? Mode { get; set; }
     public string ConfigJson { get; set; } = string.Empty;
     public string ConfigHash { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
@@ -38,6 +39,7 @@ public sealed class DefaultRulesetComponentDb
     public string? Description { get; set; }
     public Guid RulesetVersionId { get; set; }
     public int Version { get; set; }
+    public string? Mode { get; set; }
     public string ConfigJson { get; set; } = string.Empty;
 }
 
@@ -57,13 +59,16 @@ public sealed class SessionDb
 }
 
 /// <summary>
-/// Representasi baris tabel players — profil pemain.
+/// Representasi player berbasis tabel app_users — akun role PLAYER.
 /// </summary>
 public sealed class PlayerDb
 {
-    public Guid PlayerId { get; set; }
+    public Guid UserId { get; set; }
+    public string Username { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public Guid? InstructorUserId { get; set; }
+    public string Role { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 
@@ -75,13 +80,15 @@ public sealed class EventDb
     public Guid EventPk { get; set; }
     public Guid EventId { get; set; }
     public Guid SessionId { get; set; }
-    public Guid? PlayerId { get; set; }
+    public Guid? SessionPlayerId { get; set; }
+    public Guid? UserId { get; set; }
     public string ActorType { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; }
     public int DayIndex { get; set; }
     public string Weekday { get; set; } = string.Empty;
     public int TurnNumber { get; set; }
     public long SequenceNumber { get; set; }
+    public string? ActionId { get; set; }
     public string ActionType { get; set; } = string.Empty;
     public Guid RulesetVersionId { get; set; }
     public string Payload { get; set; } = string.Empty;
@@ -96,7 +103,7 @@ public sealed class CashflowProjectionDb
 {
     public Guid ProjectionId { get; set; }
     public Guid SessionId { get; set; }
-    public Guid PlayerId { get; set; }
+    public Guid UserId { get; set; }
     public Guid EventPk { get; set; }
     public Guid EventId { get; set; }
     public DateTimeOffset Timestamp { get; set; }
@@ -115,7 +122,8 @@ public sealed class MetricSnapshotDb
 {
     public Guid MetricSnapshotId { get; set; }
     public Guid SessionId { get; set; }
-    public Guid? PlayerId { get; set; }
+    public Guid? UserId { get; set; }
+    public Guid? SessionPlayerId { get; set; }
     public DateTimeOffset ComputedAt { get; set; }
     public string MetricName { get; set; } = string.Empty;
     public double? MetricValueNumeric { get; set; }

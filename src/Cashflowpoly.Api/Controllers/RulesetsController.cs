@@ -2,7 +2,7 @@ using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,12 +24,60 @@ namespace Cashflowpoly.Api.Controllers;
 public sealed class RulesetsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
+    private readonly SessionStateRepository _state;
     private readonly UserRepository _users;
 
-    public RulesetsController(RulesetRepository rulesets, UserRepository users)
+    public RulesetsController(RulesetRepository rulesets, SessionStateRepository state, UserRepository users)
     {
         _rulesets = rulesets;
+        _state = state;
         _users = users;
+    }
+
+    [HttpGet("sections")]
+    [ProducesResponseType(typeof(RulesetSectionsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRulesetSections([FromQuery] string? mode, [FromQuery] Guid? rulesetId, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        if (!TryNormalizeMode(mode, out var normalizedMode, out var modeError))
+        {
+            return modeError!;
+        }
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        if (!string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
+        var instructorUserId = string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase)
+            ? userId
+            : (Guid?)null;
+        var ruleset = await _state.GetRulesetSectionAsync(normalizedMode, rulesetId, instructorUserId, ct);
+        if (ruleset is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var catalog = RulesetSectionCatalog.FromConfig(ruleset.ConfigJson);
+        return Ok(new RulesetSectionsResponse(
+            ruleset.RulesetId,
+            ruleset.RulesetVersionId,
+            ruleset.Mode,
+            catalog.GameConfig,
+            catalog.Bahan,
+            catalog.Resep,
+            catalog.Kebutuhan,
+            catalog.TargetKebutuhan,
+            catalog.TujuanFinansial,
+            catalog.Narasi,
+            catalog.Quest));
     }
 
 
@@ -235,14 +283,14 @@ public sealed class RulesetsController : ControllerBase
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-            if (!linkedPlayerId.HasValue)
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue)
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
             }
 
-            items = await _rulesets.ListRulesetsByPlayerAsync(linkedPlayerId.Value, ct);
+            items = await _rulesets.ListRulesetsByPlayerAsync(playerUserId.Value, ct);
         }
         else
         {
@@ -292,10 +340,16 @@ public sealed class RulesetsController : ControllerBase
 
         foreach (var row in defaults)
         {
-            using var doc = JsonDocument.Parse(row.ConfigJson);
+            var compatibleConfigJson = await ResolveCompatibleConfigJsonAsync(row.RulesetId, null, row.Mode, row.ConfigJson, ct);
+            if (string.IsNullOrWhiteSpace(compatibleConfigJson))
+            {
+                continue;
+            }
+
+            using var doc = JsonDocument.Parse(compatibleConfigJson);
             var root = doc.RootElement;
 
-            string? itemMode = null;
+            var itemMode = row.Mode;
             if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
             {
                 itemMode = modeProp.GetString();
@@ -320,7 +374,8 @@ public sealed class RulesetsController : ControllerBase
                 row.RulesetVersionId,
                 row.Version,
                 itemMode,
-                componentCatalog));
+                componentCatalog,
+                TryBuildSections(compatibleConfigJson)));
         }
 
         return Ok(new DefaultRulesetComponentsResponse(items));
@@ -347,14 +402,14 @@ public sealed class RulesetsController : ControllerBase
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-            if (!linkedPlayerId.HasValue)
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue)
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
             }
 
-            ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
+            ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, playerUserId.Value, ct);
             if (ruleset is null)
             {
                 ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
@@ -379,11 +434,33 @@ public sealed class RulesetsController : ControllerBase
             v.CreatedAt)).ToList();
 
         JsonElement? configJson = null;
+        Guid? selectedRulesetVersionId = null;
+        int? selectedVersionNumber = null;
+        string? selectedMode = null;
+        RulesetSectionCatalogResponse? selectedSections = null;
         var latest = versions.FirstOrDefault();
         if (latest is not null)
         {
-            using var doc = JsonDocument.Parse(latest.ConfigJson);
-            configJson = doc.RootElement.Clone();
+            var compatibleConfigJson = await ResolveCompatibleConfigJsonAsync(
+                rulesetId,
+                string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? userId : null,
+                latest.Mode,
+                latest.ConfigJson,
+                ct);
+            if (!string.IsNullOrWhiteSpace(compatibleConfigJson))
+            {
+                using var doc = JsonDocument.Parse(compatibleConfigJson);
+                configJson = doc.RootElement.Clone();
+                selectedRulesetVersionId = latest.RulesetVersionId;
+                selectedVersionNumber = latest.Version;
+                selectedMode = latest.Mode;
+                if (doc.RootElement.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
+                {
+                    selectedMode = modeProp.GetString();
+                }
+
+                selectedSections = TryBuildSections(compatibleConfigJson);
+            }
         }
 
         var response = new RulesetDetailResponse(
@@ -391,7 +468,11 @@ public sealed class RulesetsController : ControllerBase
             ruleset.Name,
             ruleset.Description,
             versionItems,
-            configJson);
+            configJson,
+            selectedRulesetVersionId,
+            selectedVersionNumber,
+            selectedMode,
+            selectedSections);
 
         return Ok(response);
     }
@@ -426,14 +507,14 @@ public sealed class RulesetsController : ControllerBase
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-            if (!linkedPlayerId.HasValue)
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue)
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
             }
 
-            ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, linkedPlayerId.Value, ct);
+            ruleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId, playerUserId.Value, ct);
             if (ruleset is null)
             {
                 ruleset = await _rulesets.GetDefaultSeedRulesetAsync(rulesetId, ct);
@@ -466,9 +547,20 @@ public sealed class RulesetsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
         }
 
-        using var doc = JsonDocument.Parse(selectedVersion.ConfigJson);
+        var compatibleConfigJson = await ResolveCompatibleConfigJsonAsync(
+            rulesetId,
+            string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? userId : null,
+            selectedVersion.Mode,
+            selectedVersion.ConfigJson,
+            ct);
+        if (string.IsNullOrWhiteSpace(compatibleConfigJson))
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Konfigurasi ruleset tidak ditemukan"));
+        }
+
+        using var doc = JsonDocument.Parse(compatibleConfigJson);
         var root = doc.RootElement;
-        string? mode = null;
+        var mode = selectedVersion.Mode;
         if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
         {
             mode = modeProp.GetString();
@@ -480,12 +572,15 @@ public sealed class RulesetsController : ControllerBase
             componentCatalog = componentsProp.Clone();
         }
 
+        var sections = TryBuildSections(compatibleConfigJson);
+
         return Ok(new RulesetComponentsResponse(
             rulesetId,
             selectedVersion.RulesetVersionId,
             selectedVersion.Version,
             mode,
-            componentCatalog));
+            componentCatalog,
+            sections));
     }
 
     [HttpDelete("{rulesetId:guid}")]
@@ -524,6 +619,90 @@ public sealed class RulesetsController : ControllerBase
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdRaw, out userId);
+    }
+
+    private async Task<string?> ResolveCompatibleConfigJsonAsync(
+        Guid rulesetId,
+        Guid? instructorUserId,
+        string? mode,
+        string? rawConfigJson,
+        CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(rawConfigJson) &&
+            TryBuildSections(rawConfigJson) is not null)
+        {
+            return rawConfigJson;
+        }
+
+        var normalizedMode = string.IsNullOrWhiteSpace(mode)
+            ? "MAHIR"
+            : mode.Trim().ToUpperInvariant();
+        var section = await _state.GetRulesetSectionAsync(normalizedMode, rulesetId, instructorUserId, ct);
+        return section?.ConfigJson;
+    }
+
+    private static RulesetSectionCatalogResponse? TryBuildSections(string configJson)
+    {
+        if (string.IsNullOrWhiteSpace(configJson))
+        {
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(configJson);
+        if (!document.RootElement.TryGetProperty("component_catalog", out var componentCatalog) ||
+            componentCatalog.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var requiredKeys = new[]
+        {
+            "gameConfig",
+            "bahan",
+            "resep",
+            "kebutuhan",
+            "targetKebutuhan",
+            "tujuanFinansial",
+            "narasi",
+            "quest"
+        };
+
+        foreach (var key in requiredKeys)
+        {
+            if (!componentCatalog.TryGetProperty(key, out _))
+            {
+                return null;
+            }
+        }
+
+        var catalog = RulesetSectionCatalog.FromConfig(configJson);
+        return new RulesetSectionCatalogResponse(
+            catalog.GameConfig,
+            catalog.Bahan,
+            catalog.Resep,
+            catalog.Kebutuhan,
+            catalog.TargetKebutuhan,
+            catalog.TujuanFinansial,
+            catalog.Narasi,
+            catalog.Quest);
+    }
+
+    private IActionResult BadRequestError(string field, string issue, string message)
+    {
+        return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", message, new ErrorDetail(field, issue)));
+    }
+
+    private bool TryNormalizeMode(string? rawMode, out string mode, out IActionResult? error)
+    {
+        mode = string.IsNullOrWhiteSpace(rawMode) ? "MAHIR" : rawMode.Trim().ToUpperInvariant();
+        error = null;
+        if (mode is "PEMULA" or "MAHIR")
+        {
+            return true;
+        }
+
+        error = BadRequestError("mode", "INVALID_ENUM", "Mode tidak valid");
+        return false;
     }
 
 }

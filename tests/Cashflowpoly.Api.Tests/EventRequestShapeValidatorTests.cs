@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
@@ -26,7 +26,7 @@ public sealed class EventRequestShapeValidatorTests
     public void Validate_RejectsSystemActorFromScopedPlayer()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest() with { ActorType = "SYSTEM", PlayerId = playerId };
+        var request = CreateRequest() with { ActorType = "SYSTEM", UserId = playerId };
 
         var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: playerId);
 
@@ -41,7 +41,7 @@ public sealed class EventRequestShapeValidatorTests
     public void Validate_RejectsMismatchedScopedPlayer()
     {
         var scopedPlayerId = Guid.NewGuid();
-        var request = CreateRequest() with { PlayerId = Guid.NewGuid() };
+        var request = CreateRequest() with { UserId = Guid.NewGuid() };
 
         var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId);
 
@@ -55,7 +55,7 @@ public sealed class EventRequestShapeValidatorTests
     public void Validate_AcceptsValidPlayerEvent()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest() with { PlayerId = playerId };
+        var request = CreateRequest() with { UserId = playerId };
 
         var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: playerId);
 

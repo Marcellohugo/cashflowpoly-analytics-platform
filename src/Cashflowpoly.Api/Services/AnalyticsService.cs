@@ -3,7 +3,7 @@ using System.Text.Json;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Services;
@@ -114,16 +114,16 @@ internal sealed class AnalyticsService : IAnalyticsService
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
         var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerJoinOrders, ct);
-        if (scope.PlayerId.HasValue)
+        if (scope.UserId.HasValue)
         {
-            byPlayer = byPlayer.Where(item => item.PlayerId == scope.PlayerId.Value).ToList();
+            byPlayer = byPlayer.Where(item => item.UserId == scope.UserId.Value).ToList();
         }
 
         return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name), 200, null);
     }
 
     public async Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
-        Guid sessionId, Guid? playerId, ClaimsPrincipal user, CancellationToken ct)
+        Guid sessionId, Guid? userId, ClaimsPrincipal user, CancellationToken ct)
     {
         var access = await ResolveSessionAccessAsync(sessionId, user, ct);
         if (access.Error is not null)
@@ -137,11 +137,11 @@ internal sealed class AnalyticsService : IAnalyticsService
             return (null, scope.Error.Value.StatusCode, scope.Error.Value.ErrorResponse);
         }
 
-        var effectivePlayerId = scope.PlayerId ?? playerId;
+        var effectiveUserId = scope.UserId ?? userId;
 
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
         var items = projections
-            .Where(p => !effectivePlayerId.HasValue || p.PlayerId == effectivePlayerId.Value)
+            .Where(p => !effectiveUserId.HasValue || p.UserId == effectiveUserId.Value)
             .OrderBy(p => p.Timestamp)
             .Select(p => new TransactionHistoryItem(p.Timestamp, p.Direction, p.Amount, p.Category))
             .ToList();
@@ -150,7 +150,7 @@ internal sealed class AnalyticsService : IAnalyticsService
     }
 
     public async Task<(GameplayMetricsResponse? Result, int StatusCode, ErrorResponse? Error)> GetGameplayMetricsAsync(
-        Guid sessionId, Guid playerId, ClaimsPrincipal user, CancellationToken ct)
+        Guid sessionId, Guid userId, ClaimsPrincipal user, CancellationToken ct)
     {
         var access = await ResolveSessionAccessAsync(sessionId, user, ct);
         if (access.Error is not null)
@@ -164,19 +164,19 @@ internal sealed class AnalyticsService : IAnalyticsService
             return (null, scope.Error.Value.StatusCode, scope.Error.Value.ErrorResponse);
         }
 
-        if (scope.PlayerId.HasValue && scope.PlayerId.Value != playerId)
+        if (scope.UserId.HasValue && scope.UserId.Value != userId)
         {
             return (null, 403, BuildError("FORBIDDEN", "Player hanya dapat melihat metrik miliknya"));
         }
 
-        var snapshots = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, playerId, ct);
+        var snapshots = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, userId, ct);
         var rawJson = snapshots.FirstOrDefault(item => item.MetricName == "gameplay.raw.variables")?.MetricValueJson;
         var derivedJson = snapshots.FirstOrDefault(item => item.MetricName == "gameplay.derived.metrics")?.MetricValueJson;
         var computedAt = snapshots.Count == 0 ? (DateTimeOffset?)null : snapshots.Max(item => item.ComputedAt);
 
         return (new GameplayMetricsResponse(
             sessionId,
-            playerId,
+            userId,
             computedAt,
             ParseJsonElement(rawJson),
             ParseJsonElement(derivedJson)), 200, null);
@@ -190,7 +190,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         var isPlayer = string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase);
         RulesetDb? ruleset = null;
         List<SessionDb> sessions;
-        Guid? scopedPlayerId = null;
+        Guid? scopedUserId = null;
 
         if (isInstructor)
         {
@@ -215,7 +215,7 @@ internal sealed class AnalyticsService : IAnalyticsService
                 return (null, scope.Error.Value.StatusCode, scope.Error.Value.ErrorResponse);
             }
 
-            scopedPlayerId = scope.PlayerId;
+            scopedUserId = scope.UserId;
             sessions = await _sessions.ListSessionsAsync(ct);
         }
         else
@@ -239,9 +239,9 @@ internal sealed class AnalyticsService : IAnalyticsService
                 continue;
             }
 
-            if (scopedPlayerId.HasValue)
+            if (scopedUserId.HasValue)
             {
-                var inSession = await _players.IsPlayerInSessionAsync(session.SessionId, scopedPlayerId.Value, ct);
+                var inSession = await _players.IsPlayerInSessionAsync(session.SessionId, scopedUserId.Value, ct);
                 if (!inSession)
                 {
                     continue;
@@ -265,7 +265,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             {
                 var complianceRate = await _metrics.GetLatestMetricNumericAsync(
                     session.SessionId,
-                    player.PlayerId,
+                    player.UserId,
                     "compliance.primary_need.rate",
                     ct);
 
@@ -279,13 +279,13 @@ internal sealed class AnalyticsService : IAnalyticsService
                     player.MissionPenaltyTotal,
                     player.LoanPenaltyTotal);
 
-                allPlayerItems.Add(new RulesetAnalyticsPlayerItem(player.PlayerId, learningScore, missionScore));
+                allPlayerItems.Add(new RulesetAnalyticsPlayerItem(player.UserId, learningScore, missionScore));
             }
 
             var learningAggregate = _scoreCalc.AverageNullable(allPlayerItems.Select(item => item.LearningPerformanceIndividualScore));
             var missionAggregate = _scoreCalc.AverageNullable(allPlayerItems.Select(item => item.MissionPerformanceIndividualScore));
-            var visiblePlayers = scopedPlayerId.HasValue
-                ? allPlayerItems.Where(item => item.PlayerId == scopedPlayerId.Value).ToList()
+            var visiblePlayers = scopedUserId.HasValue
+                ? allPlayerItems.Where(item => item.UserId == scopedUserId.Value).ToList()
                 : allPlayerItems;
 
             sessionItems.Add(new RulesetAnalyticsSessionItem(
@@ -372,7 +372,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         return new ActiveRulesetContext(versionId.Value, rulesetVersion.RulesetId, ruleset?.Name, config);
     }
 
-    private async Task<(Guid? PlayerId, (int StatusCode, ErrorResponse ErrorResponse)? Error)> ResolvePlayerScopeAsync(
+    private async Task<(Guid? UserId, (int StatusCode, ErrorResponse ErrorResponse)? Error)> ResolvePlayerScopeAsync(
         Guid? sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
         var role = user.FindFirstValue(ClaimTypes.Role);
@@ -392,22 +392,22 @@ internal sealed class AnalyticsService : IAnalyticsService
             return (null, (401, BuildError("UNAUTHORIZED", "Token user tidak valid")));
         }
 
-        var playerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-        if (!playerId.HasValue)
+        var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+        if (!playerUserId.HasValue)
         {
             return (null, (403, BuildError("FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain")));
         }
 
         if (sessionId.HasValue)
         {
-            var inSession = await _players.IsPlayerInSessionAsync(sessionId.Value, playerId.Value, ct);
+            var inSession = await _players.IsPlayerInSessionAsync(sessionId.Value, playerUserId.Value, ct);
             if (!inSession)
             {
                 return (null, (403, BuildError("FORBIDDEN", "Player tidak terdaftar di sesi ini")));
             }
         }
 
-        return (playerId.Value, null);
+        return (playerUserId.Value, null);
     }
 
     private async Task<(SessionDb? Session, int StatusCode, ErrorResponse? Error)> EnsureInstructorSessionAccessAsync(
@@ -470,7 +470,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         CancellationToken ct)
     {
         var cashTotals = projections
-            .GroupBy(p => p.PlayerId)
+            .GroupBy(p => p.UserId)
             .ToDictionary(
                 g => g.Key,
                 g => new
@@ -480,8 +480,8 @@ internal sealed class AnalyticsService : IAnalyticsService
                 });
 
         var result = new List<AnalyticsByPlayerItem>();
-        var eventsByPlayer = events.Where(e => e.PlayerId.HasValue)
-            .GroupBy(e => e.PlayerId!.Value)
+        var eventsByPlayer = events.Where(e => e.UserId.HasValue)
+            .GroupBy(e => e.UserId!.Value)
             .ToDictionary(group => group.Key, group => group.ToList());
         var playerIds = playerJoinOrders.Keys
             .Union(eventsByPlayer.Keys)
@@ -492,7 +492,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             playerId => eventsByPlayer.TryGetValue(playerId, out var items) && items.Count > 0
                 ? items.Min(item => item.SequenceNumber)
                 : long.MaxValue);
-        var usernamesByPlayer = await _users.GetUsernamesByPlayerIdsAsync(playerIds, ct);
+        var usernamesByPlayer = await _users.GetUsernamesByUserIdsAsync(playerIds, ct);
 
         foreach (var playerId in playerIds)
         {
@@ -574,7 +574,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             }
         }
 
-        var players = events.Where(e => e.PlayerId.HasValue).Select(e => e.PlayerId!.Value).Distinct().ToList();
+        var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
         foreach (var playerId in players)
         {
             var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
@@ -600,8 +600,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         CancellationToken ct)
     {
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
-        var playerEvents = events.Where(e => e.PlayerId == playerId).ToList();
-        var playerProjections = projections.Where(p => p.PlayerId == playerId).ToList();
+        var playerEvents = events.Where(e => e.UserId == playerId).ToList();
+        var playerProjections = projections.Where(p => p.UserId == playerId).ToList();
 
         var cashIn = playerProjections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOut = playerProjections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);

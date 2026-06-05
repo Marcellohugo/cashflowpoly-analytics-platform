@@ -1,5 +1,5 @@
 using System.Collections.Frozen;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -74,16 +74,16 @@ internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
         }
 
         if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
-            request.PlayerId is null)
+            request.UserId is null)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi untuk actor PLAYER",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
-        if (scopedPlayerId.HasValue && request.PlayerId != scopedPlayerId.Value)
+        if (scopedPlayerId.HasValue && request.UserId != scopedPlayerId.Value)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status403Forbidden,

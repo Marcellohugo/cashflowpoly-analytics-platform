@@ -66,7 +66,8 @@ public sealed class JwtTokenServiceTests
         var user = new AuthenticatedUserDb(
             Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
             "alice",
-            "player",
+            "Alice",
+            "PLAYER",
             true);
 
         var beforeIssue = DateTimeOffset.UtcNow;
@@ -119,7 +120,7 @@ public sealed class JwtTokenServiceTests
         };
 
         var sut = CreateSut(options);
-        var user = new AuthenticatedUserDb(Guid.NewGuid(), "bob", "INSTRUCTOR", true);
+        var user = new AuthenticatedUserDb(Guid.NewGuid(), "bob", "Bob", "INSTRUCTOR", true);
 
         var issued = sut.IssueToken(user);
         var token = new JwtSecurityTokenHandler().ReadJwtToken(issued.AccessToken);

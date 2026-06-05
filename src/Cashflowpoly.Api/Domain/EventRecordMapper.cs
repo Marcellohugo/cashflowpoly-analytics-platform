@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -14,7 +14,7 @@ internal sealed class EventRecordMapper : IEventRecordMapper
         return new EventRequest(
             record.EventId,
             record.SessionId,
-            record.PlayerId,
+            record.UserId,
             record.ActorType,
             record.Timestamp,
             record.DayIndex,

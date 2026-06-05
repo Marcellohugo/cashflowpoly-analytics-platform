@@ -1,7 +1,7 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,19 +23,25 @@ public sealed class SessionsController : ControllerBase
 {
     private readonly RulesetRepository _rulesets;
     private readonly SessionRepository _sessions;
+    private readonly SessionStateRepository _state;
     private readonly PlayerRepository _players;
     private readonly UserRepository _users;
+    private readonly IWebHostEnvironment _environment;
 
     public SessionsController(
         RulesetRepository rulesets,
         SessionRepository sessions,
+        SessionStateRepository state,
         PlayerRepository players,
-        UserRepository users)
+        UserRepository users,
+        IWebHostEnvironment environment)
     {
         _rulesets = rulesets;
         _sessions = sessions;
+        _state = state;
         _players = players;
         _users = users;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -56,14 +62,14 @@ public sealed class SessionsController : ControllerBase
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-            if (!linkedPlayerId.HasValue)
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue)
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
             }
 
-            sessions = await _sessions.ListSessionsByPlayerAsync(linkedPlayerId.Value, ct);
+            sessions = await _sessions.ListSessionsByPlayerAsync(playerUserId.Value, ct);
         }
         else
         {
@@ -99,28 +105,46 @@ public sealed class SessionsController : ControllerBase
                 new ErrorDetail("session_name", "REQUIRED")));
         }
 
-        if (!string.Equals(request.Mode, "PEMULA", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(request.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+        if (!TryNormalizeMode(request.Mode, out var mode, out var modeError))
         {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Mode tidak valid",
-                new ErrorDetail("mode", "INVALID_ENUM")));
+            return modeError!;
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(request.RulesetId, instructorUserId, ct);
+        if (request.PlayerNames is not null)
+        {
+            if (!IsNonProductionPlayerBootstrapAllowed())
+            {
+                return BadRequest(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "VALIDATION_ERROR",
+                    "player_names hanya tersedia untuk environment dev/test",
+                    new ErrorDetail("player_names", "NOT_ALLOWED")));
+            }
+
+            return await CreateSessionWithInitialStateAsync(request, mode, instructorUserId, ct);
+        }
+
+        if (!request.RulesetId.HasValue)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
+                new ErrorDetail("ruleset_id", "REQUIRED")));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(request.RulesetId.Value, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        var latestVersion = await _rulesets.GetLatestActiveVersionAsync(request.RulesetId, ct);
+        var latestVersion = await _rulesets.GetLatestActiveVersionAsync(request.RulesetId.Value, ct);
         if (latestVersion is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset belum memiliki versi ACTIVE"));
         }
 
         var sessionId = await _sessions.CreateSessionAsync(
-            request.SessionName,
-            request.Mode.ToUpperInvariant(),
+            request.SessionName.Trim(),
+            mode,
             latestVersion.RulesetVersionId,
             instructorUserId,
             GetActorName(),
@@ -243,6 +267,362 @@ public sealed class SessionsController : ControllerBase
         return Ok(new ActivateRulesetResponse(sessionId, rulesetVersion.RulesetVersionId));
     }
 
+    [HttpGet("{sessionId:guid}/state")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionStateResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetState(Guid sessionId, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        var state = await _state.GetStateAsync(sessionId, ct);
+        if (state is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State session tidak ditemukan"));
+        }
+
+        return Ok(state);
+    }
+
+    [HttpPut("{sessionId:guid}/state")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionStateResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SaveState(Guid sessionId, [FromBody] SaveSessionStateRequest request, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
+        if (!activeRulesetVersionId.HasValue)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session belum memiliki ruleset aktif"));
+        }
+
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
+        if (rulesetVersion is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        var rulesetConfigJson = rulesetVersion.ConfigJson;
+        if (string.IsNullOrWhiteSpace(rulesetConfigJson))
+        {
+            var rulesetSection = await _state.GetRulesetSectionAsync(
+                rulesetVersion.Mode ?? session.Mode,
+                rulesetVersion.RulesetId,
+                instructorUserId,
+                ct);
+            if (rulesetSection is null)
+            {
+                return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Ruleset aktif tidak memiliki section permainan lengkap"));
+            }
+
+            rulesetConfigJson = rulesetSection.ConfigJson;
+        }
+
+        RulesetSectionCatalog catalog;
+        try
+        {
+            catalog = RulesetSectionCatalog.FromConfig(rulesetConfigJson);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException or System.Text.Json.JsonException)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Ruleset aktif tidak memiliki section permainan lengkap"));
+        }
+
+        var existingState = await _state.GetStateAsync(sessionId, ct);
+        if (existingState is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State session tidak ditemukan"));
+        }
+
+        var validation = ValidateStateRequest(request, existingState, catalog);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        var saveResult = await _state.SaveStateAsync(sessionId, request, ct);
+        return saveResult.Status switch
+        {
+            SaveSessionStateStatus.Saved => Ok(saveResult.State),
+            SaveSessionStateStatus.Stale => Conflict(ApiErrorHelper.BuildError(
+                HttpContext,
+                "STALE_STATE_VERSION",
+                $"State version sudah berubah. Versi saat ini {saveResult.CurrentVersion}.",
+                new ErrorDetail("state_version", "STALE"))),
+            _ => NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State session tidak ditemukan"))
+        };
+    }
+
+    private async Task<IActionResult> CreateSessionWithInitialStateAsync(
+        CreateSessionRequest request,
+        string mode,
+        Guid instructorUserId,
+        CancellationToken ct)
+    {
+        var playerNames = request.PlayerNames?.Select(name => name.Trim()).ToList() ?? [];
+        if (playerNames.Count is < 2 or > 4)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session membutuhkan 2 sampai 4 pemain",
+                new ErrorDetail("player_names", "COUNT_OUT_OF_RANGE")));
+        }
+
+        if (playerNames.Any(string.IsNullOrWhiteSpace))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama pemain wajib diisi",
+                new ErrorDetail("player_names", "REQUIRED")));
+        }
+
+        if (playerNames.Any(name => name.Length > 80))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama pemain maksimal 80 karakter",
+                new ErrorDetail("player_names", "MAX_LENGTH")));
+        }
+
+        var created = await _state.CreateSessionAsync(
+            request.SessionName!.Trim(),
+            mode,
+            playerNames,
+            request.RulesetId,
+            instructorUserId,
+            GetActorName(),
+            ct);
+        if (created is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        return Created(
+            $"/api/v1/sessions/{created.SessionId}/state",
+            new CreateSessionResponse(created.SessionId, created.RulesetId, created.RulesetVersionId, created.State));
+    }
+
+    private IActionResult? ValidateStateRequest(
+        SaveSessionStateRequest request,
+        SessionStateResponse existingState,
+        RulesetSectionCatalog catalog)
+    {
+        if (request.StateVersion < 1)
+        {
+            return BadRequestError("state_version", "OUT_OF_RANGE", "State version tidak valid");
+        }
+
+        if (request.FinishDay < 1 || request.Day < 1 || request.Day > request.FinishDay)
+        {
+            return BadRequestError("day", "OUT_OF_RANGE", "Hari permainan tidak valid");
+        }
+
+        if (request.MovesLeft < 0 || request.MovesLeft > 10)
+        {
+            return BadRequestError("moves_left", "OUT_OF_RANGE", "Moves left tidak valid");
+        }
+
+        var players = request.Players;
+        if (players is null)
+        {
+            return BadRequestError("players", "REQUIRED", "Daftar pemain wajib diisi");
+        }
+
+        if (players.Count != existingState.Players.Count || players.Count is < 2 or > 4)
+        {
+            return UnprocessableError("players", "COUNT_MISMATCH", "Jumlah pemain tidak sesuai session");
+        }
+
+        if (request.Turn < 1 || request.Turn > players.Count)
+        {
+            return BadRequestError("turn", "OUT_OF_RANGE", "Turn tidak valid");
+        }
+
+        var existingPlayerIds = existingState.Players.Select(player => player.SessionPlayerId).ToHashSet();
+        var seenPlayerIds = new HashSet<Guid>();
+        var seenPlayerIndexes = new HashSet<int>();
+        foreach (var player in players)
+        {
+            if (player.SessionPlayerId == Guid.Empty || !existingPlayerIds.Contains(player.SessionPlayerId))
+            {
+                return UnprocessableError("players.session_player_id", "UNKNOWN_REFERENCE", "Session player tidak valid");
+            }
+
+            if (!seenPlayerIds.Add(player.SessionPlayerId))
+            {
+                return UnprocessableError("players.session_player_id", "DUPLICATE", "Session player duplikat");
+            }
+
+            if (player.PlayerIndex < 1 || player.PlayerIndex > players.Count || !seenPlayerIndexes.Add(player.PlayerIndex))
+            {
+                return BadRequestError("players.player_index", "INVALID_VALUE", "Player index tidak valid");
+            }
+
+            if (string.IsNullOrWhiteSpace(player.Name) || player.Name.Length > 80)
+            {
+                return BadRequestError("players.name", "INVALID_VALUE", "Nama pemain tidak valid");
+            }
+
+            if (player.Coins < 0 || player.Happiness < 0 || player.Saving < 0 || player.TotalDonasi < 0)
+            {
+                return UnprocessableError("players", "NEGATIVE_VALUE", "Nilai player tidak boleh negatif");
+            }
+
+            var playerValidation = ValidatePlayerChildren(player, catalog);
+            if (playerValidation is not null)
+            {
+                return playerValidation;
+            }
+        }
+
+        foreach (var donationEvent in request.DonationEvents ?? [])
+        {
+            if (donationEvent.EventKe < 1 || donationEvent.Day < 1)
+            {
+                return BadRequestError("donationEvents", "OUT_OF_RANGE", "Event donasi tidak valid");
+            }
+
+            var rankingRanks = new HashSet<int>();
+            foreach (var ranking in donationEvent.Rankings)
+            {
+                if (ranking.Rank < 1 || !rankingRanks.Add(ranking.Rank))
+                {
+                    return BadRequestError("donationEvents.rankings.rank", "INVALID_VALUE", "Ranking donasi tidak valid");
+                }
+
+                if (!existingPlayerIds.Contains(ranking.SessionPlayerId))
+                {
+                    return UnprocessableError("donationEvents.rankings.session_player_id", "UNKNOWN_REFERENCE", "Ranking donasi merujuk player tidak valid");
+                }
+
+                if (ranking.TotalDonasi < 0)
+                {
+                    return UnprocessableError("donationEvents.rankings.total_donasi", "NEGATIVE_VALUE", "Total donasi tidak boleh negatif");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private IActionResult? ValidatePlayerChildren(SessionPlayerStateDto player, RulesetSectionCatalog catalog)
+    {
+        foreach (var item in player.Bahan)
+        {
+            if (string.IsNullOrWhiteSpace(item.Nama) || !catalog.BahanNames.Contains(item.Nama))
+            {
+                return UnprocessableError("players.bahan.nama", "UNKNOWN_REFERENCE", "Bahan tidak ditemukan di catalog");
+            }
+
+            if (item.Jumlah <= 0)
+            {
+                return BadRequestError("players.bahan.jumlah", "OUT_OF_RANGE", "Jumlah bahan harus lebih dari 0");
+            }
+        }
+
+        foreach (var item in player.Kebutuhan)
+        {
+            if (string.IsNullOrWhiteSpace(item.Nama) || !catalog.KebutuhanTypes.TryGetValue(item.Nama, out var expectedTipe))
+            {
+                return UnprocessableError("players.kebutuhan.nama", "UNKNOWN_REFERENCE", "Kebutuhan tidak ditemukan di catalog");
+            }
+
+            if (!string.Equals(expectedTipe, item.Tipe, StringComparison.OrdinalIgnoreCase))
+            {
+                return UnprocessableError("players.kebutuhan.tipe", "INVALID_REFERENCE", "Tipe kebutuhan tidak sesuai catalog");
+            }
+        }
+
+        foreach (var item in player.TujuanFinansial)
+        {
+            if (string.IsNullOrWhiteSpace(item.Nama) || !catalog.TujuanFinansialNames.Contains(item.Nama))
+            {
+                return UnprocessableError("players.tujuanFinansial.nama", "UNKNOWN_REFERENCE", "Tujuan finansial tidak ditemukan di catalog");
+            }
+
+            if (item.PurchasedAtDay < 1)
+            {
+                return BadRequestError("players.tujuanFinansial.purchased_at_day", "OUT_OF_RANGE", "Hari pembelian tujuan tidak valid");
+            }
+        }
+
+        foreach (var item in player.TargetKebutuhan)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id) || !catalog.TargetKebutuhanIds.Contains(item.Id))
+            {
+                return UnprocessableError("players.targetKebutuhan.id", "UNKNOWN_REFERENCE", "Target kebutuhan tidak ditemukan di catalog");
+            }
+        }
+
+        foreach (var item in player.QuestProgress)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id) || !catalog.QuestTargets.TryGetValue(item.Id, out var expectedTarget))
+            {
+                return UnprocessableError("players.questProgress.id", "UNKNOWN_REFERENCE", "Quest tidak ditemukan di catalog");
+            }
+
+            if (item.Progress < 0 || item.Target < 0)
+            {
+                return UnprocessableError("players.questProgress", "NEGATIVE_VALUE", "Progress quest tidak boleh negatif");
+            }
+
+            if (item.Target != expectedTarget)
+            {
+                return UnprocessableError("players.questProgress.target", "INVALID_REFERENCE", "Target quest tidak sesuai catalog");
+            }
+        }
+
+        foreach (var item in player.ActionCounters)
+        {
+            if (string.IsNullOrWhiteSpace(item.Aksi) || !catalog.Actions.Contains(item.Aksi))
+            {
+                return UnprocessableError("players.actionCounters.aksi", "UNKNOWN_REFERENCE", "Aksi tidak ditemukan di catalog");
+            }
+
+            if (item.Count < 0)
+            {
+                return UnprocessableError("players.actionCounters.count", "NEGATIVE_VALUE", "Counter aksi tidak boleh negatif");
+            }
+        }
+
+        return null;
+    }
+
+    private bool TryNormalizeMode(string? rawMode, out string mode, out IActionResult? error)
+    {
+        mode = string.IsNullOrWhiteSpace(rawMode) ? "MAHIR" : rawMode.Trim().ToUpperInvariant();
+        error = null;
+        if (mode is "PEMULA" or "MAHIR")
+        {
+            return true;
+        }
+
+        error = BadRequestError("mode", "INVALID_ENUM", "Mode tidak valid");
+        return false;
+    }
+
+    private IActionResult BadRequestError(string field, string issue, string message)
+    {
+        return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", message, new ErrorDetail(field, issue)));
+    }
+
+    private IActionResult UnprocessableError(string field, string issue, string message)
+    {
+        return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", message, new ErrorDetail(field, issue)));
+    }
+
     private string? GetActorName()
     {
         return User.FindFirstValue(ClaimTypes.Name) ??
@@ -253,5 +633,10 @@ public sealed class SessionsController : ControllerBase
     {
         var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdRaw, out userId);
+    }
+
+    private bool IsNonProductionPlayerBootstrapAllowed()
+    {
+        return _environment.IsDevelopment() || _environment.IsEnvironment("Testing");
     }
 }

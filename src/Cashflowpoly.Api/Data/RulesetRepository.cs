@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Domain;
+using Cashflowpoly.Api.Contracts;
 using Dapper;
 using Npgsql;
 
@@ -59,7 +60,7 @@ public sealed class RulesetRepository
     public async Task<RulesetVersionDb?> GetLatestVersionAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            select ruleset_version_id, ruleset_id, version, status, mode, coalesce(config_json::text, '') as config_json, config_hash, created_at, created_by
             from ruleset_versions
             where ruleset_id = @rulesetId
             order by version desc
@@ -76,7 +77,7 @@ public sealed class RulesetRepository
     public async Task<RulesetVersionDb?> GetLatestActiveVersionAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            select ruleset_version_id, ruleset_id, version, status, mode, coalesce(config_json::text, '') as config_json, config_hash, created_at, created_by
             from ruleset_versions
             where ruleset_id = @rulesetId
               and status = 'ACTIVE'
@@ -94,7 +95,7 @@ public sealed class RulesetRepository
     public async Task<RulesetVersionDb?> GetRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            select ruleset_version_id, ruleset_id, version, status, mode, coalesce(config_json::text, '') as config_json, config_hash, created_at, created_by
             from ruleset_versions
             where ruleset_id = @rulesetId and version = @version
             """;
@@ -109,7 +110,7 @@ public sealed class RulesetRepository
     public async Task<RulesetVersionDb?> GetRulesetVersionByIdAsync(Guid rulesetVersionId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            select ruleset_version_id, ruleset_id, version, status, mode, coalesce(config_json::text, '') as config_json, config_hash, created_at, created_by
             from ruleset_versions
             where ruleset_version_id = @rulesetVersionId
             """;
@@ -133,6 +134,7 @@ public sealed class RulesetRepository
         var rulesetVersionId = Guid.NewGuid();
         var createdAt = DateTimeOffset.UtcNow;
         var configHash = ComputeHash(configJson);
+        var mode = ResolveMode(configJson);
 
         const string insertRuleset = """
             insert into rulesets (ruleset_id, name, description, instructor_user_id, created_at, created_by)
@@ -140,8 +142,8 @@ public sealed class RulesetRepository
             """;
 
         const string insertVersion = """
-            insert into ruleset_versions (ruleset_version_id, ruleset_id, version, status, config_json, config_hash, created_at, created_by)
-            values (@rulesetVersionId, @rulesetId, 1, 'ACTIVE', @configJson::jsonb, @configHash, @createdAt, @createdBy)
+            insert into ruleset_versions (ruleset_version_id, ruleset_id, version, status, mode, config_json, config_hash, created_at, created_by)
+            values (@rulesetVersionId, @rulesetId, 1, 'ACTIVE', @mode, @configJson::jsonb, @configHash, @createdAt, @createdBy)
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -161,6 +163,7 @@ public sealed class RulesetRepository
         {
             rulesetVersionId,
             rulesetId,
+            mode,
             configJson,
             configHash,
             createdAt,
@@ -204,13 +207,14 @@ public sealed class RulesetRepository
             """;
 
         const string insertVersion = """
-            insert into ruleset_versions (ruleset_version_id, ruleset_id, version, status, config_json, config_hash, created_at, created_by)
-            values (@rulesetVersionId, @rulesetId, @version, 'DRAFT', @configJson::jsonb, @configHash, @createdAt, @createdBy)
+            insert into ruleset_versions (ruleset_version_id, ruleset_id, version, status, mode, config_json, config_hash, created_at, created_by)
+            values (@rulesetVersionId, @rulesetId, @version, 'DRAFT', @mode, @configJson::jsonb, @configHash, @createdAt, @createdBy)
             """;
 
         var rulesetVersionId = Guid.NewGuid();
         var createdAt = DateTimeOffset.UtcNow;
         var configHash = ComputeHash(configJson);
+        var mode = ResolveMode(configJson);
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
@@ -241,6 +245,7 @@ public sealed class RulesetRepository
             rulesetVersionId,
             rulesetId,
             version = nextVersion,
+            mode,
             configJson,
             configHash,
             createdAt,
@@ -396,7 +401,7 @@ public sealed class RulesetRepository
     /// <summary>
     /// Mengambil daftar ruleset yang digunakan dalam sesi yang diikuti pemain.
     /// </summary>
-    public async Task<List<RulesetListItem>> ListRulesetsByPlayerAsync(Guid playerId, CancellationToken ct)
+    public async Task<List<RulesetListItem>> ListRulesetsByPlayerAsync(Guid userId, CancellationToken ct)
     {
         const string sql = """
             with latest_versions as (
@@ -422,7 +427,7 @@ public sealed class RulesetRepository
                 from session_players sp
                 join session_ruleset_activations sra on sra.session_id = sp.session_id
                 join ruleset_versions rv on rv.ruleset_version_id = sra.ruleset_version_id
-                where sp.player_id = @playerId
+                where sp.user_id = @userId
                   and rv.ruleset_id = r.ruleset_id
             )
             order by r.created_at desc
@@ -430,7 +435,7 @@ public sealed class RulesetRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<RulesetListItem>(
-            new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
+            new CommandDefinition(sql, new { userId }, cancellationToken: ct));
         return items.ToList();
     }
 
@@ -445,6 +450,7 @@ public sealed class RulesetRepository
                     rv.ruleset_id,
                     rv.ruleset_version_id,
                     rv.version,
+                    rv.mode,
                     rv.config_json,
                     row_number() over (
                         partition by rv.ruleset_id
@@ -460,13 +466,13 @@ public sealed class RulesetRepository
                 r.description,
                 lv.ruleset_version_id,
                 lv.version,
-                lv.config_json::text as config_json
+                lv.mode,
+                coalesce(lv.config_json::text, '') as config_json
             from rulesets r
             join latest_versions lv on lv.ruleset_id = r.ruleset_id and lv.rn = 1
-            where r.created_by = 'system-seed-components-v1'
-              and lv.config_json ? 'component_catalog'
+            where lower(trim(coalesce(r.created_by, ''))) like 'system-seed-%'
             order by
-                case upper(coalesce(lv.config_json->>'mode', ''))
+                case upper(coalesce(lv.mode, ''))
                     when 'PEMULA' then 1
                     when 'MAHIR' then 2
                     else 3
@@ -483,7 +489,7 @@ public sealed class RulesetRepository
     /// <summary>
     /// Mengambil data ruleset jika pemain memiliki akses melalui sesi yang menggunakannya.
     /// </summary>
-    public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid playerId, CancellationToken ct)
+    public async Task<RulesetDb?> GetRulesetForPlayerAsync(Guid rulesetId, Guid userId, CancellationToken ct)
     {
         const string sql = """
             select r.ruleset_id, r.name, r.description, r.instructor_user_id, r.created_at, r.created_by
@@ -494,14 +500,14 @@ public sealed class RulesetRepository
                   from session_players sp
                   join session_ruleset_activations sra on sra.session_id = sp.session_id
                   join ruleset_versions rv on rv.ruleset_version_id = sra.ruleset_version_id
-                  where sp.player_id = @playerId
+                  where sp.user_id = @userId
                     and rv.ruleset_id = r.ruleset_id
               )
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.QuerySingleOrDefaultAsync<RulesetDb>(
-            new CommandDefinition(sql, new { rulesetId, playerId }, cancellationToken: ct));
+            new CommandDefinition(sql, new { rulesetId, userId }, cancellationToken: ct));
     }
 
     /// <summary>
@@ -510,7 +516,7 @@ public sealed class RulesetRepository
     public async Task<List<RulesetVersionDb>> ListRulesetVersionsAsync(Guid rulesetId, CancellationToken ct)
     {
         const string sql = """
-            select ruleset_version_id, ruleset_id, version, status, config_json::text as config_json, config_hash, created_at, created_by
+            select ruleset_version_id, ruleset_id, version, status, mode, coalesce(config_json::text, '') as config_json, config_hash, created_at, created_by
             from ruleset_versions
             where ruleset_id = @rulesetId
             order by version desc
@@ -522,7 +528,7 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Mengambil ruleset jika merupakan seed default sistem (created_by dimulai dengan "system-seed-components").
+    /// Mengambil ruleset jika merupakan seed default sistem (created_by dimulai dengan "system-seed-").
     /// </summary>
     public async Task<RulesetDb?> GetDefaultSeedRulesetAsync(Guid rulesetId, CancellationToken ct)
     {
@@ -530,7 +536,7 @@ public sealed class RulesetRepository
             select ruleset_id, name, description, instructor_user_id, created_at, created_by
             from rulesets
             where ruleset_id = @rulesetId
-              and lower(trim(created_by)) like 'system-seed-components%'
+              and lower(trim(coalesce(created_by, ''))) like 'system-seed-%'
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -576,5 +582,17 @@ public sealed class RulesetRepository
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexStringLower(bytes);
+    }
+
+    private static string ResolveMode(string configJson)
+    {
+        if (!RulesetConfigParser.TryParse(configJson, out var config, out _) ||
+            config is null ||
+            string.IsNullOrWhiteSpace(config.Mode))
+        {
+            throw new InvalidOperationException("Konfigurasi ruleset harus memiliki mode yang valid.");
+        }
+
+        return config.Mode.ToUpperInvariant();
     }
 }

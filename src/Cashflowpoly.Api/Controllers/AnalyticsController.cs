@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Services;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,17 +40,17 @@ public sealed class AnalyticsController : ControllerBase
 
     [HttpGet("sessions/{sessionId:guid}/transactions")]
     [ProducesResponseType(typeof(TransactionHistoryResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? playerId = null, CancellationToken ct = default)
+    public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? userId = null, CancellationToken ct = default)
     {
-        var (result, status, error) = await _analytics.GetTransactionsAsync(sessionId, playerId, User, ct);
+        var (result, status, error) = await _analytics.GetTransactionsAsync(sessionId, userId, User, ct);
         return status == 200 ? Ok(result) : StatusCode(status, error);
     }
 
-    [HttpGet("sessions/{sessionId:guid}/players/{playerId:guid}/gameplay")]
+    [HttpGet("sessions/{sessionId:guid}/players/{userId:guid}/gameplay")]
     [ProducesResponseType(typeof(GameplayMetricsResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetGameplayMetrics(Guid sessionId, Guid playerId, CancellationToken ct)
+    public async Task<IActionResult> GetGameplayMetrics(Guid sessionId, Guid userId, CancellationToken ct)
     {
-        var (result, status, error) = await _analytics.GetGameplayMetricsAsync(sessionId, playerId, User, ct);
+        var (result, status, error) = await _analytics.GetGameplayMetricsAsync(sessionId, userId, User, ct);
         return status == 200 ? Ok(result) : StatusCode(status, error);
     }
 

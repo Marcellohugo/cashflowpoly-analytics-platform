@@ -50,7 +50,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         var derived = derivedDoc.RootElement;
 
         Assert.Equal(sessionId, raw.GetProperty("metadata").GetProperty("session_id").GetGuid());
-        Assert.Equal(playerId, raw.GetProperty("metadata").GetProperty("player_id").GetGuid());
+        Assert.Equal(playerId, raw.GetProperty("metadata").GetProperty("user_id").GetGuid());
         Assert.Equal(5, raw.GetProperty("coins").GetProperty("coins_net_end_game").GetDouble());
         Assert.True(raw.GetProperty("outcomes").GetProperty("finish_line_reached").GetBoolean());
         Assert.Equal(1, raw.GetProperty("life_risk").GetProperty("life_risk_cards_drawn").GetInt32());
@@ -74,7 +74,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         {
             EventId = eventId,
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             ActorType = playerId.HasValue ? "PLAYER" : "SYSTEM",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero).AddMinutes(sequence),
             DayIndex = turn - 1,
@@ -99,7 +99,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         {
             ProjectionId = Guid.NewGuid(),
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             EventPk = Guid.NewGuid(),
             EventId = eventId,
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),

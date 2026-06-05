@@ -27,17 +27,19 @@ public sealed class MetricsRepository
             insert into metric_snapshots (
                 metric_snapshot_id,
                 session_id,
-                player_id,
+                user_id,
+                session_player_id,
                 computed_at,
                 metric_name,
                 metric_value_numeric,
-                metric_value_json,
+                metric_payload_json,
                 ruleset_version_id
             )
             values (
                 @MetricSnapshotId,
                 @SessionId,
-                @PlayerId,
+                @UserId,
+                @SessionPlayerId,
                 @ComputedAt,
                 @MetricName,
                 @MetricValueNumeric,
@@ -53,7 +55,7 @@ public sealed class MetricsRepository
     /// <summary>
     /// Menghitung jumlah pelanggaran validasi pada sesi dengan filter opsional per pemain.
     /// </summary>
-    public async Task<int> CountValidationViolationsAsync(Guid sessionId, Guid? playerId, CancellationToken ct)
+    public async Task<int> CountValidationViolationsAsync(Guid sessionId, Guid? userId, CancellationToken ct)
     {
         var sql = """
             select count(*)
@@ -62,28 +64,36 @@ public sealed class MetricsRepository
               and is_valid = false
             """;
 
-        if (playerId.HasValue)
+        if (userId.HasValue)
         {
-            sql += " and details_json ->> 'player_id' = @playerId";
+            sql += """
+
+                 and exists (
+                     select 1
+                     from events e
+                     where e.event_pk = validation_logs.event_pk
+                       and e.user_id = @userId
+                 )
+                 """;
         }
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId, playerId = playerId?.ToString() }, cancellationToken: ct));
+        return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId, userId }, cancellationToken: ct));
     }
 
     /// <summary>
     /// Mengambil snapshot gameplay JSON terbaru (variabel mentah dan metrik turunan) per pemain.
     /// </summary>
-    public async Task<List<MetricSnapshotJsonDb>> GetLatestGameplaySnapshotsAsync(Guid sessionId, Guid playerId, CancellationToken ct)
+    public async Task<List<MetricSnapshotJsonDb>> GetLatestGameplaySnapshotsAsync(Guid sessionId, Guid userId, CancellationToken ct)
     {
         const string sql = """
             select distinct on (metric_name)
                    metric_name,
-                   metric_value_json::text as metric_value_json,
+                   metric_payload_json::text as metric_value_json,
                    computed_at
             from metric_snapshots
             where session_id = @sessionId
-              and player_id = @playerId
+              and user_id = @userId
               and metric_name = any(@metricNames)
             order by metric_name, computed_at desc
             """;
@@ -91,20 +101,20 @@ public sealed class MetricsRepository
         var metricNames = new[] { "gameplay.raw.variables", "gameplay.derived.metrics" };
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<MetricSnapshotJsonDb>(
-            new CommandDefinition(sql, new { sessionId, playerId, metricNames }, cancellationToken: ct));
+            new CommandDefinition(sql, new { sessionId, userId, metricNames }, cancellationToken: ct));
         return items.ToList();
     }
 
     /// <summary>
     /// Mengambil nilai numerik terbaru dari metrik tertentu per pemain.
     /// </summary>
-    public async Task<double?> GetLatestMetricNumericAsync(Guid sessionId, Guid playerId, string metricName, CancellationToken ct)
+    public async Task<double?> GetLatestMetricNumericAsync(Guid sessionId, Guid userId, string metricName, CancellationToken ct)
     {
         const string sql = """
             select metric_value_numeric
             from metric_snapshots
             where session_id = @sessionId
-              and player_id = @playerId
+              and user_id = @userId
               and metric_name = @metricName
               and metric_value_numeric is not null
             order by computed_at desc
@@ -113,6 +123,6 @@ public sealed class MetricsRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.ExecuteScalarAsync<double?>(
-            new CommandDefinition(sql, new { sessionId, playerId, metricName }, cancellationToken: ct));
+            new CommandDefinition(sql, new { sessionId, userId, metricName }, cancellationToken: ct));
     }
 }

@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -90,7 +90,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                 new ErrorDetail("payload.counterparty", "INVALID_ENUM"));
         }
 
-        var outgoing = string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) && request.PlayerId is not null
+        var outgoing = string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) && request.UserId is not null
             ? amount
             : (double?)null;
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, outgoing);
@@ -126,7 +126,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Jumlah donasi di luar batas");
         }
 
-        return new EventEconomyActionValidation(EventDomainValidationResult.Valid, request.PlayerId is null ? null : amount);
+        return new EventEconomyActionValidation(EventDomainValidationResult.Valid, request.UserId is null ? null : amount);
     }
 
     private EventEconomyActionValidation ValidateGoldTrade(
@@ -191,11 +191,11 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang SELL emas");
         }
 
-        if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && request.PlayerId is not null)
+        if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && request.UserId is not null)
         {
             var goldQty = 0;
             foreach (var evt in history.Where(e =>
-                         e.PlayerId == request.PlayerId &&
+                         e.UserId == request.UserId &&
                          e.ActionType == "day.saturday.gold_trade"))
             {
                 if (!_payloadReader.TryReadGoldTrade(_payloadReader.ReadPayload(evt.Payload), out var evtTradeType, out var evtQty, out _, out _))
@@ -212,7 +212,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             }
         }
 
-        var outgoing = string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && request.PlayerId is not null
+        var outgoing = string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && request.UserId is not null
             ? amount
             : (double?)null;
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, outgoing);

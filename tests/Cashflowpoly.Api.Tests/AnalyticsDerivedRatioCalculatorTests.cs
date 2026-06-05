@@ -75,7 +75,7 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
         {
             EventId = Guid.NewGuid(),
             SessionId = Guid.NewGuid(),
-            PlayerId = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,

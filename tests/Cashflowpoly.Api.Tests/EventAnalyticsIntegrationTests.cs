@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Cashflowpoly.Contracts;
+using System.Text.Json;
+using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Tests.Infrastructure;
 using Xunit;
 
@@ -111,12 +112,13 @@ public sealed class EventAnalyticsIntegrationTests
             instructorToken);
         Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
 
-        var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
-        Assert.NotNull(createdPlayer);
+        using var createdPlayerBody = await ReadJsonAsync(createPlayerResponse);
+        var createdUserId = createdPlayerBody.RootElement.GetProperty("user_id").GetGuid();
+        Assert.NotEqual(Guid.Empty, createdUserId);
 
         var addPlayerPayload = new
         {
-            player_id = createdPlayer.PlayerId,
+            user_id = createdUserId,
             role = "PLAYER",
             join_order = 1
         };
@@ -155,7 +157,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = createdSession.SessionId,
-            player_id = createdPlayer.PlayerId,
+            user_id = createdUserId,
             actor_type = "PLAYER",
             timestamp = now.ToString("O"),
             day_index = 0,
@@ -179,7 +181,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = createdSession.SessionId,
-            player_id = createdPlayer.PlayerId,
+            user_id = createdUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(1).ToString("O"),
             day_index = 0,
@@ -206,25 +208,28 @@ public sealed class EventAnalyticsIntegrationTests
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, analyticsResponse.StatusCode);
 
-        var analytics = await analyticsResponse.Content.ReadFromJsonAsync<AnalyticsSessionResponse>();
-        Assert.NotNull(analytics);
-        Assert.Equal(2, analytics.Summary.EventCount);
-        Assert.Equal(10d, analytics.Summary.CashInTotal, 6);
-        Assert.Equal(3d, analytics.Summary.CashOutTotal, 6);
-        Assert.Equal(7d, analytics.Summary.CashflowNetTotal, 6);
+        using var analyticsBody = await ReadJsonAsync(analyticsResponse);
+        var analyticsRoot = analyticsBody.RootElement;
+        var summary = analyticsRoot.GetProperty("summary");
+        Assert.Equal(2, summary.GetProperty("event_count").GetInt32());
+        Assert.Equal(10d, summary.GetProperty("cash_in_total").GetDouble(), 6);
+        Assert.Equal(3d, summary.GetProperty("cash_out_total").GetDouble(), 6);
+        Assert.Equal(7d, summary.GetProperty("cashflow_net_total").GetDouble(), 6);
 
-        var byPlayer = analytics.ByPlayer.Single(p => p.PlayerId == createdPlayer.PlayerId);
-        Assert.Equal(10d, byPlayer.CashInTotal, 6);
-        Assert.Equal(3d, byPlayer.CashOutTotal, 6);
-        Assert.Equal(0, byPlayer.OrdersCompletedCount);
-        Assert.Equal(0, byPlayer.InventoryIngredientTotal);
-        Assert.Equal(0, byPlayer.ActionsUsedTotal);
-        Assert.Equal(1d, byPlayer.CompliancePrimaryNeedRate, 6);
-        Assert.Equal(0, byPlayer.RulesViolationsCount);
+        var byPlayer = analyticsRoot.GetProperty("by_player")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("user_id").GetGuid() == createdUserId);
+        Assert.Equal(10d, byPlayer.GetProperty("cash_in_total").GetDouble(), 6);
+        Assert.Equal(3d, byPlayer.GetProperty("cash_out_total").GetDouble(), 6);
+        Assert.Equal(0, byPlayer.GetProperty("orders_completed_count").GetInt32());
+        Assert.Equal(0, byPlayer.GetProperty("inventory_ingredient_total").GetInt32());
+        Assert.Equal(0, byPlayer.GetProperty("actions_used_total").GetInt32());
+        Assert.Equal(1d, byPlayer.GetProperty("compliance_primary_need_rate").GetDouble(), 6);
+        Assert.Equal(0, byPlayer.GetProperty("rules_violations_count").GetInt32());
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/analytics/sessions/{createdSession.SessionId}/transactions?playerId={createdPlayer.PlayerId}",
+            $"/api/v1/analytics/sessions/{createdSession.SessionId}/transactions?userId={createdUserId}",
             body: null,
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, transactionsResponse.StatusCode);
@@ -313,7 +318,7 @@ public sealed class EventAnalyticsIntegrationTests
 
             var addPlayerPayload = new
             {
-                player_id = createdPlayer.PlayerId,
+                user_id = createdPlayer.UserId,
                 role = "PLAYER"
             };
 
@@ -347,7 +352,7 @@ public sealed class EventAnalyticsIntegrationTests
             .OrderByDescending(v => v.Version)
             .First();
 
-        var orderedByPlayerId = players.OrderBy(x => x.PlayerId).ToList();
+        var orderedByPlayerId = players.OrderBy(x => x.UserId).ToList();
         var now = DateTimeOffset.UtcNow;
         long sequence = 1;
         foreach (var player in orderedByPlayerId.AsEnumerable().Reverse())
@@ -356,7 +361,7 @@ public sealed class EventAnalyticsIntegrationTests
             {
                 event_id = Guid.NewGuid(),
                 session_id = createdSession.SessionId,
-                player_id = player.PlayerId,
+                user_id = player.UserId,
                 actor_type = "PLAYER",
                 timestamp = now.AddSeconds(sequence).ToString("O"),
                 day_index = 0,
@@ -390,8 +395,8 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.NotNull(analytics);
         Assert.Equal(3, analytics.ByPlayer.Count);
 
-        var expectedPlayerOrder = orderedByPlayerId.Select(item => item.PlayerId).ToList();
-        var actualPlayerOrder = analytics.ByPlayer.Select(item => item.PlayerId).ToList();
+        var expectedPlayerOrder = orderedByPlayerId.Select(item => item.UserId).ToList();
+        var actualPlayerOrder = analytics.ByPlayer.Select(item => item.UserId).ToList();
         var actualJoinOrders = analytics.ByPlayer.Select(item => item.JoinOrder).ToList();
         Assert.Equal(expectedPlayerOrder, actualPlayerOrder);
         Assert.Equal(new[] { 1, 2, 3 }, actualJoinOrders);
@@ -447,7 +452,7 @@ public sealed class EventAnalyticsIntegrationTests
         var createdSession = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
         Assert.NotNull(createdSession);
 
-        var players = new List<(string Username, Guid PlayerId)>();
+        var players = new List<(string Username, Guid UserId)>();
         for (var i = 1; i <= 3; i++)
         {
             var username = i switch
@@ -470,7 +475,7 @@ public sealed class EventAnalyticsIntegrationTests
 
             var createdPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
             Assert.NotNull(createdPlayer);
-            players.Add((username, createdPlayer.PlayerId));
+            players.Add((username, createdPlayer.UserId));
         }
 
         var firstPlayer = players[0];
@@ -509,8 +514,8 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.NotNull(analytics);
         Assert.Equal(3, analytics.ByPlayer.Count);
 
-        var expectedPlayerOrder = new[] { thirdPlayer.PlayerId, firstPlayer.PlayerId, secondPlayer.PlayerId };
-        var actualPlayerOrder = analytics.ByPlayer.Select(item => item.PlayerId).ToArray();
+        var expectedPlayerOrder = new[] { thirdPlayer.UserId, firstPlayer.UserId, secondPlayer.UserId };
+        var actualPlayerOrder = analytics.ByPlayer.Select(item => item.UserId).ToArray();
         var actualJoinOrders = analytics.ByPlayer.Select(item => item.JoinOrder).ToArray();
 
         Assert.Equal(expectedPlayerOrder, actualPlayerOrder);
@@ -587,7 +592,7 @@ public sealed class EventAnalyticsIntegrationTests
                 $"/api/v1/sessions/{createdSession.SessionId}/players",
                 new
                 {
-                    player_id = createdPlayer.PlayerId,
+                    user_id = createdPlayer.UserId,
                     role = "PLAYER"
                 },
                 instructorToken);
@@ -614,7 +619,7 @@ public sealed class EventAnalyticsIntegrationTests
             $"/api/v1/sessions/{createdSession.SessionId}/players",
             new
             {
-                player_id = fifthPlayer.PlayerId,
+                user_id = fifthPlayer.UserId,
                 role = "PLAYER"
             },
             instructorToken);
@@ -683,7 +688,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
-            player_id = setup.PlayerId,
+            user_id = setup.UserId,
             actor_type = "PLAYER",
             timestamp = now.ToString("O"),
             day_index = 0,
@@ -707,7 +712,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
-            player_id = setup.PlayerId,
+            user_id = setup.UserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(1).ToString("O"),
             day_index = -1,
@@ -782,7 +787,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = foreignSession.SessionId,
-            player_id = (Guid?)null,
+            user_id = (Guid?)null,
             actor_type = "SYSTEM",
             timestamp = now.ToString("O"),
             day_index = 0,
@@ -845,7 +850,7 @@ public sealed class EventAnalyticsIntegrationTests
             $"/api/v1/sessions/{setup.SessionId}/players",
             new
             {
-                player_id = createdPlayer.PlayerId,
+                user_id = createdPlayer.UserId,
                 role = "ADMIN"
             },
             instructorToken);
@@ -863,7 +868,7 @@ public sealed class EventAnalyticsIntegrationTests
     /// Helper yang membuat ruleset, sesi, player, dan menjalankan sesi hingga siap
     /// untuk menerima event, lalu mengembalikan ID sesi, player, dan versi ruleset aktif.
     /// </summary>
-    private async Task<(Guid SessionId, Guid PlayerId, Guid RulesetVersionId)> CreateReadySessionAsync(
+    private async Task<(Guid SessionId, Guid UserId, Guid RulesetVersionId)> CreateReadySessionAsync(
         string instructorToken,
         string suffix)
     {
@@ -920,7 +925,7 @@ public sealed class EventAnalyticsIntegrationTests
 
         var addPlayerPayload = new
         {
-            player_id = createdPlayer.PlayerId,
+            user_id = createdPlayer.UserId,
             role = "PLAYER"
         };
 
@@ -952,7 +957,7 @@ public sealed class EventAnalyticsIntegrationTests
             .OrderByDescending(v => v.Version)
             .First();
 
-        return (createdSession.SessionId, createdPlayer.PlayerId, activeVersion.RulesetVersionId);
+        return (createdSession.SessionId, createdPlayer.UserId, activeVersion.RulesetVersionId);
     }
 
     /// <summary>
@@ -1000,6 +1005,12 @@ public sealed class EventAnalyticsIntegrationTests
         }
 
         return await _client.SendAsync(request);
+    }
+
+    private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        return await JsonDocument.ParseAsync(stream);
     }
 
     /// <summary>

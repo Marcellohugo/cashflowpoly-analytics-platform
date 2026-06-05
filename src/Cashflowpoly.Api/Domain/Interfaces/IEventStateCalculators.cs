@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
