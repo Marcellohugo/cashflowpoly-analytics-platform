@@ -154,7 +154,7 @@ Setiap skenario memuat:
 
 #### B. Manajemen *Ruleset* (M2)
 Catatan:
-- Semua endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan token Bearer milik role `INSTRUCTOR`.
+- Semua endpoint mutasi ruleset dan aktivasi ruleset mensyaratkan token Bearer milik role `INSTRUCTOR`.
 
 **TC-API-05 — Buat ruleset + versi 1**
 - Endpoint: `POST /api/v1/rulesets`

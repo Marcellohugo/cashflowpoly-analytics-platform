@@ -1,5 +1,5 @@
 ﻿# Analisis Kebutuhan Sistem  
-## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
+## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Analisis Kebutuhan Sistem
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Sistem
-Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres belajar. Modul manajemen *ruleset* disediakan agar instruktur dapat mengubah konfigurasi permainan tanpa mengubah kode program. Log event yang tersimpan digunakan untuk menghitung metrik pembelajaran dan menampilkannya pada dasbor analitika.
+Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres belajar. Instruktur menjalankan setup sesi, pemilihan *ruleset*, penambahan Player, start/end sesi, dan input keputusan Player melalui Klien Game/IDN. API memvalidasi dan menyimpan data tersebut, sedangkan Web Analitik membaca hasilnya untuk menampilkan metrik pembelajaran dan capaian misi.
 
 Dokumen ini dipakai bersama:
 - `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md` untuk kontrak endpoint/payload.
@@ -23,13 +23,13 @@ Dokumen ini dipakai bersama:
 ### 2.1 Ruang lingkup pengembangan
 Ruang lingkup pengembangan mencakup:
 1. Back-end berbasis RESTful API untuk menerima, memvalidasi, dan menyimpan event permainan.
-2. Modul manajemen *ruleset* untuk membuat, memperbarui, menghapus, dan mengaktifkan konfigurasi permainan.
+2. Kontrak API untuk lifecycle sesi, Player, *ruleset*, state permainan, dan event yang dipakai Klien Game/IDN.
 3. Modul analitika untuk menghitung metrik dari log event.
-4. Antarmuka web berbasis ASP.NET Core MVC (*Razor Views*) untuk menampilkan dasbor analitika dan fitur administrasi *ruleset*.
+4. Antarmuka web berbasis ASP.NET Core MVC (*Razor Views*) untuk menampilkan Web Analitik baca-saja dan referensi *ruleset*.
 
 ### 2.2 Batasan ruang lingkup
 Batasan ruang lingkup:
-1. Tidak membangun klien permainan (IDN) dan hanya menerima event dari klien IDN atau simulator.
+1. Tidak membangun klien permainan (IDN); repository ini menyediakan API dan Web Analitik yang menerima/membaca data dari klien IDN atau simulator.
 2. Tidak melakukan pengenalan citra atau input otomatis dari media fisik.
 3. Tidak menggantikan proses permainan manual, namun mendukung pencatatan dan analisis berbasis event.
 
@@ -62,21 +62,21 @@ Dalam rancangan ini, aturan permainan yang berdampak pada pencatatan dan validas
 ---
 
 ## 5. Aktor Sistem
-Aktor sistem terdiri dari dua peran:
+Aktor sistem terdiri dari:
 1. Instruktur
 2. Pemain
+3. Klien Game/IDN atau simulator
 
 ---
 
 ## 6. Kebutuhan Pengguna
 ### 6.1 Kebutuhan instruktur
 Kebutuhan instruktur dirangkum sebagai berikut:
-1. Fitur untuk membuat, memperbarui, menghapus, dan mengaktifkan *ruleset*.
-2. Fitur untuk memulai dan mengakhiri sesi permainan.
-3. Fitur untuk memantau performa pembelajaran dan performa misi pada level sesi (agregat) dan per pemain.
-4. Fitur untuk melihat histori keputusan dan transaksi berbasis urutan event.
-5. Fitur filter dan pengelompokan berdasarkan *ruleset*, sesi, dan pemain.
-6. Fitur audit untuk melihat ringkasan aktivitas dan kesalahan validasi event.
+1. Fitur operasional pada Klien Game/IDN untuk membuat sesi, memilih *ruleset*, menambahkan Player, memulai/mengakhiri sesi, dan memasukkan input keputusan Player.
+2. Fitur Web Analitik untuk memantau performa pembelajaran dan performa misi pada level sesi (agregat) dan per pemain.
+3. Fitur Web Analitik untuk melihat histori keputusan dan transaksi berbasis urutan event.
+4. Fitur filter dan pengelompokan berdasarkan *ruleset*, sesi, dan pemain.
+5. Fitur audit untuk melihat ringkasan aktivitas dan kesalahan validasi event.
 
 ### 6.2 Kebutuhan pemain
 Kebutuhan pemain dirangkum sebagai berikut:
@@ -111,13 +111,15 @@ Kriteria uji minimum:
 2. Sistem mengembalikan pesan error yang menunjuk field atau aturan yang dilanggar.
 3. Sistem menolak event duplikat dan tidak menggandakan dampak pada data.
 
-### 7.2 Manajemen ruleset
-- FR-RS-01 Sistem menyediakan pembuatan ruleset.
-- FR-RS-02 Sistem menyediakan pembaruan ruleset.
-- FR-RS-03 Sistem menyediakan penghapusan ruleset dengan pembatasan bila ruleset sudah dipakai pada sesi.
-- FR-RS-04 Sistem menyediakan aktivasi ruleset untuk sesi tertentu.
+### 7.2 Lifecycle sesi, Player, dan ruleset melalui API
+- FR-RS-01 Sistem menyediakan endpoint pembuatan ruleset untuk role `INSTRUCTOR`.
+- FR-RS-02 Sistem menyediakan endpoint pembaruan ruleset berbasis versi untuk role `INSTRUCTOR`.
+- FR-RS-03 Sistem menyediakan endpoint penghapusan ruleset dengan pembatasan bila ruleset sudah dipakai pada sesi.
+- FR-RS-04 Sistem menyediakan endpoint aktivasi ruleset untuk sesi tertentu.
 - FR-RS-05 Sistem menyimpan versi ruleset dan riwayat perubahan agar analisis tetap akurat saat konfigurasi berubah.
 - FR-RS-06 Sistem memvalidasi konfigurasi ruleset sebelum aktivasi untuk mencegah nilai di luar batas dan konflik konfigurasi.
+- FR-RS-07 Sistem menyediakan endpoint pembuatan sesi, penambahan Player ke sesi, start session, end session, dan state session untuk Klien Game/IDN.
+- FR-RS-08 Web Analitik menyediakan daftar/detail ruleset, create/edit/delete ruleset, aktivasi versi ruleset, dan aktivasi ruleset sesi untuk role Instruktur; Player hanya dapat membaca ruleset yang sesuai hak aksesnya.
 
 ### 7.3 Pengolahan dan agregasi metrik
 - FR-MTR-01 Sistem menghitung metrik dari log event mentah menjadi indikator terukur.
@@ -131,6 +133,8 @@ Kriteria uji minimum:
 - FR-DSH-03 Sistem menampilkan histori transaksi dan histori keputusan berdasarkan event.
 - FR-DSH-04 Sistem menyediakan filter dan pengelompokan berdasarkan ruleset, sesi, pemain, dan rentang waktu.
 - FR-DSH-05 Sistem memperbarui tampilan setelah sistem menerima event pada setiap aksi atau akhir giliran.
+- FR-DSH-06 Instruktur melihat event count, cash in, cash out, net cashflow, performa Player, dan pelanggaran validasi secara near real-time melalui Web Analitik.
+- FR-DSH-07 Player hanya melihat data sesi dan performa yang sesuai dengan hak aksesnya setelah permainan berakhir atau saat data sudah diizinkan.
 
 ---
 

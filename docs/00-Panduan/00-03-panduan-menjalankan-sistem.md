@@ -1,4 +1,4 @@
-﻿# Panduan Menjalankan Sistem (Windows 11 + VS Code)
+# Panduan Menjalankan Sistem (Windows 11 + VS Code)
 ## RESTful API + ASP.NET Core MVC (Razor Views) untuk Cashflowpoly
 
 ### Dokumen
@@ -17,7 +17,9 @@ Dokumen ini disusun untuk memandu cara menjalankan REST API dan UI MVC, mengakse
 ## 2. Prasyarat
 Pastikan setup lingkungan sudah selesai:
 - .NET 10 SDK terpasang,
-- PostgreSQL siap dan skrip `database/00_create_schema.sql` serta `database/01_seed_default_rulesets_components.sql` sudah dijalankan,
+- PostgreSQL siap, dan Anda memilih salah satu jalur berikut:
+  - API akan dijalankan dengan izin yang cukup untuk bootstrap `database/00_create_schema.sql` dan seed `database/01_seed_default_rulesets_components.sql`, atau
+  - kedua skrip tersebut sudah dijalankan manual,
 - connection string API dan `ApiBaseUrl` UI sudah benar,
 - `Jwt:SigningKey` sudah diisi (minimal 32 karakter, disarankan via variabel lingkungan).
 
@@ -31,6 +33,10 @@ Dari folder `src`:
 ```bash
 dotnet run --project Cashflowpoly.Api
 ```
+
+Pada startup pertama, API akan:
+1. memastikan schema database sinkron dengan `database/00_create_schema.sql`,
+2. memastikan ruleset default dari `database/01_seed_default_rulesets_components.sql` tersedia.
 
 ### 3.2 Akses Swagger
 Buka Chrome:
@@ -164,12 +170,12 @@ Artefak formal verifikasi (build/test/compose/load/security/observability) dicat
 Jalankan dari root repository:
 ```bash
 docker context use default
-docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
+docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build
 ```
 
 Hentikan container:
 ```bash
-docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
+docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml down
 ```
 
 

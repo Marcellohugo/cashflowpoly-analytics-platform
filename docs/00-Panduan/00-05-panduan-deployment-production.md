@@ -93,8 +93,8 @@ Catatan:
 Salin template:
 
 ```powershell
-Copy-Item .env.prod.example .env.prod
-notepad .env.prod
+Copy-Item config/env/.env.prod.example config/env/.env.prod
+notepad config/env/.env.prod
 ```
 
 Variabel yang wajib diisi:
@@ -122,8 +122,8 @@ Mode ini untuk pengembangan lokal dengan auto-reload:
 
 ```powershell
 docker context use default
-Copy-Item .env.dev.example .env.dev
-docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml up --build
+Copy-Item config/env/.env.dev.example config/env/.env.dev
+docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build
 ```
 
 Akses:
@@ -134,7 +134,7 @@ Akses:
 Stop:
 
 ```powershell
-docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.watch.yml down
+docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml down
 ```
 
 Verifikasi lokal sebelum merge atau deploy:
@@ -148,8 +148,8 @@ dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restor
 dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
-docker compose --env-file .env.dev.example -f docker-compose.yml -f docker-compose.watch.yml config
-docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+docker compose --env-file config/env/.env.dev.example -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml config
+docker compose --env-file config/env/.env.prod.example -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml config
 dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
 dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
@@ -181,7 +181,7 @@ dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restor
 dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
-docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+docker compose --env-file config/env/.env.prod.example -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml config
 dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release
 dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
@@ -193,19 +193,19 @@ Catatan:
 ### 6.3 Deploy Production
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
 ```
 
 Jika tidak memakai Cloudflare Tunnel:
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 6.4 Verifikasi Setelah Deploy
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml ps
 curl http://localhost/health/ready
 docker logs cashflowpoly-nginx --tail 20
 docker logs cashflowpoly-tunnel --tail 20
@@ -223,13 +223,13 @@ Alur rilis yang disarankan:
 2. Jalankan verifikasi lokal dengan `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config`.
 3. Commit dan push ke remote Git bila diperlukan.
 4. Di mesin server, tarik revision terbaru dengan `git pull`.
-5. Jalankan `docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx` dan tambahkan `--profile tunnel cloudflared` bila tunnel dipakai.
+5. Jalankan `docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx` dan tambahkan `--profile tunnel cloudflared` bila tunnel dipakai.
 6. Verifikasi health check dan login aplikasi.
 
 Catatan:
 - Tidak ada publish image otomatis ke registry.
 - Tidak ada auto-update container saat source berubah.
-- Setiap perubahan source, Dockerfile, `.env.prod`, atau `nginx/default.conf` perlu redeploy manual.
+- Setiap perubahan source, Dockerfile, `config/env/.env.prod`, atau `infra/nginx/default.conf` perlu redeploy manual.
 
 ---
 
@@ -243,7 +243,7 @@ Cloudflare Tunnel memungkinkan aplikasi diakses publik tanpa membuka port langsu
 2. Ganti nameserver domain ke nameserver Cloudflare yang diberikan.
 3. Buat Named Tunnel bernama `cashflowpoly`.
 4. Tambahkan route ke `http://nginx:80`.
-5. Salin token tunnel ke `.env.prod`:
+5. Salin token tunnel ke `config/env/.env.prod`:
 
 ```dotenv
 CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNGQ0N2......
@@ -275,7 +275,7 @@ Jika tunnel aktif, domain publik yang diharapkan:
 
 ```powershell
 # Status container
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml ps
 
 # Log container
 docker logs cashflowpoly-api --tail 50
@@ -283,16 +283,16 @@ docker logs cashflowpoly-ui --tail 50
 docker logs cashflowpoly-nginx --tail 50
 
 # Restart service tertentu
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml restart api
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml restart api
 
 # Rebuild dan redeploy service aplikasi
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build api ui nginx
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build api ui nginx
 
 # Hentikan semua service production
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel down
 
 # Hentikan semua service dan hapus volume database
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml --profile tunnel down -v
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel down -v
 ```
 
 ### 8.2 Kapan Harus Rebuild
@@ -303,7 +303,7 @@ Jalankan `up -d --build` jika ada perubahan pada:
 - dependensi NuGet/npm,
 - file konfigurasi yang di-copy saat image build.
 
-Jalankan `up -d` tanpa `--build` biasanya cukup jika hanya mengubah `.env.prod` atau konfigurasi compose yang tidak mempengaruhi hasil image.
+Jalankan `up -d` tanpa `--build` biasanya cukup jika hanya mengubah `config/env/.env.prod` atau konfigurasi compose yang tidak mempengaruhi hasil image.
 
 ---
 
@@ -315,10 +315,10 @@ Jalankan `up -d` tanpa `--build` biasanya cukup jika hanya mengubah `.env.prod` 
 git clone <remote-git-anda> cashflowpoly-analytics-platform
 cd cashflowpoly-analytics-platform
 
-Copy-Item .env.prod.example .env.prod
-notepad .env.prod
+Copy-Item config/env/.env.prod.example config/env/.env.prod
+notepad config/env/.env.prod
 
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 9.2 Catatan Migrasi
@@ -327,7 +327,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 |---|---|
 | URL domain publik | Tetap sama selama route dan token tunnel sama |
 | Database | Kosong jika volume tidak dipindahkan |
-| File `.env.prod` | Harus dipindahkan atau dibuat ulang |
+| File `config/env/.env.prod` | Harus dipindahkan atau dibuat ulang |
 | Source code | Ditarik ulang dari remote Git |
 
 ### 9.3 Backup dan Restore Database
@@ -387,14 +387,14 @@ Ekspektasi: response berisi JWT token.
 ### 11.1 Container Tidak Healthy
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml ps
 docker logs cashflowpoly-api --tail 50
 docker logs cashflowpoly-nginx --tail 50
 ```
 
 | Gejala | Kemungkinan Penyebab | Solusi |
 |---|---|---|
-| API unhealthy | Connection string atau secret JWT salah | Cek `.env.prod` |
+| API unhealthy | Connection string atau secret JWT salah | Cek `config/env/.env.prod` |
 | Nginx unhealthy | API/UI belum ready | Tunggu startup lalu cek log |
 | Tunnel tidak konek | Token salah atau kosong | Cek `CLOUDFLARE_TUNNEL_TOKEN` |
 | Build gagal | Dependensi belum sinkron | Jalankan ulang `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config` secara berurutan |
@@ -409,10 +409,10 @@ docker logs cashflowpoly-nginx --tail 50
 
 ### 11.3 Swagger Blank
 
-Pastikan `nginx/default.conf` memiliki route static asset Swagger ke backend API, lalu redeploy Nginx:
+Pastikan `infra/nginx/default.conf` memiliki route static asset Swagger ke backend API, lalu redeploy Nginx:
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build nginx
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build nginx
 ```
 
 ### 11.4 DNS Cache Lokal
@@ -428,10 +428,10 @@ nslookup tugasakhirmarco.my.id 8.8.8.8
 
 | File | Fungsi |
 |---|---|
-| `docker-compose.yml` | Definisi service dasar (`db`, `api`, `ui`) |
-| `docker-compose.prod.yml` | Override production, reverse proxy, tunnel |
-| `.env.prod.example` | Template environment production |
-| `nginx/default.conf` | Konfigurasi reverse proxy |
+| `infra/docker/docker-compose.yml` | Definisi service dasar (`db`, `api`, `ui`) |
+| `infra/docker/docker-compose.prod.yml` | Override production, reverse proxy, tunnel |
+| `config/env/.env.prod.example` | Template environment production |
+| `infra/nginx/default.conf` | Konfigurasi reverse proxy |
 | `src/Cashflowpoly.Api/Dockerfile` | Build image API |
 | `src/Cashflowpoly.Ui/Dockerfile` | Build image UI |
 | `database/00_create_schema.sql` | Inisiasi skema database |
@@ -443,8 +443,8 @@ nslookup tugasakhirmarco.my.id 8.8.8.8
 ### 13.1 Pertama Kali
 
 ```powershell
-Copy-Item .env.prod.example .env.prod
-notepad .env.prod
+Copy-Item config/env/.env.prod.example config/env/.env.prod
+notepad config/env/.env.prod
 dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
 dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
 dotnet restore tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj
@@ -453,10 +453,10 @@ dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restor
 dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
-docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose.prod.yml config
+docker compose --env-file config/env/.env.prod.example -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml config
 dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release
 dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 13.2 Setelah Ada Perubahan Kode
@@ -467,13 +467,13 @@ dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release
 dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release
 dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
 dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build db api ui nginx
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
 ```
 
 ### 13.3 Lihat Log
 
 ```powershell
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml logs -f --tail=50
+docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml logs -f --tail=50
 ```
 
 ---
@@ -482,7 +482,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 
 Sistem dianggap terdeploy dengan benar jika:
 
-- [ ] File `.env.prod` sudah diisi dengan nilai non-default
+- [ ] File `config/env/.env.prod` sudah diisi dengan nilai non-default
 - [ ] `POSTGRES_PASSWORD` dan `JWT_SIGNING_KEY` valid
 - [ ] Semua container utama (`db`, `api`, `ui`, `nginx`) berstatus sehat
 - [ ] `cloudflared` berjalan jika tunnel diaktifkan

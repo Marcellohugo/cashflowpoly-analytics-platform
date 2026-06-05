@@ -12,7 +12,7 @@
 ## 1. Tujuan
 Dokumen ini menetapkan struktur repository, pembagian proyek API/UI, urutan implementasi, dan artefak validasi agar pengerjaan terukur dan sesuai scope:
 1. web analytics,
-2. ruleset management,
+2. API lifecycle sesi/ruleset/player untuk Klien Game/IDN,
 3. backend API,
 4. database.
 
@@ -29,11 +29,16 @@ cashflowpoly-analytics-platform/
     02-Perancangan/
     03-Pengujian/
   postman/
+  config/
+    env/
+  infra/
+    docker/
+    nginx/
+    cloudflared/
   src/
     Cashflowpoly.Api/
     Cashflowpoly.Ui/
   Cashflowpoly.sln
-  docker-compose.yml
 ```
 
 ---
@@ -52,7 +57,7 @@ Tanggung jawab:
 1. MVC Controller + Razor Views,
 2. alur login/register/logout,
 3. dashboard analitika,
-4. manajemen ruleset,
+4. manajemen ruleset untuk Instruktur dan referensi ruleset untuk Player,
 5. integrasi API via `HttpClient`.
 
 ---
@@ -116,9 +121,8 @@ Tanggung jawab:
 1. login/register,
 2. sessions list/details,
 3. players details,
-4. ruleset list/details/create,
-5. activation ruleset,
-6. halaman detail sesi (analitika), route kompatibilitas `/analytics`, dan rulebook.
+4. ruleset list/details baca-saja,
+5. halaman detail sesi (analitika), route kompatibilitas `/analytics`, dan rulebook.
 
 ### Tahap I - Pengujian dan Operasional
 1. `dotnet build` API dan UI,

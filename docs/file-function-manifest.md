@@ -4,16 +4,16 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 
 | Path | Kategori | Mode | Fungsi File | Catatan |
 | --- | --- | --- | --- | --- |
-| .env.dev.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.dev.example. | - |
-| .env.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.example. | - |
-| .env.prod.example | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .env.prod.example. | - |
+| config/env/.env.dev.example | Konfigurasi | inline | Menyediakan template environment development. | - |
+| config/env/.env.example | Konfigurasi | inline | Menyediakan template environment fallback/legacy. | - |
+| config/env/.env.prod.example | Konfigurasi | inline | Menyediakan template environment production. | - |
 | .gitattributes | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file .gitattributes. | Konfigurasi atribut Git lintas platform. |
 | .gitignore | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .gitignore. | - |
 | Cashflowpoly.sln | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.sln. | File solusi dikelola tooling. |
-| cloudflared/config.yml | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file config.yml. | - |
+| infra/cloudflared/config.yml | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file config.yml. | - |
 | database/00_create_schema.sql | Database | inline | Menyediakan implementasi atau konfigurasi aktif pada file 00_create_schema.sql. | - |
-| docker-compose.prod.yml | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file docker-compose.prod.yml. | - |
-| docker-compose.yml | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file docker-compose.yml. | - |
+| infra/docker/docker-compose.prod.yml | Infrastruktur | inline | Menyediakan override production untuk Docker Compose. | - |
+| infra/docker/docker-compose.yml | Infrastruktur | inline | Menyediakan definisi service dasar Docker Compose. | - |
 | docs/00-Panduan/00-01-panduan-setup-lingkungan.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-01-panduan-setup-lingkungan.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | docs/00-Panduan/00-02-manual-pengguna-dan-skenario-operasional.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-02-manual-pengguna-dan-skenario-operasional.md. | Dokumen tidak diubah inline sesuai kebijakan. |
 | docs/00-Panduan/00-03-panduan-menjalankan-sistem.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-03-panduan-menjalankan-sistem.md. | Dokumen tidak diubah inline sesuai kebijakan. |
@@ -48,8 +48,8 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | docs/Img/RuleBook/hal-25.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-25.png. | Aset biner. |
 | docs/Img/RuleBook/hal-27.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-27.png. | Aset biner. |
 | docs/Img/RuleBook/hal-28.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-28.png. | Aset biner. |
-| nginx/default.conf | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file default.conf. | - |
-| nginx/ssl/.gitkeep | Infrastruktur | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file .gitkeep. | Tidak aman/kurang relevan diberi komentar inline. |
+| infra/nginx/default.conf | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file default.conf. | - |
+| infra/nginx/ssl/.gitkeep | Infrastruktur | manifest-only | Menyimpan placeholder folder SSL lokal. | Tidak aman/kurang relevan diberi komentar inline. |
 | postman/Cashflowpoly.local.postman_environment.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.local.postman_environment.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | postman/Cashflowpoly.postman_collection.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.postman_collection.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
 | README.md | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file README.md. | Dokumen tidak diubah inline sesuai kebijakan. |
@@ -101,6 +101,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Cashflowpoly.Ui.csproj. | - |
 | src/Cashflowpoly.Ui/Controllers/AnalyticsController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AnalyticsController.cs. | - |
 | src/Cashflowpoly.Ui/Controllers/AuthController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthController.cs. | - |
+| src/Cashflowpoly.Ui/Controllers/ComponentsController.cs | UI | inline | Memuat katalog komponen default ruleset untuk halaman Komponen. | - |
 | src/Cashflowpoly.Ui/Controllers/HomeController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file HomeController.cs. | - |
 | src/Cashflowpoly.Ui/Controllers/LanguageController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file LanguageController.cs. | - |
 | src/Cashflowpoly.Ui/Controllers/PlayerDirectoryController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file PlayerDirectoryController.cs. | - |
@@ -113,6 +114,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/Infrastructure/AuthSessionExtensions.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthSessionExtensions.cs. | - |
 | src/Cashflowpoly.Ui/Infrastructure/BearerTokenHandler.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file BearerTokenHandler.cs. | - |
 | src/Cashflowpoly.Ui/Infrastructure/RulebookContent.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulebookContent.cs. | - |
+| src/Cashflowpoly.Ui/Infrastructure/RulesetFormHelper.cs | UI | inline | Menyediakan default config, validasi mode, format JSON, dan helper pesan error API untuk form ruleset. | - |
 | src/Cashflowpoly.Ui/Infrastructure/SessionTimelineMapper.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionTimelineMapper.cs. | - |
 | src/Cashflowpoly.Ui/Infrastructure/UiText.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file UiText.cs. | - |
 | src/Cashflowpoly.Ui/Models/AnalyticsViewModels.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AnalyticsViewModels.cs. | - |
@@ -132,18 +134,19 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | src/Cashflowpoly.Ui/Views/_ViewStart.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewStart.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Auth/Login.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Login.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Auth/Register.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Register.cshtml. | - |
+| src/Cashflowpoly.Ui/Views/Components/Index.cshtml | UI | inline | Merender menu Komponen dan katalog komponen default Pemula/Mahir. | - |
 | src/Cashflowpoly.Ui/Views/Home/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Home/Privacy.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Privacy.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Players/Details.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Details.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Players/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Rulesets/Create.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Create.cshtml. | - |
+| src/Cashflowpoly.Ui/Views/Rulesets/Create.cshtml | UI | inline | Merender form create/edit ruleset untuk Instruktur. | - |
 | src/Cashflowpoly.Ui/Views/Rulesets/Details.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Details.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Rulesets/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Sessions/_SessionJourneyScript.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _SessionJourneyScript.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Sessions/_SessionJourneySection.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _SessionJourneySection.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Sessions/Details.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Details.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Sessions/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Sessions/Ruleset.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Ruleset.cshtml. | - |
+| src/Cashflowpoly.Ui/Views/Sessions/Ruleset.cshtml | UI | inline | Merender form aktivasi ruleset sesi untuk Instruktur. | - |
 | src/Cashflowpoly.Ui/Views/Shared/_Layout.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _Layout.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Shared/_ValidationScriptsPartial.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ValidationScriptsPartial.cshtml. | - |
 | src/Cashflowpoly.Ui/Views/Shared/Error.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Error.cshtml. | - |
@@ -177,3 +180,7 @@ Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
 | tests/Cashflowpoly.Api.Tests/RateLimitPolicyHelperTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file RateLimitPolicyHelperTests.cs. | - |
 | tests/Cashflowpoly.Api.Tests/ResponseMetadataTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ResponseMetadataTests.cs. | - |
 | tests/Cashflowpoly.Api.Tests/UiLocalizationGuardTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file UiLocalizationGuardTests.cs. | - |
+| tests/Cashflowpoly.Ui.Tests/ComponentMenuSeparationTests.cs | Test | inline | Menguji pemisahan menu Komponen dari halaman Ruleset. | - |
+| tests/Cashflowpoly.Ui.Tests/RulesetFormHelperTests.cs | Test | inline | Menguji helper form create/edit ruleset. | - |
+| tests/Cashflowpoly.Ui.Tests/RulesetManagementActionTests.cs | Test | inline | Menguji kembalinya aksi manajemen ruleset di view dan controller UI. | - |
+| tests/Cashflowpoly.Ui.Tests/SessionAndPlayerSummaryLayoutTests.cs | Test | inline | Menguji penghapusan champion sesi dan penyederhanaan ringkasan direktori pemain. | - |

@@ -1,5 +1,5 @@
 ﻿# Rancangan Dashboard Analitika Berbasis ASP.NET Core MVC (Razor Views)
-## Sistem Informasi Dasbor Analitika dan Manajemen Ruleset Cashflowpoly
+## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Rancangan Dashboard Analitika (MVC)
@@ -12,7 +12,7 @@
 ## 1. Tujuan Dokumen
 Dokumen ini mendefinisikan rancangan antarmuka dashboard analitika berbasis ASP.NET Core MVC (Razor Views) untuk scope repository ini:
 1. analitika performa pembelajaran dan misi,
-2. manajemen ruleset,
+2. manajemen ruleset untuk Instruktur dan referensi ruleset untuk Player,
 3. integrasi API backend yang sudah disepakati.
 
 Dokumen ini harus dibaca bersama:
@@ -30,25 +30,26 @@ UI yang dibangun pada proyek web ini mencakup:
 1. dashboard analitika sesi,
 2. detail analitika pemain,
 3. analitika agregat per ruleset,
-4. daftar dan detail ruleset,
-5. pembuatan ruleset baru,
-6. aktivasi ruleset ke sesi,
-7. penghapusan ruleset sesuai aturan domain.
+4. daftar, detail, create/edit/delete/activate ruleset untuk Instruktur,
+5. visualisasi linimasa event dan performa Player,
+6. akses Player ke data yang sesuai hak aksesnya.
 
 UI tidak mencakup:
 1. gameplay IDN app,
-2. sistem narasi interaktif,
-3. UI mission window di aplikasi seluler.
+2. pembuatan sesi, pemilihan ruleset, penambahan Player, start/end sesi, dan input keputusan Player,
+3. sistem narasi interaktif,
+4. UI mission window di aplikasi seluler.
 
 ---
 
 ## 3. Peran Pengguna dan Hak Akses
 ### 3.1 Instruktur
 Instruktur dapat:
-1. mengelola sesi,
-2. mengelola ruleset,
+1. login ke Web Analitik,
+2. melihat sesi yang dibuat melalui Klien Game/IDN,
 3. melihat semua analitika sesi/pemain,
-4. melihat agregasi analitika per ruleset.
+4. mengelola ruleset dan aktivasi ruleset sesi,
+5. melihat referensi dan agregasi analitika per ruleset.
 
 ### 3.2 Player
 Player dapat:
@@ -97,10 +98,12 @@ Tujuan aturan ini adalah mencegah bug grafik memanjang tanpa batas.
 | Sessions | `SessionsController` | `Index` | `/sessions` | Daftar sesi. |
 | Session Details | `SessionsController` | `Details` | `/sessions/{sessionId}` | Ringkasan analitika sesi dan daftar pemain. |
 | Player Details | `PlayersController` | `Details` | `/sessions/{sessionId}/players/{playerId}` | Analitika detail pemain. |
-| Ruleset | `RulesetsController` | `Index` | `/rulesets` | Daftar ruleset. |
+| Components | `ComponentsController` | `Index` | `/components` | Katalog komponen default Pemula/Mahir. |
+| Ruleset | `RulesetsController` | `Index` | `/rulesets` | Daftar ruleset dan aksi manajemen Instruktur. |
 | Ruleset Details | `RulesetsController` | `Details` | `/rulesets/{rulesetId}` | Detail ruleset dan versi. |
-| Session Ruleset | `SessionsController` | `Ruleset` | `/sessions/{sessionId}/ruleset` | Aktivasi ruleset pada sesi. |
+| Ruleset Create/Edit | `RulesetsController` | `Create`/`Edit` | `/rulesets/create`, `/rulesets/{rulesetId}/edit` | Form create/edit ruleset Instruktur. |
 | Session Analytics | `SessionsController` | `Details` | `/sessions/{sessionId}` | Menampilkan ringkasan analitika sesi, pemain, dan ruleset aktif. |
+| Session Ruleset Activation | `SessionsController` | `Ruleset` | `/sessions/{sessionId}/ruleset` | Aktivasi ruleset sesi untuk Instruktur. |
 | Analytics (Legacy) | `AnalyticsController` | `Index` | `/analytics` | Route kompatibilitas; redirect ke daftar sesi atau detail sesi. |
 | Rulebook | `HomeController` | `Rulebook` | `/home/rulebook` | Konten rulebook permainan. |
 
@@ -113,7 +116,7 @@ Menampilkan:
 2. mode,
 3. status,
 4. waktu dibuat/mulai/selesai,
-5. aksi ke detail dan aturan sesi.
+5. aksi ke detail sesi.
 
 ### 6.2 Detail sesi (`/sessions/{sessionId}`)
 Menampilkan:
@@ -133,7 +136,8 @@ Menampilkan:
 Menampilkan:
 1. daftar ruleset dan versi terbaru,
 2. detail versi ruleset,
-3. aksi delete (instruktur saja).
+3. komponen dan ringkasan konfigurasi ruleset,
+4. aksi create/edit/delete/activate untuk role Instruktur.
 
 ### 6.5 Ruleset analytics (embedded di `/sessions/{sessionId}`)
 Menampilkan:
@@ -154,17 +158,31 @@ Catatan implementasi:
 | Login | `POST /api/v1/auth/login` | publik |
 | Register | `POST /api/v1/auth/register` | publik (PLAYER dan INSTRUCTOR) |
 | Daftar sesi | `GET /api/v1/sessions` | Bearer |
-| Buat sesi | `POST /api/v1/sessions` | Bearer (`INSTRUCTOR`) |
-| Mulai sesi | `POST /api/v1/sessions/{sessionId}/start` | Bearer (`INSTRUCTOR`) |
-| Akhiri sesi | `POST /api/v1/sessions/{sessionId}/end` | Bearer (`INSTRUCTOR`) |
-| Aktivasi ruleset | `POST /api/v1/sessions/{sessionId}/ruleset/activate` | Bearer (`INSTRUCTOR`) |
 | Daftar ruleset | `GET /api/v1/rulesets` | Bearer |
-| Buat ruleset | `POST /api/v1/rulesets` | Bearer (`INSTRUCTOR`) |
-| Hapus ruleset | `DELETE /api/v1/rulesets/{rulesetId}` | Bearer (`INSTRUCTOR`) |
+| Detail ruleset | `GET /api/v1/rulesets/{rulesetId}` | Bearer |
+| Komponen ruleset | `GET /api/v1/rulesets/{rulesetId}/components` | Bearer |
+| Komponen default | `GET /api/v1/rulesets/components/defaults` | Bearer |
 | Analitika sesi | `GET /api/v1/analytics/sessions/{sessionId}` | Bearer |
+| Linimasa event sesi | `GET /api/v1/sessions/{sessionId}/events` | Bearer |
 | Histori transaksi | `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` | Bearer |
 | Gameplay snapshot | `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` | Bearer |
 | Analitika per ruleset | `GET /api/v1/analytics/rulesets/{rulesetId}/summary` | Bearer |
+
+Endpoint operasional berikut tetap tersedia di API, tetapi dipakai oleh Klien Game/IDN atau integrasi API, bukan oleh Web Analitik MVC:
+- `POST /api/v1/sessions`
+- `POST /api/v1/sessions/{sessionId}/players`
+- `POST /api/v1/sessions/{sessionId}/start`
+- `POST /api/v1/sessions/{sessionId}/end`
+- `POST /api/v1/events`
+- `POST /api/v1/events/batch`
+
+Endpoint ruleset berikut juga dipanggil oleh Web Analitik MVC untuk role Instruktur:
+- `POST /api/v1/rulesets`
+- `PUT /api/v1/rulesets/{rulesetId}`
+- `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`
+- `DELETE /api/v1/rulesets/{rulesetId}`
+- `DELETE /api/v1/rulesets/{rulesetId}/versions/{version}`
+- `POST /api/v1/sessions/{sessionId}/ruleset/activate`
 
 ---
 
@@ -174,7 +192,7 @@ ViewModel UI mengikuti implementasi nyata di proyek `Cashflowpoly.Ui/Models`.
 Minimal model yang dipakai:
 1. session list + session detail,
 2. player detail + transaction rows,
-3. ruleset list/detail/create,
+3. ruleset list/detail,
 4. analytics request/response untuk sesi,
 5. analytics summary berbasis ruleset.
 

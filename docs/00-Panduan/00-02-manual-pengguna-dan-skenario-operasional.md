@@ -1,5 +1,5 @@
 ﻿# Manual Pengguna dan Skenario Operasional  
-## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
+## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Manual Pengguna dan Skenario Operasional
@@ -16,7 +16,7 @@ Dokumen ini menjelaskan cara penggunaan sistem dari sudut pandang instruktur seb
 
 ## 2. Peran Pengguna
 ### 2.1 Instruktur
-Instruktur mengelola sesi, memilih *ruleset*, memantau performa pembelajaran dan performa misi, serta membaca tren hasil pembelajaran.
+Instruktur mengelola sesi, menambahkan Player, dan memasukkan input keputusan Player melalui Klien Game/IDN. Instruktur memakai Web Analitik untuk memantau performa pembelajaran, performa misi, tren hasil pembelajaran, serta mengelola dan mengaktifkan *ruleset*.
 
 ### 2.2 Pemain
 Pemain melihat performa diri dan histori transaksi.
@@ -28,7 +28,8 @@ Jika tahap awal hanya menampilkan UI instruktur, kebutuhan UI pemain tetap dicat
 ## 3. Akses Sistem
 Instruktur menjalankan dua komponen berikut:
 1. REST API (server) untuk menerima event dan menghasilkan analitika,
-2. Web MVC (dasbor) untuk tampilan analitika.
+2. Web MVC (dasbor) untuk tampilan analitika,
+3. Klien Game/IDN untuk setup sesi dan input permainan.
 
 Instruktur mengakses dasbor melalui browser:
 - URL Web: `http://localhost:5203/sessions`
@@ -61,15 +62,18 @@ Instruktur memastikan:
 
 ---
 
-## 5. Skenario 1 - Membuat Sesi Baru
+## 5. Skenario 1 - Membuat Sesi Baru melalui Klien Game/IDN
 ### Tujuan
 Instruktur membuat sesi permainan untuk menerima event dan menyimpan histori.
 
 ### Langkah
-1. Buka Swagger UI.
-2. Buka endpoint `POST /api/v1/sessions`.
-3. Isi `session_name` dan `mode`.
-4. Kirim permintaan.
+1. Instruktur login ke Klien Game/IDN.
+2. Instruktur membuat sesi baru.
+3. Instruktur mengisi nama sesi, mode, dan ruleset sesuai kebutuhan kelas.
+4. Klien Game/IDN mengirim request ke API.
+
+Catatan pengujian developer:
+- Skenario yang sama dapat diuji melalui Swagger/Postman dengan endpoint `POST /api/v1/sessions`.
 
 ### Hasil yang instruktur lihat
 Sistem mengembalikan `session_id`.
@@ -79,16 +83,15 @@ Instruktur membuka halaman `/sessions` pada Web dan memastikan sesi muncul pada 
 
 ---
 
-## 6. Skenario 2 - Mengaktifkan *Ruleset* pada Sesi
+## 6. Skenario 2 - Memilih *Ruleset* pada Sesi
 ### Tujuan
 Instruktur menetapkan konfigurasi aturan yang berlaku pada sesi.
 
 ### Langkah
-1. Buka Web MVC.
-2. Buka daftar sesi `/sessions`.
-3. Buka aksi `Ruleset` pada sesi.
-4. Pilih ruleset dan versi.
-5. Tekan tombol `Aktifkan`.
+1. Instruktur membuka sesi pada Klien Game/IDN.
+2. Instruktur memilih ruleset dan versi yang akan dipakai.
+3. Klien Game/IDN mengirim request aktivasi ke API.
+4. API memvalidasi role `INSTRUCTOR`, status sesi, ruleset, dan versi aktif.
 
 ### Hasil yang instruktur lihat
 Sistem menampilkan ruleset aktif dan versi yang terpilih.
@@ -97,17 +100,18 @@ Sistem menampilkan ruleset aktif dan versi yang terpilih.
 Sistem menolak aktivasi jika sesi berstatus `ENDED`.
 
 Catatan akses:
-- Jika aktivasi dilakukan via API/Swagger, endpoint wajib memakai token Bearer milik role `INSTRUCTOR`.
+- Untuk pengujian developer, endpoint yang digunakan adalah `POST /api/v1/sessions/{sessionId}/ruleset/activate` dengan token Bearer milik role `INSTRUCTOR`.
+- Web Analitik menampilkan ruleset aktif dan menyediakan form aktivasi ruleset sesi untuk role Instruktur.
 
 ---
 
-## 7. Skenario 3 - Memulai Sesi (opsional jika sistem menerapkan status)
+## 7. Skenario 3 - Memulai Sesi melalui Klien Game/IDN
 ### Tujuan
 Instruktur menandai sesi siap menerima event permainan.
 
 ### Langkah
-1. Buka Swagger.
-2. Panggil `POST /api/v1/sessions/{sessionId}/start`.
+1. Instruktur memilih aksi mulai sesi pada Klien Game/IDN.
+2. Klien Game/IDN memanggil `POST /api/v1/sessions/{sessionId}/start`.
 
 ### Hasil yang instruktur lihat
 Sistem mengubah status menjadi `STARTED`.
@@ -119,7 +123,7 @@ Sistem mengubah status menjadi `STARTED`.
 Sistem menerima event permainan dan menyimpannya sebagai histori.
 
 ### Cara mengirim event
-Sistem menerima event dari klien IDN/simulator atau pengujian manual via Postman/Swagger.
+Sistem menerima event dari Klien Game/IDN atau simulator. Pengujian manual dapat dilakukan via Postman/Swagger.
 
 ### Langkah uji manual (Postman/Swagger)
 1. Buka endpoint `POST /api/v1/events`.
@@ -247,7 +251,7 @@ Instruktur menyiapkan bukti uji dan bukti tampilan untuk laporan.
    - daftar sesi,
    - detail sesi,
    - detail pemain,
-   - halaman aktivasi ruleset.
+   - detail ruleset.
 4. Hasil query PostgreSQL untuk validasi:
    - `metric_snapshots`
    - `event_cashflow_projections`
@@ -285,14 +289,15 @@ Instruktur melakukan:
 
 ## 15. Ringkasan Alur Operasional
 Instruktur menjalankan urutan ini pada setiap sesi:
-1. buat sesi,
-2. aktifkan ruleset,
-3. mulai sesi (jika dipakai),
-4. kirim event berurutan,
-5. buka dasbor untuk memantau metrik,
-6. evaluasi detail pemain,
-7. akhiri sesi,
-8. simpan bukti uji dan tampilan.
+1. buat sesi melalui Klien Game/IDN,
+2. pilih ruleset melalui Klien Game/IDN,
+3. tambahkan Player melalui Klien Game/IDN,
+4. mulai sesi melalui Klien Game/IDN,
+5. masukkan input keputusan Player dan kirim event berurutan,
+6. buka Web Analitik untuk memantau metrik,
+7. evaluasi detail pemain,
+8. akhiri sesi,
+9. simpan bukti uji dan tampilan.
 
 
 
