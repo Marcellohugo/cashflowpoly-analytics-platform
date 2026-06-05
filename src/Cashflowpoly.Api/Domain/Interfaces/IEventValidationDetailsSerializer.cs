@@ -1,4 +1,4 @@
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 

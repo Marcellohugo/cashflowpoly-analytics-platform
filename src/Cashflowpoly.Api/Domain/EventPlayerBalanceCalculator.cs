@@ -10,7 +10,7 @@ internal sealed class EventPlayerBalanceCalculator : IEventPlayerBalanceCalculat
         IReadOnlyCollection<CashflowProjectionDb> projections)
     {
         var net = projections
-            .Where(p => p.PlayerId == playerId)
+            .Where(p => p.UserId == playerId)
             .Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount);
 
         return startingCash + net;

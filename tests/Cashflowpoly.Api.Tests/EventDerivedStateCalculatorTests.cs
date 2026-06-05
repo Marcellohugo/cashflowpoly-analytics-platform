@@ -50,7 +50,7 @@ public sealed class EventDerivedStateCalculatorTests
         return new EventDb
         {
             EventId = Guid.NewGuid(),
-            PlayerId = playerId,
+            UserId = playerId,
             ActionType = actionType,
             Payload = payload
         };

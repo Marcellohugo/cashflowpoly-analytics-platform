@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -51,17 +51,17 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang pembelian kebutuhan primer");
         }
 
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
         var primaryCount = history.Count(e =>
-            e.PlayerId == request.PlayerId &&
+            e.UserId == request.UserId &&
             e.DayIndex == request.DayIndex &&
             e.ActionType == "need.primary.purchased");
 
@@ -84,10 +84,10 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             return new EventNeedPurchaseValidation(payloadValidation, null);
         }
 
-        if (config.RequirePrimaryBeforeOthers && request.PlayerId is not null)
+        if (config.RequirePrimaryBeforeOthers && request.UserId is not null)
         {
             var hasPrimary = history.Any(e =>
-                e.PlayerId == request.PlayerId &&
+                e.UserId == request.UserId &&
                 e.DayIndex == request.DayIndex &&
                 e.ActionType == "need.primary.purchased");
 
@@ -97,7 +97,7 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             }
         }
 
-        return new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, request.PlayerId is null ? null : amount);
+        return new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, request.UserId is null ? null : amount);
     }
 
     private EventDomainValidationResult ValidatePayload(EventRequest request, bool primary, out int amount)

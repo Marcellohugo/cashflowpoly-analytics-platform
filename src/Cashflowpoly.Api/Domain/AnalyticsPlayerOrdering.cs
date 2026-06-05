@@ -1,5 +1,5 @@
 using System.Globalization;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -23,29 +23,29 @@ internal sealed class PlayerOrderingService : IPlayerOrdering
         return ordering switch
         {
             PlayerOrdering.InstructorOrder => players
-                .OrderBy(player => ResolveJoinOrder(playerJoinOrders, player.PlayerId))
-                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.PlayerId))
-                .ThenBy(player => player.PlayerId)
+                .OrderBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
+                .ThenBy(player => player.UserId)
                 .ToList(),
             PlayerOrdering.Username => players
-                .OrderBy(player => HasOrderingUsername(usernamesByPlayer, player.PlayerId) ? 0 : 1)
-                .ThenBy(player => ResolveOrderingUsername(usernamesByPlayer, player.PlayerId), UsernameOrderingComparer)
-                .ThenBy(player => ResolveJoinOrder(playerJoinOrders, player.PlayerId))
-                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.PlayerId))
-                .ThenBy(player => player.PlayerId)
+                .OrderBy(player => HasOrderingUsername(usernamesByPlayer, player.UserId) ? 0 : 1)
+                .ThenBy(player => ResolveOrderingUsername(usernamesByPlayer, player.UserId), UsernameOrderingComparer)
+                .ThenBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
+                .ThenBy(player => player.UserId)
                 .ToList(),
             PlayerOrdering.EventSequence => players
-                .OrderBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.PlayerId))
-                .ThenBy(player => ResolveJoinOrder(playerJoinOrders, player.PlayerId))
-                .ThenBy(player => player.PlayerId)
+                .OrderBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
+                .ThenBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .ThenBy(player => player.UserId)
                 .ToList(),
             PlayerOrdering.PlayerId => players
-                .OrderBy(player => player.PlayerId)
+                .OrderBy(player => player.UserId)
                 .ToList(),
             _ => players
-                .OrderBy(player => ResolveJoinOrder(playerJoinOrders, player.PlayerId))
-                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.PlayerId))
-                .ThenBy(player => player.PlayerId)
+                .OrderBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
+                .ThenBy(player => player.UserId)
                 .ToList()
         };
     }

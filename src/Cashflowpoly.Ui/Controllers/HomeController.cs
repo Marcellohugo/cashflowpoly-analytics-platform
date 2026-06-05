@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;

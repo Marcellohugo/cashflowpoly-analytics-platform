@@ -188,13 +188,17 @@
 
             <div class="action-toolbar mt-4 ruleset-detail-toolbar">
                 <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
-                @if (showVersionActions)
+                @if (isInstructor && !Model.IsReadOnly)
                 {
                     <a class="btn-ghost"
                        asp-controller="Rulesets"
                        asp-action="Edit"
                        asp-route-rulesetId="@Model.Ruleset.RulesetId">@Context.T("rulesets.edit")</a>
-                    <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Model.Ruleset.RulesetId">
+                    <form method="post"
+                          asp-controller="Rulesets"
+                          asp-action="Delete"
+                          asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                          onsubmit="return confirm('@Context.T("rulesets.delete_confirm")');">
                         @Html.AntiForgeryToken()
                         <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
                     </form>
@@ -269,28 +273,25 @@
                                 @if (showVersionActions)
                                 {
                                     <td class="px-4 py-3 text-right">
-                                        @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            <div class="inline-flex items-center gap-2">
-                                                <form method="post"
-                                                      asp-controller="Rulesets"
-                                                      asp-action="ActivateVersion"
-                                                      asp-route-rulesetId="@Model.Ruleset.RulesetId"
-                                                      asp-route-version="@version.Version">
-                                                    @Html.AntiForgeryToken()
-                                                    <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
-                                                </form>
-                                                <form method="post"
-                                                      asp-controller="Rulesets"
-                                                      asp-action="DeleteVersion"
-                                                      asp-route-rulesetId="@Model.Ruleset.RulesetId"
-                                                      asp-route-version="@version.Version"
-                                                      onsubmit="return confirm('@Context.T("rulesets.delete_version_confirm")');">
-                                                    @Html.AntiForgeryToken()
-                                                    <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.delete_version")</button>
-                                                </form>
-                                            </div>
-                                        }
+                                        <div class="inline-flex items-center gap-2">
+                                            <form method="post"
+                                                  asp-controller="Rulesets"
+                                                  asp-action="ActivateVersion"
+                                                  asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                  asp-route-version="@version.Version">
+                                                @Html.AntiForgeryToken()
+                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
+                                            </form>
+                                            <form method="post"
+                                                  asp-controller="Rulesets"
+                                                  asp-action="DeleteVersion"
+                                                  asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                  asp-route-version="@version.Version"
+                                                  onsubmit="return confirm('@Context.T("rulesets.delete_version_confirm")');">
+                                                @Html.AntiForgeryToken()
+                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.delete_version")</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 }
                             </tr>

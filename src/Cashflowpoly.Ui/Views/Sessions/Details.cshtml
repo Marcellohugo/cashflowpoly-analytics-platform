@@ -6,7 +6,7 @@
     var playerDisplayNames = Model.PlayerDisplayNames;
     var fallbackPlayerNames = new Dictionary<Guid, string>();
     var fallbackPlayerIndex = 1;
-    var knownPlayerIds = (Model.Analytics?.ByPlayer.Select(item => item.PlayerId) ?? Enumerable.Empty<Guid>())
+    var knownPlayerIds = (Model.Analytics?.ByPlayer.Select(item => item.UserId) ?? Enumerable.Empty<Guid>())
         .Concat(Model.Timeline.Where(item => item.PlayerId.HasValue).Select(item => item.PlayerId!.Value))
         .Distinct()
         .ToList();
@@ -52,99 +52,64 @@
     string F(double value) => value.ToString("0.##");
 }
 
-<style>
-    .session-board-node[data-seq] {
-        cursor: pointer;
-    }
-
-    .session-board-node.is-focused {
-        outline: 3px solid #2d7dd2;
-        box-shadow: 0 14px 24px rgba(45, 125, 210, 0.26);
-        transform: translateY(-4px);
-    }
-
-    .session-journey-title {
-        max-width: 18ch;
-        line-height: 1.15;
-        text-wrap: balance;
-    }
-
-    .session-board-node {
-        grid-template-rows: auto auto auto auto minmax(0, 1fr);
-        min-height: 10.4rem;
-    }
-
-    .session-board-detail {
-        margin-top: 0.35rem;
-        font-size: 0.75rem;
-        line-height: 1.35;
-        color: #475569;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        overflow: hidden;
-    }
-
-    .session-board-title {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
-    }
-
-    .session-journey-insight-grid {
-        margin-top: 0.8rem;
-        display: grid;
-        gap: 0.65rem;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    }
-
-    .session-journey-insight-card {
-        border: 1px solid #a8e5de;
-        border-radius: 0.85rem;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 0.62rem 0.7rem;
-        min-width: 0;
-        min-height: 4.45rem;
-        display: grid;
-        align-content: start;
-    }
-
-    .session-journey-insight-label {
-        margin: 0;
-        font-size: 0.68rem;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: #547286;
-        font-weight: 800;
-    }
-
-    .session-journey-insight-value {
-        margin: 0.32rem 0 0;
-        color: #15394f;
-        font-size: 0.92rem;
-        font-weight: 800;
-        line-height: 1.25;
-    }
-
-    @@media (max-width: 640px) {
+@section Head {
+    <style>
         .session-journey-title {
-            max-width: none;
-        }
-
-        .session-board-node {
-            min-height: 9.2rem;
+            max-width: 18ch;
+            line-height: 1.15;
+            text-wrap: balance;
         }
 
         .session-journey-insight-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 0.8rem;
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         }
 
-        .session-journey-insight-card:last-child {
-            grid-column: 1 / -1;
+        .session-journey-insight-card {
+            border: 1px solid #a8e5de;
+            border-radius: 0.85rem;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.62rem 0.7rem;
+            min-width: 0;
+            min-height: 4.45rem;
+            display: grid;
+            align-content: start;
         }
-    }
-</style>
+
+        .session-journey-insight-label {
+            margin: 0;
+            font-size: 0.68rem;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: #547286;
+            font-weight: 800;
+        }
+
+        .session-journey-insight-value {
+            margin: 0.32rem 0 0;
+            color: #15394f;
+            font-size: 0.92rem;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        @@media (max-width: 640px) {
+            .session-journey-title {
+                max-width: none;
+            }
+
+            .session-journey-insight-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .session-journey-insight-card:last-child {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+}
 
 <section class="section-shell session-detail-shell">
     <div class="ruleset-hero">
@@ -261,32 +226,15 @@
             .OrderByDescending(item => item.HappinessPointsTotal)
             .ThenByDescending(item => item.CashInTotal - item.CashOutTotal)
             .ThenBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
-            .ThenBy(item => item.PlayerId)
+            .ThenBy(item => item.UserId)
             .ToList();
         var orderedPlayers = Model.Analytics.ByPlayer
             .OrderBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
-            .ThenBy(item => item.PlayerId)
+            .ThenBy(item => item.UserId)
             .ToList();
         var playerRankLookup = rankedPlayers
-            .Select((item, index) => new { item.PlayerId, Rank = index + 1 })
-            .ToDictionary(item => item.PlayerId, item => item.Rank);
-        var donationChampions = Model.Analytics.ByPlayer
-            .OrderByDescending(item => item.DonationPointsTotal)
-            .ThenByDescending(item => item.DonationTotal)
-            .ThenBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
-            .ThenBy(item => item.PlayerId)
-            .Take(3)
-            .ToList();
-        var pensionChampions = Model.Analytics.ByPlayer
-            .OrderByDescending(item => item.PensionPointsTotal)
-            .ThenByDescending(item => item.SavingGoalPointsTotal)
-            .ThenByDescending(item => item.CashInTotal - item.CashOutTotal)
-            .ThenBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
-            .ThenBy(item => item.PlayerId)
-            .Take(3)
-            .ToList();
-        var hasCategoryChampions = donationChampions.Count > 0 || pensionChampions.Count > 0;
-
+            .Select((item, index) => new { item.UserId, Rank = index + 1 })
+            .ToDictionary(item => item.UserId, item => item.Rank);
         <section class="session-detail-section mt-5">
             <div class="ruleset-section-head">
                 <p class="ruleset-section-title">@Context.T("sessions.detail.summary_title")</p>
@@ -314,65 +262,6 @@
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
                 </div>
             </div>
-
-        <div class="ruleset-section-head mt-6">
-            <p class="ruleset-section-title">@Context.T("sessions.champion.title")</p>
-            <p class="ruleset-section-subtitle">@Context.T("sessions.champion.subtitle")</p>
-        </div>
-
-        @if (hasCategoryChampions)
-        {
-            <div class="mt-3 winner-card">
-                <div class="winner-card-icon" aria-hidden="true">
-                    <svg viewBox="0 0 120 120" role="presentation">
-                        <circle cx="60" cy="60" r="52" fill="#fff4c2" />
-                        <path d="M40 25h40v18c0 11-9 20-20 20s-20-9-20-20V25z" fill="#f59e0b" />
-                        <path d="M45 63h30v12H45z" fill="#12a89a" />
-                        <path d="M42 75h36v14H42z" fill="#0d857a" />
-                        <circle cx="60" cy="43" r="9" fill="#fff" />
-                        <circle cx="56" cy="41" r="2" fill="#1f3f5a" />
-                        <circle cx="64" cy="41" r="2" fill="#1f3f5a" />
-                        <path d="M54 48c2 3 4 4 6 4s4-1 6-4" fill="none" stroke="#1f3f5a" stroke-width="2.5" stroke-linecap="round" />
-                    </svg>
-                </div>
-                <div class="w-full">
-                    <div class="grid gap-3 md:grid-cols-2">
-                        <article class="metric-panel">
-                            <h3>@Context.T("sessions.champion.donation")</h3>
-                            <div class="mt-3 winner-meta">
-                                @for (var championIndex = 0; championIndex < donationChampions.Count; championIndex++)
-                                {
-                                    var item = donationChampions[championIndex];
-                                    <span>
-                                        @Context.T("sessions.rank_label") @(championIndex + 1): @ResolvePlayerName(item.PlayerId) |
-                                        @Context.T("metric.donation_points"): @F(item.DonationPointsTotal) |
-                                        @Context.T("metric.donation"): @F(item.DonationTotal)
-                                    </span>
-                                }
-                            </div>
-                        </article>
-                        <article class="metric-panel">
-                            <h3>@Context.T("sessions.champion.pension")</h3>
-                            <div class="mt-3 winner-meta">
-                                @for (var championIndex = 0; championIndex < pensionChampions.Count; championIndex++)
-                                {
-                                    var item = pensionChampions[championIndex];
-                                    <span>
-                                        @Context.T("sessions.rank_label") @(championIndex + 1): @ResolvePlayerName(item.PlayerId) |
-                                        @Context.T("metric.pension_points"): @F(item.PensionPointsTotal) |
-                                        @Context.T("metric.saving_goal"): @F(item.SavingGoalPointsTotal)
-                                    </span>
-                                }
-                            </div>
-                        </article>
-                    </div>
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="mt-6 alert alert-info">@Context.T("sessions.champion.none")</div>
-        }
 
         <div class="ruleset-section-head mt-6">
             <p class="ruleset-section-title">@Context.T("sessions.detail.players_title")</p>
@@ -409,7 +298,7 @@
                     {
                         var item = orderedPlayers[playerIndex];
                         var turnOrder = item.JoinOrder > 0 ? item.JoinOrder : playerIndex + 1;
-                        var rank = playerRankLookup.TryGetValue(item.PlayerId, out var resolvedRank)
+                        var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
                             ? resolvedRank
                             : 0;
                         var winnerRowClass = rank == 1
@@ -423,7 +312,7 @@
                                     <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
                                          src="@ResolvePlayerAvatarPath(turnOrder)"
                                          alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
-                                    <span>@ResolvePlayerName(item.PlayerId)</span>
+                                    <span>@ResolvePlayerName(item.UserId)</span>
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@item.CashInTotal</td>
@@ -436,7 +325,7 @@
                             <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
                                 <a class="table-link"
                                    asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
-                                   asp-route-playerId="@item.PlayerId">@Context.T("common.view")</a>
+                                   asp-route-playerId="@item.UserId">@Context.T("common.view")</a>
                             </td>
                         </tr>
                     }

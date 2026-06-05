@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 
 namespace Cashflowpoly.Api.Domain;
@@ -93,8 +93,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             .Select(e => (Guid?)e.SessionId)
             .FirstOrDefault()
             ?? allEvents.Select(e => (Guid?)e.SessionId).FirstOrDefault();
-        var resolvedPlayerId = playerEvents
-            .Select(e => e.PlayerId)
+        var resolvedUserId = playerEvents
+            .Select(e => e.UserId)
             .FirstOrDefault(id => id.HasValue);
         var gameMode = string.Equals(config?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase)
             ? "advanced"
@@ -110,7 +110,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             {
                 game_id = sessionId,
                 session_id = sessionId,
-                player_id = resolvedPlayerId,
+                user_id = resolvedUserId,
                 player_alias = (string?)null,
                 game_mode = gameMode,
                 turn_number = latestEvent?.TurnNumber,

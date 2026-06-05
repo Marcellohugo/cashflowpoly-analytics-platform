@@ -86,7 +86,7 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
         {
             EventId = Guid.NewGuid(),
             SessionId = Guid.NewGuid(),
-            PlayerId = playerId,
+            UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = dayIndex,

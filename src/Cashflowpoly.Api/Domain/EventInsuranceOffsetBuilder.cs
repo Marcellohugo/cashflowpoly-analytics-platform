@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -15,7 +15,7 @@ internal sealed class EventInsuranceOffsetBuilder : IEventInsuranceOffsetBuilder
     {
         riskEventIdText = string.Empty;
         riskEventId = Guid.Empty;
-        if (request.PlayerId is null ||
+        if (request.UserId is null ||
             !string.Equals(request.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) ||
             !_payloadReader.TryReadInsuranceUsed(request.Payload, out riskEventIdText))
         {
@@ -33,14 +33,14 @@ internal sealed class EventInsuranceOffsetBuilder : IEventInsuranceOffsetBuilder
         [NotNullWhen(true)] out CashflowProjectionDb? projection)
     {
         projection = null;
-        if (request.PlayerId is not { } playerId ||
+        if (request.UserId is not { } userId ||
             !TryReadRiskEventReference(request, out var riskEventIdText, out _))
         {
             return false;
         }
 
         if (riskEvent is null ||
-            riskEvent.PlayerId != playerId ||
+            riskEvent.UserId != userId ||
             !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
         {
             return false;
@@ -58,7 +58,7 @@ internal sealed class EventInsuranceOffsetBuilder : IEventInsuranceOffsetBuilder
         {
             ProjectionId = Guid.NewGuid(),
             SessionId = request.SessionId,
-            PlayerId = playerId,
+            UserId = userId,
             EventPk = eventPk,
             EventId = request.EventId,
             Timestamp = timestamp,

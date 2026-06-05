@@ -1,36 +1,29 @@
 using Dapper;
-using Cashflowpoly.Api.Domain;
 using Npgsql;
 
 namespace Cashflowpoly.Api.Data;
 
 /// <summary>
-/// Record data user yang berhasil diautentikasi: ID, username, role, dan status aktif.
+/// Record data user yang berhasil diautentikasi: ID, username, display name, role, dan status aktif.
 /// </summary>
-public sealed record AuthenticatedUserDb(Guid UserId, string Username, string Role, bool IsActive);
+public sealed record AuthenticatedUserDb(Guid UserId, string Username, string DisplayName, string Role, bool IsActive);
 
 /// <summary>
-/// Repository untuk autentikasi user aplikasi.
+/// Repository untuk autentikasi user aplikasi dan identitas player berbasis app_users.
 /// </summary>
 public sealed class UserRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
-    /// <summary>
-    /// Menerima NpgsqlDataSource untuk koneksi ke database user.
-    /// </summary>
     public UserRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
-    /// <summary>
-    /// Memverifikasi kredensial username dan password, mengembalikan data user jika cocok.
-    /// </summary>
     public async Task<AuthenticatedUserDb?> AuthenticateAsync(string username, string password, CancellationToken ct)
     {
         const string sql = """
-            select user_id, username, role, is_active
+            select user_id, username, display_name, role, is_active
             from app_users
             where lower(username) = lower(@username)
               and is_active = true
@@ -43,9 +36,6 @@ public sealed class UserRepository
             new CommandDefinition(sql, new { username, password }, cancellationToken: ct));
     }
 
-    /// <summary>
-    /// Memeriksa apakah username sudah terdaftar (case-insensitive).
-    /// </summary>
     public async Task<bool> UsernameExistsAsync(string username, CancellationToken ct)
     {
         const string sql = """
@@ -61,9 +51,16 @@ public sealed class UserRepository
         return result.HasValue;
     }
 
-    /// <summary>
-    /// Membuat akun user baru dalam transaksi: insert user dan (khusus role PLAYER) upsert profil + link user-player.
-    /// </summary>
+    public Task<AuthenticatedUserDb> CreatePlayerUserAsync(
+        string username,
+        string password,
+        string displayName,
+        Guid instructorUserId,
+        CancellationToken ct)
+    {
+        return CreateUserAsync(username, password, "PLAYER", displayName, ct);
+    }
+
     public async Task<AuthenticatedUserDb> CreateUserAsync(
         string username,
         string password,
@@ -71,122 +68,48 @@ public sealed class UserRepository
         string? displayName,
         CancellationToken ct)
     {
-        return await CreateUserAsync(username, password, role, displayName, playerOwnerUserId: null, ct);
-    }
-
-    /// <summary>
-    /// Membuat akun user PLAYER beserta profil pemain yang langsung dimiliki instruktur.
-    /// </summary>
-    public async Task<AuthenticatedUserDb> CreatePlayerUserAsync(
-        string username,
-        string password,
-        string displayName,
-        Guid instructorUserId,
-        CancellationToken ct)
-    {
-        return await CreateUserAsync(username, password, "PLAYER", displayName, instructorUserId, ct);
-    }
-
-    /// <summary>
-    /// Membuat akun user baru dalam transaksi dengan owner profil pemain opsional.
-    /// </summary>
-    private async Task<AuthenticatedUserDb> CreateUserAsync(
-        string username,
-        string password,
-        string role,
-        string? displayName,
-        Guid? playerOwnerUserId,
-        CancellationToken ct)
-    {
-        const string insertUserSql = """
-            insert into app_users (user_id, username, password_hash, role, is_active, created_at)
-            values (@userId, @username, crypt(@password, gen_salt('bf', 10)), @role, true, now())
-            returning user_id, username, role, is_active
-            """;
-
-        const string upsertPlayerSql = """
-            insert into players (player_id, display_name, instructor_user_id, created_at)
-            values (@playerId, @displayName, @instructorUserId, @createdAt)
-            on conflict (player_id) do update
-            set display_name = excluded.display_name
-            """;
-
-        const string upsertUserPlayerLinkSql = """
-            insert into user_player_links (link_id, user_id, player_id, created_at)
-            values (@linkId, @userId, @playerId, @createdAt)
-            on conflict (user_id) do nothing
+        const string sql = """
+            insert into app_users (user_id, username, display_name, password_hash, role, is_active, created_at)
+            values (@userId, @username, @displayName, crypt(@password, gen_salt('bf', 10)), @role, true, now())
+            returning user_id, username, display_name, role, is_active
             """;
 
         var userId = Guid.NewGuid();
-        var profileDisplayName = string.IsNullOrWhiteSpace(displayName) ? username : displayName.Trim();
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
+        var resolvedDisplayName = string.IsNullOrWhiteSpace(displayName) ? username : displayName.Trim();
 
-        var created = await conn.QuerySingleAsync<AuthenticatedUserDb>(new CommandDefinition(insertUserSql, new
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleAsync<AuthenticatedUserDb>(new CommandDefinition(sql, new
         {
             userId,
             username,
+            displayName = resolvedDisplayName,
             password,
             role
-        }, tx, cancellationToken: ct));
-
-        if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
-        {
-            var createdAt = DateTimeOffset.UtcNow;
-            var canonicalPlayerId = PlayerIdentityPolicy.GetCanonicalPlayerId(userId);
-            var resolvedOwnerUserId = PlayerIdentityPolicy.ResolvePlayerOwnerUserId(userId, playerOwnerUserId);
-            await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
-            {
-                playerId = canonicalPlayerId,
-                displayName = profileDisplayName,
-                instructorUserId = resolvedOwnerUserId,
-                createdAt
-            }, tx, cancellationToken: ct));
-
-            await conn.ExecuteAsync(new CommandDefinition(upsertUserPlayerLinkSql, new
-            {
-                linkId = Guid.NewGuid(),
-                userId,
-                playerId = canonicalPlayerId,
-                createdAt
-            }, tx, cancellationToken: ct));
-        }
-
-        await tx.CommitAsync(ct);
-        return created;
+        }, cancellationToken: ct));
     }
 
-    /// <summary>
-    /// Mengambil player_id yang terhubung ke user via tabel user_player_links.
-    /// </summary>
-    public async Task<Guid?> GetLinkedPlayerIdAsync(Guid userId, CancellationToken ct)
+    public async Task<Guid?> GetPlayerUserIdAsync(Guid userId, CancellationToken ct)
     {
         const string sql = """
-            select player_id
-            from user_player_links
+            select user_id
+            from app_users
             where user_id = @userId
+              and role = 'PLAYER'
+              and is_active = true
             limit 1
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
+        return await conn.QuerySingleOrDefaultAsync<Guid?>(
+            new CommandDefinition(sql, new { userId }, cancellationToken: ct));
     }
 
-    /// <summary>
-    /// Mengambil display name user dari profil pemain untuk PLAYER, fallback ke username untuk role lain.
-    /// </summary>
     public async Task<string> GetDisplayNameAsync(Guid userId, string username, string role, CancellationToken ct)
     {
-        if (!string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
-        {
-            return username;
-        }
-
         const string sql = """
-            select p.display_name
-            from user_player_links upl
-            join players p on p.player_id = upl.player_id
-            where upl.user_id = @userId
+            select display_name
+            from app_users
+            where user_id = @userId
             limit 1
             """;
 
@@ -194,116 +117,51 @@ public sealed class UserRepository
         var displayName = await conn.QuerySingleOrDefaultAsync<string?>(
             new CommandDefinition(sql, new { userId }, cancellationToken: ct));
 
-        return string.IsNullOrWhiteSpace(displayName) ? username : displayName;
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName;
+        }
+
+        return string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase)
+            ? username
+            : username;
     }
 
-    /// <summary>
-    /// Mengambil mapping player_id ke username untuk sekumpulan ID pemain.
-    /// </summary>
-    public async Task<Dictionary<Guid, string>> GetUsernamesByPlayerIdsAsync(IReadOnlyCollection<Guid> playerIds, CancellationToken ct)
+    public async Task<Dictionary<Guid, string>> GetUsernamesByUserIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct)
     {
-        if (playerIds.Count == 0)
+        if (userIds.Count == 0)
         {
             return new Dictionary<Guid, string>();
         }
 
-        var normalizedPlayerIds = playerIds
-            .Where(playerId => playerId != Guid.Empty)
+        var normalizedUserIds = userIds
+            .Where(userId => userId != Guid.Empty)
             .Distinct()
             .ToArray();
-        if (normalizedPlayerIds.Length == 0)
+        if (normalizedUserIds.Length == 0)
         {
             return new Dictionary<Guid, string>();
         }
 
         const string sql = """
-            select upl.player_id as PlayerId, u.username as Username
-            from user_player_links upl
-            join app_users u on u.user_id = upl.user_id
-            where upl.player_id = any(@playerIds)
+            select user_id as UserId, username as Username
+            from app_users
+            where user_id = any(@userIds)
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var rows = await conn.QueryAsync<PlayerUsernameRow>(
-            new CommandDefinition(sql, new { playerIds = normalizedPlayerIds }, cancellationToken: ct));
+        var rows = await conn.QueryAsync<UserNameRow>(
+            new CommandDefinition(sql, new { userIds = normalizedUserIds }, cancellationToken: ct));
 
         return rows
-            .Where(row => row.PlayerId != Guid.Empty && !string.IsNullOrWhiteSpace(row.Username))
-            .GroupBy(row => row.PlayerId)
+            .Where(row => row.UserId != Guid.Empty && !string.IsNullOrWhiteSpace(row.Username))
+            .GroupBy(row => row.UserId)
             .ToDictionary(group => group.Key, group => group.First().Username.Trim());
     }
 
-    /// <summary>
-    /// Memastikan user memiliki profil pemain dan link; membuat keduanya jika belum ada dalam transaksi.
-    /// </summary>
-    public async Task<Guid> EnsurePlayerLinkAsync(Guid userId, string username, CancellationToken ct)
+    private sealed class UserNameRow
     {
-        const string lockUserSql = """
-            select user_id
-            from app_users
-            where user_id = @userId
-            for update
-            """;
-
-        const string getLinkSql = """
-            select player_id
-            from user_player_links
-            where user_id = @userId
-            limit 1
-            """;
-
-        const string upsertPlayerSql = """
-            insert into players (player_id, display_name, instructor_user_id, created_at)
-            values (@playerId, @displayName, @instructorUserId, @createdAt)
-            on conflict (player_id) do nothing
-            """;
-
-        const string insertLinkSql = """
-            insert into user_player_links (link_id, user_id, player_id, created_at)
-            values (@linkId, @userId, @playerId, @createdAt)
-            """;
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
-
-        await conn.ExecuteAsync(new CommandDefinition(lockUserSql, new { userId }, tx, cancellationToken: ct));
-
-        var linked = await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(getLinkSql, new { userId }, tx, cancellationToken: ct));
-        if (linked.HasValue)
-        {
-            await tx.CommitAsync(ct);
-            return linked.Value;
-        }
-
-        var playerId = PlayerIdentityPolicy.GetCanonicalPlayerId(userId);
-        var resolvedOwnerUserId = PlayerIdentityPolicy.ResolvePlayerOwnerUserId(userId, instructorUserId: null);
-        var createdAt = DateTimeOffset.UtcNow;
-        await conn.ExecuteAsync(new CommandDefinition(upsertPlayerSql, new
-        {
-            playerId,
-            displayName = username,
-            instructorUserId = resolvedOwnerUserId,
-            createdAt
-        }, tx, cancellationToken: ct));
-
-        await conn.ExecuteAsync(new CommandDefinition(insertLinkSql, new
-        {
-            linkId = Guid.NewGuid(),
-            userId,
-            playerId,
-            createdAt
-        }, tx, cancellationToken: ct));
-
-        await tx.CommitAsync(ct);
-        return playerId;
-    }
-
-    /// <summary>
-    /// Record mapping player_id dan username dari join user_player_links dan app_users.
-    /// </summary>
-    private sealed class PlayerUsernameRow
-    {
-        public Guid PlayerId { get; init; }
+        public Guid UserId { get; init; }
         public string Username { get; init; } = string.Empty;
     }
 }

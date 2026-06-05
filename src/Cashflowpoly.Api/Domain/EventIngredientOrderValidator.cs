@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -61,7 +61,7 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
             return new EventIngredientOrderValidation(commonValidation, null);
         }
 
-        var inventory = _derivedState.BuildIngredientInventory(history, request.PlayerId!.Value);
+        var inventory = _derivedState.BuildIngredientInventory(history, request.UserId!.Value);
         if (inventory.Total + amount > config.MaxIngredientTotal)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Total kartu bahan melebihi batas ruleset");
@@ -78,13 +78,13 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
 
     private EventIngredientOrderValidation ValidateDiscard(EventRequest request, IEnumerable<EventDb> history)
     {
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
         if (!_payloadReader.TryReadIngredientPurchase(request.Payload, out var cardId, out var amount))
@@ -102,7 +102,7 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
             return new EventIngredientOrderValidation(amountValidation, null);
         }
 
-        var inventory = _derivedState.BuildIngredientInventory(history, request.PlayerId.Value);
+        var inventory = _derivedState.BuildIngredientInventory(history, request.UserId.Value);
         var currentQty = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty : 0;
         if (currentQty < amount)
         {
@@ -114,13 +114,13 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
 
     private EventIngredientOrderValidation ValidateOrderClaim(EventRequest request, IEnumerable<EventDb> history)
     {
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
         if (!_payloadReader.TryReadOrderClaim(request.Payload, out var requiredCards, out var income))
@@ -141,7 +141,7 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
                 new ErrorDetail("payload.income", "OUT_OF_RANGE"));
         }
 
-        var inventory = _derivedState.BuildIngredientInventory(history, request.PlayerId.Value);
+        var inventory = _derivedState.BuildIngredientInventory(history, request.UserId.Value);
         foreach (var card in requiredCards)
         {
             if (!inventory.ByCardId.TryGetValue(card, out var qty) || qty <= 0)
@@ -163,13 +163,13 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
             return amountValidation;
         }
 
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
         return EventDomainValidationResult.Valid;

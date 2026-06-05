@@ -2668,6 +2668,62 @@ body > footer .footer-shell {
     border-color: #eca5a5;
 }
 
+.session-journey-filter-shell {
+    margin-top: 0.95rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.session-journey-filter-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.session-journey-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.session-journey-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.3rem;
+    padding: 0.42rem 0.78rem;
+    border-radius: 999px;
+    border: 1px solid #aadfd8;
+    background: rgba(255, 255, 255, 0.88);
+    color: #41657a;
+    font-size: 0.74rem;
+    font-weight: 800;
+    line-height: 1.2;
+    box-shadow: 0 8px 18px rgba(20, 99, 134, 0.08);
+    transition: transform 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.session-journey-filter-btn:hover {
+    transform: translateY(-1px);
+    border-color: #7fd4ca;
+    color: #1f4b63;
+}
+
+.session-journey-filter-btn.is-active {
+    background: linear-gradient(145deg, #3ec6bb, #24b3a7);
+    border-color: #169e92;
+    color: #0f4f5f;
+    box-shadow: 0 12px 24px rgba(20, 99, 134, 0.14);
+}
+
+.session-journey-feed-wrap {
+    border: 1px solid #a8e5de;
+    border-radius: 0.95rem;
+    background: rgba(255, 255, 255, 0.86);
+    padding: 0.8rem 0.75rem;
+}
+
 .session-journey-feed {
     display: grid;
     gap: 0.58rem;
@@ -2680,40 +2736,87 @@ body > footer .footer-shell {
     border: 1px solid #a8e5df;
     border-radius: 0.82rem;
     background: rgba(255, 255, 255, 0.92);
-    padding: 0.58rem 0.68rem;
+    padding: 0.68rem 0.75rem;
+    box-shadow: 0 8px 18px rgba(20, 99, 134, 0.08);
 }
 
 .session-journey-feed-head {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.session-journey-feed-player {
+    min-width: 0;
+    display: grid;
+    gap: 0.24rem;
+}
+
+.session-journey-feed-player-name {
+    margin: 0;
+    color: #1f4863;
+    font-size: 0.88rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.session-journey-feed-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.38rem;
+}
+
+.session-journey-feed-dayturn,
+.session-journey-feed-seq {
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    padding: 0.14rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
 }
 
 .session-journey-feed-seq {
-    font-size: 0.68rem;
-    font-weight: 800;
     color: #1f4e67;
+    border: 1px solid #9ee0d8;
+    background: rgba(229, 253, 248, 0.95);
+}
+
+.session-journey-feed-dayturn {
+    color: #7d5a16;
+    border: 1px solid #f0d28f;
+    background: rgba(255, 249, 229, 0.96);
 }
 
 .session-journey-feed-time {
     font-size: 0.68rem;
     color: #607a8b;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .session-journey-feed-title {
-    margin: 0.26rem 0 0;
-    font-size: 0.87rem;
+    margin: 0.38rem 0 0;
+    font-size: 0.9rem;
     font-weight: 800;
     color: #1f4863;
     line-height: 1.25;
 }
 
 .session-journey-feed-subtitle {
-    margin: 0.2rem 0 0;
-    font-size: 0.76rem;
+    margin: 0.22rem 0 0;
+    font-size: 0.74rem;
     color: #567487;
+    font-weight: 700;
+}
+
+.session-journey-feed-detail {
+    margin: 0.28rem 0 0;
+    font-size: 0.77rem;
+    line-height: 1.45;
+    color: #48697d;
 }
 
 .session-journey-empty {
@@ -2725,6 +2828,7 @@ body > footer .footer-shell {
     color: #5f7889;
     font-size: 0.82rem;
     font-weight: 700;
+    list-style: none;
 }
 
 .hint-chip {
@@ -3707,6 +3811,14 @@ select.auth-input {
         padding: 0.82rem;
     }
 
+    .session-journey-feed-wrap {
+        padding: 0.72rem 0.62rem;
+    }
+
+    .session-journey-filter-btn {
+        min-height: 2.15rem;
+    }
+
     .session-board-track {
         grid-auto-columns: minmax(190px, 78vw);
         padding: 0.72rem 0.62rem;
@@ -3723,6 +3835,10 @@ select.auth-input {
     .session-journey-feed-head {
         flex-wrap: wrap;
         justify-content: flex-start;
+    }
+
+    .session-journey-feed-time {
+        white-space: normal;
     }
 
     .table-wrap th,

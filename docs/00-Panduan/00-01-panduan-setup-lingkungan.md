@@ -23,7 +23,7 @@ Sistem membutuhkan komponen berikut pada mesin pengembang.
 | 2 | Visual Studio Code | Menulis kode, menjalankan perintah terminal, dan mengelola proyek .NET |
 | 3 | Google Chrome | Menguji antarmuka web, mengakses Swagger UI, dan memverifikasi tampilan dasbor |
 | 4 | ASP.NET Core 10 | Mengembangkan layanan RESTful API dan aplikasi web MVC |
-| 5 | ASP.NET Core MVC (Razor Views) | Membangun antarmuka web untuk dasbor analitika dan manajemen ruleset |
+| 5 | ASP.NET Core MVC (Razor Views) | Membangun Web Analitik, manajemen ruleset Instruktur, dan referensi ruleset Player |
 | 6 | PostgreSQL | Menyimpan data sesi, pemain, ruleset, event, proyeksi cashflow, metrik, dan log validasi |
 | 7 | Docker Desktop | Menjalankan PostgreSQL, API, dan UI dalam container untuk deployment dan uji integrasi |
 | 8 | DBeaver | Mengelola basis data PostgreSQL: menjalankan DDL, melihat tabel, query data, dan memeriksa hasil pengujian |
@@ -53,7 +53,7 @@ Jika output belum menampilkan .NET 10, sistem membutuhkan instalasi .NET 10 SDK.
 
 ## 4. Instalasi PostgreSQL dan Verifikasi
 ### 4.1 Buat database dan user
-Sistem memakai database dan user yang sama dengan `.env`.
+Sistem memakai database dan user yang sama dengan `config/env/.env`.
 
 Contoh (psql):
 ```sql
@@ -90,10 +90,14 @@ git init
 Struktur proyek yang dipakai:
 ```
 cashflowpoly-analytics-platform/
-  .env
   Cashflowpoly.sln
-  docker-compose.yml
   README.md
+  config/
+    env/
+  infra/
+    docker/
+    nginx/
+    cloudflared/
   docs/
     Img/
   database/
@@ -137,7 +141,7 @@ API membutuhkan `Jwt:SigningKey` (minimal 32 karakter). Disarankan set lewat env
 setx JWT_SIGNING_KEY "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
 ```
 
-Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `.env`.
+Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `config/env/.env`.
 
 Untuk hardening produksi, API mendukung opsi tambahan:
 1. `JWT_SIGNING_KEYS_JSON` untuk multi-key rotation (format array JSON berisi `keyId`, `signingKey`, `activateAtUtc`, `retireAtUtc`).
@@ -150,19 +154,26 @@ Catatan bootstrap auth:
 
 ---
 
-## 8. Setup Skema Database (DBeaver)
-Sistem tidak memakai EF Core. Skema dibuat dengan skrip SQL yang disediakan.
+## 8. Setup Skema Database
+Sistem tidak memakai EF Core. Skema dibuat dengan skrip SQL yang disediakan, dan jalur yang direkomendasikan adalah membiarkan API menjalankan bootstrap schema SQL kanonik serta seed ruleset default saat startup.
 
-### 8.1 Buka koneksi PostgreSQL
+### 8.1 Jalur yang direkomendasikan: biarkan API bootstrap otomatis
+1. Pastikan database `cashflowpoly` dan user PostgreSQL sudah dibuat.
+2. Pastikan extension `pgcrypto` bisa dibuat oleh user yang dipakai API, atau aktifkan lebih dulu sesuai bagian 4.2.
+3. Jalankan API.
+4. API akan memastikan:
+   - `database/00_create_schema.sql` terpasang,
+   - `database/01_seed_default_rulesets_components.sql` terpasang.
+5. Verifikasi tabel, indeks, dan data ruleset default terbentuk tanpa error.
+
+### 8.2 Jalur manual (opsional) via DBeaver
 1. Jalankan DBeaver.
 2. Buat koneksi baru ke PostgreSQL (host, port, database, user, password).
-
-### 8.2 Jalankan skrip skema
-1. Buka file `database/00_create_schema.sql`.
-2. Jalankan seluruh script di DBeaver pada database `cashflowpoly`.
-3. Buka file `database/01_seed_default_rulesets_components.sql`.
-4. Jalankan script seed untuk mengisi ruleset default mode pemula dan mode mahir beserta katalog komponennya.
-5. Pastikan tabel, indeks, dan data seed terbentuk tanpa error.
+3. Buka file `database/00_create_schema.sql`.
+4. Jalankan seluruh script di DBeaver pada database `cashflowpoly`.
+5. Buka file `database/01_seed_default_rulesets_components.sql`.
+6. Jalankan script seed untuk mengisi ruleset default mode pemula dan mode mahir beserta katalog komponennya.
+7. Pastikan tabel, indeks, dan data seed terbentuk tanpa error.
 
 Catatan:
 - Jika extension `pgcrypto` belum aktif, jalankan perintah pada bagian 4.2 sebelum menjalankan script.
@@ -195,8 +206,8 @@ npm run tailwind:watch
 ## 10. Checklist Setup Berhasil
 Setup selesai jika:
 1. `dotnet --list-sdks` menampilkan .NET 10.x,
-2. skrip `database/00_create_schema.sql` berhasil dan tabel terbentuk,
-3. skrip `database/01_seed_default_rulesets_components.sql` berhasil dan data ruleset default terisi,
+2. API berhasil menjalankan bootstrap schema SQL kanonik atau skrip `database/00_create_schema.sql` berhasil dijalankan manual,
+3. seed `database/01_seed_default_rulesets_components.sql` berhasil terpasang dan data ruleset default terisi,
 4. connection string PostgreSQL sudah benar di `Cashflowpoly.Api/appsettings.Development.json`,
 5. `ApiBaseUrl` sudah sesuai di `Cashflowpoly.Ui/appsettings.Development.json`,
 6. dependensi Tailwind sudah terpasang (npm install) dan build CSS berhasil.

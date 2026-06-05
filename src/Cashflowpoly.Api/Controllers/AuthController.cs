@@ -1,6 +1,6 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Infrastructure;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -70,12 +70,7 @@ public sealed class AuthController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "INVALID_CREDENTIALS", "Username atau password salah"));
         }
 
-        if (string.Equals(user.Role, "PLAYER", StringComparison.OrdinalIgnoreCase))
-        {
-            await _users.EnsurePlayerLinkAsync(user.UserId, user.Username, ct);
-        }
-
-        var displayName = await _users.GetDisplayNameAsync(user.UserId, user.Username, user.Role, ct);
+        var displayName = user.DisplayName;
         var issued = _tokens.IssueToken(user);
         await _securityAudit.LogAsync(
             HttpContext,
@@ -165,10 +160,6 @@ public sealed class AuthController : ControllerBase
             return Conflict(ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Username sudah digunakan"));
         }
 
-        if (string.Equals(created.Role, "PLAYER", StringComparison.OrdinalIgnoreCase))
-        {
-            await _users.EnsurePlayerLinkAsync(created.UserId, created.Username, ct);
-        }
         var issued = _tokens.IssueToken(created);
         await _securityAudit.LogAsync(
             HttpContext,

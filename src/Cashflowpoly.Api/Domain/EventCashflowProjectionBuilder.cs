@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -21,13 +21,13 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
         [NotNullWhen(true)] out CashflowProjectionDb? projection)
     {
         projection = null;
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return false;
         }
 
         var action = request.ActionType;
-        var playerId = request.PlayerId.Value;
+        var playerId = request.UserId.Value;
         var direction = string.Empty;
         var amount = 0;
         var category = string.Empty;
@@ -162,7 +162,7 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
         {
             ProjectionId = Guid.NewGuid(),
             SessionId = request.SessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             EventPk = eventPk,
             EventId = request.EventId,
             Timestamp = timestamp,

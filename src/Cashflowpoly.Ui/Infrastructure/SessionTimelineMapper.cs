@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Globalization;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;
@@ -35,10 +35,10 @@ public static class SessionTimelineMapper
                 Timestamp = item.Timestamp,
                 SequenceNumber = item.SequenceNumber,
                 DayIndex = item.DayIndex,
-                Weekday = item.Weekday,
+                Weekday = ResolveWeekdayLabel(item.Weekday, normalizedLanguage),
                 TurnNumber = item.TurnNumber < 1 ? 1 : item.TurnNumber,
                 ActorType = item.ActorType,
-                PlayerId = item.PlayerId,
+                PlayerId = item.UserId,
                 ActionType = item.ActionType,
                 FlowLabel = ResolveFlowLabel(item.ActionType, normalizedLanguage),
                 FlowDescription = BuildFlowDescription(item.ActionType, item.Payload, normalizedLanguage)
@@ -98,6 +98,11 @@ public static class SessionTimelineMapper
         }
 
         if (lower.StartsWith("loan."))
+        {
+            return L(language, "Pembiayaan", "Financing");
+        }
+
+        if (lower.StartsWith("insurance."))
         {
             return L(language, "Pembiayaan", "Financing");
         }
@@ -896,6 +901,27 @@ public static class SessionTimelineMapper
     /// <returns>String angka yang diformat.</returns>
     private static string FormatNumber(double value)
         => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Menerjemahkan kode weekday event menjadi nama hari sesuai bahasa aktif.
+    /// </summary>
+    /// <param name="weekday">Kode hari dari API, misalnya MON atau TUE.</param>
+    /// <param name="language">Kode bahasa aktif.</param>
+    /// <returns>Nama hari terlokalisasi atau nilai asal jika kode tidak dikenal.</returns>
+    private static string ResolveWeekdayLabel(string weekday, string language)
+    {
+        return (weekday ?? string.Empty).Trim().ToUpperInvariant() switch
+        {
+            "MON" => L(language, "Senin", "Monday"),
+            "TUE" => L(language, "Selasa", "Tuesday"),
+            "WED" => L(language, "Rabu", "Wednesday"),
+            "THU" => L(language, "Kamis", "Thursday"),
+            "FRI" => L(language, "Jumat", "Friday"),
+            "SAT" => L(language, "Sabtu", "Saturday"),
+            "SUN" => L(language, "Minggu", "Sunday"),
+            _ => weekday ?? string.Empty
+        };
+    }
 
     /// <summary>
     /// Helper bilingual: mengembalikan teks bahasa Indonesia atau Inggris sesuai kode bahasa aktif.

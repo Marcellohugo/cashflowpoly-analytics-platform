@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 using Npgsql;
 
@@ -278,15 +278,15 @@ internal sealed class EventIngestionService : IEventIngestionService
             return BuildOutcome(shapeValidation);
         }
 
-        if (request.PlayerId is not null)
+        if (request.UserId is not null)
         {
-            var player = await _players.GetPlayerAsync(request.PlayerId.Value, ct);
+            var player = await _players.GetPlayerAsync(request.UserId.Value, ct);
             if (player is null)
             {
                 return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Player tidak ditemukan");
             }
 
-            var inSession = await _players.IsPlayerInSessionAsync(request.SessionId, request.PlayerId.Value, ct);
+            var inSession = await _players.IsPlayerInSessionAsync(request.SessionId, request.UserId.Value, ct);
             if (!inSession)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Player belum terdaftar pada sesi");
@@ -340,7 +340,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             EventPk = eventPk,
             EventId = request.EventId,
             SessionId = request.SessionId,
-            PlayerId = request.PlayerId,
+            UserId = request.UserId,
             ActorType = request.ActorType.ToUpperInvariant(),
             Timestamp = timestamp,
             DayIndex = request.DayIndex,
@@ -417,7 +417,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                     return BuildOutcome(needValidation.Validation);
                 }
 
-                if (needValidation.OutgoingAmount.HasValue && request.PlayerId is not null)
+                if (needValidation.OutgoingAmount.HasValue && request.UserId is not null)
                 {
                     var balanceCheck = await EnsureSufficientBalanceAsync(request, config, needValidation.OutgoingAmount.Value, ct);
                     if (!balanceCheck.IsValid)
@@ -524,10 +524,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur risiko hanya tersedia di mode MAHIR");
             }
 
-            if (request.PlayerId is null)
+            if (request.UserId is null)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
-                    new ErrorDetail("player_id", "REQUIRED"));
+                    new ErrorDetail("user_id", "REQUIRED"));
             }
 
             if (!_payloadReader.TryReadRiskLife(payload, out var riskId, out var direction, out var amount))
@@ -550,7 +550,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var turnEvents = events.Where(e =>
-                e.PlayerId == request.PlayerId &&
+                e.UserId == request.UserId &&
                 e.TurnNumber == request.TurnNumber);
 
             var orderCount = turnEvents.Count(e => e.ActionType == "order.claimed");
@@ -581,10 +581,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur asuransi tidak aktif");
             }
 
-            if (request.PlayerId is null)
+            if (request.UserId is null)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
-                    new ErrorDetail("player_id", "REQUIRED"));
+                    new ErrorDetail("user_id", "REQUIRED"));
             }
 
             if (!_payloadReader.TryReadInsuranceUsed(payload, out var riskEventIdText))
@@ -602,7 +602,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
 
             var hasPurchased = events.Any(e =>
-                e.PlayerId == request.PlayerId &&
+                e.UserId == request.UserId &&
                 string.Equals(e.ActionType, "insurance.multirisk.purchased", StringComparison.OrdinalIgnoreCase));
             if (!hasPurchased)
             {
@@ -615,7 +615,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
             }
 
-            if (riskEvent.PlayerId != request.PlayerId)
+            if (riskEvent.UserId != request.UserId)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
             }
@@ -648,10 +648,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur darurat hanya tersedia di mode MAHIR");
             }
 
-            if (request.PlayerId is null)
+            if (request.UserId is null)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
-                    new ErrorDetail("player_id", "REQUIRED"));
+                    new ErrorDetail("user_id", "REQUIRED"));
             }
 
             if (!_payloadReader.TryReadEmergencyOption(payload, out var riskEventIdText, out var optionType, out var direction, out var amount))
@@ -693,7 +693,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
             }
 
-            if (riskEvent.PlayerId != request.PlayerId)
+            if (riskEvent.UserId != request.UserId)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
             }
@@ -724,10 +724,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur pinjaman tidak aktif");
             }
 
-            if (request.PlayerId is null)
+            if (request.UserId is null)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
-                    new ErrorDetail("player_id", "REQUIRED"));
+                    new ErrorDetail("user_id", "REQUIRED"));
             }
 
             if (!_payloadReader.TryReadLoanTaken(payload, out var loanId, out var principal, out var installment, out var duration, out var penaltyPoints))
@@ -760,7 +760,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var exists = events.Any(e =>
-                e.PlayerId == request.PlayerId &&
+                e.UserId == request.UserId &&
                 e.ActionType == "loan.syariah.taken" &&
                 _payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
                 string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
@@ -779,10 +779,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur pinjaman tidak aktif");
             }
 
-            if (request.PlayerId is null)
+            if (request.UserId is null)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
-                    new ErrorDetail("player_id", "REQUIRED"));
+                    new ErrorDetail("user_id", "REQUIRED"));
             }
 
             if (!_payloadReader.TryReadLoanRepay(payload, out var loanId, out var amount))
@@ -799,7 +799,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var loan = events.FirstOrDefault(e =>
-                e.PlayerId == request.PlayerId &&
+                e.UserId == request.UserId &&
                 e.ActionType == "loan.syariah.taken" &&
                 _payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
                 string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
@@ -816,7 +816,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
 
             var repaidSoFar = events.Where(e =>
-                    e.PlayerId == request.PlayerId &&
+                    e.UserId == request.UserId &&
                     e.ActionType == "loan.syariah.repaid" &&
                     _payloadReader.TryReadLoanRepay(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _) &&
                     string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase))
@@ -860,7 +860,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Premium asuransi harus 1 koin");
             }
 
-            if (request.PlayerId is not null)
+            if (request.UserId is not null)
             {
                 var balanceCheck = await EnsureSufficientBalanceAsync(request, config, premium, ct);
                 if (!balanceCheck.IsValid)
@@ -884,13 +884,13 @@ internal sealed class EventIngestionService : IEventIngestionService
         double outgoingAmount,
         CancellationToken ct)
     {
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return Valid;
         }
 
         var projections = await _events.GetCashflowProjectionsAsync(request.SessionId, ct);
-        var currentBalance = _playerBalanceCalc.Compute(request.PlayerId.Value, config.StartingCash, projections);
+        var currentBalance = _playerBalanceCalc.Compute(request.UserId.Value, config.StartingCash, projections);
         var projectedBalance = currentBalance - outgoingAmount;
 
         if (projectedBalance < config.CashMin)
@@ -926,8 +926,8 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-            if (!linkedPlayerId.HasValue)
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue)
             {
                 return BuildAccessOutcome(
                     StatusCodes.Status403Forbidden,
@@ -935,7 +935,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                     "Akun PLAYER belum terhubung ke profil pemain");
             }
 
-            var inSession = await _players.IsPlayerInSessionAsync(sessionId, linkedPlayerId.Value, ct);
+            var inSession = await _players.IsPlayerInSessionAsync(sessionId, playerUserId.Value, ct);
             if (!inSession)
             {
                 return BuildAccessOutcome(
@@ -944,7 +944,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                     "Player tidak terdaftar di sesi ini");
             }
 
-            return new SessionAccessOutcome(true, StatusCodes.Status200OK, null, linkedPlayerId.Value);
+            return new SessionAccessOutcome(true, StatusCodes.Status200OK, null, playerUserId.Value);
         }
 
         return BuildAccessOutcome(StatusCodes.Status403Forbidden, "FORBIDDEN", "Role tidak diizinkan");

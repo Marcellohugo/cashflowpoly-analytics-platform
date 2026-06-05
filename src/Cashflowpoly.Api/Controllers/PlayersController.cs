@@ -1,7 +1,7 @@
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,7 +93,7 @@ public sealed class PlayersController : ControllerBase
             instructorUserId,
             ct);
 
-        return Created($"/api/v1/players/{createdUser.UserId}", new PlayerResponse(createdUser.UserId, request.DisplayName.Trim()));
+        return Created($"/api/v1/players/{createdUser.UserId}", new PlayerResponse(createdUser.UserId, createdUser.DisplayName));
     }
 
     [HttpGet]
@@ -114,14 +114,14 @@ public sealed class PlayersController : ControllerBase
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
-            var linkedPlayerId = await _users.GetLinkedPlayerIdAsync(userId, ct);
-            if (!linkedPlayerId.HasValue)
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue)
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun PLAYER belum terhubung ke profil pemain"));
             }
 
-            players = await _players.ListPlayersByPlayerScopeAsync(linkedPlayerId.Value, ct);
+            players = await _players.ListPlayersByPlayerScopeAsync(playerUserId.Value, ct);
         }
         else
         {
@@ -129,7 +129,7 @@ public sealed class PlayersController : ControllerBase
                 ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
         }
 
-        var items = players.Select(p => new PlayerResponse(p.PlayerId, p.DisplayName)).ToList();
+        var items = players.Select(p => new PlayerResponse(p.UserId, p.DisplayName)).ToList();
         return Ok(new PlayerListResponse(items));
     }
 
@@ -149,13 +149,13 @@ public sealed class PlayersController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        if (!request.PlayerId.HasValue && string.IsNullOrWhiteSpace(request.Username))
+        if (!request.UserId.HasValue && string.IsNullOrWhiteSpace(request.Username))
         {
             return BadRequest(ApiErrorHelper.BuildError(
                 HttpContext,
                 "VALIDATION_ERROR",
-                "Player ID atau username wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"),
+                "User ID atau username wajib diisi",
+                new ErrorDetail("user_id", "REQUIRED"),
                 new ErrorDetail("username", "REQUIRED")));
         }
 
@@ -192,9 +192,9 @@ public sealed class PlayersController : ControllerBase
         }
 
         PlayerDb? player = null;
-        if (request.PlayerId.HasValue)
+        if (request.UserId.HasValue)
         {
-            player = await _players.GetPlayerForInstructorAsync(request.PlayerId.Value, instructorUserId, ct);
+            player = await _players.GetPlayerForInstructorAsync(request.UserId.Value, instructorUserId, ct);
         }
         else if (!string.IsNullOrWhiteSpace(request.Username))
         {
@@ -206,7 +206,7 @@ public sealed class PlayersController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Player tidak ditemukan"));
         }
 
-        var playerId = player.PlayerId;
+        var userId = player.UserId;
         var resolvedJoinOrder = request.JoinOrder;
         if (requiresInstructorOrder && !resolvedJoinOrder.HasValue)
         {
@@ -215,8 +215,8 @@ public sealed class PlayersController : ControllerBase
                 : request.Username.Trim();
             if (string.IsNullOrWhiteSpace(requestedUsername))
             {
-                var usernameMap = await _users.GetUsernamesByPlayerIdsAsync(new[] { playerId }, ct);
-                requestedUsername = usernameMap.TryGetValue(playerId, out var mappedUsername)
+                var usernameMap = await _users.GetUsernamesByUserIdsAsync(new[] { userId }, ct);
+                requestedUsername = usernameMap.TryGetValue(userId, out var mappedUsername)
                     ? mappedUsername
                     : null;
             }
@@ -236,7 +236,7 @@ public sealed class PlayersController : ControllerBase
                 "Ruleset mewajibkan join_order atau username yang terdaftar pada slot Player 1-4"));
         }
 
-        var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, playerId, ct);
+        var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, userId, ct);
         if (!alreadyInSession)
         {
             var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
@@ -263,12 +263,12 @@ public sealed class PlayersController : ControllerBase
 
         var joinOrder = await _players.AddPlayerToSessionAndAssignJoinOrderAsync(
             sessionId,
-            playerId,
+            userId,
             role,
             resolvedJoinOrder,
             ct);
 
-        return Ok(new AddSessionPlayerResponse(playerId, joinOrder));
+        return Ok(new AddSessionPlayerResponse(userId, joinOrder));
     }
 
     private bool TryGetCurrentUserId(out Guid userId)

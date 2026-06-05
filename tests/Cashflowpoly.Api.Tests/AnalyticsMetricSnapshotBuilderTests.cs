@@ -30,7 +30,7 @@ public sealed class AnalyticsMetricSnapshotBuilderTests
         {
             Assert.NotEqual(Guid.Empty, snapshot.MetricSnapshotId);
             Assert.Equal(sessionId, snapshot.SessionId);
-            Assert.Equal(playerId, snapshot.PlayerId);
+            Assert.Equal(playerId, snapshot.UserId);
             Assert.Equal(rulesetVersionId, snapshot.RulesetVersionId);
             Assert.Equal(computedAt, snapshot.ComputedAt);
         });

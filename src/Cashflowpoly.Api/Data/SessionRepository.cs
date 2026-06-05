@@ -165,18 +165,18 @@ public sealed class SessionRepository
     /// <summary>
     /// Mengambil daftar sesi yang diikuti pemain tertentu.
     /// </summary>
-    public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid playerId, CancellationToken ct)
+    public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid userId, CancellationToken ct)
     {
         const string sql = """
             select distinct s.session_id, s.session_name, s.mode, s.status, s.started_at, s.ended_at, s.instructor_user_id, s.created_at
             from sessions s
             join session_players sp on sp.session_id = s.session_id
-            where sp.player_id = @playerId
+            where sp.user_id = @userId
             order by s.created_at desc
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, new { playerId }, cancellationToken: ct));
+        var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
         return items.ToList();
     }
 

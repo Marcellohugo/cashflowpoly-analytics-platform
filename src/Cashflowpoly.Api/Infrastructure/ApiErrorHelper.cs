@@ -1,4 +1,4 @@
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using System.Collections.Frozen;
 
 namespace Cashflowpoly.Api.Infrastructure;

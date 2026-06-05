@@ -10,6 +10,28 @@ public sealed class EventRepository
 {
     private readonly NpgsqlDataSource _dataSource;
 
+    private const string EventSelectColumns = """
+        select
+            event_pk,
+            event_id,
+            session_id,
+            session_player_id,
+            user_id,
+            actor_type,
+            timestamp,
+            day_index,
+            weekday,
+            turn_number,
+            sequence_number,
+            action_id,
+            action_type,
+            ruleset_version_id,
+            coalesce(payload::text, '{}') as payload,
+            received_at,
+            client_request_id
+        from events
+        """;
+
     /// <summary>
     /// Menerima NpgsqlDataSource untuk koneksi ke tabel events, validation_logs, dan cashflow_projections.
     /// </summary>
@@ -73,13 +95,15 @@ public sealed class EventRepository
             event_pk,
             event_id,
             session_id,
-            player_id,
+            session_player_id,
+            user_id,
             actor_type,
             timestamp,
             day_index,
             weekday,
             turn_number,
             sequence_number,
+            action_id,
             action_type,
             ruleset_version_id,
             payload,
@@ -90,13 +114,15 @@ public sealed class EventRepository
             @EventPk,
             @EventId,
             @SessionId,
-            @PlayerId,
+            @SessionPlayerId,
+            @UserId,
             @ActorType,
             @Timestamp,
             @DayIndex,
             @Weekday,
             @TurnNumber,
             @SequenceNumber,
+            @ActionId,
             @ActionType,
             @RulesetVersionId,
             @Payload::jsonb,
@@ -108,7 +134,7 @@ public sealed class EventRepository
     public async Task InsertEventAsync(EventDb record, CancellationToken ct)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, record, cancellationToken: ct));
+        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, BuildEventParameters(record), cancellationToken: ct));
     }
 
     /// <summary>
@@ -116,7 +142,7 @@ public sealed class EventRepository
     /// </summary>
     internal async Task InsertEventAsync(EventDb record, NpgsqlConnection conn, NpgsqlTransaction tx, CancellationToken ct)
     {
-        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, record, tx, cancellationToken: ct));
+        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, BuildEventParameters(record), tx, cancellationToken: ct));
     }
 
     /// <summary>
@@ -180,7 +206,7 @@ public sealed class EventRepository
         insert into event_cashflow_projections (
             projection_id,
             session_id,
-            player_id,
+            user_id,
             event_pk,
             event_id,
             timestamp,
@@ -194,7 +220,7 @@ public sealed class EventRepository
         values (
             @ProjectionId,
             @SessionId,
-            @PlayerId,
+            @UserId,
             @EventPk,
             @EventId,
             @Timestamp,
@@ -241,7 +267,7 @@ public sealed class EventRepository
         const string sql = """
             select projection_id,
                    session_id,
-                   player_id,
+                   user_id,
                    event_pk,
                    event_id,
                    timestamp,
@@ -265,23 +291,8 @@ public sealed class EventRepository
     /// </summary>
     public async Task<List<EventDb>> GetEventsBySessionAsync(Guid sessionId, long fromSeq, int limit, CancellationToken ct)
     {
-        const string sql = """
-            select event_pk,
-                   event_id,
-                   session_id,
-                   player_id,
-                   actor_type,
-                   timestamp,
-                   day_index,
-                   weekday,
-                   turn_number,
-                   sequence_number,
-                   action_type,
-                   ruleset_version_id,
-                   payload::text as payload,
-                   received_at,
-                   client_request_id
-            from events
+        var sql = EventSelectColumns + """
+
             where session_id = @sessionId
               and sequence_number >= @fromSeq
             order by sequence_number
@@ -298,23 +309,8 @@ public sealed class EventRepository
     /// </summary>
     public async Task<List<EventDb>> GetAllEventsBySessionAsync(Guid sessionId, CancellationToken ct)
     {
-        const string sql = """
-            select event_pk,
-                   event_id,
-                   session_id,
-                   player_id,
-                   actor_type,
-                   timestamp,
-                   day_index,
-                   weekday,
-                   turn_number,
-                   sequence_number,
-                   action_type,
-                   ruleset_version_id,
-                   payload::text as payload,
-                   received_at,
-                   client_request_id
-            from events
+        var sql = EventSelectColumns + """
+
             where session_id = @sessionId
             order by sequence_number
             """;
@@ -329,29 +325,41 @@ public sealed class EventRepository
     /// </summary>
     public async Task<EventDb?> GetEventByIdAsync(Guid sessionId, Guid eventId, CancellationToken ct)
     {
-        const string sql = """
-            select event_pk,
-                   event_id,
-                   session_id,
-                   player_id,
-                   actor_type,
-                   timestamp,
-                   day_index,
-                   weekday,
-                   turn_number,
-                   sequence_number,
-                   action_type,
-                   ruleset_version_id,
-                   payload::text as payload,
-                   received_at,
-                   client_request_id
-            from events
+        var sql = EventSelectColumns + """
+
             where session_id = @sessionId
               and event_id = @eventId
             limit 1
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        return await conn.QueryFirstOrDefaultAsync<EventDb>(new CommandDefinition(sql, new { sessionId, eventId }, cancellationToken: ct));
+        return await conn.QuerySingleOrDefaultAsync<EventDb>(
+            new CommandDefinition(sql, new { sessionId, eventId }, cancellationToken: ct));
+    }
+
+    private static object BuildEventParameters(EventDb record)
+    {
+        return new
+        {
+            record.EventPk,
+            record.EventId,
+            record.SessionId,
+            record.SessionPlayerId,
+            record.UserId,
+            record.ActorType,
+            record.Timestamp,
+            record.DayIndex,
+            record.Weekday,
+            record.TurnNumber,
+            record.SequenceNumber,
+            ActionId = string.IsNullOrWhiteSpace(record.ActionId)
+                ? EventActionIdResolver.Resolve(record.ActionType, record.Payload)
+                : record.ActionId,
+            record.ActionType,
+            record.RulesetVersionId,
+            record.Payload,
+            record.ReceivedAt,
+            record.ClientRequestId
+        };
     }
 }

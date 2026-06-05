@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Cashflowpoly.Contracts;
+namespace Cashflowpoly.Api.Contracts;
 
 public sealed record ErrorDetail(
     [property: JsonPropertyName("field")] string Field,

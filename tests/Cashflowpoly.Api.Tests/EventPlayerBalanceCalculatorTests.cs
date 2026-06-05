@@ -29,7 +29,7 @@ public sealed class EventPlayerBalanceCalculatorTests
         {
             ProjectionId = Guid.NewGuid(),
             SessionId = Guid.NewGuid(),
-            PlayerId = playerId,
+            UserId = playerId,
             EventPk = Guid.NewGuid(),
             EventId = Guid.NewGuid(),
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),

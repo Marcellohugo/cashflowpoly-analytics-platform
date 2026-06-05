@@ -60,7 +60,7 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         {
             EventId = eventId,
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
@@ -85,7 +85,7 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         {
             ProjectionId = Guid.NewGuid(),
             SessionId = sessionId,
-            PlayerId = playerId,
+            UserId = playerId,
             EventPk = Guid.NewGuid(),
             EventId = eventId,
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),

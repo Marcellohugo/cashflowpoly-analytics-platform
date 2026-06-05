@@ -1,6 +1,6 @@
-using System.Net.Http.Json;
 using System.Net;
-using Cashflowpoly.Contracts;
+using System.Net.Http.Json;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -116,6 +116,7 @@ public sealed class SessionsController : Controller
         {
             return rulesetOptions.UnauthorizedResult;
         }
+
         return View(new SessionRulesetViewModel
         {
             SessionId = sessionId,
@@ -125,6 +126,7 @@ public sealed class SessionsController : Controller
     }
 
     [HttpPost("{sessionId:guid}/ruleset")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Ruleset(Guid sessionId, SessionRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -144,12 +146,7 @@ public sealed class SessionsController : Controller
         }
 
         var client = _clientFactory.CreateClient("Api");
-        var payload = new
-        {
-            ruleset_id = model.SelectedRulesetId,
-            version = model.SelectedVersion
-        };
-
+        var payload = new ActivateRulesetRequest(model.SelectedRulesetId.Value, model.SelectedVersion.Value);
         var response = await client.PostAsJsonAsync($"api/v1/sessions/{sessionId}/ruleset/activate", payload, ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
@@ -201,8 +198,7 @@ public sealed class SessionsController : Controller
 
     private async Task<(SessionDetailViewModel Model, IActionResult? Result)> BuildSessionDetailViewModel(
         Guid sessionId,
-        CancellationToken ct,
-        string? overrideErrorMessage = null)
+        CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
@@ -234,7 +230,7 @@ public sealed class SessionsController : Controller
                 Timeline = fallbackTimeline,
                 TimelineErrorMessage = fallbackTimelineError,
                 PlayerDisplayNames = fallbackPlayerDisplayNames,
-                ErrorMessage = overrideErrorMessage ?? error?.Message ?? HttpContext
+                ErrorMessage = error?.Message ?? HttpContext
                     .T("sessions.error.load_detail_failed")
                     .Replace("{status}", ((int)response.StatusCode).ToString())
             }, null);
@@ -253,7 +249,7 @@ public sealed class SessionsController : Controller
             Timeline = timeline,
             TimelineErrorMessage = timelineError,
             PlayerDisplayNames = playerDisplayNames,
-            ErrorMessage = overrideErrorMessage
+            ErrorMessage = null
         }, null);
     }
 
@@ -306,7 +302,7 @@ public sealed class SessionsController : Controller
         var data = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
         return (data?.Items ?? new List<PlayerResponse>())
             .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
-            .GroupBy(item => item.PlayerId)
+            .GroupBy(item => item.UserId)
             .ToDictionary(group => group.Key, group => group.First().DisplayName);
     }
 

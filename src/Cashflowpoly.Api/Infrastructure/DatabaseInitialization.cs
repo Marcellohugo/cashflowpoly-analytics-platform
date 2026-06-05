@@ -1,25 +1,18 @@
 using Dapper;
 using Cashflowpoly.Api.Data;
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Cashflowpoly.Api.Infrastructure;
 
 internal static class DatabaseInitialization
 {
-    private const string InitialMigrationId = "20260509170152_InitialSchema";
-    private const string SchemaParityMigrationId = "20260517164422_SchemaParityAndDefaultSeed";
-    private const string EfProductVersion = "9.0.4";
-
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken cancellationToken)
     {
         using var scope = services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInitialization");
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var dataSource = scope.ServiceProvider.GetRequiredService<NpgsqlDataSource>();
 
-        await BaselineLegacySchemaAsync(dataSource, logger, cancellationToken);
-        await db.Database.MigrateAsync(cancellationToken);
+        await EnsureSqlSchemaAsync(dataSource, logger, cancellationToken);
         await SeedSqlFileAsync(
             dataSource,
             logger,
@@ -27,120 +20,19 @@ internal static class DatabaseInitialization
             "Default ruleset seed ensured",
             stripPgcryptoExtension: true,
             cancellationToken);
-        await SeedSqlFileAsync(
-            dataSource,
-            logger,
-            Path.Combine("database", "02_seed_full_inspection.sql"),
-            "Inspection seed ensured",
-            stripPgcryptoExtension: false,
-            cancellationToken);
     }
 
-    private static async Task BaselineLegacySchemaAsync(
+    private static async Task EnsureSqlSchemaAsync(
         NpgsqlDataSource dataSource,
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        const string ensureHistorySql = """
-            create table if not exists "__EFMigrationsHistory" (
-              "MigrationId" character varying(150) not null,
-              "ProductVersion" character varying(32) not null,
-              constraint "PK___EFMigrationsHistory" primary key ("MigrationId")
-            );
-            """;
-
-        const string insertInitialMigrationSql = """
-            with schema_state as (
-                select
-                    to_regclass('public.app_users') is not null as has_app_users,
-                    to_regclass('public.rulesets') is not null as has_rulesets,
-                    to_regclass('public.user_player_links') is not null as has_user_player_links
-            )
-            insert into "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-            select @migrationId, @productVersion
-            from schema_state
-            where has_app_users and has_rulesets and has_user_player_links
-              and not exists (
-                  select 1
-                  from "__EFMigrationsHistory"
-                  where "MigrationId" = @migrationId
-              );
-            """;
-
-        const string insertParityMigrationSql = """
-            with schema_state as (
-                select
-                    to_regclass('public.app_users') is not null as has_app_users,
-                    to_regclass('public.rulesets') is not null as has_rulesets,
-                    to_regclass('public.user_player_links') is not null as has_user_player_links,
-                    exists (select 1 from pg_extension where extname = 'pgcrypto') as has_pgcrypto,
-                    exists (
-                        select 1
-                        from pg_indexes
-                        where schemaname = 'public'
-                          and tablename = 'app_users'
-                          and indexname = 'app_users_username_key'
-                    ) as has_username_unique,
-                    exists (
-                        select 1
-                        from pg_indexes
-                        where schemaname = 'public'
-                          and tablename = 'session_players'
-                          and indexname = 'session_players_session_id_player_id_key'
-                    ) as has_session_player_unique,
-                    exists (
-                        select 1
-                        from pg_indexes
-                        where schemaname = 'public'
-                          and tablename = 'events'
-                          and indexname = 'events_session_id_event_id_key'
-                    ) as has_event_unique,
-                    exists (
-                        select 1
-                        from pg_indexes
-                        where schemaname = 'public'
-                          and tablename = 'ruleset_versions'
-                          and indexname = 'ruleset_versions_ruleset_id_version_key'
-                    ) as has_ruleset_version_unique
-            )
-            insert into "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-            select @migrationId, @productVersion
-            from schema_state
-            where has_app_users
-              and has_rulesets
-              and has_user_player_links
-              and has_pgcrypto
-              and has_username_unique
-              and has_session_player_unique
-              and has_event_unique
-              and has_ruleset_version_unique
-              and not exists (
-                  select 1
-                  from "__EFMigrationsHistory"
-                  where "MigrationId" = @migrationId
-              );
-            """;
+        var schemaPath = ResolveDatabaseFilePath("00_create_schema.sql");
+        var schemaSql = await File.ReadAllTextAsync(schemaPath, cancellationToken);
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        await connection.ExecuteAsync(new CommandDefinition(ensureHistorySql, cancellationToken: cancellationToken));
-
-        var initialInserted = await connection.ExecuteAsync(new CommandDefinition(
-            insertInitialMigrationSql,
-            new { migrationId = InitialMigrationId, productVersion = EfProductVersion },
-            cancellationToken: cancellationToken));
-
-        var parityInserted = await connection.ExecuteAsync(new CommandDefinition(
-            insertParityMigrationSql,
-            new { migrationId = SchemaParityMigrationId, productVersion = EfProductVersion },
-            cancellationToken: cancellationToken));
-
-        if (initialInserted > 0 || parityInserted > 0)
-        {
-            logger.LogInformation(
-                "Legacy SQL schema detected. Baseline migration history inserted. initial={InitialInserted} parity={ParityInserted}",
-                initialInserted,
-                parityInserted);
-        }
+        await connection.ExecuteAsync(new CommandDefinition(schemaSql, cancellationToken: cancellationToken));
+        logger.LogInformation("Canonical SQL schema ensured from {SchemaPath}", schemaPath);
     }
 
     private static async Task SeedSqlFileAsync(
@@ -166,5 +58,27 @@ internal static class DatabaseInitialization
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(new CommandDefinition(seedSql, cancellationToken: cancellationToken));
         logger.LogInformation("{Message} from {SeedPath}", successLogMessage, seedPath);
+    }
+
+    private static string ResolveDatabaseFilePath(string fileName)
+    {
+        var candidatePaths = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "database", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "database", fileName),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "database", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "database", fileName)
+        };
+
+        foreach (var candidate in candidatePaths)
+        {
+            var fullPath = Path.GetFullPath(candidate);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+
+        throw new FileNotFoundException($"File database '{fileName}' tidak ditemukan.");
     }
 }

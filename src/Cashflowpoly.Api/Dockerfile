@@ -4,7 +4,6 @@ WORKDIR /src
 
 COPY Cashflowpoly.sln ./
 COPY src/Cashflowpoly.Api/Cashflowpoly.Api.csproj src/Cashflowpoly.Api/
-COPY src/Cashflowpoly.Contracts/Cashflowpoly.Contracts.csproj src/Cashflowpoly.Contracts/
 RUN dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
 
 COPY . .

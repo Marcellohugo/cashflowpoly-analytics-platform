@@ -17,17 +17,6 @@
     string ResolvePlayerAvatarPath(int joinOrder) => $"/images/players/{ResolvePlayerAvatarIndex(joinOrder)}.png";
 
     var sessionGroupCount = Model.SessionGroups.Count;
-    var startedSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase));
-    var endedSessionCount = Model.SessionGroups.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase));
-    var playerIdsWithSessionData = new HashSet<Guid>();
-    foreach (var groupedSession in Model.SessionGroups)
-    {
-        foreach (var sessionPlayer in groupedSession.Players)
-        {
-            playerIdsWithSessionData.Add(sessionPlayer.PlayerId);
-        }
-    }
-
 }
 
 <section class="section-shell w-full">
@@ -44,30 +33,14 @@
 
     <div class="mt-6 ruleset-unified players-index-shell">
         <section class="players-index-section">
-            <div class="ruleset-section-head">
-                <p class="ruleset-section-title">@Context.T("players.index.summary_title")</p>
-                <p class="ruleset-section-subtitle">@Context.T("players.index.summary_subtitle")</p>
-            </div>
-            <div class="players-stats-grid mt-3">
-                <div class="stat-card">
+            <div class="ruleset-section-head ruleset-section-head-row">
+                <div>
+                    <p class="ruleset-section-title">@Context.T("players.index.summary_title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("players.index.summary_subtitle")</p>
+                </div>
+                <div class="ruleset-index-count-block">
                     <p class="text-xs uppercase text-slate-500">@Context.T("players.total_players")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Players.Count</p>
-                </div>
-                <div class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.index.players_with_data")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@playerIdsWithSessionData.Count</p>
-                </div>
-                <div class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("players.index.sessions_with_data")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@sessionGroupCount</p>
-                </div>
-                <div class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.started")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@startedSessionCount</p>
-                </div>
-                <div class="stat-card">
-                    <p class="text-xs uppercase text-slate-500">@Context.T("sessions.ended")</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-900">@endedSessionCount</p>
+                    <p class="ruleset-index-count">@Model.Players.Count</p>
                 </div>
             </div>
         </section>
@@ -146,7 +119,7 @@
                                     <td class="px-4 py-3" data-label="@Context.T("common.name")">
                                         <span class="font-medium text-slate-900">@player.DisplayName</span>
                                     </td>
-                                    <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.player_id")">@player.PlayerId</td>
+                                    <td class="px-4 py-3 font-mono text-xs text-slate-600" data-label="@Context.T("common.player_id")">@player.UserId</td>
                                 </tr>
                             }
                         }

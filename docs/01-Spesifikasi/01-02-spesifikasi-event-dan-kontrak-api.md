@@ -1,5 +1,5 @@
 ﻿# Spesifikasi Event dan Kontrak REST API  
-## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
+## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Spesifikasi Event dan Kontrak REST API
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini disusun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta manajemen ruleset. Dokumen ini menjadi acuan implementasi back-end dan acuan integrasi UI MVC serta pengujian fungsional.
+Dokumen ini disusun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta lifecycle sesi/ruleset/Player yang dipakai Klien Game/IDN. Dokumen ini menjadi acuan implementasi back-end, integrasi Klien Game/IDN, Web Analitik MVC, serta pengujian fungsional.
 
 Jika ada konflik detail antara dokumen ini dan dokumen lain, prioritas acuan:
 1. `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
@@ -825,7 +825,7 @@ Status code:
 
 ## 8. Endpoint Ruleset
 Catatan akses:
-- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer.
+- Endpoint mutasi ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Endpoint ini dapat dipakai oleh Web Analitik MVC, Klien Game/IDN, atau integrasi API untuk kebutuhan manajemen ruleset Instruktur.
 
 ### 8.1 Buat ruleset
 - Method: `POST`

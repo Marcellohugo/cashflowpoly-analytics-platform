@@ -1,4 +1,4 @@
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;

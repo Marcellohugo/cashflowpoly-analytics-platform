@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
@@ -26,7 +26,7 @@ public sealed class AnalyticsPlayerOrderingTests
             new Dictionary<Guid, long> { [first] = 5, [second] = 9, [third] = 1 },
             new Dictionary<Guid, string>());
 
-        Assert.Equal([second, first, third], ordered.Select(item => item.PlayerId));
+        Assert.Equal([second, first, third], ordered.Select(item => item.UserId));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class AnalyticsPlayerOrderingTests
                 [second] = "Andi"
             });
 
-        Assert.Equal([second, first, missingUsername], ordered.Select(item => item.PlayerId));
+        Assert.Equal([second, first, missingUsername], ordered.Select(item => item.UserId));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class AnalyticsPlayerOrderingTests
             new Dictionary<Guid, long> { [first] = 20, [second] = 10 },
             new Dictionary<Guid, string>());
 
-        Assert.Equal([second, first], ordered.Select(item => item.PlayerId));
+        Assert.Equal([second, first], ordered.Select(item => item.UserId));
     }
 
     private static AnalyticsByPlayerItem BuildPlayer(Guid playerId)

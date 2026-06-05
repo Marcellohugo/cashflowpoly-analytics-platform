@@ -1,4 +1,4 @@
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -184,7 +184,7 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
 
     private EventDomainValidationResult RequirePlayer(EventRequest request)
     {
-        if (request.PlayerId is not null)
+        if (request.UserId is not null)
         {
             return EventDomainValidationResult.Valid;
         }
@@ -193,6 +193,6 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
             StatusCodes.Status400BadRequest,
             "VALIDATION_ERROR",
             "Player wajib diisi",
-            new ErrorDetail("player_id", "REQUIRED"));
+            new ErrorDetail("user_id", "REQUIRED"));
     }
 }

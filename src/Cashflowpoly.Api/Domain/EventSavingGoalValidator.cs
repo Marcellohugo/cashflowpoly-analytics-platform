@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -69,7 +69,7 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Maksimal tabungan per aksi adalah 15 koin");
         }
 
-        var balance = _derivedState.ComputeSavingBalance(history, request.PlayerId!.Value, goalId);
+        var balance = _derivedState.ComputeSavingBalance(history, request.UserId!.Value, goalId);
         if (!isCreate && balance < amount)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi");
@@ -116,7 +116,7 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
                 new ErrorDetail("payload.cost", "OUT_OF_RANGE"));
         }
 
-        var balance = _derivedState.ComputeSavingBalance(history, request.PlayerId!.Value, goalId);
+        var balance = _derivedState.ComputeSavingBalance(history, request.UserId!.Value, goalId);
         if (cost > 0 && balance < cost)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi untuk goal");
@@ -135,13 +135,13 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
                 "Fitur tabungan tujuan tidak aktif");
         }
 
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
         return EventDomainValidationResult.Valid;

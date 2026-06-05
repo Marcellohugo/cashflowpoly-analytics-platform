@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
@@ -45,7 +45,7 @@ public sealed class EventCashflowProjectionBuilderTests
         Assert.True(ok);
         Assert.NotNull(projection);
         Assert.Equal(sessionId, projection.SessionId);
-        Assert.Equal(playerId, projection.PlayerId);
+        Assert.Equal(playerId, projection.UserId);
         Assert.Equal(eventPk, projection.EventPk);
         Assert.Equal(eventId, projection.EventId);
         Assert.Equal(timestamp, projection.Timestamp);

@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -54,39 +54,9 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        var defaultComponentItems = new List<DefaultRulesetComponentItem>();
-        string? defaultComponentsErrorMessage = null;
-        var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
-        unauthorized = this.HandleUnauthorizedApiResponse(defaultsResponse);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!defaultsResponse.IsSuccessStatusCode)
-        {
-            defaultComponentsErrorMessage = HttpContext
-                .T("rulesets.error.load_default_components_failed")
-                .Replace("{status}", ((int)defaultsResponse.StatusCode).ToString());
-        }
-        else
-        {
-            var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
-            if (defaultsData is null)
-            {
-                defaultComponentsErrorMessage = HttpContext.T("rulesets.error.invalid_default_components_response");
-            }
-            else
-            {
-                defaultComponentItems = defaultsData.Items ?? new List<DefaultRulesetComponentItem>();
-            }
-        }
-
         return View(new RulesetListViewModel
         {
-            Items = data.Items ?? new List<RulesetListItem>(),
-            DefaultComponentItems = defaultComponentItems,
-            DefaultComponentsErrorMessage = defaultComponentsErrorMessage
+            Items = data.Items ?? new List<RulesetListItem>()
         });
     }
 
@@ -102,6 +72,7 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("create")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -208,6 +179,7 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/edit")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid rulesetId, CreateRulesetViewModel model, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -304,13 +276,18 @@ public sealed class RulesetsController : Controller
                                 fallbackItem.Name,
                                 fallbackItem.Description,
                                 new List<RulesetVersionItem>(),
-                                null),
+                                null,
+                                fallbackItem.RulesetVersionId,
+                                fallbackItem.Version,
+                                fallbackItem.Mode,
+                                fallbackItem.Sections),
                             Components = new RulesetComponentsResponse(
                                 fallbackItem.RulesetId,
                                 fallbackItem.RulesetVersionId,
                                 fallbackItem.Version,
                                 fallbackItem.Mode,
-                                fallbackItem.ComponentCatalog),
+                                fallbackItem.ComponentCatalog,
+                                fallbackItem.Sections),
                             InfoMessage = HttpContext.T("rulesets.info.default_catalog_readonly"),
                             IsReadOnly = true,
                             IsDefaultCatalogSource = true
@@ -410,21 +387,21 @@ public sealed class RulesetsController : Controller
             TempData[RulesetErrorTempDataKey] = HttpContext
                 .T("rulesets.error.load_default_components_failed")
                 .Replace("{status}", ((int)defaultsResponse.StatusCode).ToString());
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", "Components");
         }
 
         var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
         if (defaultsData is null)
         {
             TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.invalid_default_components_response");
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", "Components");
         }
 
         var selectedItem = defaultsData.Items.FirstOrDefault(item => item.RulesetVersionId == rulesetVersionId);
         if (selectedItem is null)
         {
             TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.default_component_not_found");
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", "Components");
         }
 
         return RedirectToAction(nameof(Details), new
@@ -437,6 +414,7 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ActivateVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -464,6 +442,7 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/delete")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteVersion(Guid rulesetId, int version, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -497,6 +476,7 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("{rulesetId:guid}/delete")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())
@@ -525,6 +505,7 @@ public sealed class RulesetsController : Controller
     }
 
     [HttpPost("bulk-delete")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> BulkDelete([FromForm(Name = "rulesetIds")] List<Guid>? rulesetIds, CancellationToken ct)
     {
         if (!HttpContext.Session.IsInstructor())

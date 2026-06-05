@@ -9,9 +9,9 @@ public sealed class DeploymentAssetTests
     [Fact]
     public void DockerCompose_DoesNotMountDatabaseInitScripts()
     {
-        var composePath = Path.Combine(RepoRoot, "docker-compose.yml");
+        var composePath = Path.Combine(RepoRoot, "infra", "docker", "docker-compose.yml");
 
-        Assert.True(File.Exists(composePath), "docker-compose.yml harus tersedia pada root repositori.");
+        Assert.True(File.Exists(composePath), "docker-compose.yml harus tersedia pada infra/docker.");
 
         var content = File.ReadAllText(composePath);
 
@@ -22,9 +22,9 @@ public sealed class DeploymentAssetTests
     [Fact]
     public void DockerComposeWatch_UsesInlineUiWatcherCommand()
     {
-        var composePath = Path.Combine(RepoRoot, "docker-compose.watch.yml");
+        var composePath = Path.Combine(RepoRoot, "infra", "docker", "docker-compose.watch.yml");
 
-        Assert.True(File.Exists(composePath), "docker-compose.watch.yml harus tersedia.");
+        Assert.True(File.Exists(composePath), "docker-compose.watch.yml harus tersedia pada infra/docker.");
 
         var content = File.ReadAllText(composePath);
 
@@ -37,21 +37,58 @@ public sealed class DeploymentAssetTests
     }
 
     [Fact]
-    public void InspectionSeedAsset_IsDocumentedForLocalVerification()
+    public void ApiAndUiProjects_DoNotReferenceSharedContractsProject()
     {
-        var seedPath = Path.Combine(RepoRoot, "database", "02_seed_full_inspection.sql");
+        var apiProjectPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Cashflowpoly.Api.csproj");
+        var uiProjectPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Cashflowpoly.Ui.csproj");
+        var apiDockerfilePath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Dockerfile");
+        var uiDockerfilePath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Dockerfile");
+        var contractsProjectPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Contracts", "Cashflowpoly.Contracts.csproj");
+
+        Assert.True(File.Exists(apiProjectPath), "Project API harus tersedia.");
+        Assert.True(File.Exists(uiProjectPath), "Project UI harus tersedia.");
+        Assert.True(File.Exists(apiDockerfilePath), "Dockerfile API harus tersedia.");
+        Assert.True(File.Exists(uiDockerfilePath), "Dockerfile UI harus tersedia.");
+
+        var apiProject = File.ReadAllText(apiProjectPath);
+        var uiProject = File.ReadAllText(uiProjectPath);
+        var apiDockerfile = File.ReadAllText(apiDockerfilePath);
+        var uiDockerfile = File.ReadAllText(uiDockerfilePath);
+
+        Assert.False(File.Exists(contractsProjectPath), "Project Contracts terpisah tidak digunakan lagi.");
+        Assert.DoesNotContain("Cashflowpoly.Contracts", apiProject, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cashflowpoly.Contracts", uiProject, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cashflowpoly.Contracts", apiDockerfile, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cashflowpoly.Contracts", uiDockerfile, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Readme_DoesNotReferenceRemovedInspectionSeedOrDemoCredentials()
+    {
         var readmePath = Path.Combine(RepoRoot, "README.md");
 
-        Assert.True(File.Exists(seedPath), "Seed inspeksi penuh harus tersedia pada folder database.");
         Assert.True(File.Exists(readmePath), "README.md harus tersedia pada root repositori.");
 
         var readme = File.ReadAllText(readmePath);
 
-        Assert.Contains("02_seed_full_inspection.sql", readme, StringComparison.Ordinal);
-        Assert.Contains("mira.hartanto", readme, StringComparison.Ordinal);
-        Assert.Contains("MiraAudit!2026", readme, StringComparison.Ordinal);
-        Assert.Contains("ulfa.ramadhani", readme, StringComparison.Ordinal);
-        Assert.Contains("UlfaAudit!2026", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("02_seed_full_inspection.sql", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("mira.hartanto", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("MiraAudit!2026", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("ulfa.ramadhani", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("UlfaAudit!2026", readme, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Readme_DescribesSqlBootstrap_InsteadOfEfMigrationStartup()
+    {
+        var readmePath = Path.Combine(RepoRoot, "README.md");
+
+        Assert.True(File.Exists(readmePath), "README.md harus tersedia pada root repositori.");
+
+        var readme = File.ReadAllText(readmePath);
+
+        Assert.DoesNotContain("migration EF", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("bootstrap schema SQL kanonik", readme, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ResolveRepositoryRoot()

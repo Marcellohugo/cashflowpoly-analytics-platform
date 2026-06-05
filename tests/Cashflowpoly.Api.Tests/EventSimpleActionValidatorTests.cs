@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
@@ -24,7 +24,7 @@ public sealed class EventSimpleActionValidatorTests
     {
         var request = CreateRequest("order.passed", """{"required_ingredient_card_ids":["A"],"income":5}""") with
         {
-            PlayerId = null
+            UserId = null
         };
 
         var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
@@ -33,7 +33,7 @@ public sealed class EventSimpleActionValidatorTests
         Assert.False(result.IsValid);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.Equal("VALIDATION_ERROR", result.ErrorCode);
-        Assert.Contains(result.Details, detail => detail.Field == "player_id" && detail.Issue == "REQUIRED");
+        Assert.Contains(result.Details, detail => detail.Field == "user_id" && detail.Issue == "REQUIRED");
     }
 
     [Fact]

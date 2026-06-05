@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
@@ -32,7 +32,7 @@ public sealed class EventValidationDetailsSerializerTests
 
         using var document = JsonDocument.Parse(json!);
         var root = document.RootElement;
-        Assert.Equal(playerId, root.GetProperty("player_id").GetGuid());
+        Assert.Equal(playerId, root.GetProperty("user_id").GetGuid());
         Assert.Equal("transaction.recorded", root.GetProperty("action_type").GetString());
         var detail = root.GetProperty("details")[0];
         Assert.Equal("payload.amount", detail.GetProperty("field").GetString());

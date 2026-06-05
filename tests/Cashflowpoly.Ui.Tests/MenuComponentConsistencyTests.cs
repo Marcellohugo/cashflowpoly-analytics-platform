@@ -8,13 +8,14 @@ public sealed class MenuComponentConsistencyTests
     [Theory]
     [InlineData("Home", "Index.cshtml", 4)]
     [InlineData("Sessions", "Index.cshtml", 3)]
-    [InlineData("Sessions", "Details.cshtml", 5)]
-    [InlineData("Sessions", "Ruleset.cshtml", 2)]
+    [InlineData("Sessions", "Details.cshtml", 4)]
     [InlineData("Players", "Index.cshtml", 3)]
     [InlineData("Players", "Details.cshtml", 3)]
-    [InlineData("Rulesets", "Index.cshtml", 5)]
-    [InlineData("Rulesets", "Create.cshtml", 6)]
+    [InlineData("Rulesets", "Index.cshtml", 4)]
+    [InlineData("Rulesets", "Create.cshtml", 5)]
     [InlineData("Rulesets", "Details.cshtml", 7)]
+    [InlineData("Sessions", "Ruleset.cshtml", 2)]
+    [InlineData("Components", "Index.cshtml", 1)]
     public void PrimaryMenuViews_ShouldUseSharedSectionHeaders(string folder, string fileName, int minimumSectionTitles)
     {
         var viewContent = File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Views", folder, fileName));

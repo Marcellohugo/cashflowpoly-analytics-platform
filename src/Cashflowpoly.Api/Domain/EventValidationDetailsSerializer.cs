@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
@@ -14,7 +14,7 @@ internal sealed class EventValidationDetailsSerializer : IEventValidationDetails
 
         var payload = new
         {
-            player_id = request.PlayerId,
+            user_id = request.UserId,
             action_type = request.ActionType,
             details = error.Details
         };

@@ -1,5 +1,5 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Api.Domain;
@@ -61,18 +61,18 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
                 new ErrorDetail("payload.used", "OUT_OF_RANGE"));
         }
 
-        if (request.PlayerId is null)
+        if (request.UserId is null)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player wajib diisi",
-                new ErrorDetail("player_id", "REQUIRED"));
+                new ErrorDetail("user_id", "REQUIRED"));
         }
 
         var usedSoFar = 0;
         foreach (var evt in history.Where(e =>
-                     e.PlayerId == request.PlayerId &&
+                     e.UserId == request.UserId &&
                      e.TurnNumber == request.TurnNumber &&
                      e.ActionType == "turn.action.used"))
         {
@@ -95,16 +95,16 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 
     private EventDomainValidationResult ValidateTurnEndedMahir(EventRequest request, IEnumerable<EventDb> history)
     {
-        var turnEvents = history.Where(e => e.TurnNumber == request.TurnNumber && e.PlayerId.HasValue).ToList();
+        var turnEvents = history.Where(e => e.TurnNumber == request.TurnNumber && e.UserId.HasValue).ToList();
 
         var orderCounts = turnEvents
             .Where(e => e.ActionType == "order.claimed")
-            .GroupBy(e => e.PlayerId!.Value)
+            .GroupBy(e => e.UserId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
 
         var riskCounts = turnEvents
             .Where(e => e.ActionType == "risk.life.drawn")
-            .GroupBy(e => e.PlayerId!.Value)
+            .GroupBy(e => e.UserId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
 
         foreach (var playerId in orderCounts.Keys.Union(riskCounts.Keys))

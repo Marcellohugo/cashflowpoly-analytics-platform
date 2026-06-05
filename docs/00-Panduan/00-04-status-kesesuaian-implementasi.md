@@ -1,5 +1,5 @@
 ﻿# Status Kesesuaian Implementasi
-## Sistem Informasi Dasbor Analitika dan Manajemen Ruleset Cashflowpoly
+## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
@@ -25,8 +25,8 @@ Acuan utama:
 |---|---|---|
 | Ingest event + validasi domain | Sesuai | Validasi urutan, idempotensi, ruleset aktif, dan aturan event utama sudah ada. |
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
-| Manajemen ruleset (create/list/detail/delete) | Sesuai | Alur CRUD + guard ruleset terpakai sudah ada. |
-| UI dashboard (sessions/players/rulesets/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API; analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` dipertahankan sebagai route kompatibilitas. |
+| API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, ruleset activation, player assignment, state, dan guard ruleset terpakai. |
+| UI dashboard (sessions/players/rulesets/components/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi ruleset sesi; analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` dipertahankan sebagai route kompatibilitas. |
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik tersedia untuk seluruh role. |
 | Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman detail sesi (`/sessions/{sessionId}`). |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |

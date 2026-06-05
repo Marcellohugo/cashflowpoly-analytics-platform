@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;

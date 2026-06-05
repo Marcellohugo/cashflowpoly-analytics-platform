@@ -24,7 +24,7 @@ internal sealed class MetricSnapshotBuilder : IMetricSnapshotBuilder
             {
                 MetricSnapshotId = Guid.NewGuid(),
                 SessionId = sessionId,
-                PlayerId = playerId,
+                UserId = playerId,
                 ComputedAt = computedAt,
                 MetricName = item.Key,
                 MetricValueNumeric = item.Value.Numeric,

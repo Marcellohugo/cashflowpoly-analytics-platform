@@ -219,6 +219,7 @@ builder.Services.AddScoped<EventRepository>();
 builder.Services.AddScoped<MetricsRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<SessionStateRepository>();
 builder.Services.AddScoped<SecurityAuditRepository>();
 builder.Services.AddScoped<SecurityAuditService>();
 // Domain calculators
@@ -396,45 +397,14 @@ static async Task SeedBootstrapUserAsync(
     }
 
     const string insertSql = """
-        insert into app_users (user_id, username, password_hash, role, is_active)
-        select gen_random_uuid(), @username, crypt(@password, gen_salt('bf', 10)), @role, true
+        insert into app_users (user_id, username, display_name, password_hash, role, is_active)
+        select gen_random_uuid(), @username, @displayName, crypt(@password, gen_salt('bf', 10)), @role, true
         where not exists (select 1 from app_users where lower(username) = lower(@username));
-        """;
-
-    const string ensureProfileSql = """
-        insert into players (player_id, display_name, instructor_user_id, created_at)
-        select u.user_id, u.username, u.user_id, now()
-        from app_users u
-        where lower(u.username) = lower(@username)
-          and not exists (
-              select 1
-              from players p
-              where p.player_id = u.user_id
-          );
-
-        insert into user_player_links (link_id, user_id, player_id, created_at)
-        select gen_random_uuid(), u.user_id, u.user_id, now()
-        from app_users u
-        where lower(u.username) = lower(@username)
-          and not exists (
-              select 1
-              from user_player_links upl
-              where upl.user_id = u.user_id
-          );
         """;
 
     await conn.ExecuteAsync(
         new Dapper.CommandDefinition(
             insertSql,
-            new { username, password, role },
+            new { username, displayName = username, password, role },
             cancellationToken: cancellationToken));
-
-    if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
-    {
-        await conn.ExecuteAsync(
-            new Dapper.CommandDefinition(
-                ensureProfileSql,
-                new { username },
-                cancellationToken: cancellationToken));
-    }
 }

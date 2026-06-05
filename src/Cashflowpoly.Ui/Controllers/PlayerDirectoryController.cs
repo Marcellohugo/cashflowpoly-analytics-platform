@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -59,7 +59,7 @@ public sealed class PlayerDirectoryController : Controller
         {
             var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
             var sessions = sessionsData?.Items ?? new List<SessionListItem>();
-            var playerMap = players.ToDictionary(x => x.PlayerId, x => x.DisplayName);
+            var playerMap = players.ToDictionary(x => x.UserId, x => x.DisplayName);
 
             var analyticsTasks = sessions.Select(async session =>
             {
@@ -85,12 +85,12 @@ public sealed class PlayerDirectoryController : Controller
                     EndedAt = x.session.EndedAt,
                     Players = x.analytics!.ByPlayer
                         .OrderBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
-                        .ThenBy(p => p.PlayerId)
+                        .ThenBy(p => p.UserId)
                         .Select((p, index) => new PlayerSessionEntryViewModel
                         {
-                            PlayerId = p.PlayerId,
+                            PlayerId = p.UserId,
                             JoinOrder = p.JoinOrder > 0 ? p.JoinOrder : index + 1,
-                            DisplayName = playerMap.TryGetValue(p.PlayerId, out var displayName) ? displayName : p.PlayerId.ToString(),
+                            DisplayName = playerMap.TryGetValue(p.UserId, out var displayName) ? displayName : p.UserId.ToString(),
                             CashInTotal = p.CashInTotal,
                             CashOutTotal = p.CashOutTotal,
                             DonationTotal = p.DonationTotal,

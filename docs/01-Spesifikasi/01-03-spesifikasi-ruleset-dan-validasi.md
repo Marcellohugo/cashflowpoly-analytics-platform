@@ -259,7 +259,7 @@ Catatan implementasi logging:
 Bagian ini merangkum endpoint yang menangani *ruleset*. Dokumen kontrak lengkap tetap berada pada dokumen “Spesifikasi Event dan Kontrak REST API”.
 
 Catatan akses:
-- Endpoint manajemen ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer.
+- Endpoint mutasi ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Web Analitik MVC dapat memakai endpoint ini untuk create/edit/delete/activate ruleset dan aktivasi ruleset sesi pada akun Instruktur.
 
 ### 8.1 Endpoint minimum
 1. `POST /api/v1/rulesets`  

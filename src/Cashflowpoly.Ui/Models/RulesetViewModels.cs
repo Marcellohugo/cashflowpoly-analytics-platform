@@ -1,9 +1,9 @@
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Ui.Contracts;
 
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>
-/// ViewModel halaman daftar ruleset yang memuat koleksi ruleset beserta komponen default dan pesan error.
+/// ViewModel halaman daftar ruleset yang memuat koleksi ruleset dan pesan error.
 /// </summary>
 public sealed class RulesetListViewModel
 {
@@ -11,12 +11,16 @@ public sealed class RulesetListViewModel
     /// Daftar item ruleset yang tersedia untuk ditampilkan pada halaman daftar.
     /// </summary>
     public List<RulesetListItem> Items { get; init; } = new();
-    /// <summary>
-    /// Daftar komponen default bawaan dari katalog ruleset untuk referensi pengguna.
-    /// </summary>
-    public List<DefaultRulesetComponentItem> DefaultComponentItems { get; init; } = new();
     public string? ErrorMessage { get; init; }
-    public string? DefaultComponentsErrorMessage { get; init; }
+}
+
+/// <summary>
+/// ViewModel halaman katalog komponen default yang dibaca dari endpoint ruleset components.
+/// </summary>
+public sealed class ComponentCatalogListViewModel
+{
+    public List<DefaultRulesetComponentItem> Items { get; init; } = new();
+    public string? ErrorMessage { get; init; }
 }
 
 /// <summary>

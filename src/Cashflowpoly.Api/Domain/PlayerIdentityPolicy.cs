@@ -6,7 +6,7 @@ namespace Cashflowpoly.Api.Domain;
 internal static class PlayerIdentityPolicy
 {
     /// <summary>
-    /// Menghasilkan player_id kanonik untuk user PLAYER.
+    /// Menghasilkan user_id kanonik untuk user PLAYER.
     /// </summary>
     internal static Guid GetCanonicalPlayerId(Guid userId)
     {

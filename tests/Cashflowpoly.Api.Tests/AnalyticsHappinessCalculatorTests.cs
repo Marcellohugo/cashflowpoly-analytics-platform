@@ -88,7 +88,7 @@ public sealed class AnalyticsHappinessCalculatorTests
         {
             EventId = Guid.NewGuid(),
             SessionId = Guid.NewGuid(),
-            PlayerId = playerId,
+            UserId = playerId,
             ActionType = actionType,
             Payload = payload,
             DayIndex = dayIndex,

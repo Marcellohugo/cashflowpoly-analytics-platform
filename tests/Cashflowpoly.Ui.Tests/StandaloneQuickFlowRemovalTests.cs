@@ -79,6 +79,20 @@ public sealed class StandaloneQuickFlowRemovalTests
         Assert.Contains("players.tip.analysis", viewContent);
     }
 
+    [Fact]
+    public void HomeIndexView_ShouldRenderUsageGuideLikeOpenTipsPanel()
+    {
+        var viewPath = Path.Combine(UiRoot, "Views", "Home", "Index.cshtml");
+        var viewContent = File.ReadAllText(viewPath);
+
+        Assert.Matches(
+            new Regex(
+                @"<details\s+class=""mt-3 data-toggle""\s+open>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>",
+                RegexOptions.CultureInvariant),
+            viewContent);
+        Assert.Contains("home.quick_flow.subtitle", viewContent);
+    }
+
     private static string ResolveRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

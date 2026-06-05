@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 using Xunit;
 
@@ -96,7 +96,7 @@ public sealed class EventNeedPurchaseValidatorTests
         {
             EventId = Guid.NewGuid(),
             SessionId = Guid.NewGuid(),
-            PlayerId = playerId,
+            UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = dayIndex,

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Cashflowpoly.Contracts;
+using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Domain;
 
