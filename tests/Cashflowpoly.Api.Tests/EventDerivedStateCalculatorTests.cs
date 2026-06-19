@@ -13,11 +13,11 @@ public sealed class EventDerivedStateCalculatorTests
         var otherPlayerId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            BuildEvent(playerId, "ingredient.purchased", """{"card_id":"flour","amount":2}"""),
-            BuildEvent(playerId, "ingredient.purchased", """{"card_id":"egg","amount":1}"""),
-            BuildEvent(playerId, "order.claimed", """{"required_ingredient_card_ids":["flour","egg"],"income":8}"""),
-            BuildEvent(playerId, "ingredient.discarded", """{"card_id":"flour","amount":1}"""),
-            BuildEvent(otherPlayerId, "ingredient.purchased", """{"card_id":"flour","amount":10}""")
+            BuildEvent(playerId, "BahanMasakan", """{"card_id":"flour","amount":2}"""),
+            BuildEvent(playerId, "BahanMasakan", """{"card_id":"egg","amount":1}"""),
+            BuildEvent(playerId, "JualMasakan", """{"required_ingredient_card_ids":["flour","egg"],"income":8}"""),
+            BuildEvent(playerId, "BuangBahanMasakan", """{"card_id":"flour","amount":1}"""),
+            BuildEvent(otherPlayerId, "BahanMasakan", """{"card_id":"flour","amount":10}""")
         };
 
         var inventory = new EventDerivedStateCalculator().BuildIngredientInventory(events, playerId);
@@ -33,11 +33,11 @@ public sealed class EventDerivedStateCalculatorTests
         var playerId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            BuildEvent(playerId, "saving.deposit.created", """{"goal_id":"bike","amount":10}"""),
-            BuildEvent(playerId, "saving.deposit.withdrawn", """{"goal_id":"bike","amount":3}"""),
-            BuildEvent(playerId, "saving.goal.achieved", """{"goal_id":"bike","points":4,"cost":5}"""),
-            BuildEvent(playerId, "saving.deposit.created", """{"goal_id":"book","amount":99}"""),
-            BuildEvent(Guid.NewGuid(), "saving.deposit.created", """{"goal_id":"bike","amount":99}""")
+            BuildEvent(playerId, "Menabung", """{"goal_id":"bike","amount":10}"""),
+            BuildEvent(playerId, "TarikTabungan", """{"goal_id":"bike","amount":3}"""),
+            BuildEvent(playerId, "TujuanFinansial", """{"goal_id":"bike","points":4,"cost":5}"""),
+            BuildEvent(playerId, "Menabung", """{"goal_id":"book","amount":99}"""),
+            BuildEvent(Guid.NewGuid(), "Menabung", """{"goal_id":"bike","amount":99}""")
         };
 
         var balance = new EventDerivedStateCalculator().ComputeSavingBalance(events, playerId, "bike");

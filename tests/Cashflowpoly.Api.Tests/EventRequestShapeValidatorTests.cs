@@ -65,6 +65,75 @@ public sealed class EventRequestShapeValidatorTests
         Assert.Empty(result.Details);
     }
 
+    [Fact]
+    public void Validate_AcceptsValidSystemEventWithZeroTurnAndActionSlot()
+    {
+        var request = CreateRequest() with
+        {
+            ActorType = "SYSTEM",
+            UserId = null,
+            ActionSlot = 0,
+            TurnNumber = 0
+        };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Validate_AcceptsActionSlotAboveTwoForRulesetDrivenLimit()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest() with { UserId = playerId, ActionSlot = 3 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: playerId);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Validate_RejectsSystemActionSlotAboveZero()
+    {
+        var request = CreateRequest() with
+        {
+            ActorType = "SYSTEM",
+            UserId = null,
+            ActionSlot = 1,
+            TurnNumber = 0
+        };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Contains(result.Details, detail => detail.Field == "action_slot" && detail.Issue == "INVALID_FOR_ACTOR");
+    }
+
+    [Fact]
+    public void Validate_RejectsPlayerActionSlotZero()
+    {
+        var request = CreateRequest() with { ActionSlot = 0 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Contains(result.Details, detail => detail.Field == "action_slot" && detail.Issue == "OUT_OF_RANGE");
+    }
+
+    [Fact]
+    public void Validate_RejectsNegativeTurnNumber()
+    {
+        var request = CreateRequest() with { TurnNumber = -1 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Contains(result.Details, detail => detail.Field == "turn_number" && detail.Issue == "OUT_OF_RANGE");
+    }
+
     private static EventRequest CreateRequest()
     {
         using var document = JsonDocument.Parse("{}");
@@ -78,9 +147,10 @@ public sealed class EventRequestShapeValidatorTests
             "MON",
             1,
             0,
-            "transaction.recorded",
+            "CatatTransaksi",
             Guid.NewGuid(),
             document.RootElement.Clone(),
-            "client-123");
+            "client-123",
+            1);
     }
 }

@@ -12,7 +12,7 @@ public sealed class EventCashflowProjectionBuilderTests
     {
         var request = BuildRequest(
             includePlayer: false,
-            actionType: "day.friday.donation",
+            actionType: "JumatBerkah",
             payloadJson: """{"amount":5}""");
 
         var ok = new EventCashflowProjectionBuilder().TryBuild(
@@ -37,7 +37,7 @@ public sealed class EventCashflowProjectionBuilderTests
             sessionId: sessionId,
             playerId: playerId,
             eventId: eventId,
-            actionType: "day.saturday.gold_trade",
+            actionType: "JualEmas",
             payloadJson: """{"trade_type":"SELL","qty":2,"unit_price":6,"amount":12}""");
 
         var ok = new EventCashflowProjectionBuilder().TryBuild(request, timestamp, eventPk, out var projection);
@@ -54,11 +54,59 @@ public sealed class EventCashflowProjectionBuilderTests
         Assert.Equal("GOLD_TRADE", projection.Category);
     }
 
+    [Theory]
+    [InlineData("InvestasiEmas", "OUT")]
+    [InlineData("JualEmas", "IN")]
+    public void TryBuild_GoldGameActionsUseFixedCashflowDirection(string actionType, string expectedDirection)
+    {
+        var request = BuildRequest(
+            actionType: actionType,
+            payloadJson: """{"qty":2,"unit_price":6,"amount":12}""");
+
+        var ok = new EventCashflowProjectionBuilder().TryBuild(
+            request,
+            DateTimeOffset.Parse("2026-01-02T03:04:05Z"),
+            Guid.NewGuid(),
+            out var projection);
+
+        Assert.True(ok);
+        Assert.NotNull(projection);
+        Assert.Equal(expectedDirection, projection.Direction);
+        Assert.Equal(12, projection.Amount);
+        Assert.Equal("GOLD_TRADE", projection.Category);
+    }
+
+    [Theory]
+    [InlineData("BahanMasakan", "OUT", 4, "INGREDIENT", """{"card_id":"telur","amount":4}""")]
+    [InlineData("JualMasakan", "IN", 15, "ORDER", """{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}""")]
+    [InlineData("JumatBerkah", "OUT", 5, "DONATION", """{"amount":5}""")]
+    public void TryBuild_GameActionIdsCreateCashflowProjection(
+        string actionType,
+        string expectedDirection,
+        int expectedAmount,
+        string expectedCategory,
+        string payloadJson)
+    {
+        var request = BuildRequest(actionType: actionType, payloadJson: payloadJson);
+
+        var ok = new EventCashflowProjectionBuilder().TryBuild(
+            request,
+            DateTimeOffset.Parse("2026-01-02T03:04:05Z"),
+            Guid.NewGuid(),
+            out var projection);
+
+        Assert.True(ok);
+        Assert.NotNull(projection);
+        Assert.Equal(expectedDirection, projection.Direction);
+        Assert.Equal(expectedAmount, projection.Amount);
+        Assert.Equal(expectedCategory, projection.Category);
+    }
+
     [Fact]
     public void TryBuild_TransactionRoundsAmountAndUppercasesDirection()
     {
         var request = BuildRequest(
-            actionType: "transaction.recorded",
+            actionType: "CatatTransaksi",
             payloadJson: """
                 {
                   "direction": "out",

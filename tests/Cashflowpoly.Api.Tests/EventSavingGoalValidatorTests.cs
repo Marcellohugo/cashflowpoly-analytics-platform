@@ -12,7 +12,7 @@ public sealed class EventSavingGoalValidatorTests
     [Fact]
     public void TryValidate_ReturnsFalseForUnhandledAction()
     {
-        var request = CreateRequest("transaction.recorded", """{"amount":1}""", Guid.NewGuid());
+        var request = CreateRequest("CatatTransaksi", """{"amount":1}""", Guid.NewGuid());
 
         var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
@@ -23,7 +23,7 @@ public sealed class EventSavingGoalValidatorTests
     [Fact]
     public void TryValidateDeposit_RejectsDisabledFeature()
     {
-        var request = CreateRequest("saving.deposit.created", """{"goal_id":"goal-a","amount":5}""", Guid.NewGuid());
+        var request = CreateRequest("Menabung", """{"goal_id":"goal-a","amount":5}""", Guid.NewGuid());
 
         var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(enabled: false), Array.Empty<EventDb>(), out var result);
 
@@ -36,7 +36,7 @@ public sealed class EventSavingGoalValidatorTests
     [Fact]
     public void TryValidateDeposit_ReturnsOutgoingAmountWhenValid()
     {
-        var request = CreateRequest("saving.deposit.created", """{"goal_id":"goal-a","amount":15}""", Guid.NewGuid());
+        var request = CreateRequest("Menabung", """{"goal_id":"goal-a","amount":15}""", Guid.NewGuid());
 
         var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
@@ -49,10 +49,10 @@ public sealed class EventSavingGoalValidatorTests
     public void TryValidateWithdraw_RejectsInsufficientSavingBalance()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("saving.deposit.withdrawn", """{"goal_id":"goal-a","amount":8}""", playerId);
+        var request = CreateRequest("TarikTabungan", """{"goal_id":"goal-a","amount":8}""", playerId);
         var history = new[]
         {
-            CreateEvent("saving.deposit.created", """{"goal_id":"goal-a","amount":5}""", playerId)
+            CreateEvent("Menabung", """{"goal_id":"goal-a","amount":5}""", playerId)
         };
 
         var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -66,10 +66,10 @@ public sealed class EventSavingGoalValidatorTests
     public void TryValidateGoalAchieved_RejectsCostAboveSavingBalance()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("saving.goal.achieved", """{"goal_id":"goal-a","points":10,"cost":8}""", playerId);
+        var request = CreateRequest("TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":8}""", playerId);
         var history = new[]
         {
-            CreateEvent("saving.deposit.created", """{"goal_id":"goal-a","amount":5}""", playerId)
+            CreateEvent("Menabung", """{"goal_id":"goal-a","amount":5}""", playerId)
         };
 
         var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -109,7 +109,7 @@ public sealed class EventSavingGoalValidatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
@@ -123,7 +123,7 @@ public sealed class EventSavingGoalValidatorTests
             "MAHIR",
             ActionsPerTurn: 3,
             StartingCash: 20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             CashMin: 0,
             MaxIngredientTotal: 10,
             MaxSameIngredient: 5,

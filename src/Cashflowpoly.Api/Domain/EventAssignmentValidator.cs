@@ -14,13 +14,13 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
         IEnumerable<EventDb> history,
         out EventDomainValidationResult result)
     {
-        if (string.Equals(request.ActionType, "mission.assigned", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateMission(request, history);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "tie_breaker.assigned", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "BagikanTieBreaker", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateTieBreaker(request, history);
             return true;
@@ -75,7 +75,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 
         var alreadyAssigned = history.Any(e =>
             e.UserId == request.UserId &&
-            e.ActionType == "mission.assigned");
+            e.ActionType == "BagikanMisiKoleksi");
         if (alreadyAssigned)
         {
             return EventDomainValidationResult.Fail(
@@ -115,7 +115,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 
         var alreadyAssigned = history.Any(e =>
             e.UserId == request.UserId &&
-            e.ActionType == "tie_breaker.assigned");
+            e.ActionType == "BagikanTieBreaker");
         if (alreadyAssigned)
         {
             return EventDomainValidationResult.Fail(

@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Security.Claims;
+using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
@@ -37,9 +38,27 @@ internal sealed class EventIngestionService : IEventIngestionService
         "SELL_NEED", "SELL_GOLD", "SELL_GOAL", "OTHER"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private const int RulebookLoanPrincipal = 10;
-    private const int RulebookLoanPenaltyPoints = 15;
-    private const int RulebookInsurancePremium = 1;
+    private static readonly FrozenSet<string> OrderedActionTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        GameActionCatalog.BahanMasakan,
+        GameActionCatalog.IngredientDiscarded,
+        GameActionCatalog.JualMasakan,
+        GameActionCatalog.OrderPassed,
+        GameActionCatalog.Kebutuhan,
+        GameActionCatalog.KerjaLepas,
+        GameActionCatalog.Menabung,
+        GameActionCatalog.SavingDepositWithdrawn,
+        GameActionCatalog.TujuanFinansial,
+        GameActionCatalog.JumatBerkah,
+        GameActionCatalog.InvestasiEmas,
+        GameActionCatalog.JualEmas,
+        GameActionCatalog.PinjamanSyariah,
+        GameActionCatalog.BayarPinjaman,
+        GameActionCatalog.Asuransi,
+        GameActionCatalog.RisikoKehidupan,
+        GameActionCatalog.RiskEmergencyUsed,
+        GameActionCatalog.AkhirGiliran
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private readonly SessionRepository _sessions;
     private readonly RulesetRepository _rulesets;
@@ -61,6 +80,7 @@ internal sealed class EventIngestionService : IEventIngestionService
     private readonly IEventEconomyActionValidator _economyActionValidator;
     private readonly IEventAssignmentValidator _assignmentValidator;
     private readonly IEventPlayerBalanceCalculator _playerBalanceCalc;
+    private readonly SessionEventProjector _projector;
 
     public EventIngestionService(
         SessionRepository sessions,
@@ -82,7 +102,8 @@ internal sealed class EventIngestionService : IEventIngestionService
         IEventSavingGoalValidator savingGoalValidator,
         IEventEconomyActionValidator economyActionValidator,
         IEventAssignmentValidator assignmentValidator,
-        IEventPlayerBalanceCalculator playerBalanceCalc)
+        IEventPlayerBalanceCalculator playerBalanceCalc,
+        SessionEventProjector projector)
     {
         _sessions = sessions;
         _rulesets = rulesets;
@@ -104,6 +125,7 @@ internal sealed class EventIngestionService : IEventIngestionService
         _economyActionValidator = economyActionValidator;
         _assignmentValidator = assignmentValidator;
         _playerBalanceCalc = playerBalanceCalc;
+        _projector = projector;
     }
 
     /// <summary>
@@ -118,8 +140,8 @@ internal sealed class EventIngestionService : IEventIngestionService
             await _events.InsertValidationLogAsync(
                 request.SessionId,
                 request.EventId,
-                null,
-                false,
+                request.RulesetVersionId,
+                request.Payload.GetRawText(),
                 validation.Error?.ErrorCode,
                 validation.Error?.Message,
                 _validationSerializer.BuildValidationDetailsJson(request, validation.Error),
@@ -130,14 +152,13 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         try
         {
-            var eventPk = await StoreEventAsync(request, ct);
-            await _events.InsertValidationLogAsync(request.SessionId, request.EventId, eventPk, true, null, null, null, ct);
+            await StoreEventAsync(request, ct);
             return (new EventStoredResponse(true, request.EventId), StatusCodes.Status201Created, null);
         }
         catch (PostgresException ex) when (ex.SqlState == "23505")
         {
             var error = BuildError("DUPLICATE", "Event sudah ada");
-            await _events.InsertValidationLogAsync(request.SessionId, request.EventId, null, false, error.ErrorCode, error.Message,
+            await _events.InsertValidationLogAsync(request.SessionId, request.EventId, request.RulesetVersionId, request.Payload.GetRawText(), error.ErrorCode, error.Message,
                 _validationSerializer.BuildValidationDetailsJson(request, error), ct);
             return (null, StatusCodes.Status409Conflict, error);
         }
@@ -176,8 +197,8 @@ internal sealed class EventIngestionService : IEventIngestionService
                 await _events.InsertValidationLogAsync(
                     evt.SessionId,
                     evt.EventId,
-                    null,
-                    false,
+                    evt.RulesetVersionId,
+                    evt.Payload.GetRawText(),
                     validation.Error?.ErrorCode,
                     validation.Error?.Message,
                     _validationSerializer.BuildValidationDetailsJson(evt, validation.Error),
@@ -187,15 +208,14 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             try
             {
-                var eventPk = await StoreEventAsync(evt, ct);
-                await _events.InsertValidationLogAsync(evt.SessionId, evt.EventId, eventPk, true, null, null, null, ct);
+                await StoreEventAsync(evt, ct);
                 storedCount++;
             }
             catch (PostgresException ex) when (ex.SqlState == "23505")
             {
                 failed.Add(new EventBatchFailed(evt.EventId, "DUPLICATE"));
                 var dupError = BuildError("DUPLICATE", "Event sudah ada");
-                await _events.InsertValidationLogAsync(evt.SessionId, evt.EventId, null, false, dupError.ErrorCode, dupError.Message,
+                await _events.InsertValidationLogAsync(evt.SessionId, evt.EventId, evt.RulesetVersionId, evt.Payload.GetRawText(), dupError.ErrorCode, dupError.Message,
                     _validationSerializer.BuildValidationDetailsJson(evt, dupError), ct);
             }
         }
@@ -314,15 +334,107 @@ internal sealed class EventIngestionService : IEventIngestionService
             return BuildOutcome(StatusCodes.Status409Conflict, "DUPLICATE", "Sequence number sudah ada");
         }
 
-        if (!RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var config, out _))
+        if (rulesetVersion.Definition is null ||
+            !RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out var config, out _))
         {
-            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset config tidak valid");
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Definition ruleset tidak valid");
+        }
+
+        var actionOrderValidation = await ValidateDailyActionOrderAsync(request, config!, ct);
+        if (!actionOrderValidation.IsValid)
+        {
+            return actionOrderValidation;
         }
 
         var domainValidation = await ValidateDomainRulesAsync(request, config!, ct);
         if (!domainValidation.IsValid)
         {
             return domainValidation;
+        }
+
+        return Valid;
+    }
+
+    private async Task<ValidationOutcome> ValidateDailyActionOrderAsync(EventRequest request, RulesetConfig config, CancellationToken ct)
+    {
+        if (request.ActorType.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase))
+        {
+            return Valid;
+        }
+
+        if (!OrderedActionTypes.Contains(request.ActionType))
+        {
+            return Valid;
+        }
+
+        if (request.UserId is null)
+        {
+            return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
+                new ErrorDetail("user_id", "REQUIRED"));
+        }
+
+        if (request.ActionSlot < 1 || request.ActionSlot > config.ActionsPerTurn)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Aksi pemain di luar slot aksi harian",
+                new ErrorDetail("action_slot", "OUT_OF_RANGE"));
+        }
+
+        var participantId = await _players.GetSessionParticipantIdAsync(request.SessionId, request.UserId.Value, ct);
+        if (participantId is null)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Player belum terdaftar pada sesi");
+        }
+
+        var playerOrders = await _players.GetSessionParticipantPlayerOrderMapAsync(request.SessionId, ct);
+        if (!playerOrders.TryGetValue(participantId.Value, out var currentPlayerOrder))
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Urutan pemain tidak ditemukan");
+        }
+
+        if (request.TurnNumber != currentPlayerOrder)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Turn number harus sesuai urutan pemain pada sesi",
+                new ErrorDetail("turn_number", "MISMATCH"));
+        }
+
+        var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+        var dayEvents = events
+            .Where(e => e.DayIndex == request.DayIndex && e.SessionPlayerId.HasValue && OrderedActionTypes.Contains(e.ActionType))
+            .ToList();
+
+        var currentPlayerUsedSlots = dayEvents
+            .Where(e => e.SessionPlayerId == participantId.Value)
+            .Select(e => e.ActionSlot)
+            .ToHashSet();
+        if (currentPlayerUsedSlots.Contains(request.ActionSlot))
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Slot aksi pemain sudah dipakai pada hari ini",
+                new ErrorDetail("action_slot", "DUPLICATE"));
+        }
+
+        foreach (var priorPlayer in playerOrders.Where(item => item.Value < currentPlayerOrder).OrderBy(item => item.Value))
+        {
+            var usedSlots = dayEvents
+                .Where(e => e.SessionPlayerId == priorPlayer.Key)
+                .Select(e => e.ActionSlot)
+                .Distinct()
+                .Count();
+            if (usedSlots < config.ActionsPerTurn)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Pemain sebelumnya belum menyelesaikan jatah aksi hari ini");
+            }
+        }
+
+        var expectedSlot = currentPlayerUsedSlots.Count + 1;
+        if (request.ActionSlot != expectedSlot)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Slot aksi harus mengikuti urutan aksi pemain pada hari yang sama",
+                new ErrorDetail("action_slot", "OUT_OF_SEQUENCE"));
         }
 
         return Valid;
@@ -335,6 +447,7 @@ internal sealed class EventIngestionService : IEventIngestionService
     {
         var eventPk = Guid.NewGuid();
         var timestamp = request.Timestamp.ToUniversalTime();
+        var config = await GetRulesetConfigAsync(request.RulesetVersionId, ct);
         var record = new EventDb
         {
             EventPk = eventPk,
@@ -346,6 +459,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             DayIndex = request.DayIndex,
             Weekday = request.Weekday.ToUpperInvariant(),
             TurnNumber = request.TurnNumber,
+            ActionSlot = request.ActionSlot,
             SequenceNumber = request.SequenceNumber,
             ActionType = request.ActionType,
             RulesetVersionId = request.RulesetVersionId,
@@ -359,28 +473,278 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (_insuranceOffsetBuilder.TryReadRiskEventReference(request, out _, out var riskEventId))
         {
             var riskEvent = await _events.GetEventByIdAsync(request.SessionId, riskEventId, ct);
-            _insuranceOffsetBuilder.TryBuild(request, timestamp, eventPk, riskEvent, out insuranceOffset);
+            if (!TryBuildCatalogInsuranceOffset(request, timestamp, eventPk, riskEvent, config, out insuranceOffset))
+            {
+                _insuranceOffsetBuilder.TryBuild(request, timestamp, eventPk, riskEvent, out insuranceOffset);
+            }
         }
 
-        // Simpan event + proyeksi dalam satu transaksi
-        await using var conn = await _events.OpenConnectionAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
-
-        await _events.InsertEventAsync(record, conn, tx, ct);
-
-        if (_projectionBuilder.TryBuild(request, timestamp, eventPk, out var projection))
+        var projections = new List<CashflowProjectionDb>();
+        if (!TryBuildCatalogRiskProjection(request, timestamp, eventPk, config, out var projection))
         {
-            await _events.InsertCashflowProjectionAsync(projection, conn, tx, ct);
+            _projectionBuilder.TryBuild(request, timestamp, eventPk, out projection);
+        }
+
+        if (projection is not null)
+        {
+            projections.Add(projection);
         }
 
         if (insuranceOffset is not null)
         {
-            await _events.InsertCashflowProjectionAsync(insuranceOffset, conn, tx, ct);
+            projections.Add(insuranceOffset);
         }
+
+        // Simpan event + seluruh proyeksi state dalam satu transaksi.
+        await using var conn = await _events.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+
+        if (request.UserId.HasValue)
+        {
+            record.SessionPlayerId = await _events.ResolveSessionParticipantIdAsync(
+                request.SessionId,
+                request.UserId.Value,
+                conn,
+                tx,
+                ct);
+        }
+
+        await _events.InsertEventAsync(record, conn, tx, ct);
+        await _events.InsertEventAssetReferencesAsync(
+            record,
+            BuildAssetReferences(request),
+            conn,
+            tx,
+            ct);
+
+        for (var i = 0; i < projections.Count; i++)
+        {
+            var cashflowProjection = projections[i];
+            cashflowProjection.ProjectionOrder = i + 1;
+            await _events.InsertCashflowProjectionAsync(cashflowProjection, conn, tx, ct);
+        }
+
+        await _projector.ProjectAsync(request, record, projections, conn, tx, ct);
 
         await tx.CommitAsync(ct);
 
         return eventPk;
+    }
+
+    private static IReadOnlyCollection<EventAssetReferenceInput> BuildAssetReferences(EventRequest request)
+    {
+        var references = new List<EventAssetReferenceInput>();
+        var payload = request.Payload;
+
+        static void Add(
+            ICollection<EventAssetReferenceInput> target,
+            JsonElement source,
+            string assetType,
+            string propertyName,
+            string role)
+        {
+            if (source.TryGetProperty(propertyName, out var value) &&
+                value.ValueKind == JsonValueKind.String &&
+                !string.IsNullOrWhiteSpace(value.GetString()))
+            {
+                target.Add(new EventAssetReferenceInput(
+                    assetType,
+                    value.GetString()!.Trim(),
+                    role,
+                    $"$.{propertyName}"));
+            }
+        }
+
+        var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, payload) ?? request.ActionType.Trim();
+        switch (canonicalAction)
+        {
+            case GameActionCatalog.BahanMasakan:
+            case GameActionCatalog.IngredientDiscarded:
+                Add(references, payload, "INGREDIENT", "card_id", "TARGET");
+                Add(references, payload, "INGREDIENT", "ingredient_id", "TARGET");
+                Add(references, payload, "INGREDIENT", "ingredient_name", "TARGET");
+                break;
+            case GameActionCatalog.JualMasakan:
+            case GameActionCatalog.OrderPassed:
+                Add(references, payload, "ORDER", "order_id", "TARGET");
+                Add(references, payload, "ORDER", "card_id", "TARGET");
+                if (payload.TryGetProperty("required_ingredient_card_ids", out var ingredients) &&
+                    ingredients.ValueKind == JsonValueKind.Array)
+                {
+                    var index = 0;
+                    foreach (var ingredient in ingredients.EnumerateArray())
+                    {
+                        if (ingredient.ValueKind == JsonValueKind.String &&
+                            !string.IsNullOrWhiteSpace(ingredient.GetString()))
+                        {
+                            references.Add(new EventAssetReferenceInput(
+                                "INGREDIENT",
+                                ingredient.GetString()!.Trim(),
+                                "REQUIREMENT",
+                                $"$.required_ingredient_card_ids[{index}]"));
+                        }
+
+                        index++;
+                    }
+                }
+                break;
+            case GameActionCatalog.Kebutuhan:
+                Add(references, payload, "NEED", "card_id", "TARGET");
+                Add(references, payload, "NEED", "need_id", "TARGET");
+                break;
+            case GameActionCatalog.GoldInitialGranted:
+                Add(references, payload, "GOLD", "asset_code", "TARGET");
+                if (references.Count == 0)
+                {
+                    references.Add(new EventAssetReferenceInput("GOLD", "gold_card_1", "TARGET", "$.asset_code"));
+                }
+                break;
+            case GameActionCatalog.InvestasiEmas:
+            case GameActionCatalog.JualEmas:
+                Add(references, payload, "GOLD_PRICE", "price_code", "PRICE");
+                break;
+            case GameActionCatalog.RisikoKehidupan:
+                Add(references, payload, "RISK", "risk_id", "TARGET");
+                break;
+            case GameActionCatalog.TieBreakerAssigned:
+                Add(references, payload, "TIE_BREAKER", "card_code", "TARGET");
+                Add(references, payload, "TIE_BREAKER", "tie_breaker_code", "TARGET");
+                break;
+            case GameActionCatalog.CardDrawn:
+            case GameActionCatalog.CardTaken:
+            case GameActionCatalog.CardDiscarded:
+            case GameActionCatalog.MarketRefilled:
+                if (payload.TryGetProperty("asset_type", out var assetType) &&
+                    assetType.ValueKind == JsonValueKind.String &&
+                    payload.TryGetProperty("asset_code", out var assetCode) &&
+                    assetCode.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(assetType.GetString()) &&
+                    !string.IsNullOrWhiteSpace(assetCode.GetString()))
+                {
+                    var resolvedAssetType = assetType.GetString()!.Trim().ToUpperInvariant();
+                    if (resolvedAssetType is "INGREDIENT" or "ORDER" or "NEED" or "RISK" or "GOLD" or "GOLD_PRICE" or "TIE_BREAKER")
+                    {
+                        references.Add(new EventAssetReferenceInput(
+                            resolvedAssetType,
+                            assetCode.GetString()!.Trim(),
+                            "CARD",
+                            "$.asset_code"));
+                    }
+                }
+                break;
+        }
+
+        return references
+            .Distinct()
+            .ToArray();
+    }
+
+    private async Task<RulesetConfig?> GetRulesetConfigAsync(Guid rulesetVersionId, CancellationToken ct)
+    {
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
+        return rulesetVersion?.Definition is not null &&
+               RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out var config, out _)
+            ? config
+            : null;
+    }
+
+    private bool TryBuildCatalogRiskProjection(
+        EventRequest request,
+        DateTimeOffset timestamp,
+        Guid eventPk,
+        RulesetConfig? config,
+        out CashflowProjectionDb? projection)
+    {
+        projection = null;
+        if (!IsAction(request, GameActionCatalog.RisikoKehidupan) ||
+            request.UserId is null ||
+            !TryResolveLifeRisk(config, request.Payload, out var risk) ||
+            risk.Amount <= 0)
+        {
+            return false;
+        }
+
+        projection = new CashflowProjectionDb
+        {
+            ProjectionId = Guid.NewGuid(),
+            SessionId = request.SessionId,
+            UserId = request.UserId.Value,
+            EventPk = eventPk,
+            EventId = request.EventId,
+            Timestamp = timestamp,
+            Direction = risk.Direction.ToUpperInvariant(),
+            Amount = risk.Amount,
+            Category = "RISK_LIFE",
+            Reference = risk.RiskCode,
+            Note = null
+        };
+
+        return true;
+    }
+
+    private bool TryBuildCatalogInsuranceOffset(
+        EventRequest request,
+        DateTimeOffset timestamp,
+        Guid eventPk,
+        EventDb? riskEvent,
+        RulesetConfig? config,
+        out CashflowProjectionDb? projection)
+    {
+        projection = null;
+        if (request.UserId is null ||
+            riskEvent is null ||
+            !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan) ||
+            riskEvent.UserId != request.UserId)
+        {
+            return false;
+        }
+
+        var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
+        if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
+            !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
+            risk.Amount <= 0)
+        {
+            return false;
+        }
+
+        projection = new CashflowProjectionDb
+        {
+            ProjectionId = Guid.NewGuid(),
+            SessionId = request.SessionId,
+            UserId = request.UserId.Value,
+            EventPk = eventPk,
+            EventId = request.EventId,
+            Timestamp = timestamp,
+            Direction = "IN",
+            Amount = risk.Amount,
+            Category = "INSURANCE_OFFSET",
+            Reference = riskEvent.EventId.ToString(),
+            Note = "Offset risiko oleh asuransi multirisk"
+        };
+
+        return true;
+    }
+
+    private bool TryResolveLifeRisk(
+        RulesetConfig? config,
+        JsonElement payload,
+        out RulesetLifeRiskDto risk)
+    {
+        risk = default!;
+        if (config is null || !_payloadReader.TryGetString(payload, "risk_id", out var riskId))
+        {
+            return false;
+        }
+
+        var matched = config.LifeRisks.FirstOrDefault(item =>
+            string.Equals(item.RiskCode, riskId, StringComparison.OrdinalIgnoreCase));
+        if (matched is null)
+        {
+            return false;
+        }
+
+        risk = matched;
+        return true;
     }
 
     /// <summary>
@@ -405,9 +769,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        if (string.Equals(actionType, "need.primary.purchased", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "need.secondary.purchased", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "need.tertiary.purchased", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.Kebutuhan))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             if (_needPurchaseValidator.TryValidate(request, config, events, out var needValidation))
@@ -430,9 +792,9 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        if (string.Equals(actionType, "ingredient.purchased", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "ingredient.discarded", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "order.claimed", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.BahanMasakan) ||
+            IsAction(request, GameActionCatalog.IngredientDiscarded) ||
+            IsAction(request, GameActionCatalog.JualMasakan))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             if (_ingredientOrderValidator.TryValidate(request, config, events, out var ingredientValidation))
@@ -455,9 +817,9 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        if (string.Equals(actionType, "saving.deposit.created", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "saving.deposit.withdrawn", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "saving.goal.achieved", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.Menabung) ||
+            IsAction(request, GameActionCatalog.SavingDepositWithdrawn) ||
+            IsAction(request, GameActionCatalog.TujuanFinansial))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             if (_savingGoalValidator.TryValidate(request, config, events, out var savingValidation))
@@ -480,11 +842,13 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        if (string.Equals(actionType, "transaction.recorded", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "day.friday.donation", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "day.saturday.gold_trade", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.TransactionRecorded) ||
+            IsAction(request, GameActionCatalog.JumatBerkah) ||
+            IsAction(request, GameActionCatalog.InvestasiEmas) ||
+            IsAction(request, GameActionCatalog.JualEmas))
         {
-            IEnumerable<EventDb> events = string.Equals(actionType, "day.saturday.gold_trade", StringComparison.OrdinalIgnoreCase)
+            IEnumerable<EventDb> events = IsAction(request, GameActionCatalog.InvestasiEmas) ||
+                                          IsAction(request, GameActionCatalog.JualEmas)
                 ? await _events.GetAllEventsBySessionAsync(request.SessionId, ct)
                 : Array.Empty<EventDb>();
             if (_economyActionValidator.TryValidate(request, config, events, out var economyValidation))
@@ -507,8 +871,8 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        if (string.Equals(actionType, "mission.assigned", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(actionType, "tie_breaker.assigned", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.MissionAssigned) ||
+            IsAction(request, GameActionCatalog.TieBreakerAssigned))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             if (_assignmentValidator.TryValidate(request, events, out var assignmentValidation))
@@ -517,7 +881,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        if (string.Equals(actionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.RisikoKehidupan))
         {
             if (!string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
             {
@@ -530,31 +894,26 @@ internal sealed class EventIngestionService : IEventIngestionService
                     new ErrorDetail("user_id", "REQUIRED"));
             }
 
-            if (!_payloadReader.TryReadRiskLife(payload, out var riskId, out var direction, out var amount))
+            if (!_payloadReader.TryGetString(payload, "risk_id", out var riskId) ||
+                string.IsNullOrWhiteSpace(riskId))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload risiko tidak valid",
-                    new ErrorDetail("payload.amount", "REQUIRED"));
-            }
-
-            if (string.IsNullOrWhiteSpace(riskId))
-            {
-                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Risk ID wajib diisi",
                     new ErrorDetail("payload.risk_id", "REQUIRED"));
             }
 
-            if (amount <= 0)
+            if (!TryResolveLifeRisk(config, payload, out var risk))
             {
-                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Amount harus > 0",
-                    new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Risk ID tidak tersedia pada katalog ruleset aktif");
             }
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var turnEvents = events.Where(e =>
                 e.UserId == request.UserId &&
-                e.TurnNumber == request.TurnNumber);
+                e.ActionSlot == request.ActionSlot);
 
-            var orderCount = turnEvents.Count(e => e.ActionType == "order.claimed");
-            var riskCount = turnEvents.Count(e => e.ActionType == "risk.life.drawn");
+            var orderCount = turnEvents.Count(e => IsEventAction(e, GameActionCatalog.JualMasakan));
+            var riskCount = turnEvents.Count(e => IsEventAction(e, GameActionCatalog.RisikoKehidupan));
 
             if (riskCount >= orderCount)
             {
@@ -562,9 +921,9 @@ internal sealed class EventIngestionService : IEventIngestionService
                     "Risiko hanya dapat diambil setelah klaim pesanan");
             }
 
-            if (string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
             {
-                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, amount, ct);
+                var balanceCheck = await EnsureSufficientBalanceAsync(request, config, risk.Amount, ct);
                 if (!balanceCheck.IsValid)
                 {
                     return balanceCheck;
@@ -574,7 +933,8 @@ internal sealed class EventIngestionService : IEventIngestionService
             return Valid;
         }
 
-        if (string.Equals(actionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.Asuransi) &&
+            _payloadReader.TryReadInsuranceUsed(payload, out _))
         {
             if (!config.InsuranceEnabled)
             {
@@ -603,14 +963,15 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var hasPurchased = events.Any(e =>
                 e.UserId == request.UserId &&
-                string.Equals(e.ActionType, "insurance.multirisk.purchased", StringComparison.OrdinalIgnoreCase));
+                IsEventAction(e, GameActionCatalog.Asuransi) &&
+                _payloadReader.TryReadInsurance(_payloadReader.ReadPayload(e.Payload), out _));
             if (!hasPurchased)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Pemain belum membeli asuransi");
             }
 
             var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
-            if (riskEvent is null || !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+            if (riskEvent is null || !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
             }
@@ -621,15 +982,15 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
 
             var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
-            if (!_payloadReader.TryReadRiskLife(riskPayload, out _, out var direction, out var amount) ||
-                !string.Equals(direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
-                amount <= 0)
+            if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
+                !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
+                risk.Amount <= 0)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Asuransi hanya berlaku untuk risiko OUT");
             }
 
             var alreadyUsed = events.Any(e =>
-                string.Equals(e.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) &&
+                IsEventAction(e, GameActionCatalog.Asuransi) &&
                 _payloadReader.TryReadInsuranceUsed(_payloadReader.ReadPayload(e.Payload), out var usedRiskEventId) &&
                 string.Equals(usedRiskEventId, riskEventIdText, StringComparison.OrdinalIgnoreCase));
 
@@ -641,7 +1002,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             return Valid;
         }
 
-        if (string.Equals(actionType, "risk.emergency.used", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase))
         {
             if (!string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
             {
@@ -688,7 +1049,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
-            if (riskEvent is null || !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+            if (riskEvent is null || !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
             }
@@ -699,8 +1060,8 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
 
             var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
-            if (!_payloadReader.TryReadRiskLife(riskPayload, out _, out var riskDirection, out _) ||
-                !string.Equals(riskDirection, "OUT", StringComparison.OrdinalIgnoreCase))
+            if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
+                !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Emergency option hanya berlaku untuk risiko OUT");
             }
@@ -717,7 +1078,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             return Valid;
         }
 
-        if (string.Equals(actionType, "loan.syariah.taken", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "PinjamanSyariah", StringComparison.OrdinalIgnoreCase))
         {
             if (!config.LoanEnabled)
             {
@@ -748,20 +1109,23 @@ internal sealed class EventIngestionService : IEventIngestionService
                     new ErrorDetail("payload.penalty_points", "OUT_OF_RANGE"));
             }
 
-            if (principal != RulebookLoanPrincipal)
+            var matchesLoanCatalog = config.ShariaLoans.Any(loan =>
+                loan.Principal == principal &&
+                loan.Installment == installment &&
+                loan.DurationDays == duration &&
+                loan.PenaltyPoints == penaltyPoints);
+            if (!matchesLoanCatalog)
             {
-                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Nilai pinjaman harus 10 koin");
-            }
-
-            if (penaltyPoints != RulebookLoanPenaltyPoints)
-            {
-                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Penalty pinjaman harus 15 poin");
+                return BuildOutcome(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Detail pinjaman tidak tersedia pada katalog ruleset aktif");
             }
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var exists = events.Any(e =>
                 e.UserId == request.UserId &&
-                e.ActionType == "loan.syariah.taken" &&
+                IsEventAction(e, GameActionCatalog.PinjamanSyariah) &&
                 _payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
                 string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
             if (exists)
@@ -772,7 +1136,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             return Valid;
         }
 
-        if (string.Equals(actionType, "loan.syariah.repaid", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "BayarPinjaman", StringComparison.OrdinalIgnoreCase))
         {
             if (!config.LoanEnabled)
             {
@@ -800,7 +1164,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var loan = events.FirstOrDefault(e =>
                 e.UserId == request.UserId &&
-                e.ActionType == "loan.syariah.taken" &&
+                IsEventAction(e, GameActionCatalog.PinjamanSyariah) &&
                 _payloadReader.TryReadLoanTaken(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _, out _, out _, out _) &&
                 string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase));
 
@@ -817,7 +1181,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var repaidSoFar = events.Where(e =>
                     e.UserId == request.UserId &&
-                    e.ActionType == "loan.syariah.repaid" &&
+                    IsEventAction(e, GameActionCatalog.BayarPinjaman) &&
                     _payloadReader.TryReadLoanRepay(_payloadReader.ReadPayload(e.Payload), out var existingLoanId, out _) &&
                     string.Equals(existingLoanId, loanId, StringComparison.OrdinalIgnoreCase))
                 .Sum(e => _payloadReader.TryReadLoanRepay(_payloadReader.ReadPayload(e.Payload), out _, out var repaidAmount) ? repaidAmount : 0);
@@ -836,7 +1200,8 @@ internal sealed class EventIngestionService : IEventIngestionService
             return Valid;
         }
 
-        if (string.Equals(actionType, "insurance.multirisk.purchased", StringComparison.OrdinalIgnoreCase))
+        if (IsAction(request, GameActionCatalog.Asuransi) &&
+            !_payloadReader.TryReadInsuranceUsed(payload, out _))
         {
             if (!config.InsuranceEnabled)
             {
@@ -849,18 +1214,24 @@ internal sealed class EventIngestionService : IEventIngestionService
                     new ErrorDetail("payload.premium", "REQUIRED"));
             }
 
-            if (premium <= 0)
+            var isInitialSetup = string.Equals(request.ActorType, "SYSTEM", StringComparison.OrdinalIgnoreCase) &&
+                                 _payloadReader.TryGetOptionalString(payload, "setup", out var setupValue) &&
+                                 string.Equals(setupValue, "INITIAL", StringComparison.OrdinalIgnoreCase);
+            if (premium <= 0 && !isInitialSetup)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Premium harus > 0",
                     new ErrorDetail("payload.premium", "OUT_OF_RANGE"));
             }
 
-            if (premium != RulebookInsurancePremium)
+            if (!isInitialSetup && !config.InsuranceProducts.Any(product => product.Premium == premium))
             {
-                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Premium asuransi harus 1 koin");
+                return BuildOutcome(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Premium asuransi tidak tersedia pada katalog ruleset aktif");
             }
 
-            if (request.UserId is not null)
+            if (!isInitialSetup && request.UserId is not null)
             {
                 var balanceCheck = await EnsureSufficientBalanceAsync(request, config, premium, ct);
                 if (!balanceCheck.IsValid)
@@ -967,6 +1338,17 @@ internal sealed class EventIngestionService : IEventIngestionService
         }
 
         return BuildOutcome(result.StatusCode, result.ErrorCode!, result.Message!, result.Details.ToArray());
+    }
+
+    private static bool IsAction(EventRequest request, string actionId)
+    {
+        return GameActionCatalog.Is(request.ActionType, request.Payload, actionId);
+    }
+
+    private bool IsEventAction(EventDb evt, string actionId)
+    {
+        var payload = _payloadReader.ReadPayload(string.IsNullOrWhiteSpace(evt.Payload) ? "{}" : evt.Payload);
+        return GameActionCatalog.Is(evt.ActionType, payload, actionId);
     }
 
     /// <summary>

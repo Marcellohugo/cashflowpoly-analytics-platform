@@ -15,31 +15,37 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
         var actionType = request.ActionType;
         var payload = request.Payload;
 
-        if (string.Equals(actionType, "order.passed", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "LewatiOrder", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateOrderPassed(request, payload);
             return true;
         }
 
-        if (string.Equals(actionType, "work.freelance.completed", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "KerjaLepas", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateFreelanceCompleted(request, payload, config.FreelanceIncome);
             return true;
         }
 
-        if (string.Equals(actionType, "donation.rank.awarded", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "PoinPeringkatDonasi", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateRankAwarded(request, payload, "Payload donasi tidak valid");
             return true;
         }
 
-        if (string.Equals(actionType, "gold.points.awarded", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "UmumkanJuaraDonasi", StringComparison.OrdinalIgnoreCase))
+        {
+            result = ValidateDonationWinnersAnnouncement(request, payload);
+            return true;
+        }
+
+        if (string.Equals(actionType, "PoinEmas", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateGoldPointsAwarded(request, payload);
             return true;
         }
 
-        if (string.Equals(actionType, "pension.rank.awarded", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(actionType, "PoinPeringkatPensiun", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateRankAwarded(request, payload, "Payload pension tidak valid");
             return true;
@@ -146,6 +152,94 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
                 "VALIDATION_ERROR",
                 "Nilai rank/points tidak valid",
                 new ErrorDetail("payload.points", "OUT_OF_RANGE"));
+        }
+
+        return EventDomainValidationResult.Valid;
+    }
+
+    private static EventDomainValidationResult ValidateDonationWinnersAnnouncement(
+        EventRequest request,
+        System.Text.Json.JsonElement payload)
+    {
+        if (!string.Equals(request.ActorType, "SYSTEM", StringComparison.OrdinalIgnoreCase) ||
+            request.UserId is not null)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Pengumuman juara donasi wajib dibuat oleh sistem",
+                new ErrorDetail("actor_type", "SYSTEM_REQUIRED"));
+        }
+
+        if (payload.ValueKind != System.Text.Json.JsonValueKind.Object ||
+            !payload.TryGetProperty("winners", out var winners) ||
+            winners.ValueKind != System.Text.Json.JsonValueKind.Array)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Payload juara donasi tidak valid",
+                new ErrorDetail("payload.winners", "REQUIRED"));
+        }
+
+        var winnerCount = winners.GetArrayLength();
+        if (winnerCount is < 1 or > 3)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Jumlah juara donasi harus 1 sampai 3",
+                new ErrorDetail("payload.winners", "OUT_OF_RANGE"));
+        }
+
+        var expectedRank = 1;
+        foreach (var winner in winners.EnumerateArray())
+        {
+            if (winner.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                !winner.TryGetProperty("rank", out var rankProperty) ||
+                !rankProperty.TryGetInt32(out var rank) ||
+                rank != expectedRank)
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "VALIDATION_ERROR",
+                    "Urutan rank juara donasi tidak valid",
+                    new ErrorDetail("payload.winners", "INVALID_RANK_SEQUENCE"));
+            }
+
+            if (!winner.TryGetProperty("player_name", out var playerNameProperty) ||
+                playerNameProperty.ValueKind != System.Text.Json.JsonValueKind.String ||
+                string.IsNullOrWhiteSpace(playerNameProperty.GetString()))
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "VALIDATION_ERROR",
+                    "Nama pemain juara donasi wajib diisi",
+                    new ErrorDetail("payload.winners.player_name", "REQUIRED"));
+            }
+
+            if (!winner.TryGetProperty("points", out var pointsProperty) ||
+                !pointsProperty.TryGetInt32(out var points) ||
+                points < 0)
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "VALIDATION_ERROR",
+                    "Poin juara donasi tidak valid",
+                    new ErrorDetail("payload.winners.points", "OUT_OF_RANGE"));
+            }
+
+            if (winner.TryGetProperty("player_order_no", out var playerOrderProperty) &&
+                (!playerOrderProperty.TryGetInt32(out var playerOrderNo) || playerOrderNo <= 0))
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "VALIDATION_ERROR",
+                    "Urutan pemain juara donasi tidak valid",
+                    new ErrorDetail("payload.winners.player_order_no", "OUT_OF_RANGE"));
+            }
+
+            expectedRank++;
         }
 
         return EventDomainValidationResult.Valid;

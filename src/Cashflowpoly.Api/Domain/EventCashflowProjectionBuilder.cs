@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
 
@@ -26,7 +27,8 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
             return false;
         }
 
-        var action = request.ActionType;
+        var sourceAction = request.ActionType.Trim();
+        var action = GameActionCatalog.ResolveGameActionId(sourceAction, request.Payload) ?? sourceAction;
         var playerId = request.UserId.Value;
         var direction = string.Empty;
         var amount = 0;
@@ -35,7 +37,7 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
         string? reference = null;
         string? note = null;
 
-        if (string.Equals(action, "transaction.recorded", StringComparison.OrdinalIgnoreCase) &&
+        if (string.Equals(action, "CatatTransaksi", StringComparison.OrdinalIgnoreCase) &&
             _payloadReader.TryReadTransaction(request.Payload, out var dir, out var amt, out var cat, out var cp))
         {
             direction = dir.ToUpperInvariant();
@@ -43,105 +45,98 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
             category = cat;
             counterparty = cp;
         }
-        else if (string.Equals(action, "day.friday.donation", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.JumatBerkah, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadAmount(request.Payload, out var donationAmount))
         {
             direction = "OUT";
             amount = (int)Math.Round(donationAmount);
             category = "DONATION";
         }
-        else if (string.Equals(action, "day.saturday.gold_trade", StringComparison.OrdinalIgnoreCase) &&
-                 _payloadReader.TryReadGoldTrade(request.Payload, out var tradeType, out _, out _, out var tradeAmount))
+        else if ((string.Equals(action, GameActionCatalog.InvestasiEmas, StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(action, GameActionCatalog.JualEmas, StringComparison.OrdinalIgnoreCase)) &&
+                 TryReadGoldAmount(request.Payload, out var tradeAmount))
         {
-            direction = string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? "OUT" : "IN";
+            direction = string.Equals(action, GameActionCatalog.JualEmas, StringComparison.OrdinalIgnoreCase) ? "IN" : "OUT";
             amount = tradeAmount;
             category = "GOLD_TRADE";
         }
-        else if (string.Equals(action, "ingredient.purchased", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.BahanMasakan, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadIngredientPurchase(request.Payload, out _, out var ingredientAmount))
         {
             direction = "OUT";
             amount = ingredientAmount;
             category = "INGREDIENT";
         }
-        else if (string.Equals(action, "order.claimed", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.JualMasakan, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadOrderClaim(request.Payload, out _, out var income))
         {
             direction = "IN";
             amount = income;
             category = "ORDER";
         }
-        else if (string.Equals(action, "work.freelance.completed", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.KerjaLepas, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadAmount(request.Payload, out var freelanceAmount))
         {
             direction = "IN";
             amount = (int)Math.Round(freelanceAmount);
             category = "FREELANCE";
         }
-        else if (string.Equals(action, "need.primary.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 _payloadReader.TryReadNeedPurchase(request.Payload, out _, out var primaryAmount, out _))
+        else if (string.Equals(action, GameActionCatalog.Kebutuhan, StringComparison.OrdinalIgnoreCase) &&
+                 _payloadReader.TryReadNeedPurchase(request.Payload, out var needCardId, out var needAmount, out _))
         {
             direction = "OUT";
-            amount = primaryAmount;
-            category = "NEED_PRIMARY";
+            amount = needAmount;
+            category = NeedTierClassifier.FromPayload(request.Payload, needCardId) switch
+            {
+                NeedTier.Primary => "NEED_PRIMARY",
+                NeedTier.Secondary => "NEED_SECONDARY",
+                NeedTier.Tertiary => "NEED_TERTIARY",
+                _ => "NEED"
+            };
         }
-        else if (string.Equals(action, "need.secondary.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 _payloadReader.TryReadNeedPurchase(request.Payload, out _, out var secondaryAmount, out _))
-        {
-            direction = "OUT";
-            amount = secondaryAmount;
-            category = "NEED_SECONDARY";
-        }
-        else if (string.Equals(action, "need.tertiary.purchased", StringComparison.OrdinalIgnoreCase) &&
-                 _payloadReader.TryReadNeedPurchase(request.Payload, out _, out var tertiaryAmount, out _))
-        {
-            direction = "OUT";
-            amount = tertiaryAmount;
-            category = "NEED_TERTIARY";
-        }
-        else if (string.Equals(action, "saving.deposit.created", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.Menabung, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadSavingDeposit(request.Payload, out _, out var savingAmount))
         {
             direction = "OUT";
             amount = savingAmount;
             category = "SAVING_DEPOSIT";
         }
-        else if (string.Equals(action, "saving.deposit.withdrawn", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.SavingDepositWithdrawn, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadSavingDeposit(request.Payload, out _, out var savingWithdrawAmount))
         {
             direction = "IN";
             amount = savingWithdrawAmount;
             category = "SAVING_WITHDRAW";
         }
-        else if (string.Equals(action, "risk.life.drawn", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.RisikoKehidupan, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadRiskLife(request.Payload, out _, out var riskDirection, out var riskAmount))
         {
             direction = riskDirection.ToUpperInvariant();
             amount = riskAmount;
             category = "RISK_LIFE";
         }
-        else if (string.Equals(action, "loan.syariah.taken", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.PinjamanSyariah, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadLoanTaken(request.Payload, out _, out var principal, out _, out _, out _))
         {
             direction = "IN";
             amount = principal;
             category = "LOAN_TAKEN";
         }
-        else if (string.Equals(action, "loan.syariah.repaid", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.BayarPinjaman, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadLoanRepay(request.Payload, out _, out var repayAmount))
         {
             direction = "OUT";
             amount = repayAmount;
             category = "LOAN_REPAID";
         }
-        else if (string.Equals(action, "insurance.multirisk.purchased", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, GameActionCatalog.Asuransi, StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadInsurance(request.Payload, out var premium))
         {
             direction = "OUT";
             amount = premium;
             category = "INSURANCE_PREMIUM";
         }
-        else if (string.Equals(action, "risk.emergency.used", StringComparison.OrdinalIgnoreCase) &&
+        else if (string.Equals(action, "GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadEmergencyOption(request.Payload, out _, out _, out var emergencyDirection, out var emergencyAmount))
         {
             direction = emergencyDirection.ToUpperInvariant();
@@ -175,5 +170,20 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
         };
 
         return true;
+    }
+
+    private static bool TryReadGoldAmount(JsonElement payload, out int amount)
+    {
+        amount = 0;
+        if (_payloadReader.TryReadGoldTrade(payload, out _, out _, out _, out amount))
+        {
+            return true;
+        }
+
+        return _payloadReader.TryGetInt32(payload, "qty", out var qty) &&
+               _payloadReader.TryGetInt32(payload, "unit_price", out var unitPrice) &&
+               _payloadReader.TryGetInt32(payload, "amount", out amount) &&
+               qty > 0 &&
+               unitPrice > 0;
     }
 }

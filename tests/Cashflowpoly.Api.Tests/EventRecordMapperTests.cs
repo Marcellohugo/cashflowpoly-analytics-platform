@@ -23,9 +23,10 @@ public sealed class EventRecordMapperTests
             Timestamp = timestamp,
             DayIndex = 7,
             Weekday = "Friday",
-            TurnNumber = 3,
+            TurnNumber = 2,
+            ActionSlot = 3,
             SequenceNumber = 12,
-            ActionType = "transaction.recorded",
+            ActionType = "CatatTransaksi",
             RulesetVersionId = rulesetVersionId,
             Payload = """{"amount":5,"category":"PAYCHECK"}""",
             ClientRequestId = "client-123"
@@ -40,9 +41,10 @@ public sealed class EventRecordMapperTests
         Assert.Equal(timestamp, request.Timestamp);
         Assert.Equal(7, request.DayIndex);
         Assert.Equal("Friday", request.Weekday);
-        Assert.Equal(3, request.TurnNumber);
+        Assert.Equal(2, request.TurnNumber);
+        Assert.Equal(3, request.ActionSlot);
         Assert.Equal(12, request.SequenceNumber);
-        Assert.Equal("transaction.recorded", request.ActionType);
+        Assert.Equal("CatatTransaksi", request.ActionType);
         Assert.Equal(rulesetVersionId, request.RulesetVersionId);
         Assert.Equal("client-123", request.ClientRequestId);
         Assert.Equal(5, request.Payload.GetProperty("amount").GetInt32());

@@ -20,14 +20,14 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
         IEnumerable<EventDb> history,
         out EventSavingGoalValidation result)
     {
-        if (string.Equals(request.ActionType, "saving.deposit.created", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(request.ActionType, "saving.deposit.withdrawn", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "Menabung", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(request.ActionType, "TarikTabungan", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateDeposit(request, config, history);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "saving.goal.achieved", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "TujuanFinansial", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateGoalAchieved(request, config, history);
             return true;
@@ -63,7 +63,7 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
             return new EventSavingGoalValidation(payloadValidation, null);
         }
 
-        var isCreate = string.Equals(request.ActionType, "saving.deposit.created", StringComparison.OrdinalIgnoreCase);
+        var isCreate = string.Equals(request.ActionType, "Menabung", StringComparison.OrdinalIgnoreCase);
         if (isCreate && amount > RulebookSavingMaxDeposit)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Maksimal tabungan per aksi adalah 15 koin");
