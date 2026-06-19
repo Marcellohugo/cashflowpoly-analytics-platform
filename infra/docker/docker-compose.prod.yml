@@ -51,7 +51,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Cloudflare Named Tunnel - domain permanen: tugasakhirmarco.my.id
+  # Cloudflare Named Tunnel - domain permanen: narafin.org
   # Aktifkan dengan: docker compose --profile tunnel up -d
   cloudflared:
     image: cloudflare/cloudflared:latest

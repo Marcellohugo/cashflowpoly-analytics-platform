@@ -26,7 +26,7 @@ Internet
     |
     v
 Cloudflare Edge (SSL termination)
-    v https://tugasakhirmarco.my.id
+    v https://narafin.org
     |
 +----------------------------------------------------------+
 | Docker Host                                              |
@@ -80,7 +80,7 @@ Cloudflare Edge (SSL termination)
 | Layanan | Fungsi | Keterangan |
 |---|---|---|
 | [Cloudflare](https://dash.cloudflare.com) | DNS dan Tunnel | Free plan |
-| Domain `tugasakhirmarco.my.id` | Domain publik permanen | Dibeli di [MyDomaiNesia](https://my.domainesia.com) |
+| Domain `narafin.org` | Domain publik permanen | Dibeli di [MyDomaiNesia](https://my.domainesia.com) |
 
 Catatan:
 - Remote Git boleh berada di GitHub, GitLab, atau server Git lain.
@@ -104,10 +104,10 @@ Variabel yang wajib diisi:
 | `POSTGRES_PASSWORD` | `Str0ng!P@ssw0rd` | Password database |
 | `JWT_SIGNING_KEY` | (random 48 karakter) | Minimal 32 karakter |
 | `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` | `true` | Hanya untuk bootstrap awal |
-| `AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME` | `admin` | Username instructor |
-| `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | `Admin@123!` | Password instructor |
-| `AUTH_BOOTSTRAP_PLAYER_USERNAME` | `player1` | Username player |
-| `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | `Player@123!` | Password player |
+| `AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME` | `rina.kartika` | Username instructor |
+| `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | `SeedLocal!2026` | Password instructor |
+| `AUTH_BOOTSTRAP_PLAYER_USERNAME` | `marco` | Username player |
+| `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | `SeedLocal!2026` | Password player |
 | `CLOUDFLARE_TUNNEL_TOKEN` | `eyJ...` | Isi jika ingin akses publik via tunnel |
 
 Catatan:
@@ -239,7 +239,7 @@ Cloudflare Tunnel memungkinkan aplikasi diakses publik tanpa membuka port langsu
 
 ### 7.1 Setup Pertama Kali
 
-1. Tambahkan domain `tugasakhirmarco.my.id` ke Cloudflare.
+1. Tambahkan domain `narafin.org` ke Cloudflare.
 2. Ganti nameserver domain ke nameserver Cloudflare yang diberikan.
 3. Buat Named Tunnel bernama `cashflowpoly`.
 4. Tambahkan route ke `http://nginx:80`.
@@ -255,17 +255,17 @@ CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiNGQ0N2......
 
 ```powershell
 docker logs cashflowpoly-tunnel --tail 20
-nslookup tugasakhirmarco.my.id 8.8.8.8
+nslookup narafin.org 8.8.8.8
 ```
 
 Jika tunnel aktif, domain publik yang diharapkan:
 
 | Halaman | URL |
 |---|---|
-| Dashboard UI | `https://tugasakhirmarco.my.id` |
-| API Landing | `https://tugasakhirmarco.my.id/api/` |
-| Swagger UI | `https://tugasakhirmarco.my.id/swagger` |
-| Health Check | `https://tugasakhirmarco.my.id/health/ready` |
+| Dashboard UI | `https://narafin.org` |
+| API Landing | `https://narafin.org/api/` |
+| Swagger UI | `https://narafin.org/swagger` |
+| Health Check | `https://narafin.org/health/ready` |
 
 ---
 
@@ -348,34 +348,34 @@ Get-Content backup.sql | docker exec -i cashflowpoly-db psql -U cashflowpoly cas
 
 ```powershell
 Invoke-WebRequest -Uri "http://localhost/health/ready" -UseBasicParsing
-Invoke-WebRequest -Uri "https://tugasakhirmarco.my.id/health/ready" -UseBasicParsing
+Invoke-WebRequest -Uri "https://narafin.org/health/ready" -UseBasicParsing
 ```
 
 Ekspektasi: status `200`, body `Healthy`.
 
 ### 10.2 Dashboard UI
 
-Buka `https://tugasakhirmarco.my.id`.
+Buka `https://narafin.org`.
 
 Ekspektasi: halaman login atau dashboard tampil.
 
 ### 10.3 API Landing
 
-Buka `https://tugasakhirmarco.my.id/api/`.
+Buka `https://narafin.org/api/`.
 
 Ekspektasi: halaman landing API tampil.
 
 ### 10.4 Swagger UI
 
-Buka `https://tugasakhirmarco.my.id/swagger`.
+Buka `https://narafin.org/swagger`.
 
 Ekspektasi: daftar endpoint API tampil lengkap.
 
 ### 10.5 Login API
 
 ```powershell
-$body = @{ username = "admin"; password = "Admin@123!" } | ConvertTo-Json
-Invoke-RestMethod -Uri "https://tugasakhirmarco.my.id/api/v1/auth/login" -Method POST -Body $body -ContentType "application/json"
+$body = @{ username = "rina.kartika"; password = "SeedLocal!2026" } | ConvertTo-Json
+Invoke-RestMethod -Uri "https://narafin.org/api/v1/auth/login" -Method POST -Body $body -ContentType "application/json"
 ```
 
 Ekspektasi: response berisi JWT token.
@@ -386,7 +386,7 @@ Dengan token Instruktur dari login API:
 
 ```powershell
 $headers = @{ Authorization = "Bearer <access_token>" }
-Invoke-RestMethod -Uri "https://tugasakhirmarco.my.id/api/v1/observability/metrics/summary" -Headers $headers
+Invoke-RestMethod -Uri "https://narafin.org/api/v1/observability/metrics/summary" -Headers $headers
 docker exec cashflowpoly-api curl -s http://localhost:5041/metrics
 ```
 
@@ -433,7 +433,7 @@ docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.ym
 
 ```powershell
 ipconfig /flushdns
-nslookup tugasakhirmarco.my.id 8.8.8.8
+nslookup narafin.org 8.8.8.8
 ```
 
 ---
