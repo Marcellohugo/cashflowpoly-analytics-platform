@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cashflowpoly.Ui.Contracts;
+using Cashflowpoly.Ui.Domain;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +25,8 @@ public sealed class RulesetsController : Controller
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        ViewData[RulesetErrorTempDataKey] = TempData[RulesetErrorTempDataKey] as string;
+        var flashError = TempData[RulesetErrorTempDataKey] as string;
+        ViewData[RulesetErrorTempDataKey] = flashError;
         ViewData[RulesetInfoTempDataKey] = TempData[RulesetInfoTempDataKey] as string;
 
         var client = _clientFactory.CreateClient("Api");
@@ -35,28 +37,31 @@ public sealed class RulesetsController : Controller
             return unauthorized;
         }
 
+        var rulesetItems = new List<RulesetListItem>();
+        string? rulesetErrorMessage = null;
         if (!response.IsSuccessStatusCode)
         {
-            return View(new RulesetListViewModel
-            {
-                ErrorMessage = HttpContext
-                    .T("rulesets.error.load_list_failed")
-                    .Replace("{status}", ((int)response.StatusCode).ToString())
-            });
+            rulesetErrorMessage = HttpContext
+                .T("rulesets.error.load_list_failed")
+                .Replace("{status}", ((int)response.StatusCode).ToString());
         }
-
-        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(ct);
-        if (data is null)
+        else
         {
-            return View(new RulesetListViewModel
+            var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(ct);
+            if (data is null)
             {
-                ErrorMessage = HttpContext.T("rulesets.error.invalid_list_response")
-            });
+                rulesetErrorMessage = HttpContext.T("rulesets.error.invalid_list_response");
+            }
+            else
+            {
+                rulesetItems = data.Items ?? new List<RulesetListItem>();
+            }
         }
 
         return View(new RulesetListViewModel
         {
-            Items = data.Items ?? new List<RulesetListItem>()
+            Items = rulesetItems,
+            ErrorMessage = rulesetErrorMessage
         });
     }
 
@@ -90,22 +95,23 @@ public sealed class RulesetsController : Controller
         JsonNode? configNode;
         try
         {
-            configNode = JsonNode.Parse(model.ConfigJson);
+            configNode = JsonNode.Parse(model.DefinitionJson);
         }
         catch (JsonException)
         {
             model.IsEditMode = false;
-            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_config_json");
+            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_definition_json");
             return View(model);
         }
 
         var client = _clientFactory.CreateClient("Api");
         configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
+        var definition = RulesetDefinitionMapper.FromConfigJson(configNode?.ToJsonString() ?? "{}");
         var payload = new
         {
             name = model.Name,
             description = model.Description,
-            config = configNode
+            definition
         };
 
         var response = await client.PostAsJsonAsync("api/v1/rulesets", payload, ct);
@@ -168,13 +174,19 @@ public sealed class RulesetsController : Controller
             });
         }
 
+        if (data.IsDefault || data.IsLockedBySession)
+        {
+            TempData[RulesetInfoTempDataKey] = HttpContext.T("rulesets.readonly_hint");
+            return RedirectToAction(nameof(Details), new { rulesetId });
+        }
+
         return View("Create", new CreateRulesetViewModel
         {
             RulesetId = rulesetId,
             IsEditMode = true,
             Name = data.Name,
             Description = data.Description,
-            ConfigJson = RulesetFormHelper.SerializeIndentedJson(data.ConfigJson)
+            DefinitionJson = SerializeDefinitionConfig(data.Definition)
         });
     }
 
@@ -199,21 +211,22 @@ public sealed class RulesetsController : Controller
         JsonNode? configNode;
         try
         {
-            configNode = JsonNode.Parse(model.ConfigJson);
+            configNode = JsonNode.Parse(model.DefinitionJson);
         }
         catch (JsonException)
         {
-            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_config_json");
+            model.ErrorMessage = HttpContext.T("rulesets.error.invalid_definition_json");
             return View("Create", model);
         }
 
         var client = _clientFactory.CreateClient("Api");
         configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
+        var definition = RulesetDefinitionMapper.FromConfigJson(configNode?.ToJsonString() ?? "{}");
         var payload = new
         {
             name = model.Name,
             description = model.Description,
-            config = configNode
+            definition
         };
 
         var response = await client.PutAsJsonAsync($"api/v1/rulesets/{rulesetId}", payload, ct);
@@ -276,18 +289,18 @@ public sealed class RulesetsController : Controller
                                 fallbackItem.Name,
                                 fallbackItem.Description,
                                 new List<RulesetVersionItem>(),
-                                null,
                                 fallbackItem.RulesetVersionId,
                                 fallbackItem.Version,
                                 fallbackItem.Mode,
-                                fallbackItem.Sections),
+                                fallbackItem.Definition),
                             Components = new RulesetComponentsResponse(
                                 fallbackItem.RulesetId,
                                 fallbackItem.RulesetVersionId,
                                 fallbackItem.Version,
                                 fallbackItem.Mode,
-                                fallbackItem.ComponentCatalog,
-                                fallbackItem.Sections),
+                                fallbackItem.Definition),
+                            CompatibilityDefinitionJson = BuildCompatibilityConfigElement(fallbackItem.Definition),
+                            CompatibilityComponentCatalog = BuildCompatibilityComponentCatalog(fallbackItem.Definition),
                             InfoMessage = HttpContext.T("rulesets.info.default_catalog_readonly"),
                             IsReadOnly = true,
                             IsDefaultCatalogSource = true
@@ -347,9 +360,14 @@ public sealed class RulesetsController : Controller
             infoMessages.Add(tempInfo);
         }
 
-        if (fromDefaultCatalog)
+        var isReadOnly = fromDefaultCatalog || data.IsDefault || data.IsLockedBySession;
+        if (fromDefaultCatalog || data.IsDefault)
         {
             infoMessages.Add(HttpContext.T("rulesets.info.default_catalog_readonly"));
+        }
+        else if (data.IsLockedBySession)
+        {
+            infoMessages.Add(HttpContext.T("rulesets.readonly_hint"));
         }
 
         if (requestedVersion.HasValue)
@@ -363,10 +381,12 @@ public sealed class RulesetsController : Controller
         {
             Ruleset = data,
             Components = components,
+            CompatibilityDefinitionJson = BuildCompatibilityConfigElement(data.Definition),
+            CompatibilityComponentCatalog = BuildCompatibilityComponentCatalog(components?.Definition ?? data.Definition),
             ErrorMessage = TempData[RulesetErrorTempDataKey] as string,
             InfoMessage = infoMessages.Count == 0 ? null : string.Join(" ", infoMessages),
             ComponentsErrorMessage = componentsErrorMessage,
-            IsReadOnly = fromDefaultCatalog,
+            IsReadOnly = isReadOnly,
             IsDefaultCatalogSource = fromDefaultCatalog
         });
     }
@@ -387,21 +407,21 @@ public sealed class RulesetsController : Controller
             TempData[RulesetErrorTempDataKey] = HttpContext
                 .T("rulesets.error.load_default_components_failed")
                 .Replace("{status}", ((int)defaultsResponse.StatusCode).ToString());
-            return RedirectToAction("Index", "Components");
+            return RedirectToAction(nameof(Index));
         }
 
         var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
         if (defaultsData is null)
         {
             TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.invalid_default_components_response");
-            return RedirectToAction("Index", "Components");
+            return RedirectToAction(nameof(Index));
         }
 
         var selectedItem = defaultsData.Items.FirstOrDefault(item => item.RulesetVersionId == rulesetVersionId);
         if (selectedItem is null)
         {
             TempData[RulesetErrorTempDataKey] = HttpContext.T("rulesets.error.default_component_not_found");
-            return RedirectToAction("Index", "Components");
+            return RedirectToAction(nameof(Index));
         }
 
         return RedirectToAction(nameof(Details), new
@@ -594,12 +614,21 @@ public sealed class RulesetsController : Controller
             return configNode;
         }
 
-        var selectedCatalog = defaultsData.Items
-            .FirstOrDefault(item =>
-                string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase) &&
-                item.ComponentCatalog.HasValue)
-            ?.ComponentCatalog
-            ?? defaultsData.Items.FirstOrDefault(item => item.ComponentCatalog.HasValue)?.ComponentCatalog;
+        JsonElement? selectedCatalog = null;
+        foreach (var item in defaultsData.Items)
+        {
+            var catalog = BuildCompatibilityComponentCatalog(item.Definition);
+            if (catalog.HasValue && string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase))
+            {
+                selectedCatalog = catalog;
+                break;
+            }
+
+            if (!selectedCatalog.HasValue && catalog.HasValue)
+            {
+                selectedCatalog = catalog;
+            }
+        }
 
         if (!selectedCatalog.HasValue)
         {
@@ -616,6 +645,43 @@ public sealed class RulesetsController : Controller
         }
 
         return configNode;
+    }
+
+    private static string SerializeDefinitionConfig(RulesetDefinitionDto? definition)
+    {
+        var element = BuildCompatibilityConfigElement(definition);
+        return RulesetFormHelper.SerializeIndentedJson(element);
+    }
+
+    private static JsonElement? BuildCompatibilityConfigElement(RulesetDefinitionDto? definition)
+    {
+        if (definition is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(RulesetDefinitionMapper.ToConfigJson(definition));
+            return document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static JsonElement? BuildCompatibilityComponentCatalog(RulesetDefinitionDto? definition)
+    {
+        var config = BuildCompatibilityConfigElement(definition);
+        if (!config.HasValue || config.Value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return config.Value.TryGetProperty("component_catalog", out var componentCatalog)
+            ? componentCatalog.Clone()
+            : null;
     }
 
 }

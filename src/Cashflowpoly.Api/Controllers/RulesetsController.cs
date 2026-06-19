@@ -65,7 +65,12 @@ public sealed class RulesetsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        var catalog = RulesetSectionCatalog.FromConfig(ruleset.ConfigJson);
+        if (ruleset.Definition is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak memiliki definisi relasional yang lengkap"));
+        }
+
+        var catalog = RulesetSectionCatalog.FromDefinition(ruleset.Definition);
         return Ok(new RulesetSectionsResponse(
             ruleset.RulesetId,
             ruleset.RulesetVersionId,
@@ -76,8 +81,7 @@ public sealed class RulesetsController : ControllerBase
             catalog.Kebutuhan,
             catalog.TargetKebutuhan,
             catalog.TujuanFinansial,
-            catalog.Narasi,
-            catalog.Quest));
+            catalog.Narasi));
     }
 
 
@@ -96,21 +100,24 @@ public sealed class RulesetsController : ControllerBase
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
                 new ErrorDetail("name", "REQUIRED")));
         }
-        if (!RulesetConfigParser.TryParse(request.Config, out _, out var configErrors))
+
+        var prepared = await PrepareDefinitionForWriteAsync(request.Definition, ct);
+        if (prepared.Error is not null)
         {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", configErrors.ToArray()));
+            return prepared.Error;
         }
 
-        var configJson = request.Config.GetRawText();
         var created = await _rulesets.CreateRulesetAsync(
             request.Name,
             request.Description,
             instructorUserId,
-            configJson,
-            GetActorName(),
+            prepared.Definition!,
+            instructorUserId,
             ct);
 
-        return Created($"/api/v1/rulesets/{created.RulesetId}", new CreateRulesetResponse(created.RulesetId, created.Version));
+        return Created(
+            $"/api/v1/rulesets/{created.RulesetId}",
+            new CreateRulesetResponse(created.RulesetId, created.RulesetVersionId, created.Version));
     }
 
     [HttpPut("{rulesetId:guid}")]
@@ -123,37 +130,32 @@ public sealed class RulesetsController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var existing = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
-        if (existing is null)
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        if (mutableRuleset.Error is not null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+            return mutableRuleset.Error;
         }
 
-        if (request.Config is null)
+        var prepared = await PrepareDefinitionForWriteAsync(request.Definition, ct);
+        if (prepared.Error is not null)
         {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Config wajib ada",
-                new ErrorDetail("config", "REQUIRED")));
-        }
-        if (!RulesetConfigParser.TryParse(request.Config.Value, out _, out var configErrors))
-        {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", configErrors.ToArray()));
+            return prepared.Error;
         }
 
-        var configJson = request.Config.Value.GetRawText();
-        int nextVersion;
+        (Guid RulesetVersionId, int Version) createdVersion;
         try
         {
-            nextVersion = await _rulesets.CreateRulesetVersionAsync(
+            createdVersion = await _rulesets.CreateRulesetVersionAsync(
                 rulesetId,
                 request.Name,
                 request.Description,
-                configJson,
-                GetActorName(),
+                prepared.Definition!,
+                instructorUserId,
                 ct);
         }
         catch (PostgresException ex) when (
             ex.SqlState == PostgresErrorCodes.UniqueViolation &&
-            string.Equals(ex.ConstraintName, "ruleset_versions_ruleset_id_config_hash_key", StringComparison.Ordinal))
+            IsRulesetConfigHashUniqueViolation(ex))
         {
             return Conflict(ApiErrorHelper.BuildError(
                 HttpContext,
@@ -161,7 +163,7 @@ public sealed class RulesetsController : ControllerBase
                 "Konfigurasi ruleset tersebut sudah pernah dibuat sebagai versi ruleset ini"));
         }
 
-        return Ok(new CreateRulesetResponse(rulesetId, nextVersion));
+        return Ok(new CreateRulesetResponse(rulesetId, createdVersion.RulesetVersionId, createdVersion.Version));
     }
 
     [HttpPost("{rulesetId:guid}/versions/{version:int}/activate")]
@@ -174,10 +176,10 @@ public sealed class RulesetsController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
-        if (ruleset is null)
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        if (mutableRuleset.Error is not null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+            return mutableRuleset.Error;
         }
 
         var selectedVersion = await _rulesets.GetRulesetVersionAsync(rulesetId, version, ct);
@@ -186,17 +188,22 @@ public sealed class RulesetsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
         }
 
-        if (!RulesetConfigParser.TryParse(selectedVersion.ConfigJson, out _, out var configErrors))
+        List<ErrorDetail> configErrors;
+        if (selectedVersion.Definition is null)
+        {
+            configErrors = [new ErrorDetail("definition", "REQUIRED")];
+        }
+        else if (!RulesetRuntimeMapper.TryBuildConfig(selectedVersion.Definition, out _, out configErrors))
         {
             return BadRequest(ApiErrorHelper.BuildError(
                 HttpContext,
                 "VALIDATION_ERROR",
-                "Konfigurasi ruleset tidak valid",
+                "Definition ruleset tidak valid",
                 configErrors.ToArray()));
         }
 
         await _rulesets.ActivateRulesetVersionAsync(rulesetId, version, ct);
-        return Ok(new CreateRulesetResponse(rulesetId, version));
+        return Ok(new CreateRulesetResponse(rulesetId, selectedVersion.RulesetVersionId, version));
     }
 
     [HttpDelete("{rulesetId:guid}/versions/{version:int}")]
@@ -218,10 +225,10 @@ public sealed class RulesetsController : ControllerBase
                 new ErrorDetail("version", "OUT_OF_RANGE")));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
-        if (ruleset is null)
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        if (mutableRuleset.Error is not null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+            return mutableRuleset.Error;
         }
 
         var selectedVersion = await _rulesets.GetRulesetVersionAsync(rulesetId, version, ct);
@@ -298,6 +305,13 @@ public sealed class RulesetsController : ControllerBase
                 ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
         }
 
+        var defaults = await _rulesets.ListDefaultRulesetsAsync(ct);
+        items = defaults
+            .Concat(items)
+            .GroupBy(item => item.RulesetId)
+            .Select(group => group.First())
+            .ToList();
+
         return Ok(new RulesetListResponse(items));
     }
 
@@ -340,31 +354,19 @@ public sealed class RulesetsController : ControllerBase
 
         foreach (var row in defaults)
         {
-            var compatibleConfigJson = await ResolveCompatibleConfigJsonAsync(row.RulesetId, null, row.Mode, row.ConfigJson, ct);
-            if (string.IsNullOrWhiteSpace(compatibleConfigJson))
+            if (row.Definition is null)
             {
                 continue;
             }
 
-            using var doc = JsonDocument.Parse(compatibleConfigJson);
-            var root = doc.RootElement;
-
-            var itemMode = row.Mode;
-            if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
-            {
-                itemMode = modeProp.GetString();
-            }
+            var itemMode = string.IsNullOrWhiteSpace(row.Definition.Mode)
+                ? row.Mode
+                : row.Definition.Mode;
 
             if (!string.IsNullOrWhiteSpace(modeFilter) &&
                 !string.Equals(itemMode, modeFilter, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
-            }
-
-            JsonElement? componentCatalog = null;
-            if (root.TryGetProperty("component_catalog", out var componentCatalogProp))
-            {
-                componentCatalog = componentCatalogProp.Clone();
             }
 
             items.Add(new DefaultRulesetComponentItem(
@@ -374,8 +376,9 @@ public sealed class RulesetsController : ControllerBase
                 row.RulesetVersionId,
                 row.Version,
                 itemMode,
-                componentCatalog,
-                TryBuildSections(compatibleConfigJson)));
+                CloneDefinition(
+                    row.Definition,
+                    row.Definition.Actions)));
         }
 
         return Ok(new DefaultRulesetComponentsResponse(items));
@@ -433,46 +436,34 @@ public sealed class RulesetsController : ControllerBase
             v.Status,
             v.CreatedAt)).ToList();
 
-        JsonElement? configJson = null;
         Guid? selectedRulesetVersionId = null;
         int? selectedVersionNumber = null;
         string? selectedMode = null;
-        RulesetSectionCatalogResponse? selectedSections = null;
+        RulesetDefinitionDto? selectedDefinition = null;
         var latest = versions.FirstOrDefault();
-        if (latest is not null)
+        if (latest?.Definition is not null)
         {
-            var compatibleConfigJson = await ResolveCompatibleConfigJsonAsync(
-                rulesetId,
-                string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? userId : null,
-                latest.Mode,
-                latest.ConfigJson,
-                ct);
-            if (!string.IsNullOrWhiteSpace(compatibleConfigJson))
-            {
-                using var doc = JsonDocument.Parse(compatibleConfigJson);
-                configJson = doc.RootElement.Clone();
-                selectedRulesetVersionId = latest.RulesetVersionId;
-                selectedVersionNumber = latest.Version;
-                selectedMode = latest.Mode;
-                if (doc.RootElement.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
-                {
-                    selectedMode = modeProp.GetString();
-                }
-
-                selectedSections = TryBuildSections(compatibleConfigJson);
-            }
+            selectedRulesetVersionId = latest.RulesetVersionId;
+            selectedVersionNumber = latest.Version;
+            selectedMode = latest.Mode;
+            selectedDefinition = CloneDefinition(
+                latest.Definition,
+                latest.Definition.Actions);
         }
 
+        var isDefault = ruleset.InstructorUserId is null;
+        var isLockedBySession = await _rulesets.IsRulesetLockedBySessionAsync(rulesetId, ct);
         var response = new RulesetDetailResponse(
             ruleset.RulesetId,
             ruleset.Name,
             ruleset.Description,
             versionItems,
-            configJson,
             selectedRulesetVersionId,
             selectedVersionNumber,
             selectedMode,
-            selectedSections);
+            selectedDefinition,
+            isDefault,
+            isLockedBySession);
 
         return Ok(response);
     }
@@ -547,40 +538,27 @@ public sealed class RulesetsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
         }
 
-        var compatibleConfigJson = await ResolveCompatibleConfigJsonAsync(
-            rulesetId,
-            string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? userId : null,
-            selectedVersion.Mode,
-            selectedVersion.ConfigJson,
-            ct);
-        if (string.IsNullOrWhiteSpace(compatibleConfigJson))
+        if (selectedVersion.Definition is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Konfigurasi ruleset tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Definition ruleset tidak ditemukan"));
         }
 
-        using var doc = JsonDocument.Parse(compatibleConfigJson);
-        var root = doc.RootElement;
-        var mode = selectedVersion.Mode;
-        if (root.TryGetProperty("mode", out var modeProp) && modeProp.ValueKind == JsonValueKind.String)
-        {
-            mode = modeProp.GetString();
-        }
-
-        JsonElement? componentCatalog = null;
-        if (root.TryGetProperty("component_catalog", out var componentsProp))
-        {
-            componentCatalog = componentsProp.Clone();
-        }
-
-        var sections = TryBuildSections(compatibleConfigJson);
+        var definition = CloneDefinition(
+            selectedVersion.Definition,
+            selectedVersion.Definition.Actions);
 
         return Ok(new RulesetComponentsResponse(
             rulesetId,
             selectedVersion.RulesetVersionId,
             selectedVersion.Version,
-            mode,
-            componentCatalog,
-            sections));
+            selectedVersion.Mode,
+            definition));
+    }
+
+    private static bool IsRulesetConfigHashUniqueViolation(PostgresException ex)
+    {
+        return string.Equals(ex.ConstraintName, "uq_ruleset_versions_ruleset_config_hash", StringComparison.Ordinal) ||
+               string.Equals(ex.ConstraintName, "ruleset_versions_ruleset_id_config_hash_key", StringComparison.Ordinal);
     }
 
     [HttpDelete("{rulesetId:guid}")]
@@ -593,20 +571,50 @@ public sealed class RulesetsController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
-        if (ruleset is null)
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        if (mutableRuleset.Error is not null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
-
-        var inUse = await _rulesets.IsRulesetUsedAsync(rulesetId, ct);
-        if (inUse)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Ruleset sudah dipakai sesi"));
+            return mutableRuleset.Error;
         }
 
         await _rulesets.DeleteRulesetAsync(rulesetId, ct);
         return NoContent();
+    }
+
+    private async Task<(RulesetDb? Ruleset, IActionResult? Error)> GetMutableInstructorRulesetAsync(
+        Guid rulesetId,
+        Guid instructorUserId,
+        CancellationToken ct)
+    {
+        var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
+        if (ruleset is null)
+        {
+            return (null, NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan")));
+        }
+
+        if (ruleset.InstructorUserId is null)
+        {
+            return (null, UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset default sistem hanya dapat dilihat atau dijadikan dasar membuat ruleset baru.")));
+        }
+
+        if (ruleset.InstructorUserId.Value != instructorUserId)
+        {
+            return (null, NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan")));
+        }
+
+        var lockedBySession = await _rulesets.IsRulesetLockedBySessionAsync(rulesetId, ct);
+        if (lockedBySession)
+        {
+            return (null, UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset sudah dipakai pada sesi yang berjalan atau selesai sehingga hanya dapat dilihat.")));
+        }
+
+        return (ruleset, null);
     }
 
     private string? GetActorName()
@@ -621,70 +629,57 @@ public sealed class RulesetsController : ControllerBase
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    private async Task<string?> ResolveCompatibleConfigJsonAsync(
-        Guid rulesetId,
-        Guid? instructorUserId,
-        string? mode,
-        string? rawConfigJson,
+    private async Task<(RulesetDefinitionDto? Definition, IActionResult? Error)> PrepareDefinitionForWriteAsync(
+        RulesetDefinitionDto? explicitDefinition,
         CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(rawConfigJson) &&
-            TryBuildSections(rawConfigJson) is not null)
+        if (explicitDefinition is null)
         {
-            return rawConfigJson;
+            return (
+                null,
+                BadRequest(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "VALIDATION_ERROR",
+                    "Definition ruleset wajib ada",
+                    new ErrorDetail("definition", "REQUIRED"))));
         }
 
-        var normalizedMode = string.IsNullOrWhiteSpace(mode)
-            ? "MAHIR"
-            : mode.Trim().ToUpperInvariant();
-        var section = await _state.GetRulesetSectionAsync(normalizedMode, rulesetId, instructorUserId, ct);
-        return section?.ConfigJson;
+        var definition = explicitDefinition;
+
+        if (!RulesetRuntimeMapper.TryBuildConfig(definition, out _, out var configErrors))
+        {
+            return (
+                null,
+                BadRequest(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "VALIDATION_ERROR",
+                    "Definition ruleset tidak valid",
+                    configErrors.ToArray())));
+        }
+
+        return (definition, null);
     }
 
-    private static RulesetSectionCatalogResponse? TryBuildSections(string configJson)
+    private static RulesetDefinitionDto CloneDefinition(
+        RulesetDefinitionDto source,
+        IReadOnlyCollection<RulesetActionDto> actions)
     {
-        if (string.IsNullOrWhiteSpace(configJson))
+        return new RulesetDefinitionDto
         {
-            return null;
-        }
-
-        using var document = JsonDocument.Parse(configJson);
-        if (!document.RootElement.TryGetProperty("component_catalog", out var componentCatalog) ||
-            componentCatalog.ValueKind != JsonValueKind.Object)
-        {
-            return null;
-        }
-
-        var requiredKeys = new[]
-        {
-            "gameConfig",
-            "bahan",
-            "resep",
-            "kebutuhan",
-            "targetKebutuhan",
-            "tujuanFinansial",
-            "narasi",
-            "quest"
+            Mode = source.Mode,
+            Settings = source.Settings,
+            PlayerOrdering = source.PlayerOrdering,
+            Actions = actions.ToList(),
+            Ingredients = source.Ingredients,
+            Orders = source.Orders,
+            Needs = source.Needs,
+            CollectionMissions = source.CollectionMissions,
+            FinancialGoals = source.FinancialGoals,
+            Narratives = source.Narratives,
+            DonationRankPoints = source.DonationRankPoints,
+            GoldPointsByQty = source.GoldPointsByQty,
+            PensionRankPoints = source.PensionRankPoints
         };
-
-        foreach (var key in requiredKeys)
-        {
-            if (!componentCatalog.TryGetProperty(key, out _))
-            {
-                return null;
-            }
-        }
-
-        var catalog = RulesetSectionCatalog.FromConfig(configJson);
-        return new RulesetSectionCatalogResponse(
-            catalog.GameConfig,
-            catalog.Bahan,
-            catalog.Resep,
-            catalog.Kebutuhan,
-            catalog.TargetKebutuhan,
-            catalog.TujuanFinansial,
-            catalog.Narasi,
-            catalog.Quest);
     }
 
     private IActionResult BadRequestError(string field, string issue, string message)
