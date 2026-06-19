@@ -634,3 +634,52 @@ Bagian ini membantu pengembang mengubah skenario naratif menjadi payload event t
 4. Mode Pemula tetap bebas dari fitur Mahir.
 5. Mode Mahir memakai risiko, asuransi, pinjaman, tabungan, dan tujuan finansial dengan aturan validasi yang lebih eksplisit.
 6. Kalimat tentang asuransi dan pinjaman dibuat kondisional agar skenario tetap valid saat status pemain berbeda.
+
+---
+
+## 7. Skenario Operasional Siklus Hidup Sesi (Integrasi API)
+Bagian ini menjelaskan skenario teknis daur hidup (*lifecycle*) sesi permainan dari pembuatan hingga pembekuan data melalui Klien Game/IDN atau integrasi API.
+
+### 7.1 Skenario Pembuatan Sesi Baru
+- **Tujuan**: Instruktur/Game Client membuat sesi permainan baru untuk menerima rangkaian event.
+- **Langkah**:
+  1. Instruktur login ke Game Client.
+  2. Game Client mengirim request `POST /api/v1/sessions` dengan membawa nama sesi, mode (`PEMULA`/`MAHIR`), dan `ruleset_version_id` yang aktif.
+  3. API memvalidasi peran instruktur, keabsahan ruleset, dan mengunci ruleset tersebut untuk sesi ini.
+- **Hasil**: API mengembalikan `session_id` baru dengan status `CREATED`.
+
+### 7.2 Skenario Menambahkan Pemain ke Sesi
+- **Tujuan**: Mendaftarkan akun Player ke dalam sesi permainan.
+- **Langkah**:
+  1. Game Client memanggil `POST /api/v1/sessions/{sessionId}/players` dengan membawa payload `user_id` milik akun `PLAYER`.
+  2. API memeriksa kapasitas pemain (maksimal 4 pemain) dan memvalidasi apakah peran pengguna adalah `PLAYER`.
+- **Hasil**: Akun Player terdaftar sebagai peserta sesi (`session_participants`).
+
+### 7.3 Skenario Memulai Sesi
+- **Tujuan**: Mengubah status sesi agar siap menerima event permainan.
+- **Langkah**:
+  1. Game Client memanggil `POST /api/v1/sessions/{sessionId}/start`.
+  2. API mengubah status sesi dari `CREATED` menjadi `STARTED`.
+- **Hasil**: Sesi berstatus `STARTED` dan siap menerima event gameplay.
+
+### 7.4 Skenario Ingestion Event Gameplay
+- **Tujuan**: Mengirim event transaksi dan aksi permainan secara real-time.
+- **Langkah**:
+  1. Game Client/Simulator memanggil `POST /api/v1/events` (atau `/events/batch`) setiap kali ada keputusan pemain.
+  2. API memverifikasi token pengirim, urutan `sequence_number`, kecocokan `ruleset_version_id`, dan keunikan kombinasi `session_id + event_id` (idempotensi).
+  3. Event yang valid disimpan ke PostgreSQL dan memperbarui proyeksi state secara asinkron.
+- **Hasil**: Respons status sukses (`200 OK`) dan data state pemain ter-update.
+
+### 7.5 Skenario Mengakhiri Sesi (Membekukan Data)
+- **Tujuan**: Menyelesaikan sesi permainan dan mematikan penerimaan event baru.
+- **Langkah**:
+  1. Game Client memanggil `POST /api/v1/sessions/{sessionId}/end`.
+  2. API menghitung skor akhir secara final, menyimpan hasil ke `session_final_scores`, dan mengubah status sesi menjadi `ENDED`.
+- **Hasil**: Sesi berstatus `ENDED`. Semua upaya penulisan event baru atau modifikasi ruleset pada sesi ini akan ditolak (`403 Forbidden` / `410 Gone`).
+
+### 7.6 Skenario Pemicuan Hitung Ulang Metrik (Recompute)
+- **Tujuan**: Membangun ulang seluruh data proyeksi dan snapshot metrik dari source of truth tabel `events` jika terjadi ketidaksesuaian.
+- **Langkah**:
+  1. Instruktur/Administrator memanggil `POST /api/v1/analytics/sessions/{sessionId}/recompute`.
+  2. API membaca ulang seluruh log event berurutan untuk sesi tersebut dari database, menghitung ulang proyeksi saldo, asuransi, pinjaman, dan metrik, kemudian menulis ulang baris `metric_snapshots` yang bersih.
+- **Hasil**: Data analitika sesi tersinkronisasi kembali dengan log event.

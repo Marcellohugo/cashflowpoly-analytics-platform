@@ -262,7 +262,7 @@ Catatan implementasi logging:
 ---
 
 ## 8. Kontrak API untuk *Ruleset*
-Bagian ini merangkum endpoint yang menangani *ruleset*. Dokumen kontrak lengkap tetap berada pada dokumen “Spesifikasi Event dan Kontrak REST API”.
+Bagian ini merangkum endpoint yang menangani *ruleset*. Dokumen kontrak lengkap tetap berada pada dokumen [Rancangan Kontrak API dan Event](file:///c:/Users/marco/cashflowpoly-analytics-platform/docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md).
 
 Catatan akses:
 - Endpoint mutasi ruleset dan aktivasi versi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Web Analitik MVC dapat memakai endpoint ini untuk create/edit/delete/activate ruleset pada akun Instruktur.

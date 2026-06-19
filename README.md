@@ -121,29 +121,26 @@ Catatan kontrak API:
 |  +- 01-ringkasan-proposal-tugas-akhir.md
 |  +- 00-Panduan/
 |  |  +- 00-01-panduan-setup-lingkungan.md
-|  |  +- 00-02-manual-pengguna-dan-skenario-operasional.md
+|  |  +- 00-02-panduan-manual-pengguna-dashboard.md
 |  |  +- 00-03-panduan-menjalankan-sistem.md
-|  |  +- 00-04-status-kesesuaian-implementasi.md
-|  |  +- 00-05-panduan-deployment-production.md
-|  |  +- 00-06-matriks-alur-dan-hak-akses.md
+|  |  +- 00-04-panduan-deployment-produksi.md
+|  |  +- 00-05-panduan-alur-dan-hak-akses.md
 |  +- 01-Spesifikasi/
 |  |  +- 01-01-spesifikasi-kebutuhan-sistem.md
-|  |  +- 01-02-spesifikasi-event-dan-kontrak-api.md
-|  |  +- 01-03-spesifikasi-ruleset-dan-validasi.md
-|  |  +- 01-04-kontrak-integrasi-idn-dan-keamanan.md
-|  |  +- 01-05-kebutuhan-diagram-uml.md
-|  |  +- 01-06-skenario-simulasi-permainan.md
+|  |  +- 01-02-spesifikasi-ruleset-dan-validasi.md
+|  |  +- 01-03-spesifikasi-integrasi-dan-keamanan.md
+|  |  +- 01-04-spesifikasi-diagram-uml.md
+|  |  +- 01-05-spesifikasi-skenario-simulasi.md
 |  +- 02-Perancangan/
-|  |  +- 02-01-rencana-implementasi-dan-struktur-solution-dotnet.md
-|  |  +- 02-02-rancangan-model-data-dan-basis-data.md
-|  |  +- 02-03-definisi-metrik-dan-agregasi.md
-|  |  +- 02-04-metrik-gameplay-fisik-dan-turunan.md
-|  |  +- 02-05-rancangan-dashboard-analitika-mvc.md
-|  |  +- 02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
-|  |  +- 02-07-normalisasi-schema-event-first.md
+|  |  +- 02-01-rancangan-database-dan-model-data.md
+|  |  +- 02-02-rancangan-kontrak-api-dan-event.md
+|  |  +- 02-03-rancangan-definisi-dan-agregasi-metrik.md
+|  |  +- 02-04-rancangan-antarmuka-dan-viewmodel-mvc.md
 |  +- 03-Pengujian/
-|  |  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
-|  |  +- 03-02-laporan-hasil-pengujian.md
+|  |  +- 03-01-pengujian-rencana-dan-kasus-uji.md
+|  |  +- 03-02-pengujian-laporan-hasil-baseline.md
+|  |  +- 03-03-pengujian-status-kesesuaian-implementasi.md
+|  |  +- 03-04-pengujian-tahapan-dan-roadmap-implementasi.md
 +- src/
 +  +- Cashflowpoly.Api/
 +  +- Cashflowpoly.Ui/
@@ -339,15 +336,15 @@ Seluruh dokumen TA disimpan pada folder `docs/` agar repositori memuat artefak d
 
 Dokumen kunci:
 - Spesifikasi kebutuhan sistem (SRS): `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
-- Matriks alur dan hak akses: `docs/00-Panduan/00-06-matriks-alur-dan-hak-akses.md`
-- Kontrak API: `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
-- Spesifikasi *ruleset*: `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
-- Rencana implementasi dan struktur solusi: `docs/02-Perancangan/02-01-rencana-implementasi-dan-struktur-solution-dotnet.md`
-- Model data dan basis data: `docs/02-Perancangan/02-02-rancangan-model-data-dan-basis-data.md`
-- Definisi metrik dan agregasi: `docs/02-Perancangan/02-03-definisi-metrik-dan-agregasi.md`
-- Variabel gameplay fisik dan metrik turunan: `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`
-- Rancangan dasbor MVC: `docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md`
-- Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md`
+- Matriks alur dan hak akses: `docs/00-Panduan/00-05-panduan-alur-dan-hak-akses.md`
+- Kontrak API: `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`
+- Spesifikasi *ruleset*: `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md`
+- Rencana implementasi dan struktur solusi: `docs/03-Pengujian/03-04-pengujian-tahapan-dan-roadmap-implementasi.md`
+- Model data dan basis data: `docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md`
+- Definisi metrik dan agregasi: `docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md`
+- Variabel gameplay fisik dan metrik turunan: `docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md`
+- Rancangan dasbor MVC: `docs/02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md`
+- Spesifikasi UI dan ViewModel: `docs/02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md`
 
 ## Pengujian
 - Build verifikasi:
@@ -363,7 +360,7 @@ Dokumen kunci:
 - Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
-- Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md`.
+- Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-pengujian-rencana-dan-kasus-uji.md`.
 - Artefak bukti formal disimpan pada media dokumentasi pengujian yang dipakai tim atau penguji.
 - Verifikasi lokal dilakukan dengan rangkaian perintah `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config`.
 
@@ -373,6 +370,8 @@ Dokumen kunci:
 
 ## Lisensi
 Lisensi akan ditentukan untuk repositori ini.
+
+
 
 
 

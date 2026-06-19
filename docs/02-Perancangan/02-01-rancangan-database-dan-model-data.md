@@ -575,3 +575,36 @@ Model data dianggap sinkron dengan implementasi jika:
 6. event invalid masuk `validation_logs`,
 7. asset reference event masuk `event_asset_references`,
 8. dashboard membaca projection dan `metric_snapshots`, bukan menghitung ulang dari UI.
+
+---
+
+## 16. Riwayat Normalisasi & Keputusan Desain (Design History)
+
+Bagian ini mencatat latar belakang perancangan normalisasi database dan pemangkasan kompleksitas dari model warisan (*legacy*) ke skema *event-first* aktif.
+
+### 16.1 Mengapa Desain Event-First Dipilih?
+- **Events sebagai Single Source of Truth**: Seluruh keadaan (*state*) sesi permainan, saldo koin, kepemilikan aset, pinjaman, dan metrik analitik dapat dibangun ulang sewaktu-waktu dari tabel `events`.
+- **Auditability**: Mencegah ketidakpastian manipulasi state secara langsung. State mutasi langsung via `PUT /state` dinonaktifkan (`410 STATE_WRITE_DISABLED`).
+
+### 16.2 Konsolidasi dan Reduksi Tabel
+Untuk merapikan model data dan meminimalkan permukaan validasi, beberapa konsep digabung atau dipecah:
+1. **Pemisahan Aset Peserta Polymorphic**: Aset emas, pinjaman, dan asuransi dipisah menjadi tabel mandiri:
+   - `session_participant_gold_holdings`
+   - `session_participant_loans`
+   - `session_participant_insurances`
+   Langkah ini menghindari penggunaan kolom *polymorphic* dengan nilai-nilai nullable yang menyulitkan integritas basis data.
+2. **Gameplay Asset Registry**: Seluruh aset permainan kartu/fisik (bahan masakan, pesanan, kebutuhan dasar/sekunder/tersier) didaftarkan di bawah tabel terpusat `ruleset_game_assets` untuk mempermudah referensi silang.
+3. **Penyederhanaan Konsep Inventory**: Konsep inventarisasi bahan makanan yang terpecah-pecah digabung menjadi tabel proyeksi inventaris tunggal `session_participant_inventory`.
+4. **Penyelesaian Aksi (Action Resolution)**: Seluruh aksi permainan dirujuk melalui `ruleset_actions.ruleset_action_id` sehingga penamaan string bebas pada payload JSON event dapat divalidasi ke katalog DDL.
+
+### 16.3 Fitur yang Dihilangkan untuk Efisiensi
+1. **Penghapusan Quest**: Konsep Quest dipangkas keluar dari MVP. Target pencapaian pemain direpresentasikan secara penuh oleh Misi Koleksi (*Collection Mission*) dan Tujuan Keuangan (*Financial Goal*).
+2. **Penghapusan Script Engine**: Mesin eksekusi skrip dinonaktifkan karena:
+   - Menduplikasi aturan yang sudah dapat dinyatakan sebagai kondisi event.
+   - Memperbesar celah keamanan eksekusi kode dinamis.
+   - Menyulitkan replay event yang bersifat deterministik dan audit analitis.
+
+### 16.4 Aturan Integritas Tambahan
+- Seluruh tabel `ruleset_*` wajib memuat `ruleset_version_id` untuk mencegah percampuran definisi aturan antarversi.
+- Foreign Key (FK) event menggunakan gabungan scope komposit `(session_id, event_id)` karena nilai ID event unik per sesi permainan.
+- Seluruh data pemeringkatan (*ranking*) dashboard dihitung secara dinamis melalui query analitik, bukan disimpan dalam tabel status baru yang redundan.

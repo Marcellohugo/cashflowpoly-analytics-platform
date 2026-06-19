@@ -11,8 +11,8 @@
 
 ## 1. Tujuan
 Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cashflowpoly agar implementasi lintas tim tidak ambigu. Dokumen ini melengkapi:
-- `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
-- `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
+- `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`
+- `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md`
 
 ---
 
@@ -147,7 +147,7 @@ Kode status domain utama:
 ---
 
 ## 6. Lifecycle Ruleset
-Definisi state dan aturan transisi lifecycle mengikuti `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` bagian 3.3.
+Definisi state dan aturan transisi lifecycle mengikuti `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md` bagian 3.3.
 
 Aturan tambahan untuk konteks integrasi IDN:
 1. Aktivasi versi dilakukan eksplisit via `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`.
@@ -216,3 +216,5 @@ Sistem dianggap siap integrasi IDN jika:
 2. retry event dengan `event_id` sama tidak menggandakan data,
 3. seluruh endpoint utama mengembalikan format error standar saat gagal,
 4. data analitika sesi dan pemain dapat diambil konsisten setelah ingest event.
+
+

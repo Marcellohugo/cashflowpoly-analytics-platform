@@ -1,8 +1,8 @@
-# Spesifikasi Event dan Kontrak REST API
+# Rancangan Kontrak API dan Event
 ## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
-- Nama dokumen: Spesifikasi Event dan Kontrak REST API
+- Nama dokumen: Rancangan Kontrak API dan Event
 - Versi: 2.0
 - Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
@@ -13,8 +13,8 @@
 Dokumen ini disusun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta lifecycle sesi/ruleset/Player yang dipakai Klien Game/IDN. Dokumen ini menjadi acuan implementasi back-end, integrasi Klien Game/IDN, Web Analitik MVC, serta pengujian fungsional.
 
 Jika ada konflik detail antara dokumen ini dan dokumen lain, prioritas acuan:
-1. `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
-2. dokumen ini (`01-02`)
+1. `docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md`
+2. dokumen ini (`02-02`)
 3. dokumen pengujian (`03-01`)
 
 ---
@@ -691,7 +691,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 - Sistem mengembalikan `trace_id` untuk pelacakan log.
 - Endpoint terproteksi wajib mengirim `Authorization: Bearer <token>`.
 - Endpoint publik tanpa token hanya endpoint autentikasi (`/api/v1/auth/login`, `/api/v1/auth/register`).
-- Retry/idempotency klien mengikuti dokumen `01-04` (bagian retry/backoff/timeouts).
+- Retry/idempotency klien mengikuti dokumen `01-03` (bagian retry/backoff/timeouts).
 
 ### 5.2 Endpoint autentikasi
 #### 5.2.1 Login
@@ -1025,7 +1025,7 @@ Catatan akses:
 }
 ```
 
-Isi field `definition` mengikuti struktur JSON pada `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` bagian 4.1. Saat disimpan, API menormalisasi definisi tersebut ke tabel `ruleset_*`. Contoh lengkap mode pemula dan mahir tersedia pada bagian 9 dokumen yang sama.
+Isi field `definition` mengikuti struktur JSON pada `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md` bagian 4.1. Saat disimpan, API menormalisasi definisi tersebut ke tabel `ruleset_*`. Contoh lengkap mode pemula dan mahir tersedia pada bagian 9 dokumen yang sama.
 
 - Response 201:
 ```json
@@ -1303,7 +1303,7 @@ Catatan:
 - Snapshot JSON mentah/turunan tetap dapat disimpan pada `metric_snapshots`
   dengan nama `gameplay.raw.variables` dan `gameplay.derived.metrics` sebagai
   sumber perhitungan.
-- Struktur lengkap mengikuti dokumen `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`.
+- Struktur lengkap mengikuti dokumen `docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md`.
 
 ---
 
@@ -1402,5 +1402,6 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
+
 
 

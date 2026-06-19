@@ -14,9 +14,9 @@ Dokumen ini memetakan kesesuaian implementasi terhadap dokumen spesifikasi aktif
 
 Acuan utama:
 - `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
-- `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
-- `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
-- `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md`
+- `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`
+- `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md`
+- `docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md`
 
 ---
 
@@ -55,4 +55,6 @@ Implementasi dianggap siap ketika:
 4. docs, smoke, postman, dan implementasi konsisten,
 5. hasil build/test/smoke/compose/load-test baseline lulus tanpa bug blocker,
 6. observability operasional + audit log keamanan aktif dan dapat diverifikasi.
+
+
 

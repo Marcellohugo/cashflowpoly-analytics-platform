@@ -113,6 +113,30 @@ cashflowpoly-analytics-platform/
 Catatan:
 - UI MVC (`Cashflowpoly.Ui`) memanggil API via `HttpClient`. UI tidak mengakses DB langsung.
 
+### 5.4 Pembagian Tanggung Jawab Proyek
+#### 5.4.1 `Cashflowpoly.Api`
+Tanggung jawab utama:
+1. Menyediakan endpoint autentikasi dan otorisasi.
+2. Menyediakan endpoint untuk mengelola sesi, pemain, ruleset, event, dan analitika.
+3. Melakukan validasi domain atas ruleset dan event permainan yang dikirim.
+4. Menjamin idempotensi ingestion event untuk mencegah data ganda.
+5. Melakukan operasi baca/tulis langsung ke database PostgreSQL.
+
+#### 5.4.2 `Cashflowpoly.Ui`
+Tanggung jawab utama:
+1. Menjalankan MVC Controller dan merender Razor Views.
+2. Mengelola alur masuk, daftar, dan keluar pengguna pada web dashboard.
+3. Merender dashboard analitika literasi finansial.
+4. Menyediakan fitur manajemen ruleset bagi Instruktur serta referensi ruleset bagi Player.
+5. Berintegrasi dengan API via `HttpClient` (tidak mengakses database secara langsung).
+
+### 5.5 Prinsip Arsitektur Utama
+1. **Pemisahan Tanggung Jawab**: UI tidak melakukan query database langsung dan harus melalui API.
+2. **API Terpusat**: API menjadi satu-satunya pintu masuk untuk mutasi state permainan.
+3. **Keamanan Endpoint**: Semua endpoint API sensitif dilindungi dengan token JWT Bearer.
+4. **Otorisasi Berbasis Peran**: Hak akses dibatasi secara ketat berdasarkan peran (`INSTRUCTOR`, `PLAYER`).
+5. **Kompatibilitas Kontrak**: Kontrak API versi `v1` harus dijaga agar tetap kompatibel dengan Game Client.
+
 ---
 
 ## 6. Tambah Paket NuGet Inti
