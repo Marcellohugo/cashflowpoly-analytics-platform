@@ -131,34 +131,40 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - @brandName</title>
     @{
+        var pageTitle = string.IsNullOrEmpty(ViewData["Title"]?.ToString()) ? "Narafin" : $"Narafin | {ViewData["Title"]}";
         var metaDesc = ViewData["MetaDescription"] ?? Context.T("layout.meta_description");
         var metaKeywords = ViewData["MetaKeywords"] ?? Context.T("layout.meta_keywords");
         var isPublicPage = isAuthPage || isRulebookSection;
         var robotsValue = isPublicPage ? "index, follow" : "noindex, nofollow";
         var currentUrl = $"https://narafin.org{Context.Request.Path}{Context.Request.QueryString}";
         var ogImageUrl = "https://narafin.org/images/images.jpg";
+        var ogLocale = isEnglish ? "en_US" : "id_ID";
     }
+    <title>@pageTitle</title>
     <meta name="description" content="@metaDesc" />
     <meta name="keywords" content="@metaKeywords" />
     <meta name="robots" content="@robotsValue" />
     <link rel="canonical" href="@currentUrl" />
+    <meta name="category" content="technology" />
+    <meta name="category" content="education" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@ogLocale" />
     <meta property="og:url" content="@currentUrl" />
-    <meta property="og:title" content="@ViewData["Title"] - @brandName" />
+    <meta property="og:title" content="@pageTitle" />
     <meta property="og:description" content="@metaDesc" />
     <meta property="og:image" content="@ogImageUrl" />
-    <meta property="og:site_name" content="@brandName" />
+    <meta property="og:site_name" content="Narafin" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="@currentUrl" />
-    <meta property="twitter:title" content="@ViewData["Title"] - @brandName" />
+    <meta property="twitter:title" content="@pageTitle" />
     <meta property="twitter:description" content="@metaDesc" />
     <meta property="twitter:image" content="@ogImageUrl" />
+    <meta property="twitter:creator" content="@@marcellohugo__" />
     <script type="importmap"></script>
     <link rel="icon" type="image/x-icon" href="~/images/cashflowpoly-favicon.ico" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
