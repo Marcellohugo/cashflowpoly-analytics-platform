@@ -132,6 +132,33 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - @brandName</title>
+    @{
+        var metaDesc = ViewData["MetaDescription"] ?? Context.T("layout.meta_description");
+        var metaKeywords = ViewData["MetaKeywords"] ?? Context.T("layout.meta_keywords");
+        var isPublicPage = isAuthPage || isRulebookSection;
+        var robotsValue = isPublicPage ? "index, follow" : "noindex, nofollow";
+        var currentUrl = $"https://narafin.org{Context.Request.Path}{Context.Request.QueryString}";
+        var ogImageUrl = "https://narafin.org/images/images.jpg";
+    }
+    <meta name="description" content="@metaDesc" />
+    <meta name="keywords" content="@metaKeywords" />
+    <meta name="robots" content="@robotsValue" />
+    <link rel="canonical" href="@currentUrl" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="@currentUrl" />
+    <meta property="og:title" content="@ViewData["Title"] - @brandName" />
+    <meta property="og:description" content="@metaDesc" />
+    <meta property="og:image" content="@ogImageUrl" />
+    <meta property="og:site_name" content="@brandName" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="@currentUrl" />
+    <meta property="twitter:title" content="@ViewData["Title"] - @brandName" />
+    <meta property="twitter:description" content="@metaDesc" />
+    <meta property="twitter:image" content="@ogImageUrl" />
     <script type="importmap"></script>
     <link rel="icon" type="image/x-icon" href="~/images/cashflowpoly-favicon.ico" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />

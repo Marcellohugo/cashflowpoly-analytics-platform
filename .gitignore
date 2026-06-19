@@ -503,3 +503,7 @@ $RECYCLE.BIN/
 
 # Cloudflare tunnel credentials
 infra/cloudflared/credentials.json
+
+# Scratch directory
+scratch/
+

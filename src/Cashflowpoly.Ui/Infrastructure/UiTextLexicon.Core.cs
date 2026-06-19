@@ -193,5 +193,17 @@ internal static partial class UiTextLexicon
         terms["state.true"] = ("Ya", "Yes");
         terms["state.false"] = ("Tidak", "No");
         terms["state.null"] = ("Kosong", "Null");
+
+        // SEO Localization Keys
+        terms["layout.meta_description"] = ("Narafin adalah platform analitika pembelajaran literasi keuangan interaktif berbasis simulasi game Cashflowpoly.", "Narafin is an interactive financial literacy learning analytics platform based on the Cashflowpoly game simulation.");
+        terms["layout.meta_keywords"] = ("narafin, cashflowpoly, literasi keuangan, game keuangan, analitika simulasi, financial literacy, finance game", "narafin, cashflowpoly, financial literacy, finance game, simulation analytics, learning analytics");
+        terms["home.meta_desc"] = ("Pantau sesi, performa pemain, dan analitika game Cashflowpoly secara waktu nyata di Narafin.", "Monitor sessions, player performance, and Cashflowpoly game analytics in real time on Narafin.");
+        terms["home.meta_keywords"] = ("narafin dashboard, analitika cashflowpoly, pemantauan realtime, cashflowpoly analytics, live session stats", "narafin dashboard, cashflowpoly analytics, realtime monitoring, live session stats");
+        terms["rulebook.meta_desc"] = ("Buku Panduan dan Aturan resmi permainan Cashflowpoly. Pelajari cara bermain, aksi giliran, perhitungan poin, dan mode mahir.", "Official guide and rules of the Cashflowpoly game. Learn how to play, turn actions, scoring, and advanced mode.");
+        terms["rulebook.meta_keywords"] = ("aturan cashflowpoly, cara bermain cashflowpoly, panduan keuangan, rulebook cashflowpoly, cashflowpoly rules", "cashflowpoly rules, how to play cashflowpoly, financial rulebook, cashflowpoly guide");
+        terms["login.meta_desc"] = ("Masuk ke dashboard Narafin untuk memantau data permainan, progres sesi, dan direktori pemain.", "Sign in to the Narafin dashboard to monitor game data, session progress, and player directory.");
+        terms["login.meta_keywords"] = ("narafin login, login cashflowpoly, akses dasbor narafin, narafin dashboard login", "narafin login, cashflowpoly sign in, narafin dashboard access");
+        terms["register.meta_desc"] = ("Daftar akun Narafin untuk mengakses analitika sesi simulasi dan evaluasi game Cashflowpoly.", "Register a Narafin account to access simulation session analytics and Cashflowpoly game evaluation.");
+        terms["register.meta_keywords"] = ("daftar narafin, registrasi cashflowpoly, buat akun narafin, register narafin", "narafin register, cashflowpoly sign up, create narafin account");
     }
 }

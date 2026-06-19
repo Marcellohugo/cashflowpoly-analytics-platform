@@ -4,6 +4,8 @@
 
 @{
     ViewData["Title"] = Context.T("auth.register_title");
+    ViewData["MetaDescription"] = Context.T("register.meta_desc");
+    ViewData["MetaKeywords"] = Context.T("register.meta_keywords");
     ViewData["HideFooter"] = true;
     ViewData["HideHeader"] = true;
     var activeLanguage = UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey));
