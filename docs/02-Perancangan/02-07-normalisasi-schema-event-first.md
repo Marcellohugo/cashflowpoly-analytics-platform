@@ -111,39 +111,16 @@ Script engine dihapus karena:
 provenance event. Ranking donasi/pensiun dihitung dari event atau score
 component, bukan disimpan sebagai tabel core atau snapshot JSON terpisah.
 
-## Ringkasan Reduksi Tabel
+## Struktur Tabel dan Konsep Utama
 
-Tabel yang dihapus:
+### Konsep yang Digabung atau Diganti:
+- Identitas gameplay asset/card-like digabung ke `ruleset_game_assets`.
+- Katalog ruleset menjadi view `ruleset_catalog_items` atas registry dan tabel detail.
+- Inventory ingredient lama diganti projection asset generik `session_participant_inventory`.
+- Asset peserta polymorphic dipecah menjadi tabel gold, loan, dan insurance.
+- Action code pada event di-resolve ke `ruleset_action_id`.
 
-- `session_action_logs`
-- `session_participant_assets`
-- `session_player_assets`
-- `session_ruleset_activations`
-- `ruleset_quests`
-- `session_participant_quest_progress`
-- master global `ingredients` dan `game_components`
-- `interpreter_commands`
-- `quest_scripts`
-- `narrative_scripts`
-- `narrative_assets`
-- `session_donation_event_rankings`
-- `session_pension_rankings`
-- tabel effect per domain seperti `event_inventory_effects`,
-  `event_need_effects`, `event_goal_effects`, `event_asset_effects`,
-  `event_score_effects`, dan `event_turn_effects`
-
-Konsep yang digabung atau diganti:
-
-- identitas gameplay asset/card-like digabung ke `ruleset_game_assets`;
-- katalog ruleset menjadi view `ruleset_catalog_items` atas registry dan tabel
-  detail;
-- inventory ingredient lama diganti projection asset generik
-  `session_participant_inventory`;
-- asset peserta polymorphic dipecah menjadi tabel gold, loan, dan insurance;
-- action code pada event di-resolve ke `ruleset_action_id`.
-
-Tabel baru utama:
-
+### Tabel Utama:
 - `ruleset_game_assets`
 - `event_asset_references`
 - `ruleset_trigger_conditions`

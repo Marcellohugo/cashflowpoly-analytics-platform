@@ -103,6 +103,7 @@ Catatan kontrak API:
 +- database/
 |  +- 00_create_schema.sql
 |  +- 01_seed_default_rulesets_components.sql
+|  +- 02_seed_simulation_sessions_events.sql
 +- infra/
 |  +- cloudflared/
 |  +- docker/
@@ -110,8 +111,14 @@ Catatan kontrak API:
 |  |  +- docker-compose.watch.yml
 |  |  +- docker-compose.prod.yml
 |  +- nginx/
++- postman/
+|  +- Cashflowpoly.postman_collection.json
+|  +- Cashflowpoly.local.postman_environment.json
 +- docs/
 |  +- Img/
+|  +- file-function-manifest.md
+|  +- 00-ringkasan-rulebook-cashflowpoly.md
+|  +- 01-ringkasan-proposal-tugas-akhir.md
 |  +- 00-Panduan/
 |  |  +- 00-01-panduan-setup-lingkungan.md
 |  |  +- 00-02-manual-pengguna-dan-skenario-operasional.md
@@ -123,6 +130,9 @@ Catatan kontrak API:
 |  |  +- 01-01-spesifikasi-kebutuhan-sistem.md
 |  |  +- 01-02-spesifikasi-event-dan-kontrak-api.md
 |  |  +- 01-03-spesifikasi-ruleset-dan-validasi.md
+|  |  +- 01-04-kontrak-integrasi-idn-dan-keamanan.md
+|  |  +- 01-05-kebutuhan-diagram-uml.md
+|  |  +- 01-06-skenario-simulasi-permainan.md
 |  +- 02-Perancangan/
 |  |  +- 02-01-rencana-implementasi-dan-struktur-solution-dotnet.md
 |  |  +- 02-02-rancangan-model-data-dan-basis-data.md

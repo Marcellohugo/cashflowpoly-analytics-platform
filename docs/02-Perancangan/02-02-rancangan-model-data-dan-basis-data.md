@@ -210,13 +210,15 @@ Fungsi:
 Kolom penting:
 - `session_id`
 - `session_name`
+- `ruleset_version_id`
 - `mode`
 - `status` (`CREATED`, `STARTED`, `ENDED`)
+- `player_count`
 - `started_at`
 - `ended_at`
 - `instructor_user_id`
-- `ruleset_version_id`
 - `is_archived`
+- `archived_at`
 - `created_at`
 
 Aturan:
@@ -249,16 +251,19 @@ Fungsi:
 
 Kolom penting:
 - `session_id`
-- `state_version`
 - `day`
 - `weekday`
 - `turn_number`
 - `action_slot`
 - `current_session_player_id`
 - `current_action_slot`
+- `action_slots_left`
 - `finish_day`
+- `phase`
 - `is_game_over`
+- `state_version`
 - `last_event_id`
+- `ui_state_json`
 
 Aturan:
 - Ditulis oleh projector event atau inisialisasi session.
@@ -310,9 +315,10 @@ Kolom penting:
 - `turn_number`
 - `action_slot`
 - `sequence_number`
+- `ruleset_action_id`
 - `action_type`
 - `ruleset_version_id`
-- `ruleset_action_id`
+- `payload_version`
 - `payload`
 - `received_at`
 - `client_request_id`
@@ -331,13 +337,13 @@ Fungsi:
 
 Kolom penting:
 - `event_asset_reference_id`
-- `event_pk`
 - `session_id`
 - `event_id`
 - `ruleset_version_id`
 - `ruleset_game_asset_id`
 - `reference_role`
 - `payload_path`
+- `created_at`
 
 Manfaat:
 - Analitika tidak perlu menebak relasi dari string bebas pada JSON.
@@ -354,10 +360,10 @@ Fungsi:
 Kolom penting:
 - `projection_id`
 - `session_id`
-- `session_player_id`
 - `user_id`
 - `event_pk`
 - `event_id`
+- `projection_order`
 - `timestamp`
 - `direction`
 - `amount`
@@ -375,6 +381,17 @@ Fungsi:
 - menyimpan checkpoint replay/projection,
 - membantu rebuild projection secara terukur.
 
+Kolom penting:
+- `session_id` (PK)
+- `last_sequence_number`
+- `last_event_id`
+- `projected_at`
+- `status`
+- `rebuild_started_at`
+- `rebuild_completed_at`
+- `error_message`
+- `metadata_json`
+
 ### 10.3 `metric_snapshots`
 Fungsi:
 - menyimpan hasil metrik numeric atau JSON,
@@ -388,8 +405,11 @@ Kolom penting:
 - `computed_at`
 - `metric_name`
 - `metric_value_numeric`
-- `metric_value_json`
+- `metric_value_text`
+- `metric_value_boolean`
+- `metric_payload_json`
 - `ruleset_version_id`
+- `last_event_id`
 
 Aturan:
 - Snapshot level sesi memakai `user_id = null` dan `session_player_id = null`.
@@ -418,10 +438,34 @@ Kolom penting:
 - `details_json`
 - `created_at`
 
-### 11.2 `session_final_scores` dan `session_final_score_components`
+### 11.2 `session_final_scores`
 Fungsi:
-- menyimpan skor akhir per peserta,
+- menyimpan skor akhir per peserta.
+
+Kolom penting:
+- `session_final_score_id`
+- `session_id`
+- `session_participant_id`
+- `total_points`
+- `rank_no`
+- `tie_breaker_number`
+- `has_unpaid_loan`
+- `computed_at`
+- `source_event_id`
+
+### 11.2b `session_final_score_components`
+Fungsi:
 - menyimpan komponen skor agar hasil akhir dapat diaudit.
+
+Kolom penting:
+- `session_final_score_component_id`
+- `session_id`
+- `session_participant_id`
+- `session_final_score_id`
+- `component_code`
+- `points`
+- `source_event_id`
+- `created_at`
 
 Aturan:
 - Skor akhir dihitung saat session diakhiri atau saat recompute.
@@ -431,6 +475,19 @@ Aturan:
 Fungsi:
 - menyimpan hasil trigger narrative dari `ruleset_narratives` dan
   `ruleset_narrative_scenes`.
+
+Kolom penting:
+- `narrative_log_id`
+- `session_id`
+- `session_participant_id`
+- `ruleset_version_id`
+- `ruleset_narrative_id`
+- `ruleset_narrative_scene_id`
+- `source_event_id`
+- `shown_at`
+- `day`
+- `action_slot`
+- `payload_json`
 
 Catatan:
 - Narrative bukan script engine. Trigger narrative dievaluasi dari event/action
@@ -461,6 +518,12 @@ Kolom penting:
 Fungsi:
 - menyimpan kebijakan retensi log per kategori,
 - menjadi dasar housekeeping log pada environment production.
+
+Kolom penting:
+- `table_name` (PK)
+- `retention_days`
+- `created_at`
+- `updated_at`
 
 ---
 
