@@ -70,8 +70,11 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_title"] = ("Linimasa Aktivitas Sesi", "Session Activity Timeline");
         terms["sessions.timeline_subtitle"] = ("Urutan aktivitas berdasarkan waktu dan nomor urut aktivitas.", "Activity order based on timestamp and event sequence.");
         terms["sessions.timeline_player_subtitle"] = ("Tampilan ini hanya menyorot aktivitas yang dipicu pemain agar evaluasi strategi lebih fokus.", "This view highlights only player-triggered activity so strategy review stays focused.");
-        terms["sessions.timeline_filter_label"] = ("Filter pemain", "Player filter");
-        terms["sessions.timeline_filter_all"] = ("Semua pemain", "All players");
+        terms["sessions.timeline_mixed_subtitle"] = ("Tampilan ini menggabungkan aksi pemain dan event sistem penting agar alur permainan lebih mudah diikuti.", "This view combines player actions and key system events so the game flow is easier to follow.");
+        terms["sessions.timeline_filter_label"] = ("Filter aktivitas", "Activity filter");
+        terms["sessions.timeline_filter_all"] = ("Semua aktivitas", "All activity");
+        terms["sessions.timeline_filter_players"] = ("Pemain", "Players");
+        terms["sessions.timeline_filter_system"] = ("Sistem", "System");
         terms["sessions.timeline_active_players"] = ("Pemain Aktif", "Active Players");
         terms["sessions.timeline_latest_player"] = ("Pemain Terakhir Aktif", "Latest Active Player");
         terms["sessions.timeline_player_empty"] = ("Belum ada aktivitas pemain pada sesi ini.", "No player activity is available in this session yet.");
@@ -79,9 +82,9 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_chart_progress"] = ("Diagram Aktivitas dari Awal hingga Selesai", "Event Timeline from Start to Finish");
         terms["sessions.timeline_chart_actor"] = ("Sebaran Aktivitas per Aktor terhadap Waktu", "Event Distribution by Actor Over Time");
         terms["sessions.timeline_seq"] = ("Urut", "Seq");
-        terms["sessions.timeline_day_turn"] = ("Hari dan Giliran Terakhir", "Latest Day and Turn");
+        terms["sessions.timeline_day_turn"] = ("Hari dan Aktivitas Terakhir", "Latest Day and Activity");
         terms["sessions.day_label"] = ("Hari", "Day");
-        terms["sessions.turn_label"] = ("Giliran", "Turn");
+        terms["sessions.turn_label"] = ("Aksi", "Action");
         terms["sessions.activity_default"] = ("Detail aktivitas belum tersedia", "Activity details not available");
         terms["sessions.timeline_actor"] = ("Aktor Aktivitas Terakhir", "Latest Activity Actor");
         terms["sessions.timeline_flow"] = ("Alur", "Flow");
@@ -91,11 +94,11 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_chart_event_sequence"] = ("Urutan aktivitas", "Event sequence order");
         terms["sessions.timeline_chart_minutes_since_first"] = ("Menit sejak aktivitas pertama", "Minutes since first event");
         terms["sessions.timeline_chart_event_count"] = ("Jumlah aktivitas (kumulatif)", "Event count (cumulative)");
-        terms["sessions.timeline_chart_events_per_turn"] = ("Jumlah aktivitas per giliran", "Event count per turn");
-        terms["sessions.timeline_chart_turn_number"] = ("Nomor giliran", "Turn number");
+        terms["sessions.timeline_chart_events_per_turn"] = ("Jumlah aktivitas per slot aksi", "Event count per action slot");
+        terms["sessions.timeline_chart_action_slot"] = ("Slot aksi", "Action slot");
         terms["sessions.timeline_tooltip_minutes"] = ("+{value} menit", "+{value} min");
         terms["sessions.timeline_tooltip_event"] = ("Aktivitas #{event} | urut {seq} | {actor} | {action}", "Event #{event} | seq {seq} | {actor} | {action}");
-        terms["sessions.timeline_tooltip_actor"] = ("{actor} | hari {day} ({weekday}) | giliran {turn} | urut {seq} | {action}", "{actor} | day {day} ({weekday}) | turn {turn} | seq {seq} | {action}");
+        terms["sessions.timeline_tooltip_actor"] = ("{actor} | hari {day} ({weekday}) | slot aksi {turn} | urut {seq} | {action}", "{actor} | day {day} ({weekday}) | action slot {turn} | seq {seq} | {action}");
         terms["sessions.timeline_actor_help"] = ("Kategori aktor di grafik: siapa yang memicu aktivitas selama sesi.", "Actor categories in the chart: who triggered events during the session.");
         terms["sessions.journey.board_title"] = ("Jejak perjalanan permainan", "Board-style game journey");
         terms["sessions.journey.board_subtitle"] = ("Visual papan ini otomatis mengikuti urutan aktivitas terbaru yang masuk dari IDN/API.", "This board visual automatically follows the latest event order from IDN/API.");
@@ -126,8 +129,8 @@ internal static partial class UiTextLexicon
         terms["sessions.actor.instructor.desc"] = ("Aktivitas yang dipicu instruktur (kontrol sesi).", "Events triggered by instructors (session controls).");
         terms["sessions.actor.other.desc"] = ("Aktivitas dengan tipe aktor di luar tiga kategori utama.", "Events with actor types outside the three primary categories.");
         terms["status.session.created"] = ("Dibuat", "Created");
-        terms["status.session.started"] = ("Dimulai", "Started");
-        terms["status.session.ended"] = ("Selesai", "Ended");
+        terms["status.MulaiSesi"] = ("Dimulai", "Started");
+        terms["status.AkhiriSesi"] = ("Selesai", "Ended");
         terms["status.session.cancelled"] = ("Dibatalkan", "Cancelled");
         terms["status.session.unknown"] = ("Tidak Diketahui", "Unknown");
     }

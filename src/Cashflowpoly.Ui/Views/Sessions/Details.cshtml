@@ -135,13 +135,6 @@
         <a class="btn-ghost"
            asp-controller="Sessions"
            asp-action="Index">@Context.T("sessions.back_to_list")</a>
-        @if (isInstructor)
-        {
-            <a class="btn-ghost"
-               asp-controller="Sessions"
-               asp-action="Ruleset"
-               asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
-        }
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -195,27 +188,11 @@
                        asp-controller="Rulesets"
                        asp-action="Details"
                        asp-route-rulesetId="@activeRulesetId">@Context.T("common.view")</a>
-                    @if (isInstructor)
-                    {
-                        <a class="btn-primary"
-                           asp-controller="Sessions"
-                           asp-action="Ruleset"
-                           asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
-                    }
                 </div>
             }
             else
             {
                 <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.empty")</p>
-                @if (isInstructor)
-                {
-                    <div class="mt-3 action-toolbar">
-                        <a class="btn-primary"
-                           asp-controller="Sessions"
-                           asp-action="Ruleset"
-                           asp-route-sessionId="@Model.SessionId">@Context.T("sessions.activate_ruleset")</a>
-                    </div>
-                }
             }
         </div>
     </section>
@@ -225,11 +202,11 @@
         var rankedPlayers = Model.Analytics.ByPlayer
             .OrderByDescending(item => item.HappinessPointsTotal)
             .ThenByDescending(item => item.CashInTotal - item.CashOutTotal)
-            .ThenBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
+            .ThenBy(item => item.PlayerOrder > 0 ? item.PlayerOrder : int.MaxValue)
             .ThenBy(item => item.UserId)
             .ToList();
         var orderedPlayers = Model.Analytics.ByPlayer
-            .OrderBy(item => item.JoinOrder > 0 ? item.JoinOrder : int.MaxValue)
+            .OrderBy(item => item.PlayerOrder > 0 ? item.PlayerOrder : int.MaxValue)
             .ThenBy(item => item.UserId)
             .ToList();
         var playerRankLookup = rankedPlayers
@@ -297,7 +274,7 @@
                     for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
                     {
                         var item = orderedPlayers[playerIndex];
-                        var turnOrder = item.JoinOrder > 0 ? item.JoinOrder : playerIndex + 1;
+                        var turnOrder = item.PlayerOrder > 0 ? item.PlayerOrder : playerIndex + 1;
                         var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
                             ? resolvedRank
                             : 0;

@@ -19,6 +19,14 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
+    <Content Include="..\..\artifacts\runtime-sql\00_create_schema.sql" Link="artifacts\runtime-sql\00_create_schema.sql" Condition="Exists('..\..\artifacts\runtime-sql\00_create_schema.sql')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\artifacts\runtime-sql\01_seed_default_rulesets_components.sql" Link="artifacts\runtime-sql\01_seed_default_rulesets_components.sql" Condition="Exists('..\..\artifacts\runtime-sql\01_seed_default_rulesets_components.sql')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

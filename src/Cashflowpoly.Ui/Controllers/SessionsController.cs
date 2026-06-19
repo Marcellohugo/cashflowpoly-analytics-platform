@@ -102,100 +102,6 @@ public sealed class SessionsController : Controller
         });
     }
 
-    [HttpGet("{sessionId:guid}/ruleset")]
-    public async Task<IActionResult> Ruleset(Guid sessionId, CancellationToken ct)
-    {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { sessionId });
-        }
-
-        var client = _clientFactory.CreateClient("Api");
-        var rulesetOptions = await LoadRulesetOptionsAsync(client, ct);
-        if (rulesetOptions.UnauthorizedResult is not null)
-        {
-            return rulesetOptions.UnauthorizedResult;
-        }
-
-        return View(new SessionRulesetViewModel
-        {
-            SessionId = sessionId,
-            Rulesets = rulesetOptions.Rulesets,
-            ErrorMessage = rulesetOptions.ErrorMessage
-        });
-    }
-
-    [HttpPost("{sessionId:guid}/ruleset")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Ruleset(Guid sessionId, SessionRulesetViewModel model, CancellationToken ct)
-    {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { sessionId });
-        }
-
-        model.SessionId = sessionId;
-
-        if (model.SelectedRulesetId is null || model.SelectedVersion is null)
-        {
-            return await BuildRulesetFormErrorResult(
-                sessionId,
-                model,
-                HttpContext.T("sessions.error.ruleset_version_required"),
-                ct);
-        }
-
-        var client = _clientFactory.CreateClient("Api");
-        var payload = new ActivateRulesetRequest(model.SelectedRulesetId.Value, model.SelectedVersion.Value);
-        var response = await client.PostAsJsonAsync($"api/v1/sessions/{sessionId}/ruleset/activate", payload, ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
-            return await BuildRulesetFormErrorResult(
-                sessionId,
-                model,
-                error?.Message ?? HttpContext
-                    .T("sessions.error.activate_ruleset_failed")
-                    .Replace("{status}", ((int)response.StatusCode).ToString()),
-                ct);
-        }
-
-        return RedirectToAction(nameof(Details), new { sessionId });
-    }
-
-    private async Task<IActionResult> BuildRulesetFormErrorResult(
-        Guid sessionId,
-        SessionRulesetViewModel model,
-        string errorMessage,
-        CancellationToken ct)
-    {
-        model.SessionId = sessionId;
-        model.ErrorMessage = errorMessage;
-
-        var client = _clientFactory.CreateClient("Api");
-        var rulesetOptions = await LoadRulesetOptionsAsync(client, ct);
-        if (rulesetOptions.UnauthorizedResult is not null)
-        {
-            return rulesetOptions.UnauthorizedResult;
-        }
-
-        model.Rulesets = rulesetOptions.Rulesets;
-        if (!string.IsNullOrWhiteSpace(rulesetOptions.ErrorMessage))
-        {
-            model.ErrorMessage = string.IsNullOrWhiteSpace(model.ErrorMessage)
-                ? rulesetOptions.ErrorMessage
-                : $"{model.ErrorMessage} {rulesetOptions.ErrorMessage}";
-        }
-
-        return View(model);
-    }
-
     private async Task<(SessionDetailViewModel Model, IActionResult? Result)> BuildSessionDetailViewModel(
         Guid sessionId,
         CancellationToken ct)
@@ -263,30 +169,6 @@ public sealed class SessionsController : Controller
 
         var data = await sessionResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
         return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
-    }
-
-    private async Task<(List<RulesetListItem> Rulesets, IActionResult? UnauthorizedResult, string? ErrorMessage)> LoadRulesetOptionsAsync(
-        HttpClient client,
-        CancellationToken ct)
-    {
-        var response = await client.GetAsync("api/v1/rulesets", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return (new List<RulesetListItem>(), unauthorized, null);
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return (
-                new List<RulesetListItem>(),
-                null,
-                HttpContext.T("sessions.error.load_rulesets_failed")
-                    .Replace("{status}", ((int)response.StatusCode).ToString()));
-        }
-
-        var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(cancellationToken: ct);
-        return (data?.Items ?? new List<RulesetListItem>(), null, null);
     }
 
     private static async Task<Dictionary<Guid, string>> LoadPlayerDisplayNameMapAsync(

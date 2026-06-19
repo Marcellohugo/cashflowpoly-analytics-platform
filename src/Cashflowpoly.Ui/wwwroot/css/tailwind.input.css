@@ -2740,6 +2740,20 @@ body > footer .footer-shell {
     box-shadow: 0 8px 18px rgba(20, 99, 134, 0.08);
 }
 
+.session-journey-feed-item-system {
+    border-color: #f0c96d;
+    background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(240, 253, 250, 0.94));
+    box-shadow: 0 10px 20px rgba(151, 112, 20, 0.11);
+}
+
+.session-journey-feed-item-system .session-journey-feed-player-name {
+    color: #8a5c0f;
+}
+
+.session-journey-feed-item-system .session-journey-feed-title {
+    color: #7a4f0a;
+}
+
 .session-journey-feed-head {
     display: flex;
     justify-content: space-between;
@@ -2817,6 +2831,64 @@ body > footer .footer-shell {
     font-size: 0.77rem;
     line-height: 1.45;
     color: #48697d;
+}
+
+.session-journey-feed-related {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.58rem 0 0;
+    padding: 0.56rem 0 0;
+    border-top: 1px dashed #b9e7e1;
+    list-style: none;
+}
+
+.session-journey-feed-related-item {
+    border: 1px solid #f0d28f;
+    border-radius: 0.7rem;
+    background: rgba(255, 250, 235, 0.72);
+    padding: 0.48rem 0.55rem;
+}
+
+.session-journey-feed-related-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.session-journey-feed-related-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.12rem 0.42rem;
+    border-radius: 999px;
+    border: 1px solid #f0d28f;
+    background: rgba(255, 249, 229, 0.96);
+    color: #7d5a16;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+}
+
+.session-journey-feed-related-time {
+    color: #607a8b;
+    font-size: 0.64rem;
+    font-weight: 700;
+}
+
+.session-journey-feed-related-title {
+    margin: 0.28rem 0 0;
+    color: #1f4863;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.session-journey-feed-related-detail {
+    margin: 0.18rem 0 0;
+    color: #48697d;
+    font-size: 0.72rem;
+    line-height: 1.42;
 }
 
 .session-journey-empty {

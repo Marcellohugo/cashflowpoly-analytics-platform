@@ -2227,6 +2227,9 @@ body > footer .footer-shell {
 
 .player-detail-overhaul {
     width: 100%;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
     padding: clamp(1rem, 1.2vw + 0.72rem, 1.65rem);
     max-width: min(1760px, 100%);
     margin-inline: auto;
@@ -2242,6 +2245,8 @@ body > footer .footer-shell {
 .player-detail-overhaul .chart-card {
     min-width: 0;
     max-width: 100%;
+    min-inline-size: 0;
+    max-inline-size: 100%;
 }
 
 .player-detail-overhaul .eyebrow {
@@ -2301,6 +2306,243 @@ body > footer .footer-shell {
 
 .player-detail-overhaul .player-detail-section + .player-detail-section {
     margin-top: 1.35rem;
+}
+
+.player-detail-overhaul .player-stats-dashboard {
+    display: grid;
+    gap: 1rem;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: clip;
+}
+
+.player-detail-overhaul .player-stats-key-grid,
+.player-detail-overhaul .player-stats-mini-grid {
+    display: flex;
+    gap: 0.75rem;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: 0.15rem 0.2rem 0.62rem 0;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
+}
+
+.player-detail-overhaul .player-stats-key-grid .player-stat-kpi,
+.player-detail-overhaul .player-stats-mini-grid .stat-card {
+    flex: 0 0 clamp(220px, 28vw, 340px);
+    max-inline-size: clamp(220px, 28vw, 340px);
+}
+
+.player-detail-overhaul .player-stat-kpi {
+    border: 1px solid #c9e7e3;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.94);
+    padding: 0.78rem 0.86rem;
+    min-width: 0;
+}
+
+.player-detail-overhaul .player-stat-kpi__label {
+    margin: 0;
+    color: #496b80;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.player-detail-overhaul .player-stat-kpi__value {
+    margin: 0.28rem 0 0;
+    color: #173f56;
+    font-size: 1.42rem;
+    font-weight: 900;
+    line-height: 1.16;
+    overflow-wrap: anywhere;
+}
+
+.player-detail-overhaul .player-stats-insights {
+    display: flex;
+    gap: 0.72rem;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: 0.15rem 0.2rem 0.62rem 0;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
+}
+
+.player-detail-overhaul .player-stats-insights .player-stat-insight {
+    flex: 0 0 clamp(320px, 42vw, 560px);
+    max-inline-size: clamp(320px, 42vw, 560px);
+}
+
+.player-detail-overhaul .player-stat-insight {
+    border: 1px solid #c9e7e3;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.76rem 0.86rem;
+}
+
+.player-detail-overhaul .player-stat-insight__title {
+    margin: 0;
+    color: #1f4f65;
+    font-size: 0.92rem;
+    font-weight: 900;
+    line-height: 1.32;
+}
+
+.player-detail-overhaul .player-stat-insight__body {
+    margin: 0.28rem 0 0;
+    color: #4f6e83;
+    font-size: 0.84rem;
+    line-height: 1.48;
+}
+
+.player-detail-overhaul .player-stat-tone-positive {
+    border-color: #a7dccb;
+    background: #f1fbf7;
+}
+
+.player-detail-overhaul .player-stat-tone-warning {
+    border-color: #edd18c;
+    background: #fff9ea;
+}
+
+.player-detail-overhaul .player-stat-tone-danger {
+    border-color: #efb6b6;
+    background: #fff3f3;
+}
+
+.player-detail-overhaul .player-stats-tablist {
+    display: flex;
+    gap: 0.45rem;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    padding: 0.24rem;
+    border: 1px solid #c7e9e4;
+    border-radius: 0.55rem;
+    background: rgba(241, 252, 249, 0.9);
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+}
+
+.player-detail-overhaul .player-stats-key-grid::-webkit-scrollbar,
+.player-detail-overhaul .player-stats-mini-grid::-webkit-scrollbar,
+.player-detail-overhaul .player-stats-insights::-webkit-scrollbar,
+.player-detail-overhaul .player-stats-panels::-webkit-scrollbar,
+.player-detail-overhaul .player-stats-tab-panel::-webkit-scrollbar,
+.player-detail-overhaul .player-stats-tablist::-webkit-scrollbar {
+    height: 10px;
+}
+
+.player-detail-overhaul .player-stats-key-grid::-webkit-scrollbar-thumb,
+.player-detail-overhaul .player-stats-mini-grid::-webkit-scrollbar-thumb,
+.player-detail-overhaul .player-stats-insights::-webkit-scrollbar-thumb,
+.player-detail-overhaul .player-stats-panels::-webkit-scrollbar-thumb,
+.player-detail-overhaul .player-stats-tab-panel::-webkit-scrollbar-thumb,
+.player-detail-overhaul .player-stats-tablist::-webkit-scrollbar-thumb {
+    background: rgba(73, 170, 160, 0.5);
+    border-radius: 999px;
+}
+
+.player-detail-overhaul .player-stats-key-grid::-webkit-scrollbar-track,
+.player-detail-overhaul .player-stats-mini-grid::-webkit-scrollbar-track,
+.player-detail-overhaul .player-stats-insights::-webkit-scrollbar-track,
+.player-detail-overhaul .player-stats-panels::-webkit-scrollbar-track,
+.player-detail-overhaul .player-stats-tab-panel::-webkit-scrollbar-track,
+.player-detail-overhaul .player-stats-tablist::-webkit-scrollbar-track {
+    background: rgba(217, 243, 238, 0.85);
+    border-radius: 999px;
+}
+
+.player-detail-overhaul .player-stats-tab {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: #365f76;
+    cursor: pointer;
+    flex: 0 0 auto;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 900;
+    line-height: 1.2;
+    padding: 0.58rem 0.78rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.player-detail-overhaul .player-stats-tab:hover,
+.player-detail-overhaul .player-stats-tab:focus-visible {
+    border-color: #9bd7cf;
+    background: #ffffff;
+    outline: none;
+}
+
+.player-detail-overhaul .player-stats-tab.is-active {
+    border-color: #70c7bb;
+    background: #ffffff;
+    color: #174c60;
+    box-shadow: 0 4px 12px rgba(20, 99, 134, 0.08);
+}
+
+.player-detail-overhaul .player-stats-tab-panel {
+    display: block;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
+}
+
+.player-detail-overhaul .player-stats-tab-panel[hidden] {
+    display: none;
+}
+
+.player-detail-overhaul .player-stats-panels {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #8bcfc7 rgba(235, 248, 247, 0.9);
+}
+
+.player-detail-overhaul .player-stats-panels > * {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+}
+
+.player-detail-overhaul .technical-drilldown {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.player-detail-overhaul .technical-drilldown-section {
+    border-top: 1px solid #cfeee9;
+    padding-top: 1.1rem;
+}
+
+.player-detail-overhaul .technical-drilldown-section:first-child {
+    border-top: 0;
+    padding-top: 0;
 }
 
 .player-detail-overhaul .players-fusion-metrics {
@@ -2389,6 +2631,9 @@ body > footer .footer-shell {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
 }
 
 .player-detail-overhaul .chart-scroll-hint {
@@ -2454,12 +2699,22 @@ body > footer .footer-shell {
 
 .player-detail-overhaul .chart-grid-feature {
     display: block;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
 }
 
 .player-detail-overhaul .chart-grid-feature .chart-card-feature {
     width: 100%;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
     min-height: 454px;
     padding: 1.2rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable both-edges;
 }
 
 .player-detail-overhaul .chart-grid-feature .chart-card-feature .chart-title {
@@ -2474,7 +2729,10 @@ body > footer .footer-shell {
     display: flex;
     gap: 1.05rem;
     width: 100%;
+    inline-size: 100%;
     max-width: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -2580,6 +2838,21 @@ body > footer .footer-shell {
 
     .player-detail-overhaul .metric-domain-intro {
         font-size: 0.87rem;
+    }
+
+    .player-detail-overhaul .player-stats-key-grid,
+    .player-detail-overhaul .player-stats-mini-grid,
+    .player-detail-overhaul .player-stats-insights {
+        grid-template-columns: 1fr;
+    }
+
+    .player-detail-overhaul .player-stat-kpi__value {
+        font-size: 1.22rem;
+    }
+
+    .player-detail-overhaul .player-stats-tab {
+        font-size: 0.78rem;
+        padding: 0.52rem 0.66rem;
     }
 
     .player-detail-overhaul .chart-scroll-hint {

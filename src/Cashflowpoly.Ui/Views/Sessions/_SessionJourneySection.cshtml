@@ -7,7 +7,7 @@
             <p class="eyebrow">@Context.T("sessions.timeline")</p>
             <h2 class="ruleset-section-title session-journey-title">@Context.T("sessions.timeline_title")</h2>
             <p class="ruleset-section-subtitle">@Context.T("sessions.timeline_subtitle")</p>
-            <p class="ruleset-section-subtitle">@Context.T("sessions.timeline_player_subtitle")</p>
+            <p class="ruleset-section-subtitle">@Context.T("sessions.timeline_mixed_subtitle")</p>
         </div>
         <div class="session-journey-sync">
             <span>@Context.T("sessions.journey.last_sync")</span>
@@ -34,7 +34,9 @@
              class="session-journey-filter"
              role="toolbar"
              aria-label="@Context.T("sessions.timeline_filter_label")">
-            <button type="button" class="session-journey-filter-btn is-active" data-player-key="all">@Context.T("sessions.timeline_filter_all")</button>
+            <button type="button" class="session-journey-filter-btn is-active" data-timeline-filter="all">@Context.T("sessions.timeline_filter_all")</button>
+            <button type="button" class="session-journey-filter-btn" data-timeline-filter="players">@Context.T("sessions.timeline_filter_players")</button>
+            <button type="button" class="session-journey-filter-btn" data-timeline-filter="system">@Context.T("sessions.timeline_filter_system")</button>
         </div>
     </div>
 

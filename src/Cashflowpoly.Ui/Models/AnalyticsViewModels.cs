@@ -44,11 +44,13 @@ public sealed class SessionTimelineEventViewModel
     public long SequenceNumber { get; init; }
     public int DayIndex { get; init; }
     public string Weekday { get; init; } = string.Empty;
-    public int TurnNumber { get; init; }
+    public int ActionSlot { get; init; }
     public string ActorType { get; init; } = string.Empty;
     public Guid? PlayerId { get; init; }
     public string? PlayerDisplayName { get; set; }
     public string ActionType { get; init; } = string.Empty;
+    public string ActionSlotRole { get; init; } = string.Empty;
+    public string ActionSlotLabel { get; init; } = string.Empty;
     public string FlowLabel { get; init; } = string.Empty;
     public string FlowDescription { get; init; } = string.Empty;
 }
@@ -62,6 +64,7 @@ public sealed class PlayerDetailViewModel
     public Guid PlayerId { get; init; }
     public string? PlayerDisplayName { get; init; }
     public AnalyticsByPlayerItem? Summary { get; init; }
+    public PlayerStatSummaryViewModel? StatSummary { get; init; }
     /// <summary>
     /// Daftar riwayat transaksi keuangan pemain dalam sesi ini.
     /// </summary>
@@ -72,6 +75,37 @@ public sealed class PlayerDetailViewModel
     public PlayerCashflowJourneyStatsViewModel? CashflowJourney { get; init; }
     public string? GameplayErrorMessage { get; init; }
     public string? ErrorMessage { get; init; }
+}
+
+/// <summary>
+/// ViewModel ringkasan evaluasi statistik pemain untuk tampilan instruktur.
+/// </summary>
+public sealed class PlayerStatSummaryViewModel
+{
+    public List<PlayerStatKeyMetricViewModel> KeyMetrics { get; init; } = new();
+    public List<PlayerInstructorInsightViewModel> Insights { get; init; } = new();
+}
+
+/// <summary>
+/// ViewModel satu metrik prioritas pada ringkasan pemain.
+/// </summary>
+public sealed class PlayerStatKeyMetricViewModel
+{
+    public string Key { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
+    public string Value { get; init; } = string.Empty;
+    public string Tone { get; init; } = "neutral";
+}
+
+/// <summary>
+/// ViewModel satu insight deterministik untuk instruktur.
+/// </summary>
+public sealed class PlayerInstructorInsightViewModel
+{
+    public string Key { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public string Tone { get; init; } = "neutral";
 }
 
 /// <summary>
@@ -104,21 +138,6 @@ public sealed class PlayerCashflowJourneyStatsViewModel
     /// Daftar detail transaksi dalam format teks untuk tooltip atau legenda grafik.
     /// </summary>
     public List<string> TransactionDetails { get; init; } = new();
-}
-
-/// <summary>
-/// ViewModel halaman pemilihan ruleset untuk sesi, memuat daftar ruleset yang tersedia dan pilihan yang dipilih.
-/// </summary>
-public sealed class SessionRulesetViewModel
-{
-    public Guid SessionId { get; set; }
-    /// <summary>
-    /// Daftar ruleset yang tersedia untuk dipilih dan dikaitkan dengan sesi permainan.
-    /// </summary>
-    public List<RulesetListItem> Rulesets { get; set; } = new();
-    public Guid? SelectedRulesetId { get; set; }
-    public int? SelectedVersion { get; set; }
-    public string? ErrorMessage { get; set; }
 }
 
 /// <summary>
@@ -159,7 +178,7 @@ public sealed class PlayerSessionGroupViewModel
 public sealed class PlayerSessionEntryViewModel
 {
     public Guid PlayerId { get; init; }
-    public int JoinOrder { get; init; }
+    public int PlayerOrder { get; init; }
     public string DisplayName { get; init; } = string.Empty;
     public double CashInTotal { get; init; }
     public double CashOutTotal { get; init; }

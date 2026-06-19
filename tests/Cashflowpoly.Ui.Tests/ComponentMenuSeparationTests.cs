@@ -8,40 +8,36 @@ public sealed class ComponentMenuSeparationTests
     private static readonly string UiRoot = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui");
 
     [Fact]
-    public void Layout_ShouldRenderComponentsAsSeparatePrimaryMenu()
+    public void Layout_ShouldNotRenderComponentsAsSeparatePrimaryMenu()
     {
         var layout = File.ReadAllText(Path.Combine(UiRoot, "Views", "Shared", "_Layout.cshtml"));
 
-        Assert.Contains("asp-controller=\"Components\"", layout, StringComparison.Ordinal);
-        Assert.Contains("data-nav=\"components\"", layout, StringComparison.Ordinal);
-        Assert.Contains("nav.components", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-controller=\"Components\"", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-nav=\"components\"", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("nav.components", layout, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RulesetIndex_ShouldNotRenderDefaultComponentsCatalog()
+    public void RulesetIndex_ShouldRenderDefaultRulesetsInMainTableOnly()
     {
         var rulesetIndex = File.ReadAllText(Path.Combine(UiRoot, "Views", "Rulesets", "Index.cshtml"));
+        var rulesetsController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "RulesetsController.cs"));
 
         Assert.DoesNotContain("rulesets.default_components.title", rulesetIndex, StringComparison.Ordinal);
         Assert.DoesNotContain("DefaultComponentItems", rulesetIndex, StringComparison.Ordinal);
-        Assert.DoesNotContain("DefaultComponentDetails", rulesetIndex, StringComparison.Ordinal);
+        Assert.Contains("item.IsDefault", rulesetIndex, StringComparison.Ordinal);
+        Assert.Contains("DefaultCatalogSource", rulesetsController, StringComparison.Ordinal);
+        Assert.DoesNotContain("DefaultComponentItems =", rulesetsController, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ComponentsIndex_ShouldRenderDefaultComponentsCatalog()
+    public void ComponentsPage_ShouldBeRemoved()
     {
         var componentsViewPath = Path.Combine(UiRoot, "Views", "Components", "Index.cshtml");
         var componentsControllerPath = Path.Combine(UiRoot, "Controllers", "ComponentsController.cs");
 
-        Assert.True(File.Exists(componentsViewPath), "Views/Components/Index.cshtml harus tersedia.");
-        Assert.True(File.Exists(componentsControllerPath), "ComponentsController harus tersedia.");
-
-        var componentsView = File.ReadAllText(componentsViewPath);
-        var componentsController = File.ReadAllText(componentsControllerPath);
-
-        Assert.Contains("rulesets.default_components.title", componentsView, StringComparison.Ordinal);
-        Assert.Contains("api/v1/rulesets/components/defaults", componentsController, StringComparison.Ordinal);
-        Assert.Contains("ComponentCatalogListViewModel", componentsView, StringComparison.Ordinal);
+        Assert.False(File.Exists(componentsViewPath), "Views/Components/Index.cshtml harus dihapus.");
+        Assert.False(File.Exists(componentsControllerPath), "ComponentsController harus dihapus.");
     }
 
     private static string ResolveRepositoryRoot()
