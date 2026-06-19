@@ -1,10 +1,10 @@
-﻿# Spesifikasi Event dan Kontrak REST API  
+# Spesifikasi Event dan Kontrak REST API
 ## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Spesifikasi Event dan Kontrak REST API
-- Versi: 1.2
-- Tanggal: 8 Februari 2026
+- Versi: 2.0
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -36,6 +36,17 @@ Setiap event wajib menyertakan `ruleset_version_id` agar analisis tetap konsiste
 - API menyimpan event dengan `event_pk` sebagai primary key internal.
 - API menerapkan idempotensi berdasarkan kombinasi `session_id + event_id`.
 - API menolak `sequence_number` duplikat dalam satu sesi.
+- API me-resolve `action_type`/kode action ke
+  `ruleset_actions.ruleset_action_id` sebelum menyimpan event.
+- Kode asset gameplay penting seperti ingredient, order, need, risk, gold,
+  gold price, dan tie breaker tetap boleh dikirim sebagai kode yang mudah
+  dibaca. API me-resolve kode tersebut ke UUID `ruleset_game_assets` dan
+  mencatat relasinya pada `event_asset_references`.
+- `payload` tetap disimpan sebagai raw event untuk replay dan audit. State,
+  balance, inventory, collection mission, financial goal, narrative, score, dan metric snapshot adalah
+  projection/cache yang dapat dibangun ulang.
+- API tidak menyimpan action log kedua dan tidak menjalankan script
+  interpreter untuk narrative. Quest keluar dari MVP.
 
 ---
 
@@ -47,12 +58,13 @@ Setiap event dikirim sebagai JSON dengan skema umum berikut:
 |---|---|---:|---|
 | event_id | string (UUID) | Ya | ID unik event. |
 | session_id | string (UUID) | Ya | ID sesi permainan. |
-| player_id | string (UUID) | Ya* | ID pemain. Wajib untuk event aksi pemain. Kosong untuk event sistem. |
+| user_id | string (UUID) | Ya* | ID akun Player (`app_users.user_id`). Wajib untuk event aksi Player. Kosong untuk event sistem. |
 | actor_type | string | Ya | Nilai: `PLAYER` atau `SYSTEM`. |
 | timestamp | string (ISO 8601) | Ya | Waktu event terjadi. |
 | day_index | int | Ya | Indeks hari dalam sesi. |
 | weekday | string | Ya | Nilai: `MON,TUE,WED,THU,FRI,SAT,SUN`. |
-| turn_number | int | Ya | Nomor giliran pada sesi. |
+| turn_number | int | Ya | Nomor giliran yang dipakai validator urutan pemain. |
+| action_slot | int | Ya | Slot aksi pemain pada hari tersebut, bernilai 1 atau 2. |
 | action_type | string | Ya | Jenis event. |
 | sequence_number | long | Ya | Nomor urut event per sesi. |
 | ruleset_version_id | string (UUID) | Ya | Versi ruleset yang aktif saat event terjadi. |
@@ -60,10 +72,13 @@ Setiap event dikirim sebagai JSON dengan skema umum berikut:
 | client_request_id | string | Tidak | ID request dari klien untuk tracing. |
 
 Catatan:
-- `player_id` wajib saat `actor_type=PLAYER`.
+- `user_id` wajib saat `actor_type=PLAYER`.
+- API me-resolve `user_id` ke `session_participant_id`/`session_player_id`
+  pada sesi sebelum event disimpan. Event sistem memakai `user_id = null`.
 - `timestamp` harus format UTC atau menyertakan offset zona waktu.
 - `day_index` minimal `0`.
-- `turn_number` minimal `1`.
+- `turn_number` minimal `0`.
+- `action_slot` minimal `1`.
 - `sequence_number` minimal `0`.
 
 ### 3.2 Struktur respons error (standar)
@@ -87,27 +102,7 @@ Semua error validasi mengikuti format ini:
 Bagian ini mendefinisikan event yang digunakan sistem. Sistem dapat menambah event baru, namun event baru wajib mengikuti struktur event umum dan aturan validasi.
 
 ### 4.1 Event sesi
-#### 4.1.1 `session.created`
-Tujuan: Membuat sesi permainan.
-
-Payload:
-```json
-{
-  "mode": "PEMULA",
-  "session_name": "Kelas A - Pertemuan 1"
-}
-```
-
-Validasi:
-- `payload.mode` bernilai `PEMULA` atau `MAHIR`.
-- `payload.session_name` panjang 1–100.
-
-Efek data:
-- Membuat record `Session`.
-
----
-
-#### 4.1.2 `session.started`
+#### 4.1.1 `MulaiSesi`
 Payload:
 ```json
 { "start_note": "Mulai sesi" }
@@ -121,7 +116,7 @@ Efek data:
 
 ---
 
-#### 4.1.3 `session.ended`
+#### 4.1.2 `AkhiriSesi`
 Payload:
 ```json
 { "end_note": "Selesai sesi" }
@@ -136,57 +131,24 @@ Efek data:
 ---
 
 ### 4.2 Event giliran
-#### 4.2.1 `turn.started`
-Payload:
-```json
-{
-  "action_tokens": 2
-}
-```
-
-Validasi:
-- `payload.action_tokens` sama dengan parameter ruleset `actions_per_turn`.
-
-Efek data:
-- Menandai awal giliran.
-
----
-
-#### 4.2.2 `turn.action.used`
-Payload:
-```json
-{
-  "used": 1,
-  "remaining": 1
-}
-```
-
-Validasi:
-- `remaining >= 0`.
-- Total penggunaan pada giliran tidak melebihi `actions_per_turn`.
-
-Efek data:
-- Memperbarui penghitung token aksi.
-
----
-
-#### 4.2.3 `turn.ended`
+#### 4.2.1 `AkhirGiliran`
 Payload:
 ```json
 { "note": "Akhir giliran" }
 ```
 
 Validasi:
-- Giliran harus sudah dimulai.
-- Pada mode MAHIR, jumlah `risk.life.drawn` per pemain harus sama dengan jumlah `order.claimed` pada giliran yang sama.
+- `turn_number` harus cocok dengan urutan pemain aktif.
+- `action_slot` wajib berada dalam batas `ruleset_game_settings.actions_per_turn`.
+- Pada mode MAHIR, jumlah `RisikoKehidupan` per pemain harus sama dengan jumlah `JualMasakan` pada giliran yang sama.
 
 Efek data:
-- Menandai akhir giliran.
+- Menandai akhir aksi/giliran pemain.
 
 ---
 
 ### 4.3 Event transaksi dan arus kas
-#### 4.3.1 `transaction.recorded`
+#### 4.3.1 `CatatTransaksi`
 Tujuan: Mencatat transaksi pemasukan/pengeluaran koin.
 
 Payload:
@@ -215,7 +177,7 @@ Efek data:
 ---
 
 ### 4.4 Event aturan harian
-#### 4.4.1 `day.friday.donation`
+#### 4.4.1 `JumatBerkah`
 Payload:
 ```json
 {
@@ -234,7 +196,7 @@ Efek data:
 
 ---
 
-#### 4.4.2 `day.saturday.gold_trade`
+#### 4.4.2 `InvestasiEmas`
 Payload:
 ```json
 {
@@ -247,19 +209,41 @@ Payload:
 
 Validasi:
 - `weekday` harus `SAT`.
-- `trade_type` bernilai `BUY` atau `SELL`.
+- Jika `trade_type` dikirim, nilainya wajib `BUY`.
 - `qty > 0`.
 - `amount = unit_price * qty`.
-- Sistem menolak BUY jika saldo tidak cukup.
-- Sistem menolak SELL jika kepemilikan emas kurang.
+- Sistem menolak jika saldo tidak cukup.
 
 Efek data:
-- Mengubah saldo dan kepemilikan emas.
+- Mengurangi saldo dan menambah kepemilikan emas.
+
+---
+
+#### 4.4.3 `JualEmas`
+Payload:
+```json
+{
+  "trade_type": "SELL",
+  "unit_price": 6,
+  "qty": 2,
+  "amount": 12
+}
+```
+
+Validasi:
+- `weekday` harus `SAT`.
+- Jika `trade_type` dikirim, nilainya wajib `SELL`.
+- `qty > 0`.
+- `amount = unit_price * qty`.
+- Sistem menolak jika kepemilikan emas kurang.
+
+Efek data:
+- Menambah saldo dan mengurangi kepemilikan emas.
 
 ---
 
 ### 4.5 Event kebutuhan dan bahan (contoh minimal)
-#### 4.5.1 `need.primary.purchased`
+#### 4.5.1 `Kebutuhan`
 Payload:
 ```json
 {
@@ -281,11 +265,11 @@ Efek data:
 - Menambah kepemilikan kartu kebutuhan.
 
 Catatan:
-- Struktur payload `need.secondary.purchased` dan `need.tertiary.purchased` sama dengan `need.primary.purchased`.
+- Tipe kebutuhan dibaca dari katalog ruleset atau payload `need_tier`.
 
 ---
 
-#### 4.5.2 `ingredient.purchased`
+#### 4.5.2 `BahanMasakan`
 Payload:
 ```json
 {
@@ -306,7 +290,7 @@ Efek data:
 
 ---
 
-#### 4.5.3 `ingredient.discarded`
+#### 4.5.3 `BuangBahanMasakan`
 Payload:
 ```json
 {
@@ -326,7 +310,7 @@ Efek data:
 
 ---
 
-#### 4.5.4 `order.claimed`
+#### 4.5.4 `JualMasakan`
 Payload:
 ```json
 {
@@ -346,7 +330,7 @@ Efek data:
 
 ---
 
-#### 4.5.5 `order.passed`
+#### 4.5.5 `LewatiOrder`
 Payload:
 ```json
 {
@@ -366,7 +350,7 @@ Efek data:
 
 ---
 
-#### 4.5.6 `work.freelance.completed`
+#### 4.5.6 `KerjaLepas`
 Payload:
 ```json
 {
@@ -384,7 +368,7 @@ Efek data:
 ---
 
 ### 4.6 Event mode mahir (minimum)
-#### 4.6.1 `loan.syariah.taken`
+#### 4.6.1 `PinjamanSyariah`
 Payload:
 ```json
 {
@@ -411,7 +395,7 @@ Efek data:
 
 ---
 
-#### 4.6.2 `loan.syariah.repaid`
+#### 4.6.2 `BayarPinjaman`
 Payload:
 ```json
 {
@@ -433,7 +417,7 @@ Efek data:
 
 ---
 
-#### 4.6.3 `insurance.multirisk.purchased`
+#### 4.6.3 `Asuransi`
 Payload:
 ```json
 {
@@ -454,7 +438,7 @@ Efek data:
 ---
 
 ### 4.7 Event Misi dan Skor
-#### 4.7.1 `mission.assigned`
+#### 4.7.1 `BagikanMisiKoleksi`
 Payload:
 ```json
 {
@@ -477,7 +461,7 @@ Efek data:
 
 ---
 
-#### 4.7.2 `donation.rank.awarded`
+#### 4.7.2 `PoinPeringkatDonasi`
 Payload:
 ```json
 {
@@ -495,7 +479,34 @@ Efek data:
 
 ---
 
-#### 4.7.3 `gold.points.awarded`
+#### 4.7.3 `UmumkanJuaraDonasi`
+Payload:
+```json
+{
+  "summary": "Manalu Juara 1, Marcello Juara 2, Marco Juara 3",
+  "winners": [
+    { "rank": 1, "player_name": "Manalu", "player_order_no": 4, "points": 7 },
+    { "rank": 2, "player_name": "Marcello", "player_order_no": 2, "points": 5 },
+    { "rank": 3, "player_name": "Marco", "player_order_no": 1, "points": 2 }
+  ]
+}
+```
+
+Validasi:
+- `actor_type` wajib `SYSTEM`.
+- `user_id` wajib kosong.
+- `winners` wajib berisi 1 sampai 3 item.
+- `rank` wajib berurutan mulai dari 1.
+- `player_name` wajib.
+- `points >= 0`.
+
+Efek data:
+- Event audit/timeline untuk menampilkan ringkasan juara donasi.
+- Tidak menambah poin agar skor tidak terhitung ganda; poin tetap berasal dari `PoinPeringkatDonasi`.
+
+---
+
+#### 4.7.4 `PoinEmas`
 Payload:
 ```json
 {
@@ -511,7 +522,7 @@ Efek data:
 
 ---
 
-#### 4.7.4 `pension.rank.awarded`
+#### 4.7.5 `PoinPeringkatPensiun`
 Payload:
 ```json
 {
@@ -529,7 +540,7 @@ Efek data:
 
 ---
 
-#### 4.7.5 `saving.goal.achieved`
+#### 4.7.6 `TujuanFinansial`
 Payload:
 ```json
 {
@@ -549,7 +560,7 @@ Efek data:
 
 ---
 
-#### 4.7.6 `tie_breaker.assigned`
+#### 4.7.7 `BagikanTieBreaker`
 Payload:
 ```json
 {
@@ -566,7 +577,7 @@ Efek data:
 ---
 
 ### 4.8 Event Tabungan dan Risiko
-#### 4.8.1 `saving.deposit.created`
+#### 4.8.1 `Menabung`
 Payload:
 ```json
 {
@@ -587,7 +598,7 @@ Efek data:
 
 ---
 
-#### 4.8.2 `saving.deposit.withdrawn`
+#### 4.8.2 `TarikTabungan`
 Payload:
 ```json
 {
@@ -607,7 +618,7 @@ Efek data:
 
 ---
 
-#### 4.8.3 `risk.life.drawn`
+#### 4.8.3 `RisikoKehidupan`
 Payload:
 ```json
 {
@@ -623,14 +634,14 @@ Validasi:
 - `direction` bernilai `IN` atau `OUT`.
 - `amount > 0`.
 - Hanya tersedia pada mode mahir.
-- Sistem menolak jika jumlah `risk.life.drawn` melebihi jumlah `order.claimed` pemain pada giliran yang sama.
+- Sistem menolak jika jumlah `RisikoKehidupan` melebihi jumlah `JualMasakan` pemain pada giliran yang sama.
 
 Efek data:
 - Menambah/mengurangi saldo sesuai `direction`.
 
 ---
 
-#### 4.8.4 `insurance.multirisk.used`
+#### 4.8.4 `Asuransi`
 Payload:
 ```json
 {
@@ -640,14 +651,14 @@ Payload:
 
 Validasi:
 - `risk_event_id` wajib.
-- `risk_event_id` harus merujuk ke event `risk.life.drawn` bertipe OUT milik pemain yang sama.
+- `risk_event_id` harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
 
 Efek data:
 - Menandai penggunaan asuransi terhadap kartu risiko.
 
 ---
 
-#### 4.8.5 `risk.emergency.used`
+#### 4.8.5 `GunakanOpsiDarurat`
 Payload:
 ```json
 {
@@ -660,7 +671,7 @@ Payload:
 ```
 
 Validasi:
-- `risk_event_id` wajib dan harus merujuk ke event `risk.life.drawn` bertipe OUT milik pemain yang sama.
+- `risk_event_id` wajib dan harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
 - `option_type` bernilai `SELL_NEED`, `SELL_GOLD`, `SELL_GOAL`, atau `OTHER`.
 - `direction` bernilai `IN` atau `OUT`.
 - `amount > 0`.
@@ -696,6 +707,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
   "user_id": "uuid",
   "username": "instructor",
   "role": "INSTRUCTOR",
+  "display_name": "Ibu Rina",
   "access_token": "jwt",
   "expires_at": "2026-02-08T12:00:00Z"
 }
@@ -709,7 +721,8 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 {
   "username": "player_a",
   "password": "your-strong-password",
-  "role": "PLAYER"
+  "role": "PLAYER",
+  "display_name": "Player A"
 }
 ```
 - Response 201:
@@ -718,6 +731,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
   "user_id": "uuid",
   "username": "player_a",
   "role": "PLAYER",
+  "display_name": "Player A",
   "access_token": "jwt",
   "expires_at": "2026-02-08T12:00:00Z"
 }
@@ -729,20 +743,58 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ---
 
 ## 6. Endpoint Session
-### 6.1 Buat sesi
+Catatan akses:
+- Semua endpoint session mensyaratkan token Bearer.
+- `GET /api/v1/sessions` dapat dipakai Instruktur dan Player dengan scope data
+  berbeda.
+- Endpoint mutasi session hanya untuk role `INSTRUCTOR`.
+
+### 6.1 Ambil daftar sesi
+- Method: `GET`
+- Path: `/api/v1/sessions`
+- Otorisasi: `INSTRUCTOR` atau `PLAYER`
+- Response 200:
+```json
+{
+  "items": [
+    {
+      "session_id": "uuid",
+      "session_name": "Kelas A - Pertemuan 1",
+      "mode": "PEMULA",
+      "status": "CREATED",
+      "created_at": "2026-02-08T10:00:00Z",
+      "started_at": null,
+      "ended_at": null
+    }
+  ]
+}
+```
+
+Scope:
+- Instruktur melihat sesi miliknya.
+- Player melihat sesi yang memiliki peserta dengan `user_id` miliknya.
+
+---
+
+### 6.2 Buat sesi
 - Method: `POST`
 - Path: `/api/v1/sessions`
+- Otorisasi: `INSTRUCTOR`
 - Request:
 ```json
 {
   "session_name": "Kelas A - Pertemuan 1",
   "mode": "PEMULA",
-  "ruleset_id": "uuid"
+  "ruleset_version_id": "uuid"
 }
 ```
 - Response 201:
 ```json
-{ "session_id": "uuid" }
+{
+  "session_id": "uuid",
+  "ruleset_id": "uuid",
+  "ruleset_version_id": "uuid"
+}
 ```
 
 Status code:
@@ -752,9 +804,10 @@ Status code:
 
 ---
 
-### 6.2 Mulai sesi
+### 6.3 Mulai sesi
 - Method: `POST`
 - Path: `/api/v1/sessions/{sessionId}/start`
+- Otorisasi: `INSTRUCTOR`
 - Response 200:
 ```json
 { "status": "STARTED" }
@@ -762,9 +815,10 @@ Status code:
 
 ---
 
-### 6.3 Akhiri sesi
+### 6.4 Akhiri sesi
 - Method: `POST`
 - Path: `/api/v1/sessions/{sessionId}/end`
+- Otorisasi: `INSTRUCTOR`
 - Response 200:
 ```json
 { "status": "ENDED" }
@@ -772,8 +826,140 @@ Status code:
 
 ---
 
-## 7. Endpoint Event
-### 7.1 Kirim event tunggal
+### 6.5 Ambil state sesi
+- Method: `GET`
+- Path: `/api/v1/sessions/{sessionId}/state`
+- Otorisasi: `INSTRUCTOR`
+- Response 200 (ringkas):
+```json
+{
+  "session_id": "uuid",
+  "state_version": 3,
+  "day": 1,
+  "turn": 1,
+  "action_slots_left": 2,
+  "finish_day": 25,
+  "is_game_over": false,
+  "players": [
+    {
+      "session_player_id": "uuid",
+      "user_id": "uuid",
+      "player_order_no": 1,
+      "name": "Player A",
+      "coins": 20,
+      "happiness": 0,
+      "saving": 0
+    }
+  ],
+  "donationEvents": []
+}
+```
+
+---
+
+### 6.6 Tulis state sesi
+- Method: `PUT`
+- Path: `/api/v1/sessions/{sessionId}/state`
+- Otorisasi: `INSTRUCTOR`
+- Status: selalu `410 Gone` bila sesi ditemukan.
+- Response:
+```json
+{
+  "error_code": "STATE_WRITE_DISABLED",
+  "message": "State permainan hanya dapat diubah melalui event ingestion",
+  "details": [],
+  "trace_id": "00-...-..."
+}
+```
+
+Catatan: state gameplay tidak ditulis langsung. Semua perubahan state berasal
+dari event valid pada `POST /api/v1/events` atau `POST /api/v1/events/batch`.
+
+---
+
+## 7. Endpoint Player
+Catatan akses:
+- Semua endpoint Player mensyaratkan token Bearer.
+- Mutasi Player hanya untuk role `INSTRUCTOR`.
+- Resource Player merepresentasikan akun `app_users` role `PLAYER`.
+
+### 7.1 Buat akun Player
+- Method: `POST`
+- Path: `/api/v1/players`
+- Otorisasi: `INSTRUCTOR`
+- Request:
+```json
+{
+  "display_name": "Player A",
+  "username": "player_a",
+  "password": "your-strong-password"
+}
+```
+- Response 201:
+```json
+{
+  "user_id": "uuid",
+  "display_name": "Player A"
+}
+```
+
+---
+
+### 7.2 Ambil daftar Player
+- Method: `GET`
+- Path: `/api/v1/players`
+- Otorisasi: `INSTRUCTOR` atau `PLAYER`
+- Response 200:
+```json
+{
+  "items": [
+    { "user_id": "uuid", "display_name": "Player A" }
+  ]
+}
+```
+
+Scope:
+- Instruktur melihat Player yang dapat dikelola.
+- Player melihat data sesuai scope sesi yang diizinkan.
+
+---
+
+### 7.3 Tambah Player ke sesi
+- Method: `POST`
+- Path: `/api/v1/sessions/{sessionId}/players`
+- Otorisasi: `INSTRUCTOR`
+- Request:
+```json
+{
+  "user_id": "uuid",
+  "player_order_no": 1
+}
+```
+
+Alternatif lookup:
+```json
+{
+  "username": "player_a",
+  "player_order_no": 1
+}
+```
+
+- Response 200:
+```json
+{
+  "user_id": "uuid",
+  "player_order_no": 1
+}
+```
+
+Efek data:
+- Menambah atau memperbarui baris `session_participants`.
+- Menginisialisasi projection awal peserta sesi.
+
+---
+
+## 8. Endpoint Event
+### 8.1 Kirim event tunggal
 - Method: `POST`
 - Path: `/api/v1/events`
 - Request: sesuai struktur event umum bagian 3.1
@@ -791,7 +977,7 @@ Status code:
 
 ---
 
-### 7.2 Kirim event batch
+### 8.2 Kirim event batch
 - Method: `POST`
 - Path: `/api/v1/events/batch`
 - Request:
@@ -810,7 +996,7 @@ Status code:
 
 ---
 
-### 7.3 Ambil event per sesi
+### 8.3 Ambil event per sesi
 - Method: `GET`
 - Path: `/api/v1/sessions/{sessionId}/events?fromSeq=0&limit=200`
 - Response 200:
@@ -823,11 +1009,11 @@ Status code:
 
 ---
 
-## 8. Endpoint Ruleset
+## 9. Endpoint Ruleset
 Catatan akses:
 - Endpoint mutasi ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Endpoint ini dapat dipakai oleh Web Analitik MVC, Klien Game/IDN, atau integrasi API untuk kebutuhan manajemen ruleset Instruktur.
 
-### 8.1 Buat ruleset
+### 9.1 Buat ruleset
 - Method: `POST`
 - Path: `/api/v1/rulesets`
 - Request:
@@ -835,44 +1021,76 @@ Catatan akses:
 {
   "name": "Ruleset Default",
   "description": "Konfigurasi awal",
-  "config": { "..." }
+  "definition": { "..." }
 }
 ```
 
-Isi field `config` mengikuti struktur `config_json` pada `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` bagian 4.1. Contoh lengkap mode pemula dan mahir tersedia pada bagian 9 dokumen yang sama.
+Isi field `definition` mengikuti struktur JSON pada `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` bagian 4.1. Saat disimpan, API menormalisasi definisi tersebut ke tabel `ruleset_*`. Contoh lengkap mode pemula dan mahir tersedia pada bagian 9 dokumen yang sama.
 
 - Response 201:
 ```json
-{ "ruleset_id": "uuid", "version": 1 }
+{ "ruleset_id": "uuid", "ruleset_version_id": "uuid", "version": 1 }
 ```
 
 ---
 
-### 8.2 Update ruleset (menciptakan versi baru)
+### 9.2 Update ruleset (menciptakan versi baru)
 - Method: `PUT`
 - Path: `/api/v1/rulesets/{rulesetId}`
-- Response 200:
-```json
-{ "ruleset_id": "uuid", "version": 2 }
-```
-
----
-
-### 8.3 Aktivasi ruleset untuk sesi
-- Method: `POST`
-- Path: `/api/v1/sessions/{sessionId}/ruleset/activate`
 - Request:
 ```json
-{ "ruleset_id": "uuid", "version": 2 }
+{
+  "name": "Ruleset Default Revisi",
+  "description": "Konfigurasi revisi",
+  "definition": { "..." }
+}
 ```
 - Response 200:
 ```json
-{ "session_id": "uuid", "ruleset_version_id": "uuid" }
+{ "ruleset_id": "uuid", "ruleset_version_id": "uuid", "version": 2 }
 ```
 
 ---
 
-### 8.4 Ambil daftar ruleset
+### 9.3 Aktivasi versi ruleset
+- Method: `POST`
+- Path: `/api/v1/rulesets/{rulesetId}/versions/{version}/activate`
+- Response 200:
+```json
+{ "ruleset_id": "uuid", "ruleset_version_id": "uuid", "version": 2 }
+```
+
+Catatan: session tidak memiliki endpoint aktivasi ruleset. Sesi memilih
+`ruleset_version_id` langsung saat dibuat.
+
+---
+
+### 9.4 Hapus versi ruleset
+- Method: `DELETE`
+- Path: `/api/v1/rulesets/{rulesetId}/versions/{version}`
+- Otorisasi: `INSTRUCTOR`
+- Response: `204 No Content`
+
+Aturan:
+- Versi `ACTIVE` tidak boleh dihapus.
+- Versi terakhir tidak boleh dihapus via delete version.
+- Versi yang sudah dipakai sesi/event tidak boleh dihapus.
+
+---
+
+### 9.5 Hapus ruleset
+- Method: `DELETE`
+- Path: `/api/v1/rulesets/{rulesetId}`
+- Otorisasi: `INSTRUCTOR`
+- Response: `204 No Content`
+
+Aturan:
+- Ruleset default read-only dan tidak boleh dihapus.
+- Ruleset milik instruktur tidak boleh dihapus bila sudah terkunci sesi.
+
+---
+
+### 9.6 Ambil daftar ruleset
 - Method: `GET`
 - Path: `/api/v1/rulesets`
 - Response 200:
@@ -883,19 +1101,104 @@ Isi field `config` mengikuti struktur `config_json` pada `docs/01-Spesifikasi/01
       "ruleset_id": "uuid",
       "name": "Ruleset Default",
       "latest_version": 2,
-      "status": "ACTIVE"
+      "status": "ACTIVE",
+      "is_default": true,
+      "is_locked_by_session": false
     }
   ]
 }
 ```
 
 Keterangan:
-- Field `status` merepresentasikan status pada **versi terbaru** ruleset (`DRAFT`/`ACTIVE`/`RETIRED`).
+- Field `status` merepresentasikan status pada **versi terbaru** ruleset (`DRAFT`/`ACTIVE`/`ARCHIVED`).
 
 ---
 
-## 9. Endpoint Metrics dan Dashboard
-### 9.1 Ambil metrik sesi
+### 9.7 Ambil detail ruleset
+- Method: `GET`
+- Path: `/api/v1/rulesets/{rulesetId}`
+- Response 200 (ringkas):
+```json
+{
+  "ruleset_id": "uuid",
+  "name": "Ruleset Default",
+  "description": "Konfigurasi awal",
+  "versions": [
+    { "ruleset_version_id": "uuid", "version": 1, "status": "ACTIVE", "created_at": "2026-02-08T10:00:00Z" }
+  ],
+  "ruleset_version_id": "uuid",
+  "version": 1,
+  "mode": "PEMULA",
+  "definition": { "...": "..." },
+  "is_default": true,
+  "is_locked_by_session": false
+}
+```
+
+---
+
+### 9.8 Ambil komponen ruleset
+- Method: `GET`
+- Path: `/api/v1/rulesets/{rulesetId}/components?version=1`
+- Response 200:
+```json
+{
+  "ruleset_id": "uuid",
+  "ruleset_version_id": "uuid",
+  "version": 1,
+  "mode": "PEMULA",
+  "definition": { "...": "..." }
+}
+```
+
+---
+
+### 9.9 Ambil komponen default
+- Method: `GET`
+- Path: `/api/v1/rulesets/components/defaults?mode=PEMULA`
+- Alias: `GET /api/v1/game-components`
+- Response 200:
+```json
+{
+  "items": [
+    {
+      "ruleset_id": "uuid",
+      "name": "Default Pemula",
+      "description": "Komponen default",
+      "ruleset_version_id": "uuid",
+      "version": 1,
+      "mode": "PEMULA",
+      "definition": { "...": "..." }
+    }
+  ]
+}
+```
+
+---
+
+### 9.10 Ambil section ruleset
+- Method: `GET`
+- Path: `/api/v1/rulesets/sections?mode=PEMULA&rulesetId=uuid`
+- Response 200:
+```json
+{
+  "ruleset_id": "uuid",
+  "ruleset_version_id": "uuid",
+  "mode": "PEMULA",
+  "gameConfig": {},
+  "bahan": {},
+  "resep": {},
+  "kebutuhan": {},
+  "targetKebutuhan": {},
+  "tujuanFinansial": {},
+  "narasi": {}
+}
+```
+
+---
+
+## 10. Endpoint Metrics dan Dashboard
+### 10.1 Ambil metrik sesi
 - Method: `GET`
 - Path: `/api/v1/analytics/sessions/{sessionId}`
 - Response 200:
@@ -911,11 +1214,17 @@ Keterangan:
   },
   "by_player": [
     {
-      "player_id": "uuid",
+      "user_id": "uuid",
+      "player_order_no": 1,
       "cash_in_total": 120,
       "cash_out_total": 90,
       "donation_total": 10,
       "gold_qty": 2,
+      "orders_completed_count": 3,
+      "inventory_ingredient_total": 4,
+      "actions_used_total": 12,
+      "compliance_primary_need_rate": 0.8,
+      "rules_violations_count": 0,
       "happiness_points_total": 14,
       "need_points_total": 6,
       "need_set_bonus_points": 4,
@@ -933,9 +1242,9 @@ Keterangan:
 
 ---
 
-### 9.2 Ambil histori transaksi
+### 10.2 Ambil histori transaksi
 - Method: `GET`
-- Path: `/api/v1/analytics/sessions/{sessionId}/transactions?playerId=uuid`
+- Path: `/api/v1/analytics/sessions/{sessionId}/transactions?userId=uuid`
 - Response 200:
 ```json
 {
@@ -947,28 +1256,58 @@ Keterangan:
 
 ---
 
-### 9.3 Ambil snapshot metrik gameplay (raw + derived)
+### 10.3 Ambil snapshot metrik gameplay
 - Method: `GET`
-- Path: `/api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay`
+- Path: `/api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay`
 - Response 200:
 ```json
 {
   "session_id": "uuid",
-  "player_id": "uuid",
+  "user_id": "uuid",
   "computed_at": "2026-02-03T11:20:00Z",
-  "raw": { "...": "..." },
-  "derived": { "...": "..." }
+  "economy": {
+    "starting_cash": 20,
+    "cash_in_total": 120,
+    "cash_out_total": 90,
+    "cashflow_net_total": 30,
+    "donation_total": 10
+  },
+  "progress": {
+    "gold_qty": 2,
+    "orders_completed_count": 3,
+    "inventory_ingredient_total": 4,
+    "actions_used_total": 12
+  },
+  "score": {
+    "happiness_points_total": 14,
+    "need_points_total": 6,
+    "need_set_bonus_points": 4,
+    "donation_points_total": 5,
+    "gold_points_total": 3,
+    "pension_points_total": 3,
+    "saving_goal_points_total": 3,
+    "mission_penalty_total": 10,
+    "loan_penalty_total": 0,
+    "has_unpaid_loan": false
+  },
+  "compliance": {
+    "primary_need_rate": 0.8,
+    "rules_violations_count": 0
+  }
 }
 ```
 
 Catatan:
-- `raw` berisi variabel gameplay fisik.
-- `derived` berisi metrik turunan dari variabel fisik.
+- Response gameplay API saat ini disajikan dalam empat kelompok:
+  `economy`, `progress`, `score`, dan `compliance`.
+- Snapshot JSON mentah/turunan tetap dapat disimpan pada `metric_snapshots`
+  dengan nama `gameplay.raw.variables` dan `gameplay.derived.metrics` sebagai
+  sumber perhitungan.
 - Struktur lengkap mengikuti dokumen `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md`.
 
 ---
 
-### 9.4 Ambil ringkasan analitika per ruleset
+### 10.4 Ambil ringkasan analitika per ruleset
 - Method: `GET`
 - Path: `/api/v1/analytics/rulesets/{rulesetId}/summary`
 - Response 200:
@@ -989,7 +1328,7 @@ Catatan:
       "mission_performance_aggregate_score": 66.0,
       "players": [
         {
-          "player_id": "uuid",
+          "user_id": "uuid",
           "learning_performance_individual_score": 74.0,
           "mission_performance_individual_score": 68.0
         }
@@ -1001,34 +1340,23 @@ Catatan:
 
 ---
 
-### 9.5 Ambil metrik operasional observability
+### 10.5 Ambil metrik operasional observability
 - Method: `GET`
-- Path: `/api/v1/observability/metrics?top=20`
+- Path: `/api/v1/observability/metrics/summary`
 - Otorisasi: `INSTRUCTOR`
 - Response 200 (ringkas):
 ```json
 {
-  "generated_at": "2026-02-17T10:30:00Z",
-  "total_requests": 1200,
-  "total_errors": 12,
-  "error_rate_percent": 1.0,
-  "endpoints": [
-    {
-      "method": "GET",
-      "route_pattern": "api/v1/analytics/sessions/{sessionId:guid}",
-      "request_count": 320,
-      "error_count": 0,
-      "error_rate_percent": 0,
-      "average_duration_ms": 210.6,
-      "p95_duration_ms": 842.1
-    }
-  ]
+  "message": "Metrics available at /metrics (Prometheus format)"
 }
 ```
 
+Catatan: metrik operasional detail tersedia pada `GET /metrics` dalam format
+Prometheus pada service API.
+
 ---
 
-### 9.6 Ambil audit log keamanan
+### 10.6 Ambil audit log keamanan
 - Method: `GET`
 - Path: `/api/v1/security/audit-logs?limit=100&eventType=AUTH_FORBIDDEN`
 - Otorisasi: `INSTRUCTOR`
@@ -1052,7 +1380,7 @@ Catatan:
 
 ---
 
-## 10. Status Code dan Makna
+## 11. Status Code dan Makna
 | Status | Makna |
 |---:|---|
 | 200 | Request berhasil. |
@@ -1068,7 +1396,7 @@ Catatan:
 
 ---
 
-## 11. Checklist Konsistensi (Event–API–Data)
+## 12. Checklist Konsistensi (Event-API-Data)
 Dokumen ini konsisten jika:
 1. Setiap event memiliki definisi payload dan validasi.
 2. Setiap endpoint memiliki request/response dan status code.

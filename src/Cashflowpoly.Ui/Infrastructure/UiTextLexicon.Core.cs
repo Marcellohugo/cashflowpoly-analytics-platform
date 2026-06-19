@@ -8,7 +8,6 @@ internal static partial class UiTextLexicon
         terms["nav.sessions"] = ("Sesi Permainan", "Game Sessions");
         terms["nav.players"] = ("Direktori Pemain", "Player Directory");
         terms["nav.ruleset"] = ("Set Aturan", "Rulesets");
-        terms["nav.components"] = ("Komponen", "Components");
         terms["nav.privacy"] = ("Buku Aturan", "Rulebook");
         terms["auth.login"] = ("Masuk", "Sign In");
         terms["auth.logout"] = ("Keluar", "Logout");
@@ -87,9 +86,6 @@ internal static partial class UiTextLexicon
         terms["layout.quickstart.player.step4.title"] = ("Rujuk Buku Aturan", "Consult the Rulebook");
         terms["layout.quickstart.player.step4.desc"] = ("Gunakan Buku Aturan untuk memastikan istilah dan mekanik yang digunakan.", "Use the Rulebook to confirm the terms and mechanics being used.");
         terms["footer.rulebook_copyright"] = ("Hak Cipta Buku Aturan", "Rulebook Copyright");
-        terms["components.management"] = ("Referensi Komponen", "Component Reference");
-        terms["components.title"] = ("Katalog Komponen Permainan", "Gameplay Component Catalog");
-        terms["components.subtitle"] = ("Baca komponen bawaan Pemula dan Mahir yang menjadi dasar susunan ruleset.", "Read the built-in Beginner and Advanced components used as ruleset foundations.");
         terms["components.total_components"] = ("Total Komponen", "Total Components");
         terms["home.badge"] = ("Cashflowpoly", "Cashflowpoly");
         terms["home.title"] = ("Dashboard Analitika Cashflowpoly.", "Cashflowpoly Analytics Dashboard.");

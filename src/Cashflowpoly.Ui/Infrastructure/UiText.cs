@@ -20,8 +20,8 @@ public static class UiText
         return normalized switch
         {
             "CREATED" => Translate(culture, "status.session.created"),
-            "STARTED" => Translate(culture, "status.session.started"),
-            "ENDED" => Translate(culture, "status.session.ended"),
+            "STARTED" => Translate(culture, "status.MulaiSesi"),
+            "ENDED" => Translate(culture, "status.AkhiriSesi"),
             "CANCELLED" => Translate(culture, "status.session.cancelled"),
             "CANCELED" => Translate(culture, "status.session.cancelled"),
             _ => string.IsNullOrWhiteSpace(status) ? Translate(culture, "status.session.unknown") : status!
@@ -35,7 +35,7 @@ public static class UiText
         {
             "ACTIVE" => Translate(culture, "status.ruleset.active"),
             "DRAFT" => Translate(culture, "status.ruleset.draft"),
-            "RETIRED" => Translate(culture, "status.ruleset.retired"),
+            "ARCHIVED" => Translate(culture, "status.ruleset.retired"),
             _ => string.IsNullOrWhiteSpace(status) ? Translate(culture, "status.ruleset.unknown") : status!
         };
     }

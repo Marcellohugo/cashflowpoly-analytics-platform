@@ -1,10 +1,10 @@
-﻿# Variabel Gameplay Fisik dan Metrik Turunan
+# Variabel Gameplay Fisik dan Metrik Turunan
 ## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Variabel Gameplay Fisik dan Metrik Turunan
-- Versi: 1.2
-- Tanggal: 22 Februari 2026
+- Versi: 1.3
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -25,10 +25,10 @@ Sistem menggunakan sumber data berikut:
 - `ruleset` aktif untuk nilai seperti `starting_cash`, `actions_per_turn`, dan aturan batasan.
 
 Konvensi pengelompokan:
-- Per sesi: agregasi semua pemain (`player_id = null`).
-- Per pemain: agregasi berdasarkan `player_id`.
+- Per sesi: agregasi semua pemain (`user_id = null`, `session_player_id = null`).
+- Per Player: agregasi berdasarkan `user_id` akun Player dan, bila tersedia, `session_player_id` peserta sesi.
 - Per hari: gunakan `day_index` dan `weekday` pada event.
-- Per giliran: gunakan `turn_number` pada event.
+- Per giliran: gunakan `action_slot` pada event.
 
 ---
 
@@ -39,10 +39,11 @@ Variabel berikut diamati dari komponen game dan diturunkan dari event log.
 **Variabel Gameplay Mentah (Teramati):**
 - `game_id`
 - `session_id`
-- `player_id`
+- `user_id`
+- `session_player_id`
 - `player_alias`
 - `game_mode` (`beginner` atau `advanced`)
-- `turn_number`
+- `action_slot`
 - `day_label`
 - `action_slot`
 - `event_timestamp`
@@ -194,9 +195,9 @@ action_diversity_score = distinct_action_types / 2
 ### 1.11 Variabel Progresi per Giliran
 - `coins_per_turn_progression`
 - `net_income_per_turn`
-- `turn_number_when_debt_introduced`
-- `turn_number_when_first_risk_hit`
-- `turn_number_game_completion`
+- `action_slot_when_debt_introduced`
+- `action_slot_when_first_risk_hit`
+- `action_slot_game_completion`
 
 ```
 growth_pattern = coins_end / coins_start

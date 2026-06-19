@@ -84,12 +84,12 @@ public sealed class PlayerDirectoryController : Controller
                     StartedAt = x.session.StartedAt,
                     EndedAt = x.session.EndedAt,
                     Players = x.analytics!.ByPlayer
-                        .OrderBy(p => p.JoinOrder > 0 ? p.JoinOrder : int.MaxValue)
+                        .OrderBy(p => p.PlayerOrder > 0 ? p.PlayerOrder : int.MaxValue)
                         .ThenBy(p => p.UserId)
                         .Select((p, index) => new PlayerSessionEntryViewModel
                         {
                             PlayerId = p.UserId,
-                            JoinOrder = p.JoinOrder > 0 ? p.JoinOrder : index + 1,
+                            PlayerOrder = p.PlayerOrder > 0 ? p.PlayerOrder : index + 1,
                             DisplayName = playerMap.TryGetValue(p.UserId, out var displayName) ? displayName : p.UserId.ToString(),
                             CashInTotal = p.CashInTotal,
                             CashOutTotal = p.CashOutTotal,

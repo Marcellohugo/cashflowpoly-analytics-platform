@@ -119,10 +119,10 @@ internal static partial class UiTextLexicon
         terms["rulesets.form.mode"] = ("Mode", "Mode");
         terms["rulesets.form.mode_beginner"] = ("PEMULA", "BEGINNER");
         terms["rulesets.form.mode_advanced"] = ("MAHIR", "ADVANCED");
-        terms["rulesets.form.actions_per_turn"] = ("Jumlah Aksi per Giliran", "Actions per Turn");
+        terms["rulesets.form.actions_per_turn"] = ("Jumlah Aksi per Hari Pemain", "Actions per Player Day");
         terms["rulesets.form.starting_cash"] = ("Kas Awal per Pemain", "Starting Cash per Player");
         terms["rulesets.form.player_ordering"] = ("Urutan Pemain", "Player Ordering");
-        terms["rulesets.form.player_ordering_join_order"] = ("Urutan Bergabung (Sesi)", "Join Order (Session)");
+        terms["rulesets.form.player_ordering_player_order"] = ("Urutan Bergabung (Sesi)", "Join Order (Session)");
         terms["rulesets.form.player_ordering_instructor_order"] = ("Urutan Instruktur (Username)", "Instructor Order (Username)");
         terms["rulesets.form.player_ordering_fixed_hint"] = ("Urutan pemain ditetapkan instruktur melalui username Player 1-4.", "Player order is fixed by instructor via Player 1-4 usernames.");
         terms["rulesets.form.player_slots_title"] = ("Mapping Player 1-4 (Username)", "Player 1-4 Mapping (Username)");
@@ -154,7 +154,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.form.saving_goal_enabled"] = ("Target Tabungan Aktif", "Saving Goal Enabled");
         terms["rulesets.form.description_placeholder"] = ("Contoh: Simulasi panjang dengan fokus misi dan kepatuhan aturan.", "Example: Long simulation focused on mission and rules compliance.");
         terms["rulesets.form.description_hint"] = ("Deskripsi menjelaskan tujuan/karakter aturan. Nomor versi dibuat otomatis oleh sistem.", "Description should explain the rule intent/character. Version numbers are generated automatically.");
-        terms["rulesets.form.help.core_setup"] = ("Atur mode permainan, jumlah aksi, kas awal, urutan pemain, dan hasil kerja lepas.", "Set the game mode, actions per turn, starting cash, player ordering, and freelance reward.");
+        terms["rulesets.form.help.core_setup"] = ("Atur mode permainan, jumlah aksi harian pemain, kas awal, urutan pemain, dan hasil kerja lepas.", "Set the game mode, daily player actions, starting cash, player ordering, and freelance reward.");
         terms["rulesets.form.help.weekday_features"] = ("Tentukan apakah event khusus Jumat/Sabtu/Minggu berjalan di sesi ini.", "Decide whether Friday/Saturday/Sunday special events are enabled in this session.");
         terms["rulesets.form.help.constraints"] = ("Batasan ini menjaga permainan tetap sesuai aturan stok bahan, kas, dan urutan kebutuhan.", "These constraints keep gameplay aligned with inventory, cash floor, and need-order rules.");
         terms["rulesets.form.help.economy_advanced"] = ("Atur rentang donasi, izin transaksi emas, dan fitur khusus mode mahir.", "Set donation range, gold trade permissions, and advanced-mode features.");
@@ -165,7 +165,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.error.invalid_detail_response"] = ("Respons rincian set aturan tidak valid.", "Invalid ruleset detail response.");
         terms["rulesets.error.load_for_edit_failed"] = ("Gagal memuat set aturan untuk diedit. Status: {status}", "Failed to load ruleset for editing. Status: {status}");
         terms["rulesets.error.name_required"] = ("Nama set aturan wajib diisi.", "Ruleset name is required.");
-        terms["rulesets.error.invalid_config_json"] = ("JSON konfigurasi tidak valid.", "Configuration JSON is invalid.");
+        terms["rulesets.error.invalid_definition_json"] = ("Definition JSON tidak valid.", "Definition JSON is invalid.");
         terms["rulesets.error.create_failed"] = ("Gagal membuat set aturan. Status: {status}", "Failed to create ruleset. Status: {status}");
         terms["rulesets.error.update_failed"] = ("Gagal memperbarui set aturan. Status: {status}", "Failed to update ruleset. Status: {status}");
         terms["rulesets.error.activate_version_failed"] = ("Gagal mengaktifkan versi set aturan", "Failed to activate ruleset version");

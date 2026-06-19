@@ -159,36 +159,51 @@ public sealed class PlayersController : ControllerBase
                 new ErrorDetail("username", "REQUIRED")));
         }
 
-        if (request.JoinOrder is <= 0)
+        if (request.PlayerOrder is <= 0)
         {
             return BadRequest(ApiErrorHelper.BuildError(
                 HttpContext,
                 "VALIDATION_ERROR",
-                "Join order minimal 1",
-                new ErrorDetail("join_order", "OUT_OF_RANGE")));
+                "Seat number minimal 1",
+                new ErrorDetail("player_order_no", "OUT_OF_RANGE")));
         }
 
-        if (request.JoinOrder is > SessionRules.MaxPlayersPerSession)
+        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
+        if (!activeRulesetVersionId.HasValue)
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(
                 HttpContext,
                 "DOMAIN_RULE_VIOLATION",
-                $"Join order maksimal {SessionRules.MaxPlayersPerSession}"));
+                "Session belum memiliki ruleset aktif"));
         }
 
-        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
         var requiresInstructorOrder = false;
         var instructorOrderLookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        if (activeRulesetVersionId.HasValue)
+        var activeRulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
+        if (activeRulesetVersion?.Definition is null ||
+            !string.Equals(activeRulesetVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(activeRulesetVersion.Mode, session.Mode, StringComparison.OrdinalIgnoreCase))
         {
-            var activeRulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
-            if (activeRulesetVersion is not null &&
-                RulesetConfigParser.TryParse(activeRulesetVersion.ConfigJson, out var activeConfig, out _) &&
-                activeConfig?.PlayerOrdering == PlayerOrdering.InstructorOrder)
-            {
-                requiresInstructorOrder = true;
-                instructorOrderLookup = BuildInstructorOrderLookup(activeRulesetVersion.ConfigJson);
-            }
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset aktif session tidak valid"));
+        }
+
+        var maxPlayers = activeRulesetVersion.Definition.Settings.MaxPlayers;
+        if (request.PlayerOrder is > 0 && request.PlayerOrder > maxPlayers)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                $"Seat number maksimal {maxPlayers}"));
+        }
+
+        if (RulesetRuntimeMapper.TryBuildConfig(activeRulesetVersion.Definition, out var activeConfig, out _) &&
+            activeConfig?.PlayerOrdering == PlayerOrdering.InstructorOrder)
+        {
+            requiresInstructorOrder = true;
+            instructorOrderLookup = BuildInstructorOrderLookup(activeRulesetVersion.Definition, maxPlayers);
         }
 
         PlayerDb? player = null;
@@ -207,8 +222,8 @@ public sealed class PlayersController : ControllerBase
         }
 
         var userId = player.UserId;
-        var resolvedJoinOrder = request.JoinOrder;
-        if (requiresInstructorOrder && !resolvedJoinOrder.HasValue)
+        var resolvedPlayerOrder = request.PlayerOrder;
+        if (requiresInstructorOrder && !resolvedPlayerOrder.HasValue)
         {
             var requestedUsername = string.IsNullOrWhiteSpace(request.Username)
                 ? null
@@ -222,53 +237,40 @@ public sealed class PlayersController : ControllerBase
             }
 
             if (!string.IsNullOrWhiteSpace(requestedUsername) &&
-                instructorOrderLookup.TryGetValue(requestedUsername.Trim(), out var inferredJoinOrder))
+                instructorOrderLookup.TryGetValue(requestedUsername.Trim(), out var inferredPlayerOrder))
             {
-                resolvedJoinOrder = inferredJoinOrder;
+                resolvedPlayerOrder = inferredPlayerOrder;
             }
         }
 
-        if (requiresInstructorOrder && !resolvedJoinOrder.HasValue)
+        if (requiresInstructorOrder && !resolvedPlayerOrder.HasValue)
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(
                 HttpContext,
                 "DOMAIN_RULE_VIOLATION",
-                "Ruleset mewajibkan join_order atau username yang terdaftar pada slot Player 1-4"));
+                "Ruleset mewajibkan player_order_no atau username yang terdaftar pada slot Player 1-4"));
         }
 
         var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, userId, ct);
         if (!alreadyInSession)
         {
             var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
-            if (playersInSession >= SessionRules.MaxPlayersPerSession)
+            if (playersInSession >= maxPlayers)
             {
                 return UnprocessableEntity(ApiErrorHelper.BuildError(
                     HttpContext,
                     "DOMAIN_RULE_VIOLATION",
-                    $"Sesi maksimal {SessionRules.MaxPlayersPerSession} pemain"));
+                    $"Sesi maksimal {maxPlayers} pemain"));
             }
         }
 
-        var role = string.IsNullOrWhiteSpace(request.Role)
-            ? "PLAYER"
-            : request.Role.Trim().ToUpperInvariant();
-        if (!string.Equals(role, "PLAYER", StringComparison.Ordinal))
-        {
-            return BadRequest(ApiErrorHelper.BuildError(
-                HttpContext,
-                "VALIDATION_ERROR",
-                "Role tidak valid",
-                new ErrorDetail("role", "INVALID_ENUM")));
-        }
-
-        var joinOrder = await _players.AddPlayerToSessionAndAssignJoinOrderAsync(
+        var playerOrder = await _players.AddPlayerToSessionAndAssignPlayerOrderAsync(
             sessionId,
             userId,
-            role,
-            resolvedJoinOrder,
+            resolvedPlayerOrder,
             ct);
 
-        return Ok(new AddSessionPlayerResponse(userId, joinOrder));
+        return Ok(new AddSessionPlayerResponse(userId, playerOrder));
     }
 
     private bool TryGetCurrentUserId(out Guid userId)
@@ -277,47 +279,28 @@ public sealed class PlayersController : ControllerBase
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    private static Dictionary<string, int> BuildInstructorOrderLookup(string configJson)
+    private static Dictionary<string, int> BuildInstructorOrderLookup(RulesetDefinitionDto definition, int maxPlayers)
     {
         var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        try
+        var position = 1;
+        foreach (var username in definition.PlayerOrdering.InstructorPlayerUsernames)
         {
-            using var doc = JsonDocument.Parse(configJson);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("instructor_player_usernames", out var slotArray) ||
-                slotArray.ValueKind != JsonValueKind.Array)
+            if (position > maxPlayers)
             {
-                return result;
+                break;
             }
 
-            var position = 1;
-            foreach (var item in slotArray.EnumerateArray())
+            if (!string.IsNullOrWhiteSpace(username))
             {
-                if (position > SessionRules.MaxPlayersPerSession)
+                var normalized = username.Trim();
+                if (!result.ContainsKey(normalized))
                 {
-                    break;
+                    result[normalized] = position;
                 }
-
-                if (item.ValueKind == JsonValueKind.String)
-                {
-                    var username = item.GetString();
-                    if (!string.IsNullOrWhiteSpace(username))
-                    {
-                        var normalized = username.Trim();
-                        if (!result.ContainsKey(normalized))
-                        {
-                            result[normalized] = position;
-                        }
-                    }
-                }
-
-                position++;
             }
-        }
-        catch (JsonException)
-        {
-            return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            position++;
         }
 
         return result;

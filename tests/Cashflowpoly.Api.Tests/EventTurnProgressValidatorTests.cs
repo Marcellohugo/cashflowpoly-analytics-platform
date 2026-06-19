@@ -10,50 +10,23 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class EventTurnProgressValidatorTests
 {
     [Fact]
-    public void RequiresHistory_ReturnsTrueForActionUsed()
+    public void RequiresHistory_ReturnsFalseForLegacyActionUsed()
     {
         var request = CreateRequest("turn.action.used", """{"used":1,"remaining":2}""");
 
         var requiresHistory = new EventTurnProgressValidator().RequiresHistory(request, CreateConfig());
 
+        Assert.False(requiresHistory);
+    }
+
+    [Fact]
+    public void RequiresHistory_ReturnsTrueForAkhirGiliranMahir()
+    {
+        var request = CreateRequest("AkhirGiliran", "{}");
+
+        var requiresHistory = new EventTurnProgressValidator().RequiresHistory(request, CreateConfig(mode: "MAHIR"));
+
         Assert.True(requiresHistory);
-    }
-
-    [Fact]
-    public void TryValidateActionUsed_RejectsExceededActionLimit()
-    {
-        var playerId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var request = CreateRequest("turn.action.used", """{"used":2,"remaining":0}""", sessionId, playerId);
-        var history = new[]
-        {
-            CreateEvent("turn.action.used", """{"used":2,"remaining":1}""", sessionId, playerId, turnNumber: 1)
-        };
-
-        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(actionsPerTurn: 3), history, out var result);
-
-        Assert.True(handled);
-        Assert.False(result.IsValid);
-        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.StatusCode);
-        Assert.Equal("DOMAIN_RULE_VIOLATION", result.ErrorCode);
-        Assert.Equal("Jumlah token aksi melebihi batas ruleset", result.Message);
-    }
-
-    [Fact]
-    public void TryValidateActionUsed_AcceptsUsageWithinLimit()
-    {
-        var playerId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var request = CreateRequest("turn.action.used", """{"used":1,"remaining":1}""", sessionId, playerId);
-        var history = new[]
-        {
-            CreateEvent("turn.action.used", """{"used":1,"remaining":2}""", sessionId, playerId, turnNumber: 1)
-        };
-
-        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(actionsPerTurn: 3), history, out var result);
-
-        Assert.True(handled);
-        Assert.True(result.IsValid);
     }
 
     [Fact]
@@ -61,10 +34,10 @@ public sealed class EventTurnProgressValidatorTests
     {
         var playerId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var request = CreateRequest("turn.ended", "{}", sessionId, playerId);
+        var request = CreateRequest("AkhirGiliran", "{}", sessionId, playerId);
         var history = new[]
         {
-            CreateEvent("order.claimed", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, turnNumber: 1)
+            CreateEvent("JualMasakan", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, actionSlot: 1)
         };
 
         var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, out var result);
@@ -103,7 +76,7 @@ public sealed class EventTurnProgressValidatorTests
         string payloadJson,
         Guid sessionId,
         Guid playerId,
-        int turnNumber)
+        int actionSlot)
     {
         return new EventDb
         {
@@ -114,7 +87,7 @@ public sealed class EventTurnProgressValidatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = turnNumber,
+            ActionSlot = actionSlot,
             SequenceNumber = 0,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
@@ -128,7 +101,7 @@ public sealed class EventTurnProgressValidatorTests
             mode,
             actionsPerTurn,
             StartingCash: 20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             CashMin: 0,
             MaxIngredientTotal: 10,
             MaxSameIngredient: 5,

@@ -13,7 +13,7 @@ public sealed record AnalyticsIngredientMealMetrics(
     int MealOrdersClaimed,
     int MealOrdersPassed,
     int MealOrderIncomeTotal,
-    int MaxTurnNumber,
+    int MaxActionSlot,
     double MealOrdersPerTurnAverage,
     double EssentialIngredientExpenses);
 
@@ -28,7 +28,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
     {
         var ingredientPurchaseMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var ingredientsCollected = 0;
-        foreach (var evt in playerEvents.Where(e => e.ActionType == "ingredient.purchased"))
+        foreach (var evt in playerEvents.Where(e => e.ActionType == "BahanMasakan"))
         {
             if (_payloadReader.TryReadIngredientPurchaseDetailed(evt.Payload, out var cardId, out var ingredientName, out var amount))
             {
@@ -62,12 +62,12 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         }
 
         var ingredientsUsedTotal = playerEvents
-            .Where(e => e.ActionType == "order.claimed")
+            .Where(e => e.ActionType == "JualMasakan")
             .Select(e => _payloadReader.TryReadOrderClaim(e.Payload, out var cards, out _) ? cards.Count : 0)
             .Sum();
 
         var ingredientsWasted = playerEvents
-            .Where(e => e.ActionType == "ingredient.discarded")
+            .Where(e => e.ActionType == "BuangBahanMasakan")
             .Select(e => _payloadReader.TryReadIngredientPurchase(e.Payload, out _, out var amount) ? amount : 0)
             .Sum();
 
@@ -76,7 +76,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             .Sum(p => p.Amount);
 
         var mealOrderIncomeValues = new List<int>();
-        foreach (var evt in playerEvents.Where(e => e.ActionType == "order.claimed"))
+        foreach (var evt in playerEvents.Where(e => e.ActionType == "JualMasakan"))
         {
             if (_payloadReader.TryReadOrderClaim(evt.Payload, out _, out var income))
             {
@@ -85,10 +85,10 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         }
 
         var mealOrdersClaimed = mealOrderIncomeValues.Count;
-        var mealOrdersPassed = playerEvents.Count(e => e.ActionType == "order.passed");
+        var mealOrdersPassed = playerEvents.Count(e => e.ActionType == "LewatiOrder");
         var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
-        var maxTurnNumber = playerEvents.Count == 0 ? 0 : playerEvents.Max(e => e.TurnNumber);
-        var mealOrdersPerTurnAverage = maxTurnNumber > 0 ? (double)mealOrdersClaimed / maxTurnNumber : 0;
+        var maxActionSlot = playerEvents.Count == 0 ? 0 : playerEvents.Max(e => e.ActionSlot);
+        var mealOrdersPerTurnAverage = maxActionSlot > 0 ? (double)mealOrdersClaimed / maxActionSlot : 0;
         var essentialIngredientExpenses = ComputeEssentialIngredientExpenses(playerEvents);
 
         return new AnalyticsIngredientMealMetrics(
@@ -102,7 +102,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             mealOrdersClaimed,
             mealOrdersPassed,
             mealOrderIncomeTotal,
-            maxTurnNumber,
+            maxActionSlot,
             mealOrdersPerTurnAverage,
             essentialIngredientExpenses);
     }
@@ -114,7 +114,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
 
         foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
         {
-            if (evt.ActionType == "ingredient.purchased" &&
+            if (evt.ActionType == "BahanMasakan" &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var purchasedCardId, out var purchaseAmount) &&
                 !string.IsNullOrWhiteSpace(purchasedCardId))
             {
@@ -127,7 +127,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
                 queue.Enqueue(Math.Max(0, purchaseAmount));
             }
 
-            if (evt.ActionType == "order.claimed" &&
+            if (evt.ActionType == "JualMasakan" &&
                 _payloadReader.TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
             {
                 foreach (var requiredCard in requiredCards)

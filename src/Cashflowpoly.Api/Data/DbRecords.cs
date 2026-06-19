@@ -1,3 +1,5 @@
+using Cashflowpoly.Api.Contracts;
+
 namespace Cashflowpoly.Api.Data;
 
 /// <summary>
@@ -9,8 +11,10 @@ public sealed class RulesetDb
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public Guid? InstructorUserId { get; set; }
+    public bool IsArchived { get; set; }
+    public DateTimeOffset? ArchivedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
-    public string? CreatedBy { get; set; }
+    public Guid? CreatedByUserId { get; set; }
 }
 
 /// <summary>
@@ -23,10 +27,10 @@ public sealed class RulesetVersionDb
     public int Version { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Mode { get; set; }
-    public string ConfigJson { get; set; } = string.Empty;
+    public RulesetDefinitionDto? Definition { get; set; }
     public string ConfigHash { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
-    public string? CreatedBy { get; set; }
+    public Guid? CreatedByUserId { get; set; }
 }
 
 /// <summary>
@@ -40,7 +44,7 @@ public sealed class DefaultRulesetComponentDb
     public Guid RulesetVersionId { get; set; }
     public int Version { get; set; }
     public string? Mode { get; set; }
-    public string ConfigJson { get; set; } = string.Empty;
+    public RulesetDefinitionDto? Definition { get; set; }
 }
 
 /// <summary>
@@ -55,6 +59,9 @@ public sealed class SessionDb
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
     public Guid? InstructorUserId { get; set; }
+    public Guid RulesetVersionId { get; set; }
+    public bool IsArchived { get; set; }
+    public DateTimeOffset? ArchivedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 
@@ -87,10 +94,13 @@ public sealed class EventDb
     public int DayIndex { get; set; }
     public string Weekday { get; set; } = string.Empty;
     public int TurnNumber { get; set; }
+    public int ActionSlot { get; set; }
     public long SequenceNumber { get; set; }
+    public Guid RulesetActionId { get; set; }
     public string? ActionId { get; set; }
     public string ActionType { get; set; } = string.Empty;
     public Guid RulesetVersionId { get; set; }
+    public string PayloadVersion { get; set; } = "1.0";
     public string Payload { get; set; } = string.Empty;
     public DateTimeOffset ReceivedAt { get; set; }
     public string? ClientRequestId { get; set; }
@@ -106,6 +116,7 @@ public sealed class CashflowProjectionDb
     public Guid UserId { get; set; }
     public Guid EventPk { get; set; }
     public Guid EventId { get; set; }
+    public int ProjectionOrder { get; set; } = 1;
     public DateTimeOffset Timestamp { get; set; }
     public string Direction { get; set; } = string.Empty;
     public int Amount { get; set; }
@@ -129,6 +140,7 @@ public sealed class MetricSnapshotDb
     public double? MetricValueNumeric { get; set; }
     public string? MetricValueJson { get; set; }
     public Guid RulesetVersionId { get; set; }
+    public Guid? LastEventId { get; set; }
 }
 
 /// <summary>
@@ -138,6 +150,13 @@ public sealed class MetricSnapshotJsonDb
 {
     public string MetricName { get; set; } = string.Empty;
     public string? MetricValueJson { get; set; }
+    public DateTimeOffset ComputedAt { get; set; }
+}
+
+public sealed class MetricSnapshotValueDb
+{
+    public string MetricName { get; set; } = string.Empty;
+    public double? MetricValueNumeric { get; set; }
     public DateTimeOffset ComputedAt { get; set; }
 }
 

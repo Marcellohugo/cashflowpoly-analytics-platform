@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Setup Lingkungan
-- Versi: 1.1
-- Tanggal: 15 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -24,7 +24,7 @@ Sistem membutuhkan komponen berikut pada mesin pengembang.
 | 3 | Google Chrome | Menguji antarmuka web, mengakses Swagger UI, dan memverifikasi tampilan dasbor |
 | 4 | ASP.NET Core 10 | Mengembangkan layanan RESTful API dan aplikasi web MVC |
 | 5 | ASP.NET Core MVC (Razor Views) | Membangun Web Analitik, manajemen ruleset Instruktur, dan referensi ruleset Player |
-| 6 | PostgreSQL | Menyimpan data sesi, pemain, ruleset, event, proyeksi cashflow, metrik, dan log validasi |
+| 6 | PostgreSQL 15+ (direkomendasikan PostgreSQL 16) | Menyimpan data sesi, pemain, ruleset, event, proyeksi cashflow, metrik, dan log validasi |
 | 7 | Docker Desktop | Menjalankan PostgreSQL, API, dan UI dalam container untuk deployment dan uji integrasi |
 | 8 | DBeaver | Mengelola basis data PostgreSQL: menjalankan DDL, melihat tabel, query data, dan memeriksa hasil pengujian |
 | 9 | Swagger (Swashbuckle) | Mendokumentasikan dan menguji endpoint REST API secara interaktif melalui OpenAPI/Swagger UI |
@@ -52,8 +52,12 @@ Jika output belum menampilkan .NET 10, sistem membutuhkan instalasi .NET 10 SDK.
 ---
 
 ## 4. Instalasi PostgreSQL dan Verifikasi
+Gunakan PostgreSQL 15 atau lebih baru. PostgreSQL 16 direkomendasikan karena schema memakai fitur modern seperti `unique nulls not distinct` dan `on delete set null (column_name)`.
+
 ### 4.1 Buat database dan user
-Sistem memakai database dan user yang sama dengan `config/env/.env`.
+Sistem memakai database dan user yang sama dengan file environment yang
+dipakai saat menjalankan aplikasi, misalnya `config/env/.env.dev` untuk
+development Docker Compose atau `config/env/.env.prod` untuk production.
 
 Contoh (psql):
 ```sql
@@ -141,7 +145,8 @@ API membutuhkan `Jwt:SigningKey` (minimal 32 karakter). Disarankan set lewat env
 setx JWT_SIGNING_KEY "ganti-dengan-kunci-rahasia-lokal-minimal-32-karakter"
 ```
 
-Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `config/env/.env`.
+Untuk Docker Compose, isi `JWT_SIGNING_KEY` pada `config/env/.env.dev` atau
+`config/env/.env.prod` sesuai mode yang dijalankan.
 
 Untuk hardening produksi, API mendukung opsi tambahan:
 1. `JWT_SIGNING_KEYS_JSON` untuk multi-key rotation (format array JSON berisi `keyId`, `signingKey`, `activateAtUtc`, `retireAtUtc`).
@@ -151,6 +156,9 @@ Untuk hardening produksi, API mendukung opsi tambahan:
 Catatan bootstrap auth:
 - Registrasi publik untuk role `INSTRUCTOR` dan `PLAYER` tersedia melalui endpoint `POST /api/v1/auth/register`.
 - Jika butuh seed user awal otomatis, aktifkan `AuthBootstrap:SeedDefaultUsers=true` dan isi kredensial bootstrap.
+- Identitas akun Player memakai `app_users.user_id`. Saat akun Player masuk
+  ke sesi, sistem membuat baris peserta pada `session_participants` dan
+  memakai `session_participant_id`/`session_player_id` untuk state gameplay.
 
 ---
 

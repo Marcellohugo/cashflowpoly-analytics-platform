@@ -27,7 +27,7 @@ public sealed class EventInsuranceOffsetBuilderTests
             EventId = riskEventId,
             SessionId = sessionId,
             UserId = playerId,
-            ActionType = "risk.life.drawn",
+            ActionType = "RisikoKehidupan",
             Payload = """{"risk_id":"risk-a","direction":"OUT","amount":7}"""
         };
 
@@ -60,7 +60,7 @@ public sealed class EventInsuranceOffsetBuilderTests
             "MON",
             1,
             1,
-            "insurance.multirisk.used",
+            "Asuransi",
             Guid.NewGuid(),
             Parse(payloadJson),
             null);

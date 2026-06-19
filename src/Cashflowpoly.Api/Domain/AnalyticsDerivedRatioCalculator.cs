@@ -51,7 +51,8 @@ internal sealed class DerivedRatioCalculator : IDerivedRatioCalculator
         var planningHorizon = SafeRatio(
             savingGoalMetrics.FinancialGoalsCoinsTotalInvested +
             savingGoalMetrics.FinancialGoalsAttempted +
-            playerEvents.Count(e => e.ActionType == "insurance.multirisk.purchased"),
+            playerEvents.Count(e => e.ActionType == GameActionCatalog.Asuransi &&
+                                    e.Payload.Contains("\"premium\"", StringComparison.OrdinalIgnoreCase)),
             actionEventCount);
         var planningHorizonPercent = planningHorizon.HasValue ? planningHorizon.Value * 100 : (double?)null;
 

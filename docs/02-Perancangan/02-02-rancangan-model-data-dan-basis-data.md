@@ -1,565 +1,514 @@
-﻿# Rancangan Model Data dan Basis Data (PostgreSQL)  
-## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
+# Rancangan Model Data dan Basis Data (PostgreSQL)
+## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Rancangan Model Data dan Basis Data
-- Versi: 1.0
-- Tanggal: 28 Januari 2026
+- Versi: 2.0
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
+
+> Baseline kanonis schema berada pada `database/00_create_schema.sql`.
+> Dokumen ini menjelaskan alur, relasi, dan fungsi tabel berdasarkan baseline
+> implementasi 18 Juni 2026. Jika ada perbedaan detail teknis, skrip SQL
+> kanonis menjadi acuan terakhir.
 
 ---
 
 ## 1. Tujuan Dokumen
-Dokumen ini disusun untuk mendefinisikan model data dan rancangan skema PostgreSQL untuk:
-1. menyimpan *ruleset* beserta versinya,
-2. menyimpan akun pengguna aplikasi dan relasi user-player,
-3. menyimpan sesi dan pemain,
-4. menyimpan event terurut sebagai sumber histori,
-5. menyajikan data proyeksi dan agregasi metrik untuk dasbor.
+Dokumen ini mendefinisikan model data PostgreSQL untuk:
+1. akun pengguna dan peserta sesi,
+2. ruleset dan versi ruleset yang dinormalisasi,
+3. sesi permainan dan projection state gameplay,
+4. event sebagai sumber kebenaran,
+5. proyeksi cashflow, metric snapshot, final score, narrative log, audit, dan retensi log.
 
-Dokumen ini menjadi acuan implementasi skema PostgreSQL berbasis skrip SQL (tanpa ORM) dan acuan pembuatan indeks untuk kinerja query analitika.
-
----
-
-## 2. Prinsip Rancangan Data
-### 2.1 Event sebagai sumber histori
-Sistem menyimpan setiap aksi sebagai event pada tabel `events`. Sistem membangun histori dan metrik dari data event.
-
-### 2.2 Konsistensi urutan
-Sistem mengunci urutan event per sesi dengan `sequence_number`. Sistem menolak event yang melanggar aturan urutan pada layer aplikasi.
-
-### 2.3 Idempotensi penyimpanan
-Sistem menjaga idempotensi dengan *unique constraint* pada kombinasi `(session_id, event_id)`.
-
-### 2.4 Keterlacakan versi ruleset
-Sistem menempelkan `ruleset_version_id` pada `events`. Sistem mempertahankan hasil analisis walau instruktur membuat versi baru.
-
-### 2.5 Query analitika cepat
-Sistem melayani dasbor dengan tabel proyeksi dan agregasi (`event_cashflow_projections`, `metric_snapshots`) untuk menghindari *full scan* event pada setiap permintaan.
+Sistem tidak memakai ORM sebagai sumber desain schema. Aplikasi memakai EF Core
+mapping untuk akses data, tetapi struktur database tetap didefinisikan oleh
+skrip SQL baseline.
 
 ---
 
-## 3. Konvensi Penamaan dan Tipe Data
-### 3.1 Konvensi penamaan
-- Nama tabel: `snake_case` dan jamak, contoh `ruleset_versions`.
-- Nama kolom: `snake_case`.
-- Primary key: `id` atau `<entity>_id` bertipe UUID.
-- Timestamp: `timestamptz`.
+## 2. Prinsip Rancangan
+### 2.1 Event-first
+Tabel `events` adalah sumber kebenaran gameplay. Projection seperti saldo,
+inventory, gold holding, pinjaman, asuransi, final score, narrative log, dan
+metric snapshot adalah cache yang dapat dibangun ulang dari event dan ruleset.
 
-### 3.2 Tipe data utama
-- UUID: `uuid`
-- Timestamp: `timestamptz`
-- JSON: `jsonb`
-- Uang/koin: `integer` (unit koin)
+### 2.2 Identitas pengguna dan peserta sesi
+Identitas akun aplikasi berada pada `app_users.user_id`.
+
+Saat akun role `PLAYER` masuk ke sesi, sistem membuat baris pada
+`session_participants`. ID peserta sesi (`session_participant_id`) juga tampil
+di DTO state sebagai `session_player_id`.
+
+### 2.3 Ruleset version lock
+Sesi menyimpan `ruleset_version_id` langsung pada `sessions`. Tidak ada endpoint
+atau tabel aktivasi ruleset per sesi. Session dibuat dengan versi ruleset
+berstatus `ACTIVE`, lalu event wajib membawa `ruleset_version_id` yang sama.
+
+### 2.4 Normalisasi ruleset
+Request API ruleset memakai field `definition`. API menormalisasi definition ke
+tabel `ruleset_*` per domain: settings, action, asset, need, order, mission,
+financial goal, narrative, gold, loan, insurance, life risk, dan scoring.
+
+### 2.5 Provenance projection
+Projection menyimpan referensi event seperti `last_event_id` atau
+`source_event_id` agar setiap perubahan state dapat ditelusuri. Nilai tersebut
+bukan histori kedua; histori tetap berasal dari `events`.
 
 ---
 
-## 4. Diagram Entitas dan Relasi (deskripsi)
-Skema memuat relasi inti berikut:
-1. `app_users` menyimpan akun autentikasi (`INSTRUCTOR`, `PLAYER`).
-2. `user_player_links` mengikat akun role `PLAYER` ke profil pemain secara 1:1.
-3. `players`, `sessions`, dan `rulesets` dapat membawa `instructor_user_id` untuk scope data instruktur.
-4. `rulesets` memiliki banyak `ruleset_versions`.
-5. `sessions` mereferensikan satu `ruleset_version` aktif melalui `session_ruleset_activations`.
-6. `sessions` memiliki banyak `session_players`.
-7. `events` mereferensikan `sessions`, opsional mereferensikan `players`, dan wajib mereferensikan `ruleset_versions`.
-8. `metric_snapshots` mereferensikan `sessions` dan opsional mereferensikan `players`.
+## 3. Alur Data Inti
+Alur relasi inti:
+
+```text
+app_users
+  -> rulesets
+  -> ruleset_versions
+  -> sessions
+  -> session_participants
+  -> events
+  -> event_asset_references
+  -> event_cashflow_projections
+  -> metric_snapshots
+  -> session_final_scores
+```
+
+Alur operasional:
+1. Instruktur memiliki akun pada `app_users`.
+2. Instruktur membuat ruleset. Sistem membuat `rulesets` dan `ruleset_versions`.
+3. API menormalisasi `definition` ke tabel `ruleset_*`.
+4. Instruktur membuat sesi dengan `ruleset_version_id` aktif.
+5. Instruktur menambahkan akun Player ke sesi sebagai `session_participants`.
+6. Klien Game/IDN mengirim event dengan `session_id`, `user_id`, `action_type`,
+   `ruleset_version_id`, dan payload domain.
+7. API memvalidasi token, scope, sesi, peserta, urutan, idempotensi, ruleset,
+   dan payload.
+8. API menyimpan event valid, asset reference, projection, dan metric snapshot.
+9. API menyimpan event invalid ke `validation_logs`, bukan ke `events`.
 
 ---
 
-## 5. Definisi Tabel Inti
+## 4. Daftar Tabel Baseline
+Tabel pada `database/00_create_schema.sql`:
 
-## 5.0 Tabel autentikasi (`app_users`)
-Sistem menyimpan akun login aplikasi pada tabel ini.
+| Kelompok | Tabel |
+|---|---|
+| Baseline | `schema_baseline_versions` |
+| Auth | `app_users` |
+| Katalog aksi | `actions` |
+| Ruleset core | `rulesets`, `ruleset_versions` |
+| Ruleset detail | `ruleset_game_settings`, `ruleset_player_ordering_rules`, `ruleset_actions`, `ruleset_game_assets`, `ruleset_ingredients`, `ruleset_orders`, `ruleset_order_requirements`, `ruleset_needs`, `ruleset_need_set_bonuses`, `ruleset_collection_missions`, `ruleset_collection_mission_requirements`, `ruleset_financial_goals`, `ruleset_narratives`, `ruleset_narrative_scenes`, `ruleset_trigger_conditions`, `ruleset_gold_prices`, `ruleset_gold_assets`, `ruleset_rank_points`, `ruleset_tie_breakers`, `ruleset_sharia_loans`, `ruleset_insurance_products`, `ruleset_life_risks` |
+| Session core | `sessions`, `session_participants`, `session_states` |
+| Session participant projection | `session_participant_balances`, `session_participant_inventory`, `session_participant_need_purchases`, `session_participant_financial_goals`, `session_participant_collection_missions`, `session_participant_action_counters`, `session_participant_gold_holdings`, `session_participant_loans`, `session_participant_insurances`, `session_participant_tie_breakers` |
+| Session projection lain | `session_donation_events`, `session_card_positions` |
+| Event | `events`, `event_asset_references` |
+| Analitika | `event_cashflow_projections`, `session_projection_checkpoints`, `metric_snapshots` |
+| Validasi dan hasil akhir | `validation_logs`, `session_final_scores`, `session_final_score_components`, `session_narrative_logs` |
+| Audit dan retensi | `security_audit_logs`, `log_retention_policies` |
 
-### `app_users`
-Kolom utama:
-- `user_id` UUID
-- `username` unik
+---
+
+## 5. Tabel Identitas dan Auth
+### 5.1 `app_users`
+Fungsi:
+- menyimpan akun login aplikasi,
+- menyimpan role `INSTRUCTOR` atau `PLAYER`,
+- menyimpan nama tampil dan password hash.
+
+Kolom penting:
+- `user_id`
+- `username`
+- `display_name`
 - `password_hash`
-- `role` (`INSTRUCTOR`, `PLAYER`)
+- `role`
 - `is_active`
 - `created_at`
 
-SQL:
-```sql
-create table if not exists app_users (
-  user_id uuid primary key,
-  username varchar(80) not null unique,
-  password_hash text not null,
-  role varchar(20) not null check (role in ('INSTRUCTOR','PLAYER')),
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists ix_app_users_role_active on app_users(role, is_active);
-```
-
-## 5.1 Tabel `players`
-Sistem menyimpan data identitas pemain pada tabel ini.
-
-Kolom utama:
-- `player_id` UUID
-- `display_name` nama tampil
-- `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
-- `created_at` waktu pencatatan
-
-SQL:
-```sql
-create table if not exists players (
-  player_id uuid primary key,
-  display_name varchar(80) not null,
-  instructor_user_id uuid null references app_users(user_id) on delete set null,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists ix_players_instructor_user on players(instructor_user_id, created_at desc);
-```
-
-### Relasi akun-pemain (`user_player_links`)
-Sistem mengikat akun login role `PLAYER` ke profil pemain secara 1:1.
-
-Kolom utama:
-- `link_id` UUID
-- `user_id` (unik, FK ke `app_users.user_id`)
-- `player_id` (unik, FK ke `players.player_id`)
-- `created_at`
-
-SQL:
-```sql
-create table if not exists user_player_links (
-  link_id uuid primary key,
-  user_id uuid not null unique references app_users(user_id) on delete cascade,
-  player_id uuid not null unique references players(player_id) on delete cascade,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists ix_user_player_links_user on user_player_links(user_id);
-create index if not exists ix_user_player_links_player on user_player_links(player_id);
-```
+Aturan:
+- `username` unik.
+- Password tidak pernah dikembalikan API.
+- Resource API `/api/v1/players` membuat atau membaca akun role `PLAYER`.
 
 ---
 
-## 5.2 Tabel `sessions`
-Sistem menyimpan metadata sesi permainan.
+## 6. Tabel Ruleset
+### 6.1 `rulesets`
+Fungsi:
+- wadah ruleset,
+- pemilik data instruktur,
+- status arsip ruleset.
 
-Kolom utama:
-- `session_id` UUID
-- `session_name` nama sesi
-- `mode` mode permainan (`PEMULA`, `MAHIR`)
-- `status` status sesi (`CREATED`, `STARTED`, `ENDED`)
-- `started_at`, `ended_at`
-- `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
-- `created_at`
-
-SQL:
-```sql
-create table if not exists sessions (
-  session_id uuid primary key,
-  session_name varchar(120) not null,
-  mode varchar(10) not null check (mode in ('PEMULA','MAHIR')),
-  status varchar(10) not null check (status in ('CREATED','STARTED','ENDED')),
-  started_at timestamptz null,
-  ended_at timestamptz null,
-  instructor_user_id uuid null references app_users(user_id) on delete set null,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists ix_sessions_status on sessions(status);
-create index if not exists ix_sessions_created_at on sessions(created_at desc);
-create index if not exists ix_sessions_instructor_user on sessions(instructor_user_id, created_at desc);
-```
-
----
-
-## 5.3 Tabel `session_players`
-Sistem mengaitkan pemain ke sesi, termasuk urutan pemain bila instruktur menetapkan urutan.
-
-Kolom utama:
-- `session_player_id` UUID
-- `session_id`
-- `player_id`
-- `join_order` urutan masuk atau urutan permainan (minimal 1)
-- `role` peran dalam sesi (saat ini hanya `PLAYER`)
-
-SQL:
-```sql
-create table if not exists session_players (
-  session_player_id uuid primary key,
-  session_id uuid not null references sessions(session_id) on delete cascade,
-  player_id uuid not null references players(player_id) on delete restrict,
-  join_order int not null default 1 check (join_order >= 1),
-  role varchar(20) not null default 'PLAYER' constraint ck_session_players_role check (role in ('PLAYER')),
-  created_at timestamptz not null default now(),
-  unique(session_id, player_id)
-);
-
-create index if not exists ix_session_players_session on session_players(session_id, join_order);
-create index if not exists ix_session_players_player on session_players(player_id);
-```
-
----
-
-## 5.4 Tabel `rulesets`
-Sistem menyimpan entitas *ruleset* sebagai “wadah” konfigurasi.
-
-Kolom utama:
-- `ruleset_id` UUID
+Kolom penting:
+- `ruleset_id`
 - `name`
 - `description`
-- `instructor_user_id` owner instruktur (opsional, FK ke `app_users.user_id`)
+- `instructor_user_id`
+- `created_by_user_id`
+- `is_archived`
+- `archived_at`
 - `created_at`
-- `created_by`
-
-SQL:
-```sql
-create table if not exists rulesets (
-  ruleset_id uuid primary key,
-  name varchar(120) not null,
-  description text null,
-  instructor_user_id uuid null references app_users(user_id) on delete set null,
-  created_at timestamptz not null default now(),
-  created_by varchar(80) null
-);
-
-create index if not exists ix_rulesets_created_at on rulesets(created_at desc);
-create index if not exists ix_rulesets_instructor_user on rulesets(instructor_user_id, created_at desc);
-```
-
----
-
-## 5.5 Tabel `ruleset_versions`
-Sistem menyimpan versi konfigurasi dalam JSONB agar instruktur dapat mengubah parameter tanpa mengubah kode.
-
-Kolom utama:
-- `ruleset_version_id` UUID
-- `ruleset_id`
-- `version` nomor versi mulai dari 1
-- `status` (`DRAFT`, `ACTIVE`, `RETIRED`)
-- `config_json` JSONB konfigurasi
-- `config_hash` string untuk audit
-- `created_at`, `created_by`
-
-SQL:
-```sql
-create table if not exists ruleset_versions (
-  ruleset_version_id uuid primary key,
-  ruleset_id uuid not null references rulesets(ruleset_id) on delete cascade,
-  version int not null check (version >= 1),
-  status varchar(10) not null check (status in ('DRAFT','ACTIVE','RETIRED')),
-  config_json jsonb not null,
-  config_hash varchar(128) not null,
-  created_at timestamptz not null default now(),
-  created_by varchar(80) null,
-  unique(ruleset_id, version),
-  unique(ruleset_id, config_hash)
-);
-
-create index if not exists ix_ruleset_versions_ruleset on ruleset_versions(ruleset_id, version desc);
-create index if not exists ix_ruleset_versions_status on ruleset_versions(status);
-create index if not exists ix_ruleset_versions_config_gin on ruleset_versions using gin (config_json);
-```
-
-Catatan:
-- Sistem memakai indeks GIN pada `config_json` untuk pencarian parameter saat debug dan audit.
-
----
-
-## 5.6 Tabel `session_ruleset_activations`
-Sistem mencatat aktivasi versi *ruleset* pada sesi.
-
-Kolom utama:
-- `activation_id` UUID
-- `session_id`
-- `ruleset_version_id`
-- `activated_at`
-- `activated_by`
-
-SQL:
-```sql
-create table if not exists session_ruleset_activations (
-  activation_id uuid primary key,
-  session_id uuid not null references sessions(session_id) on delete cascade,
-  ruleset_version_id uuid not null references ruleset_versions(ruleset_version_id) on delete restrict,
-  activated_at timestamptz not null default now(),
-  activated_by varchar(80) null
-);
-
-create index if not exists ix_sra_session on session_ruleset_activations(session_id, activated_at desc);
-create index if not exists ix_sra_ruleset_version on session_ruleset_activations(ruleset_version_id);
-```
 
 Aturan:
-- Sistem menganggap record aktivasi terakhir sebagai versi aktif untuk sesi.
-- Sistem menolak aktivasi bila sesi berstatus `ENDED`.
+- `instructor_user_id = null` menandai ruleset default seed/read-only.
+- Ruleset default tidak dapat diedit atau dihapus.
+- Ruleset yang sudah dipakai sesi dianggap terkunci oleh session.
 
----
+### 6.2 `ruleset_versions`
+Fungsi:
+- menyimpan versi ruleset,
+- menyimpan status versi,
+- menjadi FK utama untuk event, sesi, projection, dan metric.
 
-## 5.7 Tabel `events`
-Sistem menyimpan event terurut sebagai log sesi.
-
-Kolom utama:
-- `event_pk` UUID (PK internal)
-- `event_id` UUID (ID event dari klien)
-- `session_id`
-- `player_id` (opsional; boleh null untuk event sistem)
-- `actor_type` (`PLAYER`, `SYSTEM`)
-- `timestamp` waktu event
-- `day_index`, `weekday`, `turn_number`
-- `sequence_number` urutan event per sesi
-- `action_type` tipe event
+Kolom penting:
 - `ruleset_version_id`
-- `payload` JSONB
-- `received_at` waktu server menerima event
-- `client_request_id` (opsional)
+- `ruleset_id`
+- `version`
+- `status` (`DRAFT`, `ACTIVE`, `ARCHIVED`)
+- `mode` (`PEMULA`, `MAHIR`)
+- `config_hash`
+- `created_by_user_id`
+- `created_at`
 
-SQL:
-```sql
-create table if not exists events (
-  event_pk uuid primary key,
-  event_id uuid not null,
-  session_id uuid not null references sessions(session_id) on delete cascade,
-  player_id uuid null references players(player_id) on delete restrict,
-  actor_type varchar(10) not null check (actor_type in ('PLAYER','SYSTEM')),
-  timestamp timestamptz not null,
-  day_index int not null check (day_index >= 0),
-  weekday varchar(3) not null check (weekday in ('MON','TUE','WED','THU','FRI','SAT','SUN')),
-  turn_number int not null check (turn_number >= 1),
-  sequence_number bigint not null check (sequence_number >= 0),
-  action_type varchar(64) not null,
-  ruleset_version_id uuid not null references ruleset_versions(ruleset_version_id) on delete restrict,
-  payload jsonb not null,
-  received_at timestamptz not null default now(),
-  client_request_id varchar(120) null,
-  unique(session_id, event_id),
-  unique(session_id, sequence_number)
-);
+Aturan:
+- Satu ruleset memiliki banyak versi.
+- Versi `ACTIVE` tidak boleh dihapus.
+- Versi yang sudah dipakai sesi/event tidak boleh dihapus.
+- Version hash mencegah duplikasi definition yang identik pada ruleset sama.
 
-create index if not exists ix_events_session_seq on events(session_id, sequence_number);
-create index if not exists ix_events_session_time on events(session_id, timestamp);
-create index if not exists ix_events_session_action on events(session_id, action_type);
-create index if not exists ix_events_player_time on events(player_id, timestamp);
-create index if not exists ix_events_payload_gin on events using gin (payload);
-```
+### 6.3 Tabel detail ruleset
+Tabel detail menyimpan hasil normalisasi `definition`.
+
+| Tabel | Fungsi |
+|---|---|
+| `ruleset_game_settings` | Pengaturan dasar, saldo awal, jumlah aksi, batas pemain. |
+| `ruleset_player_ordering_rules` | Aturan urutan pemain dan mode pengurutan. |
+| `ruleset_actions` | Action yang valid pada versi ruleset. |
+| `ruleset_game_assets` | Registry asset/card-like seperti ingredient, order, need, risk, gold, gold price, tie breaker. |
+| `ruleset_ingredients` | Detail asset bahan. |
+| `ruleset_orders`, `ruleset_order_requirements` | Detail order dan bahan yang dibutuhkan. |
+| `ruleset_needs`, `ruleset_need_set_bonuses` | Detail kebutuhan dan bonus set kebutuhan. |
+| `ruleset_collection_missions`, `ruleset_collection_mission_requirements` | Misi koleksi dan syarat kebutuhan. |
+| `ruleset_financial_goals` | Tujuan keuangan mode mahir. |
+| `ruleset_narratives`, `ruleset_narrative_scenes`, `ruleset_trigger_conditions` | Narasi dan kondisi trigger. |
+| `ruleset_gold_prices`, `ruleset_gold_assets` | Harga dan aset emas. |
+| `ruleset_rank_points` | Poin ranking donasi, emas, dana pensiun, atau domain skor lain. |
+| `ruleset_tie_breakers` | Kartu/angka tie breaker. |
+| `ruleset_sharia_loans` | Parameter pinjaman syariah. |
+| `ruleset_insurance_products` | Produk asuransi dan premi. |
+| `ruleset_life_risks` | Risiko kehidupan mode mahir. |
 
 ---
 
-## 6. Tabel Proyeksi dan Agregasi (untuk Dasbor)
+## 7. Tabel Session
+### 7.1 `sessions`
+Fungsi:
+- menyimpan metadata sesi,
+- mengunci ruleset version,
+- menyimpan owner instruktur dan status sesi.
 
-## 6.1 Tabel `event_cashflow_projections`
-Sistem membuat proyeksi transaksi arus kas dari event yang memengaruhi saldo.
-
-Tujuan:
-- Sistem mempercepat query histori transaksi.
-
-Kolom utama:
-- `projection_id` UUID
+Kolom penting:
 - `session_id`
-- `player_id`
-- `event_pk` UUID (FK ke `events.event_pk`)
-- `event_id` UUID (atribut audit/idempotensi dari klien)
+- `session_name`
+- `mode`
+- `status` (`CREATED`, `STARTED`, `ENDED`)
+- `started_at`
+- `ended_at`
+- `instructor_user_id`
+- `ruleset_version_id`
+- `is_archived`
+- `created_at`
+
+Aturan:
+- `ruleset_version_id` wajib.
+- Mode session harus sama dengan mode `ruleset_versions`.
+- Session hanya dapat dimulai jika jumlah peserta sesuai batas ruleset.
+
+### 7.2 `session_participants`
+Fungsi:
+- menghubungkan akun role `PLAYER` ke sesi,
+- menyimpan urutan pemain dan nama tampil pada sesi.
+
+Kolom penting:
+- `session_participant_id`
+- `session_id`
+- `user_id`
+- `player_order_no`
+- `player_name`
+- `joined_at`
+
+Aturan:
+- Kombinasi `(session_id, user_id)` unik.
+- Kombinasi `(session_id, player_order_no)` unik.
+- DTO state menyebut `session_participant_id` sebagai `session_player_id`.
+
+### 7.3 `session_states`
+Fungsi:
+- projection state umum sesi,
+- menyimpan hari, giliran, slot aksi, dan peserta aktif.
+
+Kolom penting:
+- `session_id`
+- `state_version`
+- `day`
+- `weekday`
+- `turn_number`
+- `action_slot`
+- `current_session_player_id`
+- `current_action_slot`
+- `finish_day`
+- `is_game_over`
+- `last_event_id`
+
+Aturan:
+- Ditulis oleh projector event atau inisialisasi session.
+- `PUT /api/v1/sessions/{sessionId}/state` tidak mengubah state dan selalu
+  mengembalikan `410 STATE_WRITE_DISABLED`.
+
+---
+
+## 8. Projection Peserta Sesi
+Projection peserta menyimpan state turunan per peserta:
+
+| Tabel | Fungsi |
+|---|---|
+| `session_participant_balances` | Koin, happiness, saving, total donasi. |
+| `session_participant_inventory` | Inventory bahan berbasis asset registry. |
+| `session_participant_need_purchases` | Pembelian kebutuhan dan poin kebutuhan. |
+| `session_participant_financial_goals` | Progres tujuan keuangan. |
+| `session_participant_collection_missions` | Status misi koleksi. |
+| `session_participant_action_counters` | Penggunaan aksi per ruleset action. |
+| `session_participant_gold_holdings` | Kepemilikan emas. |
+| `session_participant_loans` | Pinjaman syariah aktif/lunas. |
+| `session_participant_insurances` | Asuransi aktif/terpakai. |
+| `session_participant_tie_breakers` | Nilai tie breaker peserta. |
+
+Aturan umum:
+- Semua tabel membawa `session_id` dan `session_participant_id`.
+- Perubahan projection harus berasal dari event valid.
+- Projection menyimpan provenance event jika kolom tersedia.
+
+---
+
+## 9. Event dan Asset Reference
+### 9.1 `events`
+Fungsi:
+- menyimpan log event terurut,
+- menyimpan payload mentah,
+- menjadi sumber replay dan audit gameplay.
+
+Kolom penting:
+- `event_pk`
+- `event_id`
+- `session_id`
+- `session_player_id`
+- `user_id`
+- `actor_type`
 - `timestamp`
-- `direction` (`IN`, `OUT`)
-- `amount` int
-- `category` string
-- `counterparty` string
-- `reference` string
-- `note` string
+- `day_index`
+- `weekday`
+- `turn_number`
+- `action_slot`
+- `sequence_number`
+- `action_type`
+- `ruleset_version_id`
+- `ruleset_action_id`
+- `payload`
+- `received_at`
+- `client_request_id`
 
-SQL:
-```sql
-create table if not exists event_cashflow_projections (
-  projection_id uuid primary key,
-  session_id uuid not null references sessions(session_id) on delete cascade,
-  player_id uuid not null references players(player_id) on delete restrict,
-  event_pk uuid not null references events(event_pk) on delete restrict,
-  event_id uuid not null,
-  timestamp timestamptz not null,
-  direction varchar(3) not null check (direction in ('IN','OUT')),
-  amount int not null check (amount > 0),
-  category varchar(40) not null,
-  counterparty varchar(20) null,
-  reference varchar(80) null,
-  note varchar(160) null,
-  unique(session_id, event_id)
-);
+Aturan:
+- `(session_id, event_id)` unik untuk idempotensi.
+- `(session_id, sequence_number)` unik untuk keterurutan.
+- Event Player wajib memiliki `user_id` dan peserta sesi yang valid.
+- Event sistem memakai `user_id = null` dan dapat memakai `session_player_id = null`.
+- `ruleset_version_id` harus cocok dengan session.
 
-create index if not exists ix_ecp_session_time on event_cashflow_projections(session_id, timestamp desc);
-create index if not exists ix_ecp_session_player_time on event_cashflow_projections(session_id, player_id, timestamp desc);
-create index if not exists ix_ecp_category on event_cashflow_projections(category);
-```
+### 9.2 `event_asset_references`
+Fungsi:
+- menghubungkan event dengan asset ruleset yang di-resolve dari payload,
+- menyimpan role referensi seperti target, requirement, price, risk, atau source.
 
-Aturan proyeksi:
-- Sistem menulis baris proyeksi saat sistem menerima event valid.
-- Sistem menjaga keterlacakan proyeksi ke log event melalui FK `event_pk -> events(event_pk)`.
-- Sistem menjaga idempotensi proyeksi berbasis `event_id` klien melalui `unique(session_id, event_id)`.
+Kolom penting:
+- `event_asset_reference_id`
+- `event_pk`
+- `session_id`
+- `event_id`
+- `ruleset_version_id`
+- `ruleset_game_asset_id`
+- `reference_role`
+- `payload_path`
+
+Manfaat:
+- Analitika tidak perlu menebak relasi dari string bebas pada JSON.
+- Replay dan audit dapat menelusuri asset yang dipakai event.
 
 ---
 
-## 6.2 Tabel `metric_snapshots`
-Sistem menyimpan hasil agregasi metrik agar dasbor menampilkan data cepat dan konsisten.
+## 10. Analitika dan Snapshot
+### 10.1 `event_cashflow_projections`
+Fungsi:
+- menyimpan transaksi arus kas hasil projection event,
+- mempercepat query histori transaksi.
 
-Kolom utama:
-- `metric_snapshot_id` UUID
+Kolom penting:
+- `projection_id`
 - `session_id`
-- `player_id` (opsional: null untuk snapshot/agregat level sesi)
-- `computed_at` waktu hitung
-- `metric_name` nama metrik
-- `metric_value_numeric` nilai numerik
-- `metric_value_json` nilai kompleks (opsional)
-- `ruleset_version_id` versi ruleset konteks hitung
+- `session_player_id`
+- `user_id`
+- `event_pk`
+- `event_id`
+- `timestamp`
+- `direction`
+- `amount`
+- `category`
+- `counterparty`
+- `reference`
+- `note`
 
-SQL:
-```sql
-create table if not exists metric_snapshots (
-  metric_snapshot_id uuid primary key,
-  session_id uuid not null references sessions(session_id) on delete cascade,
-  player_id uuid null references players(player_id) on delete restrict,
-  computed_at timestamptz not null default now(),
-  metric_name varchar(80) not null,
-  metric_value_numeric double precision null,
-  metric_value_json jsonb null,
-  ruleset_version_id uuid not null references ruleset_versions(ruleset_version_id) on delete restrict
-);
+Aturan:
+- Baris projection wajib merujuk event valid.
+- Query endpoint transaksi memakai `userId` sebagai filter opsional.
 
-create index if not exists ix_metrics_session_name_time on metric_snapshots(session_id, metric_name, computed_at desc);
-create index if not exists ix_metrics_session_player_name_time on metric_snapshots(session_id, player_id, metric_name, computed_at desc);
-create index if not exists ix_metrics_session_player_time on metric_snapshots(session_id, player_id, computed_at desc);
-create index if not exists ix_metrics_ruleset_version on metric_snapshots(ruleset_version_id);
-```
+### 10.2 `session_projection_checkpoints`
+Fungsi:
+- menyimpan checkpoint replay/projection,
+- membantu rebuild projection secara terukur.
 
-Kebijakan:
-- Sistem menyimpan beberapa snapshot bila instruktur meminta pembandingan waktu.
-- Sistem dapat menghapus snapshot lama bila kebutuhan ruang meningkat.
+### 10.3 `metric_snapshots`
+Fungsi:
+- menyimpan hasil metrik numeric atau JSON,
+- menjadi sumber utama dashboard.
+
+Kolom penting:
+- `metric_snapshot_id`
+- `session_id`
+- `user_id`
+- `session_player_id`
+- `computed_at`
+- `metric_name`
+- `metric_value_numeric`
+- `metric_value_json`
+- `ruleset_version_id`
+
+Aturan:
+- Snapshot level sesi memakai `user_id = null` dan `session_player_id = null`.
+- Snapshot level Player memakai `user_id` akun Player dan dapat membawa
+  `session_player_id`.
+- Gameplay JSON memakai nama `gameplay.raw.variables` dan
+  `gameplay.derived.metrics`; response API gameplay menyajikannya sebagai
+  kelompok `economy`, `progress`, `score`, dan `compliance`.
 
 ---
 
-## 6.3 Tabel `validation_logs` (opsional, berguna saat pengujian)
-Sistem menyimpan hasil validasi event agar instruktur dapat melacak kegagalan validasi.
+## 11. Validasi, Skor, Narrative, dan Audit
+### 11.1 `validation_logs`
+Fungsi:
+- menyimpan request/event invalid yang ditolak,
+- mendukung audit validasi dan perhitungan pelanggaran aturan.
 
-Kolom utama:
-- `validation_log_id` UUID
+Kolom penting:
+- `validation_log_id`
 - `session_id`
-- `event_pk` (FK ke `events.event_pk`, opsional sesuai kebutuhan log)
-- `event_id` (atribut audit/idempotensi dari klien)
-- `is_valid`
+- `ruleset_version_id`
+- `event_id`
 - `error_code`
 - `error_message`
+- `raw_payload_json`
 - `details_json`
 - `created_at`
 
-SQL:
-```sql
-create table if not exists validation_logs (
-  validation_log_id uuid primary key,
-  session_id uuid not null references sessions(session_id) on delete cascade,
-  event_pk uuid null references events(event_pk) on delete restrict,
-  event_id uuid not null,
-  is_valid boolean not null,
-  error_code varchar(40) null,
-  error_message varchar(200) null,
-  details_json jsonb null,
-  created_at timestamptz not null default now(),
-  unique(session_id, event_id)
-);
+### 11.2 `session_final_scores` dan `session_final_score_components`
+Fungsi:
+- menyimpan skor akhir per peserta,
+- menyimpan komponen skor agar hasil akhir dapat diaudit.
 
-create index if not exists ix_validation_session_time on validation_logs(session_id, created_at desc);
-create index if not exists ix_validation_valid on validation_logs(is_valid);
-```
+Aturan:
+- Skor akhir dihitung saat session diakhiri atau saat recompute.
+- Komponen skor menyimpan sumber/provenance yang relevan.
 
----
+### 11.3 `session_narrative_logs`
+Fungsi:
+- menyimpan hasil trigger narrative dari `ruleset_narratives` dan
+  `ruleset_narrative_scenes`.
 
-## 6.4 Tabel `security_audit_logs`
-Sistem menyimpan jejak audit keamanan aplikasi (auth challenge/forbidden/login/register/rate-limit).
+Catatan:
+- Narrative bukan script engine. Trigger narrative dievaluasi dari event/action
+  terstruktur.
 
-Kolom utama:
-- `security_audit_log_id` UUID
+### 11.4 `security_audit_logs`
+Fungsi:
+- menyimpan audit login/register, forbidden, challenge, rate-limit, dan event
+  keamanan lain.
+
+Kolom penting:
+- `security_audit_log_id`
 - `occurred_at`
 - `trace_id`
 - `event_type`
-- `outcome` (`SUCCESS`/`FAILURE`/`DENIED`)
-- `user_id` (opsional)
-- `username` (opsional)
-- `role` (opsional)
+- `outcome`
+- `user_id`
+- `username`
+- `role`
 - `ip_address`
 - `user_agent`
-- `method`, `path`, `status_code`
+- `method`
+- `path`
+- `status_code`
 - `detail_json`
 
-SQL:
-```sql
-create table if not exists security_audit_logs (
-  security_audit_log_id uuid primary key,
-  occurred_at timestamptz not null default now(),
-  trace_id varchar(64) not null,
-  event_type varchar(80) not null,
-  outcome varchar(20) not null check (outcome in ('SUCCESS','FAILURE','DENIED')),
-  user_id uuid null references app_users(user_id) on delete set null,
-  username varchar(80) null,
-  role varchar(20) null,
-  ip_address varchar(64) null,
-  user_agent varchar(300) null,
-  method varchar(16) not null,
-  path varchar(240) not null,
-  status_code int not null check (status_code >= 100 and status_code <= 599),
-  detail_json jsonb null
-);
-
-create index if not exists ix_security_audit_logs_occurred on security_audit_logs(occurred_at desc);
-create index if not exists ix_security_audit_logs_event on security_audit_logs(event_type, occurred_at desc);
-create index if not exists ix_security_audit_logs_user on security_audit_logs(user_id, occurred_at desc);
-```
+### 11.5 `log_retention_policies`
+Fungsi:
+- menyimpan kebijakan retensi log per kategori,
+- menjadi dasar housekeeping log pada environment production.
 
 ---
 
-## 7. Aturan Integritas Data
-Sistem menerapkan aturan integritas berikut:
-1. Sistem menjaga urutan event dalam sesi melalui `unique(session_id, sequence_number)` pada `events`.
-2. Sistem menjaga idempotensi ingest event melalui `unique(session_id, event_id)` pada `events`.
-3. Sistem menjaga keunikan pemain dalam sesi melalui `unique(session_id, player_id)` pada `session_players`.
-4. Sistem menjaga keunikan versi *ruleset* melalui `unique(ruleset_id, version)` pada `ruleset_versions`.
-5. Sistem melarang *orphan record* dengan foreign key pada sesi, pemain, versi *ruleset*, dan referensi event (`event_pk`).
-6. Sistem melarang penghapusan `ruleset_versions` yang sudah dipakai event melalui `on delete restrict`.
-7. Sistem menghapus data turunan sesi saat sistem menghapus sesi melalui `on delete cascade` pada tabel proyeksi dan metrik.
-
-### 7.1 Aturan nullable yang disengaja
-- `events.player_id` boleh `null` untuk event sistem (`actor_type='SYSTEM'`).
-- `metric_snapshots.player_id` boleh `null` untuk snapshot/agregat level sesi.
+## 12. Strategi Query Dashboard
+| Kebutuhan | Sumber utama |
+|---|---|
+| Daftar sesi | `sessions` dengan scope `instructor_user_id` atau `session_participants.user_id`. |
+| Detail sesi | `sessions`, `metric_snapshots`, `events`, `ruleset_versions`. |
+| Daftar Player sesi | `session_participants`, `app_users`, `metric_snapshots`. |
+| Histori event | `events` berdasarkan `session_id` dan `sequence_number`. |
+| Histori transaksi | `event_cashflow_projections` berdasarkan `session_id` dan opsional `user_id`. |
+| Gameplay Player | `metric_snapshots` berdasarkan `session_id`, `user_id`, dan metric gameplay. |
+| Ruleset detail | `rulesets`, `ruleset_versions`, dan tabel `ruleset_*`. |
+| Audit keamanan | `security_audit_logs`. |
 
 ---
 
-## 8. Strategi Query untuk Dasbor
-Sistem melayani kebutuhan dasbor lewat query berikut:
-1. Ringkasan sesi: sistem ambil metrik terakhir pada `metric_snapshots` untuk `player_id null`.
-2. Ringkasan per pemain: sistem ambil metrik terakhir per `player_id`.
-3. Histori transaksi: sistem query `event_cashflow_projections` per sesi dan pemain.
-4. Audit event: sistem query `events` per sesi dan `sequence_number`.
-
-Sistem dapat menambah *materialized view* bila query agregat tumbuh kompleks.
-
----
-
-## 9. Strategi Perubahan Skema (Tanpa ORM)
-### 9.1 Konvensi perubahan skema
-Sistem mengelola perubahan skema dengan skrip SQL terpisah:
-1. Sistem tambah tabel inti terlebih dahulu.
-2. Sistem tambah indeks setelah tabel ada.
-3. Sistem tambah constraint setelah data aman.
-
-### 9.2 Seed data minimum
-Sistem dapat menanam data awal berikut pada lingkungan pengembangan:
-- satu ruleset default,
-- satu ruleset_version default,
-- satu sesi contoh untuk uji endpoint.
+## 13. Aturan Integritas
+1. Event idempotent melalui unique `(session_id, event_id)`.
+2. Event terurut melalui unique `(session_id, sequence_number)`.
+3. Peserta sesi unik melalui `(session_id, user_id)`.
+4. Urutan peserta unik melalui `(session_id, player_order_no)`.
+5. Semua tabel `ruleset_*` membawa `ruleset_version_id`.
+6. Semua projection peserta membawa `session_id` dan `session_participant_id`.
+7. Session, event, projection, dan metric tidak boleh merujuk ruleset version yang hilang.
+8. Ruleset default dan ruleset yang terkunci sesi tidak boleh dihapus melalui API.
 
 ---
 
-## 10. Checklist Kesiapan Implementasi
-Sistem siap masuk implementasi basis data jika:
-1. skema tabel inti berjalan pada PostgreSQL tanpa error,
-2. indeks utama terbentuk (`events`, `metric_snapshots`, `event_cashflow_projections`),
-3. constraint idempotensi dan urutan event aktif,
-4. skrip SQL menghasilkan struktur identik dengan dokumen ini.
+## 14. Seed dan Bootstrap
+Startup API memastikan:
+1. `database/00_create_schema.sql` terpasang,
+2. `database/01_seed_default_rulesets_components.sql` terpasang.
 
+Data simulasi manual berada pada:
+- `database/02_seed_simulation_sessions_events.sql`
 
+File simulasi tidak di-bootstrap otomatis saat startup API.
 
+---
+
+## 15. Checklist Konsistensi
+Model data dianggap sinkron dengan implementasi jika:
+1. akun Player memakai `app_users.user_id`,
+2. peserta sesi memakai `session_participants.session_participant_id`,
+3. event memakai `user_id` dan `session_player_id`,
+4. sesi menyimpan `ruleset_version_id`,
+5. payload ruleset API memakai `definition`,
+6. event invalid masuk `validation_logs`,
+7. asset reference event masuk `event_asset_references`,
+8. dashboard membaca projection dan `metric_snapshots`, bukan menghitung ulang dari UI.

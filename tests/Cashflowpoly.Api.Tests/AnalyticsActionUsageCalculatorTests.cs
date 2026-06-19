@@ -15,12 +15,12 @@ public sealed class AnalyticsActionUsageCalculatorTests
         var orderEventId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(freelanceEventId, sessionId, playerId, "work.freelance.completed", turn: 1, sequence: 1),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "ingredient.purchased", turn: 1, sequence: 2),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "ingredient.purchased", turn: 1, sequence: 3),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "turn.action.used", turn: 1, sequence: 4),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "order.passed", turn: 2, sequence: 5),
-            CreateEvent(orderEventId, sessionId, playerId, "order.claimed", turn: 3, sequence: 6)
+            CreateEvent(freelanceEventId, sessionId, playerId, "KerjaLepas", turn: 1, sequence: 1),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", turn: 1, sequence: 2),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", turn: 1, sequence: 3),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "AkhirGiliran", turn: 1, sequence: 4),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "LewatiOrder", turn: 2, sequence: 5),
+            CreateEvent(orderEventId, sessionId, playerId, "JualMasakan", turn: 2, sequence: 6)
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -28,16 +28,16 @@ public sealed class AnalyticsActionUsageCalculatorTests
             CreateProjection(orderEventId, sessionId, playerId, "IN", 12, "ORDER_INCOME")
         };
 
-        var metrics = new ActionUsageCalculator().Compute(events, projections, maxTurnNumber: 4, actionsPerTurn: 2);
+        var metrics = new ActionUsageCalculator().Compute(events, projections, maxActionSlot: 2, actionsPerTurn: 2);
 
         Assert.Equal(2, metrics.ActionSequences.Count);
-        Assert.Equal(1, metrics.ActionSequences[0].TurnNumber);
-        Assert.Equal(new[] { "work.freelance.completed", "ingredient.purchased", "ingredient.purchased" }, metrics.ActionSequences[0].Actions);
-        Assert.Equal(3, metrics.ActionSequences[1].TurnNumber);
-        Assert.Equal(new[] { "order.claimed" }, metrics.ActionSequences[1].Actions);
+        Assert.Equal(1, metrics.ActionSequences[0].ActionSlot);
+        Assert.Equal(new[] { "KerjaLepas", "BahanMasakan", "BahanMasakan" }, metrics.ActionSequences[0].Actions);
+        Assert.Equal(2, metrics.ActionSequences[1].ActionSlot);
+        Assert.Equal(new[] { "JualMasakan" }, metrics.ActionSequences[1].Actions);
 
         Assert.Equal(2, metrics.ActionRepetitions.Count);
-        Assert.Equal(1, metrics.ActionRepetitions[0].TurnNumber);
+        Assert.Equal(1, metrics.ActionRepetitions[0].ActionSlot);
         Assert.Equal(3, metrics.ActionRepetitions[0].TotalActions);
         Assert.Equal(2, metrics.ActionRepetitions[0].DistinctActions);
         Assert.Equal(1, metrics.ActionRepetitions[0].RepeatedActions);
@@ -45,10 +45,10 @@ public sealed class AnalyticsActionUsageCalculatorTests
         Assert.Equal(0.5, metrics.ActionRepetitions[1].DiversityScore);
 
         Assert.Equal(4, metrics.ActionSlotTimeline.Count);
-        Assert.Equal(3, metrics.ActionSlotTimeline[2].ActionSlot);
-        Assert.Equal("ingredient.purchased", metrics.ActionSlotTimeline[2].ActionType);
-        Assert.Equal(1, metrics.LatestActionSlot);
-        Assert.Equal(2, metrics.ActionsSkipped);
+        Assert.Equal(2, metrics.ActionSlotTimeline[3].ActionSlot);
+        Assert.Equal("JualMasakan", metrics.ActionSlotTimeline[3].ActionType);
+        Assert.Equal(2, metrics.LatestActionSlot);
+        Assert.Equal(0, metrics.ActionsSkipped);
         Assert.Equal(4, metrics.ActionEventCount);
         Assert.Equal(2, metrics.IncomeActions);
         Assert.Equal(0.5, metrics.ActionEfficiency);
@@ -73,7 +73,7 @@ public sealed class AnalyticsActionUsageCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = turn - 1,
             Weekday = "MON",
-            TurnNumber = turn,
+            ActionSlot = turn,
             SequenceNumber = sequence,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

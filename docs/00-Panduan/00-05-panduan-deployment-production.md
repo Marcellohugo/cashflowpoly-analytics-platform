@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Deployment Production
-- Versi: 1.2
-- Tanggal: 27 Maret 2026
+- Versi: 1.3
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -380,6 +380,20 @@ Invoke-RestMethod -Uri "https://tugasakhirmarco.my.id/api/v1/auth/login" -Method
 
 Ekspektasi: response berisi JWT token.
 
+### 10.6 Observability dan Metrics
+
+Dengan token Instruktur dari login API:
+
+```powershell
+$headers = @{ Authorization = "Bearer <access_token>" }
+Invoke-RestMethod -Uri "https://tugasakhirmarco.my.id/api/v1/observability/metrics/summary" -Headers $headers
+docker exec cashflowpoly-api curl -s http://localhost:5041/metrics
+```
+
+Ekspektasi:
+- endpoint summary mengembalikan `200` dan pesan bahwa metrics tersedia di `/metrics`,
+- endpoint `/metrics` pada service API mengembalikan format Prometheus.
+
 ---
 
 ## 11. Pemecahan Masalah
@@ -490,4 +504,5 @@ Sistem dianggap terdeploy dengan benar jika:
 - [ ] Dashboard UI dapat diakses
 - [ ] Swagger UI dapat diakses
 - [ ] Login API mengembalikan JWT token
+- [ ] Observability summary dan Prometheus `/metrics` dapat diverifikasi
 - [ ] Redeploy manual dengan `docker compose ... up -d --build` berhasil dijalankan

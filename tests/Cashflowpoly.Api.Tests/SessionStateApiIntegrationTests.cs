@@ -35,7 +35,7 @@ public sealed class SessionStateApiIntegrationTests
         Assert.NotEqual(Guid.Empty, root.GetProperty("ruleset_version_id").GetGuid());
         Assert.Equal(10, root.GetProperty("gameConfig").GetProperty("initialCoins").GetInt32());
         Assert.Equal(2, root.GetProperty("gameConfig").GetProperty("actionsPerTurn").GetInt32());
-        Assert.Equal(13, root.GetProperty("gameConfig").GetProperty("finishDay").GetInt32());
+        Assert.Equal(25, root.GetProperty("gameConfig").GetProperty("finishDay").GetInt32());
 
         var rulesetId = root.GetProperty("ruleset_id").GetGuid();
         using var detailResponse = await SendJsonAsync(HttpMethod.Get, $"/api/v1/rulesets/{rulesetId}", null, token);
@@ -43,20 +43,21 @@ public sealed class SessionStateApiIntegrationTests
         using var detailBody = await ReadJsonAsync(detailResponse);
         Assert.Equal("MAHIR", detailBody.RootElement.GetProperty("mode").GetString());
         Assert.Equal(root.GetProperty("ruleset_version_id").GetGuid(), detailBody.RootElement.GetProperty("ruleset_version_id").GetGuid());
-        Assert.Equal(10, detailBody.RootElement.GetProperty("sections").GetProperty("gameConfig").GetProperty("initialCoins").GetInt32());
-        var config = detailBody.RootElement.GetProperty("config_json");
-        var componentCatalog = config.GetProperty("component_catalog");
-        Assert.True(componentCatalog.TryGetProperty("bahan", out _));
-        Assert.True(componentCatalog.TryGetProperty("resep", out _));
-        Assert.True(componentCatalog.TryGetProperty("quest", out _));
+        Assert.False(detailBody.RootElement.TryGetProperty("config_json", out _));
+        var definition = detailBody.RootElement.GetProperty("definition");
+        Assert.Equal(10, definition.GetProperty("settings").GetProperty("initial_coins").GetInt32());
+        Assert.True(definition.GetProperty("ingredients").GetArrayLength() > 0);
+        Assert.True(definition.GetProperty("orders").GetArrayLength() > 0);
+        Assert.False(definition.TryGetProperty("quests", out _));
 
         using var componentsResponse = await SendJsonAsync(HttpMethod.Get, $"/api/v1/rulesets/{rulesetId}/components", null, token);
         Assert.Equal(HttpStatusCode.OK, componentsResponse.StatusCode);
         using var componentsBody = await ReadJsonAsync(componentsResponse);
         Assert.Equal("MAHIR", componentsBody.RootElement.GetProperty("mode").GetString());
         Assert.Equal(root.GetProperty("ruleset_version_id").GetGuid(), componentsBody.RootElement.GetProperty("ruleset_version_id").GetGuid());
-        Assert.Equal(10, componentsBody.RootElement.GetProperty("sections").GetProperty("gameConfig").GetProperty("initialCoins").GetInt32());
-        Assert.True(componentsBody.RootElement.GetProperty("sections").GetProperty("quest").GetArrayLength() > 0);
+        var componentsDefinition = componentsBody.RootElement.GetProperty("definition");
+        Assert.Equal(10, componentsDefinition.GetProperty("settings").GetProperty("initial_coins").GetInt32());
+        Assert.False(componentsDefinition.TryGetProperty("quests", out _));
 
         using var defaultsResponse = await SendJsonAsync(HttpMethod.Get, "/api/v1/rulesets/components/defaults?mode=MAHIR", null, token);
         Assert.Equal(HttpStatusCode.OK, defaultsResponse.StatusCode);
@@ -66,8 +67,9 @@ public sealed class SessionStateApiIntegrationTests
             defaultItems,
             item => item.GetProperty("ruleset_id").GetGuid() == rulesetId);
         Assert.Equal(root.GetProperty("ruleset_version_id").GetGuid(), selectedDefault.GetProperty("ruleset_version_id").GetGuid());
-        Assert.Equal(10, selectedDefault.GetProperty("sections").GetProperty("gameConfig").GetProperty("initialCoins").GetInt32());
-        Assert.True(selectedDefault.GetProperty("sections").GetProperty("targetKebutuhan").GetArrayLength() > 0);
+        var defaultDefinition = selectedDefault.GetProperty("definition");
+        Assert.Equal(10, defaultDefinition.GetProperty("settings").GetProperty("initial_coins").GetInt32());
+        Assert.True(defaultDefinition.GetProperty("collection_missions").GetArrayLength() > 0);
 
         var bahan = root.GetProperty("bahan").EnumerateArray().ToList();
         Assert.Equal(5, bahan.Count);
@@ -95,11 +97,7 @@ public sealed class SessionStateApiIntegrationTests
         Assert.Equal("JualMasakan", narasi.GetProperty("prerequisiteAksi")[0].GetProperty("aksi").GetString());
         Assert.Equal(1, narasi.GetProperty("prerequisiteAksi")[0].GetProperty("value").GetInt32());
 
-        var quest = Assert.Single(
-            root.GetProperty("quest").EnumerateArray(),
-            item => item.GetProperty("id").GetString() == "mahir_jual_3_masakan");
-        Assert.Equal(5, quest.GetProperty("rewardCoins").GetInt32());
-        Assert.Equal(2, quest.GetProperty("rewardHappiness").GetInt32());
+        Assert.False(root.TryGetProperty("quest", out _));
     }
 
     [Theory]
@@ -110,6 +108,7 @@ public sealed class SessionStateApiIntegrationTests
     {
         var token = await RegisterInstructorAndGetTokenAsync();
         var names = Enumerable.Range(1, playerCount).Select(index => $"P{index}").ToArray();
+        var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", token);
 
         using var createResponse = await SendJsonAsync(
             HttpMethod.Post,
@@ -118,6 +117,7 @@ public sealed class SessionStateApiIntegrationTests
             {
                 session_name = $"Session IT {Guid.NewGuid():N}",
                 mode = "MAHIR",
+                ruleset_version_id = rulesetVersionId,
                 player_names = names
             },
             token);
@@ -140,13 +140,15 @@ public sealed class SessionStateApiIntegrationTests
     }
 
     [Fact]
-    public async Task PutState_ReplacesSnapshot_RejectsStaleVersion_AndValidatesCatalogReferences()
+    public async Task PutState_ReturnsGone_AndDoesNotMutateState()
     {
         var token = await RegisterInstructorAndGetTokenAsync();
+        var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", token);
         var createPayload = new
         {
             session_name = $"Session Save {Guid.NewGuid():N}",
             mode = "MAHIR",
+            ruleset_version_id = rulesetVersionId,
             player_names = new[] { "Doni", "Rani", "Bimo" }
         };
 
@@ -172,24 +174,10 @@ public sealed class SessionStateApiIntegrationTests
             $"/api/v1/sessions/{sessionId}/state",
             updatedState,
             token);
-        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, updateResponse.StatusCode);
 
-        using var updateBody = await ReadJsonAsync(updateResponse);
-        Assert.Equal(2, updateBody.RootElement.GetProperty("state_version").GetInt64());
-        Assert.Equal(2, updateBody.RootElement.GetProperty("day").GetInt32());
-        Assert.Equal(2, updateBody.RootElement.GetProperty("turn").GetInt32());
-
-        var savedFirstPlayer = updateBody.RootElement.GetProperty("players")[0];
-        Assert.Equal(17, savedFirstPlayer.GetProperty("coins").GetInt32());
-        Assert.Equal(3, savedFirstPlayer.GetProperty("happiness").GetInt32());
-        Assert.Equal(5, savedFirstPlayer.GetProperty("saving").GetInt32());
-        Assert.Equal("Nasi Putih", savedFirstPlayer.GetProperty("bahan")[0].GetProperty("nama").GetString());
-        Assert.Equal(2, savedFirstPlayer.GetProperty("bahan")[0].GetProperty("jumlah").GetInt32());
-        Assert.Equal("buku", savedFirstPlayer.GetProperty("kebutuhan")[0].GetProperty("nama").GetString());
-        Assert.Equal("beli rumah", savedFirstPlayer.GetProperty("tujuanFinansial")[0].GetProperty("nama").GetString());
-        Assert.Equal("mahir_jual_3_masakan", savedFirstPlayer.GetProperty("questProgress")[0].GetProperty("id").GetString());
-        Assert.Equal(4, savedFirstPlayer.GetProperty("totalDonasi").GetInt32());
-        Assert.Equal(1, updateBody.RootElement.GetProperty("donationEvents")[0].GetProperty("event_ke").GetInt32());
+        using var errorBody = await ReadJsonAsync(updateResponse);
+        Assert.Equal("STATE_WRITE_DISABLED", errorBody.RootElement.GetProperty("error_code").GetString());
 
         using var getResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -198,28 +186,8 @@ public sealed class SessionStateApiIntegrationTests
             token);
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
         using var getBody = await ReadJsonAsync(getResponse);
-        Assert.Equal(2, getBody.RootElement.GetProperty("state_version").GetInt64());
-        Assert.Equal("Nasi Putih", getBody.RootElement.GetProperty("players")[0].GetProperty("bahan")[0].GetProperty("nama").GetString());
-
-        using var staleResponse = await SendJsonAsync(
-            HttpMethod.Put,
-            $"/api/v1/sessions/{sessionId}/state",
-            updatedState,
-            token);
-        Assert.Equal(HttpStatusCode.Conflict, staleResponse.StatusCode);
-
-        var unknownBahanState = BuildStatePayload(
-            stateVersion: 2,
-            firstPlayerId,
-            secondPlayerId,
-            thirdPlayerId,
-            firstBahanNama: "UnknownBahan");
-        using var unknownBahanResponse = await SendJsonAsync(
-            HttpMethod.Put,
-            $"/api/v1/sessions/{sessionId}/state",
-            unknownBahanState,
-            token);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, unknownBahanResponse.StatusCode);
+        Assert.Equal(1, getBody.RootElement.GetProperty("state_version").GetInt64());
+        Assert.Equal("Doni", getBody.RootElement.GetProperty("players")[0].GetProperty("name").GetString());
     }
 
     [Fact]
@@ -227,6 +195,7 @@ public sealed class SessionStateApiIntegrationTests
     {
         var ownerToken = await RegisterInstructorAndGetTokenAsync();
         var otherInstructorToken = await RegisterInstructorAndGetTokenAsync();
+        var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", ownerToken);
 
         using var invalidLowCountResponse = await SendJsonAsync(
             HttpMethod.Post,
@@ -235,6 +204,7 @@ public sealed class SessionStateApiIntegrationTests
             {
                 session_name = $"Invalid Low Count {Guid.NewGuid():N}",
                 mode = "MAHIR",
+                ruleset_version_id = rulesetVersionId,
                 player_names = new[] { "A" }
             },
             ownerToken);
@@ -247,6 +217,7 @@ public sealed class SessionStateApiIntegrationTests
             {
                 session_name = $"Invalid High Count {Guid.NewGuid():N}",
                 mode = "MAHIR",
+                ruleset_version_id = rulesetVersionId,
                 player_names = new[] { "A", "B", "C", "D", "E" }
             },
             ownerToken);
@@ -259,6 +230,7 @@ public sealed class SessionStateApiIntegrationTests
             {
                 session_name = $"Owner Check {Guid.NewGuid():N}",
                 mode = "MAHIR",
+                ruleset_version_id = rulesetVersionId,
                 player_names = new[] { "Doni", "Rani", "Bimo" }
             },
             ownerToken);
@@ -289,7 +261,7 @@ public sealed class SessionStateApiIntegrationTests
             firstBahanNama: "Nasi Putih",
             firstCoins: -1),
             ownerToken);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, negativeCoinsResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, negativeCoinsResponse.StatusCode);
     }
 
     private static object BuildStatePayload(
@@ -305,8 +277,8 @@ public sealed class SessionStateApiIntegrationTests
             state_version = stateVersion,
             day = 2,
             turn = 2,
-            moves_left = 1,
-            finish_day = 13,
+            action_slots_left = 1,
+            finish_day = 25,
             is_game_over = false,
             ui_state = new
             {
@@ -319,14 +291,24 @@ public sealed class SessionStateApiIntegrationTests
                 new
                 {
                     session_player_id = firstPlayerId,
-                    player_index = 1,
+                    player_order_no = 1,
                     name = "Doni",
                     coins = firstCoins,
                     happiness = 3,
                     saving = 5,
                     bahan = new[] { new { nama = firstBahanNama, jumlah = 2 } },
                     kebutuhan = new[] { new { nama = "buku", tipe = "primer" } },
-                    tujuanFinansial = new[] { new { nama = "beli rumah", purchased_at_day = 2 } },
+                    tujuanFinansial = new[]
+                    {
+                        new
+                        {
+                            nama = "beli rumah",
+                            current_amount = 12,
+                            target_amount = 20,
+                            status = "COMPLETED",
+                            purchased_at_day = 2
+                        }
+                    },
                     targetKebutuhan = new[]
                     {
                         new
@@ -335,17 +317,6 @@ public sealed class SessionStateApiIntegrationTests
                             is_completed = false,
                             is_failed = false,
                             reward_applied = false
-                        }
-                    },
-                    questProgress = new[]
-                    {
-                        new
-                        {
-                            id = "mahir_jual_3_masakan",
-                            progress = 1,
-                            target = 3,
-                            is_completed = false,
-                            is_reward_claimed = false
                         }
                     },
                     actionCounters = new[] { new { aksi = "JualMasakan", count = 1 } },
@@ -371,7 +342,7 @@ public sealed class SessionStateApiIntegrationTests
             last_action = new
             {
                 aksi = "JualMasakan",
-                player_index = 1,
+                player_order_no = 1,
                 payload = new { resep = "nasi goreng" }
             }
         };
@@ -382,7 +353,7 @@ public sealed class SessionStateApiIntegrationTests
         return new
         {
             session_player_id = sessionPlayerId,
-            player_index = playerIndex,
+            player_order_no = playerIndex,
             name,
             coins = 10,
             happiness = 0,
@@ -391,7 +362,6 @@ public sealed class SessionStateApiIntegrationTests
             kebutuhan = Array.Empty<object>(),
             tujuanFinansial = Array.Empty<object>(),
             targetKebutuhan = Array.Empty<object>(),
-            questProgress = Array.Empty<object>(),
             actionCounters = Array.Empty<object>(),
             totalDonasi = 0
         };
@@ -402,10 +372,9 @@ public sealed class SessionStateApiIntegrationTests
         Assert.Equal(1, state.GetProperty("state_version").GetInt64());
         Assert.Equal(1, state.GetProperty("day").GetInt32());
         Assert.Equal(1, state.GetProperty("turn").GetInt32());
-        Assert.Equal(2, state.GetProperty("moves_left").GetInt32());
-        Assert.Equal(13, state.GetProperty("finish_day").GetInt32());
+        Assert.Equal(2, state.GetProperty("action_slots_left").GetInt32());
+        Assert.Equal(25, state.GetProperty("finish_day").GetInt32());
         Assert.False(state.GetProperty("is_game_over").GetBoolean());
-        Assert.Equal(JsonValueKind.Object, state.GetProperty("ui_state").ValueKind);
 
         var players = state.GetProperty("players").EnumerateArray().ToList();
         Assert.Equal(playerCount, players.Count);
@@ -420,7 +389,7 @@ public sealed class SessionStateApiIntegrationTests
         {
             Assert.NotEqual(Guid.Empty, players[i].GetProperty("session_player_id").GetGuid());
             Assert.NotEqual(Guid.Empty, players[i].GetProperty("user_id").GetGuid());
-            Assert.Equal(i + 1, players[i].GetProperty("player_index").GetInt32());
+            Assert.Equal(i + 1, players[i].GetProperty("player_order_no").GetInt32());
             Assert.Equal(names[i], players[i].GetProperty("name").GetString());
             Assert.Equal(10, players[i].GetProperty("coins").GetInt32());
             Assert.Equal(0, players[i].GetProperty("happiness").GetInt32());
@@ -429,10 +398,7 @@ public sealed class SessionStateApiIntegrationTests
             var targetKebutuhan = players[i].GetProperty("targetKebutuhan").EnumerateArray().ToList();
             var mission = Assert.Single(targetKebutuhan);
             Assert.Contains(mission.GetProperty("id").GetString()!, expectedMissionIds);
-            Assert.Contains(
-                players[i].GetProperty("questProgress").EnumerateArray(),
-                item => item.GetProperty("id").GetString() == "mahir_jual_3_masakan" &&
-                        item.GetProperty("target").GetInt32() == 3);
+            Assert.False(players[i].TryGetProperty("questProgress", out _));
             Assert.Equal(0, players[i].GetProperty("totalDonasi").GetInt32());
         }
     }
@@ -448,6 +414,15 @@ public sealed class SessionStateApiIntegrationTests
         var body = await response.Content.ReadFromJsonAsync<RegisterResponse>();
         Assert.NotNull(body);
         return body.AccessToken;
+    }
+
+    private async Task<Guid> GetDefaultRulesetVersionIdAsync(string mode, string accessToken)
+    {
+        using var response = await SendJsonAsync(HttpMethod.Get, $"/api/v1/rulesets/sections?mode={mode}", null, accessToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var body = await ReadJsonAsync(response);
+        return body.RootElement.GetProperty("ruleset_version_id").GetGuid();
     }
 
     private async Task<HttpResponseMessage> SendJsonAsync(

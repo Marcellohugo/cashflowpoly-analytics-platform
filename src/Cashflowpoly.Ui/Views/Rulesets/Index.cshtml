@@ -4,9 +4,12 @@
 @{
     ViewData["Title"] = Context.T("nav.ruleset");
     var isInstructor = Context.Session.IsInstructor();
-    var tableColumnCount = isInstructor ? 7 : 5;
+    var hasMutableRulesets = Model.Items.Any(item => !item.IsDefault && !item.IsLockedBySession);
+    var showMutationActions = isInstructor && hasMutableRulesets;
+    var tableColumnCount = showMutationActions ? 7 : 5;
     var flashError = ViewData["ruleset_error"] as string;
     var flashInfo = ViewData["ruleset_info"] as string;
+    const string DefaultCatalogSource = "default-catalog";
 }
 
 <section class="section-shell w-full">
@@ -143,7 +146,7 @@
                 <p class="ruleset-section-subtitle">@Context.T("rulesets.index.list_subtitle")</p>
             </div>
 
-        @if (isInstructor && Model.Items.Count > 0)
+        @if (showMutationActions)
         {
             <form id="ruleset-bulk-form"
                   method="post"
@@ -169,7 +172,7 @@
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
-                        @if (isInstructor)
+                        @if (showMutationActions)
                         {
                             <th class="px-4 py-3">
                                 <input type="checkbox"
@@ -182,7 +185,7 @@
                         <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
                         <th class="px-4 py-3 text-right">@Context.T("common.status")</th>
                         <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
-                        @if (isInstructor)
+                        @if (showMutationActions)
                         {
                             <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
                         }
@@ -207,13 +210,16 @@
                             data-ruleset-id="@item.RulesetId.ToString().ToLowerInvariant()"
                             data-status="@((item.Status ?? "UNKNOWN").ToLowerInvariant())"
                             data-latest-version="@item.LatestVersion">
-                            @if (isInstructor)
+                            @if (showMutationActions)
                             {
                                 <td class="px-4 py-3" data-label="@Context.T("common.action")">
-                                    <input type="checkbox"
-                                           value="@item.RulesetId"
-                                           data-ruleset-row-checkbox
-                                           aria-label="@($"{Context.T("rulesets.select_one")} {item.Name}")" />
+                                    @if (!item.IsDefault && !item.IsLockedBySession)
+                                    {
+                                        <input type="checkbox"
+                                               value="@item.RulesetId"
+                                               data-ruleset-row-checkbox
+                                               aria-label="@($"{Context.T("rulesets.select_one")} {item.Name}")" />
+                                    }
                                 </td>
                             }
                             <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">@item.Name</td>
@@ -235,26 +241,35 @@
                                 <span class="status-pill @statusClass">@statusLabel</span>
                             </td>
                             <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
+                                @{
+                                    var source = item.IsDefault ? DefaultCatalogSource : null;
+                                }
                                 <a class="table-link"
-                                   asp-controller="Rulesets" asp-action="Details" asp-route-rulesetId="@item.RulesetId">@Context.T("common.view")</a>
+                                   asp-controller="Rulesets"
+                                   asp-action="Details"
+                                   asp-route-rulesetId="@item.RulesetId"
+                                   asp-route-source="@source">@Context.T("common.view")</a>
                             </td>
-                            @if (isInstructor)
+                            @if (showMutationActions)
                             {
                                 <td class="px-4 py-3 text-right" data-label="@Context.T("common.action")">
-                                    <div class="ruleset-row-actions">
-                                        <a class="table-link"
-                                           asp-controller="Rulesets"
-                                           asp-action="Edit"
-                                           asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.edit")</a>
-                                        <form method="post"
-                                              asp-controller="Rulesets"
-                                              asp-action="Delete"
-                                              asp-route-rulesetId="@item.RulesetId"
-                                              onsubmit="return confirm('@Context.T("rulesets.delete_confirm")');">
-                                            @Html.AntiForgeryToken()
-                                            <button class="ruleset-action-btn" type="submit">@Context.T("rulesets.delete")</button>
-                                        </form>
-                                    </div>
+                                    @if (!item.IsDefault && !item.IsLockedBySession)
+                                    {
+                                        <div class="ruleset-row-actions">
+                                            <a class="table-link"
+                                               asp-controller="Rulesets"
+                                               asp-action="Edit"
+                                               asp-route-rulesetId="@item.RulesetId">@Context.T("rulesets.edit")</a>
+                                            <form method="post"
+                                                  asp-controller="Rulesets"
+                                                  asp-action="Delete"
+                                                  asp-route-rulesetId="@item.RulesetId"
+                                                  onsubmit="return confirm('@Context.T("rulesets.delete_confirm")');">
+                                                @Html.AntiForgeryToken()
+                                                <button class="ruleset-action-btn" type="submit">@Context.T("rulesets.delete")</button>
+                                            </form>
+                                        </div>
+                                    }
                                 </td>
                             }
                         </tr>

@@ -1,186 +1,220 @@
 # Manifest Fungsi File
 
-Dokumen ini menjadi sumber kebenaran fungsi tiap file tracked pada repositori.
+Baseline manifest: 18 Juni 2026.
 
-| Path | Kategori | Mode | Fungsi File | Catatan |
-| --- | --- | --- | --- | --- |
-| config/env/.env.dev.example | Konfigurasi | inline | Menyediakan template environment development. | - |
-| config/env/.env.example | Konfigurasi | inline | Menyediakan template environment fallback/legacy. | - |
-| config/env/.env.prod.example | Konfigurasi | inline | Menyediakan template environment production. | - |
-| .gitattributes | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file .gitattributes. | Konfigurasi atribut Git lintas platform. |
-| .gitignore | Root | inline | Menyediakan implementasi atau konfigurasi aktif pada file .gitignore. | - |
-| Cashflowpoly.sln | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.sln. | File solusi dikelola tooling. |
-| infra/cloudflared/config.yml | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file config.yml. | - |
-| database/00_create_schema.sql | Database | inline | Menyediakan implementasi atau konfigurasi aktif pada file 00_create_schema.sql. | - |
-| infra/docker/docker-compose.prod.yml | Infrastruktur | inline | Menyediakan override production untuk Docker Compose. | - |
-| infra/docker/docker-compose.yml | Infrastruktur | inline | Menyediakan definisi service dasar Docker Compose. | - |
-| docs/00-Panduan/00-01-panduan-setup-lingkungan.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-01-panduan-setup-lingkungan.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/00-Panduan/00-02-manual-pengguna-dan-skenario-operasional.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-02-manual-pengguna-dan-skenario-operasional.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/00-Panduan/00-03-panduan-menjalankan-sistem.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-03-panduan-menjalankan-sistem.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/00-Panduan/00-04-status-kesesuaian-implementasi.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-04-status-kesesuaian-implementasi.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/00-Panduan/00-05-panduan-deployment-production.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-05-panduan-deployment-production.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/00-ringkasan-rulebook-cashflowpoly.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 00-ringkasan-rulebook-cashflowpoly.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/01-ringkasan-proposal-tugas-akhir.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 01-ringkasan-proposal-tugas-akhir.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 01-01-spesifikasi-kebutuhan-sistem.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 01-02-spesifikasi-event-dan-kontrak-api.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 01-03-spesifikasi-ruleset-dan-validasi.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 01-04-kontrak-integrasi-idn-dan-keamanan.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/02-Perancangan/02-01-rencana-implementasi-dan-struktur-solution-dotnet.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 02-01-rencana-implementasi-dan-struktur-solution-dotnet.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/02-Perancangan/02-02-rancangan-model-data-dan-basis-data.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 02-02-rancangan-model-data-dan-basis-data.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/02-Perancangan/02-03-definisi-metrik-dan-agregasi.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 02-03-definisi-metrik-dan-agregasi.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 02-04-metrik-gameplay-fisik-dan-turunan.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 02-05-rancangan-dashboard-analitika-mvc.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/02-Perancangan/02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 03-01-rencana-pengujian-fungsional-dan-validasi.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/03-Pengujian/03-02-laporan-hasil-pengujian.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 03-02-laporan-hasil-pengujian.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/file-function-manifest.md | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file file-function-manifest.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| docs/Img/RuleBook/hal-01.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-01.png. | Aset biner. |
-| docs/Img/RuleBook/hal-05.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-05.png. | Aset biner. |
-| docs/Img/RuleBook/hal-07.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-07.png. | Aset biner. |
-| docs/Img/RuleBook/hal-09.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-09.png. | Aset biner. |
-| docs/Img/RuleBook/hal-11.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-11.png. | Aset biner. |
-| docs/Img/RuleBook/hal-13.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-13.png. | Aset biner. |
-| docs/Img/RuleBook/hal-15.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-15.png. | Aset biner. |
-| docs/Img/RuleBook/hal-17.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-17.png. | Aset biner. |
-| docs/Img/RuleBook/hal-19.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-19.png. | Aset biner. |
-| docs/Img/RuleBook/hal-21.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-21.png. | Aset biner. |
-| docs/Img/RuleBook/hal-23.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-23.png. | Aset biner. |
-| docs/Img/RuleBook/hal-25.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-25.png. | Aset biner. |
-| docs/Img/RuleBook/hal-27.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-27.png. | Aset biner. |
-| docs/Img/RuleBook/hal-28.png | Dokumen | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file hal-28.png. | Aset biner. |
-| infra/nginx/default.conf | Infrastruktur | inline | Menyediakan implementasi atau konfigurasi aktif pada file default.conf. | - |
-| infra/nginx/ssl/.gitkeep | Infrastruktur | manifest-only | Menyimpan placeholder folder SSL lokal. | Tidak aman/kurang relevan diberi komentar inline. |
-| postman/Cashflowpoly.local.postman_environment.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.local.postman_environment.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| postman/Cashflowpoly.postman_collection.json | Integrasi | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Cashflowpoly.postman_collection.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| README.md | Root | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file README.md. | Dokumen tidak diubah inline sesuai kebijakan. |
-| src/Cashflowpoly.Api/appsettings.Development.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.Development.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Api/appsettings.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Api/Cashflowpoly.Api.csproj | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file Cashflowpoly.Api.csproj. | - |
-| src/Cashflowpoly.Api/Cashflowpoly.Api.http | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file Cashflowpoly.Api.http. | - |
-| src/Cashflowpoly.Api/Controllers/AnalyticsController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file AnalyticsController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/ApiErrorHelper.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiErrorHelper.cs. | - |
-| src/Cashflowpoly.Api/Controllers/AuthController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/EventsController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file EventsController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/ObservabilityController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file ObservabilityController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/PlayersController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file PlayersController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/RulesetsController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetsController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/SecurityAuditController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file SecurityAuditController.cs. | - |
-| src/Cashflowpoly.Api/Controllers/SessionsController.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionsController.cs. | - |
-| src/Cashflowpoly.Api/Data/AuthSchemaBootstrapper.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthSchemaBootstrapper.cs. | - |
-| src/Cashflowpoly.Api/Data/DbRecords.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file DbRecords.cs. | - |
-| src/Cashflowpoly.Api/Data/EventRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file EventRepository.cs. | - |
-| src/Cashflowpoly.Api/Data/MetricsRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file MetricsRepository.cs. | - |
-| src/Cashflowpoly.Api/Data/PlayerRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file PlayerRepository.cs. | - |
-| src/Cashflowpoly.Api/Data/RulesetRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetRepository.cs. | - |
-| src/Cashflowpoly.Api/Data/SecurityAuditRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file SecurityAuditRepository.cs. | - |
-| src/Cashflowpoly.Api/Data/SessionRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionRepository.cs. | - |
-| src/Cashflowpoly.Api/Data/UserRepository.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file UserRepository.cs. | - |
-| src/Cashflowpoly.Api/Dockerfile | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile. | Tidak aman/kurang relevan diberi komentar inline. |
-| src/Cashflowpoly.Api/Dockerfile.dev | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile.dev. | Tidak aman/kurang relevan diberi komentar inline. |
-| src/Cashflowpoly.Api/Domain/RulesetConfig.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetConfig.cs. | - |
-| src/Cashflowpoly.Api/Infrastructure/DatabaseHealthCheck.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file DatabaseHealthCheck.cs. | - |
-| src/Cashflowpoly.Api/Infrastructure/OperationalMetricsTracker.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file OperationalMetricsTracker.cs. | - |
-| src/Cashflowpoly.Api/Infrastructure/StandardResponseOperationFilter.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file StandardResponseOperationFilter.cs. | - |
-| src/Cashflowpoly.Api/Models/ApiDtos.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiDtos.cs. | - |
-| src/Cashflowpoly.Api/Models/ErrorResponse.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file ErrorResponse.cs. | - |
-| src/Cashflowpoly.Api/Program.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file Program.cs. | - |
-| src/Cashflowpoly.Api/Properties/AssemblyInfo.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file AssemblyInfo.cs. | - |
-| src/Cashflowpoly.Api/Properties/launchSettings.json | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file launchSettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Api/Security/AuthOptions.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthOptions.cs. | - |
-| src/Cashflowpoly.Api/Security/JwtOptions.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file JwtOptions.cs. | - |
-| src/Cashflowpoly.Api/Security/JwtSigningKeyProvider.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file JwtSigningKeyProvider.cs. | - |
-| src/Cashflowpoly.Api/Security/JwtTokenService.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file JwtTokenService.cs. | - |
-| src/Cashflowpoly.Api/Security/LegacyApiCompatibilityHelper.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file LegacyApiCompatibilityHelper.cs. | - |
-| src/Cashflowpoly.Api/Security/RateLimitPolicyHelper.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file RateLimitPolicyHelper.cs. | - |
-| src/Cashflowpoly.Api/Security/SecurityAuditService.cs | API | inline | Menyediakan implementasi atau konfigurasi aktif pada file SecurityAuditService.cs. | - |
-| src/Cashflowpoly.Api/wwwroot/api-assets/cashflowpoly.jpg | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file cashflowpoly.jpg. | Aset biner. |
-| src/Cashflowpoly.Api/wwwroot/api-assets/cashflowpoly-favicon.ico | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file cashflowpoly-favicon.ico. | Aset biner. |
-| src/Cashflowpoly.Api/wwwroot/index.html | API | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file index.html. | Tidak aman/kurang relevan diberi komentar inline. |
-| src/Cashflowpoly.Ui/appsettings.Development.json | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.Development.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Ui/appsettings.json | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file appsettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Cashflowpoly.Ui.csproj. | - |
-| src/Cashflowpoly.Ui/Controllers/AnalyticsController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AnalyticsController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/AuthController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/ComponentsController.cs | UI | inline | Memuat katalog komponen default ruleset untuk halaman Komponen. | - |
-| src/Cashflowpoly.Ui/Controllers/HomeController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file HomeController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/LanguageController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file LanguageController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/PlayerDirectoryController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file PlayerDirectoryController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/PlayersController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file PlayersController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/RulesetsController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetsController.cs. | - |
-| src/Cashflowpoly.Ui/Controllers/SessionsController.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionsController.cs. | - |
-| src/Cashflowpoly.Ui/Dockerfile | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile. | Tidak aman/kurang relevan diberi komentar inline. |
-| src/Cashflowpoly.Ui/Dockerfile.dev | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file Dockerfile.dev. | Tidak aman/kurang relevan diberi komentar inline. |
-| src/Cashflowpoly.Ui/Infrastructure/ApiAuthHelper.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiAuthHelper.cs. | - |
-| src/Cashflowpoly.Ui/Infrastructure/AuthSessionExtensions.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthSessionExtensions.cs. | - |
-| src/Cashflowpoly.Ui/Infrastructure/BearerTokenHandler.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file BearerTokenHandler.cs. | - |
-| src/Cashflowpoly.Ui/Infrastructure/RulebookContent.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulebookContent.cs. | - |
-| src/Cashflowpoly.Ui/Infrastructure/RulesetFormHelper.cs | UI | inline | Menyediakan default config, validasi mode, format JSON, dan helper pesan error API untuk form ruleset. | - |
-| src/Cashflowpoly.Ui/Infrastructure/SessionTimelineMapper.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file SessionTimelineMapper.cs. | - |
-| src/Cashflowpoly.Ui/Infrastructure/UiText.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file UiText.cs. | - |
-| src/Cashflowpoly.Ui/Models/AnalyticsViewModels.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AnalyticsViewModels.cs. | - |
-| src/Cashflowpoly.Ui/Models/ApiDtos.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiDtos.cs. | - |
-| src/Cashflowpoly.Ui/Models/AuthViewModels.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthViewModels.cs. | - |
-| src/Cashflowpoly.Ui/Models/ErrorViewModel.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file ErrorViewModel.cs. | - |
-| src/Cashflowpoly.Ui/Models/HomeViewModels.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file HomeViewModels.cs. | - |
-| src/Cashflowpoly.Ui/Models/RulebookViewModels.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulebookViewModels.cs. | - |
-| src/Cashflowpoly.Ui/Models/RulesetViewModels.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file RulesetViewModels.cs. | - |
-| src/Cashflowpoly.Ui/package.json | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file package.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Ui/package-lock.json | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file package-lock.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Ui/postcss.config.js | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file postcss.config.js. | - |
-| src/Cashflowpoly.Ui/Program.cs | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Program.cs. | - |
-| src/Cashflowpoly.Ui/Properties/launchSettings.json | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file launchSettings.json. | Manifest-only untuk menjaga kompatibilitas parser/kontrak runtime. |
-| src/Cashflowpoly.Ui/tailwind.config.js | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file tailwind.config.js. | - |
-| src/Cashflowpoly.Ui/Views/_ViewImports.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewImports.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/_ViewStart.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ViewStart.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Auth/Login.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Login.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Auth/Register.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Register.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Components/Index.cshtml | UI | inline | Merender menu Komponen dan katalog komponen default Pemula/Mahir. | - |
-| src/Cashflowpoly.Ui/Views/Home/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Home/Privacy.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Privacy.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Players/Details.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Details.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Players/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Rulesets/Create.cshtml | UI | inline | Merender form create/edit ruleset untuk Instruktur. | - |
-| src/Cashflowpoly.Ui/Views/Rulesets/Details.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Details.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Rulesets/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Sessions/_SessionJourneyScript.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _SessionJourneyScript.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Sessions/_SessionJourneySection.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _SessionJourneySection.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Sessions/Details.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Details.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Sessions/Index.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Index.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Sessions/Ruleset.cshtml | UI | inline | Merender form aktivasi ruleset sesi untuk Instruktur. | - |
-| src/Cashflowpoly.Ui/Views/Shared/_Layout.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _Layout.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Shared/_ValidationScriptsPartial.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file _ValidationScriptsPartial.cshtml. | - |
-| src/Cashflowpoly.Ui/Views/Shared/Error.cshtml | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file Error.cshtml. | - |
-| src/Cashflowpoly.Ui/wwwroot/css/site.css | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file site.css. | - |
-| src/Cashflowpoly.Ui/wwwroot/css/tailwind.input.css | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file tailwind.input.css. | - |
-| src/Cashflowpoly.Ui/wwwroot/images/cashflowpoly-favicon.ico | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file cashflowpoly-favicon.ico. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/images.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file images.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/players/1.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 1.png. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/players/2.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 2.png. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/players/3.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 3.png. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/players/4.png | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file 4.png. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/aksi-donasi-emas.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file aksi-donasi-emas.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/aksi-kebutuhan-freelance.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file aksi-kebutuhan-freelance.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/aksi-risiko-asuransi.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file aksi-risiko-asuransi.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/alur-giliran.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file alur-giliran.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/perhitungan-poin.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file perhitungan-poin.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/setup-mode-mahir.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file setup-mode-mahir.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/images/rulebook/setup-mode-pemula.jpg | UI | manifest-only | Menyimpan artefak, dokumentasi, atau konfigurasi pendukung pada file setup-mode-pemula.jpg. | Aset biner. |
-| src/Cashflowpoly.Ui/wwwroot/js/site.js | UI | inline | Menyediakan implementasi atau konfigurasi aktif pada file site.js. | - |
-| tests/Cashflowpoly.Api.Tests/ApiErrorHelperTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiErrorHelperTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/AuthRbacRulesetIntegrationTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file AuthRbacRulesetIntegrationTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file Cashflowpoly.Api.Tests.csproj. | - |
-| tests/Cashflowpoly.Api.Tests/EventAnalyticsIntegrationTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file EventAnalyticsIntegrationTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/Infrastructure/ApiIntegrationCollection.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiIntegrationCollection.cs. | - |
-| tests/Cashflowpoly.Api.Tests/Infrastructure/ApiIntegrationTestFixture.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiIntegrationTestFixture.cs. | - |
-| tests/Cashflowpoly.Api.Tests/Infrastructure/ApiWebApplicationFactory.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ApiWebApplicationFactory.cs. | - |
-| tests/Cashflowpoly.Api.Tests/JwtSigningKeyProviderTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file JwtSigningKeyProviderTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/JwtTokenServiceTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file JwtTokenServiceTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/LegacyApiCompatibilityHelperTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file LegacyApiCompatibilityHelperTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/ObservabilitySecurityIntegrationTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ObservabilitySecurityIntegrationTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/RateLimitPolicyHelperTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file RateLimitPolicyHelperTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/ResponseMetadataTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file ResponseMetadataTests.cs. | - |
-| tests/Cashflowpoly.Api.Tests/UiLocalizationGuardTests.cs | Test | inline | Menyediakan implementasi atau konfigurasi aktif pada file UiLocalizationGuardTests.cs. | - |
-| tests/Cashflowpoly.Ui.Tests/ComponentMenuSeparationTests.cs | Test | inline | Menguji pemisahan menu Komponen dari halaman Ruleset. | - |
-| tests/Cashflowpoly.Ui.Tests/RulesetFormHelperTests.cs | Test | inline | Menguji helper form create/edit ruleset. | - |
-| tests/Cashflowpoly.Ui.Tests/RulesetManagementActionTests.cs | Test | inline | Menguji kembalinya aksi manajemen ruleset di view dan controller UI. | - |
-| tests/Cashflowpoly.Ui.Tests/SessionAndPlayerSummaryLayoutTests.cs | Test | inline | Menguji penghapusan champion sesi dan penyederhanaan ringkasan direktori pemain. | - |
+Dokumen ini merangkum fungsi file dan family file aktif pada repository.
+File generated/build output (`bin/`, `obj/`, `TestResults/`) tidak
+dimanifestkan. Entry untuk file UI yang sudah dihapus tidak dicantumkan lagi.
+
+## Root, Konfigurasi, dan Infrastruktur
+| Path | Kategori | Fungsi |
+|---|---|---|
+| `README.md` | Root | Entry point dokumentasi repository, setup, endpoint utama, dan tautan dokumen desain. |
+| `Cashflowpoly.sln` | Root | Solution .NET untuk API, UI, dan test project. |
+| `.gitattributes` | Root | Aturan atribut Git lintas platform. |
+| `.gitignore` | Root | Daftar file/folder yang tidak dilacak Git. |
+| `config/env/.env.example` | Konfigurasi | Template environment fallback/legacy. |
+| `config/env/.env.dev.example` | Konfigurasi | Template environment development Docker Compose. |
+| `config/env/.env.prod.example` | Konfigurasi | Template environment production. |
+| `infra/docker/docker-compose.yml` | Infrastruktur | Definisi service dasar `db`, `api`, dan `ui`. |
+| `infra/docker/docker-compose.watch.yml` | Infrastruktur | Override development/watch. |
+| `infra/docker/docker-compose.prod.yml` | Infrastruktur | Override production, Nginx, dan Cloudflare Tunnel. |
+| `infra/nginx/default.conf` | Infrastruktur | Reverse proxy Nginx untuk UI, API, Swagger, health, dan static asset. |
+| `infra/cloudflared/config.yml` | Infrastruktur | Konfigurasi Cloudflare Tunnel. |
+
+## Database dan Integrasi
+| Path | Kategori | Fungsi |
+|---|---|---|
+| `database/00_create_schema.sql` | Database | DDL kanonis schema PostgreSQL event-first. |
+| `database/01_seed_default_rulesets_components.sql` | Database | Seed ruleset default dan katalog komponen gameplay. |
+| `database/02_seed_simulation_sessions_events.sql` | Database | Seed simulasi manual untuk sesi dan event contoh. |
+| `postman/Cashflowpoly.postman_collection.json` | Integrasi | Collection Postman untuk smoke/API/RBAC flow. |
+| `postman/Cashflowpoly.local.postman_environment.json` | Integrasi | Environment lokal Postman. |
+
+## Dokumentasi
+| Path | Kategori | Fungsi |
+|---|---|---|
+| `docs/00-ringkasan-rulebook-cashflowpoly.md` | Dokumen | Ringkasan rulebook Cashflowpoly untuk referensi cepat. |
+| `docs/01-ringkasan-proposal-tugas-akhir.md` | Dokumen | Ringkasan proposal tugas akhir dan konteks penelitian. |
+| `docs/00-Panduan/00-01-panduan-setup-lingkungan.md` | Panduan | Setup Windows, .NET, PostgreSQL, JWT, bootstrap DB, dan Tailwind. |
+| `docs/00-Panduan/00-02-manual-pengguna-dan-skenario-operasional.md` | Panduan | Manual Instruktur/Player, alur IDN/API/Web, dan skenario operasional. |
+| `docs/00-Panduan/00-03-panduan-menjalankan-sistem.md` | Panduan | Cara menjalankan API/UI, Docker Compose, Swagger, dan troubleshooting. |
+| `docs/00-Panduan/00-04-status-kesesuaian-implementasi.md` | Panduan | Status kesesuaian implementasi terhadap spesifikasi aktif. |
+| `docs/00-Panduan/00-05-panduan-deployment-production.md` | Panduan | Deployment production dengan Docker Compose, Nginx, dan Cloudflare Tunnel. |
+| `docs/00-Panduan/00-06-matriks-alur-dan-hak-akses.md` | Panduan | Matriks alur pengguna, endpoint, UI route, RBAC, ruleset mutability, dan scope Player. |
+| `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md` | Spesifikasi | SRS, kebutuhan fungsional/non-fungsional, data, dan aktor. |
+| `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md` | Spesifikasi | Kontrak event, endpoint API, request/response, status code, dan RBAC teknis. |
+| `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md` | Spesifikasi | Definition ruleset, validasi, lifecycle versi, dan aturan mutability. |
+| `docs/01-Spesifikasi/01-04-kontrak-integrasi-idn-dan-keamanan.md` | Spesifikasi | Kontrak integrasi IDN, auth, retry, timeout, NFR, observability, dan audit. |
+| `docs/01-Spesifikasi/01-05-kebutuhan-diagram-uml.md` | Spesifikasi | Kebutuhan UML dan daftar aktor/entitas/sequence yang harus digambar. |
+| `docs/01-Spesifikasi/01-06-skenario-simulasi-permainan.md` | Spesifikasi | Skenario simulasi pemula/mahir dan pemetaan narasi ke event API. |
+| `docs/02-Perancangan/02-01-rencana-implementasi-dan-struktur-solution-dotnet.md` | Perancangan | Struktur solution dan urutan implementasi. |
+| `docs/02-Perancangan/02-02-rancangan-model-data-dan-basis-data.md` | Perancangan | Rancangan schema database aktual dan alur event-first. |
+| `docs/02-Perancangan/02-03-definisi-metrik-dan-agregasi.md` | Perancangan | Definisi metric snapshot, rumus agregasi, dan validasi metrik. |
+| `docs/02-Perancangan/02-04-metrik-gameplay-fisik-dan-turunan.md` | Perancangan | Variabel gameplay fisik dan metrik turunan. |
+| `docs/02-Perancangan/02-05-rancangan-dashboard-analitika-mvc.md` | Perancangan | Rancangan dashboard MVC, route UI, endpoint mapping, dan error state. |
+| `docs/02-Perancangan/02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md` | Perancangan | Struktur UI MVC, DTO/ViewModel, route, dan otorisasi UI. |
+| `docs/02-Perancangan/02-07-normalisasi-schema-event-first.md` | Perancangan | Normalisasi schema event-first dan daftar reduksi tabel historis. |
+| `docs/03-Pengujian/03-01-rencana-pengujian-fungsional-dan-validasi.md` | Pengujian | Rencana test API, integrasi event, UI, RBAC, smoke, dan evidence. |
+| `docs/03-Pengujian/03-02-laporan-hasil-pengujian.md` | Pengujian | Laporan hasil pengujian baseline. |
+| `docs/file-function-manifest.md` | Dokumen | Manifest fungsi file repository. |
+| `docs/Img/RuleBook/*.png` | Aset dokumen | Scan/gambar halaman rulebook untuk lampiran dokumen. |
+
+## API - Project dan Kontrak
+| Path | Kategori | Fungsi |
+|---|---|---|
+| `src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` | API | Project file API .NET. |
+| `src/Cashflowpoly.Api/appsettings.json` | API | Konfigurasi dasar API. |
+| `src/Cashflowpoly.Api/appsettings.Development.json` | API | Konfigurasi development API. |
+| `src/Cashflowpoly.Api/Cashflowpoly.Api.http` | API | Contoh request HTTP lokal. |
+| `src/Cashflowpoly.Api/Program.cs` | API | Bootstrap dependency injection, middleware, auth, rate limit, OpenAPI, health, dan metrics. |
+| `src/Cashflowpoly.Api/Dockerfile` | API | Build image production API. |
+| `src/Cashflowpoly.Api/Dockerfile.dev` | API | Build image development API. |
+| `src/Cashflowpoly.Api/Contracts/Dtos.cs` | API | DTO request/response API, termasuk session, players, events, analytics, auth, audit, dan state. |
+| `src/Cashflowpoly.Api/Contracts/RulesetDefinitionDtos.cs` | API | DTO strongly typed untuk `definition` ruleset. |
+| `src/Cashflowpoly.Api/Contracts/ErrorResponse.cs` | API | Format error standar. |
+| `src/Cashflowpoly.Api/Properties/launchSettings.json` | API | Profil launch development. |
+| `src/Cashflowpoly.Api/Properties/AssemblyInfo.cs` | API | Metadata assembly. |
+
+## API - Controllers
+| Path | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Api/Controllers/AuthController.cs` | Login/register dan penerbitan JWT. |
+| `src/Cashflowpoly.Api/Controllers/SessionsController.cs` | List/create/start/end session, read state, dan state-write disabled guard. |
+| `src/Cashflowpoly.Api/Controllers/PlayersController.cs` | Create/list akun Player dan tambah Player ke sesi. |
+| `src/Cashflowpoly.Api/Controllers/RulesetsController.cs` | CRUD ruleset, versi, activation, detail, components, defaults, dan sections. |
+| `src/Cashflowpoly.Api/Controllers/EventsController.cs` | Ingest event tunggal/batch dan list event sesi. |
+| `src/Cashflowpoly.Api/Controllers/AnalyticsController.cs` | Recompute, analytics sesi, transaksi, gameplay metrics, dan summary ruleset. |
+| `src/Cashflowpoly.Api/Controllers/ObservabilityController.cs` | Summary observability yang menunjuk ke `/metrics`. |
+| `src/Cashflowpoly.Api/Controllers/SecurityAuditController.cs` | Query audit log keamanan. |
+
+## API - Data Access
+| Path | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Api/Data/AppDbContext.cs` | Mapping EF Core untuk schema PostgreSQL. |
+| `src/Cashflowpoly.Api/Data/AppDbContextFactory.cs` | Factory design-time/runtime untuk DbContext. |
+| `src/Cashflowpoly.Api/Data/DbRecords.cs` | Record/row model untuk repository. |
+| `src/Cashflowpoly.Api/Data/UserRepository.cs` | Akses data akun, login lookup, create user, dan display name. |
+| `src/Cashflowpoly.Api/Data/SessionRepository.cs` | Akses session, status, owner scope, dan list berdasarkan role. |
+| `src/Cashflowpoly.Api/Data/PlayerRepository.cs` | Akses akun Player dan `session_participants`. |
+| `src/Cashflowpoly.Api/Data/RulesetRepository.cs` | Persist/read ruleset, versi, components, defaults, dan definition normalization. |
+| `src/Cashflowpoly.Api/Data/EventRepository.cs` | Persist/read event, idempotensi, sequence, dan projection dependencies. |
+| `src/Cashflowpoly.Api/Data/EventActionIdResolver.cs` | Resolve `action_type` ke `ruleset_actions.ruleset_action_id`. |
+| `src/Cashflowpoly.Api/Data/SessionEventProjector.cs` | Membangun projection session/participant dari event valid. |
+| `src/Cashflowpoly.Api/Data/SessionStateRepository.cs` | Read/init state session dan final score projection. |
+| `src/Cashflowpoly.Api/Data/MetricsRepository.cs` | Query/insert metric snapshots, gameplay JSON, transaksi, dan violations. |
+| `src/Cashflowpoly.Api/Data/SecurityAuditRepository.cs` | Persist dan query audit keamanan. |
+
+## API - Domain dan Services
+| Path/Family | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Api/Services/EventIngestionService.cs` | Pipeline ingest event, validasi, persist event, projection, dan error handling. |
+| `src/Cashflowpoly.Api/Services/AnalyticsService.cs` | Recompute dan read model analytics. |
+| `src/Cashflowpoly.Api/Services/I*.cs` | Interface service untuk DI/test. |
+| `src/Cashflowpoly.Api/Domain/RulesetConfig.cs` | Runtime model ruleset untuk validasi dan gameplay rules. |
+| `src/Cashflowpoly.Api/Domain/RulesetDefinitionMapper.cs` | Mapper `definition` DTO ke struktur domain runtime yang sudah dinormalisasi. |
+| `src/Cashflowpoly.Api/Domain/GameActionCatalog.cs` | Katalog action gameplay yang dikenali. |
+| `src/Cashflowpoly.Api/Domain/NeedTierClassifier.cs` | Klasifikasi tier kebutuhan. |
+| `src/Cashflowpoly.Api/Domain/PlayerIdentityPolicy.cs` | Kebijakan validasi identitas Player dan scope request. |
+| `src/Cashflowpoly.Api/Domain/SessionRules.cs` | Helper aturan status/lifecycle session. |
+| `src/Cashflowpoly.Api/Domain/Event*Validator.cs` | Validator shape/domain event per area gameplay. |
+| `src/Cashflowpoly.Api/Domain/Event*Calculator.cs` | Kalkulator state/projection event seperti balance, derived state, dan insurance offset. |
+| `src/Cashflowpoly.Api/Domain/EventRecordMapper.cs` | Mapper request event ke record database. |
+| `src/Cashflowpoly.Api/Domain/EventPayloadReader.cs` | Reader payload event yang aman terhadap tipe JSON. |
+| `src/Cashflowpoly.Api/Domain/EventCashflowProjectionBuilder.cs` | Builder projection transaksi arus kas dari event. |
+| `src/Cashflowpoly.Api/Domain/EventValidationDetailsSerializer.cs` | Serialisasi detail validasi ke format log/error. |
+| `src/Cashflowpoly.Api/Domain/Analytics*Calculator.cs` | Kalkulator metrik analytics per domain. |
+| `src/Cashflowpoly.Api/Domain/AnalyticsGameplaySnapshotBuilder.cs` | Builder response gameplay metrics. |
+| `src/Cashflowpoly.Api/Domain/AnalyticsMetricSnapshotBuilder.cs` | Builder row `metric_snapshots`. |
+| `src/Cashflowpoly.Api/Domain/Interfaces/*.cs` | Interface domain calculator/validator/mapper. |
+
+## API - Infrastructure dan Security
+| Path | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Api/Infrastructure/ApiErrorHelper.cs` | Builder error response standar. |
+| `src/Cashflowpoly.Api/Infrastructure/DatabaseInitialization.cs` | Bootstrap schema dan seed saat startup. |
+| `src/Cashflowpoly.Api/Infrastructure/DatabaseHealthCheck.cs` | Health check database. |
+| `src/Cashflowpoly.Api/Infrastructure/StandardResponseOperationFilter.cs` | OpenAPI operation filter untuk response standar. |
+| `src/Cashflowpoly.Api/Infrastructure/Telemetry/AppMetrics.cs` | Definisi metrics OpenTelemetry/Prometheus. |
+| `src/Cashflowpoly.Api/Security/AuthOptions.cs` | Opsi auth bootstrap. |
+| `src/Cashflowpoly.Api/Security/JwtOptions.cs` | Opsi JWT dan signing keys. |
+| `src/Cashflowpoly.Api/Security/JwtSigningKeyProvider.cs` | Provider signing key dan rotasi `kid`. |
+| `src/Cashflowpoly.Api/Security/JwtTokenService.cs` | Pembuatan JWT. |
+| `src/Cashflowpoly.Api/Security/RateLimitPolicyHelper.cs` | Policy rate limit API. |
+| `src/Cashflowpoly.Api/Security/SecurityAuditService.cs` | Service audit keamanan. |
+| `src/Cashflowpoly.Api/wwwroot/index.html` | Landing page API. |
+| `src/Cashflowpoly.Api/wwwroot/api-assets/*` | Aset landing page API. |
+
+## UI - Project, Controllers, dan Kontrak
+| Path | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` | Project file UI MVC. |
+| `src/Cashflowpoly.Ui/appsettings.json` | Konfigurasi dasar UI. |
+| `src/Cashflowpoly.Ui/appsettings.Development.json` | Konfigurasi development UI. |
+| `src/Cashflowpoly.Ui/Program.cs` | Bootstrap MVC, session, localization, health, dan route mapping. |
+| `src/Cashflowpoly.Ui/Dockerfile` | Build image production UI. |
+| `src/Cashflowpoly.Ui/Dockerfile.dev` | Build image development UI. |
+| `src/Cashflowpoly.Ui/Contracts/Dtos.cs` | DTO client untuk response/request API. |
+| `src/Cashflowpoly.Ui/Contracts/RulesetDefinitionDtos.cs` | DTO `definition` ruleset pada UI. |
+| `src/Cashflowpoly.Ui/Contracts/ErrorResponse.cs` | DTO error response API. |
+| `src/Cashflowpoly.Ui/Controllers/AuthController.cs` | Login/register/logout UI. |
+| `src/Cashflowpoly.Ui/Controllers/HomeController.cs` | Home, privacy, dan rulebook. |
+| `src/Cashflowpoly.Ui/Controllers/LanguageController.cs` | Set preferensi bahasa. |
+| `src/Cashflowpoly.Ui/Controllers/SessionsController.cs` | Daftar/detail sesi dan timeline partial. |
+| `src/Cashflowpoly.Ui/Controllers/PlayersController.cs` | Detail Player pada sesi. |
+| `src/Cashflowpoly.Ui/Controllers/PlayerDirectoryController.cs` | Direktori Player. |
+| `src/Cashflowpoly.Ui/Controllers/RulesetsController.cs` | List/create/edit/detail/delete/activate ruleset dan default components. |
+| `src/Cashflowpoly.Ui/Controllers/AnalyticsController.cs` | Route legacy analytics redirect. |
+
+## UI - Domain, Infrastructure, Models, Views, Assets
+| Path/Family | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Ui/Domain/RulesetDefinitionMapper.cs` | Mapper definition ruleset untuk tampilan/form UI. |
+| `src/Cashflowpoly.Ui/Infrastructure/ApiAuthHelper.cs` | Helper auth/error API. |
+| `src/Cashflowpoly.Ui/Infrastructure/AuthSessionExtensions.cs` | Extension session untuk token/role/user display. |
+| `src/Cashflowpoly.Ui/Infrastructure/BearerTokenHandler.cs` | Handler `HttpClient` untuk Bearer token. |
+| `src/Cashflowpoly.Ui/Infrastructure/HttpContentExtensions.cs` | Helper baca content/error response. |
+| `src/Cashflowpoly.Ui/Infrastructure/HttpsRedirectionPolicy.cs` | Policy redirect HTTPS UI. |
+| `src/Cashflowpoly.Ui/Infrastructure/PlayerMetric*.cs` | Builder/mapper/formatter payload chart metric Player. |
+| `src/Cashflowpoly.Ui/Infrastructure/RulebookContent.cs` | Konten rulebook yang dirender UI. |
+| `src/Cashflowpoly.Ui/Infrastructure/RulesetFormHelper.cs` | Helper form create/edit ruleset dan error mapping. |
+| `src/Cashflowpoly.Ui/Infrastructure/SessionTimelineMapper.cs` | Mapper event API ke timeline session UI. |
+| `src/Cashflowpoly.Ui/Infrastructure/UiText*.cs` | Lexicon bilingual/label UI. |
+| `src/Cashflowpoly.Ui/Models/*.cs` | ViewModel auth, analytics, home, rulebook, ruleset, dan error. |
+| `src/Cashflowpoly.Ui/Views/Auth/*.cshtml` | View login/register. |
+| `src/Cashflowpoly.Ui/Views/Home/*.cshtml` | View home, privacy, dan rulebook. |
+| `src/Cashflowpoly.Ui/Views/Sessions/*.cshtml` | View daftar/detail sesi dan partial journey/timeline. |
+| `src/Cashflowpoly.Ui/Views/Players/*.cshtml` | View direktori dan detail Player. |
+| `src/Cashflowpoly.Ui/Views/Rulesets/*.cshtml` | View list/detail/create/edit ruleset dan komponen ruleset. |
+| `src/Cashflowpoly.Ui/Views/Shared/*.cshtml` | Layout, error, dan shared view UI. |
+| `src/Cashflowpoly.Ui/wwwroot/css/*` | CSS site dan Tailwind output/input. |
+| `src/Cashflowpoly.Ui/wwwroot/js/site.js` | JavaScript dasar UI. |
+| `src/Cashflowpoly.Ui/wwwroot/js/player-detail-charts.js` | JavaScript chart detail Player. |
+| `src/Cashflowpoly.Ui/wwwroot/images/component/*.jpg` | Foto komponen permainan untuk halaman/detail ruleset. |
+| `src/Cashflowpoly.Ui/wwwroot/images/rulebook/*.jpg` | Ilustrasi rulebook pada UI. |
+| `src/Cashflowpoly.Ui/wwwroot/images/players/*.png` | Avatar Player. |
+| `src/Cashflowpoly.Ui/package.json` | Script dan dependency frontend. |
+| `src/Cashflowpoly.Ui/package-lock.json` | Lock dependency npm. |
+| `src/Cashflowpoly.Ui/postcss.config.js` | Konfigurasi PostCSS. |
+| `src/Cashflowpoly.Ui/tailwind.config.js` | Konfigurasi Tailwind. |
+
+## Tests
+| Path/Family | Fungsi |
+|---|---|
+| `tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | Project test API. |
+| `tests/Cashflowpoly.Api.Tests/Infrastructure/*.cs` | Fixture Testcontainers dan WebApplicationFactory. |
+| `tests/Cashflowpoly.Api.Tests/Auth*Tests.cs` | Test auth, JWT, response auth, dan RBAC. |
+| `tests/Cashflowpoly.Api.Tests/Event*Tests.cs` | Test mapper, validator, projection, ingestion, dan analytics event. |
+| `tests/Cashflowpoly.Api.Tests/Analytics*Tests.cs` | Test kalkulator analytics dan snapshot. |
+| `tests/Cashflowpoly.Api.Tests/RulesetDefinitionMapperTests.cs` | Test mapping definition ruleset. |
+| `tests/Cashflowpoly.Api.Tests/SessionStateApiIntegrationTests.cs` | Test API state session dan guard write-disabled. |
+| `tests/Cashflowpoly.Api.Tests/DatabaseStartupIntegrationTests.cs` | Test bootstrap database. |
+| `tests/Cashflowpoly.Api.Tests/ObservabilitySecurityIntegrationTests.cs` | Test observability/security audit. |
+| `tests/Cashflowpoly.Api.Tests/*Asset*Tests.cs` | Test ketersediaan asset/API landing/deployment. |
+| `tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj` | Project test UI. |
+| `tests/Cashflowpoly.Ui.Tests/*Controller*Tests.cs` | Test controller UI. |
+| `tests/Cashflowpoly.Ui.Tests/*Layout*Tests.cs` | Test struktur layout halaman UI. |
+| `tests/Cashflowpoly.Ui.Tests/PlayerMetric*Tests.cs` | Test builder/mapper/formatter metric Player. |
+| `tests/Cashflowpoly.Ui.Tests/Ruleset*Tests.cs` | Test form, detail, index, dan action ruleset. |
+| `tests/Cashflowpoly.Ui.Tests/Session*Tests.cs` | Test halaman/session timeline/detail/list. |
+| `tests/Cashflowpoly.Ui.Tests/UiText*Tests.cs` | Test struktur lexicon dan guard localization. |

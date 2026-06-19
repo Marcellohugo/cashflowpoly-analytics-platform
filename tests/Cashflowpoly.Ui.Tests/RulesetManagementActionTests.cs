@@ -20,7 +20,7 @@ public sealed class RulesetManagementActionTests
         Assert.Contains("asp-action=\"Delete\"", indexView, StringComparison.Ordinal);
         Assert.Contains("asp-action=\"ActivateVersion\"", detailView, StringComparison.Ordinal);
         Assert.Contains("asp-action=\"DeleteVersion\"", detailView, StringComparison.Ordinal);
-        Assert.Contains("asp-action=\"Ruleset\"", sessionDetailView, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-action=\"Ruleset\"", sessionDetailView, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class RulesetManagementActionTests
         Assert.Contains("PostAsync($\"api/v1/rulesets/{rulesetId}/versions/{version}/activate\"", rulesetsController, StringComparison.Ordinal);
         Assert.Contains("DeleteAsync($\"api/v1/rulesets/{rulesetId}/versions/{version}\"", rulesetsController, StringComparison.Ordinal);
         Assert.Contains("DeleteAsync($\"api/v1/rulesets/{rulesetId}\"", rulesetsController, StringComparison.Ordinal);
-        Assert.Contains("PostAsJsonAsync($\"api/v1/sessions/{sessionId}/ruleset/activate\"", sessionsController, StringComparison.Ordinal);
+        Assert.DoesNotContain("ruleset/activate", sessionsController, StringComparison.Ordinal);
     }
 
     private static string ResolveRepositoryRoot()

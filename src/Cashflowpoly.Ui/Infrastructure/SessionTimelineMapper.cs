@@ -30,18 +30,26 @@ public static class SessionTimelineMapper
         return events
             .OrderBy(item => item.Timestamp)
             .ThenBy(item => item.SequenceNumber)
-            .Select(item => new SessionTimelineEventViewModel
+            .Select(item =>
             {
-                Timestamp = item.Timestamp,
-                SequenceNumber = item.SequenceNumber,
-                DayIndex = item.DayIndex,
-                Weekday = ResolveWeekdayLabel(item.Weekday, normalizedLanguage),
-                TurnNumber = item.TurnNumber < 1 ? 1 : item.TurnNumber,
-                ActorType = item.ActorType,
-                PlayerId = item.UserId,
-                ActionType = item.ActionType,
-                FlowLabel = ResolveFlowLabel(item.ActionType, normalizedLanguage),
-                FlowDescription = BuildFlowDescription(item.ActionType, item.Payload, normalizedLanguage)
+                var actionSlot = item.ActionSlot < 1 ? 1 : item.ActionSlot;
+                var actionSlotRole = ResolveActionSlotRole(item.ActionType, item.Payload);
+
+                return new SessionTimelineEventViewModel
+                {
+                    Timestamp = item.Timestamp,
+                    SequenceNumber = item.SequenceNumber,
+                    DayIndex = item.DayIndex,
+                    Weekday = ResolveWeekdayLabel(item.Weekday, normalizedLanguage),
+                    ActionSlot = actionSlot,
+                    ActorType = item.ActorType,
+                    PlayerId = item.UserId,
+                    ActionType = item.ActionType,
+                    ActionSlotRole = actionSlotRole,
+                    ActionSlotLabel = BuildActionSlotLabel(actionSlotRole, actionSlot, normalizedLanguage),
+                    FlowLabel = ResolveFlowLabel(item.ActionType, normalizedLanguage),
+                    FlowDescription = BuildFlowDescription(item.ActionType, item.Payload, normalizedLanguage)
+                };
             })
             .ToList();
     }
@@ -81,48 +89,48 @@ public static class SessionTimelineMapper
             return L(language, "Aktivitas", "Activity");
         }
 
-        var lower = actionType.ToLowerInvariant();
-        if (lower.StartsWith("setup."))
+        if (actionType is "MulaiSesi" or "AkhiriSesi" or "BagikanEmasAwal" or "BagikanTieBreaker" or
+            "AmbilKartuDariDeck" or "KartuDiambilDariPasar" or "KartuMasukDiscard" or "IsiUlangPasar")
         {
             return L(language, "Setup", "Setup");
         }
 
-        if (lower.StartsWith("day."))
+        if (actionType is "JumatBerkah" or "InvestasiEmas" or "JualEmas" or "LewatiTransaksiEmas" or "HariMingguLibur")
         {
             return L(language, "Event Harian", "Daily Event");
         }
 
-        if (lower.StartsWith("risk."))
+        if (actionType is "PoinPeringkatDonasi" or "UmumkanJuaraDonasi")
+        {
+            return L(language, "Peduli Donasi", "Donation Care");
+        }
+
+        if (actionType is "RisikoKehidupan" or "GunakanOpsiDarurat")
         {
             return L(language, "Risiko", "Risk");
         }
 
-        if (lower.StartsWith("loan."))
+        if (actionType is "PinjamanSyariah" or "BayarPinjaman" or "Asuransi")
         {
             return L(language, "Pembiayaan", "Financing");
         }
 
-        if (lower.StartsWith("insurance."))
-        {
-            return L(language, "Pembiayaan", "Financing");
-        }
-
-        if (lower.StartsWith("saving."))
+        if (actionType is "Menabung" or "TarikTabungan" or "TujuanFinansial")
         {
             return L(language, "Tabungan", "Saving");
         }
 
-        if (lower.StartsWith("mission."))
+        if (actionType is "BagikanMisiKoleksi")
         {
             return L(language, "Misi", "Mission");
         }
 
-        if (lower.Contains("order"))
+        if (actionType is "JualMasakan" or "LewatiOrder")
         {
             return L(language, "Pesanan", "Order");
         }
 
-        if (lower.Contains("purchased"))
+        if (actionType is "BahanMasakan" or "Kebutuhan")
         {
             return L(language, "Pembelian", "Purchase");
         }
@@ -130,11 +138,32 @@ public static class SessionTimelineMapper
         return L(language, "Aktivitas", "Activity");
     }
 
+    private static string ResolveActionSlotRole(string actionType, JsonElement payload)
+    {
+        return actionType switch
+        {
+            "RisikoKehidupan" => "effect",
+            "GunakanOpsiDarurat" => "response",
+            "Asuransi" when IsInsuranceUse(payload) => "response",
+            _ => "action"
+        };
+    }
+
+    private static string BuildActionSlotLabel(string actionSlotRole, int actionSlot, string language)
+    {
+        return actionSlotRole switch
+        {
+            "effect" => L(language, $"Efek Aksi {actionSlot}", $"Action Effect {actionSlot}"),
+            "response" => L(language, $"Respons Aksi {actionSlot}", $"Action Response {actionSlot}"),
+            _ => L(language, $"Aksi {actionSlot}", $"Action {actionSlot}")
+        };
+    }
+
     /// <summary>
     /// Membangun deskripsi naratif untuk setiap event berdasarkan actionType,
     /// mendelegasikan ke fungsi deskripsi spesifik sesuai jenis aksi.
     /// </summary>
-    /// <param name="actionType">Tipe aksi event (misal "transaction.recorded").</param>
+    /// <param name="actionType">Tipe aksi event (misal "CatatTransaksi").</param>
     /// <param name="payload">Data payload JSON dari event.</param>
     /// <param name="language">Kode bahasa aktif.</param>
     /// <returns>Deskripsi naratif event dalam bahasa yang sesuai.</returns>
@@ -142,30 +171,28 @@ public static class SessionTimelineMapper
     {
         var text = actionType switch
         {
-            "transaction.recorded" => DescribeTransaction(payload, language),
-            "day.friday.donation" => DescribeFridayDonation(payload, language),
-            "day.saturday.gold_trade" => DescribeGoldTrade(payload, language),
-            "ingredient.purchased" => DescribeIngredientPurchase(payload, language),
-            "ingredient.discarded" => DescribeIngredientDiscard(payload, language),
-            "order.claimed" => DescribeOrderClaim(payload, language),
-            "order.passed" => DescribeOrderPassed(payload, language),
-            "work.freelance.completed" => DescribeFreelance(payload, language),
-            "need.primary.purchased" => DescribeNeedPurchase(payload, language, "kebutuhan primer", "primary need"),
-            "need.secondary.purchased" => DescribeNeedPurchase(payload, language, "kebutuhan sekunder", "secondary need"),
-            "need.tertiary.purchased" => DescribeNeedPurchase(payload, language, "kebutuhan tersier", "tertiary need"),
-            "saving.deposit.created" => DescribeSavingDeposit(payload, language, isWithdrawn: false),
-            "saving.deposit.withdrawn" => DescribeSavingDeposit(payload, language, isWithdrawn: true),
-            "saving.goal.achieved" => DescribeSavingGoalAchieved(payload, language),
-            "loan.syariah.taken" => DescribeLoanTaken(payload, language),
-            "loan.syariah.repaid" => DescribeLoanRepaid(payload, language),
-            "risk.life.drawn" => DescribeRiskLife(payload, language),
-            "risk.emergency.used" => DescribeRiskEmergency(payload, language),
-            "insurance.multirisk.purchased" => DescribeInsurancePurchase(payload, language),
-            "insurance.multirisk.used" => DescribeInsuranceUse(payload, language),
-            "donation.rank.awarded" => DescribeRankAward(payload, language, "donasi", "donation"),
-            "pension.rank.awarded" => DescribeRankAward(payload, language, "dana pensiun", "pension"),
-            "gold.points.awarded" => DescribePointsAward(payload, language, "emas", "gold"),
-            "turn.action.used" => DescribeTurnAction(payload, language),
+            "CatatTransaksi" => DescribeTransaction(payload, language),
+            "JumatBerkah" => DescribeFridayDonation(payload, language),
+            "InvestasiEmas" or "JualEmas" => DescribeGoldTrade(payload, language),
+            "BahanMasakan" => DescribeIngredientPurchase(payload, language),
+            "BuangBahanMasakan" => DescribeIngredientDiscard(payload, language),
+            "JualMasakan" => DescribeOrderClaim(payload, language),
+            "LewatiOrder" => DescribeOrderPassed(payload, language),
+            "KerjaLepas" => DescribeFreelance(payload, language),
+            "Kebutuhan" => DescribeNeedPurchase(payload, language, ResolveNeedLabel(payload, language), ResolveNeedLabel(payload, language)),
+            "Menabung" => DescribeSavingDeposit(payload, language, isWithdrawn: false),
+            "TarikTabungan" => DescribeSavingDeposit(payload, language, isWithdrawn: true),
+            "TujuanFinansial" => DescribeSavingGoalAchieved(payload, language),
+            "PinjamanSyariah" => DescribeLoanTaken(payload, language),
+            "BayarPinjaman" => DescribeLoanRepaid(payload, language),
+            "RisikoKehidupan" => DescribeRiskLife(payload, language),
+            "GunakanOpsiDarurat" => DescribeRiskEmergency(payload, language),
+            "Asuransi" => IsInsuranceUse(payload) ? DescribeInsuranceUse(payload, language) : DescribeInsurancePurchase(payload, language),
+            "PoinPeringkatDonasi" => DescribeRankAward(payload, language, "donasi", "donation"),
+            "UmumkanJuaraDonasi" => DescribeDonationWinnersAnnouncement(payload, language),
+            "PoinPeringkatPensiun" => DescribeRankAward(payload, language, "dana pensiun", "pension"),
+            "PoinEmas" => DescribePointsAward(payload, language, "emas", "gold"),
+            "AkhirGiliran" => DescribeTurnAction(payload, language),
             _ => BuildGenericDescription(actionType, payload, language)
         };
 
@@ -182,7 +209,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "direction", out var direction))
         {
-            return BuildGenericDescription("transaction.recorded", payload, language);
+            return BuildGenericDescription("CatatTransaksi", payload, language);
         }
 
         var directionLabel = direction.Equals("IN", StringComparison.OrdinalIgnoreCase)
@@ -219,7 +246,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetNumber(payload, "amount", out var amount))
         {
-            return BuildGenericDescription("day.friday.donation", payload, language);
+            return BuildGenericDescription("JumatBerkah", payload, language);
         }
 
         return L(
@@ -241,7 +268,7 @@ public static class SessionTimelineMapper
             !TryGetInt(payload, "qty", out var qty) ||
             !TryGetInt(payload, "unit_price", out var unitPrice))
         {
-            return BuildGenericDescription("day.saturday.gold_trade", payload, language);
+            return BuildGenericDescription("TransaksiEmas", payload, language);
         }
 
         var amount = TryGetInt(payload, "amount", out var parsedAmount)
@@ -269,7 +296,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "card_id", out var cardId))
         {
-            return BuildGenericDescription("ingredient.purchased", payload, language);
+            return BuildGenericDescription("BahanMasakan", payload, language);
         }
 
         var amountText = TryGetNumber(payload, "amount", out var amount)
@@ -292,7 +319,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "card_id", out var cardId))
         {
-            return BuildGenericDescription("ingredient.discarded", payload, language);
+            return BuildGenericDescription("BuangBahanMasakan", payload, language);
         }
 
         var amountText = TryGetNumber(payload, "amount", out var amount)
@@ -357,7 +384,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetNumber(payload, "amount", out var amount))
         {
-            return BuildGenericDescription("work.freelance.completed", payload, language);
+            return BuildGenericDescription("KerjaLepas", payload, language);
         }
 
         return L(
@@ -379,7 +406,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "card_id", out var cardId))
         {
-            return BuildGenericDescription("need.purchased", payload, language);
+            return BuildGenericDescription("Kebutuhan", payload, language);
         }
 
         var amountText = TryGetNumber(payload, "amount", out var amount)
@@ -395,6 +422,25 @@ public static class SessionTimelineMapper
             $"Purchased {needTypeEn} card {cardId} (cost {amountText}, points {pointsText}).");
     }
 
+    private static string ResolveNeedLabel(JsonElement payload, string language)
+    {
+        var fallback = L(language, "kebutuhan", "need");
+        if (!TryGetString(payload, "need_tier", out var tier) &&
+            !TryGetString(payload, "tier", out tier) &&
+            !TryGetString(payload, "need_type", out tier))
+        {
+            return fallback;
+        }
+
+        return tier.ToUpperInvariant() switch
+        {
+            "PRIMARY" or "PRIMER" => L(language, "kebutuhan primer", "primary need"),
+            "SECONDARY" or "SEKUNDER" => L(language, "kebutuhan sekunder", "secondary need"),
+            "TERTIARY" or "TERSIER" => L(language, "kebutuhan tersier", "tertiary need"),
+            _ => fallback
+        };
+    }
+
     /// <summary>
     /// Mendeskripsikan event setoran atau penarikan tabungan tujuan keuangan,
     /// termasuk ID tujuan dan nominal.
@@ -407,7 +453,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "goal_id", out var goalId) || !TryGetNumber(payload, "amount", out var amount))
         {
-            return BuildGenericDescription(isWithdrawn ? "saving.deposit.withdrawn" : "saving.deposit.created", payload, language);
+            return BuildGenericDescription(isWithdrawn ? "TarikTabungan" : "Menabung", payload, language);
         }
 
         return isWithdrawn
@@ -432,7 +478,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "goal_id", out var goalId))
         {
-            return BuildGenericDescription("saving.goal.achieved", payload, language);
+            return BuildGenericDescription("TujuanFinansial", payload, language);
         }
 
         var pointsText = TryGetNumber(payload, "points", out var points)
@@ -459,7 +505,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "loan_id", out var loanId))
         {
-            return BuildGenericDescription("loan.syariah.taken", payload, language);
+            return BuildGenericDescription("PinjamanSyariah", payload, language);
         }
 
         var principalText = TryGetNumber(payload, "principal", out var principal)
@@ -488,7 +534,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetString(payload, "loan_id", out var loanId) || !TryGetNumber(payload, "amount", out var amount))
         {
-            return BuildGenericDescription("loan.syariah.repaid", payload, language);
+            return BuildGenericDescription("BayarPinjaman", payload, language);
         }
 
         return L(
@@ -498,19 +544,25 @@ public static class SessionTimelineMapper
     }
 
     /// <summary>
-    /// Mendeskripsikan event kartu risiko kehidupan yang ditarik,
-    /// termasuk ID risiko, arah dampak (positif/negatif), dan nominal.
+    /// Mendeskripsikan event kartu risiko kehidupan yang ditarik.
     /// </summary>
     /// <param name="payload">Data payload JSON event risiko kehidupan.</param>
     /// <param name="language">Kode bahasa aktif.</param>
     /// <returns>Deskripsi event risiko kehidupan dalam bahasa yang sesuai.</returns>
     private static string DescribeRiskLife(JsonElement payload, string language)
     {
-        if (!TryGetString(payload, "risk_id", out var riskId) ||
-            !TryGetString(payload, "direction", out var direction) ||
+        if (!TryGetString(payload, "risk_id", out var riskId))
+        {
+            return BuildGenericDescription("RisikoKehidupan", payload, language);
+        }
+
+        if (!TryGetString(payload, "direction", out var direction) ||
             !TryGetNumber(payload, "amount", out var amount))
         {
-            return BuildGenericDescription("risk.life.drawn", payload, language);
+            return L(
+                language,
+                $"Kartu risiko {riskId} aktif.",
+                $"Risk card {riskId} triggered.");
         }
 
         var directionText = direction.Equals("IN", StringComparison.OrdinalIgnoreCase)
@@ -538,7 +590,7 @@ public static class SessionTimelineMapper
             !TryGetString(payload, "direction", out var direction) ||
             !TryGetNumber(payload, "amount", out var amount))
         {
-            return BuildGenericDescription("risk.emergency.used", payload, language);
+            return BuildGenericDescription("GunakanOpsiDarurat", payload, language);
         }
 
         var directionText = direction.Equals("IN", StringComparison.OrdinalIgnoreCase)
@@ -563,7 +615,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetNumber(payload, "premium", out var premium))
         {
-            return BuildGenericDescription("insurance.multirisk.purchased", payload, language);
+            return BuildGenericDescription("Asuransi", payload, language);
         }
 
         return L(
@@ -580,15 +632,22 @@ public static class SessionTimelineMapper
     /// <returns>Deskripsi penggunaan asuransi dalam bahasa yang sesuai.</returns>
     private static string DescribeInsuranceUse(JsonElement payload, string language)
     {
-        if (!TryGetString(payload, "risk_event_id", out var riskEventId))
+        if (!TryGetString(payload, "risk_event_id", out var riskEventId) &&
+            !TryGetString(payload, "risk_event_ref", out riskEventId))
         {
-            return BuildGenericDescription("insurance.multirisk.used", payload, language);
+            return BuildGenericDescription("Asuransi", payload, language);
         }
 
         return L(
             language,
             $"Mengaktifkan perlindungan asuransi untuk event risiko {riskEventId}.",
             $"Activated insurance protection for risk event {riskEventId}.");
+    }
+
+    private static bool IsInsuranceUse(JsonElement payload)
+    {
+        return TryGetString(payload, "risk_event_id", out _) ||
+               TryGetString(payload, "risk_event_ref", out _);
     }
 
     /// <summary>
@@ -610,6 +669,47 @@ public static class SessionTimelineMapper
             language,
             $"Mendapat peringkat {rank} pada kategori {topicId} (poin {FormatNumber(points)}).",
             $"Received rank {rank} in {topicEn} category (points {FormatNumber(points)}).");
+    }
+
+    private static string DescribeDonationWinnersAnnouncement(JsonElement payload, string language)
+    {
+        var summary = TryGetString(payload, "summary", out var summaryText)
+            ? summaryText.Trim().TrimEnd('.')
+            : BuildDonationWinnerSummary(payload, language);
+
+        if (string.IsNullOrWhiteSpace(summary))
+        {
+            return BuildGenericDescription("UmumkanJuaraDonasi", payload, language);
+        }
+
+        return L(
+            language,
+            $"Sistem menentukan Juara Donasi: {summary}.",
+            $"System determined Donation Winners: {summary}.");
+    }
+
+    private static string BuildDonationWinnerSummary(JsonElement payload, string language)
+    {
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("winners", out var winners) ||
+            winners.ValueKind != JsonValueKind.Array)
+        {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+        foreach (var winner in winners.EnumerateArray())
+        {
+            if (!TryGetString(winner, "player_name", out var playerName) ||
+                !TryGetInt(winner, "rank", out var rank))
+            {
+                continue;
+            }
+
+            parts.Add(L(language, $"{playerName} Juara {rank}", $"{playerName} Rank {rank}"));
+        }
+
+        return string.Join(", ", parts);
     }
 
     /// <summary>
@@ -643,7 +743,7 @@ public static class SessionTimelineMapper
     {
         if (!TryGetInt(payload, "used", out var used) || !TryGetInt(payload, "remaining", out var remaining))
         {
-            return BuildGenericDescription("turn.action.used", payload, language);
+            return BuildGenericDescription("AkhirGiliran", payload, language);
         }
 
         return L(

@@ -18,15 +18,16 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
 
         foreach (var evt in events.Where(e => e.UserId == playerId))
         {
-            if (evt.ActionType == "ingredient.purchased" &&
-                _payloadReader.TryReadIngredientPurchase(_payloadReader.ReadPayload(evt.Payload), out var cardId, out var amount))
+            var payload = _payloadReader.ReadPayload(evt.Payload);
+            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.BahanMasakan) &&
+                _payloadReader.TryReadIngredientPurchase(payload, out var cardId, out var amount))
             {
                 inventory.Total += amount;
                 inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + amount : amount;
             }
 
-            if (evt.ActionType == "order.claimed" &&
-                _payloadReader.TryReadOrderClaim(_payloadReader.ReadPayload(evt.Payload), out var requiredCards, out _))
+            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.JualMasakan) &&
+                _payloadReader.TryReadOrderClaim(payload, out var requiredCards, out _))
             {
                 foreach (var card in requiredCards)
                 {
@@ -38,8 +39,8 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
                 }
             }
 
-            if (evt.ActionType == "ingredient.discarded" &&
-                _payloadReader.TryReadIngredientPurchase(_payloadReader.ReadPayload(evt.Payload), out var discardCardId, out var discardAmount) &&
+            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.IngredientDiscarded) &&
+                _payloadReader.TryReadIngredientPurchase(payload, out var discardCardId, out var discardAmount) &&
                 inventory.ByCardId.TryGetValue(discardCardId, out var discardQty))
             {
                 var newQty = Math.Max(0, discardQty - discardAmount);
@@ -60,22 +61,23 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
 
         foreach (var evt in events.Where(e => e.UserId == playerId))
         {
-            if (evt.ActionType == "saving.deposit.created" &&
-                _payloadReader.TryReadSavingDeposit(_payloadReader.ReadPayload(evt.Payload), out var existingGoalId, out var amount) &&
+            var payload = _payloadReader.ReadPayload(evt.Payload);
+            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.Menabung) &&
+                _payloadReader.TryReadSavingDeposit(payload, out var existingGoalId, out var amount) &&
                 string.Equals(existingGoalId, goalId, StringComparison.OrdinalIgnoreCase))
             {
                 balance += amount;
             }
 
-            if (evt.ActionType == "saving.deposit.withdrawn" &&
-                _payloadReader.TryReadSavingDeposit(_payloadReader.ReadPayload(evt.Payload), out var withdrawGoalId, out var amountWithdraw) &&
+            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.SavingDepositWithdrawn) &&
+                _payloadReader.TryReadSavingDeposit(payload, out var withdrawGoalId, out var amountWithdraw) &&
                 string.Equals(withdrawGoalId, goalId, StringComparison.OrdinalIgnoreCase))
             {
                 balance -= amountWithdraw;
             }
 
-            if (evt.ActionType == "saving.goal.achieved" &&
-                _payloadReader.TryReadSavingGoalAchieved(_payloadReader.ReadPayload(evt.Payload), out var achievedGoalId, out _, out var cost) &&
+            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.TujuanFinansial) &&
+                _payloadReader.TryReadSavingGoalAchieved(payload, out var achievedGoalId, out _, out var cost) &&
                 string.Equals(achievedGoalId, goalId, StringComparison.OrdinalIgnoreCase))
             {
                 balance -= cost;

@@ -28,9 +28,14 @@
         const realtimeNetworkMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.journey.realtime_network")));
         const activityFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.activity_default")));
         const allPlayersLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_filter_all")));
+        const playersFilterLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_filter_players")));
+        const systemFilterLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_filter_system")));
         const playerFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.player")));
+        const systemFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.system")));
+        const instructorFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.instructor")));
+        const otherFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.other")));
         const dayLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.day_label")));
-        const turnLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.turn_label")));
+        const actionSlotLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.turn_label")));
         const seqLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_seq")));
         const playerLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames));
         const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
@@ -42,7 +47,7 @@
         let timeline = [];
         let pollingTimerId = null;
         let lastSequence = 0;
-        let selectedPlayerKey = "all";
+        let selectedTimelineFilter = "all";
 
         const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
         const toNumber = (value, fallback = 0) => {
@@ -95,9 +100,85 @@
             }
 
             const lookupName = playerLookup[String(item.playerId ?? "").toLowerCase()];
-            return lookupName || playerFallbackLabel;
+            if (lookupName) {
+                return lookupName;
+            }
+
+            switch (actorBucket(item.actorType)) {
+                case "SYSTEM":
+                    return systemFallbackLabel;
+                case "INSTRUCTOR":
+                    return instructorFallbackLabel;
+                case "PLAYER":
+                    return playerFallbackLabel;
+                default:
+                    return otherFallbackLabel;
+            }
         };
         const actionLabel = (item) => item.flowLabel || item.actionType || activityFallbackLabel;
+        const actionSlotLabelText = (item) => {
+            const mappedLabel = String(item.actionSlotLabel ?? "").trim();
+            return mappedLabel || `${actionSlotLabel} ${item.actionSlot}`;
+        };
+        const dayActivityLabel = (item) => {
+            const actorType = actorBucket(item.actorType);
+            return actorType === "PLAYER"
+                ? `${dayLabel} ${displayDayNumber(item.dayIndex)} | ${actionSlotLabelText(item)}`
+                : `${dayLabel} ${displayDayNumber(item.dayIndex)} | ${actorLabel(item)}`;
+        };
+        const actionSlotRole = (item) => String(item.actionSlotRole ?? "action").trim().toLowerCase() || "action";
+        const isPrimaryTimelineItem = (item) =>
+            actorBucket(item.actorType) !== "PLAYER" ||
+            actionSlotRole(item) === "action";
+        const relatedEventKey = (item) =>
+            `${resolvePlayerKey(item)}|${displayDayNumber(item.dayIndex)}|${item.actionSlot}`;
+        const buildFeedTimeline = (visibleTimeline) => {
+            const primaryByKey = new Map();
+            visibleTimeline
+                .filter(isPrimaryTimelineItem)
+                .forEach((item) => {
+                    if (actorBucket(item.actorType) === "PLAYER") {
+                        primaryByKey.set(relatedEventKey(item), item);
+                    }
+                });
+
+            const feedTimeline = [];
+            const primaryCopies = new Map();
+            const pendingRelatedEvents = new Map();
+
+            visibleTimeline.forEach((item) => {
+                if (isPrimaryTimelineItem(item)) {
+                    const copy = { ...item, relatedEvents: [] };
+                    const pendingItems = pendingRelatedEvents.get(item.sequenceNumber);
+                    if (Array.isArray(pendingItems)) {
+                        copy.relatedEvents.push(...pendingItems);
+                        pendingRelatedEvents.delete(item.sequenceNumber);
+                    }
+
+                    feedTimeline.push(copy);
+                    primaryCopies.set(item.sequenceNumber, copy);
+                    return;
+                }
+
+                const primaryItem = primaryByKey.get(relatedEventKey(item));
+                if (!primaryItem) {
+                    feedTimeline.push({ ...item, relatedEvents: [] });
+                    return;
+                }
+
+                const primaryCopy = primaryCopies.get(primaryItem.sequenceNumber);
+                if (primaryCopy) {
+                    primaryCopy.relatedEvents.push(item);
+                    return;
+                }
+
+                const pendingItems = pendingRelatedEvents.get(primaryItem.sequenceNumber) || [];
+                pendingItems.push(item);
+                pendingRelatedEvents.set(primaryItem.sequenceNumber, pendingItems);
+            });
+
+            return feedTimeline;
+        };
         const normalizeTimeline = (rawTimeline) => {
             if (!Array.isArray(rawTimeline)) {
                 return [];
@@ -111,11 +192,13 @@
                         sequenceNumber,
                         dayIndex: toNumber(readValue(item, "dayIndex", "DayIndex"), 0),
                         weekday: String(readValue(item, "weekday", "Weekday") ?? ""),
-                        turnNumber: Math.max(1, toNumber(readValue(item, "turnNumber", "TurnNumber"), 1)),
+                        actionSlot: Math.max(1, toNumber(readValue(item, "actionSlot", "ActionSlot"), 1)),
                         actorType: String(readValue(item, "actorType", "ActorType") ?? ""),
                         playerId: readValue(item, "playerId", "PlayerId"),
                         playerDisplayName: readValue(item, "playerDisplayName", "PlayerDisplayName"),
                         actionType: String(readValue(item, "actionType", "ActionType") ?? ""),
+                        actionSlotRole: String(readValue(item, "actionSlotRole", "ActionSlotRole") ?? "action"),
+                        actionSlotLabel: String(readValue(item, "actionSlotLabel", "ActionSlotLabel") ?? ""),
                         flowLabel: String(readValue(item, "flowLabel", "FlowLabel") ?? ""),
                         flowDescription: String(readValue(item, "flowDescription", "FlowDescription") ?? "")
                     };
@@ -155,8 +238,19 @@
         };
         const isVisiblePlayerEvent = (item) =>
             actorBucket(item.actorType) === "PLAYER" &&
-            item.actionType !== "turn.action.used";
-        const getPlayerTimeline = () => timeline.filter(isVisiblePlayerEvent);
+            item.actionType !== "AkhirGiliran";
+        const isImportantSystemEvent = (item) =>
+            actorBucket(item.actorType) === "SYSTEM" &&
+            [
+                "umumkanjuaradonasi",
+                "hariminggulibur",
+                "mulaisesi",
+                "akhirisesi"
+            ].includes(String(item.actionType ?? "").toLowerCase());
+        const isVisibleTimelineEvent = (item) =>
+            isVisiblePlayerEvent(item) ||
+            isImportantSystemEvent(item);
+        const getVisibleBaseTimeline = () => timeline.filter(isVisibleTimelineEvent);
         const buildPlayerOptions = (playerTimeline) => {
             const seen = new Set();
             const options = [];
@@ -176,22 +270,35 @@
 
             return options;
         };
-        const getVisibleTimeline = (playerTimeline) => {
-            if (selectedPlayerKey === "all") {
-                return playerTimeline;
+        const getVisibleTimeline = (baseTimeline) => {
+            if (selectedTimelineFilter === "all") {
+                return baseTimeline;
             }
 
-            return playerTimeline.filter((item) => resolvePlayerKey(item) === selectedPlayerKey);
+            if (selectedTimelineFilter === "players") {
+                return baseTimeline.filter(isVisiblePlayerEvent);
+            }
+
+            if (selectedTimelineFilter === "system") {
+                return baseTimeline.filter(isImportantSystemEvent);
+            }
+
+            if (selectedTimelineFilter.startsWith("player:")) {
+                const selectedPlayerKey = selectedTimelineFilter.substring("player:".length);
+                return baseTimeline.filter((item) => isVisiblePlayerEvent(item) && resolvePlayerKey(item) === selectedPlayerKey);
+            }
+
+            return baseTimeline;
         };
         const bindFilterInteractions = () => {
-            filterEl.querySelectorAll("[data-player-key]").forEach((button) => {
+            filterEl.querySelectorAll("[data-timeline-filter]").forEach((button) => {
                 button.addEventListener("click", () => {
-                    const nextPlayerKey = button.getAttribute("data-player-key") || "all";
-                    if (nextPlayerKey === selectedPlayerKey) {
+                    const nextFilter = button.getAttribute("data-timeline-filter") || "all";
+                    if (nextFilter === selectedTimelineFilter) {
                         return;
                     }
 
-                    selectedPlayerKey = nextPlayerKey;
+                    selectedTimelineFilter = nextFilter;
                     renderAll();
                 });
             });
@@ -218,47 +325,83 @@
             timeline = Array.from(map.values()).sort((a, b) => a.sequenceNumber - b.sequenceNumber);
         };
         const renderFilters = (playerOptions) => {
-            if (selectedPlayerKey !== "all" && !playerOptions.some((option) => option.key === selectedPlayerKey)) {
-                selectedPlayerKey = "all";
+            if (selectedTimelineFilter.startsWith("player:") &&
+                !playerOptions.some((option) => `player:${option.key}` === selectedTimelineFilter)) {
+                selectedTimelineFilter = "all";
             }
 
             const buttons = [
                 `
                     <button type="button"
-                            class="session-journey-filter-btn ${selectedPlayerKey === "all" ? "is-active" : ""}"
-                            data-player-key="all">${escapeHtml(allPlayersLabel)}</button>
+                            class="session-journey-filter-btn ${selectedTimelineFilter === "all" ? "is-active" : ""}"
+                            data-timeline-filter="all">${escapeHtml(allPlayersLabel)}</button>
+                `,
+                `
+                    <button type="button"
+                            class="session-journey-filter-btn ${selectedTimelineFilter === "players" ? "is-active" : ""}"
+                            data-timeline-filter="players">${escapeHtml(playersFilterLabel)}</button>
+                `,
+                `
+                    <button type="button"
+                            class="session-journey-filter-btn ${selectedTimelineFilter === "system" ? "is-active" : ""}"
+                            data-timeline-filter="system">${escapeHtml(systemFilterLabel)}</button>
                 `
             ];
 
             playerOptions.forEach((option) => {
+                const filterKey = `player:${option.key}`;
                 buttons.push(`
                     <button type="button"
-                            class="session-journey-filter-btn ${selectedPlayerKey === option.key ? "is-active" : ""}"
-                            data-player-key="${escapeHtml(option.key)}">${escapeHtml(option.label)}</button>
+                            class="session-journey-filter-btn ${selectedTimelineFilter === filterKey ? "is-active" : ""}"
+                            data-timeline-filter="${escapeHtml(filterKey)}">${escapeHtml(option.label)}</button>
                 `);
             });
 
             filterEl.innerHTML = buttons.join("");
             bindFilterInteractions();
         };
-        const renderJourneyFeed = (playerTimeline, visibleTimeline) => {
-            if (playerTimeline.length === 0) {
+        const renderRelatedEvents = (item) => {
+            const relatedEvents = Array.isArray(item.relatedEvents) ? item.relatedEvents : [];
+            if (relatedEvents.length === 0) {
+                return "";
+            }
+
+            return `
+                <ul class="session-journey-feed-related">
+                    ${relatedEvents.map((relatedItem) => {
+                        const relatedDetailLabel = relatedItem.flowDescription || activityFallbackLabel;
+                        return `
+                            <li class="session-journey-feed-related-item">
+                                <div class="session-journey-feed-related-head">
+                                    <span class="session-journey-feed-related-badge">${escapeHtml(dayActivityLabel(relatedItem))}</span>
+                                    <span class="session-journey-feed-related-time">${escapeHtml(formatDateTime(relatedItem.timestamp))}</span>
+                                </div>
+                                <p class="session-journey-feed-related-title">${escapeHtml(actionLabel(relatedItem))}</p>
+                                <p class="session-journey-feed-related-detail">${escapeHtml(relatedDetailLabel)}</p>
+                            </li>`;
+                    }).join("")}
+                </ul>`;
+        };
+        const renderJourneyFeed = (baseTimeline, feedTimeline) => {
+            if (baseTimeline.length === 0) {
                 feedEl.innerHTML = `<li class="session-journey-empty">${escapeHtml(timeline.length === 0 ? emptyMessage : playerEmptyMessage)}</li>`;
                 return;
             }
 
-            if (visibleTimeline.length === 0) {
+            if (feedTimeline.length === 0) {
                 feedEl.innerHTML = `<li class="session-journey-empty">${escapeHtml(filteredEmptyMessage)}</li>`;
                 return;
             }
 
-            feedEl.innerHTML = visibleTimeline.map((item, index) => {
+            feedEl.innerHTML = feedTimeline.map((item, index) => {
                 const displaySequenceNumber = index + 1;
-                const dayTurnLabel = `${dayLabel} ${displayDayNumber(item.dayIndex)} | ${turnLabel} ${item.turnNumber}`;
+                const actorType = actorBucket(item.actorType);
+                const dayTurnLabel = dayActivityLabel(item);
                 const detailLabel = item.flowDescription || activityFallbackLabel;
                 return `
-                    <li class="session-journey-feed-item"
+                    <li class="session-journey-feed-item ${actorType === "SYSTEM" ? "session-journey-feed-item-system" : ""}"
                         data-player-key="${escapeHtml(resolvePlayerKey(item))}"
+                        data-actor="${escapeHtml(actorType.toLowerCase())}"
                         data-flow="${escapeHtml(flowBucket(item.actionType))}">
                         <div class="session-journey-feed-head">
                             <div class="session-journey-feed-player">
@@ -273,6 +416,7 @@
                         <p class="session-journey-feed-title">${escapeHtml(actionLabel(item))}</p>
                         <p class="session-journey-feed-subtitle">${escapeHtml(item.weekday || "-")}</p>
                         <p class="session-journey-feed-detail">${escapeHtml(detailLabel)}</p>
+                        ${renderRelatedEvents(item)}
                     </li>`;
             }).join("");
         };
@@ -291,22 +435,23 @@
             }
 
             const latestItem = visibleTimeline[visibleTimeline.length - 1];
-            const activePlayers = new Set(visibleTimeline.map((item) => resolvePlayerKey(item)));
+            const activePlayers = new Set(visibleTimeline.filter(isVisiblePlayerEvent).map((item) => resolvePlayerKey(item)));
 
             insightTotalEl.textContent = `${visibleTimeline.length}`;
             insightPlayersEl.textContent = `${activePlayers.size}`;
-            insightDayTurnEl.textContent = `${dayLabel} ${displayDayNumber(latestItem.dayIndex)} | ${turnLabel} ${latestItem.turnNumber}`;
+            insightDayTurnEl.textContent = dayActivityLabel(latestItem);
             insightPlayerEl.textContent = actorLabel(latestItem);
             insightActionEl.textContent = actionLabel(latestItem);
         };
         const renderAll = () => {
-            const playerTimeline = getPlayerTimeline();
-            const playerOptions = buildPlayerOptions(playerTimeline);
-            const visibleTimeline = getVisibleTimeline(playerTimeline);
+            const baseTimeline = getVisibleBaseTimeline();
+            const playerOptions = buildPlayerOptions(baseTimeline.filter(isVisiblePlayerEvent));
+            const visibleTimeline = getVisibleTimeline(baseTimeline);
+            const feedTimeline = buildFeedTimeline(visibleTimeline);
 
             renderFilters(playerOptions);
-            renderJourneyInsights(visibleTimeline);
-            renderJourneyFeed(playerTimeline, visibleTimeline);
+            renderJourneyInsights(feedTimeline);
+            renderJourneyFeed(baseTimeline, feedTimeline);
             lastSequence = timeline.length > 0
                 ? Math.max(...timeline.map((item) => item.sequenceNumber))
                 : 0;

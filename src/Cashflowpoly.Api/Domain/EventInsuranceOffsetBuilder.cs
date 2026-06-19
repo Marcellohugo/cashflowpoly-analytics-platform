@@ -16,7 +16,7 @@ internal sealed class EventInsuranceOffsetBuilder : IEventInsuranceOffsetBuilder
         riskEventIdText = string.Empty;
         riskEventId = Guid.Empty;
         if (request.UserId is null ||
-            !string.Equals(request.ActionType, "insurance.multirisk.used", StringComparison.OrdinalIgnoreCase) ||
+            !GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.Asuransi) ||
             !_payloadReader.TryReadInsuranceUsed(request.Payload, out riskEventIdText))
         {
             return false;
@@ -41,7 +41,7 @@ internal sealed class EventInsuranceOffsetBuilder : IEventInsuranceOffsetBuilder
 
         if (riskEvent is null ||
             riskEvent.UserId != userId ||
-            !string.Equals(riskEvent.ActionType, "risk.life.drawn", StringComparison.OrdinalIgnoreCase))
+            !GameActionCatalog.Is(riskEvent.ActionType, _payloadReader.ReadPayload(riskEvent.Payload), GameActionCatalog.RisikoKehidupan))
         {
             return false;
         }

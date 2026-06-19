@@ -36,7 +36,7 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
             MissionAchievement: 1);
         var playerEvents = new List<EventDb>
         {
-            CreateEvent("insurance.multirisk.purchased")
+            CreateEvent("Asuransi", """{"premium":1}""")
         };
 
         var metrics = new DerivedRatioCalculator().Compute(
@@ -69,7 +69,7 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
         Assert.Equal(100, metrics.RiskAppetiteScoreNormalized);
     }
 
-    private static EventDb CreateEvent(string actionType)
+    private static EventDb CreateEvent(string actionType, string payload = "{}")
     {
         return new EventDb
         {
@@ -80,11 +80,11 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
-            Payload = "{}"
+            Payload = payload
         };
     }
 }

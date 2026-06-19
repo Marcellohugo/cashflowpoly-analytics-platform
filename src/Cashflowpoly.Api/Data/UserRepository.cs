@@ -25,7 +25,7 @@ public sealed class UserRepository
         const string sql = """
             select user_id, username, display_name, role, is_active
             from app_users
-            where lower(username) = lower(@username)
+            where username = @username
               and is_active = true
               and password_hash = crypt(@password, password_hash)
             limit 1
@@ -41,7 +41,7 @@ public sealed class UserRepository
         const string sql = """
             select 1
             from app_users
-            where lower(username) = lower(@username)
+            where username = @username
             limit 1
             """;
 

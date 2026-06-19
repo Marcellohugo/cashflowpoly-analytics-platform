@@ -11,7 +11,7 @@ public sealed class EventSimpleActionValidatorTests
     [Fact]
     public void TryValidate_ReturnsFalseForUnhandledAction()
     {
-        var request = CreateRequest("transaction.recorded", """{"direction":"IN","amount":1,"category":"PAYCHECK"}""");
+        var request = CreateRequest("CatatTransaksi", """{"direction":"IN","amount":1,"category":"PAYCHECK"}""");
 
         var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
@@ -22,7 +22,7 @@ public sealed class EventSimpleActionValidatorTests
     [Fact]
     public void TryValidateOrderPassed_RequiresPlayer()
     {
-        var request = CreateRequest("order.passed", """{"required_ingredient_card_ids":["A"],"income":5}""") with
+        var request = CreateRequest("LewatiOrder", """{"required_ingredient_card_ids":["A"],"income":5}""") with
         {
             UserId = null
         };
@@ -39,7 +39,7 @@ public sealed class EventSimpleActionValidatorTests
     [Fact]
     public void TryValidateFreelance_RejectsIncomeOutsideRuleset()
     {
-        var request = CreateRequest("work.freelance.completed", """{"amount":7}""");
+        var request = CreateRequest("KerjaLepas", """{"amount":7}""");
 
         var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(freelanceIncome: 5), out var result);
 
@@ -53,7 +53,7 @@ public sealed class EventSimpleActionValidatorTests
     [Fact]
     public void TryValidateGoldPoints_RejectsNegativePoints()
     {
-        var request = CreateRequest("gold.points.awarded", """{"points":-1}""");
+        var request = CreateRequest("PoinEmas", """{"points":-1}""");
 
         var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
@@ -66,7 +66,7 @@ public sealed class EventSimpleActionValidatorTests
     [Fact]
     public void TryValidatePensionRank_AcceptsValidPayload()
     {
-        var request = CreateRequest("pension.rank.awarded", """{"rank":2,"points":10}""");
+        var request = CreateRequest("PoinPeringkatPensiun", """{"rank":2,"points":10}""");
 
         var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
@@ -75,14 +75,71 @@ public sealed class EventSimpleActionValidatorTests
         Assert.Equal(StatusCodes.Status200OK, result.StatusCode);
     }
 
-    private static EventRequest CreateRequest(string actionType, string payloadJson)
+    [Fact]
+    public void TryValidateDonationWinnersAnnouncement_AcceptsValidSystemPayload()
     {
+        var request = CreateRequest(
+            "UmumkanJuaraDonasi",
+            """{"summary":"Manalu Juara 1, Marcello Juara 2, Marco Juara 3","winners":[{"rank":1,"player_name":"Manalu","player_order_no":4,"points":7},{"rank":2,"player_name":"Marcello","player_order_no":2,"points":5},{"rank":3,"player_name":"Marco","player_order_no":1,"points":2}]}""",
+            actorType: "SYSTEM",
+            userId: null);
+
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
+
+        Assert.True(handled);
+        Assert.True(result.IsValid);
+        Assert.Equal(StatusCodes.Status200OK, result.StatusCode);
+    }
+
+    [Fact]
+    public void TryValidateDonationWinnersAnnouncement_RejectsPlayerActor()
+    {
+        var request = CreateRequest(
+            "UmumkanJuaraDonasi",
+            """{"summary":"Manalu Juara 1","winners":[{"rank":1,"player_name":"Manalu","points":7}]}""",
+            actorType: "PLAYER",
+            userId: Guid.NewGuid());
+
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
+
+        Assert.True(handled);
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Contains(result.Details, detail => detail.Field == "actor_type" && detail.Issue == "SYSTEM_REQUIRED");
+    }
+
+    [Fact]
+    public void TryValidateDonationWinnersAnnouncement_RejectsNonSequentialRanks()
+    {
+        var request = CreateRequest(
+            "UmumkanJuaraDonasi",
+            """{"summary":"Manalu Juara 1, Marco Juara 3","winners":[{"rank":1,"player_name":"Manalu","points":7},{"rank":3,"player_name":"Marco","points":2}]}""",
+            actorType: "SYSTEM",
+            userId: null);
+
+        var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
+
+        Assert.True(handled);
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Contains(result.Details, detail => detail.Field == "payload.winners" && detail.Issue == "INVALID_RANK_SEQUENCE");
+    }
+
+    private static EventRequest CreateRequest(
+        string actionType,
+        string payloadJson,
+        string actorType = "PLAYER",
+        Guid? userId = null)
+    {
+        var resolvedUserId = string.Equals(actorType, "SYSTEM", StringComparison.OrdinalIgnoreCase)
+            ? userId
+            : userId ?? Guid.NewGuid();
         using var document = JsonDocument.Parse(payloadJson);
         return new EventRequest(
             Guid.NewGuid(),
             Guid.NewGuid(),
-            Guid.NewGuid(),
-            "PLAYER",
+            resolvedUserId,
+            actorType,
             new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             0,
             "MON",
@@ -100,7 +157,7 @@ public sealed class EventSimpleActionValidatorTests
             "PEMULA",
             ActionsPerTurn: 3,
             StartingCash: 20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             CashMin: 0,
             MaxIngredientTotal: 10,
             MaxSameIngredient: 5,

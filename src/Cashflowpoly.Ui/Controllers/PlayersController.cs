@@ -92,10 +92,9 @@ public sealed class PlayersController : Controller
         }
 
         var fallbackStartingCash = InferDefaultStartingCash(analytics?.RulesetName);
-        var startingCash = TryReadStartingCashFromGameplayRaw(gameplay?.Raw, out var parsedStartingCash)
-            ? parsedStartingCash
-            : fallbackStartingCash;
+        var startingCash = gameplay?.Economy.StartingCash ?? fallbackStartingCash;
         var cashflowJourney = BuildCashflowJourneyStats(transactions, startingCash);
+        var statSummary = PlayerStatSummaryBuilder.Build(gameplay, cashflowJourney, HttpContext.T);
 
         return View(new PlayerDetailViewModel
         {
@@ -103,10 +102,11 @@ public sealed class PlayersController : Controller
             PlayerId = playerId,
             PlayerDisplayName = playerDisplayName,
             Summary = summary,
+            StatSummary = statSummary,
             Transactions = transactions,
             CashflowJourney = cashflowJourney,
-            GameplayRaw = gameplay?.Raw,
-            GameplayDerived = gameplay?.Derived,
+            GameplayRaw = BuildGameplayRaw(gameplay),
+            GameplayDerived = BuildGameplayDerived(gameplay),
             GameplayComputedAt = gameplay?.ComputedAt,
             GameplayErrorMessage = gameplayError
         });
@@ -187,30 +187,78 @@ public sealed class PlayersController : Controller
         };
     }
 
-    private static bool TryReadStartingCashFromGameplayRaw(JsonElement? raw, out double startingCash)
+    private static JsonElement? BuildGameplayRaw(GameplayMetricsResponse? gameplay)
     {
-        startingCash = 0;
-        if (!raw.HasValue || raw.Value.ValueKind != JsonValueKind.Object)
+        if (gameplay is null)
         {
-            return false;
+            return null;
         }
 
-        if (!raw.Value.TryGetProperty("coins", out var coins) || coins.ValueKind != JsonValueKind.Object)
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
         {
-            return false;
+            coins = new
+            {
+                starting_coins = gameplay.Economy.StartingCash
+            },
+            donation = new
+            {
+                total = gameplay.Economy.DonationTotal
+            },
+            gold = new
+            {
+                qty_current = gameplay.Progress.GoldQty
+            },
+            inventory = new
+            {
+                ingredient_total = gameplay.Progress.InventoryIngredientTotal
+            },
+            actions = new
+            {
+                used_total = gameplay.Progress.ActionsUsedTotal
+            }
+        }));
+        return document.RootElement.Clone();
+    }
+
+    private static JsonElement? BuildGameplayDerived(GameplayMetricsResponse? gameplay)
+    {
+        if (gameplay is null)
+        {
+            return null;
         }
 
-        if (!coins.TryGetProperty("starting_coins", out var startingProp))
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
         {
-            return false;
-        }
-
-        return startingProp.ValueKind switch
-        {
-            JsonValueKind.Number => startingProp.TryGetDouble(out startingCash),
-            JsonValueKind.String => double.TryParse(startingProp.GetString(), out startingCash),
-            _ => false
-        };
+            cashflow = new
+            {
+                in_total = gameplay.Economy.CashInTotal,
+                out_total = gameplay.Economy.CashOutTotal,
+                net_total = gameplay.Economy.CashflowNetTotal
+            },
+            orders = new
+            {
+                completed_count = gameplay.Progress.OrdersCompletedCount
+            },
+            happiness = new
+            {
+                total = gameplay.Score.HappinessPointsTotal,
+                need_points = gameplay.Score.NeedPointsTotal,
+                need_bonus = gameplay.Score.NeedSetBonusPoints,
+                donation_points = gameplay.Score.DonationPointsTotal,
+                gold_points = gameplay.Score.GoldPointsTotal,
+                pension_points = gameplay.Score.PensionPointsTotal,
+                saving_goal_points = gameplay.Score.SavingGoalPointsTotal,
+                mission_penalty = gameplay.Score.MissionPenaltyTotal,
+                loan_penalty = gameplay.Score.LoanPenaltyTotal,
+                has_unpaid_loan = gameplay.Score.HasUnpaidLoan
+            },
+            compliance = new
+            {
+                primary_need_rate = gameplay.Compliance.PrimaryNeedRate,
+                rules_violations_count = gameplay.Compliance.RulesViolationsCount
+            }
+        }));
+        return document.RootElement.Clone();
     }
 
     private static double InferDefaultStartingCash(string? rulesetName)

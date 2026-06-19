@@ -57,7 +57,7 @@ public interface IActionUsageCalculator
     AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
-        int maxTurnNumber,
+        int maxActionSlot,
         int actionsPerTurn);
 }
 

@@ -19,11 +19,12 @@ internal sealed class EventRecordMapper : IEventRecordMapper
             record.Timestamp,
             record.DayIndex,
             record.Weekday,
-            record.TurnNumber,
+            record.ActionSlot,
             record.SequenceNumber,
             record.ActionType,
             record.RulesetVersionId,
             payload,
-            record.ClientRequestId);
+            record.ClientRequestId,
+            record.TurnNumber);
     }
 }

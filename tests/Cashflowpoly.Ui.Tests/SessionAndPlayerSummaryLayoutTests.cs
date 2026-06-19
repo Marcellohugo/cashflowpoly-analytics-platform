@@ -33,6 +33,23 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.DoesNotContain("players.index.sessions_with_data", playerIndexView, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank()
+    {
+        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
+
+        Assert.Contains("common.rank", playerIndexView, StringComparison.Ordinal);
+        Assert.Contains("playerRankLookup", playerIndexView, StringComparison.Ordinal);
+        Assert.Contains("winner-row", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.rank", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.winner_badge", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("winner-chip", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.champion.donation_short", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.champion.pension_short", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("donationChampionLookup", playerIndexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("pensionChampionLookup", playerIndexView, StringComparison.Ordinal);
+    }
+
     private static string ResolveRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

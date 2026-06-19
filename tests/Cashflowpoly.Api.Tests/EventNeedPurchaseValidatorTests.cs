@@ -12,7 +12,7 @@ public sealed class EventNeedPurchaseValidatorTests
     [Fact]
     public void TryValidate_ReturnsFalseForUnhandledAction()
     {
-        var request = CreateRequest("transaction.recorded", """{"amount":1}""");
+        var request = CreateRequest("CatatTransaksi", """{"amount":1}""");
 
         var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
@@ -25,10 +25,10 @@ public sealed class EventNeedPurchaseValidatorTests
     public void TryValidatePrimary_RejectsDailyLimit()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("need.primary.purchased", """{"card_id":"rice","amount":5,"points":2}""", playerId);
+        var request = CreateRequest("Kebutuhan", """{"card_id":"rice","amount":5,"points":2}""", playerId);
         var history = new[]
         {
-            CreateEvent("need.primary.purchased", """{"card_id":"water","amount":3,"points":1}""", playerId, dayIndex: 0)
+            CreateEvent("Kebutuhan", """{"card_id":"water","amount":3,"points":1}""", playerId, dayIndex: 0)
         };
 
         var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(primaryNeedMaxPerDay: 1), history, out var result);
@@ -44,7 +44,7 @@ public sealed class EventNeedPurchaseValidatorTests
     public void TryValidateSecondary_RequiresPrimaryWhenConfigured()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("need.secondary.purchased", """{"card_id":"book","amount":4,"points":1}""", playerId);
+        var request = CreateRequest("Kebutuhan", """{"card_id":"book","amount":4,"points":1}""", playerId);
 
         var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(requirePrimaryBeforeOthers: true), Array.Empty<EventDb>(), out var result);
 
@@ -58,10 +58,10 @@ public sealed class EventNeedPurchaseValidatorTests
     public void TryValidateTertiary_ReturnsOutgoingAmountWhenValid()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("need.tertiary.purchased", """{"card_id":"bike","amount":7,"points":3}""", playerId);
+        var request = CreateRequest("Kebutuhan", """{"card_id":"bike","amount":7,"points":3}""", playerId);
         var history = new[]
         {
-            CreateEvent("need.primary.purchased", """{"card_id":"rice","amount":3,"points":1}""", playerId, dayIndex: 0)
+            CreateEvent("Kebutuhan", """{"card_id":"rice","amount":3,"points":1}""", playerId, dayIndex: 0)
         };
 
         var handled = new EventNeedPurchaseValidator().TryValidate(request, CreateConfig(requirePrimaryBeforeOthers: true), history, out var result);
@@ -101,7 +101,7 @@ public sealed class EventNeedPurchaseValidatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = dayIndex,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
@@ -117,7 +117,7 @@ public sealed class EventNeedPurchaseValidatorTests
             "PEMULA",
             ActionsPerTurn: 3,
             StartingCash: 20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             CashMin: 0,
             MaxIngredientTotal: 10,
             MaxSameIngredient: 5,

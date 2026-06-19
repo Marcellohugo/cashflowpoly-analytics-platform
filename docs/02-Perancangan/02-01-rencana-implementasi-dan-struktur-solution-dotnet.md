@@ -1,10 +1,10 @@
-﻿# Rencana Implementasi dan Struktur Solution .NET
+# Rencana Implementasi dan Struktur Solution .NET
 ## REST API + ASP.NET Core MVC (Razor Views) untuk Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Rencana Implementasi dan Struktur Solution .NET
-- Versi: 1.2
-- Tanggal: 12 Februari 2026
+- Versi: 1.3
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -97,7 +97,7 @@ Tanggung jawab:
 ### Tahap D - Sesi dan Ruleset
 1. endpoint create/list/start/end session,
 2. endpoint create/list/detail/delete ruleset,
-3. endpoint activate ruleset ke sesi,
+3. endpoint activate versi ruleset pada level ruleset,
 4. guard domain: ruleset dipakai sesi tidak boleh dihapus.
 
 ### Tahap E - Ingest Event dan Validasi Domain
@@ -114,7 +114,7 @@ Tanggung jawab:
 ### Tahap G - Endpoint Analitika
 1. analitika sesi: `GET /api/v1/analytics/sessions/{sessionId}`,
 2. histori transaksi: `GET /api/v1/analytics/sessions/{sessionId}/transactions`,
-3. gameplay snapshot: `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay`,
+3. gameplay snapshot: `GET /api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay`,
 4. agregasi per ruleset: `GET /api/v1/analytics/rulesets/{rulesetId}/summary`.
 
 ### Tahap H - UI Dashboard

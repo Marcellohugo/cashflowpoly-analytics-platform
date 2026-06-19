@@ -13,10 +13,10 @@ public sealed class AnalyticsNeedMissionCalculatorTests
         var sessionId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(playerId, sessionId, "need.primary.purchased", """{"card_id":"rice","amount":3,"points":1}"""),
-            CreateEvent(playerId, sessionId, "need.secondary.purchased", """{"card_id":"book","amount":4,"points":1}"""),
-            CreateEvent(playerId, sessionId, "need.tertiary.purchased", """{"card_id":"bike","amount":7,"points":2}"""),
-            CreateEvent(playerId, sessionId, "mission.assigned", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"rice","amount":3,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"book","amount":4,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"bike","amount":7,"points":2}"""),
+            CreateEvent(playerId, sessionId, "BagikanMisiKoleksi", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -48,10 +48,10 @@ public sealed class AnalyticsNeedMissionCalculatorTests
         var sessionId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(playerId, sessionId, "need.primary.purchased", """{"card_id":"rice-1","amount":1,"points":1}"""),
-            CreateEvent(playerId, sessionId, "need.primary.purchased", """{"card_id":"rice-2","amount":1,"points":1}"""),
-            CreateEvent(playerId, sessionId, "need.primary.purchased", """{"card_id":"rice-3","amount":1,"points":1}"""),
-            CreateEvent(playerId, sessionId, "need.secondary.purchased", """{"card_id":"book","amount":1,"points":1}""")
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"rice-1","amount":1,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"rice-2","amount":1,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"rice-3","amount":1,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"book","amount":1,"points":1}""")
         };
 
         var metrics = new NeedMissionCalculator().Compute(events, Array.Empty<CashflowProjectionDb>());
@@ -74,7 +74,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

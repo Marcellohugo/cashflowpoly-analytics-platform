@@ -15,7 +15,7 @@ public sealed class RulesetFormHelperTests
         var model = RulesetFormHelper.BuildDefaultCreateViewModel();
 
         Assert.False(model.IsEditMode);
-        using var document = JsonDocument.Parse(model.ConfigJson);
+        using var document = JsonDocument.Parse(model.DefinitionJson);
         Assert.Equal("PEMULA", document.RootElement.GetProperty("mode").GetString());
         Assert.Equal(20, document.RootElement.GetProperty("starting_cash").GetInt32());
     }

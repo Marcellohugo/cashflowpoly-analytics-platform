@@ -35,7 +35,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
     {
         var playerEventsList = playerEvents.ToList();
         var donationByDay = playerEventsList
-            .Where(e => e.ActionType == "day.friday.donation")
+            .Where(e => e.ActionType == "JumatBerkah")
             .GroupBy(e => e.DayIndex)
             .Select(g => new AnalyticsDonationAmountByDay(
                 g.Key,
@@ -45,7 +45,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
         var donationTotal = donationByDay.Sum(item => item.Amount);
 
         var donationRanks = playerEventsList
-            .Where(e => e.ActionType == "donation.rank.awarded")
+            .Where(e => e.ActionType == "PoinPeringkatDonasi")
             .GroupBy(e => e.DayIndex)
             .Select(g =>
             {
@@ -86,7 +86,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
             donationByDay,
             donationRanks,
             donationTotal,
-            playerEventsList.Count(e => e.ActionType == "donation.rank.awarded"),
+            playerEventsList.Count(e => e.ActionType == "PoinPeringkatDonasi"),
             donationStabilityStdDeviation,
             donationStability,
             donationRatio,

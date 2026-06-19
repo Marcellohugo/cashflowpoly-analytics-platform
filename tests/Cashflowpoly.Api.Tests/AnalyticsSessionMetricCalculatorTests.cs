@@ -14,13 +14,13 @@ public sealed class AnalyticsSessionMetricCalculatorTests
             new()
             {
                 EventId = Guid.NewGuid(),
-                ActionType = "day.friday.donation",
+                ActionType = "JumatBerkah",
                 Payload = """{"amount":5}"""
             },
             new()
             {
                 EventId = Guid.NewGuid(),
-                ActionType = "work.freelance.completed",
+                ActionType = "KerjaLepas",
                 Payload = """{"amount":3}"""
             }
         };

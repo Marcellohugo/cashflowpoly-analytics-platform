@@ -46,13 +46,62 @@ internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
                 new ErrorDetail("weekday", "INVALID_ENUM"));
         }
 
-        if (request.TurnNumber < 1)
+        if (request.ActionSlot < 0)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
-                "Turn number minimal 1",
+                "Action slot minimal 0",
+                new ErrorDetail("action_slot", "OUT_OF_RANGE"));
+        }
+
+        if (request.TurnNumber < 0)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Turn number minimal 0",
                 new ErrorDetail("turn_number", "OUT_OF_RANGE"));
+        }
+
+        if (string.Equals(request.ActorType, "SYSTEM", StringComparison.OrdinalIgnoreCase) &&
+            request.TurnNumber != 0)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "System event harus memakai turn number 0",
+                new ErrorDetail("turn_number", "INVALID_FOR_ACTOR"));
+        }
+
+        if (string.Equals(request.ActorType, "SYSTEM", StringComparison.OrdinalIgnoreCase) &&
+            request.ActionSlot != 0)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "System event harus memakai action slot 0",
+                new ErrorDetail("action_slot", "INVALID_FOR_ACTOR"));
+        }
+
+        if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+            request.TurnNumber is < 1 or > 4)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Player event harus memakai turn number 1 sampai 4",
+                new ErrorDetail("turn_number", "OUT_OF_RANGE"));
+        }
+
+        if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+            request.ActionSlot < 1)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Player event harus memakai action slot minimal 1",
+                new ErrorDetail("action_slot", "OUT_OF_RANGE"));
         }
 
         if (request.DayIndex < 0)

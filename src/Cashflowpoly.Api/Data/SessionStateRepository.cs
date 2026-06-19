@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
+using Cashflowpoly.Api.Domain;
 using Dapper;
 using Npgsql;
 
@@ -8,10 +9,20 @@ namespace Cashflowpoly.Api.Data;
 public sealed class SessionStateRepository
 {
     private readonly NpgsqlDataSource _dataSource;
+    private readonly RulesetRepository _rulesets;
+    private readonly EventRepository _events;
+    private readonly IHappinessCalculator _happiness;
 
-    public SessionStateRepository(NpgsqlDataSource dataSource)
+    public SessionStateRepository(
+        NpgsqlDataSource dataSource,
+        RulesetRepository rulesets,
+        EventRepository events,
+        IHappinessCalculator happiness)
     {
         _dataSource = dataSource;
+        _rulesets = rulesets;
+        _events = events;
+        _happiness = happiness;
     }
 
     public async Task<RulesetSectionDb?> GetRulesetSectionAsync(
@@ -32,12 +43,51 @@ public sealed class SessionStateRepository
             return null;
         }
 
+        var definition = await _rulesets.GetRulesetDefinitionAsync(requested.RulesetVersionId, ct);
+        if (definition is null)
+        {
+            return null;
+        }
+
         return new RulesetSectionDb
         {
             RulesetId = requested.RulesetId,
             RulesetVersionId = requested.RulesetVersionId,
             Mode = requested.Mode,
-            ConfigJson = string.IsNullOrWhiteSpace(requested.ConfigJson) ? "{}" : requested.ConfigJson
+            Definition = definition
+        };
+    }
+
+    public async Task<RulesetSectionDb?> GetRulesetSectionByVersionIdAsync(
+        string mode,
+        Guid rulesetVersionId,
+        Guid? instructorUserId,
+        CancellationToken ct)
+    {
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var requested = await ResolveRulesetVersionByIdAsync(
+            conn,
+            mode.ToUpperInvariant(),
+            rulesetVersionId,
+            instructorUserId,
+            ct);
+        if (requested is null)
+        {
+            return null;
+        }
+
+        var definition = await _rulesets.GetRulesetDefinitionAsync(requested.RulesetVersionId, ct);
+        if (definition is null)
+        {
+            return null;
+        }
+
+        return new RulesetSectionDb
+        {
+            RulesetId = requested.RulesetId,
+            RulesetVersionId = requested.RulesetVersionId,
+            Mode = requested.Mode,
+            Definition = definition
         };
     }
 
@@ -45,46 +95,42 @@ public sealed class SessionStateRepository
         string sessionName,
         string mode,
         IReadOnlyList<string> playerNames,
-        Guid? rulesetId,
+        Guid rulesetVersionId,
         Guid instructorUserId,
         string? createdBy,
         CancellationToken ct)
     {
-        var ruleset = await GetRulesetSectionAsync(mode, rulesetId, instructorUserId, ct);
+        var ruleset = await GetRulesetSectionByVersionIdAsync(mode, rulesetVersionId, instructorUserId, ct);
         if (ruleset is null)
         {
             return null;
         }
 
-        var catalog = RulesetSectionCatalog.FromConfig(ruleset.ConfigJson);
+        var catalog = RulesetSectionCatalog.FromDefinition(ruleset.Definition);
         var gameConfig = catalog.GameConfigValues;
         var sessionId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var sourceRulesetVersionId = await ResolveDefaultRelationalRulesetVersionIdAsync(conn, ruleset.Mode, ct);
-        var collectionMissionCards = sourceRulesetVersionId.HasValue
-            ? (await conn.QueryAsync<CollectionMissionSectionRow>(
-                new CommandDefinition(
-                    """
-                    select
-                        ruleset_catalog_item_id as CollectionMissionCardId,
-                        item_code as MissionCode,
-                        item_name as MissionName
-                    from ruleset_catalog_items
-                    where ruleset_version_id = @rulesetVersionId
-                      and item_type = 'COLLECTION_MISSION'
-                      and is_active
-                    order by sort_order asc, item_code asc
-                    """,
-                    new { rulesetVersionId = sourceRulesetVersionId.Value },
-                    cancellationToken: ct))).ToList()
-            : [];
+        var collectionMissionCards = (await conn.QueryAsync<CollectionMissionSectionRow>(
+            new CommandDefinition(
+                """
+                select
+                    ruleset_collection_mission_id as CollectionMissionCardId,
+                    mission_code as MissionCode,
+                    item_name as MissionName
+                from ruleset_collection_missions
+                where ruleset_version_id = @rulesetVersionId
+                  and is_active
+                order by sort_order asc, mission_code asc
+                """,
+                new { rulesetVersionId = ruleset.RulesetVersionId },
+                cancellationToken: ct))).ToList();
         await using var tx = await conn.BeginTransactionAsync(ct);
 
         const string insertSessionSql = """
-            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at)
-            values (@sessionId, @sessionName, @mode, 'STARTED', @startedAt, null, @instructorUserId, @createdAt)
+            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, created_at)
+            values (@sessionId, @sessionName, @mode, 'CREATED', null, null, @instructorUserId, @rulesetVersionId, @createdAt)
             """;
 
         await conn.ExecuteAsync(new CommandDefinition(
@@ -94,37 +140,19 @@ public sealed class SessionStateRepository
                 sessionId,
                 sessionName,
                 mode = mode.ToUpperInvariant(),
-                startedAt = now,
                 instructorUserId,
-                createdAt = now
-            },
-            tx,
-            cancellationToken: ct));
-
-        const string insertActivationSql = """
-            insert into session_ruleset_activations (activation_id, session_id, ruleset_version_id, activated_at, activated_by)
-            values (@activationId, @sessionId, @rulesetVersionId, @activatedAt, @activatedBy)
-            """;
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            insertActivationSql,
-            new
-            {
-                activationId = Guid.NewGuid(),
-                sessionId,
                 rulesetVersionId = ruleset.RulesetVersionId,
-                activatedAt = now,
-                activatedBy = createdBy
+                createdAt = now
             },
             tx,
             cancellationToken: ct));
 
         const string insertSessionStateSql = """
             insert into session_states (
-                session_id, day, weekday, turn_number, current_session_player_id, current_action_index,
-                moves_left, finish_day, phase, is_game_over, state_version, created_at, updated_at
+                session_id, day, weekday, turn_number, action_slot, current_session_player_id, current_action_slot,
+                action_slots_left, finish_day, phase, is_game_over, state_version, created_at, updated_at
             )
-            values (@sessionId, 1, @weekday, 1, null, 1, @movesLeft, @finishDay, 'PLAYER_TURN', false, 1, @createdAt, @createdAt)
+            values (@sessionId, 1, @weekday, 0, 1, null, 1, @actionSlotsLeft, @finishDay, 'PLAYER_TURN', false, 1, @createdAt, @createdAt)
             """;
 
         await conn.ExecuteAsync(new CommandDefinition(
@@ -133,7 +161,7 @@ public sealed class SessionStateRepository
             {
                 sessionId,
                 weekday = ResolveWeekdayCode(1),
-                movesLeft = gameConfig.ActionsPerTurn,
+                actionSlotsLeft = gameConfig.ActionsPerTurn,
                 finishDay = gameConfig.FinishDay,
                 createdAt = now
             },
@@ -146,32 +174,20 @@ public sealed class SessionStateRepository
             """;
 
         const string insertSessionPlayerSql = """
-            insert into session_players (session_player_id, session_id, user_id, join_order, role, created_at)
-            values (@sessionPlayerId, @sessionId, @userId, @joinOrder, 'PLAYER', @createdAt)
+            insert into session_participants (session_participant_id, session_id, user_id, player_order_no, player_name, joined_at)
+            values (@sessionPlayerId, @sessionId, @userId, @playerOrder, @playerName, @createdAt)
             """;
 
         const string insertPlayerStateSql = """
-            insert into session_player_states (session_player_id, coins, happiness, saving, created_at, updated_at)
-            values (@sessionPlayerId, @coins, @happiness, @saving, @createdAt, @createdAt)
-            """;
-
-        const string insertDonationTotalSql = """
-            insert into session_player_peduli_donasi (session_player_id, total_donasi)
-            values (@sessionPlayerId, 0)
-            """;
-
-        const string insertQuestSql = """
-            insert into session_player_quest_progress (
-                session_player_id, quest_id, progress, target, is_completed, is_reward_claimed
-            )
-            values (@sessionPlayerId, @questId, 0, @target, false, false)
+            insert into session_participant_balances (session_id, session_participant_id, coins, happiness, saving, total_donasi, created_at, updated_at)
+            values (@sessionId, @sessionPlayerId, @coins, @happiness, @saving, 0, @createdAt, @createdAt)
             """;
 
         const string insertMissionSql = """
-            insert into session_player_collection_missions (
-                session_player_id, ruleset_catalog_item_id, is_completed, is_failed, reward_applied, assigned_at
+            insert into session_participant_collection_missions (
+                session_id, session_participant_id, ruleset_version_id, ruleset_collection_mission_id, is_completed, is_failed, reward_applied, assigned_at
             )
-            values (@sessionPlayerId, @collectionMissionCardId, false, false, false, @assignedAt)
+            values (@sessionId, @sessionPlayerId, @rulesetVersionId, @collectionMissionCardId, false, false, false, @assignedAt)
             """;
 
         for (var index = 0; index < playerNames.Count; index++)
@@ -179,9 +195,9 @@ public sealed class SessionStateRepository
             var userId = Guid.NewGuid();
             var sessionPlayerId = Guid.NewGuid();
             var playerName = playerNames[index].Trim();
-            var joinOrder = index + 1;
-            var username = BuildSyntheticPlayerUsername(sessionId, joinOrder);
-            var password = $"dev-only-{sessionId:N}-{joinOrder}";
+            var playerOrder = index + 1;
+            var username = BuildSyntheticPlayerUsername(sessionId, playerOrder);
+            var password = $"dev-only-{sessionId:N}-{playerOrder}";
 
             await conn.ExecuteAsync(new CommandDefinition(
                 insertPlayerSql,
@@ -191,7 +207,7 @@ public sealed class SessionStateRepository
 
             await conn.ExecuteAsync(new CommandDefinition(
                 insertSessionPlayerSql,
-                new { sessionPlayerId, sessionId, userId, joinOrder, createdAt = now },
+                new { sessionPlayerId, sessionId, userId, playerOrder, playerName, createdAt = now },
                 tx,
                 cancellationToken: ct));
 
@@ -199,6 +215,7 @@ public sealed class SessionStateRepository
                 insertPlayerStateSql,
                 new
                 {
+                    sessionId,
                     sessionPlayerId,
                     coins = gameConfig.InitialCoins,
                     happiness = gameConfig.InitialHappiness,
@@ -207,16 +224,6 @@ public sealed class SessionStateRepository
                 },
                 tx,
                 cancellationToken: ct));
-            await conn.ExecuteAsync(new CommandDefinition(insertDonationTotalSql, new { sessionPlayerId }, tx, cancellationToken: ct));
-
-            foreach (var quest in catalog.QuestTargets)
-            {
-                await conn.ExecuteAsync(new CommandDefinition(
-                    insertQuestSql,
-                    new { sessionPlayerId, questId = quest.Key, target = quest.Value },
-                    tx,
-                    cancellationToken: ct));
-            }
 
             if (collectionMissionCards.Count > 0)
             {
@@ -225,7 +232,9 @@ public sealed class SessionStateRepository
                     insertMissionSql,
                     new
                     {
+                        sessionId,
                         sessionPlayerId,
+                        rulesetVersionId = ruleset.RulesetVersionId,
                         collectionMissionCardId = mission.CollectionMissionCardId,
                         assignedAt = now
                     },
@@ -233,6 +242,21 @@ public sealed class SessionStateRepository
                     cancellationToken: ct));
             }
         }
+
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update sessions
+            set status = 'STARTED',
+                started_at = @startedAt
+            where session_id = @sessionId
+            """,
+            new
+            {
+                sessionId,
+                startedAt = now
+            },
+            tx,
+            cancellationToken: ct));
 
         await tx.CommitAsync(ct);
 
@@ -252,8 +276,8 @@ public sealed class SessionStateRepository
                 session_id,
                 state_version,
                 day,
-                turn_number as turn,
-                moves_left,
+                action_slot as turn,
+                action_slots_left,
                 finish_day,
                 is_game_over,
                 '{}'::jsonb::text as ui_state_json
@@ -263,20 +287,19 @@ public sealed class SessionStateRepository
 
         const string playersSql = """
             select
-                sp.session_player_id,
+                sp.session_participant_id as session_player_id,
                 sp.user_id,
-                sp.join_order as player_index,
-                u.display_name as name,
+                sp.player_order_no as player_index,
+                coalesce(sp.player_name, u.display_name) as name,
                 coalesce(ps.coins, 0) as coins,
                 coalesce(ps.happiness, 0) as happiness,
                 coalesce(ps.saving, 0) as saving,
-                coalesce(pd.total_donasi, 0) as total_donasi
-            from session_players sp
+                coalesce(ps.total_donasi, 0) as total_donasi
+            from session_participants sp
             join app_users u on u.user_id = sp.user_id
-            left join session_player_states ps on ps.session_player_id = sp.session_player_id
-            left join session_player_peduli_donasi pd on pd.session_player_id = sp.session_player_id
+            left join session_participant_balances ps on ps.session_participant_id = sp.session_participant_id
             where sp.session_id = @sessionId
-            order by sp.join_order asc, sp.created_at asc
+            order by sp.player_order_no asc, sp.joined_at asc
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -318,10 +341,9 @@ public sealed class SessionStateRepository
             StateVersion = state.StateVersion,
             Day = state.Day,
             Turn = state.Turn,
-            MovesLeft = state.MovesLeft,
+            ActionSlotsLeft = state.ActionSlotsLeft,
             FinishDay = state.FinishDay,
             IsGameOver = state.IsGameOver,
-            UiState = ParseJsonOrEmpty(state.UiStateJson),
             Players = players,
             DonationEvents = donationEvents
         };
@@ -343,10 +365,16 @@ public sealed class SessionStateRepository
             update session_states
             set day = @day,
                 weekday = @weekday,
-                turn_number = @turn,
+                turn_number = coalesce((
+                    select sp.player_order_no
+                    from session_participants sp
+                    where sp.session_id = @sessionId
+                      and sp.session_participant_id = @currentSessionPlayerId
+                ), 0),
+                action_slot = @turn,
                 current_session_player_id = @currentSessionPlayerId,
-                current_action_index = @currentActionIndex,
-                moves_left = @movesLeft,
+                current_action_slot = @currentActionSlot,
+                action_slots_left = @actionSlotsLeft,
                 finish_day = @finishDay,
                 phase = @phase,
                 is_game_over = @isGameOver,
@@ -388,8 +416,8 @@ public sealed class SessionStateRepository
                 weekday,
                 turn = request.Turn,
                 currentSessionPlayerId,
-                currentActionIndex = ResolveCurrentActionIndex(request.MovesLeft),
-                movesLeft = request.MovesLeft,
+                currentActionSlot = ResolveCurrentActionSlot(request.ActionSlotsLeft),
+                actionSlotsLeft = request.ActionSlotsLeft,
                 finishDay = request.FinishDay,
                 phase = ResolvePhase(weekday, request.IsGameOver),
                 isGameOver = request.IsGameOver,
@@ -421,6 +449,240 @@ public sealed class SessionStateRepository
         return SaveSessionStateResult.Saved(state);
     }
 
+    public async Task ComputeFinalScoresAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string activeRulesetSql = """
+            select ruleset_version_id
+            from sessions
+            where session_id = @sessionId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var rulesetVersionId = await conn.QuerySingleOrDefaultAsync<Guid?>(
+            new CommandDefinition(activeRulesetSql, new { sessionId }, cancellationToken: ct));
+        if (!rulesetVersionId.HasValue)
+        {
+            throw new InvalidOperationException("Session belum memiliki ruleset aktif.");
+        }
+
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId.Value, ct);
+        if (rulesetVersion?.Definition is null ||
+            !RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out var config, out _))
+        {
+            throw new InvalidOperationException("Definition ruleset aktif tidak valid.");
+        }
+
+        var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
+        var sourceEventId = events
+            .OrderByDescending(item => item.SequenceNumber)
+            .Select(item => (Guid?)item.EventId)
+            .FirstOrDefault();
+        var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        var breakdownByUserId = _happiness.ComputeByPlayer(events, projections, config);
+        var emptyBreakdown = _happiness.ComputeBreakdown([], 0, 0, 0);
+
+        var participants = (await conn.QueryAsync<FinalScoreParticipantRow>(
+            new CommandDefinition(
+                """
+                select
+                    sp.session_participant_id as SessionParticipantId,
+                    sp.user_id as UserId,
+                    sptb.tie_number as TieBreakerNumber,
+                    coalesce(spb.coins, 0)
+                        + coalesce(spb.saving, 0)
+                        + coalesce(ingredients.leftover_qty, 0) as PensionFund
+                from session_participants sp
+                left join session_participant_balances spb
+                  on spb.session_id = sp.session_id
+                 and spb.session_participant_id = sp.session_participant_id
+                left join (
+                    select session_id, session_participant_id, sum(qty)::int as leftover_qty
+                    from session_participant_inventory
+                    group by session_id, session_participant_id
+                ) ingredients
+                  on ingredients.session_id = sp.session_id
+                 and ingredients.session_participant_id = sp.session_participant_id
+                left join session_participant_tie_breakers sptb
+                  on sptb.session_id = sp.session_id
+                 and sptb.session_participant_id = sp.session_participant_id
+                where sp.session_id = @sessionId
+                order by sp.player_order_no asc
+                """,
+                new { sessionId },
+                cancellationToken: ct))).ToList();
+
+        var pensionPointsByRank = config!.Scoring?.PensionRankPoints
+            .ToDictionary(item => item.Rank, item => item.Points)
+            ?? new Dictionary<int, int>();
+
+        var pensionRanking = participants
+            .Select(participant =>
+            {
+                return new FinalScoreParticipantValue(
+                    participant,
+                    participant.PensionFund,
+                    breakdownByUserId.TryGetValue(participant.UserId, out var breakdown)
+                        ? breakdown
+                        : emptyBreakdown);
+            })
+            .OrderByDescending(item => item.CashRemaining)
+            .ThenByDescending(item => item.Participant.TieBreakerNumber ?? 0)
+            .ThenBy(item => item.Participant.UserId)
+            .ToList();
+
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        await conn.ExecuteAsync(
+            new CommandDefinition(
+                """
+                update session_participant_collection_missions
+                set is_failed = true,
+                    updated_at = now()
+                where session_id = @sessionId
+                  and not is_completed;
+
+                delete from session_final_score_components
+                where session_final_score_id in (
+                    select session_final_score_id
+                    from session_final_scores
+                    where session_id = @sessionId
+                );
+
+                delete from session_final_scores
+                where session_id = @sessionId;
+
+                """,
+                new { sessionId },
+                tx,
+                cancellationToken: ct));
+
+        var finalRanking = pensionRanking
+            .Select((value, index) =>
+            {
+                pensionPointsByRank.TryGetValue(index + 1, out var pensionPoints);
+                var correctedBreakdown = value.Breakdown with
+                {
+                    PensionPoints = pensionPoints
+                };
+                correctedBreakdown = correctedBreakdown with
+                {
+                    Total = correctedBreakdown.Total - value.Breakdown.PensionPoints + pensionPoints
+                };
+
+                return new
+                {
+                    Value = value,
+                    CorrectedBreakdown = correctedBreakdown
+                };
+            })
+            .OrderByDescending(item => item.CorrectedBreakdown.Total)
+            .ThenByDescending(item => item.Value.Participant.TieBreakerNumber ?? 0)
+            .ThenBy(item => item.Value.Participant.UserId)
+            .ToList();
+
+        for (var index = 0; index < finalRanking.Count; index++)
+        {
+            var value = finalRanking[index];
+            var correctedBreakdown = value.CorrectedBreakdown;
+            var scoreId = Guid.NewGuid();
+            var totalPoints = (int)Math.Round(correctedBreakdown.Total, MidpointRounding.AwayFromZero);
+
+            await conn.ExecuteAsync(
+                new CommandDefinition(
+                    """
+                    insert into session_final_scores (
+                        session_final_score_id,
+                        session_id,
+                        session_participant_id,
+                        total_points,
+                        rank_no,
+                        tie_breaker_number,
+                        has_unpaid_loan,
+                        computed_at,
+                        source_event_id
+                    )
+                    values (
+                        @scoreId,
+                        @sessionId,
+                        @sessionParticipantId,
+                        @totalPoints,
+                        @rankNo,
+                        @tieBreakerNumber,
+                        @hasUnpaidLoan,
+                        now(),
+                        @sourceEventId
+                    )
+                    """,
+                    new
+                    {
+                        scoreId,
+                        sessionId,
+                        sessionParticipantId = value.Value.Participant.SessionParticipantId,
+                        totalPoints,
+                        rankNo = index + 1,
+                        value.Value.Participant.TieBreakerNumber,
+                        correctedBreakdown.HasUnpaidLoan,
+                        sourceEventId
+                    },
+                    tx,
+                    cancellationToken: ct));
+
+            var components = new[]
+            {
+                new FinalScoreComponentValue("NEED_POINTS", correctedBreakdown.NeedPoints),
+                new FinalScoreComponentValue("NEED_SET_BONUS", correctedBreakdown.NeedSetBonusPoints),
+                new FinalScoreComponentValue("DONATION", correctedBreakdown.DonationPoints),
+                new FinalScoreComponentValue("GOLD", correctedBreakdown.GoldPoints),
+                new FinalScoreComponentValue("PENSION", correctedBreakdown.PensionPoints),
+                new FinalScoreComponentValue("SAVING_GOAL", correctedBreakdown.SavingGoalPointsEffective),
+                new FinalScoreComponentValue("MISSION_PENALTY", -correctedBreakdown.MissionPenaltyPoints),
+                new FinalScoreComponentValue("LOAN_PENALTY", -correctedBreakdown.LoanPenaltyPoints)
+            };
+
+            foreach (var component in components)
+            {
+                await conn.ExecuteAsync(
+                    new CommandDefinition(
+                        """
+                        insert into session_final_score_components (
+                            session_final_score_component_id,
+                            session_id,
+                            session_participant_id,
+                            session_final_score_id,
+                            component_code,
+                            points,
+                            source_event_id,
+                            created_at
+                        )
+                        values (
+                            @componentId,
+                            @sessionId,
+                            @sessionParticipantId,
+                            @scoreId,
+                            @componentCode,
+                            @points,
+                            @sourceEventId,
+                            now()
+                        )
+                        """,
+                        new
+                        {
+                            componentId = Guid.NewGuid(),
+                            sessionId,
+                            sessionParticipantId = value.Value.Participant.SessionParticipantId,
+                            scoreId,
+                            componentCode = component.Code,
+                            points = (int)Math.Round(component.Points, MidpointRounding.AwayFromZero),
+                            sourceEventId
+                        },
+                        tx,
+                        cancellationToken: ct));
+            }
+        }
+
+        await tx.CommitAsync(ct);
+    }
+
     private static async Task LoadPlayerChildrenAsync(
         NpgsqlConnection conn,
         Guid[] sessionPlayerIds,
@@ -428,55 +690,57 @@ public sealed class SessionStateRepository
         CancellationToken ct)
     {
         const string bahanSql = """
-            select spi.session_player_id, i.display_name as nama, spi.qty as jumlah
-            from session_player_ingredients spi
-            join ingredients i on i.ingredient_id = spi.ingredient_id
-            where session_player_id = any(@sessionPlayerIds)
-            order by i.display_name asc
+            select spi.session_participant_id as session_player_id, asset.display_name as nama, spi.qty as jumlah
+            from session_participant_inventory spi
+            join ruleset_game_assets asset on asset.ruleset_game_asset_id = spi.ruleset_game_asset_id
+            where spi.session_participant_id = any(@sessionPlayerIds)
+            order by asset.display_name asc
             """;
 
         const string kebutuhanSql = """
             select
-                spn.session_player_id,
-                rci.item_name as nama,
-                coalesce(rci.payload_json->>'tipe', '') as tipe
-            from session_player_needs spn
-            join ruleset_catalog_items rci on rci.ruleset_catalog_item_id = spn.ruleset_catalog_item_id
-            where spn.session_player_id = any(@sessionPlayerIds)
-              and rci.item_type = 'NEED'
-            order by spn.sort_order asc, rci.item_name asc
+                spn.session_participant_id as session_player_id,
+                rn.item_name as nama,
+                coalesce(rn.need_tier, '') as tipe
+            from session_participant_need_purchases spn
+            join ruleset_needs rn on rn.ruleset_need_id = spn.ruleset_need_id
+            where spn.session_participant_id = any(@sessionPlayerIds)
+            order by spn.sort_order asc, rn.item_name asc
             """;
 
         const string tujuanSql = """
-            select spfg.session_player_id, rci.item_name as nama, spfg.purchased_at_day
-            from session_player_financial_goals spfg
-            join ruleset_catalog_items rci on rci.ruleset_catalog_item_id = spfg.ruleset_catalog_item_id
-            where spfg.session_player_id = any(@sessionPlayerIds)
-              and rci.item_type = 'FINANCIAL_GOAL'
-            order by spfg.purchased_at_day asc, rci.item_name asc
+            select
+                spfg.session_participant_id as session_player_id,
+                rfg.item_name as nama,
+                spfg.current_amount,
+                spfg.target_amount,
+                spfg.status,
+                spfg.purchased_at_day
+            from session_participant_financial_goals spfg
+            join ruleset_financial_goals rfg on rfg.ruleset_financial_goal_id = spfg.ruleset_financial_goal_id
+            where spfg.session_participant_id = any(@sessionPlayerIds)
+            order by coalesce(spfg.purchased_at_day, 2147483647) asc, rfg.item_name asc
             """;
 
         const string targetSql = """
-            select spcm.session_player_id, rci.item_code as id, spcm.is_completed, spcm.is_failed, spcm.reward_applied
-            from session_player_collection_missions spcm
-            join ruleset_catalog_items rci on rci.ruleset_catalog_item_id = spcm.ruleset_catalog_item_id
-            where spcm.session_player_id = any(@sessionPlayerIds)
-              and rci.item_type = 'COLLECTION_MISSION'
-            order by rci.item_code asc
-            """;
-
-        const string questSql = """
-            select session_player_id, quest_id as id, progress, target, is_completed, is_reward_claimed
-            from session_player_quest_progress
-            where session_player_id = any(@sessionPlayerIds)
-            order by quest_id asc
+            select spcm.session_participant_id as session_player_id, rcm.mission_code as id, spcm.is_completed, spcm.is_failed, spcm.reward_applied
+            from session_participant_collection_missions spcm
+            join ruleset_collection_missions rcm on rcm.ruleset_collection_mission_id = spcm.ruleset_collection_mission_id
+            where spcm.session_participant_id = any(@sessionPlayerIds)
+            order by rcm.mission_code asc
             """;
 
         const string counterSql = """
-            select session_player_id, action_id as aksi, count
-            from session_player_action_counters
-            where session_player_id = any(@sessionPlayerIds)
-            order by action_id asc
+            select
+                spac.session_participant_id as session_player_id,
+                ra.action_id as aksi,
+                spac.count
+            from session_participant_action_counters spac
+            join ruleset_actions ra
+              on ra.ruleset_version_id = spac.ruleset_version_id
+             and ra.ruleset_action_id = spac.ruleset_action_id
+            where spac.session_participant_id = any(@sessionPlayerIds)
+            order by ra.action_id asc
             """;
 
         foreach (var row in await conn.QueryAsync<BahanRow>(new CommandDefinition(bahanSql, new { sessionPlayerIds }, cancellationToken: ct)))
@@ -499,7 +763,14 @@ public sealed class SessionStateRepository
         {
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
-                player.TujuanFinansial.Add(new TujuanFinansialItemDto(row.Nama, row.PurchasedAtDay));
+                player.TujuanFinansial.Add(new TujuanFinansialItemDto
+                {
+                    Nama = row.Nama,
+                    CurrentAmount = row.CurrentAmount,
+                    TargetAmount = row.TargetAmount,
+                    Status = row.Status,
+                    PurchasedAtDay = row.PurchasedAtDay
+                });
             }
         }
 
@@ -508,14 +779,6 @@ public sealed class SessionStateRepository
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
                 player.TargetKebutuhan.Add(new TargetKebutuhanProgressDto(row.Id, row.IsCompleted, row.IsFailed, row.RewardApplied));
-            }
-        }
-
-        foreach (var row in await conn.QueryAsync<QuestProgressRow>(new CommandDefinition(questSql, new { sessionPlayerIds }, cancellationToken: ct)))
-        {
-            if (players.TryGetValue(row.SessionPlayerId, out var player))
-            {
-                player.QuestProgress.Add(new QuestProgressDto(row.Id, row.Progress, row.Target, row.IsCompleted, row.IsRewardClaimed));
             }
         }
 
@@ -534,9 +797,33 @@ public sealed class SessionStateRepository
         CancellationToken ct)
     {
         const string eventsSql = """
-            select donation_event_id as event_id, event_ke, day, rankings_json::text as rankings_json
-            from session_donation_events
-            where session_id = @sessionId
+            select
+                donation.donation_event_id as event_id,
+                donation.event_ke,
+                donation.day,
+                coalesce((
+                    select jsonb_agg(
+                        jsonb_build_object(
+                            'rank', coalesce((event.payload->>'rank')::int, 0),
+                            'session_player_id', event.session_player_id,
+                            'player_order_no', participant.player_order_no,
+                            'total_donasi', coalesce(balance.total_donasi, 0)
+                        )
+                        order by coalesce((event.payload->>'rank')::int, 0)
+                    )
+                    from events event
+                    join session_participants participant
+                      on participant.session_id = event.session_id
+                     and participant.session_participant_id = event.session_player_id
+                    left join session_participant_balances balance
+                      on balance.session_id = event.session_id
+                     and balance.session_participant_id = event.session_player_id
+                    where event.session_id = donation.session_id
+                      and event.action_type = 'PoinPeringkatDonasi'
+                      and greatest(1, ((event.day_index + 3) / 7)) = donation.event_ke
+                ), '[]'::jsonb)::text as rankings_json
+            from session_donation_events donation
+            where donation.session_id = @sessionId
             order by event_ke asc
             """;
 
@@ -563,9 +850,12 @@ public sealed class SessionStateRepository
                         SessionPlayerId = ranking.TryGetProperty("session_player_id", out var sessionPlayerProp)
                             ? sessionPlayerProp.GetGuid()
                             : Guid.Empty,
-                        PlayerIndex = ranking.TryGetProperty("player_index", out var playerIndexProp) &&
+                        PlayerIndex = ranking.TryGetProperty("player_order_no", out var playerIndexProp) &&
                                       playerIndexProp.ValueKind == JsonValueKind.Number
                             ? playerIndexProp.GetInt32()
+                            : ranking.TryGetProperty("player_index", out var legacyPlayerIndexProp) &&
+                              legacyPlayerIndexProp.ValueKind == JsonValueKind.Number
+                            ? legacyPlayerIndexProp.GetInt32()
                             : 0,
                         TotalDonasi = ranking.TryGetProperty("total_donasi", out var totalDonasiProp) &&
                                       totalDonasiProp.ValueKind == JsonValueKind.Number
@@ -591,45 +881,38 @@ public sealed class SessionStateRepository
             delete from session_donation_events
             where session_id = @sessionId;
 
-            delete from session_player_ingredients
-            where session_player_id in (
-                select session_player_id
-                from session_players
+            delete from session_participant_inventory
+            where session_participant_id in (
+                select session_participant_id
+                from session_participants
                 where session_id = @sessionId
             );
 
-            delete from session_player_needs
-            where session_player_id in (
-                select session_player_id
-                from session_players
+            delete from session_participant_need_purchases
+            where session_participant_id in (
+                select session_participant_id
+                from session_participants
                 where session_id = @sessionId
             );
 
-            delete from session_player_financial_goals
-            where session_player_id in (
-                select session_player_id
-                from session_players
+            delete from session_participant_financial_goals
+            where session_participant_id in (
+                select session_participant_id
+                from session_participants
                 where session_id = @sessionId
             );
 
-            delete from session_player_collection_missions
-            where session_player_id in (
-                select session_player_id
-                from session_players
+            delete from session_participant_collection_missions
+            where session_participant_id in (
+                select session_participant_id
+                from session_participants
                 where session_id = @sessionId
             );
 
-            delete from session_player_quest_progress
-            where session_player_id in (
-                select session_player_id
-                from session_players
-                where session_id = @sessionId
-            );
-
-            delete from session_player_action_counters
-            where session_player_id in (
-                select session_player_id
-                from session_players
+            delete from session_participant_action_counters
+            where session_participant_id in (
+                select session_participant_id
+                from session_participants
                 where session_id = @sessionId
             );
             """;
@@ -645,32 +928,33 @@ public sealed class SessionStateRepository
         CancellationToken ct)
     {
         const string upsertPlayerStateSql = """
-            insert into session_player_states (session_player_id, coins, happiness, saving, created_at, updated_at)
-            values (@sessionPlayerId, @coins, @happiness, @saving, now(), now())
-            on conflict (session_player_id) do update
+            insert into session_participant_balances (session_id, session_participant_id, coins, happiness, saving, total_donasi, created_at, updated_at)
+            values (@sessionId, @sessionPlayerId, @coins, @happiness, @saving, @totalDonasi, now(), now())
+            on conflict (session_participant_id) do update
             set coins = excluded.coins,
                 happiness = excluded.happiness,
                 saving = excluded.saving,
+                total_donasi = excluded.total_donasi,
                 updated_at = now()
             """;
 
         const string updatePlayerNameSql = """
-            update app_users u
-            set display_name = @name
-            from session_players sp
-            where sp.user_id = u.user_id
-              and sp.session_id = @sessionId
-              and sp.session_player_id = @sessionPlayerId
+            update session_participants
+            set player_name = @name
+            where session_id = @sessionId
+              and session_participant_id = @sessionPlayerId
             """;
 
         await conn.ExecuteAsync(new CommandDefinition(
             upsertPlayerStateSql,
             new
             {
+                sessionId,
                 sessionPlayerId = player.SessionPlayerId,
                 coins = player.Coins,
                 happiness = player.Happiness,
-                saving = player.Saving
+                saving = player.Saving,
+                totalDonasi = player.TotalDonasi
             },
             tx,
             cancellationToken: ct));
@@ -687,45 +971,60 @@ public sealed class SessionStateRepository
             cancellationToken: ct));
 
         const string insertBahanSql = """
-            insert into session_player_ingredients (session_player_id, ingredient_id, qty, updated_at)
-            select @sessionPlayerId, i.ingredient_id, @jumlah, now()
-            from ingredients i
-            where lower(i.display_name) = lower(@nama)
+            insert into session_participant_inventory (
+                session_id,
+                session_participant_id,
+                ruleset_version_id,
+                ruleset_game_asset_id,
+                qty,
+                created_at,
+                updated_at
+            )
+            select @sessionId, @sessionPlayerId, asset.ruleset_version_id, asset.ruleset_game_asset_id, @jumlah, now(), now()
+            from ruleset_game_assets asset
+            where asset.ruleset_version_id = (
+                select ruleset_version_id
+                from sessions
+                where session_id = @sessionId
+                limit 1
+            )
+              and asset.asset_type = 'INGREDIENT'
+              and lower(asset.display_name) = lower(@nama)
             """;
 
         foreach (var item in player.Bahan)
         {
             await conn.ExecuteAsync(new CommandDefinition(
                 insertBahanSql,
-                new { sessionPlayerId = player.SessionPlayerId, nama = item.Nama, jumlah = item.Jumlah },
+                new { sessionId, sessionPlayerId = player.SessionPlayerId, nama = item.Nama, jumlah = item.Jumlah },
                 tx,
                 cancellationToken: ct));
         }
 
         const string insertKebutuhanSql = """
-            insert into session_player_needs (
-                session_player_need_id, session_player_id, ruleset_catalog_item_id, sort_order, paid_amount, happiness_delta, purchased_at_day, created_at
+            insert into session_participant_need_purchases (
+                session_participant_need_purchase_id, session_id, session_participant_id, ruleset_version_id, ruleset_need_id, sort_order, paid_amount, happiness_delta, purchased_at_day, created_at
             )
             select
                 @entryId,
+                @sessionId,
                 @sessionPlayerId,
-                rci.ruleset_catalog_item_id,
+                rn.ruleset_version_id,
+                rn.ruleset_need_id,
                 @sortOrder,
-                coalesce((rci.payload_json->>'hargaBeli')::int, 0),
-                coalesce((rci.payload_json->>'poinKebahagiaan')::int, 0),
+                rn.purchase_price,
+                rn.happiness_points,
                 @purchasedAtDay,
                 now()
-            from ruleset_catalog_items rci
-            where rci.ruleset_version_id = (
-                select sra.ruleset_version_id
-                from session_ruleset_activations sra
-                where sra.session_id = @sessionId
-                order by sra.activated_at desc
+            from ruleset_needs rn
+            where rn.ruleset_version_id = (
+                select ruleset_version_id
+                from sessions
+                where session_id = @sessionId
                 limit 1
             )
-              and rci.item_type = 'NEED'
-              and lower(rci.item_name) = lower(@nama)
-              and lower(coalesce(rci.payload_json->>'tipe', '')) = lower(@tipe)
+              and lower(rn.item_name) = lower(@nama)
+              and lower(coalesce(rn.need_tier, '')) = lower(@tipe)
             limit 1
             """;
 
@@ -749,18 +1048,37 @@ public sealed class SessionStateRepository
         }
 
         const string insertTujuanSql = """
-            insert into session_player_financial_goals (session_player_id, ruleset_catalog_item_id, purchased_at_day, created_at)
-            select @sessionPlayerId, rci.ruleset_catalog_item_id, @purchasedAtDay, now()
-            from ruleset_catalog_items rci
-            where rci.ruleset_version_id = (
-                select sra.ruleset_version_id
-                from session_ruleset_activations sra
-                where sra.session_id = @sessionId
-                order by sra.activated_at desc
+            insert into session_participant_financial_goals (
+                session_id,
+                session_participant_id,
+                ruleset_version_id,
+                ruleset_financial_goal_id,
+                current_amount,
+                target_amount,
+                status,
+                purchased_at_day,
+                created_at,
+                updated_at
+            )
+            select
+                @sessionId,
+                @sessionPlayerId,
+                rfg.ruleset_version_id,
+                rfg.ruleset_financial_goal_id,
+                @currentAmount,
+                @targetAmount,
+                @status,
+                @purchasedAtDay,
+                now(),
+                now()
+            from ruleset_financial_goals rfg
+            where rfg.ruleset_version_id = (
+                select ruleset_version_id
+                from sessions
+                where session_id = @sessionId
                 limit 1
             )
-              and rci.item_type = 'FINANCIAL_GOAL'
-              and lower(rci.item_name) = lower(@nama)
+              and lower(rfg.item_name) = lower(@nama)
             limit 1
             """;
 
@@ -768,32 +1086,41 @@ public sealed class SessionStateRepository
         {
             await conn.ExecuteAsync(new CommandDefinition(
                 insertTujuanSql,
-                new { sessionId, sessionPlayerId = player.SessionPlayerId, nama = item.Nama, purchasedAtDay = item.PurchasedAtDay },
+                new
+                {
+                    sessionId,
+                    sessionPlayerId = player.SessionPlayerId,
+                    nama = item.Nama,
+                    currentAmount = item.CurrentAmount,
+                    targetAmount = item.TargetAmount,
+                    status = item.Status,
+                    purchasedAtDay = item.PurchasedAtDay
+                },
                 tx,
                 cancellationToken: ct));
         }
 
         const string insertTargetSql = """
-            insert into session_player_collection_missions (
-                session_player_id, ruleset_catalog_item_id, is_completed, is_failed, reward_applied, assigned_at
+            insert into session_participant_collection_missions (
+                session_id, session_participant_id, ruleset_version_id, ruleset_collection_mission_id, is_completed, is_failed, reward_applied, assigned_at
             )
             select
+                @sessionId,
                 @sessionPlayerId,
-                rci.ruleset_catalog_item_id,
+                rcm.ruleset_version_id,
+                rcm.ruleset_collection_mission_id,
                 @isCompleted,
                 @isFailed,
                 @rewardApplied,
                 now()
-            from ruleset_catalog_items rci
-            where rci.ruleset_version_id = (
-                select sra.ruleset_version_id
-                from session_ruleset_activations sra
-                where sra.session_id = @sessionId
-                order by sra.activated_at desc
+            from ruleset_collection_missions rcm
+            where rcm.ruleset_version_id = (
+                select ruleset_version_id
+                from sessions
+                where session_id = @sessionId
                 limit 1
             )
-              and rci.item_type = 'COLLECTION_MISSION'
-              and lower(rci.item_code) = lower(@id)
+              and lower(rcm.mission_code) = lower(@id)
             limit 1
             """;
 
@@ -814,56 +1141,36 @@ public sealed class SessionStateRepository
                 cancellationToken: ct));
         }
 
-        const string insertQuestSql = """
-            insert into session_player_quest_progress (
-                session_player_id, quest_id, progress, target, is_completed, is_reward_claimed
-            )
-            values (@sessionPlayerId, @id, @progress, @target, @isCompleted, @isRewardClaimed)
-            """;
-
-        foreach (var item in player.QuestProgress)
-        {
-            await conn.ExecuteAsync(new CommandDefinition(
-                insertQuestSql,
-                new
-                {
-                    sessionPlayerId = player.SessionPlayerId,
-                    id = item.Id,
-                    progress = item.Progress,
-                    target = item.Target,
-                    isCompleted = item.IsCompleted,
-                    isRewardClaimed = item.IsRewardClaimed
-                },
-                tx,
-                cancellationToken: ct));
-        }
-
         const string insertCounterSql = """
-            insert into session_player_action_counters (session_player_id, action_id, count)
-            values (@sessionPlayerId, @aksi, @count)
+            insert into session_participant_action_counters (
+                session_id,
+                session_participant_id,
+                ruleset_version_id,
+                ruleset_action_id,
+                count
+            )
+            select
+                @sessionId,
+                @sessionPlayerId,
+                s.ruleset_version_id,
+                ra.ruleset_action_id,
+                @count
+            from sessions s
+            join ruleset_actions ra
+              on ra.ruleset_version_id = s.ruleset_version_id
+             and lower(ra.action_id) = lower(@aksi)
+             and ra.is_active
+            where s.session_id = @sessionId
             """;
 
         foreach (var item in player.ActionCounters)
         {
             await conn.ExecuteAsync(new CommandDefinition(
                 insertCounterSql,
-                new { sessionPlayerId = player.SessionPlayerId, aksi = item.Aksi, count = item.Count },
+                new { sessionId, sessionPlayerId = player.SessionPlayerId, aksi = item.Aksi, count = item.Count },
                 tx,
                 cancellationToken: ct));
         }
-
-        const string upsertDonationTotalSql = """
-            insert into session_player_peduli_donasi (session_player_id, total_donasi)
-            values (@sessionPlayerId, @totalDonasi)
-            on conflict (session_player_id) do update
-            set total_donasi = excluded.total_donasi
-            """;
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            upsertDonationTotalSql,
-            new { sessionPlayerId = player.SessionPlayerId, totalDonasi = player.TotalDonasi },
-            tx,
-            cancellationToken: ct));
     }
 
     private static async Task SaveDonationEventAsync(
@@ -874,17 +1181,10 @@ public sealed class SessionStateRepository
         CancellationToken ct)
     {
         var eventId = Guid.NewGuid();
-        var rankingsJson = JsonSerializer.Serialize(donationEvent.Rankings.Select(ranking => new
-        {
-            rank = ranking.Rank,
-            session_player_id = ranking.SessionPlayerId,
-            player_index = ranking.PlayerIndex,
-            total_donasi = ranking.TotalDonasi
-        }));
 
         const string insertEventSql = """
-            insert into session_donation_events (donation_event_id, session_id, event_ke, day, rankings_json, created_at)
-            values (@eventId, @sessionId, @eventKe, @day, @rankingsJson::jsonb, now())
+            insert into session_donation_events (donation_event_id, session_id, event_ke, day, created_at)
+            values (@eventId, @sessionId, @eventKe, @day, now())
             """;
 
         await conn.ExecuteAsync(new CommandDefinition(
@@ -894,14 +1194,13 @@ public sealed class SessionStateRepository
                 eventId,
                 sessionId,
                 eventKe = donationEvent.EventKe,
-                day = donationEvent.Day,
-                rankingsJson
+                day = donationEvent.Day
             },
             tx,
             cancellationToken: ct));
     }
 
-    private static async Task SaveLastActionAsync(
+    private static Task SaveLastActionAsync(
         NpgsqlConnection conn,
         NpgsqlTransaction tx,
         Guid sessionId,
@@ -909,62 +1208,7 @@ public sealed class SessionStateRepository
         SaveSessionStateRequest request,
         CancellationToken ct)
     {
-        if (!TryGetJson(request.LastAction, out var actionJson))
-        {
-            return;
-        }
-
-        string? aksi = null;
-        Guid? sessionPlayerId = null;
-        try
-        {
-            using var document = JsonDocument.Parse(actionJson);
-            var root = document.RootElement;
-            if (root.TryGetProperty("aksi", out var aksiProp) && aksiProp.ValueKind == JsonValueKind.String)
-            {
-                aksi = aksiProp.GetString();
-            }
-
-            if (root.TryGetProperty("session_player_id", out var sessionPlayerProp) &&
-                sessionPlayerProp.ValueKind == JsonValueKind.String &&
-                Guid.TryParse(sessionPlayerProp.GetString(), out var parsedSessionPlayerId))
-            {
-                sessionPlayerId = parsedSessionPlayerId;
-            }
-            else if (root.TryGetProperty("player_index", out var playerIndexProp) &&
-                     playerIndexProp.ValueKind == JsonValueKind.Number &&
-                     playerIndexProp.TryGetInt32(out var playerIndex))
-            {
-                sessionPlayerId = request.Players?
-                    .FirstOrDefault(player => player.PlayerIndex == playerIndex)
-                    ?.SessionPlayerId;
-            }
-        }
-        catch (JsonException)
-        {
-            return;
-        }
-
-        const string insertSql = """
-            insert into session_action_logs (
-                action_log_id, session_id, session_player_id, state_version, action_id, action_json, created_at
-            )
-            values (@actionLogId, @sessionId, @sessionPlayerId, @stateVersion, @aksi, @actionJson::jsonb, now())
-            """;
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            insertSql,
-            new
-            {
-                actionLogId = Guid.NewGuid(),
-                sessionId,
-                sessionPlayerId,
-                stateVersion = newVersion,
-                aksi,
-                actionJson
-            },
-            tx,
-            cancellationToken: ct));
+        return Task.CompletedTask;
     }
 
     private static string GetJsonOrEmpty(JsonElement? element)
@@ -1003,14 +1247,14 @@ public sealed class SessionStateRepository
         };
     }
 
-    private static int ResolveCurrentActionIndex(int movesLeft)
+    private static int ResolveCurrentActionSlot(int actionSlotsLeft)
     {
-        return Math.Clamp(3 - Math.Max(0, movesLeft), 1, 2);
+        return Math.Clamp(3 - Math.Max(0, actionSlotsLeft), 1, 2);
     }
 
-    private static string BuildSyntheticPlayerUsername(Guid sessionId, int joinOrder)
+    private static string BuildSyntheticPlayerUsername(Guid sessionId, int playerOrder)
     {
-        return $"dev-player-{sessionId:N}-{joinOrder}";
+        return $"dev-player-{sessionId:N}-{playerOrder}";
     }
 
     private static bool TryGetJson(JsonElement? element, out string json)
@@ -1045,7 +1289,6 @@ public sealed class SessionStateRepository
                     rv.ruleset_version_id,
                     rv.mode,
                     rv.version,
-                    rv.config_json,
                     row_number() over (
                         partition by rv.ruleset_id
                         order by
@@ -1058,13 +1301,13 @@ public sealed class SessionStateRepository
             select
                 r.ruleset_id,
                 rv.ruleset_version_id,
-                upper(rv.mode) as mode,
-                coalesce(rv.config_json::text, '') as config_json
+                upper(rv.mode) as mode
             from rulesets r
             join ranked_versions rv on rv.ruleset_id = r.ruleset_id and rv.rn = 1
             where (
                     @rulesetId is not null
                     and r.ruleset_id = @rulesetId
+                    and not r.is_archived
                     and (
                         r.instructor_user_id is null
                         or (@instructorUserId is not null and r.instructor_user_id = @instructorUserId)
@@ -1072,8 +1315,8 @@ public sealed class SessionStateRepository
                 )
                 or (
                     @rulesetId is null
-                    and lower(coalesce(r.created_by, '')) like 'system-seed-relational%'
                     and r.instructor_user_id is null
+                    and not r.is_archived
                 )
             order by case when r.instructor_user_id is null then 0 else 1 end,
                      r.created_at desc
@@ -1116,7 +1359,8 @@ public sealed class SessionStateRepository
             select rv.ruleset_version_id
             from rulesets r
             join ranked_defaults rv on rv.ruleset_id = r.ruleset_id and rv.rn = 1
-            where lower(coalesce(r.created_by, '')) like 'system-seed-relational%'
+            where r.instructor_user_id is null
+              and not r.is_archived
             order by rv.version desc, r.created_at desc
             limit 1
             """;
@@ -1125,13 +1369,50 @@ public sealed class SessionStateRepository
             new CommandDefinition(sql, new { mode }, cancellationToken: ct));
     }
 
+    private static async Task<RequestedRulesetVersionRow?> ResolveRulesetVersionByIdAsync(
+        NpgsqlConnection conn,
+        string mode,
+        Guid rulesetVersionId,
+        Guid? instructorUserId,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select
+                r.ruleset_id,
+                rv.ruleset_version_id,
+                upper(rv.mode) as mode
+            from ruleset_versions rv
+            join rulesets r on r.ruleset_id = rv.ruleset_id
+            where rv.ruleset_version_id = @rulesetVersionId
+              and upper(rv.mode) = @mode
+              and rv.status = 'ACTIVE'
+              and not r.is_archived
+              and (
+                  r.instructor_user_id is null
+                  or (@instructorUserId is not null and r.instructor_user_id = @instructorUserId)
+              )
+            limit 1
+            """;
+
+        return await conn.QuerySingleOrDefaultAsync<RequestedRulesetVersionRow>(
+            new CommandDefinition(
+                sql,
+                new
+                {
+                    mode,
+                    rulesetVersionId,
+                    instructorUserId
+                },
+                cancellationToken: ct));
+    }
+
     private sealed class SessionStateRow
     {
         public Guid SessionId { get; init; }
         public long StateVersion { get; init; }
         public int Day { get; init; }
         public int Turn { get; init; }
-        public int MovesLeft { get; init; }
+        public int ActionSlotsLeft { get; init; }
         public int FinishDay { get; init; }
         public bool IsGameOver { get; init; }
         public string UiStateJson { get; init; } = "{}";
@@ -1167,7 +1448,10 @@ public sealed class SessionStateRepository
     {
         public Guid SessionPlayerId { get; init; }
         public string Nama { get; init; } = string.Empty;
-        public int PurchasedAtDay { get; init; }
+        public int CurrentAmount { get; init; }
+        public int? TargetAmount { get; init; }
+        public string Status { get; init; } = "ONGOING";
+        public int? PurchasedAtDay { get; init; }
     }
 
     private sealed class TargetKebutuhanRow
@@ -1177,16 +1461,6 @@ public sealed class SessionStateRepository
         public bool IsCompleted { get; init; }
         public bool IsFailed { get; init; }
         public bool RewardApplied { get; init; }
-    }
-
-    private sealed class QuestProgressRow
-    {
-        public Guid SessionPlayerId { get; init; }
-        public string Id { get; init; } = string.Empty;
-        public int Progress { get; init; }
-        public int Target { get; init; }
-        public bool IsCompleted { get; init; }
-        public bool IsRewardClaimed { get; init; }
     }
 
     private sealed class ActionCounterRow
@@ -1209,7 +1483,6 @@ public sealed class SessionStateRepository
         public Guid RulesetId { get; init; }
         public Guid RulesetVersionId { get; init; }
         public string Mode { get; init; } = string.Empty;
-        public string ConfigJson { get; init; } = "{}";
     }
 
     private sealed class CollectionMissionSectionRow
@@ -1219,6 +1492,21 @@ public sealed class SessionStateRepository
         public string MissionName { get; init; } = string.Empty;
     }
 
+    private sealed class FinalScoreParticipantRow
+    {
+        public Guid SessionParticipantId { get; init; }
+        public Guid UserId { get; init; }
+        public int? TieBreakerNumber { get; init; }
+        public int PensionFund { get; init; }
+    }
+
+    private sealed record FinalScoreParticipantValue(
+        FinalScoreParticipantRow Participant,
+        int CashRemaining,
+        AnalyticsHappinessBreakdown Breakdown);
+
+    private sealed record FinalScoreComponentValue(string Code, double Points);
+
 }
 
 public sealed class RulesetSectionDb
@@ -1226,7 +1514,7 @@ public sealed class RulesetSectionDb
     public Guid RulesetId { get; init; }
     public Guid RulesetVersionId { get; init; }
     public string Mode { get; init; } = string.Empty;
-    public string ConfigJson { get; init; } = string.Empty;
+    public RulesetDefinitionDto Definition { get; init; } = new();
 }
 
 public sealed record CreateSessionWithStateResult(
@@ -1267,13 +1555,11 @@ public sealed class RulesetSectionCatalog
         JsonElement targetKebutuhan,
         JsonElement tujuanFinansial,
         JsonElement narasi,
-        JsonElement quest,
         RulesetSectionGameConfig gameConfigValues,
         HashSet<string> bahanNames,
         Dictionary<string, string> kebutuhanTypes,
         HashSet<string> targetKebutuhanIds,
         HashSet<string> tujuanFinansialNames,
-        Dictionary<string, int> questTargets,
         HashSet<string> actions)
     {
         GameConfig = gameConfig;
@@ -1283,13 +1569,11 @@ public sealed class RulesetSectionCatalog
         TargetKebutuhan = targetKebutuhan;
         TujuanFinansial = tujuanFinansial;
         Narasi = narasi;
-        Quest = quest;
         GameConfigValues = gameConfigValues;
         BahanNames = bahanNames;
         KebutuhanTypes = kebutuhanTypes;
         TargetKebutuhanIds = targetKebutuhanIds;
         TujuanFinansialNames = tujuanFinansialNames;
-        QuestTargets = questTargets;
         Actions = actions;
     }
 
@@ -1300,14 +1584,97 @@ public sealed class RulesetSectionCatalog
     public JsonElement TargetKebutuhan { get; }
     public JsonElement TujuanFinansial { get; }
     public JsonElement Narasi { get; }
-    public JsonElement Quest { get; }
     public RulesetSectionGameConfig GameConfigValues { get; }
     public HashSet<string> BahanNames { get; }
     public Dictionary<string, string> KebutuhanTypes { get; }
     public HashSet<string> TargetKebutuhanIds { get; }
     public HashSet<string> TujuanFinansialNames { get; }
-    public Dictionary<string, int> QuestTargets { get; }
     public HashSet<string> Actions { get; }
+
+    public static RulesetSectionCatalog FromDefinition(RulesetDefinitionDto definition)
+    {
+        var gameConfig = SerializeElement(new
+        {
+            initialCoins = definition.Settings.InitialCoins == 0
+                ? definition.Settings.StartingCash
+                : definition.Settings.InitialCoins,
+            initialHappiness = definition.Settings.InitialHappiness,
+            initialSaving = definition.Settings.InitialSaving,
+            actionsPerTurn = definition.Settings.ActionsPerTurn,
+            finishDay = definition.Settings.FinishDay,
+            minPlayers = definition.Settings.MinPlayers,
+            maxPlayers = definition.Settings.MaxPlayers
+        });
+        var bahan = SerializeElement(definition.Ingredients);
+        var resep = SerializeElement(definition.Orders);
+        var kebutuhan = SerializeElement(definition.Needs);
+        var targetKebutuhan = SerializeElement(definition.CollectionMissions);
+        var tujuanFinansial = SerializeElement(definition.FinancialGoals);
+        var narasi = SerializeElement(definition.Narratives);
+
+        var gameConfigValues = new RulesetSectionGameConfig(
+            definition.Settings.InitialCoins == 0 ? definition.Settings.StartingCash : definition.Settings.InitialCoins,
+            definition.Settings.InitialHappiness,
+            definition.Settings.InitialSaving,
+            definition.Settings.ActionsPerTurn,
+            definition.Settings.FinishDay,
+            definition.Settings.MinPlayers,
+            definition.Settings.MaxPlayers);
+
+        var bahanNames = definition.Ingredients
+            .Select(item => item.Nama)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var kebutuhanTypes = definition.Needs
+            .Where(item => !string.IsNullOrWhiteSpace(item.Nama) && !string.IsNullOrWhiteSpace(item.Tipe))
+            .ToDictionary(item => item.Nama, item => item.Tipe, StringComparer.OrdinalIgnoreCase);
+        var targetKebutuhanIds = definition.CollectionMissions
+            .Select(item => item.Id)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var tujuanFinansialNames = definition.FinancialGoals
+            .Select(item => item.Nama)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var actions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "BahanMasakan",
+            "JualMasakan",
+            "Kebutuhan",
+            "KerjaLepas",
+            "TujuanFinansial",
+            "Menabung",
+            "JumatBerkah"
+        };
+
+        foreach (var actionId in definition.Actions.Select(item => item.ActionId).Where(item => !string.IsNullOrWhiteSpace(item)))
+        {
+            actions.Add(actionId);
+        }
+
+        foreach (var actionId in definition.Narratives
+                     .SelectMany(item => item.PrerequisiteAksi)
+                     .Select(item => item.Aksi)
+                     .Where(item => !string.IsNullOrWhiteSpace(item)))
+        {
+            actions.Add(actionId);
+        }
+
+        return new RulesetSectionCatalog(
+            gameConfig,
+            bahan,
+            resep,
+            kebutuhan,
+            targetKebutuhan,
+            tujuanFinansial,
+            narasi,
+            gameConfigValues,
+            bahanNames,
+            kebutuhanTypes,
+            targetKebutuhanIds,
+            tujuanFinansialNames,
+            actions);
+    }
 
     public static RulesetSectionCatalog FromConfig(string configJson)
     {
@@ -1319,7 +1686,7 @@ public sealed class RulesetSectionCatalog
             ReadInt(gameConfig, "initialHappiness", 0),
             ReadInt(gameConfig, "initialSaving", 0),
             ReadInt(gameConfig, "actionsPerTurn", 2),
-            ReadInt(gameConfig, "finishDay", 13),
+            ReadInt(gameConfig, "finishDay", 25),
             ReadInt(gameConfig, "minPlayers", 2),
             ReadInt(gameConfig, "maxPlayers", 4));
         var bahan = componentCatalog.GetProperty("bahan").Clone();
@@ -1328,7 +1695,6 @@ public sealed class RulesetSectionCatalog
         var targetKebutuhan = componentCatalog.GetProperty("targetKebutuhan").Clone();
         var tujuanFinansial = componentCatalog.GetProperty("tujuanFinansial").Clone();
         var narasi = componentCatalog.GetProperty("narasi").Clone();
-        var quest = componentCatalog.GetProperty("quest").Clone();
 
         var bahanNames = ReadStringSet(bahan, "nama");
         var kebutuhanTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1344,7 +1710,6 @@ public sealed class RulesetSectionCatalog
 
         var targetKebutuhanIds = ReadStringSet(targetKebutuhan, "id");
         var tujuanFinansialNames = ReadStringSet(tujuanFinansial, "nama");
-        var questTargets = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var actions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "BahanMasakan",
@@ -1355,26 +1720,6 @@ public sealed class RulesetSectionCatalog
             "Menabung",
             "JumatBerkah"
         };
-
-        foreach (var item in quest.EnumerateArray())
-        {
-            var id = item.GetProperty("id").GetString();
-            if (!string.IsNullOrWhiteSpace(id))
-            {
-                questTargets[id] = item.TryGetProperty("target", out var targetProp) && targetProp.TryGetInt32(out var target)
-                    ? target
-                    : 0;
-            }
-
-            if (item.TryGetProperty("aksi", out var aksiProp) && aksiProp.ValueKind == JsonValueKind.String)
-            {
-                var aksi = aksiProp.GetString();
-                if (!string.IsNullOrWhiteSpace(aksi))
-                {
-                    actions.Add(aksi);
-                }
-            }
-        }
 
         foreach (var item in narasi.EnumerateArray())
         {
@@ -1405,14 +1750,18 @@ public sealed class RulesetSectionCatalog
             targetKebutuhan,
             tujuanFinansial,
             narasi,
-            quest,
             gameConfigValues,
             bahanNames,
             kebutuhanTypes,
             targetKebutuhanIds,
             tujuanFinansialNames,
-            questTargets,
             actions);
+    }
+
+    private static JsonElement SerializeElement<T>(T value)
+    {
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(value));
+        return document.RootElement.Clone();
     }
 
     private static int ReadInt(JsonElement root, string propertyName, int defaultValue)

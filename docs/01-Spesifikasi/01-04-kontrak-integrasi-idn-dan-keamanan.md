@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Kontrak Integrasi IDN, Keamanan, dan NFR Operasional
-- Versi: 1.0
-- Tanggal: 8 Februari 2026
+- Versi: 1.1
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -45,6 +45,7 @@ Response login minimal:
   "user_id": "uuid",
   "username": "string",
   "role": "INSTRUCTOR",
+  "display_name": "string",
   "access_token": "jwt",
   "expires_at": "2026-02-08T12:00:00Z"
 }
@@ -65,7 +66,6 @@ Response login minimal:
 | `POST /api/v1/sessions` | Ya | Tidak |
 | `POST /api/v1/sessions/{sessionId}/start` | Ya | Tidak |
 | `POST /api/v1/sessions/{sessionId}/end` | Ya | Tidak |
-| `POST /api/v1/sessions/{sessionId}/ruleset/activate` | Ya | Tidak |
 | `POST /api/v1/rulesets` | Ya | Tidak |
 | `PUT /api/v1/rulesets/{rulesetId}` | Ya | Tidak |
 | `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate` | Ya | Tidak |
@@ -87,7 +87,8 @@ Catatan:
 2. API tidak pernah mengembalikan `password_hash` atau kredensial mentah dalam response.
 3. JWT hanya disimpan pada sisi klien yang membutuhkan akses API dan harus dikirim via header `Authorization`.
 4. Log aplikasi tidak boleh mencatat password mentah, token JWT utuh, atau payload sensitif di luar kebutuhan debugging terkontrol.
-5. Relasi `user_player_links` digunakan untuk akun role `PLAYER`; akun `INSTRUCTOR` tidak diwajibkan memiliki profil/link player.
+5. Akun role `PLAYER` disimpan langsung sebagai baris `app_users`; keterlibatan
+   Player pada sesi disimpan pada `session_participants`.
 6. UI menyimpan sesi autentikasi pada cookie server-side dengan `HttpOnly`, `SameSite=Lax`, dan kebijakan `Secure` yang wajib di production.
 
 ### 3.6 Validasi input minimum
@@ -150,19 +151,23 @@ Definisi state dan aturan transisi lifecycle mengikuti `docs/01-Spesifikasi/01-0
 
 Aturan tambahan untuk konteks integrasi IDN:
 1. Aktivasi versi dilakukan eksplisit via `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`.
-2. Saat satu versi diaktifkan, versi `ACTIVE` lain pada ruleset yang sama otomatis menjadi `RETIRED`.
-3. Pembuatan sesi baru mengambil versi `ACTIVE` terbaru dari ruleset yang dipilih.
-4. Ruleset tidak boleh dihapus jika sudah muncul pada `session_ruleset_activations`.
+2. Saat satu versi diaktifkan, versi `ACTIVE` lain pada ruleset yang sama otomatis menjadi `ARCHIVED`.
+3. Pembuatan sesi baru wajib mengirim `ruleset_version_id` versi `ACTIVE` yang dipilih.
+4. Ruleset tidak boleh dihapus jika sudah dipakai oleh `sessions.ruleset_version_id`.
+5. Session tidak memiliki endpoint aktivasi ruleset terpisah setelah dibuat.
 
 ---
 
 ## 7. Kontrak Data Log dari IDN
 ### 7.1 Event wajib
 Klien IDN wajib mengirim:
-1. metadata urutan event (`event_id`, `session_id`, `sequence_number`, `turn_number`, `timestamp`)
-2. identitas aktor (`actor_type`, `player_id`)
+1. metadata urutan event (`event_id`, `session_id`, `sequence_number`, `action_slot`, `timestamp`)
+2. identitas aktor (`actor_type`, `user_id`; kosong untuk event sistem)
 3. konteks ruleset (`ruleset_version_id`)
 4. payload domain event sesuai `action_type`.
+
+API me-resolve `user_id` Player ke peserta sesi (`session_player_id`) sebelum
+event dan projection disimpan.
 
 ### 7.2 Domain learning
 Domain learning finansial/komputasional/ekologis disimpan sebagai:
@@ -191,7 +196,9 @@ Target performa mengikuti NFR pada `docs/01-Spesifikasi/01-01-spesifikasi-kebutu
 
 ### 8.3 Observability
 1. Log request terstruktur minimum: `trace_id`, `method`, `path`, `status_code`, `duration_ms`.
-2. API menyediakan endpoint observability `GET /api/v1/observability/metrics` (request count, error rate, latency avg/p95 per endpoint).
+2. API menyediakan endpoint ringkas `GET /api/v1/observability/metrics/summary`
+   untuk role `INSTRUCTOR`; metrik operasional detail diekspos pada
+   `GET /metrics` dalam format Prometheus.
 3. Audit validasi event masuk ke `validation_logs`.
 4. Audit keamanan disimpan pada tabel `security_audit_logs` dan tersedia via `GET /api/v1/security/audit-logs` (role `INSTRUCTOR`).
 5. Error tak terduga harus direkam ke log server dan dikembalikan sebagai respons error standar.

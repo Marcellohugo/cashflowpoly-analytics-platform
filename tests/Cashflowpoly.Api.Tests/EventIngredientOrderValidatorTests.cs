@@ -12,7 +12,7 @@ public sealed class EventIngredientOrderValidatorTests
     [Fact]
     public void TryValidate_ReturnsFalseForUnhandledAction()
     {
-        var request = CreateRequest("transaction.recorded", """{"amount":1}""", Guid.NewGuid());
+        var request = CreateRequest("CatatTransaksi", """{"amount":1}""", Guid.NewGuid());
 
         var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
@@ -25,10 +25,10 @@ public sealed class EventIngredientOrderValidatorTests
     public void TryValidatePurchase_RejectsIngredientTotalLimit()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("ingredient.purchased", """{"card_id":"flour","amount":2}""", playerId);
+        var request = CreateRequest("BahanMasakan", """{"card_id":"flour","amount":2}""", playerId);
         var history = new[]
         {
-            CreateEvent("ingredient.purchased", """{"card_id":"egg","amount":2}""", playerId)
+            CreateEvent("BahanMasakan", """{"card_id":"egg","amount":2}""", playerId)
         };
 
         var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(maxIngredientTotal: 3), history, out var result);
@@ -44,10 +44,10 @@ public sealed class EventIngredientOrderValidatorTests
     public void TryValidateDiscard_RejectsDiscardAboveStock()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("ingredient.discarded", """{"card_id":"flour","amount":2}""", playerId);
+        var request = CreateRequest("BuangBahanMasakan", """{"card_id":"flour","amount":2}""", playerId);
         var history = new[]
         {
-            CreateEvent("ingredient.purchased", """{"card_id":"flour","amount":1}""", playerId)
+            CreateEvent("BahanMasakan", """{"card_id":"flour","amount":1}""", playerId)
         };
 
         var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -61,11 +61,11 @@ public sealed class EventIngredientOrderValidatorTests
     public void TryValidateOrderClaim_ReturnsValidWhenInventoryCoversRequiredCards()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("order.claimed", """{"required_ingredient_card_ids":["flour","egg"],"income":8}""", playerId);
+        var request = CreateRequest("JualMasakan", """{"required_ingredient_card_ids":["flour","egg"],"income":8}""", playerId);
         var history = new[]
         {
-            CreateEvent("ingredient.purchased", """{"card_id":"flour","amount":1}""", playerId),
-            CreateEvent("ingredient.purchased", """{"card_id":"egg","amount":1}""", playerId)
+            CreateEvent("BahanMasakan", """{"card_id":"flour","amount":1}""", playerId),
+            CreateEvent("BahanMasakan", """{"card_id":"egg","amount":1}""", playerId)
         };
 
         var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -105,7 +105,7 @@ public sealed class EventIngredientOrderValidatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
@@ -119,7 +119,7 @@ public sealed class EventIngredientOrderValidatorTests
             "PEMULA",
             ActionsPerTurn: 3,
             StartingCash: 20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             CashMin: 0,
             maxIngredientTotal,
             maxSameIngredient,

@@ -7,37 +7,70 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class EventActionIdResolverTests
 {
     [Theory]
-    [InlineData("ingredient.purchased", """{"card_id":"nasi_putih","amount":1}""", "BahanMasakan")]
-    [InlineData("ingredient.discarded", """{"card_id":"nasi_putih","amount":1}""", "ingredient.discarded")]
-    [InlineData("order.claimed", """{"required_ingredient_card_ids":["nasi_putih"],"income":15}""", "JualMasakan")]
-    [InlineData("order.passed", """{"required_ingredient_card_ids":["nasi_putih"],"income":15}""", "order.passed")]
-    [InlineData("work.freelance.completed", """{"amount":5}""", "KerjaLepas")]
-    [InlineData("transaction.recorded", """{"direction":"OUT","amount":5,"category":"BANK"}""", "transaction.recorded")]
-    [InlineData("mission.assigned", """{"mission_id":"misi_boneka","target_tertiary_card_id":"boneka","penalty_points":10}""", "MissionAssigned")]
-    [InlineData("insurance.multirisk.used", """{"risk_event_id":"b9ddcbcb-6e77-4f91-8bb3-eb58fb146001"}""", "Asuransi")]
-    [InlineData("saving.deposit.withdrawn", """{"goal_id":"general-saving","amount":5}""", "saving.deposit.withdrawn")]
-    [InlineData("risk.emergency.used", """{"risk_event_id":"b9ddcbcb-6e77-4f91-8bb3-eb58fb146001","option_type":"SELL_GOLD","direction":"IN","amount":3}""", "risk.emergency.used")]
-    [InlineData("donation.rank.awarded", """{"rank":1,"points":5}""", "donation.rank.awarded")]
-    [InlineData("gold.points.awarded", """{"points":3}""", "gold.points.awarded")]
-    [InlineData("pension.rank.awarded", """{"rank":2,"points":4}""", "pension.rank.awarded")]
-    public void Resolve_ReturnsExpectedActionId_ForMappedActionTypes(
-        string actionType,
-        string payloadJson,
-        string expectedActionId)
+    [InlineData("BahanMasakan")]
+    [InlineData("BuangBahanMasakan")]
+    [InlineData("JualMasakan")]
+    [InlineData("LewatiOrder")]
+    [InlineData("Kebutuhan")]
+    [InlineData("KerjaLepas")]
+    [InlineData("CatatTransaksi")]
+    [InlineData("Menabung")]
+    [InlineData("TarikTabungan")]
+    [InlineData("TujuanFinansial")]
+    [InlineData("JumatBerkah")]
+    [InlineData("InvestasiEmas")]
+    [InlineData("JualEmas")]
+    [InlineData("LewatiTransaksiEmas")]
+    [InlineData("HariMingguLibur")]
+    [InlineData("PinjamanSyariah")]
+    [InlineData("BayarPinjaman")]
+    [InlineData("Asuransi")]
+    [InlineData("RisikoKehidupan")]
+    [InlineData("GunakanOpsiDarurat")]
+    [InlineData("PoinPeringkatDonasi")]
+    [InlineData("UmumkanJuaraDonasi")]
+    [InlineData("PoinEmas")]
+    [InlineData("PoinPeringkatPensiun")]
+    [InlineData("BagikanEmasAwal")]
+    [InlineData("BagikanTieBreaker")]
+    [InlineData("BagikanMisiKoleksi")]
+    [InlineData("AmbilKartuDariDeck")]
+    [InlineData("KartuDiambilDariPasar")]
+    [InlineData("KartuMasukDiscard")]
+    [InlineData("IsiUlangPasar")]
+    [InlineData("MulaiSesi")]
+    [InlineData("AkhiriSesi")]
+    [InlineData("AkhirGiliran")]
+    public void Resolve_ReturnsPascalCaseGameActionIdUnchanged(string actionType)
     {
-        var actionId = EventActionIdResolver.Resolve(actionType, Parse(payloadJson));
+        var actionId = EventActionIdResolver.Resolve(actionType, Parse("""{}"""));
 
-        Assert.Equal(expectedActionId, actionId);
+        Assert.Equal(actionType, actionId);
     }
 
     [Theory]
-    [InlineData("""{"trade_type":"BUY","qty":1,"unit_price":4,"amount":4}""", "InvestasiEmas")]
-    [InlineData("""{"trade_type":"SELL","qty":1,"unit_price":5,"amount":5}""", "JualEmas")]
-    public void Resolve_MapsGoldTradeBasedOnTradeType(string payloadJson, string expectedActionId)
+    [InlineData("ingredient.purchased")]
+    [InlineData("ingredient.discarded")]
+    [InlineData("order.claimed")]
+    [InlineData("order.passed")]
+    [InlineData("work.freelance.completed")]
+    [InlineData("transaction.recorded")]
+    [InlineData("mission.assigned")]
+    [InlineData("insurance.multirisk.used")]
+    [InlineData("saving.deposit.withdrawn")]
+    [InlineData("risk.emergency.used")]
+    [InlineData("donation.rank.awarded")]
+    [InlineData("donation.winners.announced")]
+    [InlineData("gold.points.awarded")]
+    [InlineData("pension.rank.awarded")]
+    [InlineData("day.saturday.gold_trade")]
+    [InlineData("session.started")]
+    [InlineData("turn.ended")]
+    public void Resolve_ReturnsNull_ForLegacyTechnicalActionTypes(string actionType)
     {
-        var actionId = EventActionIdResolver.Resolve("day.saturday.gold_trade", Parse(payloadJson));
+        var resolved = EventActionIdResolver.Resolve(actionType, Parse("""{"trade_type":"SELL"}"""));
 
-        Assert.Equal(expectedActionId, actionId);
+        Assert.Null(resolved);
     }
 
     [Fact]

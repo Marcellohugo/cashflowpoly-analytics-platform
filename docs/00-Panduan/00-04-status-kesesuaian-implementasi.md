@@ -1,10 +1,10 @@
-﻿# Status Kesesuaian Implementasi
+# Status Kesesuaian Implementasi
 ## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
 - Versi: 2.0
-- Tanggal: 17 Februari 2026
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -25,13 +25,13 @@ Acuan utama:
 |---|---|---|
 | Ingest event + validasi domain | Sesuai | Validasi urutan, idempotensi, ruleset aktif, dan aturan event utama sudah ada. |
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
-| API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, ruleset activation, player assignment, state, dan guard ruleset terpakai. |
-| UI dashboard (sessions/players/rulesets/components/analytics/rulebook) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi ruleset sesi; analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` dipertahankan sebagai route kompatibilitas. |
+| API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
+| UI dashboard (home/sessions/players/rulesets/rulebook/legacy analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route kompatibilitas/redirect. |
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik tersedia untuk seluruh role. |
 | Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman detail sesi (`/sessions/{sessionId}`). |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
 | Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Langkah smoke berbasis CLI dan Postman collection sudah menggunakan login + token Bearer. |
-| Observability operasional | Sesuai | Endpoint observability (`GET /api/v1/observability/metrics`) tersedia dengan metrik jumlah request, error rate, avg/p95 latency per endpoint; trace ID diseragamkan pada header/log. |
+| Observability operasional | Sesuai | Endpoint ringkas `GET /api/v1/observability/metrics/summary` tersedia untuk role `INSTRUCTOR` dan menunjuk ke endpoint Prometheus `GET /metrics`; trace ID diseragamkan pada header/log. |
 | Hardening keamanan produksi (baseline) | Sesuai | Rotasi JWT multi-key berbasis `kid` + window aktivasi/retire, dukungan secret env/file untuk integrasi vault/secret manager, dan audit log keamanan persisten tersedia. |
 | Baseline uji performa | Sesuai | Baseline performa dapat diulang memakai skenario request berulang ke endpoint ingest event dan analytics sesi, lalu dicatat pada laporan pengujian. |
 

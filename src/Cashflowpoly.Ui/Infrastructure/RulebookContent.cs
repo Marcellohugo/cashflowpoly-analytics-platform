@@ -126,7 +126,7 @@ public static class RulebookContent
                     Description = L("Alur satu putaran sampai permainan selesai.", "Round flow until game completion."),
                     Points = new List<string>
                     {
-                        L("Setiap pemain menjalankan 2 aksi per giliran; aksi boleh sama atau berbeda.", "Each player performs 2 actions per turn; actions may be same or different."),
+                        L("Setiap pemain menjalankan maksimal 2 aksi per hari saat urutannya berjalan; aksi boleh sama atau berbeda.", "Each player performs up to 2 actions per day when their order is active; actions may be same or different."),
                         L("Setelah semua pemain selesai, token Mr.Cashflowpoly maju 1 tanggal.", "After all players finish, Mr. Cashflowpoly token moves forward by 1 date."),
                         L("Semua pemain mengambil kembali 2 token aksi di akhir putaran.", "All players take back 2 action tokens at end of round."),
                         L("Hari khusus: Jumat = peduli donasi, Sabtu = investasi emas, Minggu = libur.", "Special days: Friday = donation care, Saturday = gold investment, Sunday = rest."),

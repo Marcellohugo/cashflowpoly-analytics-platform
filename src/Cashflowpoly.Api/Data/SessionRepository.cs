@@ -4,7 +4,7 @@ using Npgsql;
 namespace Cashflowpoly.Api.Data;
 
 /// <summary>
-/// Repository untuk data sesi dan aktivasi ruleset per sesi.
+/// Repository untuk data sesi dan ruleset yang dikunci per sesi.
 /// </summary>
 public sealed class SessionRepository
 {
@@ -24,7 +24,7 @@ public sealed class SessionRepository
     public async Task<SessionDb?> GetSessionAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where session_id = @sessionId
             """;
@@ -39,7 +39,7 @@ public sealed class SessionRepository
     public async Task<SessionDb?> GetSessionForInstructorAsync(Guid sessionId, Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where session_id = @sessionId
               and instructor_user_id = @instructorUserId
@@ -51,7 +51,7 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Membuat sesi baru dalam transaksi: insert sesi dan aktivasi ruleset awal.
+    /// Membuat sesi baru dengan satu ruleset_version_id yang terkunci di baris sessions.
     /// </summary>
     public async Task<Guid> CreateSessionAsync(
         string sessionName,
@@ -65,30 +65,59 @@ public sealed class SessionRepository
         var createdAt = DateTimeOffset.UtcNow;
 
         const string insertSession = """
-            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at)
-            values (@sessionId, @sessionName, @mode, 'CREATED', null, null, @instructorUserId, @createdAt)
+            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, created_at)
+            values (@sessionId, @sessionName, @mode, 'CREATED', null, null, @instructorUserId, @rulesetVersionId, @createdAt)
             """;
 
-        const string insertActivation = """
-            insert into session_ruleset_activations (activation_id, session_id, ruleset_version_id, activated_at, activated_by)
-            values (@activationId, @sessionId, @rulesetVersionId, @activatedAt, @activatedBy)
+        const string insertState = """
+            insert into session_states (
+                session_id,
+                day,
+                weekday,
+                turn_number,
+                action_slot,
+                current_session_player_id,
+                current_action_slot,
+                action_slots_left,
+                finish_day,
+                phase,
+                is_game_over,
+                state_version,
+                ui_state_json,
+                created_at,
+                updated_at
+            )
+            select
+                @sessionId,
+                1,
+                'MON',
+                0,
+                1,
+                null,
+                1,
+                rgs.actions_per_turn,
+                rgs.finish_day,
+                'SETUP',
+                false,
+                1,
+                '{}'::jsonb,
+                @createdAt,
+                @createdAt
+            from ruleset_game_settings rgs
+            where rgs.ruleset_version_id = @rulesetVersionId
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
-        var def1 = new CommandDefinition(insertSession, new { sessionId, sessionName, mode, instructorUserId, createdAt }, tx, cancellationToken: ct);
+        var def1 = new CommandDefinition(insertSession, new { sessionId, sessionName, mode, instructorUserId, rulesetVersionId, createdAt }, tx, cancellationToken: ct);
         await conn.ExecuteAsync(def1);
 
-        var def2 = new CommandDefinition(insertActivation, new
-        {
-            activationId = Guid.NewGuid(),
-            sessionId,
-            rulesetVersionId,
-            activatedAt = createdAt,
-            activatedBy = createdBy
-        }, tx, cancellationToken: ct);
-        await conn.ExecuteAsync(def2);
+        await conn.ExecuteAsync(new CommandDefinition(
+            insertState,
+            new { sessionId, rulesetVersionId, createdAt },
+            tx,
+            cancellationToken: ct));
 
         await tx.CommitAsync(ct);
         return sessionId;
@@ -104,6 +133,31 @@ public sealed class SessionRepository
             set status = @status,
                 started_at = @startedAt,
                 ended_at = @endedAt
+            where session_id = @sessionId;
+
+            update session_states
+            set phase = case
+                    when @status = 'STARTED' then 'PLAYER_TURN'
+                    when @status = 'ENDED' then 'GAME_END'
+                    else phase
+                end,
+                is_game_over = case when @status = 'ENDED' then true else is_game_over end,
+                current_session_player_id = case
+                    when @status = 'STARTED' then coalesce(
+                        current_session_player_id,
+                        (
+                            select sp.session_participant_id
+                            from session_participants sp
+                            where sp.session_id = @sessionId
+                            order by sp.player_order_no asc
+                            limit 1
+                        )
+                    )
+                    when @status = 'ENDED' then null
+                    else current_session_player_id
+                end,
+                state_version = state_version + 1,
+                updated_at = now()
             where session_id = @sessionId
             """;
 
@@ -113,15 +167,14 @@ public sealed class SessionRepository
     }
 
     /// <summary>
-    /// Mengambil ruleset_version_id yang aktif terakhir pada sesi.
+    /// Mengambil ruleset_version_id yang dikunci pada sesi.
     /// </summary>
     public async Task<Guid?> GetActiveRulesetVersionIdAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
             select ruleset_version_id
-            from session_ruleset_activations
+            from sessions
             where session_id = @sessionId
-            order by activated_at desc
             limit 1
             """;
 
@@ -135,8 +188,9 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsAsync(CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
+            where not is_archived
             order by created_at desc
             """;
 
@@ -151,9 +205,10 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where instructor_user_id = @instructorUserId
+              and not is_archived
             order by created_at desc
             """;
 
@@ -168,10 +223,11 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid userId, CancellationToken ct)
     {
         const string sql = """
-            select distinct s.session_id, s.session_name, s.mode, s.status, s.started_at, s.ended_at, s.instructor_user_id, s.created_at
+            select distinct s.session_id, s.session_name, s.mode, s.status, s.started_at, s.ended_at, s.instructor_user_id, s.ruleset_version_id, s.is_archived, s.archived_at, s.created_at
             from sessions s
-            join session_players sp on sp.session_id = s.session_id
+            join session_participants sp on sp.session_id = s.session_id
             where sp.user_id = @userId
+              and not s.is_archived
             order by s.created_at desc
             """;
 
@@ -180,24 +236,4 @@ public sealed class SessionRepository
         return items.ToList();
     }
 
-    /// <summary>
-    /// Mengaktifkan versi ruleset pada sesi dengan menyisipkan record aktivasi baru.
-    /// </summary>
-    public async Task ActivateRulesetAsync(Guid sessionId, Guid rulesetVersionId, string? activatedBy, CancellationToken ct)
-    {
-        const string sql = """
-            insert into session_ruleset_activations (activation_id, session_id, ruleset_version_id, activated_at, activated_by)
-            values (@activationId, @sessionId, @rulesetVersionId, @activatedAt, @activatedBy)
-            """;
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(sql, new
-        {
-            activationId = Guid.NewGuid(),
-            sessionId,
-            rulesetVersionId,
-            activatedAt = DateTimeOffset.UtcNow,
-            activatedBy
-        }, cancellationToken: ct));
-    }
 }

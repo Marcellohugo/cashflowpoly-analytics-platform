@@ -206,7 +206,7 @@
                 </div>
             </div>
 
-            <textarea asp-for="ConfigJson" class="hidden"></textarea>
+            <textarea asp-for="DefinitionJson" class="hidden"></textarea>
             <div class="form-actions">
                 <button class="btn-primary"
                         type="submit">@(isEditMode ? Context.T("rulesets.update") : Context.T("rulesets.save"))</button>
@@ -236,7 +236,7 @@
             };
             const toText = (id) => `${getEl(id)?.value ?? ""}`.trim();
             const toBool = (id) => !!getEl(id)?.checked;
-            const configTextArea = getEl("ConfigJson");
+            const configTextArea = getEl("DefinitionJson");
             const modePresets = {
                 PEMULA: {
                     starting_cash: 20,

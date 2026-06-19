@@ -405,7 +405,7 @@ public static class PlayerMetricChartPayloadBuilder
     {
         var xAxisCandidates = new[]
         {
-            "turn_number",
+            "action_slot",
             "day_index",
             "friday_index",
             "order_index",

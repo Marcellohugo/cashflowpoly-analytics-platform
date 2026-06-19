@@ -18,19 +18,20 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         IEnumerable<EventDb> history,
         out EventEconomyActionValidation result)
     {
-        if (string.Equals(request.ActionType, "transaction.recorded", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "CatatTransaksi", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateTransaction(request);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "day.friday.donation", StringComparison.OrdinalIgnoreCase))
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.JumatBerkah))
         {
             result = ValidateFridayDonation(request, config);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "day.saturday.gold_trade", StringComparison.OrdinalIgnoreCase))
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.InvestasiEmas) ||
+            GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.JualEmas))
         {
             result = ValidateGoldTrade(request, config, history);
             return true;
@@ -148,13 +149,24 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                 new ErrorDetail("weekday", "INVALID_VALUE"));
         }
 
-        if (!_payloadReader.TryReadGoldTrade(request.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
+        var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload);
+        var hasFullGoldPayload = _payloadReader.TryReadGoldTrade(request.Payload, out var tradeType, out var qty, out var unitPrice, out var amount);
+        if (!hasFullGoldPayload)
         {
-            return Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Payload gold trade tidak valid",
-                new ErrorDetail("payload", "INVALID_STRUCTURE"));
+            if (!_payloadReader.TryGetInt32(request.Payload, "qty", out qty) ||
+                !_payloadReader.TryGetInt32(request.Payload, "unit_price", out unitPrice) ||
+                !_payloadReader.TryGetInt32(request.Payload, "amount", out amount))
+            {
+                return Fail(
+                    StatusCodes.Status400BadRequest,
+                    "VALIDATION_ERROR",
+                    "Payload gold trade tidak valid",
+                    new ErrorDetail("payload", "INVALID_STRUCTURE"));
+            }
+
+            tradeType = string.Equals(canonicalAction, GameActionCatalog.JualEmas, StringComparison.OrdinalIgnoreCase)
+                ? "SELL"
+                : "BUY";
         }
 
         if (!string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) &&
@@ -164,6 +176,26 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Trade type tidak valid",
+                new ErrorDetail("payload.trade_type", "INVALID_ENUM"));
+        }
+
+        if (string.Equals(canonicalAction, GameActionCatalog.InvestasiEmas, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase))
+        {
+            return Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "InvestasiEmas wajib memakai trade_type BUY",
+                new ErrorDetail("payload.trade_type", "INVALID_ENUM"));
+        }
+
+        if (string.Equals(canonicalAction, GameActionCatalog.JualEmas, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase))
+        {
+            return Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "JualEmas wajib memakai trade_type SELL",
                 new ErrorDetail("payload.trade_type", "INVALID_ENUM"));
         }
 
@@ -194,16 +226,25 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && request.UserId is not null)
         {
             var goldQty = 0;
-            foreach (var evt in history.Where(e =>
-                         e.UserId == request.UserId &&
-                         e.ActionType == "day.saturday.gold_trade"))
+            foreach (var evt in history.Where(e => e.UserId == request.UserId))
             {
-                if (!_payloadReader.TryReadGoldTrade(_payloadReader.ReadPayload(evt.Payload), out var evtTradeType, out var evtQty, out _, out _))
+                var eventPayload = _payloadReader.ReadPayload(evt.Payload);
+                var eventAction = GameActionCatalog.ResolveGameActionId(evt.ActionType, eventPayload);
+                if (eventAction is not (GameActionCatalog.InvestasiEmas or GameActionCatalog.JualEmas))
                 {
                     continue;
                 }
 
-                goldQty += string.Equals(evtTradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? evtQty : -evtQty;
+                if (!_payloadReader.TryReadGoldTrade(eventPayload, out var evtTradeType, out var evtQty, out _, out _) &&
+                    !_payloadReader.TryGetInt32(eventPayload, "qty", out evtQty))
+                {
+                    continue;
+                }
+
+                var eventIsBuy = string.Equals(eventAction, GameActionCatalog.InvestasiEmas, StringComparison.OrdinalIgnoreCase) ||
+                                 (!string.Equals(eventAction, GameActionCatalog.JualEmas, StringComparison.OrdinalIgnoreCase) &&
+                                  string.Equals(evtTradeType, "BUY", StringComparison.OrdinalIgnoreCase));
+                goldQty += eventIsBuy ? evtQty : -evtQty;
             }
 
             if (goldQty < qty)

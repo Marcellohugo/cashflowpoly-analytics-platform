@@ -124,33 +124,70 @@ public sealed class SessionsController : ControllerBase
             return await CreateSessionWithInitialStateAsync(request, mode, instructorUserId, ct);
         }
 
-        if (!request.RulesetId.HasValue)
+        if (!request.RulesetVersionId.HasValue)
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
-                new ErrorDetail("ruleset_id", "REQUIRED")));
+                new ErrorDetail("ruleset_version_id", "REQUIRED")));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(request.RulesetId.Value, instructorUserId, ct);
+        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(request.RulesetVersionId.Value, ct);
+        if (rulesetVersion is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
+        }
+
+        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetVersion.RulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
         }
 
-        var latestVersion = await _rulesets.GetLatestActiveVersionAsync(request.RulesetId.Value, ct);
-        if (latestVersion is null)
+        if (!string.Equals(rulesetVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset belum memiliki versi ACTIVE"));
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Ruleset version harus ACTIVE sebelum dipakai sesi"));
+        }
+
+        if (!string.Equals(rulesetVersion.Mode, mode, StringComparison.OrdinalIgnoreCase))
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Mode session harus sama dengan mode ruleset version",
+                new ErrorDetail("mode", "MODE_MISMATCH")));
+        }
+
+        if (rulesetVersion.Definition is null)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Definition ruleset tidak valid",
+                new ErrorDetail("definition", "REQUIRED")));
+        }
+
+        if (!RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out _, out var errors))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Definition ruleset tidak valid",
+                errors.ToArray()));
         }
 
         var sessionId = await _sessions.CreateSessionAsync(
             request.SessionName.Trim(),
             mode,
-            latestVersion.RulesetVersionId,
+            rulesetVersion.RulesetVersionId,
             instructorUserId,
             GetActorName(),
             ct);
 
-        return Created($"/api/v1/sessions/{sessionId}", new CreateSessionResponse(sessionId));
+        return Created(
+            $"/api/v1/sessions/{sessionId}",
+            new CreateSessionResponse(sessionId, rulesetVersion.RulesetId, rulesetVersion.RulesetVersionId));
     }
 
     [HttpPost("{sessionId:guid}/start")]
@@ -175,12 +212,23 @@ public sealed class SessionsController : ControllerBase
         }
 
         var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
-        if (playersInSession > SessionRules.MaxPlayersPerSession)
+        var activeRuleset = await GetActiveRulesetAsync(session, ct);
+        if (activeRuleset is null)
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(
                 HttpContext,
                 "DOMAIN_RULE_VIOLATION",
-                $"Sesi maksimal {SessionRules.MaxPlayersPerSession} pemain"));
+                "Session belum memiliki ruleset ACTIVE yang valid"));
+        }
+
+        var settings = activeRuleset.Value.Version.Definition!.Settings;
+        if (playersInSession < settings.MinPlayers || playersInSession > settings.MaxPlayers)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                $"Session membutuhkan {settings.MinPlayers} sampai {settings.MaxPlayers} pemain",
+                new ErrorDetail("player_count", "COUNT_OUT_OF_RANGE")));
         }
 
         var startedAt = DateTimeOffset.UtcNow;
@@ -210,61 +258,32 @@ public sealed class SessionsController : ControllerBase
             return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Status sesi tidak valid"));
         }
 
-        var endedAt = DateTimeOffset.UtcNow;
-        await _sessions.UpdateStatusAsync(sessionId, "ENDED", session.StartedAt, endedAt, ct);
-
-        return Ok(new SessionStatusResponse("ENDED"));
-    }
-
-    [HttpPost("{sessionId:guid}/ruleset/activate")]
-    [Authorize(Roles = "INSTRUCTOR")]
-    [ProducesResponseType(typeof(ActivateRulesetResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ActivateRuleset(Guid sessionId, [FromBody] ActivateRulesetRequest request, CancellationToken ct)
-    {
-        if (!TryGetCurrentUserId(out var instructorUserId))
-        {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
-        }
-
-        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
-        if (session is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
-        }
-
-        if (string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase))
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session sudah berakhir"));
-        }
-
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(request.RulesetId, instructorUserId, ct);
-        if (ruleset is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
-
-        var rulesetVersion = await _rulesets.GetRulesetVersionAsync(request.RulesetId, request.Version, ct);
-        if (rulesetVersion is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
-        }
-
-        if (!string.Equals(rulesetVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
+        var activeRuleset = await GetActiveRulesetAsync(session, ct);
+        if (activeRuleset is null)
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(
                 HttpContext,
                 "DOMAIN_RULE_VIOLATION",
-                "Ruleset version harus ACTIVE sebelum dipakai sesi"));
+                "Session belum memiliki ruleset ACTIVE yang valid"));
         }
 
-        if (!RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out _, out var errors))
+        var settings = activeRuleset.Value.Version.Definition!.Settings;
+        if (playersInSession < settings.MinPlayers || playersInSession > settings.MaxPlayers)
         {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfigurasi ruleset tidak valid", errors.ToArray()));
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                $"Session membutuhkan {settings.MinPlayers} sampai {settings.MaxPlayers} pemain",
+                new ErrorDetail("player_count", "COUNT_OUT_OF_RANGE")));
         }
 
-        await _sessions.ActivateRulesetAsync(sessionId, rulesetVersion.RulesetVersionId, GetActorName(), ct);
+        await _state.ComputeFinalScoresAsync(sessionId, ct);
 
-        return Ok(new ActivateRulesetResponse(sessionId, rulesetVersion.RulesetVersionId));
+        var endedAt = DateTimeOffset.UtcNow;
+        await _sessions.UpdateStatusAsync(sessionId, "ENDED", session.StartedAt, endedAt, ct);
+
+        return Ok(new SessionStatusResponse("ENDED"));
     }
 
     [HttpGet("{sessionId:guid}/state")]
@@ -294,7 +313,7 @@ public sealed class SessionsController : ControllerBase
 
     [HttpPut("{sessionId:guid}/state")]
     [Authorize(Roles = "INSTRUCTOR")]
-    [ProducesResponseType(typeof(SessionStateResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status410Gone)]
     public async Task<IActionResult> SaveState(Guid sessionId, [FromBody] SaveSessionStateRequest request, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
@@ -308,67 +327,12 @@ public sealed class SessionsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        var activeRulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(sessionId, ct);
-        if (!activeRulesetVersionId.HasValue)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session belum memiliki ruleset aktif"));
-        }
-
-        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
-        if (rulesetVersion is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
-        }
-
-        var rulesetConfigJson = rulesetVersion.ConfigJson;
-        if (string.IsNullOrWhiteSpace(rulesetConfigJson))
-        {
-            var rulesetSection = await _state.GetRulesetSectionAsync(
-                rulesetVersion.Mode ?? session.Mode,
-                rulesetVersion.RulesetId,
-                instructorUserId,
-                ct);
-            if (rulesetSection is null)
-            {
-                return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Ruleset aktif tidak memiliki section permainan lengkap"));
-            }
-
-            rulesetConfigJson = rulesetSection.ConfigJson;
-        }
-
-        RulesetSectionCatalog catalog;
-        try
-        {
-            catalog = RulesetSectionCatalog.FromConfig(rulesetConfigJson);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException or System.Text.Json.JsonException)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Ruleset aktif tidak memiliki section permainan lengkap"));
-        }
-
-        var existingState = await _state.GetStateAsync(sessionId, ct);
-        if (existingState is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State session tidak ditemukan"));
-        }
-
-        var validation = ValidateStateRequest(request, existingState, catalog);
-        if (validation is not null)
-        {
-            return validation;
-        }
-
-        var saveResult = await _state.SaveStateAsync(sessionId, request, ct);
-        return saveResult.Status switch
-        {
-            SaveSessionStateStatus.Saved => Ok(saveResult.State),
-            SaveSessionStateStatus.Stale => Conflict(ApiErrorHelper.BuildError(
+        return StatusCode(
+            StatusCodes.Status410Gone,
+            ApiErrorHelper.BuildError(
                 HttpContext,
-                "STALE_STATE_VERSION",
-                $"State version sudah berubah. Versi saat ini {saveResult.CurrentVersion}.",
-                new ErrorDetail("state_version", "STALE"))),
-            _ => NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State session tidak ditemukan"))
-        };
+                "STATE_WRITE_DISABLED",
+                "State permainan hanya dapat diubah melalui event ingestion"));
     }
 
     private async Task<IActionResult> CreateSessionWithInitialStateAsync(
@@ -378,9 +342,25 @@ public sealed class SessionsController : ControllerBase
         CancellationToken ct)
     {
         var playerNames = request.PlayerNames?.Select(name => name.Trim()).ToList() ?? [];
-        if (playerNames.Count is < 2 or > 4)
+        if (!request.RulesetVersionId.HasValue)
         {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Session membutuhkan 2 sampai 4 pemain",
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
+                new ErrorDetail("ruleset_version_id", "REQUIRED")));
+        }
+
+        var rulesetSection = await _state.GetRulesetSectionByVersionIdAsync(mode, request.RulesetVersionId.Value, instructorUserId, ct);
+        if (rulesetSection is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+        }
+
+        var settings = rulesetSection.Definition.Settings;
+        if (playerNames.Count < settings.MinPlayers || playerNames.Count > settings.MaxPlayers)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                $"Session membutuhkan {settings.MinPlayers} sampai {settings.MaxPlayers} pemain",
                 new ErrorDetail("player_names", "COUNT_OUT_OF_RANGE")));
         }
 
@@ -400,7 +380,7 @@ public sealed class SessionsController : ControllerBase
             request.SessionName!.Trim(),
             mode,
             playerNames,
-            request.RulesetId,
+            request.RulesetVersionId.Value,
             instructorUserId,
             GetActorName(),
             ct);
@@ -429,9 +409,9 @@ public sealed class SessionsController : ControllerBase
             return BadRequestError("day", "OUT_OF_RANGE", "Hari permainan tidak valid");
         }
 
-        if (request.MovesLeft < 0 || request.MovesLeft > 10)
+        if (request.ActionSlotsLeft < 0 || request.ActionSlotsLeft > 10)
         {
-            return BadRequestError("moves_left", "OUT_OF_RANGE", "Moves left tidak valid");
+            return BadRequestError("action_slots_left", "OUT_OF_RANGE", "Moves left tidak valid");
         }
 
         var players = request.Players;
@@ -467,10 +447,10 @@ public sealed class SessionsController : ControllerBase
 
             if (player.PlayerIndex < 1 || player.PlayerIndex > players.Count || !seenPlayerIndexes.Add(player.PlayerIndex))
             {
-                return BadRequestError("players.player_index", "INVALID_VALUE", "Player index tidak valid");
+                return BadRequestError("players.player_order_no", "INVALID_VALUE", "Seat number tidak valid");
             }
 
-            if (string.IsNullOrWhiteSpace(player.Name) || player.Name.Length > 80)
+            if (string.IsNullOrWhiteSpace(player.Name) || player.Name.Trim().Length > 80)
             {
                 return BadRequestError("players.name", "INVALID_VALUE", "Nama pemain tidak valid");
             }
@@ -517,6 +497,27 @@ public sealed class SessionsController : ControllerBase
         return null;
     }
 
+    private async Task<(RulesetVersionDb Version, RulesetSettingsDto Settings)?> GetActiveRulesetAsync(
+        SessionDb session,
+        CancellationToken ct)
+    {
+        var rulesetVersionId = await _sessions.GetActiveRulesetVersionIdAsync(session.SessionId, ct);
+        if (!rulesetVersionId.HasValue)
+        {
+            return null;
+        }
+
+        var version = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId.Value, ct);
+        if (version?.Definition is null ||
+            !string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(version.Mode, session.Mode, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return (version, version.Definition.Settings);
+    }
+
     private IActionResult? ValidatePlayerChildren(SessionPlayerStateDto player, RulesetSectionCatalog catalog)
     {
         foreach (var item in player.Bahan)
@@ -552,9 +553,30 @@ public sealed class SessionsController : ControllerBase
                 return UnprocessableError("players.tujuanFinansial.nama", "UNKNOWN_REFERENCE", "Tujuan finansial tidak ditemukan di catalog");
             }
 
-            if (item.PurchasedAtDay < 1)
+            if (item.CurrentAmount < 0 || item.TargetAmount < 0)
+            {
+                return UnprocessableError("players.tujuanFinansial", "NEGATIVE_VALUE", "Nilai tujuan finansial tidak boleh negatif");
+            }
+
+            var normalizedStatus = string.IsNullOrWhiteSpace(item.Status) ? "ONGOING" : item.Status.Trim().ToUpperInvariant();
+            if (normalizedStatus is not ("ONGOING" or "COMPLETED" or "FAILED"))
+            {
+                return BadRequestError("players.tujuanFinansial.status", "INVALID_ENUM", "Status tujuan finansial tidak valid");
+            }
+
+            if (item.PurchasedAtDay.HasValue && item.PurchasedAtDay.Value < 1)
             {
                 return BadRequestError("players.tujuanFinansial.purchased_at_day", "OUT_OF_RANGE", "Hari pembelian tujuan tidak valid");
+            }
+
+            if ((normalizedStatus is "ONGOING" or "FAILED") && item.PurchasedAtDay.HasValue)
+            {
+                return UnprocessableError("players.tujuanFinansial.purchased_at_day", "INVALID_REFERENCE", "Hari pembelian hanya boleh diisi saat status COMPLETED");
+            }
+
+            if (normalizedStatus == "COMPLETED" && !item.PurchasedAtDay.HasValue)
+            {
+                return UnprocessableError("players.tujuanFinansial.purchased_at_day", "REQUIRED", "Hari pembelian wajib diisi saat status COMPLETED");
             }
         }
 
@@ -563,24 +585,6 @@ public sealed class SessionsController : ControllerBase
             if (string.IsNullOrWhiteSpace(item.Id) || !catalog.TargetKebutuhanIds.Contains(item.Id))
             {
                 return UnprocessableError("players.targetKebutuhan.id", "UNKNOWN_REFERENCE", "Target kebutuhan tidak ditemukan di catalog");
-            }
-        }
-
-        foreach (var item in player.QuestProgress)
-        {
-            if (string.IsNullOrWhiteSpace(item.Id) || !catalog.QuestTargets.TryGetValue(item.Id, out var expectedTarget))
-            {
-                return UnprocessableError("players.questProgress.id", "UNKNOWN_REFERENCE", "Quest tidak ditemukan di catalog");
-            }
-
-            if (item.Progress < 0 || item.Target < 0)
-            {
-                return UnprocessableError("players.questProgress", "NEGATIVE_VALUE", "Progress quest tidak boleh negatif");
-            }
-
-            if (item.Target != expectedTarget)
-            {
-                return UnprocessableError("players.questProgress.target", "INVALID_REFERENCE", "Target quest tidak sesuai catalog");
             }
         }
 

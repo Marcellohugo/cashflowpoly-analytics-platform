@@ -12,7 +12,7 @@ public static class RulesetFormHelper
         return new CreateRulesetViewModel
         {
             IsEditMode = false,
-            ConfigJson = """
+            DefinitionJson = """
             {
               "mode": "PEMULA",
               "actions_per_turn": 2,
@@ -90,16 +90,16 @@ public static class RulesetFormHelper
         return error?.Message ?? $"{prefix}. Status: {(int)response.StatusCode}";
     }
 
-    public static string SerializeIndentedJson(JsonElement? configJson)
+    public static string SerializeIndentedJson(JsonElement? definitionJson)
     {
-        if (!configJson.HasValue)
+        if (!definitionJson.HasValue)
         {
             return "{}";
         }
 
         try
         {
-            return JsonSerializer.Serialize(configJson.Value, new JsonSerializerOptions
+            return JsonSerializer.Serialize(definitionJson.Value, new JsonSerializerOptions
             {
                 WriteIndented = true
             });

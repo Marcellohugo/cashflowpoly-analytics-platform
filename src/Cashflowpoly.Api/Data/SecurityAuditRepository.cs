@@ -37,7 +37,8 @@ public sealed class SecurityAuditRepository
                 user_agent,
                 method,
                 path,
-                status_code
+                status_code,
+                detail_json
             )
             values (
                 @SecurityAuditLogId,
@@ -52,7 +53,8 @@ public sealed class SecurityAuditRepository
                 @UserAgent,
                 @Method,
                 @Path,
-                @StatusCode
+                @StatusCode,
+                @DetailJson::jsonb
             );
             """;
 
@@ -80,7 +82,7 @@ public sealed class SecurityAuditRepository
                 method,
                 path,
                 status_code,
-                null::text as detail_json
+                detail_json::text as detail_json
             from security_audit_logs
             where (@eventType is null or event_type = @eventType)
               and (@userId is null or user_id = @userId)

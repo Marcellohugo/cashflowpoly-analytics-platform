@@ -95,7 +95,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca direction, amount, category, dan counterparty dari payload event transaction.recorded.
+    /// Membaca direction, amount, category, dan counterparty dari payload event CatatTransaksi.
     /// </summary>
     public bool TryReadTransaction(JsonElement payload, out string direction, out double amount, out string category, out string? counterparty)
     {
@@ -123,7 +123,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca trade_type, qty, unit_price, dan amount dari payload event gold_trade.
+    /// Membaca trade_type, qty, unit_price, dan amount dari payload event InvestasiEmas dan JualEmas.
     /// </summary>
     public bool TryReadGoldTrade(JsonElement payload, out string tradeType, out int qty, out int unitPrice, out int amount)
     {
@@ -144,7 +144,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca jumlah aksi terpakai dan sisa dari payload event turn.action.used.
+    /// Membaca jumlah aksi terpakai dan sisa dari payload event AkhirGiliran.
     /// </summary>
     public bool TryReadActionUsed(JsonElement payload, out int used, out int remaining)
     {
@@ -160,7 +160,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca card_id dan amount dari payload event ingredient.purchased atau ingredient.discarded.
+    /// Membaca card_id dan amount dari payload event BahanMasakan atau BuangBahanMasakan.
     /// </summary>
     public bool TryReadIngredientPurchase(JsonElement payload, out string cardId, out int amount)
     {
@@ -177,7 +177,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca daftar kartu bahan yang dibutuhkan dan pendapatan dari payload event order.claimed.
+    /// Membaca daftar kartu bahan yang dibutuhkan dan pendapatan dari payload event JualMasakan.
     /// </summary>
     public bool TryReadOrderClaim(JsonElement payload, out List<string> requiredCards, out int income)
     {
@@ -254,7 +254,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca nomor tie-breaker dari payload event tie_breaker.assigned.
+    /// Membaca nomor tie-breaker dari payload event BagikanTieBreaker.
     /// </summary>
     public bool TryReadTieBreaker(JsonElement payload, out int number)
     {
@@ -286,7 +286,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca goal_id dan amount dari payload event saving.deposit.
+    /// Membaca goal_id dan amount dari payload event Menabung/TarikTabungan.
     /// </summary>
     public bool TryReadSavingDeposit(JsonElement payload, out string goalId, out int amount)
     {
@@ -302,7 +302,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca goal_id, points, dan cost dari payload event saving.goal.achieved.
+    /// Membaca goal_id, points, dan cost dari payload event TujuanFinansial.
     /// </summary>
     public bool TryReadSavingGoalAchieved(JsonElement payload, out string goalId, out int points, out int cost)
     {
@@ -320,7 +320,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca risk_id, direction, dan amount dari payload event risk.life.drawn.
+    /// Membaca risk_id, direction, dan amount dari payload event RisikoKehidupan.
     /// </summary>
     public bool TryReadRiskLife(JsonElement payload, out string riskId, out string direction, out int amount)
     {
@@ -339,7 +339,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca risk_event_id dari payload event insurance.multirisk.used.
+    /// Membaca risk_event_id dari payload event klaim Asuransi.
     /// </summary>
     public bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId)
     {
@@ -353,7 +353,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca risk_event_id, option_type, direction, dan amount dari payload event risk.emergency.used.
+    /// Membaca risk_event_id, option_type, direction, dan amount dari payload event GunakanOpsiDarurat.
     /// </summary>
     public bool TryReadEmergencyOption(
         JsonElement payload,
@@ -408,7 +408,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca loan_id dan amount dari payload event loan.syariah.repaid.
+    /// Membaca loan_id dan amount dari payload event BayarPinjaman.
     /// </summary>
     public bool TryReadLoanRepay(JsonElement payload, out string loanId, out int amount)
     {
@@ -424,7 +424,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca nilai premium dari payload event insurance.multirisk.purchased.
+    /// Membaca nilai premium dari payload event pembelian Asuransi.
     /// </summary>
     public bool TryReadInsurance(JsonElement payload, out int premium)
     {

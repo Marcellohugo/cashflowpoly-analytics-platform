@@ -19,19 +19,19 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
         IEnumerable<EventDb> history,
         out EventIngredientOrderValidation result)
     {
-        if (string.Equals(request.ActionType, "ingredient.purchased", StringComparison.OrdinalIgnoreCase))
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.BahanMasakan))
         {
             result = ValidatePurchase(request, config, history);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "ingredient.discarded", StringComparison.OrdinalIgnoreCase))
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.IngredientDiscarded))
         {
             result = ValidateDiscard(request, history);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "order.claimed", StringComparison.OrdinalIgnoreCase))
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.JualMasakan))
         {
             result = ValidateOrderClaim(request, history);
             return true;

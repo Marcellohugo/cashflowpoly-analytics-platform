@@ -11,9 +11,9 @@ public sealed class AnalyticsHappinessCalculatorTests
     {
         var playerEvents = new List<EventDb>
         {
-            BuildEvent("need.primary.purchased", """{"amount":2,"card_id":"primary-food","points":1}"""),
-            BuildEvent("need.secondary.purchased", """{"amount":3,"card_id":"secondary-school","points":2}"""),
-            BuildEvent("need.tertiary.purchased", """{"amount":4,"card_id":"tertiary-bike","points":3}""")
+            BuildEvent("Kebutuhan", """{"amount":2,"card_id":"primary-food","points":1}"""),
+            BuildEvent("Kebutuhan", """{"amount":3,"card_id":"secondary-school","points":2}"""),
+            BuildEvent("Kebutuhan", """{"amount":4,"card_id":"tertiary-bike","points":3}""")
         };
 
         var breakdown = new HappinessCalculator().ComputeBreakdown(
@@ -32,9 +32,9 @@ public sealed class AnalyticsHappinessCalculatorTests
     {
         var playerEvents = new List<EventDb>
         {
-            BuildEvent("saving.goal.achieved", """{"goal_id":"bike","points":8,"cost":5}"""),
-            BuildEvent("loan.syariah.taken", """{"loan_id":"loan-1","principal":10,"penalty_points":15}"""),
-            BuildEvent("loan.syariah.repaid", """{"loan_id":"loan-1","amount":4}""")
+            BuildEvent("TujuanFinansial", """{"goal_id":"bike","points":8,"cost":5}"""),
+            BuildEvent("PinjamanSyariah", """{"loan_id":"loan-1","principal":10,"penalty_points":15}"""),
+            BuildEvent("BayarPinjaman", """{"loan_id":"loan-1","amount":4}""")
         };
 
         var breakdown = new HappinessCalculator().ComputeBreakdown(
@@ -56,11 +56,11 @@ public sealed class AnalyticsHappinessCalculatorTests
         var secondPlayerId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         var events = new List<EventDb>
         {
-            BuildEvent(firstPlayerId, "day.friday.donation", """{"amount":5}""", dayIndex: 4, sequenceNumber: 1),
-            BuildEvent(secondPlayerId, "day.friday.donation", """{"amount":5}""", dayIndex: 4, sequenceNumber: 2),
-            BuildEvent(firstPlayerId, "tie_breaker.assigned", """{"number":1}""", dayIndex: 4, sequenceNumber: 3),
-            BuildEvent(secondPlayerId, "tie_breaker.assigned", """{"number":9}""", dayIndex: 4, sequenceNumber: 4),
-            BuildEvent(firstPlayerId, "day.saturday.gold_trade", """{"trade_type":"BUY","qty":2,"unit_price":5,"amount":10}""", dayIndex: 5, sequenceNumber: 5)
+            BuildEvent(firstPlayerId, "JumatBerkah", """{"amount":5}""", dayIndex: 4, sequenceNumber: 1),
+            BuildEvent(secondPlayerId, "JumatBerkah", """{"amount":5}""", dayIndex: 4, sequenceNumber: 2),
+            BuildEvent(firstPlayerId, "BagikanTieBreaker", """{"number":1}""", dayIndex: 4, sequenceNumber: 3),
+            BuildEvent(secondPlayerId, "BagikanTieBreaker", """{"number":9}""", dayIndex: 4, sequenceNumber: 4),
+            BuildEvent(firstPlayerId, "InvestasiEmas", """{"trade_type":"BUY","qty":2,"unit_price":5,"amount":10}""", dayIndex: 5, sequenceNumber: 5)
         };
 
         var config = BuildConfig(new RulesetScoringConfig(
@@ -102,7 +102,7 @@ public sealed class AnalyticsHappinessCalculatorTests
             "PEMULA",
             2,
             20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             0,
             6,
             3,

@@ -12,7 +12,7 @@ public sealed class EventEconomyActionValidatorTests
     [Fact]
     public void TryValidate_TransactionOut_ReturnsOutgoingAmountForBalanceCheck()
     {
-        var request = CreateRequest("transaction.recorded", """{"direction":"OUT","amount":6,"category":"CUSTOM","counterparty":"BANK"}""");
+        var request = CreateRequest("CatatTransaksi", """{"direction":"OUT","amount":6,"category":"CUSTOM","counterparty":"BANK"}""");
 
         var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
@@ -24,7 +24,7 @@ public sealed class EventEconomyActionValidatorTests
     [Fact]
     public void TryValidate_DonationRejectsWrongWeekday()
     {
-        var request = CreateRequest("day.friday.donation", """{"amount":3}""", weekday: "MON");
+        var request = CreateRequest("JumatBerkah", """{"amount":3}""", weekday: "MON");
 
         var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
 
@@ -39,13 +39,13 @@ public sealed class EventEconomyActionValidatorTests
     {
         var playerId = Guid.NewGuid();
         var request = CreateRequest(
-            "day.saturday.gold_trade",
+            "JualEmas",
             """{"trade_type":"SELL","qty":2,"unit_price":5,"amount":10}""",
             playerId,
             weekday: "SAT");
         var history = new[]
         {
-            CreateEvent(playerId, "day.saturday.gold_trade", """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5}""")
+            CreateEvent(playerId, "InvestasiEmas", """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5}""")
         };
 
         var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -90,7 +90,7 @@ public sealed class EventEconomyActionValidatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "SAT",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
@@ -104,7 +104,7 @@ public sealed class EventEconomyActionValidatorTests
             "PEMULA",
             ActionsPerTurn: 3,
             StartingCash: 20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             CashMin: 0,
             MaxIngredientTotal: 10,
             MaxSameIngredient: 5,

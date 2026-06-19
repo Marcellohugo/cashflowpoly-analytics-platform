@@ -1,4 +1,5 @@
 using Cashflowpoly.Ui.Contracts;
+using System.Text.Json;
 
 namespace Cashflowpoly.Ui.Models;
 
@@ -15,16 +16,7 @@ public sealed class RulesetListViewModel
 }
 
 /// <summary>
-/// ViewModel halaman katalog komponen default yang dibaca dari endpoint ruleset components.
-/// </summary>
-public sealed class ComponentCatalogListViewModel
-{
-    public List<DefaultRulesetComponentItem> Items { get; init; } = new();
-    public string? ErrorMessage { get; init; }
-}
-
-/// <summary>
-/// ViewModel formulir pembuatan atau pengeditan ruleset, memuat nama, deskripsi, dan konfigurasi JSON.
+/// ViewModel formulir pembuatan atau pengeditan ruleset, memuat nama, deskripsi, dan definition JSON editor state.
 /// </summary>
 public sealed class CreateRulesetViewModel
 {
@@ -32,7 +24,7 @@ public sealed class CreateRulesetViewModel
     public bool IsEditMode { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string ConfigJson { get; set; } = "{}";
+    public string DefinitionJson { get; set; } = "{}";
     public string? ErrorMessage { get; set; }
 }
 
@@ -43,6 +35,8 @@ public sealed class RulesetDetailViewModel
 {
     public RulesetDetailResponse? Ruleset { get; init; }
     public RulesetComponentsResponse? Components { get; init; }
+    public JsonElement? CompatibilityDefinitionJson { get; init; }
+    public JsonElement? CompatibilityComponentCatalog { get; init; }
     public string? ErrorMessage { get; init; }
     public string? InfoMessage { get; init; }
     public string? ComponentsErrorMessage { get; init; }

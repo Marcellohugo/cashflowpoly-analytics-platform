@@ -10,9 +10,8 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 
     public bool RequiresHistory(EventRequest request, RulesetConfig config)
     {
-        return string.Equals(request.ActionType, "turn.action.used", StringComparison.OrdinalIgnoreCase) ||
-               (string.Equals(request.ActionType, "turn.ended", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase));
+        return GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran) &&
+               string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase);
     }
 
     public bool TryValidate(
@@ -21,13 +20,7 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
         IEnumerable<EventDb> history,
         out EventDomainValidationResult result)
     {
-        if (string.Equals(request.ActionType, "turn.action.used", StringComparison.OrdinalIgnoreCase))
-        {
-            result = ValidateActionUsed(request, config, history);
-            return true;
-        }
-
-        if (string.Equals(request.ActionType, "turn.ended", StringComparison.OrdinalIgnoreCase) &&
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran) &&
             string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateTurnEndedMahir(request, history);
@@ -38,72 +31,17 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
         return false;
     }
 
-    private EventDomainValidationResult ValidateActionUsed(
-        EventRequest request,
-        RulesetConfig config,
-        IEnumerable<EventDb> history)
-    {
-        if (!_payloadReader.TryReadActionUsed(request.Payload, out var used, out var remaining))
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Payload action used tidak valid",
-                new ErrorDetail("payload", "INVALID_STRUCTURE"));
-        }
-
-        if (used < 0 || remaining < 0)
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Nilai used/remaining tidak valid",
-                new ErrorDetail("payload.used", "OUT_OF_RANGE"));
-        }
-
-        if (request.UserId is null)
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Player wajib diisi",
-                new ErrorDetail("user_id", "REQUIRED"));
-        }
-
-        var usedSoFar = 0;
-        foreach (var evt in history.Where(e =>
-                     e.UserId == request.UserId &&
-                     e.TurnNumber == request.TurnNumber &&
-                     e.ActionType == "turn.action.used"))
-        {
-            if (_payloadReader.TryReadActionUsed(_payloadReader.ReadPayload(evt.Payload), out var usedValue, out _))
-            {
-                usedSoFar += usedValue;
-            }
-        }
-
-        if (usedSoFar + used > config.ActionsPerTurn)
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status422UnprocessableEntity,
-                "DOMAIN_RULE_VIOLATION",
-                "Jumlah token aksi melebihi batas ruleset");
-        }
-
-        return EventDomainValidationResult.Valid;
-    }
-
     private EventDomainValidationResult ValidateTurnEndedMahir(EventRequest request, IEnumerable<EventDb> history)
     {
-        var turnEvents = history.Where(e => e.TurnNumber == request.TurnNumber && e.UserId.HasValue).ToList();
+        var turnEvents = history.Where(e => e.ActionSlot == request.ActionSlot && e.UserId.HasValue).ToList();
 
         var orderCounts = turnEvents
-            .Where(e => e.ActionType == "order.claimed")
+            .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.JualMasakan))
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
 
         var riskCounts = turnEvents
-            .Where(e => e.ActionType == "risk.life.drawn")
+            .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.RisikoKehidupan))
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(g => g.Key, g => g.Count());
 
@@ -122,4 +60,5 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 
         return EventDomainValidationResult.Valid;
     }
+
 }

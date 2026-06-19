@@ -18,21 +18,24 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         IEnumerable<EventDb> history,
         out EventNeedPurchaseValidation result)
     {
-        if (string.Equals(request.ActionType, "need.primary.purchased", StringComparison.OrdinalIgnoreCase))
+        if (!GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.Kebutuhan))
         {
-            result = ValidatePrimary(request, config, history);
+            result = new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, null);
+            return false;
+        }
+
+        if (!_payloadReader.TryReadNeedPurchase(request.Payload, out var cardId, out _, out _))
+        {
+            var payloadValidation = ValidatePayload(request, primary: false, out _, out _);
+            result = new EventNeedPurchaseValidation(payloadValidation, null);
             return true;
         }
 
-        if (string.Equals(request.ActionType, "need.secondary.purchased", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(request.ActionType, "need.tertiary.purchased", StringComparison.OrdinalIgnoreCase))
-        {
-            result = ValidateSecondaryOrTertiary(request, config, history);
-            return true;
-        }
-
-        result = new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, null);
-        return false;
+        var needTier = NeedTierClassifier.FromPayload(request.Payload, cardId);
+        result = needTier == NeedTier.Primary
+            ? ValidatePrimary(request, config, history)
+            : ValidateSecondaryOrTertiary(request, config, history);
+        return true;
     }
 
     private EventNeedPurchaseValidation ValidatePrimary(
@@ -40,7 +43,7 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         RulesetConfig config,
         IEnumerable<EventDb> history)
     {
-        var payloadValidation = ValidatePayload(request, primary: true, out var amount);
+        var payloadValidation = ValidatePayload(request, primary: true, out _, out var amount);
         if (!payloadValidation.IsValid)
         {
             return new EventNeedPurchaseValidation(payloadValidation, null);
@@ -63,7 +66,8 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         var primaryCount = history.Count(e =>
             e.UserId == request.UserId &&
             e.DayIndex == request.DayIndex &&
-            e.ActionType == "need.primary.purchased");
+            GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.Kebutuhan) &&
+            NeedTierClassifier.FromPayloadJson(e.Payload) == NeedTier.Primary);
 
         if (primaryCount >= config.PrimaryNeedMaxPerDay)
         {
@@ -78,7 +82,7 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         RulesetConfig config,
         IEnumerable<EventDb> history)
     {
-        var payloadValidation = ValidatePayload(request, primary: false, out var amount);
+        var payloadValidation = ValidatePayload(request, primary: false, out _, out var amount);
         if (!payloadValidation.IsValid)
         {
             return new EventNeedPurchaseValidation(payloadValidation, null);
@@ -89,7 +93,8 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             var hasPrimary = history.Any(e =>
                 e.UserId == request.UserId &&
                 e.DayIndex == request.DayIndex &&
-                e.ActionType == "need.primary.purchased");
+                GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.Kebutuhan) &&
+                NeedTierClassifier.FromPayloadJson(e.Payload) == NeedTier.Primary);
 
             if (!hasPrimary)
             {
@@ -100,10 +105,11 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         return new EventNeedPurchaseValidation(EventDomainValidationResult.Valid, request.UserId is null ? null : amount);
     }
 
-    private EventDomainValidationResult ValidatePayload(EventRequest request, bool primary, out int amount)
+    private EventDomainValidationResult ValidatePayload(EventRequest request, bool primary, out string cardId, out int amount)
     {
+        cardId = string.Empty;
         amount = 0;
-        if (!_payloadReader.TryReadNeedPurchase(request.Payload, out var cardId, out amount, out var points))
+        if (!_payloadReader.TryReadNeedPurchase(request.Payload, out cardId, out amount, out var points))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -146,6 +152,15 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
                 "VALIDATION_ERROR",
                 "Points wajib diisi",
                 new ErrorDetail("payload.points", "REQUIRED"));
+        }
+
+        if (NeedTierClassifier.FromPayload(request.Payload, cardId) == NeedTier.Unknown)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Tipe kebutuhan tidak valid",
+                new ErrorDetail("payload.need_tier", "INVALID_ENUM"));
         }
 
         return EventDomainValidationResult.Valid;

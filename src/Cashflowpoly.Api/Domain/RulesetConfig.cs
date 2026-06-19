@@ -4,7 +4,7 @@ using Cashflowpoly.Api.Contracts;
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
-/// Model domain konfigurasi ruleset berisi parameter permainan: mode, aksi per giliran, kas awal, constraint, dan scoring.
+/// Model domain konfigurasi ruleset berisi parameter permainan: mode, aksi harian pemain, kas awal, constraint, dan scoring.
 /// </summary>
 public sealed record RulesetConfig(
     string Mode,
@@ -27,7 +27,18 @@ public sealed record RulesetConfig(
     bool InsuranceEnabled,
     bool SavingGoalEnabled,
     int FreelanceIncome,
-    RulesetScoringConfig? Scoring);
+    RulesetScoringConfig? Scoring)
+{
+    public IReadOnlyList<RulesetNeedSetBonusDto> NeedSetBonuses { get; init; } = [];
+
+    public IReadOnlyList<RulesetGoldPriceDto> GoldPrices { get; init; } = [];
+
+    public IReadOnlyList<RulesetShariaLoanDto> ShariaLoans { get; init; } = [];
+
+    public IReadOnlyList<RulesetInsuranceProductDto> InsuranceProducts { get; init; } = [];
+
+    public IReadOnlyList<RulesetLifeRiskDto> LifeRisks { get; init; } = [];
+}
 
 /// <summary>
 /// Konfigurasi skoring ruleset berisi pemetaan poin berdasarkan peringkat donasi, jumlah emas, dan peringkat pensiun.
@@ -52,11 +63,310 @@ public sealed record QtyPoint(int Qty, int Points);
 /// </summary>
 public enum PlayerOrdering
 {
-    JoinOrder,
+    PlayerOrder,
     InstructorOrder,
     EventSequence,
     PlayerId,
     Username
+}
+
+internal static class RulesetRuntimeMapper
+{
+    internal static bool TryBuildConfig(
+        RulesetDefinitionDto definition,
+        out RulesetConfig? config,
+        out List<ErrorDetail> errors)
+    {
+        config = null;
+        errors = new List<ErrorDetail>();
+
+        var mode = string.IsNullOrWhiteSpace(definition.Mode)
+            ? "MAHIR"
+            : definition.Mode.Trim().ToUpperInvariant();
+        if (mode is not ("PEMULA" or "MAHIR"))
+        {
+            errors.Add(new ErrorDetail("definition.mode", "INVALID_ENUM"));
+        }
+
+        var settings = definition.Settings ?? new RulesetSettingsDto();
+        if (settings.ActionsPerTurn < 1 || settings.ActionsPerTurn > 10)
+        {
+            errors.Add(new ErrorDetail("definition.settings.actions_per_turn", "OUT_OF_RANGE"));
+        }
+
+        if (settings.StartingCash < 0)
+        {
+            errors.Add(new ErrorDetail("definition.settings.starting_cash", "OUT_OF_RANGE"));
+        }
+
+        if (settings.CashMin < 0)
+        {
+            errors.Add(new ErrorDetail("definition.settings.cash_min", "OUT_OF_RANGE"));
+        }
+
+        if (settings.MaxIngredientTotal < 0)
+        {
+            errors.Add(new ErrorDetail("definition.settings.max_ingredient_total", "OUT_OF_RANGE"));
+        }
+
+        if (settings.MaxSameIngredient < 0 || settings.MaxSameIngredient > settings.MaxIngredientTotal)
+        {
+            errors.Add(new ErrorDetail("definition.settings.max_same_ingredient", "INVALID_RELATION"));
+        }
+
+        if (settings.PrimaryNeedMaxPerDay < 0)
+        {
+            errors.Add(new ErrorDetail("definition.settings.primary_need_max_per_day", "OUT_OF_RANGE"));
+        }
+
+        if (settings.MinPlayers < 2 || settings.MaxPlayers > 4 || settings.MinPlayers > settings.MaxPlayers)
+        {
+            errors.Add(new ErrorDetail("definition.settings.min_players", "INVALID_RANGE"));
+        }
+
+        if (settings.DonationMinAmount < 1 || settings.DonationMaxAmount < settings.DonationMinAmount)
+        {
+            errors.Add(new ErrorDetail("definition.settings.donation_min_amount", "INVALID_RANGE"));
+        }
+
+        if (settings.FreelanceIncome < 1)
+        {
+            errors.Add(new ErrorDetail("definition.settings.freelance_income", "OUT_OF_RANGE"));
+        }
+
+        if (mode == "PEMULA" && (settings.LoanEnabled || settings.InsuranceEnabled || settings.SavingGoalEnabled))
+        {
+            errors.Add(new ErrorDetail("definition.settings", "DISALLOWED_FOR_MODE"));
+        }
+
+        if (!RulesetConfigParser.TryParsePlayerOrdering(definition.PlayerOrdering?.OrderingCode ?? "PLAYER_ORDER", out var playerOrdering))
+        {
+            errors.Add(new ErrorDetail("definition.player_ordering.ordering_code", "INVALID_ENUM"));
+        }
+
+        ValidateRankPoints(definition.DonationRankPoints, "definition.donation_rank_points", errors);
+        ValidateRankPoints(definition.PensionRankPoints, "definition.pension_rank_points", errors);
+        ValidateQtyPoints(definition.GoldPointsByQty, "definition.gold_points_by_qty", errors);
+        ValidateNeedSetBonuses(definition.NeedSetBonuses, errors);
+        ValidateGoldPrices(definition.GoldPrices, errors);
+        ValidateShariaLoans(definition.ShariaLoans, settings.LoanEnabled, errors);
+        ValidateInsuranceProducts(definition.InsuranceProducts, settings.InsuranceEnabled, errors);
+        ValidateLifeRisks(definition.LifeRisks, errors);
+
+        if (errors.Count > 0)
+        {
+            return false;
+        }
+
+        config = new RulesetConfig(
+            mode,
+            settings.ActionsPerTurn,
+            settings.StartingCash,
+            playerOrdering,
+            settings.CashMin,
+            settings.MaxIngredientTotal,
+            settings.MaxSameIngredient,
+            settings.PrimaryNeedMaxPerDay,
+            settings.RequirePrimaryBeforeOthers,
+            definition.PlayerOrdering?.FridayEnabled ?? true,
+            definition.PlayerOrdering?.SaturdayEnabled ?? true,
+            definition.PlayerOrdering?.SundayEnabled ?? true,
+            settings.DonationMinAmount,
+            settings.DonationMaxAmount,
+            settings.GoldTradeAllowBuy,
+            settings.GoldTradeAllowSell,
+            settings.LoanEnabled,
+            settings.InsuranceEnabled,
+            settings.SavingGoalEnabled,
+            settings.FreelanceIncome,
+            new RulesetScoringConfig(
+                definition.DonationRankPoints.Select(item => new RankPoint(item.Rank, item.Points)).ToList(),
+                definition.GoldPointsByQty.Select(item => new QtyPoint(item.Qty, item.Points)).ToList(),
+                definition.PensionRankPoints.Select(item => new RankPoint(item.Rank, item.Points)).ToList()))
+        {
+            NeedSetBonuses = definition.NeedSetBonuses.ToList(),
+            GoldPrices = definition.GoldPrices.ToList(),
+            ShariaLoans = definition.ShariaLoans.ToList(),
+            InsuranceProducts = definition.InsuranceProducts.ToList(),
+            LifeRisks = definition.LifeRisks.ToList()
+        };
+        return true;
+    }
+
+    private static void ValidateNeedSetBonuses(
+        IReadOnlyCollection<RulesetNeedSetBonusDto> bonuses,
+        List<ErrorDetail> errors)
+    {
+        var seenPatterns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var bonus in bonuses)
+        {
+            var patternCode = bonus.PatternCode?.Trim().ToUpperInvariant() ?? string.Empty;
+            if (patternCode is not ("THREE_DIFFERENT" or "THREE_SAME") ||
+                bonus.RequiredCount <= 0 ||
+                bonus.Points < 0)
+            {
+                errors.Add(new ErrorDetail("definition.need_set_bonuses", "INVALID"));
+            }
+
+            if (!seenPatterns.Add(patternCode))
+            {
+                errors.Add(new ErrorDetail("definition.need_set_bonuses", "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateGoldPrices(
+        IReadOnlyCollection<RulesetGoldPriceDto> prices,
+        List<ErrorDetail> errors)
+    {
+        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var price in prices)
+        {
+            if (string.IsNullOrWhiteSpace(price.PriceCode) || price.Qty <= 0 || price.UnitPrice <= 0)
+            {
+                errors.Add(new ErrorDetail("definition.gold_prices", "OUT_OF_RANGE"));
+            }
+
+            if (!seenCodes.Add(price.PriceCode))
+            {
+                errors.Add(new ErrorDetail("definition.gold_prices", "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateShariaLoans(
+        IReadOnlyCollection<RulesetShariaLoanDto> loans,
+        bool enabled,
+        List<ErrorDetail> errors)
+    {
+        if (enabled && loans.Count == 0)
+        {
+            errors.Add(new ErrorDetail("definition.sharia_loans", "REQUIRED"));
+            return;
+        }
+
+        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var loan in loans)
+        {
+            if (string.IsNullOrWhiteSpace(loan.LoanCode) ||
+                loan.Principal <= 0 ||
+                loan.Installment <= 0 ||
+                loan.DurationDays <= 0 ||
+                loan.PenaltyPoints < 0)
+            {
+                errors.Add(new ErrorDetail("definition.sharia_loans", "OUT_OF_RANGE"));
+            }
+
+            if (!seenCodes.Add(loan.LoanCode))
+            {
+                errors.Add(new ErrorDetail("definition.sharia_loans", "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateInsuranceProducts(
+        IReadOnlyCollection<RulesetInsuranceProductDto> products,
+        bool enabled,
+        List<ErrorDetail> errors)
+    {
+        if (enabled && products.Count == 0)
+        {
+            errors.Add(new ErrorDetail("definition.insurance_products", "REQUIRED"));
+            return;
+        }
+
+        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var product in products)
+        {
+            if (string.IsNullOrWhiteSpace(product.ProductCode) ||
+                product.Premium <= 0 ||
+                product.UsageLimit <= 0)
+            {
+                errors.Add(new ErrorDetail("definition.insurance_products", "OUT_OF_RANGE"));
+            }
+
+            if (!seenCodes.Add(product.ProductCode))
+            {
+                errors.Add(new ErrorDetail("definition.insurance_products", "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateLifeRisks(
+        IReadOnlyCollection<RulesetLifeRiskDto> risks,
+        List<ErrorDetail> errors)
+    {
+        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var risk in risks)
+        {
+            if (string.IsNullOrWhiteSpace(risk.RiskCode) ||
+                string.IsNullOrWhiteSpace(risk.EffectType) ||
+                risk.Direction is not ("IN" or "OUT") ||
+                risk.Amount < 0)
+            {
+                errors.Add(new ErrorDetail("definition.life_risks", "INVALID"));
+            }
+
+            if (!seenCodes.Add(risk.RiskCode))
+            {
+                errors.Add(new ErrorDetail("definition.life_risks", "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateRankPoints(IReadOnlyCollection<RulesetDonationRankPointDto> points, string field, List<ErrorDetail> errors)
+    {
+        var seen = new HashSet<int>();
+        foreach (var point in points)
+        {
+            if (point.Rank <= 0 || point.Points < 0)
+            {
+                errors.Add(new ErrorDetail(field, "OUT_OF_RANGE"));
+                continue;
+            }
+
+            if (!seen.Add(point.Rank))
+            {
+                errors.Add(new ErrorDetail(field, "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateRankPoints(IReadOnlyCollection<RulesetPensionRankPointDto> points, string field, List<ErrorDetail> errors)
+    {
+        var seen = new HashSet<int>();
+        foreach (var point in points)
+        {
+            if (point.Rank <= 0 || point.Points < 0)
+            {
+                errors.Add(new ErrorDetail(field, "OUT_OF_RANGE"));
+                continue;
+            }
+
+            if (!seen.Add(point.Rank))
+            {
+                errors.Add(new ErrorDetail(field, "DUPLICATE"));
+            }
+        }
+    }
+
+    private static void ValidateQtyPoints(IReadOnlyCollection<RulesetGoldPointDto> points, string field, List<ErrorDetail> errors)
+    {
+        var seen = new HashSet<int>();
+        foreach (var point in points)
+        {
+            if (point.Qty <= 0 || point.Points < 0)
+            {
+                errors.Add(new ErrorDetail(field, "OUT_OF_RANGE"));
+                continue;
+            }
+
+            if (!seen.Add(point.Qty))
+            {
+                errors.Add(new ErrorDetail(field, "DUPLICATE"));
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -103,7 +413,7 @@ internal static class RulesetConfigParser
         if (!TryGetString(root, "mode", out var mode, errors)) return false;
         if (!TryGetInt(root, "actions_per_turn", out var actionsPerTurn, errors)) return false;
         if (!TryGetInt(root, "starting_cash", out var startingCash, errors)) return false;
-        var playerOrdering = PlayerOrdering.JoinOrder;
+        var playerOrdering = PlayerOrdering.PlayerOrder;
         if (root.TryGetProperty("player_ordering", out var playerOrderingElement))
         {
             if (playerOrderingElement.ValueKind != JsonValueKind.String)
@@ -386,9 +696,9 @@ internal static class RulesetConfigParser
     /// <param name="rawValue">Nilai string mentah dari JSON.</param>
     /// <param name="ordering">Hasil konversi enum.</param>
     /// <returns>True jika konversi berhasil.</returns>
-    private static bool TryParsePlayerOrdering(string rawValue, out PlayerOrdering ordering)
+    internal static bool TryParsePlayerOrdering(string rawValue, out PlayerOrdering ordering)
     {
-        ordering = PlayerOrdering.JoinOrder;
+        ordering = PlayerOrdering.PlayerOrder;
         if (string.IsNullOrWhiteSpace(rawValue))
         {
             return false;
@@ -396,8 +706,8 @@ internal static class RulesetConfigParser
 
         switch (rawValue.Trim().ToUpperInvariant())
         {
-            case "JOIN_ORDER":
-                ordering = PlayerOrdering.JoinOrder;
+            case "PLAYER_ORDER":
+                ordering = PlayerOrdering.PlayerOrder;
                 return true;
             case "INSTRUCTOR_ORDER":
             case "MANUAL_ORDER":

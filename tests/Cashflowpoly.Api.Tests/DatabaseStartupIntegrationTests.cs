@@ -46,16 +46,49 @@ public sealed class DatabaseStartupIntegrationTests
         Assert.True(hasPgcrypto);
 
         var seededRulesets = await connection.ExecuteScalarAsync<int>(
-            "select count(*) from rulesets where created_by = 'system-seed-relational-v2';");
+            "select count(*) from rulesets where instructor_user_id is null and created_by_user_id is null;");
         Assert.True(seededRulesets >= 2, $"Expected at least 2 default seeded rulesets, found {seededRulesets}.");
 
-        var canonicalSchemaState = await connection.QuerySingleAsync<(bool HasCatalogItems, bool HasCatalogRequirements, bool HasPlayerAssets, bool HasDonationEvents, bool HasDisplayName, bool HasPlayersTable, bool HasUserPlayerLinksTable)>(
+        var canonicalSchemaState = await connection.QuerySingleAsync<(
+            bool HasParticipants,
+            bool HasGameAssets,
+            bool HasEventAssetReferences,
+            bool HasInventory,
+            bool HasGoldHoldings,
+            bool HasLoans,
+            bool HasInsurances,
+            bool HasTriggerConditions,
+            bool HasGameSettings,
+            bool HasDisplayName,
+            bool HasLegacyParticipantAssets,
+            bool HasLegacyActionLogs,
+            bool HasLegacyInterpreterCommands,
+            bool HasLegacyQuestScripts,
+            bool HasLegacyNarrativeScripts,
+            bool HasLegacyNarrativeAssets,
+            bool HasLegacyDonationRankings,
+            bool HasLegacyPensionRankings,
+            bool HasLegacyPlayersTable,
+            bool HasLegacyCatalogTable,
+            bool HasConfigJsonColumn,
+            bool HasEventInventoryEffectsTable,
+            bool HasRulesetCreatedByUserId,
+            bool HasRulesetCreatedByVarchar,
+            bool HasEventPayloadVersion,
+            bool HasArchivedSessionColumn,
+            bool HasArchivedRulesetColumn,
+            bool HasCitextUsername)>(
             """
             select
-                to_regclass('public.ruleset_catalog_items') is not null as HasCatalogItems,
-                to_regclass('public.ruleset_catalog_item_requirements') is not null as HasCatalogRequirements,
-                to_regclass('public.session_player_assets') is not null as HasPlayerAssets,
-                to_regclass('public.session_donation_events') is not null as HasDonationEvents,
+                to_regclass('public.session_participants') is not null as HasParticipants,
+                to_regclass('public.ruleset_game_assets') is not null as HasGameAssets,
+                to_regclass('public.event_asset_references') is not null as HasEventAssetReferences,
+                to_regclass('public.session_participant_inventory') is not null as HasInventory,
+                to_regclass('public.session_participant_gold_holdings') is not null as HasGoldHoldings,
+                to_regclass('public.session_participant_loans') is not null as HasLoans,
+                to_regclass('public.session_participant_insurances') is not null as HasInsurances,
+                to_regclass('public.ruleset_trigger_conditions') is not null as HasTriggerConditions,
+                to_regclass('public.ruleset_game_settings') is not null as HasGameSettings,
                 exists (
                     select 1
                     from information_schema.columns
@@ -63,20 +96,119 @@ public sealed class DatabaseStartupIntegrationTests
                       and table_name = 'app_users'
                       and column_name = 'display_name'
                 ) as HasDisplayName,
-                to_regclass('public.players') is not null as HasPlayersTable,
-                to_regclass('public.user_player_links') is not null as HasUserPlayerLinksTable
+                to_regclass('public.session_participant_assets') is not null as HasLegacyParticipantAssets,
+                to_regclass('public.session_action_logs') is not null as HasLegacyActionLogs,
+                to_regclass('public.interpreter_commands') is not null as HasLegacyInterpreterCommands,
+                to_regclass('public.quest_scripts') is not null as HasLegacyQuestScripts,
+                to_regclass('public.narrative_scripts') is not null as HasLegacyNarrativeScripts,
+                to_regclass('public.narrative_assets') is not null as HasLegacyNarrativeAssets,
+                to_regclass('public.session_donation_event_rankings') is not null as HasLegacyDonationRankings,
+                to_regclass('public.session_pension_rankings') is not null as HasLegacyPensionRankings,
+                exists (
+                    select 1
+                    from information_schema.tables
+                    where table_schema = 'public'
+                      and table_name = 'session_players'
+                      and table_type = 'BASE TABLE'
+                ) as HasLegacyPlayersTable,
+                exists (
+                    select 1
+                    from information_schema.tables
+                    where table_schema = 'public'
+                      and table_name = 'ruleset_catalog_items'
+                      and table_type = 'BASE TABLE'
+                ) as HasLegacyCatalogTable,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'ruleset_versions'
+                      and column_name = 'config_json'
+                ) as HasConfigJsonColumn,
+                exists (
+                    select 1
+                    from information_schema.tables
+                    where table_schema = 'public'
+                      and table_name = 'event_inventory_effects'
+                      and table_type = 'BASE TABLE'
+                ) as HasEventInventoryEffectsTable,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'rulesets'
+                      and column_name = 'created_by_user_id'
+                ) as HasRulesetCreatedByUserId,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'rulesets'
+                      and column_name = 'created_by'
+                ) as HasRulesetCreatedByVarchar,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'events'
+                      and column_name = 'payload_version'
+                ) as HasEventPayloadVersion,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'sessions'
+                      and column_name = 'is_archived'
+                ) as HasArchivedSessionColumn,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'rulesets'
+                      and column_name = 'is_archived'
+                ) as HasArchivedRulesetColumn,
+                exists (
+                    select 1
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = 'app_users'
+                      and column_name = 'username'
+                      and udt_name = 'citext'
+                ) as HasCitextUsername
             """);
-        Assert.True(canonicalSchemaState.HasCatalogItems);
-        Assert.True(canonicalSchemaState.HasCatalogRequirements);
-        Assert.True(canonicalSchemaState.HasPlayerAssets);
-        Assert.True(canonicalSchemaState.HasDonationEvents);
+        Assert.True(canonicalSchemaState.HasParticipants);
+        Assert.True(canonicalSchemaState.HasGameAssets);
+        Assert.True(canonicalSchemaState.HasEventAssetReferences);
+        Assert.True(canonicalSchemaState.HasInventory);
+        Assert.True(canonicalSchemaState.HasGoldHoldings);
+        Assert.True(canonicalSchemaState.HasLoans);
+        Assert.True(canonicalSchemaState.HasInsurances);
+        Assert.True(canonicalSchemaState.HasTriggerConditions);
+        Assert.True(canonicalSchemaState.HasGameSettings);
         Assert.True(canonicalSchemaState.HasDisplayName);
-        Assert.False(canonicalSchemaState.HasPlayersTable);
-        Assert.False(canonicalSchemaState.HasUserPlayerLinksTable);
+        Assert.True(canonicalSchemaState.HasCitextUsername);
+        Assert.False(canonicalSchemaState.HasLegacyParticipantAssets);
+        Assert.False(canonicalSchemaState.HasLegacyActionLogs);
+        Assert.False(canonicalSchemaState.HasLegacyInterpreterCommands);
+        Assert.False(canonicalSchemaState.HasLegacyQuestScripts);
+        Assert.False(canonicalSchemaState.HasLegacyNarrativeScripts);
+        Assert.False(canonicalSchemaState.HasLegacyNarrativeAssets);
+        Assert.False(canonicalSchemaState.HasLegacyDonationRankings);
+        Assert.False(canonicalSchemaState.HasLegacyPensionRankings);
+        Assert.False(canonicalSchemaState.HasLegacyPlayersTable);
+        Assert.False(canonicalSchemaState.HasLegacyCatalogTable);
+        Assert.False(canonicalSchemaState.HasConfigJsonColumn);
+        Assert.False(canonicalSchemaState.HasEventInventoryEffectsTable);
+        Assert.True(canonicalSchemaState.HasRulesetCreatedByUserId);
+        Assert.False(canonicalSchemaState.HasRulesetCreatedByVarchar);
+        Assert.True(canonicalSchemaState.HasEventPayloadVersion);
+        Assert.True(canonicalSchemaState.HasArchivedSessionColumn);
+        Assert.True(canonicalSchemaState.HasArchivedRulesetColumn);
 
         await AssertHasUniqueIndexAsync(connection, "app_users", ["username"]);
-        await AssertHasUniqueIndexAsync(connection, "session_players", ["session_id", "user_id"]);
+        await AssertHasUniqueIndexAsync(connection, "session_participants", ["session_id", "user_id"]);
         await AssertHasUniqueIndexAsync(connection, "events", ["session_id", "event_id"]);
+        await AssertHasUniqueIndexAsync(connection, "events", ["session_id", "client_request_id"]);
     }
 
     [Fact]
@@ -101,8 +233,11 @@ public sealed class DatabaseStartupIntegrationTests
             await setupConnection.ExecuteAsync(schemaSql);
             await setupConnection.ExecuteAsync(
                 """
-                drop table if exists session_donation_events cascade;
-                drop table if exists session_player_assets cascade;
+                drop table if exists event_asset_references cascade;
+                drop table if exists session_participant_gold_holdings cascade;
+                drop table if exists session_participant_loans cascade;
+                drop table if exists session_participant_insurances cascade;
+                drop table if exists session_participant_inventory cascade;
                 """);
         }
 
@@ -121,14 +256,25 @@ public sealed class DatabaseStartupIntegrationTests
         await using var connection = new NpgsqlConnection(database.GetConnectionString());
         await connection.OpenAsync();
 
-        var canonicalSchemaState = await connection.QuerySingleAsync<(bool HasPlayerAssets, bool HasDonationEvents)>(
+        var canonicalSchemaState = await connection.QuerySingleAsync<(
+            bool HasEventAssetReferences,
+            bool HasInventory,
+            bool HasGoldHoldings,
+            bool HasLoans,
+            bool HasInsurances)>(
             """
             select
-                to_regclass('public.session_player_assets') is not null as HasPlayerAssets,
-                to_regclass('public.session_donation_events') is not null as HasDonationEvents
+                to_regclass('public.event_asset_references') is not null as HasEventAssetReferences,
+                to_regclass('public.session_participant_inventory') is not null as HasInventory,
+                to_regclass('public.session_participant_gold_holdings') is not null as HasGoldHoldings,
+                to_regclass('public.session_participant_loans') is not null as HasLoans,
+                to_regclass('public.session_participant_insurances') is not null as HasInsurances
             """);
-        Assert.True(canonicalSchemaState.HasPlayerAssets);
-        Assert.True(canonicalSchemaState.HasDonationEvents);
+        Assert.True(canonicalSchemaState.HasEventAssetReferences);
+        Assert.True(canonicalSchemaState.HasInventory);
+        Assert.True(canonicalSchemaState.HasGoldHoldings);
+        Assert.True(canonicalSchemaState.HasLoans);
+        Assert.True(canonicalSchemaState.HasInsurances);
     }
 
     private static async Task RunWithConnectionStringAsync(string connectionString, Func<Task> action)

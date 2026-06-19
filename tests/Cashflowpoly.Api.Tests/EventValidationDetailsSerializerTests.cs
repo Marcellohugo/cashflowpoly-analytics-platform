@@ -10,7 +10,7 @@ public sealed class EventValidationDetailsSerializerTests
     [Fact]
     public void BuildValidationDetailsJson_ReturnsNullWhenErrorIsMissing()
     {
-        var request = CreateEventRequest(Guid.NewGuid(), "transaction.recorded");
+        var request = CreateEventRequest(Guid.NewGuid(), "CatatTransaksi");
 
         var json = new EventValidationDetailsSerializer().BuildValidationDetailsJson(request, null);
 
@@ -21,7 +21,7 @@ public sealed class EventValidationDetailsSerializerTests
     public void BuildValidationDetailsJson_SerializesPlayerActionAndErrorDetails()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateEventRequest(playerId, "transaction.recorded");
+        var request = CreateEventRequest(playerId, "CatatTransaksi");
         var error = new ErrorResponse(
             "VALIDATION_ERROR",
             "Payload transaksi tidak valid",
@@ -33,7 +33,7 @@ public sealed class EventValidationDetailsSerializerTests
         using var document = JsonDocument.Parse(json!);
         var root = document.RootElement;
         Assert.Equal(playerId, root.GetProperty("user_id").GetGuid());
-        Assert.Equal("transaction.recorded", root.GetProperty("action_type").GetString());
+        Assert.Equal("CatatTransaksi", root.GetProperty("action_type").GetString());
         var detail = root.GetProperty("details")[0];
         Assert.Equal("payload.amount", detail.GetProperty("field").GetString());
         Assert.Equal("OUT_OF_RANGE", detail.GetProperty("issue").GetString());

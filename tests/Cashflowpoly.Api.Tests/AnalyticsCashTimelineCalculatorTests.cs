@@ -15,8 +15,8 @@ public sealed class AnalyticsCashTimelineCalculatorTests
         var secondEventId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(firstEventId, sessionId, playerId, turnNumber: 1),
-            CreateEvent(secondEventId, sessionId, playerId, turnNumber: 2)
+            CreateEvent(firstEventId, sessionId, playerId, actionSlot: 1),
+            CreateEvent(secondEventId, sessionId, playerId, actionSlot: 2)
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -37,48 +37,48 @@ public sealed class AnalyticsCashTimelineCalculatorTests
         Assert.Collection(timeline.CoinsSpentPerTurn,
             item =>
             {
-                Assert.Equal(1, item.TurnNumber);
+                Assert.Equal(1, item.ActionSlot);
                 Assert.Equal(4, item.Amount);
             },
             item =>
             {
-                Assert.Equal(2, item.TurnNumber);
+                Assert.Equal(2, item.ActionSlot);
                 Assert.Equal(3, item.Amount);
             });
 
         Assert.Collection(timeline.CoinsEarnedPerTurn,
             item =>
             {
-                Assert.Equal(1, item.TurnNumber);
+                Assert.Equal(1, item.ActionSlot);
                 Assert.Equal(10, item.Amount);
             });
 
         Assert.Collection(timeline.NetIncomePerTurn,
             item =>
             {
-                Assert.Equal(1, item.TurnNumber);
+                Assert.Equal(1, item.ActionSlot);
                 Assert.Equal(6, item.Net);
             },
             item =>
             {
-                Assert.Equal(2, item.TurnNumber);
+                Assert.Equal(2, item.ActionSlot);
                 Assert.Equal(-3, item.Net);
             });
 
         Assert.Collection(timeline.CoinsProgression,
             item =>
             {
-                Assert.Equal(1, item.TurnNumber);
+                Assert.Equal(1, item.ActionSlot);
                 Assert.Equal(26, item.Coins);
             },
             item =>
             {
-                Assert.Equal(2, item.TurnNumber);
+                Assert.Equal(2, item.ActionSlot);
                 Assert.Equal(23, item.Coins);
             });
     }
 
-    private static EventDb CreateEvent(Guid eventId, Guid sessionId, Guid playerId, int turnNumber)
+    private static EventDb CreateEvent(Guid eventId, Guid sessionId, Guid playerId, int actionSlot)
     {
         return new EventDb
         {
@@ -89,9 +89,9 @@ public sealed class AnalyticsCashTimelineCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = turnNumber,
-            SequenceNumber = turnNumber,
-            ActionType = "transaction.recorded",
+            ActionSlot = actionSlot,
+            SequenceNumber = actionSlot,
+            ActionType = "CatatTransaksi",
             RulesetVersionId = Guid.NewGuid(),
             Payload = "{}"
         };

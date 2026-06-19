@@ -9,11 +9,11 @@ public sealed class CreateSessionRequest
     {
     }
 
-    public CreateSessionRequest(string sessionName, string mode, Guid rulesetId)
+    public CreateSessionRequest(string sessionName, string mode, Guid rulesetVersionId)
     {
         SessionName = sessionName;
         Mode = mode;
-        RulesetId = rulesetId;
+        RulesetVersionId = rulesetVersionId;
     }
 
     [JsonPropertyName("session_name")]
@@ -22,8 +22,8 @@ public sealed class CreateSessionRequest
     [JsonPropertyName("mode")]
     public string? Mode { get; init; }
 
-    [JsonPropertyName("ruleset_id")]
-    public Guid? RulesetId { get; init; }
+    [JsonPropertyName("ruleset_version_id")]
+    public Guid? RulesetVersionId { get; init; }
 
     [JsonPropertyName("player_names")]
     public List<string>? PlayerNames { get; init; }
@@ -38,6 +38,13 @@ public sealed class CreateSessionResponse
     public CreateSessionResponse(Guid sessionId)
     {
         SessionId = sessionId;
+    }
+
+    public CreateSessionResponse(Guid sessionId, Guid rulesetId, Guid rulesetVersionId)
+    {
+        SessionId = sessionId;
+        RulesetId = rulesetId;
+        RulesetVersionId = rulesetVersionId;
     }
 
     public CreateSessionResponse(Guid sessionId, Guid rulesetId, Guid rulesetVersionId, SessionStateResponse state)
@@ -80,12 +87,11 @@ public sealed record PlayerListResponse([property: JsonPropertyName("items")] Li
 public sealed record AddSessionPlayerRequest(
     [property: JsonPropertyName("user_id")] Guid? UserId,
     [property: JsonPropertyName("username")] string? Username,
-    [property: JsonPropertyName("join_order")] int? JoinOrder,
-    [property: JsonPropertyName("role")] string? Role);
+    [property: JsonPropertyName("player_order_no")] int? PlayerOrder);
 
 public sealed record AddSessionPlayerResponse(
     [property: JsonPropertyName("user_id")] Guid UserId,
-    [property: JsonPropertyName("join_order")] int JoinOrder);
+    [property: JsonPropertyName("player_order_no")] int PlayerOrder);
 
 public sealed record SessionListItem(
     [property: JsonPropertyName("session_id")] Guid SessionId,
@@ -98,33 +104,28 @@ public sealed record SessionListItem(
 
 public sealed record SessionListResponse([property: JsonPropertyName("items")] List<SessionListItem> Items);
 
-public sealed record ActivateRulesetRequest(
-    [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
-    [property: JsonPropertyName("version")] int Version);
-
-public sealed record ActivateRulesetResponse(
-    [property: JsonPropertyName("session_id")] Guid SessionId,
-    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId);
-
 public sealed record CreateRulesetRequest(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("description")] string? Description,
-    [property: JsonPropertyName("config")] JsonElement Config);
+    [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition);
 
 public sealed record UpdateRulesetRequest(
     [property: JsonPropertyName("name")] string? Name,
     [property: JsonPropertyName("description")] string? Description,
-    [property: JsonPropertyName("config")] JsonElement? Config);
+    [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition);
 
 public sealed record CreateRulesetResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
     [property: JsonPropertyName("version")] int Version);
 
 public sealed record RulesetListItem(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("latest_version")] int LatestVersion,
-    [property: JsonPropertyName("status")] string Status);
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("is_default")] bool IsDefault = false,
+    [property: JsonPropertyName("is_locked_by_session")] bool IsLockedBySession = false);
 
 public sealed record RulesetListResponse([property: JsonPropertyName("items")] List<RulesetListItem> Items);
 
@@ -139,19 +140,19 @@ public sealed record RulesetDetailResponse(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("description")] string? Description,
     [property: JsonPropertyName("versions")] List<RulesetVersionItem> Versions,
-    [property: JsonPropertyName("config_json")] JsonElement? ConfigJson,
     [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null,
     [property: JsonPropertyName("version")] int? Version = null,
     [property: JsonPropertyName("mode")] string? Mode = null,
-    [property: JsonPropertyName("sections")] RulesetSectionCatalogResponse? Sections = null);
+    [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition = null,
+    [property: JsonPropertyName("is_default")] bool IsDefault = false,
+    [property: JsonPropertyName("is_locked_by_session")] bool IsLockedBySession = false);
 
 public sealed record RulesetComponentsResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
     [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
     [property: JsonPropertyName("version")] int Version,
     [property: JsonPropertyName("mode")] string? Mode,
-    [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog,
-    [property: JsonPropertyName("sections")] RulesetSectionCatalogResponse? Sections = null);
+    [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition = null);
 
 public sealed record DefaultRulesetComponentItem(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -160,8 +161,7 @@ public sealed record DefaultRulesetComponentItem(
     [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
     [property: JsonPropertyName("version")] int Version,
     [property: JsonPropertyName("mode")] string? Mode,
-    [property: JsonPropertyName("component_catalog")] JsonElement? ComponentCatalog,
-    [property: JsonPropertyName("sections")] RulesetSectionCatalogResponse? Sections = null);
+    [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition = null);
 
 public sealed record DefaultRulesetComponentsResponse(
     [property: JsonPropertyName("items")] List<DefaultRulesetComponentItem> Items);
@@ -174,12 +174,13 @@ public sealed record EventRequest(
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
     [property: JsonPropertyName("day_index")] int DayIndex,
     [property: JsonPropertyName("weekday")] string Weekday,
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("sequence_number")] long SequenceNumber,
     [property: JsonPropertyName("action_type")] string ActionType,
     [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
     [property: JsonPropertyName("payload")] JsonElement Payload,
-    [property: JsonPropertyName("client_request_id")] string? ClientRequestId);
+    [property: JsonPropertyName("client_request_id")] string? ClientRequestId,
+    [property: JsonPropertyName("turn_number")] int TurnNumber = 0);
 
 public sealed record EventStoredResponse(
     [property: JsonPropertyName("stored")] bool Stored,
@@ -208,7 +209,7 @@ public sealed record AnalyticsSessionSummary(
 
 public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("user_id")] Guid UserId,
-    [property: JsonPropertyName("join_order")] int JoinOrder,
+    [property: JsonPropertyName("player_order_no")] int PlayerOrder,
     [property: JsonPropertyName("cash_in_total")] double CashInTotal,
     [property: JsonPropertyName("cash_out_total")] double CashOutTotal,
     [property: JsonPropertyName("donation_total")] double DonationTotal,
@@ -240,8 +241,39 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
     [property: JsonPropertyName("user_id")] Guid UserId,
     [property: JsonPropertyName("computed_at")] DateTimeOffset? ComputedAt,
-    [property: JsonPropertyName("raw")] JsonElement? Raw,
-    [property: JsonPropertyName("derived")] JsonElement? Derived);
+    [property: JsonPropertyName("economy")] GameplayEconomyMetrics Economy,
+    [property: JsonPropertyName("progress")] GameplayProgressMetrics Progress,
+    [property: JsonPropertyName("score")] GameplayScoreMetrics Score,
+    [property: JsonPropertyName("compliance")] GameplayComplianceMetrics Compliance);
+
+public sealed record GameplayEconomyMetrics(
+    [property: JsonPropertyName("starting_cash")] double StartingCash,
+    [property: JsonPropertyName("cash_in_total")] double CashInTotal,
+    [property: JsonPropertyName("cash_out_total")] double CashOutTotal,
+    [property: JsonPropertyName("cashflow_net_total")] double CashflowNetTotal,
+    [property: JsonPropertyName("donation_total")] double DonationTotal);
+
+public sealed record GameplayProgressMetrics(
+    [property: JsonPropertyName("gold_qty")] int GoldQty,
+    [property: JsonPropertyName("orders_completed_count")] int OrdersCompletedCount,
+    [property: JsonPropertyName("inventory_ingredient_total")] int InventoryIngredientTotal,
+    [property: JsonPropertyName("actions_used_total")] int ActionsUsedTotal);
+
+public sealed record GameplayScoreMetrics(
+    [property: JsonPropertyName("happiness_points_total")] double HappinessPointsTotal,
+    [property: JsonPropertyName("need_points_total")] double NeedPointsTotal,
+    [property: JsonPropertyName("need_set_bonus_points")] double NeedSetBonusPoints,
+    [property: JsonPropertyName("donation_points_total")] double DonationPointsTotal,
+    [property: JsonPropertyName("gold_points_total")] double GoldPointsTotal,
+    [property: JsonPropertyName("pension_points_total")] double PensionPointsTotal,
+    [property: JsonPropertyName("saving_goal_points_total")] double SavingGoalPointsTotal,
+    [property: JsonPropertyName("mission_penalty_total")] double MissionPenaltyTotal,
+    [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
+    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
+
+public sealed record GameplayComplianceMetrics(
+    [property: JsonPropertyName("primary_need_rate")] double PrimaryNeedRate,
+    [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount);
 
 public sealed record TransactionHistoryItem(
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
@@ -326,8 +358,7 @@ public sealed record RulesetSectionCatalogResponse(
     [property: JsonPropertyName("kebutuhan")] JsonElement Kebutuhan,
     [property: JsonPropertyName("targetKebutuhan")] JsonElement TargetKebutuhan,
     [property: JsonPropertyName("tujuanFinansial")] JsonElement TujuanFinansial,
-    [property: JsonPropertyName("narasi")] JsonElement Narasi,
-    [property: JsonPropertyName("quest")] JsonElement Quest);
+    [property: JsonPropertyName("narasi")] JsonElement Narasi);
 
 public sealed record RulesetSectionsResponse(
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -339,8 +370,7 @@ public sealed record RulesetSectionsResponse(
     [property: JsonPropertyName("kebutuhan")] JsonElement Kebutuhan,
     [property: JsonPropertyName("targetKebutuhan")] JsonElement TargetKebutuhan,
     [property: JsonPropertyName("tujuanFinansial")] JsonElement TujuanFinansial,
-    [property: JsonPropertyName("narasi")] JsonElement Narasi,
-    [property: JsonPropertyName("quest")] JsonElement Quest);
+    [property: JsonPropertyName("narasi")] JsonElement Narasi);
 
 public sealed class SaveSessionStateRequest
 {
@@ -353,17 +383,14 @@ public sealed class SaveSessionStateRequest
     [JsonPropertyName("turn")]
     public int Turn { get; init; }
 
-    [JsonPropertyName("moves_left")]
-    public int MovesLeft { get; init; }
+    [JsonPropertyName("action_slots_left")]
+    public int ActionSlotsLeft { get; init; }
 
     [JsonPropertyName("finish_day")]
     public int FinishDay { get; init; }
 
     [JsonPropertyName("is_game_over")]
     public bool IsGameOver { get; init; }
-
-    [JsonPropertyName("ui_state")]
-    public JsonElement? UiState { get; init; }
 
     [JsonPropertyName("players")]
     public List<SessionPlayerStateDto>? Players { get; init; }
@@ -389,17 +416,14 @@ public sealed class SessionStateResponse
     [JsonPropertyName("turn")]
     public int Turn { get; init; }
 
-    [JsonPropertyName("moves_left")]
-    public int MovesLeft { get; init; }
+    [JsonPropertyName("action_slots_left")]
+    public int ActionSlotsLeft { get; init; }
 
     [JsonPropertyName("finish_day")]
     public int FinishDay { get; init; }
 
     [JsonPropertyName("is_game_over")]
     public bool IsGameOver { get; init; }
-
-    [JsonPropertyName("ui_state")]
-    public JsonElement UiState { get; init; }
 
     [JsonPropertyName("players")]
     public List<SessionPlayerStateDto> Players { get; init; } = [];
@@ -416,7 +440,7 @@ public sealed class SessionPlayerStateDto
     [JsonPropertyName("user_id")]
     public Guid? UserId { get; init; }
 
-    [JsonPropertyName("player_index")]
+    [JsonPropertyName("player_order_no")]
     public int PlayerIndex { get; init; }
 
     [JsonPropertyName("name")]
@@ -443,9 +467,6 @@ public sealed class SessionPlayerStateDto
     [JsonPropertyName("targetKebutuhan")]
     public List<TargetKebutuhanProgressDto> TargetKebutuhan { get; init; } = [];
 
-    [JsonPropertyName("questProgress")]
-    public List<QuestProgressDto> QuestProgress { get; init; } = [];
-
     [JsonPropertyName("actionCounters")]
     public List<ActionCounterDto> ActionCounters { get; init; } = [];
 
@@ -461,22 +482,29 @@ public sealed record KebutuhanItemDto(
     [property: JsonPropertyName("nama")] string Nama,
     [property: JsonPropertyName("tipe")] string Tipe);
 
-public sealed record TujuanFinansialItemDto(
-    [property: JsonPropertyName("nama")] string Nama,
-    [property: JsonPropertyName("purchased_at_day")] int PurchasedAtDay);
+public sealed class TujuanFinansialItemDto
+{
+    [JsonPropertyName("nama")]
+    public string Nama { get; init; } = string.Empty;
+
+    [JsonPropertyName("current_amount")]
+    public int CurrentAmount { get; init; }
+
+    [JsonPropertyName("target_amount")]
+    public int? TargetAmount { get; init; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "ONGOING";
+
+    [JsonPropertyName("purchased_at_day")]
+    public int? PurchasedAtDay { get; init; }
+}
 
 public sealed record TargetKebutuhanProgressDto(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("is_completed")] bool IsCompleted,
     [property: JsonPropertyName("is_failed")] bool IsFailed,
     [property: JsonPropertyName("reward_applied")] bool RewardApplied);
-
-public sealed record QuestProgressDto(
-    [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("progress")] int Progress,
-    [property: JsonPropertyName("target")] int Target,
-    [property: JsonPropertyName("is_completed")] bool IsCompleted,
-    [property: JsonPropertyName("is_reward_claimed")] bool IsRewardClaimed);
 
 public sealed record ActionCounterDto(
     [property: JsonPropertyName("aksi")] string Aksi,
@@ -502,7 +530,7 @@ public sealed class DonationRankingDto
     [JsonPropertyName("session_player_id")]
     public Guid SessionPlayerId { get; init; }
 
-    [JsonPropertyName("player_index")]
+    [JsonPropertyName("player_order_no")]
     public int? PlayerIndex { get; init; }
 
     [JsonPropertyName("total_donasi")]

@@ -1,6 +1,8 @@
 # Cashflowpoly Analytics Platform
 
-Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan aktivasi *ruleset* sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
+Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan penguncian `ruleset_version_id` pada sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
+
+Baseline dokumentasi ini mengikuti implementasi aktual per 18 Juni 2026.
 
 ## Tujuan
 Tujuan utama:
@@ -13,7 +15,7 @@ Tujuan utama:
 ## Ruang lingkup fitur
 ### Platform web
 - UI berjalan di browser, mengonsumsi data dari REST API, dan difokuskan sebagai Web Analitik.
-- UI tidak membuat sesi, menambahkan Player, memulai/mengakhiri sesi, atau mengirim event permainan; operasi gameplay tersebut menjadi tanggung jawab Klien Game/IDN atau integrasi API. UI tetap menyediakan create/edit/delete/activate *ruleset* dan aktivasi *ruleset* sesi untuk Instruktur.
+- UI tidak membuat sesi, menambahkan Player, memulai/mengakhiri sesi, atau mengirim event permainan; operasi gameplay tersebut menjadi tanggung jawab Klien Game/IDN atau integrasi API. UI tetap menyediakan create/edit/delete/activate *ruleset* dan pemilihan `ruleset_version_id` saat setup sesi untuk Instruktur.
 
 ### Antarmuka analitik
 - Menampilkan performa pembelajaran pemain individu.
@@ -29,12 +31,18 @@ Tujuan utama:
 
 ### API back-end
 - Menyediakan endpoint login/register untuk Instruktur dan Player.
-- Menyediakan endpoint lifecycle sesi, pemilihan *ruleset*, dan pengelolaan Player untuk Klien Game/IDN.
+- Menyediakan endpoint lifecycle sesi, penguncian `ruleset_version_id` saat sesi dibuat, dan pengelolaan Player untuk Klien Game/IDN.
 - Menulis data permainan ke basis data dari *event*.
 - Membaca data dari basis data untuk kebutuhan analitika dan referensi *ruleset*.
 
 ### Basis data
-- Menyimpan pemain, sesi, *ruleset* dan versi, *event*, proyeksi arus kas, *metric snapshot*, serta log validasi.
+- Menyimpan akun aplikasi (`app_users`), peserta sesi (`session_participants`),
+  sesi, *ruleset* dan versi, *event*, registry asset, projection session,
+  *metric snapshot*, skor akhir, narrative log, audit keamanan, serta log
+  validasi.
+- `events` adalah satu-satunya sumber kebenaran gameplay. Tabel state,
+  inventory, asset, narrative, scoring, dan metrik adalah projection
+  yang memiliki provenance event dan dapat dibangun ulang.
 
 ## Arsitektur tingkat tinggi
 Arsitektur dibagi menjadi empat komponen:
@@ -51,7 +59,11 @@ Catatan kontrak API:
 
 ## Alur utama sistem
 1. Instruktur dan Player login/sign in ke Web Analitik atau Klien Game/IDN.
-2. Instruktur membuat sesi, menambahkan Player, dan memulai sesi melalui Klien Game/IDN; ruleset dapat dibuat/diedit dan diaktifkan melalui Web Analitik atau API.
+2. Instruktur membuat/mengedit ruleset, mengaktifkan versi ruleset, lalu
+   membuat sesi dengan `ruleset_version_id` yang dipilih. Setelah itu
+   instruktur menambahkan akun Player (`user_id`) ke sesi sebagai
+   `session_participant_id`/`session_player_id` dan memulai sesi melalui
+   Klien Game/IDN.
 3. Selama permainan berjalan, Instruktur memasukkan input keputusan Player melalui Klien Game/IDN.
 4. Klien Game/IDN mengirim event permainan ke API.
 5. API memvalidasi token, data sesi, data Player, ruleset aktif, urutan event, dan duplikasi event.
@@ -66,7 +78,7 @@ Catatan kontrak API:
 | 1 | Windows 11 Home | Sistem operasi untuk pengembangan dan pengujian |
 | 2 | Visual Studio Code | IDE untuk menulis kode dan menjalankan *debug* |
 | 3 | .NET 10 SDK | Toolchain untuk membangun REST API dan MVC |
-| 4 | PostgreSQL | DBMS untuk menyimpan sesi, *event*, *ruleset*, proyeksi, dan metrik |
+| 4 | PostgreSQL 15+ (direkomendasikan PostgreSQL 16) | DBMS untuk menyimpan sesi, *event*, *ruleset*, proyeksi, dan metrik |
 | 5 | Docker Desktop | Menjalankan seluruh komponen melalui *container* |
 | 6 | DBeaver | Mengelola PostgreSQL (koneksi, skema, query, inspeksi data) |
 | 7 | Google Chrome | Menguji UI MVC dan mengakses Swagger UI |
@@ -104,6 +116,9 @@ Catatan kontrak API:
 |  |  +- 00-01-panduan-setup-lingkungan.md
 |  |  +- 00-02-manual-pengguna-dan-skenario-operasional.md
 |  |  +- 00-03-panduan-menjalankan-sistem.md
+|  |  +- 00-04-status-kesesuaian-implementasi.md
+|  |  +- 00-05-panduan-deployment-production.md
+|  |  +- 00-06-matriks-alur-dan-hak-akses.md
 |  +- 01-Spesifikasi/
 |  |  +- 01-01-spesifikasi-kebutuhan-sistem.md
 |  |  +- 01-02-spesifikasi-event-dan-kontrak-api.md
@@ -115,6 +130,7 @@ Catatan kontrak API:
 |  |  +- 02-04-metrik-gameplay-fisik-dan-turunan.md
 |  |  +- 02-05-rancangan-dashboard-analitika-mvc.md
 |  |  +- 02-06-spesifikasi-ui-mvc-dan-rancangan-viewmodel.md
+|  |  +- 02-07-normalisasi-schema-event-first.md
 |  +- 03-Pengujian/
 |  |  +- 03-01-rencana-pengujian-fungsional-dan-validasi.md
 |  |  +- 03-02-laporan-hasil-pengujian.md
@@ -206,8 +222,14 @@ Catatan keamanan lokal:
 - Registrasi publik untuk semua role (`INSTRUCTOR` dan `PLAYER`) tersedia melalui endpoint `POST /api/v1/auth/register`.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 Rute UI utama:
-- Analitika sesi: `/Analytics`
-- Referensi ruleset: `/Rulesets`
+- Home: `/`
+- Daftar sesi: `/sessions`
+- Detail sesi: `/sessions/{id}`
+- Direktori Player: `/players`
+- Detail Player dalam sesi: `/sessions/{id}/players/{userId}`
+- Ruleset: `/rulesets`
+- Rulebook: `/rulebook`
+- Legacy analytics redirect: `/Analytics` atau `/analytics`
 
 ### 2) Sambungkan DBeaver ke PostgreSQL
 Gunakan konfigurasi berikut:
@@ -253,7 +275,7 @@ UI memakai base URL API dari `ApiBaseUrl`.
 JWT API dibaca dari `Jwt:SigningKey` dengan fallback ke environment variable `JWT_SIGNING_KEY`.
 Untuk production hardening, API juga mendukung multi-key rotation via `Jwt:SigningKeys` / `JWT_SIGNING_KEYS_JSON` serta secret file (`Jwt:SigningKeysFile` / `Jwt:SigningKeyFile`).
 
-Contoh lokal (sesuai `config/env/.env` dan launch settings):
+Contoh lokal (sesuai `config/env/.env.dev`, `appsettings.Development.json`, dan launch settings):
 - API: `http://localhost:5041` atau `https://localhost:7041`
 - UI: `http://localhost:5203` atau `https://localhost:7203`
 
@@ -271,20 +293,28 @@ dotnet run --project src/Cashflowpoly.Ui
 ## Endpoint tambahan
 Endpoint tambahan yang tersedia:
 - `GET /api/v1/sessions` daftar sesi
-- `POST /api/v1/sessions` buat sesi melalui Klien Game/IDN atau integrasi API
-- `POST /api/v1/sessions/{sessionId}/ruleset/activate` pilih ruleset sesi melalui Web Analitik, Klien Game/IDN, atau integrasi API
+- `POST /api/v1/sessions` buat sesi dengan `ruleset_version_id` melalui Klien Game/IDN atau integrasi API
 - `POST /api/v1/sessions/{sessionId}/start` mulai sesi melalui Klien Game/IDN atau integrasi API
 - `POST /api/v1/sessions/{sessionId}/end` akhiri sesi melalui Klien Game/IDN atau integrasi API
+- `GET /api/v1/sessions/{sessionId}/state` baca projection state sesi untuk Instruktur
+- `PUT /api/v1/sessions/{sessionId}/state` selalu mengembalikan `410 STATE_WRITE_DISABLED`; state hanya berubah lewat event ingestion
 - `POST /api/v1/players` buat pemain
 - `GET /api/v1/players` daftar pemain
 - `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
 - `POST /api/v1/events` ingest satu event permainan
 - `POST /api/v1/events/batch` ingest batch event permainan
+- `GET /api/v1/sessions/{sessionId}/events` ambil event sesi berurutan (`fromSeq`, `limit`)
+- `GET /api/v1/rulesets` daftar ruleset sesuai scope pengguna
 - `DELETE /api/v1/rulesets/{rulesetId}` hapus ruleset (jika belum dipakai sesi)
 - `GET /api/v1/rulesets/{rulesetId}` detail ruleset + versi
+- `GET /api/v1/rulesets/sections` struktur section ruleset untuk form/preview
 - `GET /api/v1/rulesets/components/defaults` daftar ruleset default komponen (mode pemula + mahir)
-- `GET /api/v1/rulesets/{rulesetId}/components` detail komponen ruleset dari `component_catalog` (opsional `?version=`).
+- `GET /api/v1/rulesets/{rulesetId}/components` detail komponen ruleset dari `definition` ter-normalisasi (opsional `?version=`).
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` hitung ulang metrik
+- `GET /api/v1/analytics/sessions/{sessionId}` ringkasan analitika sesi
+- `GET /api/v1/analytics/sessions/{sessionId}/transactions?userId=...` histori transaksi, dapat dibatasi ke akun Player tertentu
+- `GET /api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay` metrik gameplay per akun Player
+- `GET /api/v1/analytics/rulesets/{rulesetId}/summary` ringkasan performa lintas sesi pada ruleset
 - `GET /api/v1/observability/metrics/summary` ringkasan singkat observability yang menunjuk ke endpoint Prometheus API
 - `GET /metrics` metrik operasional API dalam format Prometheus (akses langsung ke service API)
 - `GET /api/v1/security/audit-logs` ringkasan audit log keamanan
@@ -299,6 +329,7 @@ Seluruh dokumen TA disimpan pada folder `docs/` agar repositori memuat artefak d
 
 Dokumen kunci:
 - Spesifikasi kebutuhan sistem (SRS): `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
+- Matriks alur dan hak akses: `docs/00-Panduan/00-06-matriks-alur-dan-hak-akses.md`
 - Kontrak API: `docs/01-Spesifikasi/01-02-spesifikasi-event-dan-kontrak-api.md`
 - Spesifikasi *ruleset*: `docs/01-Spesifikasi/01-03-spesifikasi-ruleset-dan-validasi.md`
 - Rencana implementasi dan struktur solusi: `docs/02-Perancangan/02-01-rencana-implementasi-dan-struktur-solution-dotnet.md`

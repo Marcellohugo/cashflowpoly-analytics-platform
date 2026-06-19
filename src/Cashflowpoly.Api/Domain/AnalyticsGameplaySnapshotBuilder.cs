@@ -60,7 +60,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var mealOrderIncomeTotal = ingredientMealMetrics.MealOrderIncomeTotal;
         var mealOrdersPerTurnAverage = ingredientMealMetrics.MealOrdersPerTurnAverage;
         var essentialIngredientExpenses = ingredientMealMetrics.EssentialIngredientExpenses;
-        var maxTurnNumber = ingredientMealMetrics.MaxTurnNumber;
+        var maxActionSlot = ingredientMealMetrics.MaxActionSlot;
 
         var needMissionMetrics = _needMissionCalc.Compute(playerEvents, playerProjections);
 
@@ -70,7 +70,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var goldInvestmentNet = goldMetrics.GoldInvestmentNet;
 
         var pensionRank = playerEvents
-            .Where(e => e.ActionType == "pension.rank.awarded")
+            .Where(e => e.ActionType == "PoinPeringkatPensiun")
             .Select(e => _payloadReader.TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0)
             .FirstOrDefault(rank => rank > 0);
 
@@ -84,7 +84,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var actionMetrics = _actionUsageCalc.Compute(
             playerEvents,
             playerProjections,
-            maxTurnNumber,
+            maxActionSlot,
             config?.ActionsPerTurn ?? 2);
         var latestEvent = playerEvents
             .OrderByDescending(e => e.SequenceNumber)
@@ -99,7 +99,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var gameMode = string.Equals(config?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase)
             ? "advanced"
             : "beginner";
-        var finishLineReached = allEvents.Any(e => e.ActionType == "session.ended");
+        var finishLineReached = allEvents.Any(e => e.ActionType == "AkhiriSesi");
         int? finalRank = null;
         bool? winnerFlag = finalRank.HasValue ? finalRank.Value == 1 : null;
         bool? dnfFlag = finishLineReached ? false : null;
@@ -113,7 +113,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 user_id = resolvedUserId,
                 player_alias = (string?)null,
                 game_mode = gameMode,
-                turn_number = latestEvent?.TurnNumber,
+                latest_event_action_slot = latestEvent?.ActionSlot,
                 day_label = latestEvent?.Weekday,
                 action_slot = actionMetrics.LatestActionSlot,
                 action_slot_timeline = actionMetrics.ActionSlotTimeline,
@@ -227,17 +227,17 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             {
                 coins_per_turn_progression = cashTimeline.CoinsProgression,
                 net_income_per_turn = cashTimeline.NetIncomePerTurn,
-                turn_number_when_debt_introduced = playerEvents
-                    .Where(e => e.ActionType == "loan.syariah.taken")
-                    .Select(e => (int?)e.TurnNumber)
+                action_slot_when_debt_introduced = playerEvents
+                    .Where(e => e.ActionType == "PinjamanSyariah")
+                    .Select(e => (int?)e.ActionSlot)
                     .OrderBy(t => t)
                     .FirstOrDefault(),
-                turn_number_when_first_risk_hit = playerEvents
-                    .Where(e => e.ActionType == "risk.life.drawn")
-                    .Select(e => (int?)e.TurnNumber)
+                action_slot_when_first_risk_hit = playerEvents
+                    .Where(e => e.ActionType == "RisikoKehidupan")
+                    .Select(e => (int?)e.ActionSlot)
                     .OrderBy(t => t)
                     .FirstOrDefault(),
-                turn_number_game_completion = maxTurnNumber == 0 ? (int?)null : maxTurnNumber
+                action_slot_game_completion = maxActionSlot == 0 ? (int?)null : maxActionSlot
             },
             outcomes = new
             {

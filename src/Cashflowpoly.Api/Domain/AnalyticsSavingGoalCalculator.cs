@@ -28,7 +28,7 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
 
         foreach (var evt in playerEvents)
         {
-            if (evt.ActionType == "saving.deposit.created" &&
+            if (evt.ActionType == "Menabung" &&
                 _payloadReader.TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
             {
                 savingDepositsByGoal[goalId] = savingDepositsByGoal.TryGetValue(goalId, out var existing)
@@ -36,7 +36,7 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
                     : amount;
             }
 
-            if (evt.ActionType == "saving.deposit.withdrawn" &&
+            if (evt.ActionType == "TarikTabungan" &&
                 _payloadReader.TryReadSavingDeposit(evt.Payload, out var withdrawGoalId, out var withdrawAmount))
             {
                 savingWithdrawalsByGoal[withdrawGoalId] = savingWithdrawalsByGoal.TryGetValue(withdrawGoalId, out var existing)
@@ -44,7 +44,7 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
                     : withdrawAmount;
             }
 
-            if (evt.ActionType == "saving.goal.achieved" &&
+            if (evt.ActionType == "TujuanFinansial" &&
                 _payloadReader.TryReadSavingGoalAchievedDetailed(evt.Payload, out var achievedGoalId, out _, out var cost))
             {
                 savingGoalsAchieved.Add(achievedGoalId);

@@ -15,11 +15,11 @@ public sealed class EventAssignmentValidatorTests
         var playerId = Guid.NewGuid();
         var request = CreateRequest(
             playerId,
-            "mission.assigned",
+            "BagikanMisiKoleksi",
             """{"mission_id":"m-1","target_tertiary_card_id":"bike","penalty_points":10}""");
         var history = new[]
         {
-            CreateEvent(playerId, "mission.assigned", """{"mission_id":"m-old","target_tertiary_card_id":"phone","penalty_points":10}""")
+            CreateEvent(playerId, "BagikanMisiKoleksi", """{"mission_id":"m-old","target_tertiary_card_id":"phone","penalty_points":10}""")
         };
 
         var handled = new EventAssignmentValidator().TryValidate(request, history, out var result);
@@ -33,7 +33,7 @@ public sealed class EventAssignmentValidatorTests
     [Fact]
     public void TryValidate_TieBreakerAcceptsPositiveNumber()
     {
-        var request = CreateRequest(Guid.NewGuid(), "tie_breaker.assigned", """{"number":3}""");
+        var request = CreateRequest(Guid.NewGuid(), "BagikanTieBreaker", """{"number":3}""");
 
         var handled = new EventAssignmentValidator().TryValidate(request, Array.Empty<EventDb>(), out var result);
 
@@ -71,7 +71,7 @@ public sealed class EventAssignmentValidatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),
