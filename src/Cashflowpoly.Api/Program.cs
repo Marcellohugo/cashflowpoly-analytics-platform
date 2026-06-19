@@ -39,6 +39,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.ForwardLimit = 1;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
 
     var trustedProxies = builder.Configuration.GetSection("Networking:TrustedProxies").Get<string[]>();
     if (trustedProxies is null || trustedProxies.Length == 0)
@@ -46,8 +48,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         return;
     }
 
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
     foreach (var proxy in trustedProxies)
     {
         if (IPAddress.TryParse(proxy, out var ip))

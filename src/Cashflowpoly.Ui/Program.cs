@@ -5,6 +5,13 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 var builder = WebApplication.CreateBuilder(args);
 var useHttpsRedirection = Cashflowpoly.Ui.Infrastructure.HttpsRedirectionPolicy.ShouldUseHttpsRedirection(builder.Configuration);
 
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
+});
+
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
@@ -39,6 +46,8 @@ builder.Services.AddHttpClient("Api", client =>
     .AddHttpMessageHandler<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {

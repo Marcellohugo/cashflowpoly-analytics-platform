@@ -4,7 +4,7 @@ credentials-file: /etc/cloudflared/credentials.json
 loglevel: debug
 
 ingress:
-  - hostname: tugasakhirmarco.my.id
+  - hostname: narafin.org
     service: http://nginx:80
     originRequest:
       noTLSVerify: true
