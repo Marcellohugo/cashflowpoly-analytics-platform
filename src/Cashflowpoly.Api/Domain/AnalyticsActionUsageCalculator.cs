@@ -17,19 +17,19 @@ public sealed record AnalyticsActionUsageMetrics(
     double ActionDiversityAverage);
 
 public sealed record AnalyticsActionSequence(
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("actions")] IReadOnlyList<string> Actions);
 
 public sealed record AnalyticsActionRepetition(
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("total_actions")] int TotalActions,
     [property: JsonPropertyName("distinct_actions")] int DistinctActions,
     [property: JsonPropertyName("repeated_actions")] int RepeatedActions,
     [property: JsonPropertyName("diversity_score")] double DiversityScore);
 
 public sealed record AnalyticsActionSlot(
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("action_slot")] int ActionSlot,
+    [property: JsonPropertyName("action_index")] int ActionIndex,
     [property: JsonPropertyName("action_type")] string ActionType,
     [property: JsonIgnore] long SequenceNumber);
 
@@ -40,7 +40,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
     public AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
-        int maxTurnNumber,
+        int maxActionSlot,
         int actionsPerTurn)
     {
         var actionEvents = playerEvents
@@ -49,7 +49,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             .ToList();
 
         var actionSequences = actionEvents
-            .GroupBy(e => e.TurnNumber)
+            .GroupBy(e => e.ActionSlot)
             .OrderBy(g => g.Key)
             .Select(g => new AnalyticsActionSequence(
                 g.Key,
@@ -57,7 +57,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             .ToList();
 
         var actionRepetitions = actionEvents
-            .GroupBy(e => e.TurnNumber)
+            .GroupBy(e => e.ActionSlot)
             .OrderBy(g => g.Key)
             .Select(g =>
             {
@@ -74,10 +74,10 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             })
             .ToList();
 
-        var actionTurns = actionRepetitions.Select(item => item.TurnNumber).ToHashSet();
-        var actionsSkipped = maxTurnNumber > 0 ? Math.Max(0, maxTurnNumber - actionTurns.Count) : 0;
+        var actionTurns = actionRepetitions.Select(item => item.ActionSlot).ToHashSet();
+        var actionsSkipped = maxActionSlot > 0 ? Math.Max(0, maxActionSlot - actionTurns.Count) : 0;
         var actionSlotTimeline = actionEvents
-            .GroupBy(e => e.TurnNumber)
+            .GroupBy(e => e.ActionSlot)
             .OrderBy(g => g.Key)
             .SelectMany(g => g
                 .OrderBy(e => e.SequenceNumber)

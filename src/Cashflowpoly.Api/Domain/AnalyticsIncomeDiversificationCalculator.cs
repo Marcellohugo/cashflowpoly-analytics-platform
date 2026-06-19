@@ -27,7 +27,7 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
             .Where(p => p.Direction == "IN" && p.Category.Contains("DONATION", StringComparison.OrdinalIgnoreCase))
             .Sum(p => (double)p.Amount);
         var freelanceIncome = playerEvents
-            .Where(e => e.ActionType == "work.freelance.completed")
+            .Where(e => e.ActionType == "KerjaLepas")
             .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
             .Sum();
         var mealIncome = (double)mealOrderIncomeTotal;

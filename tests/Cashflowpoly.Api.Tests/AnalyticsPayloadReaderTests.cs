@@ -10,7 +10,7 @@ public sealed class AnalyticsPayloadReaderTests
 {
     [Fact]
     /// <summary>
-    /// Memvalidasi parser turn.action.used membaca used dan remaining dari payload valid.
+    /// Memvalidasi parser payload akhir giliran membaca used dan remaining dari payload valid.
     /// </summary>
     public void TryReadActionUsed_ReturnsUsedAndRemaining_WhenPayloadIsValid()
     {
@@ -52,10 +52,10 @@ public sealed class AnalyticsPayloadReaderTests
     }
 
     [Theory]
-    [InlineData("ingredient.purchased", true)]
+    [InlineData("BahanMasakan", true)]
     [InlineData("turn.action.used", false)]
     [InlineData("rank.awarded", false)]
-    [InlineData("mission.assigned", false)]
+    [InlineData("BagikanMisiKoleksi", false)]
     /// <summary>
     /// Memvalidasi klasifikasi event gameplay substantif.
     /// </summary>

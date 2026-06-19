@@ -54,6 +54,22 @@ public sealed class AuthRbacRulesetIntegrationTests
         var withoutToken = await _client.GetAsync("/api/v1/sessions");
         Assert.Equal(HttpStatusCode.Unauthorized, withoutToken.StatusCode);
 
+        var instructorRulesetsBeforeCreate = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets",
+            body: null,
+            instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, instructorRulesetsBeforeCreate.StatusCode);
+        await AssertRulesetListIncludesDefaultRowsAsync(instructorRulesetsBeforeCreate);
+
+        var playerRulesetsBeforeSession = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets",
+            body: null,
+            playerLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, playerRulesetsBeforeSession.StatusCode);
+        await AssertRulesetListIncludesDefaultRowsAsync(playerRulesetsBeforeSession);
+
         var defaultComponentsByInstructor = await SendJsonAsync(
             HttpMethod.Get,
             "/api/v1/rulesets/components/defaults",
@@ -115,7 +131,7 @@ public sealed class AuthRbacRulesetIntegrationTests
         {
             name = $"Ruleset IT {suffix}",
             description = "Integration test ruleset",
-            config = BuildRulesetConfig(startingCash: 20)
+            definition = BuildRulesetDefinition(startingCash: 20)
         };
 
         var playerCreateRuleset = await SendJsonAsync(
@@ -149,14 +165,17 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.Equal(createdRuleset.RulesetId, components.RulesetId);
         Assert.Equal(1, components.Version);
         Assert.Equal("PEMULA", components.Mode);
-        Assert.True(components.ComponentCatalog.HasValue);
-        Assert.Equal(JsonValueKind.Object, components.ComponentCatalog!.Value.ValueKind);
+        Assert.NotNull(components.Definition);
+        Assert.NotEmpty(components.Definition!.Actions);
+        Assert.Contains(
+            components.Definition.Narratives.SelectMany(item => item.PrerequisiteAksi),
+            item => item.Aksi == "JualMasakan" && item.Value == 1);
 
         var duplicateConfigUpdatePayload = new
         {
             name = $"Ruleset IT {suffix} duplicate",
             description = "Integration test duplicate config",
-            config = BuildRulesetConfig(startingCash: 20)
+            definition = BuildRulesetDefinition(startingCash: 20)
         };
 
         var duplicateConfigUpdate = await SendJsonAsync(
@@ -170,7 +189,7 @@ public sealed class AuthRbacRulesetIntegrationTests
         {
             name = $"Ruleset IT {suffix} V2",
             description = "Integration test ruleset v2",
-            config = BuildRulesetConfig(startingCash: 21)
+            definition = BuildRulesetDefinition(startingCash: 21)
         };
 
         var instructorUpdateRuleset = await SendJsonAsync(
@@ -203,7 +222,7 @@ public sealed class AuthRbacRulesetIntegrationTests
         {
             name = $"Ruleset IT {suffix} V3",
             description = "Integration test ruleset v3",
-            config = BuildRulesetConfig(startingCash: 22)
+            definition = BuildRulesetDefinition(startingCash: 22)
         };
 
         var instructorUpdateRulesetV3 = await SendJsonAsync(
@@ -253,7 +272,7 @@ public sealed class AuthRbacRulesetIntegrationTests
         {
             session_name = $"Session IT {suffix}",
             mode = "PEMULA",
-            ruleset_id = createdRuleset.RulesetId
+            ruleset_version_id = updatedRuleset.RulesetVersionId
         };
 
         var playerCreateSession = await SendJsonAsync(
@@ -274,6 +293,26 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.NotNull(createdSession);
         Assert.NotEqual(Guid.Empty, createdSession.SessionId);
 
+        var extraPlayerOneUsername = $"it_player_extra1_{suffix}";
+        var extraPlayerTwoUsername = $"it_player_extra2_{suffix}";
+        await CreatePlayerAsync(instructorLogin.AccessToken, $"Player Extra 1 {suffix}", extraPlayerOneUsername);
+        await CreatePlayerAsync(instructorLogin.AccessToken, $"Player Extra 2 {suffix}", extraPlayerTwoUsername);
+
+        foreach (var assignment in new[]
+                 {
+                     new { username = playerUsername, player_order_no = 1 },
+                     new { username = extraPlayerOneUsername, player_order_no = 2 },
+                     new { username = extraPlayerTwoUsername, player_order_no = 3 }
+                 })
+        {
+            var addPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                $"/api/v1/sessions/{createdSession.SessionId}/players",
+                assignment,
+                instructorLogin.AccessToken);
+            Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
+        }
+
         var playerStartSession = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/start",
@@ -291,6 +330,206 @@ public sealed class AuthRbacRulesetIntegrationTests
         var startResponse = await instructorStartSession.Content.ReadFromJsonAsync<SessionStatusResponse>();
         Assert.NotNull(startResponse);
         Assert.Equal("STARTED", startResponse.Status);
+    }
+
+    [Fact]
+    public async Task DefaultRulesets_AreReadonly_AndExposeLockMetadata()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructor = await RegisterAsync($"it_default_guard_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+
+        var listResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+
+        using var listDocument = JsonDocument.Parse(await listResponse.Content.ReadAsStringAsync());
+        var defaultItem = listDocument.RootElement.GetProperty("items")
+            .EnumerateArray()
+            .First(item => item.GetProperty("is_default").GetBoolean());
+        Assert.False(defaultItem.GetProperty("is_locked_by_session").GetBoolean());
+
+        var defaultRulesetId = defaultItem.GetProperty("ruleset_id").GetGuid();
+        var defaultVersion = defaultItem.GetProperty("latest_version").GetInt32();
+
+        var detailResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{defaultRulesetId}",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, detailResponse.StatusCode);
+
+        using var detailDocument = JsonDocument.Parse(await detailResponse.Content.ReadAsStringAsync());
+        Assert.True(detailDocument.RootElement.GetProperty("is_default").GetBoolean());
+        Assert.False(detailDocument.RootElement.GetProperty("is_locked_by_session").GetBoolean());
+
+        var updateResponse = await SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/rulesets/{defaultRulesetId}",
+            new
+            {
+                name = "Attempt default update",
+                description = "Should be rejected",
+                definition = BuildRulesetDefinition(startingCash: 31)
+            },
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(updateResponse);
+
+        var activateResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/rulesets/{defaultRulesetId}/versions/{defaultVersion}/activate",
+            body: null,
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(activateResponse);
+
+        var deleteVersionResponse = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{defaultRulesetId}/versions/{defaultVersion}",
+            body: null,
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(deleteVersionResponse);
+
+        var deleteResponse = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{defaultRulesetId}",
+            body: null,
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(deleteResponse);
+    }
+
+    [Fact]
+    public async Task CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructor = await RegisterAsync($"it_created_guard_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+        var createdRuleset = await CreateRulesetAsync(instructor.AccessToken, suffix, startingCash: 41);
+        await CreateSessionAsync(instructor.AccessToken, suffix, createdRuleset.RulesetVersionId);
+
+        var detailBeforeUpdate = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, detailBeforeUpdate.StatusCode);
+        using (var detailDocument = JsonDocument.Parse(await detailBeforeUpdate.Content.ReadAsStringAsync()))
+        {
+            Assert.False(detailDocument.RootElement.GetProperty("is_default").GetBoolean());
+            Assert.False(detailDocument.RootElement.GetProperty("is_locked_by_session").GetBoolean());
+        }
+
+        var updateResponse = await SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            new
+            {
+                name = $"Ruleset CREATED Mutable {suffix} V2",
+                description = "CREATED sessions do not lock rulesets",
+                definition = BuildRulesetDefinition(startingCash: 42)
+            },
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        var deleteResponse = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CustomRuleset_UsedByStartedOrEndedSession_IsReadonly()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructor = await RegisterAsync($"it_locked_guard_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+        var createdRuleset = await CreateRulesetAsync(instructor.AccessToken, suffix, startingCash: 51);
+        var createdSession = await CreateSessionAsync(instructor.AccessToken, suffix, createdRuleset.RulesetVersionId);
+
+        await AddPlayersForStartAsync(instructor.AccessToken, createdSession.SessionId, suffix);
+
+        var startResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/start",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+
+        var detailAfterStart = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, detailAfterStart.StatusCode);
+        using (var detailDocument = JsonDocument.Parse(await detailAfterStart.Content.ReadAsStringAsync()))
+        {
+            Assert.False(detailDocument.RootElement.GetProperty("is_default").GetBoolean());
+            Assert.True(detailDocument.RootElement.GetProperty("is_locked_by_session").GetBoolean());
+        }
+
+        var listAfterStart = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, listAfterStart.StatusCode);
+        using (var listDocument = JsonDocument.Parse(await listAfterStart.Content.ReadAsStringAsync()))
+        {
+            var lockedItem = listDocument.RootElement.GetProperty("items")
+                .EnumerateArray()
+                .First(item => item.GetProperty("ruleset_id").GetGuid() == createdRuleset.RulesetId);
+            Assert.True(lockedItem.GetProperty("is_locked_by_session").GetBoolean());
+        }
+
+        var updateResponse = await SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            new
+            {
+                name = $"Ruleset Locked {suffix} V2",
+                description = "Should be rejected",
+                definition = BuildRulesetDefinition(startingCash: 52)
+            },
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(updateResponse);
+
+        var activateResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{createdRuleset.Version}/activate",
+            body: null,
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(activateResponse);
+
+        var deleteVersionResponse = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{createdRuleset.Version}",
+            body: null,
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(deleteVersionResponse);
+
+        var deleteResponse = await SendJsonAsync(
+            HttpMethod.Delete,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructor.AccessToken);
+        await AssertDomainRuleViolationAsync(deleteResponse);
+
+        var endResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{createdSession.SessionId}/end",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, endResponse.StatusCode);
+
+        var detailAfterEnd = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
+            body: null,
+            instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, detailAfterEnd.StatusCode);
+        using var endedDetailDocument = JsonDocument.Parse(await detailAfterEnd.Content.ReadAsStringAsync());
+        Assert.True(endedDetailDocument.RootElement.GetProperty("is_locked_by_session").GetBoolean());
     }
 
     [Fact]
@@ -342,9 +581,12 @@ public sealed class AuthRbacRulesetIntegrationTests
     {
         var payload = new RegisterRequest(username, password, role, null);
         var response = await _client.PostAsJsonAsync("/api/v1/auth/register", payload);
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var responseText = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected Created but got {response.StatusCode}. Body: {responseText}");
 
-        var body = await response.Content.ReadFromJsonAsync<RegisterResponse>();
+        var body = JsonSerializer.Deserialize<RegisterResponse>(responseText);
         Assert.NotNull(body);
         return body;
     }
@@ -361,6 +603,99 @@ public sealed class AuthRbacRulesetIntegrationTests
         var body = await response.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.NotNull(body);
         return body;
+    }
+
+    private async Task CreatePlayerAsync(string accessToken, string displayName, string username)
+    {
+        var response = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            new
+            {
+                display_name = displayName,
+                username,
+                password = "IntegrationPlayerPass!123"
+            },
+            accessToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    private async Task<CreateRulesetResponse> CreateRulesetAsync(string accessToken, string suffix, int startingCash)
+    {
+        var response = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/rulesets",
+            new
+            {
+                name = $"Ruleset Lock Guard {suffix}",
+                description = "Ruleset lock guard integration test",
+                definition = BuildRulesetDefinition(startingCash)
+            },
+            accessToken);
+        var responseText = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected Created but got {response.StatusCode}. Body: {responseText}");
+
+        var body = JsonSerializer.Deserialize<CreateRulesetResponse>(responseText);
+        Assert.NotNull(body);
+        return body;
+    }
+
+    private async Task<CreateSessionResponse> CreateSessionAsync(string accessToken, string suffix, Guid rulesetVersionId)
+    {
+        var response = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            new
+            {
+                session_name = $"Ruleset Lock Session {suffix}",
+                mode = "PEMULA",
+                ruleset_version_id = rulesetVersionId
+            },
+            accessToken);
+        var responseText = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected Created but got {response.StatusCode}. Body: {responseText}");
+
+        var body = JsonSerializer.Deserialize<CreateSessionResponse>(responseText);
+        Assert.NotNull(body);
+        return body;
+    }
+
+    private async Task AddPlayersForStartAsync(string accessToken, Guid sessionId, string suffix)
+    {
+        var firstUsername = $"it_lock_player1_{suffix}";
+        var secondUsername = $"it_lock_player2_{suffix}";
+        await CreatePlayerAsync(accessToken, $"Lock Player 1 {suffix}", firstUsername);
+        await CreatePlayerAsync(accessToken, $"Lock Player 2 {suffix}", secondUsername);
+
+        foreach (var assignment in new[]
+                 {
+                     new { username = firstUsername, player_order_no = 1 },
+                     new { username = secondUsername, player_order_no = 2 }
+                 })
+        {
+            var addPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                $"/api/v1/sessions/{sessionId}/players",
+                assignment,
+                accessToken);
+            Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
+        }
+    }
+
+    private static async Task AssertDomainRuleViolationAsync(HttpResponseMessage response)
+    {
+        var responseText = await response.Content.ReadAsStringAsync();
+        Assert.True(
+            response.StatusCode == HttpStatusCode.UnprocessableEntity,
+            $"Expected UnprocessableEntity but got {response.StatusCode}. Body: {responseText}");
+
+        var error = JsonSerializer.Deserialize<ErrorResponse>(responseText);
+        Assert.NotNull(error);
+        Assert.Equal("DOMAIN_RULE_VIOLATION", error.ErrorCode);
     }
 
     /// <summary>
@@ -382,67 +717,188 @@ public sealed class AuthRbacRulesetIntegrationTests
         return await _client.SendAsync(request);
     }
 
+    private static async Task AssertRulesetListIncludesDefaultRowsAsync(HttpResponseMessage response)
+    {
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var items = document.RootElement.GetProperty("items").EnumerateArray().ToList();
+        var defaultItems = items
+            .Where(item => item.TryGetProperty("is_default", out var isDefault) && isDefault.GetBoolean())
+            .ToList();
+
+        Assert.Equal(2, defaultItems.Count);
+        Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("name").GetString(), "Cashflowpoly Default - Mode Pemula", StringComparison.Ordinal));
+        Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("name").GetString(), "Cashflowpoly Default - Mode Mahir", StringComparison.Ordinal));
+        Assert.All(defaultItems, item => Assert.Equal("ACTIVE", item.GetProperty("status").GetString()));
+        Assert.All(defaultItems, item => Assert.False(item.GetProperty("is_locked_by_session").GetBoolean()));
+    }
+
     /// <summary>
     /// Helper yang membangun objek konfigurasi ruleset lengkap untuk mode PEMULA
     /// dengan parameter starting cash yang dapat dikustomisasi.
     /// </summary>
-    private static object BuildRulesetConfig(int startingCash)
+    private static RulesetDefinitionDto BuildRulesetDefinition(int startingCash)
     {
-        return new
+        return new RulesetDefinitionDto
         {
-            mode = "PEMULA",
-            actions_per_turn = 2,
-            starting_cash = startingCash,
-            weekday_rules = new
+            Mode = "PEMULA",
+            Settings = new RulesetSettingsDto
             {
-                friday = new { feature = "DONATION", enabled = true },
-                saturday = new { feature = "GOLD_TRADE", enabled = true },
-                sunday = new { feature = "REST", enabled = true }
+                ActionsPerTurn = 2,
+                StartingCash = startingCash,
+                InitialCoins = startingCash,
+                InitialHappiness = 0,
+                InitialSaving = 0,
+                FinishDay = 25,
+                MinPlayers = 2,
+                MaxPlayers = 4,
+                CashMin = 0,
+                MaxIngredientTotal = 6,
+                MaxSameIngredient = 3,
+                PrimaryNeedMaxPerDay = 1,
+                RequirePrimaryBeforeOthers = true,
+                DonationMinAmount = 1,
+                DonationMaxAmount = 999999,
+                GoldTradeAllowBuy = true,
+                GoldTradeAllowSell = true,
+                LoanEnabled = false,
+                InsuranceEnabled = false,
+                SavingGoalEnabled = false,
+                FreelanceIncome = 1
             },
-            constraints = new
+            PlayerOrdering = new RulesetPlayerOrderingDto
             {
-                cash_min = 0,
-                max_ingredient_total = 6,
-                max_same_ingredient = 3,
-                primary_need_max_per_day = 1,
-                require_primary_before_others = true
+                OrderingCode = "PLAYER_ORDER",
+                FridayFeature = "DONATION",
+                FridayEnabled = true,
+                SaturdayFeature = "GOLD_TRADE",
+                SaturdayEnabled = true,
+                SundayFeature = "REST",
+                SundayEnabled = true
             },
-            donation = new { min_amount = 1, max_amount = 999999 },
-            gold_trade = new { allow_buy = true, allow_sell = true },
-            advanced = new
-            {
-                loan = new { enabled = false },
-                insurance = new { enabled = false },
-                saving_goal = new { enabled = false }
-            },
-            freelance = new { income = 1 },
-            scoring = new
-            {
-                donation_rank_points = new[]
+            Actions =
+            [
+                new RulesetActionDto { ActionId = "BahanMasakan" },
+                new RulesetActionDto { ActionId = "JualMasakan" },
+                new RulesetActionDto { ActionId = "KerjaLepas" }
+            ],
+            Ingredients =
+            [
+                new RulesetIngredientDto
                 {
-                    new { rank = 1, points = 7 },
-                    new { rank = 2, points = 5 },
-                    new { rank = 3, points = 2 }
+                    Id = "nasi_putih",
+                    Nama = "Nasi Putih",
+                    HargaBeli = 1
                 },
-                gold_points_by_qty = new[]
+                new RulesetIngredientDto
                 {
-                    new { qty = 1, points = 3 },
-                    new { qty = 2, points = 5 },
-                    new { qty = 3, points = 8 },
-                    new { qty = 4, points = 12 }
-                },
-                pension_rank_points = new[]
+                    Id = "telur",
+                    Nama = "Telur",
+                    HargaBeli = 4
+                }
+            ],
+            Orders =
+            {
+                new RulesetOrderDto
                 {
-                    new { rank = 1, points = 5 },
-                    new { rank = 2, points = 3 },
-                    new { rank = 3, points = 1 }
+                    Id = "nasi_goreng",
+                    Nama = "nasi goreng",
+                    HargaJual = 15,
+                    PoinKebahagiaan = 0,
+                    Bahan = ["Nasi Putih", "Telur"]
                 }
             },
-            component_catalog = new
+            Needs =
             {
-                mode = "PEMULA",
-                test_marker = "integration-test-catalog"
-            }
+                new RulesetNeedDto
+                {
+                    Id = "buku",
+                    Nama = "buku",
+                    Tipe = "primer",
+                    HargaBeli = 2,
+                    PoinKebahagiaan = 1
+                },
+                new RulesetNeedDto
+                {
+                    Id = "boneka",
+                    Nama = "boneka",
+                    Tipe = "tersier",
+                    HargaBeli = 6,
+                    PoinKebahagiaan = 3
+                }
+            },
+            CollectionMissions =
+            [
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_boneka",
+                    Nama = "boneka",
+                    SuccessPoints = 0,
+                    FailurePoints = -10,
+                    PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto
+                        {
+                            Order = 1,
+                            Type = "primer",
+                            Value = "buku"
+                        },
+                        new RulesetCollectionMissionRequirementDto
+                        {
+                            Order = 2,
+                            Type = "tersier",
+                            Value = "boneka"
+                        }
+                    ]
+                }
+            ],
+            FinancialGoals =
+            {
+                new RulesetFinancialGoalDto
+                {
+                    Id = "beli_rumah",
+                    Nama = "beli rumah",
+                    HargaBeli = 20,
+                    PoinKebahagiaan = 5
+                }
+            },
+            Narratives =
+            [
+                new RulesetNarrativeDto
+                {
+                    Id = "jual_pertama",
+                    Nama = "jual_pertama",
+                    Teks = ["Narasi integrasi typed"],
+                    PrerequisiteAksi =
+                    [
+                        new RulesetNarrativePrerequisiteDto
+                        {
+                            Aksi = "JualMasakan",
+                            Value = 1
+                        }
+                    ]
+                }
+            ],
+            DonationRankPoints =
+            [
+                new RulesetDonationRankPointDto { Rank = 1, Points = 7 },
+                new RulesetDonationRankPointDto { Rank = 2, Points = 5 },
+                new RulesetDonationRankPointDto { Rank = 3, Points = 2 }
+            ],
+            GoldPointsByQty =
+            [
+                new RulesetGoldPointDto { Qty = 1, Points = 3 },
+                new RulesetGoldPointDto { Qty = 2, Points = 5 },
+                new RulesetGoldPointDto { Qty = 3, Points = 8 },
+                new RulesetGoldPointDto { Qty = 4, Points = 12 }
+            ],
+            PensionRankPoints =
+            [
+                new RulesetPensionRankPointDto { Rank = 1, Points = 5 },
+                new RulesetPensionRankPointDto { Rank = 2, Points = 3 },
+                new RulesetPensionRankPointDto { Rank = 3, Points = 1 }
+            ]
         };
     }
 }

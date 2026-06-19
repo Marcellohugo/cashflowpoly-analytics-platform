@@ -24,7 +24,7 @@ internal sealed class SessionMetricCalculator : ISessionMetricCalculator
         metrics["cashflow.out.total"] = (cashOut, null);
         metrics["cashflow.net.total"] = (cashIn - cashOut, null);
 
-        var donationTotal = events.Where(e => e.ActionType == "day.friday.donation")
+        var donationTotal = events.Where(e => e.ActionType == "JumatBerkah")
             .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
             .Sum();
         metrics["donation.total"] = (donationTotal, null);

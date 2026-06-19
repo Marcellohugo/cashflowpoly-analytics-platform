@@ -16,43 +16,43 @@ internal sealed class PlayerOrderingService : IPlayerOrdering
     public List<AnalyticsByPlayerItem> OrderPlayers(
         List<AnalyticsByPlayerItem> players,
         PlayerOrdering ordering,
-        Dictionary<Guid, int> playerJoinOrders,
+        Dictionary<Guid, int> playerPlayerOrders,
         Dictionary<Guid, long> firstEventSequenceByPlayer,
         Dictionary<Guid, string> usernamesByPlayer)
     {
         return ordering switch
         {
             PlayerOrdering.InstructorOrder => players
-                .OrderBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .OrderBy(player => ResolvePlayerOrder(playerPlayerOrders, player.UserId))
                 .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
                 .ThenBy(player => player.UserId)
                 .ToList(),
             PlayerOrdering.Username => players
                 .OrderBy(player => HasOrderingUsername(usernamesByPlayer, player.UserId) ? 0 : 1)
                 .ThenBy(player => ResolveOrderingUsername(usernamesByPlayer, player.UserId), UsernameOrderingComparer)
-                .ThenBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .ThenBy(player => ResolvePlayerOrder(playerPlayerOrders, player.UserId))
                 .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
                 .ThenBy(player => player.UserId)
                 .ToList(),
             PlayerOrdering.EventSequence => players
                 .OrderBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
-                .ThenBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .ThenBy(player => ResolvePlayerOrder(playerPlayerOrders, player.UserId))
                 .ThenBy(player => player.UserId)
                 .ToList(),
             PlayerOrdering.PlayerId => players
                 .OrderBy(player => player.UserId)
                 .ToList(),
             _ => players
-                .OrderBy(player => ResolveJoinOrder(playerJoinOrders, player.UserId))
+                .OrderBy(player => ResolvePlayerOrder(playerPlayerOrders, player.UserId))
                 .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
                 .ThenBy(player => player.UserId)
                 .ToList()
         };
     }
 
-    private int ResolveJoinOrder(Dictionary<Guid, int> playerJoinOrders, Guid playerId)
+    private int ResolvePlayerOrder(Dictionary<Guid, int> playerPlayerOrders, Guid playerId)
     {
-        return playerJoinOrders.TryGetValue(playerId, out var joinOrder) ? joinOrder : int.MaxValue;
+        return playerPlayerOrders.TryGetValue(playerId, out var playerOrder) ? playerOrder : int.MaxValue;
     }
 
     private long ResolveFirstSequence(Dictionary<Guid, long> firstEventSequenceByPlayer, Guid playerId)

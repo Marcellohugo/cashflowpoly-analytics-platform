@@ -34,7 +34,9 @@ internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEva
         foreach (var dayIndex in days)
         {
             var dayEvents = playerEvents.Where(e => e.DayIndex == dayIndex).OrderBy(e => e.SequenceNumber).ToList();
-            var primaryCount = dayEvents.Count(e => e.ActionType == "need.primary.purchased");
+            var primaryCount = dayEvents.Count(e =>
+                e.ActionType == "Kebutuhan" &&
+                NeedTierClassifier.FromPayloadJson(e.Payload) == NeedTier.Primary);
             var violationReasons = new List<string>();
 
             if (primaryCount > config.PrimaryNeedMaxPerDay)
@@ -47,13 +49,18 @@ internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEva
                 var primarySeen = false;
                 foreach (var evt in dayEvents)
                 {
-                    if (evt.ActionType == "need.primary.purchased")
+                    if (evt.ActionType != "Kebutuhan")
+                    {
+                        continue;
+                    }
+
+                    var needTier = NeedTierClassifier.FromPayloadJson(evt.Payload);
+                    if (needTier == NeedTier.Primary)
                     {
                         primarySeen = true;
                     }
 
-                    if (!primarySeen &&
-                        (evt.ActionType == "need.secondary.purchased" || evt.ActionType == "need.tertiary.purchased"))
+                    if (!primarySeen && needTier is NeedTier.Secondary or NeedTier.Tertiary)
                     {
                         violationReasons.Add("BOUGHT_OTHER_BEFORE_PRIMARY");
                         break;

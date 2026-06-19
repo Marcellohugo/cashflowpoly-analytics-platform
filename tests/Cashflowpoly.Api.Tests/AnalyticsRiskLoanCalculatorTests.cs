@@ -15,12 +15,12 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         var riskTwo = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(riskOne, sessionId, playerId, "risk.life.drawn", """{"risk_id":"risk-1","direction":"OUT","amount":6}"""),
-            CreateEvent(riskTwo, sessionId, playerId, "risk.life.drawn", """{"risk_id":"risk-2","direction":"OUT","amount":4}"""),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "insurance.multirisk.used", """{"risk_event_id":"risk-1"}"""),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "risk.emergency.used", """{"risk_event_id":"risk-2","option_type":"OTHER","direction":"OUT","amount":2}"""),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "loan.syariah.taken", """{"loan_id":"loan-a","principal":10,"installment":5,"duration_turns":2,"penalty_points":15}"""),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "loan.syariah.repaid", """{"loan_id":"loan-a","amount":4}""")
+            CreateEvent(riskOne, sessionId, playerId, "RisikoKehidupan", """{"risk_id":"risk-1","direction":"OUT","amount":6}"""),
+            CreateEvent(riskTwo, sessionId, playerId, "RisikoKehidupan", """{"risk_id":"risk-2","direction":"OUT","amount":4}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "Asuransi", """{"risk_event_id":"risk-1"}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "GunakanOpsiDarurat", """{"risk_event_id":"risk-2","option_type":"OTHER","direction":"OUT","amount":2}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "PinjamanSyariah", """{"loan_id":"loan-a","principal":10,"installment":5,"duration_turns":2,"penalty_points":15}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BayarPinjaman", """{"loan_id":"loan-a","amount":4}""")
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -65,7 +65,7 @@ public sealed class AnalyticsRiskLoanCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

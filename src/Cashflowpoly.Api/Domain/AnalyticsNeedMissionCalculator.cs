@@ -34,37 +34,33 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
 
         foreach (var evt in playerEvents)
         {
-            if (evt.ActionType == "need.primary.purchased" &&
-                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var primaryCardId, out _))
-            {
-                primaryNeeds += 1;
-                if (!string.IsNullOrWhiteSpace(primaryCardId))
-                {
-                    distinctNeedCardIds.Add(primaryCardId);
-                }
-            }
-
-            if (evt.ActionType == "need.secondary.purchased" &&
-                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var secondaryCardId, out _))
-            {
-                secondaryNeeds += 1;
-                if (!string.IsNullOrWhiteSpace(secondaryCardId))
-                {
-                    distinctNeedCardIds.Add(secondaryCardId);
-                }
-            }
-
-            if (evt.ActionType == "need.tertiary.purchased" &&
+            if (evt.ActionType == "Kebutuhan" &&
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
             {
-                tertiaryNeeds += 1;
                 if (!string.IsNullOrWhiteSpace(cardId))
                 {
-                    tertiaryCardIds.Add(cardId);
+                    distinctNeedCardIds.Add(cardId);
+                }
+
+                switch (NeedTierClassifier.FromPayloadJson(evt.Payload))
+                {
+                    case NeedTier.Primary:
+                        primaryNeeds += 1;
+                        break;
+                    case NeedTier.Secondary:
+                        secondaryNeeds += 1;
+                        break;
+                    case NeedTier.Tertiary:
+                        tertiaryNeeds += 1;
+                        if (!string.IsNullOrWhiteSpace(cardId))
+                        {
+                            tertiaryCardIds.Add(cardId);
+                        }
+                        break;
                 }
             }
 
-            if (evt.ActionType == "mission.assigned" &&
+            if (evt.ActionType == "BagikanMisiKoleksi" &&
                 _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));

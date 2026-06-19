@@ -13,8 +13,8 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
         var sessionId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(sessionId, playerId, "work.freelance.completed", """{"amount":5}"""),
-            CreateEvent(sessionId, playerId, "work.freelance.completed", """{"amount":5}""")
+            CreateEvent(sessionId, playerId, "KerjaLepas", """{"amount":5}"""),
+            CreateEvent(sessionId, playerId, "KerjaLepas", """{"amount":5}""")
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -66,7 +66,7 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

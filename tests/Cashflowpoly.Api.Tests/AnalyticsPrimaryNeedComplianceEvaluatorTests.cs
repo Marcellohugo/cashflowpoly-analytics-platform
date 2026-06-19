@@ -11,9 +11,9 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
     {
         var events = new List<EventDb>
         {
-            BuildEvent("need.secondary.purchased", dayIndex: 1, sequenceNumber: 1),
-            BuildEvent("need.primary.purchased", dayIndex: 1, sequenceNumber: 2),
-            BuildEvent("need.primary.purchased", dayIndex: 2, sequenceNumber: 3)
+            BuildEvent("Kebutuhan", """{"card_id":"book"}""", dayIndex: 1, sequenceNumber: 1),
+            BuildEvent("Kebutuhan", """{"card_id":"rice"}""", dayIndex: 1, sequenceNumber: 2),
+            BuildEvent("Kebutuhan", """{"card_id":"rice"}""", dayIndex: 2, sequenceNumber: 3)
         };
 
         var result = new PrimaryNeedComplianceEvaluator().Evaluate(events, BuildConfig());
@@ -30,7 +30,7 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
     public void Evaluate_ReturnsZero_WhenConfigMissing()
     {
         var result = new PrimaryNeedComplianceEvaluator().Evaluate(
-            [BuildEvent("need.primary.purchased", dayIndex: 1, sequenceNumber: 1)],
+            [BuildEvent("Kebutuhan", """{"card_id":"rice"}""", dayIndex: 1, sequenceNumber: 1)],
             config: null);
 
         Assert.Equal(0, result.Rate);
@@ -38,12 +38,13 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
         Assert.Empty(result.Details);
     }
 
-    private static EventDb BuildEvent(string actionType, int dayIndex, long sequenceNumber)
+    private static EventDb BuildEvent(string actionType, string payload, int dayIndex, long sequenceNumber)
     {
         return new EventDb
         {
             EventId = Guid.NewGuid(),
             ActionType = actionType,
+            Payload = payload,
             DayIndex = dayIndex,
             SequenceNumber = sequenceNumber
         };
@@ -55,7 +56,7 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
             "PEMULA",
             2,
             20,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             0,
             6,
             3,

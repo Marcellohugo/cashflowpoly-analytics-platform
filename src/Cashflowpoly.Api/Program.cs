@@ -220,6 +220,7 @@ builder.Services.AddScoped<MetricsRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<SessionStateRepository>();
+builder.Services.AddScoped<SessionEventProjector>();
 builder.Services.AddScoped<SecurityAuditRepository>();
 builder.Services.AddScoped<SecurityAuditService>();
 // Domain calculators

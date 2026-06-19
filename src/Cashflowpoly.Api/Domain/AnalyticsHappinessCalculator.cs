@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
@@ -34,7 +35,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         {
             foreach (var (playerId, playerEvents) in playerGroups)
             {
-                donationPointsByPlayer[playerId] = SumRankAwarded(playerEvents, "donation.rank.awarded");
+                donationPointsByPlayer[playerId] = SumRankAwarded(playerEvents, "PoinPeringkatDonasi");
             }
         }
 
@@ -46,7 +47,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         {
             foreach (var (playerId, playerEvents) in playerGroups)
             {
-                goldPointsByPlayer[playerId] = SumPointsAwarded(playerEvents, "gold.points.awarded");
+                goldPointsByPlayer[playerId] = SumPointsAwarded(playerEvents, "PoinEmas");
             }
         }
 
@@ -59,7 +60,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         {
             foreach (var (playerId, playerEvents) in playerGroups)
             {
-                pensionPointsByPlayer[playerId] = SumRankAwarded(playerEvents, "pension.rank.awarded");
+                pensionPointsByPlayer[playerId] = SumRankAwarded(playerEvents, "PoinPeringkatPensiun");
             }
         }
 
@@ -70,7 +71,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             goldPointsByPlayer.TryGetValue(playerId, out var goldPoints);
             pensionPointsByPlayer.TryGetValue(playerId, out var pensionPoints);
 
-            result[playerId] = ComputeBreakdown(playerEvents, donationPoints, goldPoints, pensionPoints);
+            result[playerId] = ComputeBreakdown(playerEvents, donationPoints, goldPoints, pensionPoints, config);
         }
 
         return result;
@@ -85,6 +86,16 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         double goldPoints,
         double pensionPoints)
     {
+        return ComputeBreakdown(playerEvents, donationPoints, goldPoints, pensionPoints, null);
+    }
+
+    private AnalyticsHappinessBreakdown ComputeBreakdown(
+        List<EventDb> playerEvents,
+        double donationPoints,
+        double goldPoints,
+        double pensionPoints,
+        RulesetConfig? config)
+    {
         double needPoints = 0;
         var primaryCount = 0;
         var secondaryCount = 0;
@@ -96,48 +107,46 @@ internal sealed class HappinessCalculator : IHappinessCalculator
 
         foreach (var evt in playerEvents)
         {
-            if (evt.ActionType == "need.primary.purchased" &&
-                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValue))
-            {
-                primaryCount += 1;
-                needPoints += needPointsValue;
-            }
-
-            if (evt.ActionType == "need.secondary.purchased" &&
-                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out _, out var needPointsValueSecondary))
-            {
-                secondaryCount += 1;
-                needPoints += needPointsValueSecondary;
-            }
-
-            if (evt.ActionType == "need.tertiary.purchased" &&
+            if (evt.ActionType == "Kebutuhan" &&
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var tertiaryCardId, out var needPointsValueTertiary))
             {
-                tertiaryCount += 1;
                 needPoints += needPointsValueTertiary;
-                if (!string.IsNullOrWhiteSpace(tertiaryCardId))
+
+                switch (NeedTierClassifier.FromPayloadJson(evt.Payload))
                 {
-                    tertiaryCardIds.Add(tertiaryCardId);
+                    case NeedTier.Primary:
+                        primaryCount += 1;
+                        break;
+                    case NeedTier.Secondary:
+                        secondaryCount += 1;
+                        break;
+                    case NeedTier.Tertiary:
+                        tertiaryCount += 1;
+                        if (!string.IsNullOrWhiteSpace(tertiaryCardId))
+                        {
+                            tertiaryCardIds.Add(tertiaryCardId);
+                        }
+                        break;
                 }
             }
 
-            if (evt.ActionType == "mission.assigned" &&
+            if (evt.ActionType == "BagikanMisiKoleksi" &&
                 _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
             }
 
-            if (evt.ActionType == "saving.goal.achieved" && _payloadReader.TryReadSavingGoalAchieved(evt.Payload, out var savingPoints))
+            if (evt.ActionType == "TujuanFinansial" && _payloadReader.TryReadSavingGoalAchieved(evt.Payload, out var savingPoints))
             {
                 savingGoalPoints += savingPoints;
             }
 
-            if (evt.ActionType == "loan.syariah.taken" && _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
+            if (evt.ActionType == "PinjamanSyariah" && _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
             {
                 loans[loanId] = new LoanState(loanId, principal, penaltyPointsValue, 0);
             }
 
-            if (evt.ActionType == "loan.syariah.repaid" && _payloadReader.TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount))
+            if (evt.ActionType == "BayarPinjaman" && _payloadReader.TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount))
             {
                 if (loans.TryGetValue(repayLoanId, out var state))
                 {
@@ -146,12 +155,18 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             }
         }
 
-        var mixedSets = Math.Min(primaryCount, Math.Min(secondaryCount, tertiaryCount));
+        var differentBonus = ResolveNeedSetBonus(config, "THREE_DIFFERENT", requiredCount: 3, points: 4);
+        var sameBonus = ResolveNeedSetBonus(config, "THREE_SAME", requiredCount: 3, points: 2);
+        var mixedSets = differentBonus.RequiredCount == 3
+            ? Math.Min(primaryCount, Math.Min(secondaryCount, tertiaryCount))
+            : 0;
         var remainingPrimary = primaryCount - mixedSets;
         var remainingSecondary = secondaryCount - mixedSets;
         var remainingTertiary = tertiaryCount - mixedSets;
-        var sameSets = (remainingPrimary / 3) + (remainingSecondary / 3) + (remainingTertiary / 3);
-        var needSetBonusPoints = mixedSets * 4 + sameSets * 2;
+        var sameSets = (remainingPrimary / sameBonus.RequiredCount) +
+                       (remainingSecondary / sameBonus.RequiredCount) +
+                       (remainingTertiary / sameBonus.RequiredCount);
+        var needSetBonusPoints = mixedSets * differentBonus.Points + sameSets * sameBonus.Points;
 
         var hasPrimary = primaryCount > 0;
         var hasSecondary = secondaryCount > 0;
@@ -208,9 +223,22 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             hasUnpaidLoan);
     }
 
+    private static NeedSetBonus ResolveNeedSetBonus(
+        RulesetConfig? config,
+        string patternCode,
+        int requiredCount,
+        int points)
+    {
+        var configured = config?.NeedSetBonuses.FirstOrDefault(item =>
+            string.Equals(item.PatternCode, patternCode, StringComparison.OrdinalIgnoreCase));
+        return configured is null
+            ? new NeedSetBonus(requiredCount, points)
+            : new NeedSetBonus(configured.RequiredCount, configured.Points);
+    }
+
     private Dictionary<Guid, int> BuildTieBreakerLookup(IEnumerable<EventDb> events)
     {
-        return events.Where(e => e.UserId.HasValue && e.ActionType == "tie_breaker.assigned")
+        return events.Where(e => e.UserId.HasValue && e.ActionType == "BagikanTieBreaker")
             .OrderBy(e => e.SequenceNumber)
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(
@@ -230,7 +258,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         var pointsByRank = scoring.DonationRankPoints.ToDictionary(item => item.Rank, item => item.Points);
         var result = new Dictionary<Guid, double>();
 
-        var fridayGroups = events.Where(e => e.ActionType == "day.friday.donation" && e.UserId.HasValue)
+        var fridayGroups = events.Where(e => e.ActionType == "JumatBerkah" && e.UserId.HasValue)
             .GroupBy(e => e.DayIndex);
 
         foreach (var dayGroup in fridayGroups)
@@ -272,7 +300,9 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             .OrderBy(item => item.Qty)
             .ToList();
 
-        var goldQtyByPlayer = events.Where(e => e.ActionType == "day.saturday.gold_trade" && e.UserId.HasValue)
+        var goldQtyByPlayer = events.Where(e =>
+                (e.ActionType == GameActionCatalog.InvestasiEmas || e.ActionType == GameActionCatalog.JualEmas) &&
+                e.UserId.HasValue)
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(
                 g => g.Key,
@@ -283,7 +313,10 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                         return 0;
                     }
 
-                    return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
+                    return e.ActionType == GameActionCatalog.JualEmas ||
+                           string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase)
+                        ? -qty
+                        : qty;
                 }));
 
         var result = new Dictionary<Guid, double>();
@@ -314,14 +347,18 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 g => g.Key,
                 g => config.StartingCash + g.Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount));
 
+        var savingByPlayer = BuildSavingLookup(events);
+        var ingredientValueByPlayer = BuildIngredientValueLookup(events);
         var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
         var ranking = players.Select(playerId =>
             {
                 cashByPlayer.TryGetValue(playerId, out var cash);
+                savingByPlayer.TryGetValue(playerId, out var saving);
+                ingredientValueByPlayer.TryGetValue(playerId, out var ingredientValue);
                 tieBreakers.TryGetValue(playerId, out var tieNumber);
-                return new { UserId = playerId, Cash = cash, Tie = tieNumber };
+                return new { UserId = playerId, PensionFund = cash + saving + ingredientValue, Tie = tieNumber };
             })
-            .OrderByDescending(item => item.Cash)
+            .OrderByDescending(item => item.PensionFund)
             .ThenByDescending(item => item.Tie)
             .ThenBy(item => item.UserId)
             .ToList();
@@ -339,6 +376,113 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         }
 
         return result;
+    }
+
+    private Dictionary<Guid, int> BuildSavingLookup(IEnumerable<EventDb> events)
+    {
+        var result = new Dictionary<Guid, int>();
+        foreach (var evt in events.Where(e => e.UserId.HasValue))
+        {
+            var delta = 0;
+            if (evt.ActionType == "Menabung" &&
+                _payloadReader.TryReadSavingDeposit(evt.Payload, out _, out var depositAmount))
+            {
+                delta = depositAmount;
+            }
+            else if (evt.ActionType == "TarikTabungan" &&
+                     TryReadInt32(evt.Payload, "amount", out var withdrawAmount))
+            {
+                delta = -withdrawAmount;
+            }
+            else if (evt.ActionType == "TujuanFinansial" &&
+                     _payloadReader.TryReadSavingGoalAchievedDetailed(evt.Payload, out _, out _, out var cost))
+            {
+                delta = -cost;
+            }
+
+            if (delta != 0)
+            {
+                var playerId = evt.UserId!.Value;
+                result[playerId] = result.TryGetValue(playerId, out var current) ? current + delta : delta;
+            }
+        }
+
+        return result;
+    }
+
+    private Dictionary<Guid, int> BuildIngredientValueLookup(IEnumerable<EventDb> events)
+    {
+        var inventoryByPlayer = new Dictionary<Guid, Dictionary<string, int>>();
+        foreach (var evt in events.Where(e => e.UserId.HasValue))
+        {
+            var playerId = evt.UserId!.Value;
+            if (!inventoryByPlayer.TryGetValue(playerId, out var inventory))
+            {
+                inventory = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                inventoryByPlayer[playerId] = inventory;
+            }
+
+            if (evt.ActionType == "BahanMasakan" &&
+                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out _))
+            {
+                inventory[cardId] = inventory.TryGetValue(cardId, out var current) ? current + 1 : 1;
+            }
+            else if (evt.ActionType == "BuangBahanMasakan" &&
+                     TryReadString(evt.Payload, "card_id", out var discardedCardId))
+            {
+                var qty = TryReadInt32(evt.Payload, "amount", out var amount) ? Math.Max(1, amount) : 1;
+                inventory[discardedCardId] = Math.Max(0, inventory.TryGetValue(discardedCardId, out var current) ? current - qty : 0);
+            }
+            else if (evt.ActionType == "JualMasakan" &&
+                     _payloadReader.TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
+            {
+                foreach (var requiredCard in requiredCards)
+                {
+                    inventory[requiredCard] = Math.Max(0, inventory.TryGetValue(requiredCard, out var current) ? current - 1 : 0);
+                }
+            }
+        }
+
+        return inventoryByPlayer.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.Values.Sum());
+    }
+
+    private static bool TryReadString(string payloadJson, string propertyName, out string value)
+    {
+        value = string.Empty;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty(propertyName, out var property) ||
+                property.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            value = property.GetString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(value);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadInt32(string payloadJson, string propertyName, out int value)
+    {
+        value = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            return doc.RootElement.TryGetProperty(propertyName, out var property) &&
+                   property.ValueKind == JsonValueKind.Number &&
+                   property.TryGetInt32(out value);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private int ResolvePointsByQty(int qty, IReadOnlyList<QtyPoint> table)
@@ -381,4 +525,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         int Principal,
         int PenaltyPoints,
         double RepaidAmount);
+
+    private sealed record NeedSetBonus(int RequiredCount, int Points);
 }

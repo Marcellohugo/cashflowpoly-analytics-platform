@@ -37,7 +37,7 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         double coinsNetEndGame,
         double totalIncome)
     {
-        var riskEvents = playerEvents.Where(e => e.ActionType == "risk.life.drawn").ToList();
+        var riskEvents = playerEvents.Where(e => e.ActionType == "RisikoKehidupan").ToList();
         var riskCostsPerCard = new List<int>();
         foreach (var riskEvent in riskEvents)
         {
@@ -52,12 +52,15 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
 
         var riskCostsTotal = riskCostsPerCard.Sum();
         var riskCardsDrawn = riskEvents.Count;
-        var riskMitigated = playerEvents.Count(e => e.ActionType == "insurance.multirisk.used");
+        var riskMitigated = playerEvents.Count(e =>
+            e.ActionType == GameActionCatalog.Asuransi &&
+            (e.Payload.Contains("\"risk_event_id\"", StringComparison.OrdinalIgnoreCase) ||
+             e.Payload.Contains("\"risk_event_ref\"", StringComparison.OrdinalIgnoreCase)));
         var riskAccepted = Math.Max(0, riskCardsDrawn - riskMitigated);
         var insurancePayments = playerProjections
             .Where(p => p.Category == "INSURANCE_PREMIUM" && p.Direction == "OUT")
             .Sum(p => p.Amount);
-        var emergencyOptionsUsed = playerEvents.Count(e => e.ActionType == "risk.emergency.used");
+        var emergencyOptionsUsed = playerEvents.Count(e => e.ActionType == "GunakanOpsiDarurat");
 
         var loanStates = BuildLoanStates(playerEvents);
         var loansTaken = loanStates.Count;
@@ -105,13 +108,13 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         var loanStates = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         foreach (var evt in playerEvents)
         {
-            if (evt.ActionType == "loan.syariah.taken" &&
+            if (evt.ActionType == "PinjamanSyariah" &&
                 _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPoints))
             {
                 loanStates[loanId] = new LoanState(loanId, principal, penaltyPoints, 0);
             }
 
-            if (evt.ActionType == "loan.syariah.repaid" &&
+            if (evt.ActionType == "BayarPinjaman" &&
                 _payloadReader.TryReadLoanRepay(evt.Payload, out var repayLoanId, out var repayAmount) &&
                 loanStates.TryGetValue(repayLoanId, out var state))
             {

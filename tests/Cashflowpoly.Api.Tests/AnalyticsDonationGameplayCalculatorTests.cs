@@ -12,15 +12,15 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
         var playerId = Guid.NewGuid();
         var playerEvents = new List<EventDb>
         {
-            CreateEvent(playerId, "day.friday.donation", """{"amount":10}""", dayIndex: 5, weekday: "FRI"),
-            CreateEvent(playerId, "day.friday.donation", """{"amount":20}""", dayIndex: 5, weekday: "FRI"),
-            CreateEvent(playerId, "day.friday.donation", """{"amount":5}""", dayIndex: 12, weekday: "FRI"),
-            CreateEvent(playerId, "donation.rank.awarded", """{"rank":1,"points":15}""", dayIndex: 5, weekday: "FRI"),
-            CreateEvent(playerId, "donation.rank.awarded", """{"rank":2,"points":10}""", dayIndex: 12, weekday: "FRI")
+            CreateEvent(playerId, "JumatBerkah", """{"amount":10}""", dayIndex: 5, weekday: "FRI"),
+            CreateEvent(playerId, "JumatBerkah", """{"amount":20}""", dayIndex: 5, weekday: "FRI"),
+            CreateEvent(playerId, "JumatBerkah", """{"amount":5}""", dayIndex: 12, weekday: "FRI"),
+            CreateEvent(playerId, "PoinPeringkatDonasi", """{"rank":1,"points":15}""", dayIndex: 5, weekday: "FRI"),
+            CreateEvent(playerId, "PoinPeringkatDonasi", """{"rank":2,"points":10}""", dayIndex: 12, weekday: "FRI")
         };
         var allEvents = playerEvents.Concat(new[]
         {
-            CreateEvent(Guid.NewGuid(), "turn.ended", "{}", dayIndex: 19, weekday: "FRI")
+            CreateEvent(Guid.NewGuid(), "AkhirGiliran", "{}", dayIndex: 19, weekday: "FRI")
         }).ToList();
 
         var metrics = new DonationGameplayCalculator().Compute(playerEvents, allEvents, coinsNetEndGame: 100);
@@ -91,7 +91,7 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = dayIndex,
             Weekday = weekday,
-            TurnNumber = dayIndex,
+            ActionSlot = dayIndex,
             SequenceNumber = dayIndex,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

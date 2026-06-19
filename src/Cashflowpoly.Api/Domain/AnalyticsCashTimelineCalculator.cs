@@ -4,15 +4,15 @@ using Cashflowpoly.Api.Data;
 namespace Cashflowpoly.Api.Domain;
 
 public sealed record AnalyticsTurnAmount(
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("amount")] double Amount);
 
 public sealed record AnalyticsTurnNet(
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("net")] double Net);
 
 public sealed record AnalyticsTurnCoins(
-    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("coins")] double Coins);
 
 public sealed record AnalyticsCashTimeline(
@@ -51,7 +51,7 @@ internal sealed class CashTimelineCalculator : ICashTimelineCalculator
                 continue;
             }
 
-            var turn = evt.TurnNumber;
+            var turn = evt.ActionSlot;
             if (string.Equals(projection.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
             {
                 spentByTurn[turn] = spentByTurn.TryGetValue(turn, out var existing)

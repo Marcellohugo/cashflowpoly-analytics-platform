@@ -11,10 +11,10 @@ public sealed class AnalyticsIngredientInventoryCalculatorTests
     {
         var events = new List<EventDb>
         {
-            BuildEvent("ingredient.purchased", """{"card_id":"flour","amount":2}"""),
-            BuildEvent("ingredient.purchased", """{"card_id":"egg","amount":1}"""),
-            BuildEvent("order.claimed", """{"required_ingredient_card_ids":["flour","egg"],"income":8}"""),
-            BuildEvent("ingredient.discarded", """{"card_id":"flour","amount":1}""")
+            BuildEvent("BahanMasakan", """{"card_id":"flour","amount":2}"""),
+            BuildEvent("BahanMasakan", """{"card_id":"egg","amount":1}"""),
+            BuildEvent("JualMasakan", """{"required_ingredient_card_ids":["flour","egg"],"income":8}"""),
+            BuildEvent("BuangBahanMasakan", """{"card_id":"flour","amount":1}""")
         };
 
         var inventory = new IngredientInventoryCalculator().BuildIngredientInventory(events);
@@ -29,9 +29,9 @@ public sealed class AnalyticsIngredientInventoryCalculatorTests
     {
         var events = new List<EventDb>
         {
-            BuildEvent("ingredient.purchased", """{"card_id":"flour","amount":2}"""),
-            BuildEvent("ingredient.purchased", """{"card_id":"","amount":5}"""),
-            BuildEvent("ingredient.discarded", """{"card_id":"unknown","amount":2}""")
+            BuildEvent("BahanMasakan", """{"card_id":"flour","amount":2}"""),
+            BuildEvent("BahanMasakan", """{"card_id":"","amount":5}"""),
+            BuildEvent("BuangBahanMasakan", """{"card_id":"unknown","amount":2}""")
         };
 
         var inventory = new IngredientInventoryCalculator().BuildIngredientInventory(events);

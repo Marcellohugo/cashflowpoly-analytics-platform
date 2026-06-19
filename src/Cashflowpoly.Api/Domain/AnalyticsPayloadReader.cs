@@ -98,17 +98,26 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
             return false;
         }
 
-        return !actionType.Equals("turn.action.used", StringComparison.OrdinalIgnoreCase) &&
-               !actionType.EndsWith(".awarded", StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals("order.passed", StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals("ingredient.discarded", StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals("risk.emergency.used", StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals("tie_breaker.assigned", StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals("mission.assigned", StringComparison.OrdinalIgnoreCase);
+        if (actionType.Contains('.', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return !actionType.Equals(GameActionCatalog.AkhirGiliran, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.OrderPassed, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.IngredientDiscarded, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.RiskEmergencyUsed, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.DonationRankAwarded, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.DonationWinnersAnnounced, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.GoldPointsAwarded, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.PensionRankAwarded, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.GoldInitialGranted, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.TieBreakerAssigned, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.MissionAssigned, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Membaca jumlah aksi terpakai dan tersisa dari payload JSON event turn.action.used.
+    /// Membaca jumlah aksi terpakai dan tersisa dari payload JSON event AkhirGiliran.
     /// </summary>
     public bool TryReadActionUsed(string payloadJson, out int used, out int remaining)
     {

@@ -15,7 +15,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
             CreateGoldTrade(playerId, "BUY", qty: 3, unitPrice: 4, amount: 12),
             CreateGoldTrade(playerId, "SELL", qty: 1, unitPrice: 5, amount: 5),
             CreateGoldTrade(playerId, "BUY", qty: 2, unitPrice: 6, amount: 12),
-            CreateEvent(playerId, "transaction.recorded", """{"amount":99}""")
+            CreateEvent(playerId, "CatatTransaksi", """{"amount":99}""")
         };
 
         var metrics = new GoldGameplayCalculator().Compute(events);
@@ -34,7 +34,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
     {
         return CreateEvent(
             playerId,
-            "day.saturday.gold_trade",
+            string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) ? "JualEmas" : "InvestasiEmas",
             $$"""{"trade_type":"{{tradeType}}","qty":{{qty}},"unit_price":{{unitPrice}},"amount":{{amount}}}""");
     }
 
@@ -49,7 +49,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "SAT",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

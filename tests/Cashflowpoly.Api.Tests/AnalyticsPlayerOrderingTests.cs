@@ -7,7 +7,7 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class AnalyticsPlayerOrderingTests
 {
     [Fact]
-    public void OrderPlayers_UsesJoinOrderByDefaultThenEventSequence()
+    public void OrderPlayers_UsesPlayerOrderByDefaultThenEventSequence()
     {
         var first = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var second = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -21,7 +21,7 @@ public sealed class AnalyticsPlayerOrderingTests
 
         var ordered = new PlayerOrderingService().OrderPlayers(
             players,
-            PlayerOrdering.JoinOrder,
+            PlayerOrdering.PlayerOrder,
             new Dictionary<Guid, int> { [first] = 2, [second] = 1 },
             new Dictionary<Guid, long> { [first] = 5, [second] = 9, [third] = 1 },
             new Dictionary<Guid, string>());

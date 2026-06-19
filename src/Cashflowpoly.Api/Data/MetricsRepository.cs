@@ -33,7 +33,8 @@ public sealed class MetricsRepository
                 metric_name,
                 metric_value_numeric,
                 metric_payload_json,
-                ruleset_version_id
+                ruleset_version_id,
+                last_event_id
             )
             values (
                 @MetricSnapshotId,
@@ -44,7 +45,8 @@ public sealed class MetricsRepository
                 @MetricName,
                 @MetricValueNumeric,
                 @MetricValueJson::jsonb,
-                @RulesetVersionId
+                @RulesetVersionId,
+                @LastEventId
             )
             """;
 
@@ -61,24 +63,18 @@ public sealed class MetricsRepository
             select count(*)
             from validation_logs
             where session_id = @sessionId
-              and is_valid = false
             """;
 
         if (userId.HasValue)
         {
             sql += """
 
-                 and exists (
-                     select 1
-                     from events e
-                     where e.event_pk = validation_logs.event_pk
-                       and e.user_id = @userId
-                 )
+                 and details_json->>'user_id' = @userIdText
                  """;
         }
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId, userId }, cancellationToken: ct));
+        return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId, userIdText = userId?.ToString() }, cancellationToken: ct));
     }
 
     /// <summary>
@@ -102,6 +98,26 @@ public sealed class MetricsRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<MetricSnapshotJsonDb>(
             new CommandDefinition(sql, new { sessionId, userId, metricNames }, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task<List<MetricSnapshotValueDb>> GetLatestMetricValuesAsync(Guid sessionId, Guid userId, IReadOnlyCollection<string> metricNames, CancellationToken ct)
+    {
+        const string sql = """
+            select distinct on (metric_name)
+                   metric_name,
+                   metric_value_numeric,
+                   computed_at
+            from metric_snapshots
+            where session_id = @sessionId
+              and user_id = @userId
+              and metric_name = any(@metricNames)
+            order by metric_name, computed_at desc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<MetricSnapshotValueDb>(
+            new CommandDefinition(sql, new { sessionId, userId, metricNames = metricNames.ToArray() }, cancellationToken: ct));
         return items.ToList();
     }
 

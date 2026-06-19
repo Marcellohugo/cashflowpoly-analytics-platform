@@ -80,8 +80,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
         var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
-        var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerJoinOrders, ct);
+        var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerPlayerOrders, ct);
 
         if (activeRuleset.VersionId.HasValue)
         {
@@ -112,8 +112,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
         var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
-        var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(sessionId, ct);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerJoinOrders, ct);
+        var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerPlayerOrders, ct);
         if (scope.UserId.HasValue)
         {
             byPlayer = byPlayer.Where(item => item.UserId == scope.UserId.Value).ToList();
@@ -169,17 +169,64 @@ internal sealed class AnalyticsService : IAnalyticsService
             return (null, 403, BuildError("FORBIDDEN", "Player hanya dapat melihat metrik miliknya"));
         }
 
-        var snapshots = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, userId, ct);
-        var rawJson = snapshots.FirstOrDefault(item => item.MetricName == "gameplay.raw.variables")?.MetricValueJson;
-        var derivedJson = snapshots.FirstOrDefault(item => item.MetricName == "gameplay.derived.metrics")?.MetricValueJson;
+        var metricNames = new[]
+        {
+            "cashflow.in.total",
+            "cashflow.out.total",
+            "cashflow.net.total",
+            "donation.total",
+            "gold.qty.current",
+            "orders.completed.count",
+            "inventory.ingredient.total",
+            "actions.used.total",
+            "happiness.points.total",
+            "happiness.need.points",
+            "happiness.need.bonus",
+            "happiness.donation.points",
+            "happiness.gold.points",
+            "happiness.pension.points",
+            "happiness.saving_goal.points",
+            "happiness.mission.penalty",
+            "happiness.loan.penalty",
+            "loan.unpaid.flag",
+            "compliance.primary_need.rate",
+            "rules.violations.count"
+        };
+        var snapshots = await _metrics.GetLatestMetricValuesAsync(sessionId, userId, metricNames, ct);
+        var values = snapshots.ToDictionary(item => item.MetricName, item => item.MetricValueNumeric ?? 0d, StringComparer.Ordinal);
         var computedAt = snapshots.Count == 0 ? (DateTimeOffset?)null : snapshots.Max(item => item.ComputedAt);
+        var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
+        var startingCash = activeRuleset.Config?.StartingCash ?? 0;
 
         return (new GameplayMetricsResponse(
             sessionId,
             userId,
             computedAt,
-            ParseJsonElement(rawJson),
-            ParseJsonElement(derivedJson)), 200, null);
+            new GameplayEconomyMetrics(
+                startingCash,
+                ReadMetric(values, "cashflow.in.total"),
+                ReadMetric(values, "cashflow.out.total"),
+                ReadMetric(values, "cashflow.net.total"),
+                ReadMetric(values, "donation.total")),
+            new GameplayProgressMetrics(
+                (int)ReadMetric(values, "gold.qty.current"),
+                (int)ReadMetric(values, "orders.completed.count"),
+                (int)ReadMetric(values, "inventory.ingredient.total"),
+                (int)ReadMetric(values, "actions.used.total")),
+            new GameplayScoreMetrics(
+                ReadMetric(values, "happiness.points.total"),
+                ReadMetric(values, "happiness.need.points"),
+                ReadMetric(values, "happiness.need.bonus"),
+                ReadMetric(values, "happiness.donation.points"),
+                ReadMetric(values, "happiness.gold.points"),
+                ReadMetric(values, "happiness.pension.points"),
+                ReadMetric(values, "happiness.saving_goal.points"),
+                ReadMetric(values, "happiness.mission.penalty"),
+                ReadMetric(values, "happiness.loan.penalty"),
+                ReadMetric(values, "loan.unpaid.flag") > 0.5d),
+            new GameplayComplianceMetrics(
+                ReadMetric(values, "compliance.primary_need.rate"),
+                (int)ReadMetric(values, "rules.violations.count"))), 200, null);
     }
 
     public async Task<(RulesetAnalyticsSummaryResponse? Result, int StatusCode, ErrorResponse? Error)> GetRulesetAnalyticsSummaryAsync(
@@ -251,14 +298,11 @@ internal sealed class AnalyticsService : IAnalyticsService
             var events = await _events.GetAllEventsBySessionAsync(session.SessionId, ct);
             var projections = await _events.GetCashflowProjectionsAsync(session.SessionId, ct);
             RulesetConfig? config = null;
-            if (RulesetConfigParser.TryParse(activeVersion.ConfigJson, out var parsed, out _))
-            {
-                config = parsed;
-            }
+            TryBuildRuntimeConfig(activeVersion, out config);
 
             var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
-            var playerJoinOrders = await _players.GetSessionPlayerJoinOrderMapAsync(session.SessionId, ct);
-            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerJoinOrders, ct);
+            var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(session.SessionId, ct);
+            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerPlayerOrders, ct);
             var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
 
             foreach (var player in byPlayer)
@@ -365,9 +409,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         }
 
         var ruleset = await _rulesets.GetRulesetAsync(rulesetVersion.RulesetId, ct);
-        var config = RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _)
-            ? parsed
-            : null;
+        TryBuildRuntimeConfig(rulesetVersion, out var config);
 
         return new ActiveRulesetContext(versionId.Value, rulesetVersion.RulesetId, ruleset?.Name, config);
     }
@@ -449,16 +491,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         return new ErrorResponse(code, message, [], "unknown");
     }
 
-    private static JsonElement? ParseJsonElement(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
-    }
+    private static double ReadMetric(IReadOnlyDictionary<string, double> values, string name)
+        => values.TryGetValue(name, out var value) ? value : 0d;
 
     private async Task<List<AnalyticsByPlayerItem>> BuildByPlayerAsync(
         Guid sessionId,
@@ -466,7 +500,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         List<CashflowProjectionDb> projections,
         Dictionary<Guid, AnalyticsHappinessBreakdown> happinessByPlayer,
         RulesetConfig? config,
-        Dictionary<Guid, int> playerJoinOrders,
+        Dictionary<Guid, int> playerPlayerOrders,
         CancellationToken ct)
     {
         var cashTotals = projections
@@ -483,7 +517,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         var eventsByPlayer = events.Where(e => e.UserId.HasValue)
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(group => group.Key, group => group.ToList());
-        var playerIds = playerJoinOrders.Keys
+        var playerIds = playerPlayerOrders.Keys
             .Union(eventsByPlayer.Keys)
             .Distinct()
             .ToList();
@@ -499,12 +533,12 @@ internal sealed class AnalyticsService : IAnalyticsService
             var playerEvents = eventsByPlayer.TryGetValue(playerId, out var items)
                 ? items
                 : [];
-            var joinOrder = playerJoinOrders.TryGetValue(playerId, out var assignedJoinOrder) ? assignedJoinOrder : 0;
+            var playerOrder = playerPlayerOrders.TryGetValue(playerId, out var assignedPlayerOrder) ? assignedPlayerOrder : 0;
 
             var totals = cashTotals.TryGetValue(playerId, out var t) ? t : new { In = 0d, Out = 0d };
             var donationTotal = SumDonationTotal(playerEvents);
             var goldQty = SumGoldQuantity(playerEvents);
-            var ordersCompletedCount = playerEvents.Count(e => e.ActionType == "order.claimed");
+            var ordersCompletedCount = playerEvents.Count(e => e.ActionType == "JualMasakan");
             var inventoryIngredientTotal = _inventoryCalc.BuildIngredientInventory(playerEvents).Total;
             var actionsUsedTotal = SumActionsUsed(playerEvents);
             var compliancePrimaryNeedRate = _complianceEvaluator.Evaluate(playerEvents, config).Rate;
@@ -516,7 +550,7 @@ internal sealed class AnalyticsService : IAnalyticsService
 
             result.Add(new AnalyticsByPlayerItem(
                 playerId,
-                joinOrder,
+                playerOrder,
                 totals.In,
                 totals.Out,
                 donationTotal,
@@ -540,8 +574,8 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         return _playerOrdering.OrderPlayers(
             result,
-            config?.PlayerOrdering ?? PlayerOrdering.JoinOrder,
-            playerJoinOrders,
+            config?.PlayerOrdering ?? PlayerOrdering.PlayerOrder,
+            playerPlayerOrders,
             firstEventSequenceByPlayer,
             usernamesByPlayer);
     }
@@ -567,11 +601,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         if (playerConfig is null)
         {
             var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
-            if (rulesetVersion is not null &&
-                RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var parsed, out _))
-            {
-                playerConfig = parsed;
-            }
+            TryBuildRuntimeConfig(rulesetVersion, out playerConfig);
         }
 
         var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
@@ -585,6 +615,15 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         if (snapshots.Count > 0)
         {
+            var lastEventId = events
+                .OrderByDescending(item => item.SequenceNumber)
+                .Select(item => (Guid?)item.EventId)
+                .FirstOrDefault();
+            foreach (var snapshot in snapshots)
+            {
+                snapshot.LastEventId = lastEventId;
+            }
+
             await _metrics.InsertSnapshotsAsync(snapshots, ct);
         }
     }
@@ -615,7 +654,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         var goldQty = SumGoldQuantity(playerEvents);
         metrics["gold.qty.current"] = (goldQty, null);
 
-        var ordersCompleted = playerEvents.Count(e => e.ActionType == "order.claimed");
+        var ordersCompleted = playerEvents.Count(e => e.ActionType == "JualMasakan");
         metrics["orders.completed.count"] = (ordersCompleted, null);
 
         var inventory = _inventoryCalc.BuildIngredientInventory(playerEvents);
@@ -632,9 +671,9 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         var resolvedHappiness = happiness ?? _happinessCalc.ComputeBreakdown(
             playerEvents,
-            _happinessCalc.SumRankAwarded(playerEvents, "donation.rank.awarded"),
-            _happinessCalc.SumPointsAwarded(playerEvents, "gold.points.awarded"),
-            _happinessCalc.SumRankAwarded(playerEvents, "pension.rank.awarded"));
+            _happinessCalc.SumRankAwarded(playerEvents, "PoinPeringkatDonasi"),
+            _happinessCalc.SumPointsAwarded(playerEvents, "PoinEmas"),
+            _happinessCalc.SumRankAwarded(playerEvents, "PoinPeringkatPensiun"));
 
         metrics["happiness.points.total"] = (resolvedHappiness.Total, null);
         metrics["happiness.need.points"] = (resolvedHappiness.NeedPoints, null);
@@ -656,13 +695,14 @@ internal sealed class AnalyticsService : IAnalyticsService
 
     private double SumDonationTotal(IEnumerable<EventDb> events)
         => events
-            .Where(e => e.ActionType == "day.friday.donation")
+            .Where(e => e.ActionType == "JumatBerkah")
             .Select(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0)
             .Sum();
 
     private int SumGoldQuantity(IEnumerable<EventDb> events)
         => events
-            .Where(e => e.ActionType == "day.saturday.gold_trade")
+            .Where(e => e.ActionType == GameActionCatalog.InvestasiEmas ||
+                        e.ActionType == GameActionCatalog.JualEmas)
             .Select(e =>
             {
                 if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
@@ -670,13 +710,16 @@ internal sealed class AnalyticsService : IAnalyticsService
                     return 0;
                 }
 
-                return string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) ? qty : -qty;
+                return e.ActionType == GameActionCatalog.JualEmas ||
+                       string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase)
+                    ? -qty
+                    : qty;
             })
             .Sum();
 
     private int SumActionsUsed(IEnumerable<EventDb> events)
         => events
-            .Where(e => e.ActionType == "turn.action.used")
+            .Where(e => e.ActionType == "AkhirGiliran")
             .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
             .Sum();
 
@@ -686,7 +729,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         CancellationToken ct)
     {
         var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
-        if (rulesetVersion is null || !RulesetConfigParser.TryParse(rulesetVersion.ConfigJson, out var config, out _))
+        if (!TryBuildRuntimeConfig(rulesetVersion, out var config))
         {
             return (0, null);
         }
@@ -705,5 +748,12 @@ internal sealed class AnalyticsService : IAnalyticsService
         });
 
         return (evaluation.Rate, json);
+    }
+
+    private static bool TryBuildRuntimeConfig(RulesetVersionDb? rulesetVersion, out RulesetConfig? config)
+    {
+        config = null;
+        return rulesetVersion?.Definition is not null &&
+               RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out config, out _);
     }
 }

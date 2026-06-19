@@ -17,14 +17,14 @@ internal sealed class IngredientInventoryCalculator : IIngredientInventoryCalcul
 
         foreach (var evt in events)
         {
-            if (evt.ActionType == "ingredient.purchased" &&
+            if (evt.ActionType == "BahanMasakan" &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out var amount))
             {
                 inventory.Total += amount;
                 inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + amount : amount;
             }
 
-            if (evt.ActionType == "order.claimed" &&
+            if (evt.ActionType == "JualMasakan" &&
                 _payloadReader.TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
             {
                 foreach (var card in requiredCards)
@@ -37,7 +37,7 @@ internal sealed class IngredientInventoryCalculator : IIngredientInventoryCalcul
                 }
             }
 
-            if (evt.ActionType == "ingredient.discarded" &&
+            if (evt.ActionType == "BuangBahanMasakan" &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var discardCardId, out var discardAmount) &&
                 inventory.ByCardId.TryGetValue(discardCardId, out var discardQty))
             {

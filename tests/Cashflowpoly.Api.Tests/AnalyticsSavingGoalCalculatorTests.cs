@@ -12,13 +12,13 @@ public sealed class AnalyticsSavingGoalCalculatorTests
         var playerId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(playerId, "saving.deposit.created", """{"goal_id":"goal-a","amount":20}"""),
-            CreateEvent(playerId, "saving.deposit.created", """{"goal_id":"goal-a","amount":10}"""),
-            CreateEvent(playerId, "saving.deposit.withdrawn", """{"goal_id":"goal-a","amount":5}"""),
-            CreateEvent(playerId, "saving.goal.achieved", """{"goal_id":"goal-a","points":10,"cost":12}"""),
-            CreateEvent(playerId, "saving.deposit.created", """{"goal_id":"goal-b","amount":7}"""),
-            CreateEvent(playerId, "saving.deposit.withdrawn", """{"goal_id":"goal-b","amount":3}"""),
-            CreateEvent(playerId, "saving.goal.achieved", """{"goal_id":"goal-c","points":5,"cost":3}""")
+            CreateEvent(playerId, "Menabung", """{"goal_id":"goal-a","amount":20}"""),
+            CreateEvent(playerId, "Menabung", """{"goal_id":"goal-a","amount":10}"""),
+            CreateEvent(playerId, "TarikTabungan", """{"goal_id":"goal-a","amount":5}"""),
+            CreateEvent(playerId, "TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":12}"""),
+            CreateEvent(playerId, "Menabung", """{"goal_id":"goal-b","amount":7}"""),
+            CreateEvent(playerId, "TarikTabungan", """{"goal_id":"goal-b","amount":3}"""),
+            CreateEvent(playerId, "TujuanFinansial", """{"goal_id":"goal-c","points":5,"cost":3}""")
         };
 
         var result = new SavingGoalCalculator().Compute(events);
@@ -68,7 +68,7 @@ public sealed class AnalyticsSavingGoalCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = 1,
+            ActionSlot = 1,
             SequenceNumber = 1,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

@@ -16,11 +16,11 @@ public sealed class AnalyticsIngredientMealCalculatorTests
         var orderId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(flourPurchaseId, sessionId, playerId, "ingredient.purchased", """{"card_id":"flour","ingredient_name":"Flour","amount":3}""", turn: 1, sequence: 1),
-            CreateEvent(eggPurchaseId, sessionId, playerId, "ingredient.purchased", """{"card_id":"egg","ingredient_name":"Egg","amount":1}""", turn: 1, sequence: 2),
-            CreateEvent(orderId, sessionId, playerId, "order.claimed", """{"required_ingredient_card_ids":["flour","egg"],"income":12}""", turn: 2, sequence: 3),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "ingredient.discarded", """{"card_id":"flour","amount":1}""", turn: 3, sequence: 4),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "order.passed", """{"required_ingredient_card_ids":["flour"],"income":8}""", turn: 4, sequence: 5)
+            CreateEvent(flourPurchaseId, sessionId, playerId, "BahanMasakan", """{"card_id":"flour","ingredient_name":"Flour","amount":3}""", turn: 1, sequence: 1),
+            CreateEvent(eggPurchaseId, sessionId, playerId, "BahanMasakan", """{"card_id":"egg","ingredient_name":"Egg","amount":1}""", turn: 1, sequence: 2),
+            CreateEvent(orderId, sessionId, playerId, "JualMasakan", """{"required_ingredient_card_ids":["flour","egg"],"income":12}""", turn: 2, sequence: 3),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BuangBahanMasakan", """{"card_id":"flour","amount":1}""", turn: 3, sequence: 4),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "LewatiOrder", """{"required_ingredient_card_ids":["flour"],"income":8}""", turn: 4, sequence: 5)
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -44,7 +44,7 @@ public sealed class AnalyticsIngredientMealCalculatorTests
         Assert.Equal(1, metrics.MealOrdersClaimed);
         Assert.Equal(1, metrics.MealOrdersPassed);
         Assert.Equal(12, metrics.MealOrderIncomeTotal);
-        Assert.Equal(4, metrics.MaxTurnNumber);
+        Assert.Equal(4, metrics.MaxActionSlot);
         Assert.Equal(0.25, metrics.MealOrdersPerTurnAverage);
         Assert.Equal(4, metrics.EssentialIngredientExpenses);
     }
@@ -67,7 +67,7 @@ public sealed class AnalyticsIngredientMealCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
-            TurnNumber = turn,
+            ActionSlot = turn,
             SequenceNumber = sequence,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

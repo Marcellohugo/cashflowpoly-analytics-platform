@@ -17,12 +17,12 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         var riskEventId = Guid.NewGuid();
         var playerEvents = new List<EventDb>
         {
-            CreateEvent(freelanceEventId, sessionId, playerId, "work.freelance.completed", """{"amount":10}""", turn: 1, sequence: 1),
-            CreateEvent(donationEventId, sessionId, playerId, "day.friday.donation", """{"amount":2}""", turn: 1, sequence: 2, weekday: "FRI"),
-            CreateEvent(riskEventId, sessionId, playerId, "risk.life.drawn", """{"risk_id":"risk-a","direction":"OUT","amount":3}""", turn: 2, sequence: 3)
+            CreateEvent(freelanceEventId, sessionId, playerId, "KerjaLepas", """{"amount":10}""", turn: 1, sequence: 1),
+            CreateEvent(donationEventId, sessionId, playerId, "JumatBerkah", """{"amount":2}""", turn: 1, sequence: 2, weekday: "FRI"),
+            CreateEvent(riskEventId, sessionId, playerId, "RisikoKehidupan", """{"risk_id":"risk-a","direction":"OUT","amount":3}""", turn: 2, sequence: 3)
         };
         var allEvents = playerEvents
-            .Concat(new[] { CreateEvent(Guid.NewGuid(), sessionId, null, "session.ended", "{}", turn: 3, sequence: 4) })
+            .Concat(new[] { CreateEvent(Guid.NewGuid(), sessionId, null, "AkhiriSesi", "{}", turn: 3, sequence: 4) })
             .ToList();
         var projections = new List<CashflowProjectionDb>
         {
@@ -55,7 +55,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         Assert.True(raw.GetProperty("outcomes").GetProperty("finish_line_reached").GetBoolean());
         Assert.Equal(1, raw.GetProperty("life_risk").GetProperty("life_risk_cards_drawn").GetInt32());
         Assert.Equal(3, raw.GetProperty("life_risk").GetProperty("life_risk_costs_total").GetInt32());
-        Assert.Equal("work.freelance.completed", raw.GetProperty("actions").GetProperty("action_sequence")[0].GetProperty("actions")[0].GetString());
+        Assert.Equal("KerjaLepas", raw.GetProperty("actions").GetProperty("action_sequence")[0].GetProperty("actions")[0].GetString());
         Assert.Equal(30, derived.GetProperty("risk_exposure_percentage").GetDouble());
         Assert.Equal(0, derived.GetProperty("income_diversification_index").GetDouble());
     }
@@ -79,7 +79,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero).AddMinutes(sequence),
             DayIndex = turn - 1,
             Weekday = weekday,
-            TurnNumber = turn,
+            ActionSlot = turn,
             SequenceNumber = sequence,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

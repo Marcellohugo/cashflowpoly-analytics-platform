@@ -149,7 +149,7 @@ internal static class ApiErrorHelper
         ["Token user tidak valid"] = "Invalid user token",
         ["Total kartu bahan melebihi batas ruleset"] = "Total ingredient cards exceed ruleset limit",
         ["Trade type tidak valid"] = "Invalid trade type",
-        ["Turn number minimal 1"] = "Turn number must be at least 1",
+        ["Action slot harus bernilai 1 atau 2"] = "Action slot must be 1 or 2",
         ["Username atau password salah"] = "Incorrect username or password",
         ["Username dan password wajib diisi"] = "Username and password are required",
         ["Username harus 3-80 karakter"] = "Username must be 3-80 characters",

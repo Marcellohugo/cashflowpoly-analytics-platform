@@ -12,24 +12,30 @@ public sealed class EventRepository
 
     private const string EventSelectColumns = """
         select
-            event_pk,
-            event_id,
-            session_id,
-            session_player_id,
-            user_id,
-            actor_type,
-            timestamp,
-            day_index,
-            weekday,
-            turn_number,
-            sequence_number,
-            action_id,
-            action_type,
-            ruleset_version_id,
-            coalesce(payload::text, '{}') as payload,
-            received_at,
-            client_request_id
-        from events
+            e.event_pk,
+            e.event_id,
+            e.session_id,
+            e.session_player_id,
+            e.user_id,
+            e.actor_type,
+            e.timestamp,
+            e.day_index,
+            e.weekday,
+            e.turn_number,
+            e.action_slot,
+            e.sequence_number,
+            e.ruleset_action_id,
+            ra.action_id,
+            e.action_type,
+            e.ruleset_version_id,
+            e.payload_version,
+            coalesce(e.payload::text, '{}') as payload,
+            e.received_at,
+            e.client_request_id
+        from events e
+        join ruleset_actions ra
+          on ra.ruleset_version_id = e.ruleset_version_id
+         and ra.ruleset_action_id = e.ruleset_action_id
         """;
 
     /// <summary>
@@ -102,15 +108,17 @@ public sealed class EventRepository
             day_index,
             weekday,
             turn_number,
+            action_slot,
             sequence_number,
-            action_id,
+            ruleset_action_id,
             action_type,
             ruleset_version_id,
+            payload_version,
             payload,
             received_at,
             client_request_id
         )
-        values (
+        select
             @EventPk,
             @EventId,
             @SessionId,
@@ -121,20 +129,29 @@ public sealed class EventRepository
             @DayIndex,
             @Weekday,
             @TurnNumber,
+            @ActionSlot,
             @SequenceNumber,
-            @ActionId,
+            ra.ruleset_action_id,
             @ActionType,
             @RulesetVersionId,
+            @PayloadVersion,
             @Payload::jsonb,
             @ReceivedAt,
             @ClientRequestId
-        )
+        from ruleset_actions ra
+        where ra.ruleset_version_id = @RulesetVersionId
+          and lower(ra.action_id) = lower(@ActionId)
+          and ra.is_active
+        limit 1
+        returning ruleset_action_id
         """;
 
     public async Task InsertEventAsync(EventDb record, CancellationToken ct)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, BuildEventParameters(record), cancellationToken: ct));
+        var rulesetActionId = await conn.QuerySingleOrDefaultAsync<Guid?>(
+            new CommandDefinition(InsertEventSql, BuildEventParameters(record), cancellationToken: ct));
+        record.RulesetActionId = EnsureActionResolved(rulesetActionId, record);
     }
 
     /// <summary>
@@ -142,17 +159,112 @@ public sealed class EventRepository
     /// </summary>
     internal async Task InsertEventAsync(EventDb record, NpgsqlConnection conn, NpgsqlTransaction tx, CancellationToken ct)
     {
-        await conn.ExecuteAsync(new CommandDefinition(InsertEventSql, BuildEventParameters(record), tx, cancellationToken: ct));
+        var rulesetActionId = await conn.QuerySingleOrDefaultAsync<Guid?>(
+            new CommandDefinition(InsertEventSql, BuildEventParameters(record), tx, cancellationToken: ct));
+        record.RulesetActionId = EnsureActionResolved(rulesetActionId, record);
+    }
+
+    internal async Task InsertEventAssetReferencesAsync(
+        EventDb record,
+        IReadOnlyCollection<EventAssetReferenceInput> references,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (references.Count == 0)
+        {
+            return;
+        }
+
+        const string resolveSql = """
+            select asset.ruleset_game_asset_id
+            from ruleset_game_assets asset
+            where asset.ruleset_version_id = @rulesetVersionId
+              and asset.asset_type = @assetType
+              and (
+                lower(asset.asset_code) = lower(@assetCode)
+                or lower(asset.display_name) = lower(@assetCode)
+              )
+              and asset.is_active
+            limit 1
+            """;
+
+        const string insertSql = """
+            insert into event_asset_references (
+                event_asset_reference_id,
+                session_id,
+                event_id,
+                ruleset_version_id,
+                ruleset_game_asset_id,
+                reference_role,
+                payload_path,
+                created_at
+            )
+            values (
+                @referenceId,
+                @sessionId,
+                @eventId,
+                @rulesetVersionId,
+                @rulesetGameAssetId,
+                @referenceRole,
+                @payloadPath,
+                now()
+            )
+            on conflict (session_id, event_id, ruleset_game_asset_id, reference_role) do nothing
+            """;
+
+        foreach (var reference in references
+                     .GroupBy(reference => new
+                     {
+                         AssetType = reference.AssetType.Trim().ToUpperInvariant(),
+                         AssetCode = reference.AssetCode.Trim().ToUpperInvariant(),
+                         ReferenceRole = reference.ReferenceRole.Trim().ToUpperInvariant()
+                     })
+                     .Select(group => group.First()))
+        {
+            var rulesetGameAssetId = await conn.QuerySingleOrDefaultAsync<Guid?>(
+                new CommandDefinition(
+                    resolveSql,
+                    new
+                    {
+                        rulesetVersionId = record.RulesetVersionId,
+                        reference.AssetType,
+                        reference.AssetCode
+                    },
+                    tx,
+                    cancellationToken: ct));
+
+            if (!rulesetGameAssetId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"Asset '{reference.AssetType}/{reference.AssetCode}' tidak ditemukan pada ruleset event.");
+            }
+
+            await conn.ExecuteAsync(new CommandDefinition(
+                insertSql,
+                new
+                {
+                    referenceId = Guid.NewGuid(),
+                    sessionId = record.SessionId,
+                    eventId = record.EventId,
+                    rulesetVersionId = record.RulesetVersionId,
+                    rulesetGameAssetId = rulesetGameAssetId.Value,
+                    reference.ReferenceRole,
+                    reference.PayloadPath
+                },
+                tx,
+                cancellationToken: ct));
+        }
     }
 
     /// <summary>
-    /// Menyimpan catatan log validasi (valid/gagal) untuk satu event ke tabel validation_logs.
+    /// Menyimpan catatan validasi gagal. Event valid hanya masuk stream events.
     /// </summary>
     public async Task InsertValidationLogAsync(
         Guid sessionId,
         Guid eventId,
-        Guid? eventPk,
-        bool isValid,
+        Guid? rulesetVersionId,
+        string rawPayloadJson,
         string? errorCode,
         string? errorMessage,
         string? detailsJson,
@@ -162,9 +274,9 @@ public sealed class EventRepository
             insert into validation_logs (
                 validation_log_id,
                 session_id,
-                event_pk,
+                ruleset_version_id,
                 event_id,
-                is_valid,
+                raw_payload_json,
                 error_code,
                 error_message,
                 details_json,
@@ -173,9 +285,9 @@ public sealed class EventRepository
             values (
                 @validationLogId,
                 @sessionId,
-                @eventPk,
+                @rulesetVersionId,
                 @eventId,
-                @isValid,
+                @rawPayloadJson::jsonb,
                 @errorCode,
                 @errorMessage,
                 @detailsJson::jsonb,
@@ -189,9 +301,9 @@ public sealed class EventRepository
         {
             validationLogId = Guid.NewGuid(),
             sessionId,
-            eventPk,
             eventId,
-            isValid,
+            rulesetVersionId,
+            rawPayloadJson = string.IsNullOrWhiteSpace(rawPayloadJson) ? "{}" : rawPayloadJson,
             errorCode,
             errorMessage,
             detailsJson,
@@ -209,6 +321,7 @@ public sealed class EventRepository
             user_id,
             event_pk,
             event_id,
+            projection_order,
             timestamp,
             direction,
             amount,
@@ -223,6 +336,7 @@ public sealed class EventRepository
             @UserId,
             @EventPk,
             @EventId,
+            @ProjectionOrder,
             @Timestamp,
             @Direction,
             @Amount,
@@ -231,7 +345,7 @@ public sealed class EventRepository
             @Reference,
             @Note
         )
-        on conflict (session_id, event_id) do nothing
+        on conflict (session_id, event_id, projection_order) do nothing
         """;
 
     /// <summary>
@@ -259,6 +373,25 @@ public sealed class EventRepository
         return await _dataSource.OpenConnectionAsync(ct);
     }
 
+    internal async Task<Guid?> ResolveSessionParticipantIdAsync(
+        Guid sessionId,
+        Guid userId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select session_participant_id
+            from session_participants
+            where session_id = @sessionId
+              and user_id = @userId
+            limit 1
+            """;
+
+        return await conn.QuerySingleOrDefaultAsync<Guid?>(
+            new CommandDefinition(sql, new { sessionId, userId }, tx, cancellationToken: ct));
+    }
+
     /// <summary>
     /// Mengambil seluruh proyeksi arus kas dalam satu sesi.
     /// </summary>
@@ -270,6 +403,7 @@ public sealed class EventRepository
                    user_id,
                    event_pk,
                    event_id,
+                   projection_order,
                    timestamp,
                    direction,
                    amount,
@@ -351,15 +485,50 @@ public sealed class EventRepository
             record.DayIndex,
             record.Weekday,
             record.TurnNumber,
+            record.ActionSlot,
             record.SequenceNumber,
-            ActionId = string.IsNullOrWhiteSpace(record.ActionId)
-                ? EventActionIdResolver.Resolve(record.ActionType, record.Payload)
-                : record.ActionId,
-            record.ActionType,
+            ActionId = ResolveActionId(record),
+            ActionType = ResolveActionId(record) ?? record.ActionType,
             record.RulesetVersionId,
+            PayloadVersion = string.IsNullOrWhiteSpace(record.PayloadVersion) ? "1.0" : record.PayloadVersion,
             record.Payload,
             record.ReceivedAt,
             record.ClientRequestId
         };
     }
+
+    private static Guid EnsureActionResolved(Guid? rulesetActionId, EventDb record)
+    {
+        if (!rulesetActionId.HasValue)
+        {
+            var actionId = string.IsNullOrWhiteSpace(record.ActionId)
+                ? EventActionIdResolver.Resolve(record.ActionType, record.Payload)
+                : record.ActionId;
+            throw new InvalidOperationException(
+                $"Action '{actionId}' tidak aktif atau tidak terdaftar pada ruleset event.");
+        }
+
+        return rulesetActionId.Value;
+    }
+
+    private static string? ResolveActionId(EventDb record)
+    {
+        var actionId = string.IsNullOrWhiteSpace(record.ActionId)
+            ? EventActionIdResolver.Resolve(record.ActionType, record.Payload)
+            : record.ActionId;
+
+        if (!string.IsNullOrWhiteSpace(actionId))
+        {
+            record.ActionId = actionId;
+            record.ActionType = actionId;
+        }
+
+        return actionId;
+    }
 }
+
+internal sealed record EventAssetReferenceInput(
+    string AssetType,
+    string AssetCode,
+    string ReferenceRole,
+    string PayloadPath);

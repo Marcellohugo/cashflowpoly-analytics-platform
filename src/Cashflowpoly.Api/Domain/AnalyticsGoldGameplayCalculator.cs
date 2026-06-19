@@ -25,14 +25,17 @@ internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
         var goldInvestmentSpent = 0;
         var goldInvestmentEarned = 0;
 
-        foreach (var evt in playerEvents.Where(e => e.ActionType == "day.saturday.gold_trade"))
+        foreach (var evt in playerEvents.Where(e =>
+                     e.ActionType == GameActionCatalog.InvestasiEmas ||
+                     e.ActionType == GameActionCatalog.JualEmas))
         {
             if (!_payloadReader.TryReadGoldTradeDetailed(evt.Payload, out var tradeType, out var qty, out var unitPrice, out var amount))
             {
                 continue;
             }
 
-            if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase))
+            if (evt.ActionType == GameActionCatalog.InvestasiEmas ||
+                string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase))
             {
                 goldBuyQty += qty;
                 goldInvestmentSpent += amount;
@@ -41,7 +44,8 @@ internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
                     goldPurchasePrices.Add(unitPrice);
                 }
             }
-            else if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase))
+            else if (evt.ActionType == GameActionCatalog.JualEmas ||
+                     string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase))
             {
                 goldSellQty += qty;
                 goldInvestmentEarned += amount;

@@ -10,44 +10,55 @@ internal static class DatabaseInitialization
     {
         using var scope = services.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInitialization");
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var dataSource = scope.ServiceProvider.GetRequiredService<NpgsqlDataSource>();
 
-        await EnsureSqlSchemaAsync(dataSource, logger, cancellationToken);
+        await EnsureSqlSchemaAsync(dataSource, logger, configuration, cancellationToken);
         await SeedSqlFileAsync(
             dataSource,
             logger,
-            Path.Combine("database", "01_seed_default_rulesets_components.sql"),
+            "01_seed_default_rulesets_components.sql",
             "Default ruleset seed ensured",
             stripPgcryptoExtension: true,
+            configuration,
             cancellationToken);
     }
 
     private static async Task EnsureSqlSchemaAsync(
         NpgsqlDataSource dataSource,
         ILogger logger,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        var schemaPath = ResolveDatabaseFilePath("00_create_schema.sql");
+        var schemaPath = ResolveSqlFilePath("00_create_schema.sql", configuration);
         var schemaSql = await File.ReadAllTextAsync(schemaPath, cancellationToken);
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        await connection.ExecuteAsync(new CommandDefinition(schemaSql, cancellationToken: cancellationToken));
+        try
+        {
+            await connection.ExecuteAsync(new CommandDefinition(schemaSql, cancellationToken: cancellationToken));
+        }
+        catch (PostgresException ex) when (RequiresSchemaReset(ex))
+        {
+            throw new InvalidOperationException(
+                $"Legacy database baseline detected while ensuring '{schemaPath}'. Reset database terlebih dahulu lalu jalankan startup ulang. Detail: {ex.MessageText}",
+                ex);
+        }
+
+        await dataSource.ReloadTypesAsync(cancellationToken);
         logger.LogInformation("Canonical SQL schema ensured from {SchemaPath}", schemaPath);
     }
 
     private static async Task SeedSqlFileAsync(
         NpgsqlDataSource dataSource,
         ILogger logger,
-        string relativePath,
+        string fileName,
         string successLogMessage,
         bool stripPgcryptoExtension,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
-        var seedPath = Path.Combine(AppContext.BaseDirectory, relativePath);
-        if (!File.Exists(seedPath))
-        {
-            throw new FileNotFoundException($"Seed SQL tidak ditemukan pada path '{seedPath}'.");
-        }
+        var seedPath = ResolveSqlFilePath(fileName, configuration);
 
         var seedSql = await File.ReadAllTextAsync(seedPath, cancellationToken);
         if (stripPgcryptoExtension)
@@ -60,15 +71,28 @@ internal static class DatabaseInitialization
         logger.LogInformation("{Message} from {SeedPath}", successLogMessage, seedPath);
     }
 
-    private static string ResolveDatabaseFilePath(string fileName)
+    private static string ResolveSqlFilePath(string fileName, IConfiguration configuration)
     {
-        var candidatePaths = new[]
+        var candidatePaths = new List<string>();
+        var configuredDirectory = configuration["DatabaseBootstrap:SqlDirectory"];
+        if (!string.IsNullOrWhiteSpace(configuredDirectory))
         {
+            candidatePaths.Add(Path.Combine(configuredDirectory, fileName));
+        }
+
+        candidatePaths.AddRange(
+        [
+            Path.Combine(AppContext.BaseDirectory, "artifacts", "runtime-sql", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "artifacts", "runtime-sql", fileName),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "runtime-sql", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "artifacts", "runtime-sql", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "artifacts", "runtime-sql", fileName),
             Path.Combine(AppContext.BaseDirectory, "database", fileName),
             Path.Combine(Directory.GetCurrentDirectory(), "database", fileName),
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "database", fileName),
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "database", fileName)
-        };
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "database", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "database", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", fileName)
+        ]);
 
         foreach (var candidate in candidatePaths)
         {
@@ -79,6 +103,12 @@ internal static class DatabaseInitialization
             }
         }
 
-        throw new FileNotFoundException($"File database '{fileName}' tidak ditemukan.");
+        throw new FileNotFoundException($"File SQL bootstrap '{fileName}' tidak ditemukan.");
+    }
+
+    private static bool RequiresSchemaReset(PostgresException ex)
+    {
+        return ex.MessageText.Contains("reset required", StringComparison.OrdinalIgnoreCase) ||
+               ex.MessageText.Contains("legacy schema detected", StringComparison.OrdinalIgnoreCase);
     }
 }
