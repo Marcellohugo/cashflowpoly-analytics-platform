@@ -1,10 +1,10 @@
-﻿# Definisi Metrik dan Aturan Agregasi  
+# Definisi Metrik dan Aturan Agregasi
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Definisi Metrik dan Aturan Agregasi
-- Versi: 1.3
-- Tanggal: 8 Februari 2026
+- Versi: 1.4
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -41,14 +41,14 @@ Sistem menyertakan `ruleset_version_id` pada setiap snapshot metrik agar instruk
 ## 3. Waktu dan Level Agregasi
 ### 3.1 Level agregasi
 Sistem menghasilkan metrik pada dua level:
-1. level sesi (agregat semua pemain) dengan `player_id = null`,
-2. level pemain dengan `player_id = <uuid pemain>`.
+1. level sesi (agregat semua pemain) dengan `user_id = null` dan `session_player_id = null`,
+2. level Player dengan `user_id = <uuid akun Player>` dan, bila tersedia, `session_player_id = <uuid peserta sesi>`.
 
 ### 3.2 Jendela waktu
 Sistem menghitung metrik pada tiga jendela:
 1. sepanjang sesi (*lifetime session*),
 2. per hari (`day_index`),
-3. per giliran (`turn_number`).
+3. per slot aksi (`action_slot`).
 
 Sistem menyimpan hasil hari dan giliran pada `metric_value_json` agar dasbor menampilkan tren.
 
@@ -104,7 +104,7 @@ Contoh:
 - `inventory.ingredient.total`
 - `rules.violations.count`
 
-Sistem memakai nama yang sama untuk level sesi dan level pemain. Sistem membedakan level melalui `player_id`.
+Sistem memakai nama yang sama untuk level sesi dan level Player. Sistem membedakan level melalui `user_id` dan `session_player_id`.
 
 ---
 
@@ -116,23 +116,23 @@ Tabel berikut mendefinisikan metrik minimum yang dasbor tampilkan.
 | cashflow.in.total | sesi & pemain | numeric | `event_cashflow_projections` | Total pemasukan koin. |
 | cashflow.out.total | sesi & pemain | numeric | `event_cashflow_projections` | Total pengeluaran koin. |
 | cashflow.net.total | sesi & pemain | numeric | hasil rumus | Selisih pemasukan dan pengeluaran. |
-| donation.total | sesi & pemain | numeric | `events` (`day.friday.donation`) | Total donasi. |
-| gold.qty.current | pemain | numeric | `events` (`day.saturday.gold_trade`) | Jumlah emas saat ini. |
-| orders.completed.count | pemain | numeric | `events` (`order.claimed`) | Jumlah order yang berhasil diklaim. |
-| inventory.ingredient.total | pemain | numeric | `events` (`ingredient.purchased`, `order.claimed`) | Total kartu bahan saat ini. |
+| donation.total | sesi & pemain | numeric | `events` (`JumatBerkah`) | Total donasi. |
+| gold.qty.current | pemain | numeric | `events` (`InvestasiEmas`, `JualEmas`) | Jumlah emas saat ini. |
+| orders.completed.count | pemain | numeric | `events` (`JualMasakan`) | Jumlah order yang berhasil diklaim. |
+| inventory.ingredient.total | pemain | numeric | `events` (`BahanMasakan`, `JualMasakan`) | Total kartu bahan saat ini. |
 | compliance.primary_need.rate | pemain | numeric | `events` + aturan ruleset | Rasio hari yang memenuhi kewajiban kebutuhan primer. |
-| actions.used.total | pemain | numeric | `events` (`turn.action.used`) | Total token aksi yang pemain pakai. |
+| actions.used.total | pemain | numeric | `events.action_slot` dan `ruleset_game_settings.actions_per_turn` | Total slot aksi yang pemain pakai. |
 | rules.violations.count | sesi & pemain | numeric | `validation_logs` atau hasil validasi | Jumlah pelanggaran aturan domain. |
 | happiness.points.total | sesi & pemain | numeric | agregasi event poin | Total Poin Kebahagiaan pemain / sesi. |
-| happiness.need.points | pemain | numeric | `events` (`need.*.purchased`) | Total poin kartu kebutuhan. |
-| happiness.need.bonus | pemain | numeric | `events` (`need.*.purchased`) | Bonus set kebutuhan. |
-| happiness.donation.points | pemain | numeric | `ruleset.scoring` atau `events` (`donation.rank.awarded`) | Poin juara donasi. |
-| happiness.gold.points | pemain | numeric | `ruleset.scoring` atau `events` (`gold.points.awarded`) | Poin investasi emas. |
-| happiness.pension.points | pemain | numeric | `ruleset.scoring` atau `events` (`pension.rank.awarded`) | Poin juara dana pensiun. |
-| happiness.saving_goal.points | pemain | numeric | `events` (`saving.goal.achieved`) | Poin tujuan keuangan. |
-| happiness.mission.penalty | pemain | numeric | `events` (`mission.assigned`) | Penalti misi koleksi. |
-| happiness.loan.penalty | pemain | numeric | `events` (`loan.syariah.*`) | Penalti pinjaman belum lunas. |
-| loan.unpaid.flag | pemain | numeric | `events` (`loan.syariah.*`) | Indikator pinjaman belum lunas (1/0). |
+| happiness.need.points | pemain | numeric | `events` (`Kebutuhan`) | Total poin kartu kebutuhan. |
+| happiness.need.bonus | pemain | numeric | `events` (`Kebutuhan`) | Bonus set kebutuhan. |
+| happiness.donation.points | pemain | numeric | `ruleset.scoring` atau `events` (`PoinPeringkatDonasi`) | Poin juara donasi. |
+| happiness.gold.points | pemain | numeric | `ruleset.scoring` atau `events` (`PoinEmas`) | Poin investasi emas. |
+| happiness.pension.points | pemain | numeric | `ruleset.scoring` atau `events` (`PoinPeringkatPensiun`) | Poin juara dana pensiun. |
+| happiness.saving_goal.points | pemain | numeric | `events` (`TujuanFinansial`) | Poin tujuan keuangan. |
+| happiness.mission.penalty | pemain | numeric | `events` (`BagikanMisiKoleksi`) | Penalti misi koleksi. |
+| happiness.loan.penalty | pemain | numeric | `events` (`PinjamanSyariah`, `BayarPinjaman`) | Penalti pinjaman belum lunas. |
+| loan.unpaid.flag | pemain | numeric | `events` (`PinjamanSyariah`, `BayarPinjaman`) | Indikator pinjaman belum lunas (1/0). |
 
 Catatan:
 - Sistem tetap dapat menghitung `cashflow.*` dari event langsung, namun sistem sebaiknya memakai proyeksi agar query cepat.
@@ -159,7 +159,7 @@ Catatan:
 
 **Rumus:**
 - level sesi: `sum(amount) untuk session_id`
-- level pemain: `sum(amount) untuk session_id dan player_id`
+- level Player: `sum(amount) untuk session_id dan user_id`
 
 **Validasi:** sistem cocokkan total `amount` pada proyeksi.
 
@@ -185,10 +185,10 @@ Catatan:
 ## 6.4 `donation.total`
 **Definisi:** total koin yang pemain donasikan pada hari Jumat.
 
-**Sumber event:** `events.action_type = day.friday.donation`
+**Sumber event:** `events.action_type = JumatBerkah`
 
 **Rumus:**
-- level pemain: `sum(payload.amount) per player_id`
+- level Player: `sum(payload.amount) per user_id`
 - level sesi: `sum(payload.amount) semua pemain`
 
 ---
@@ -196,7 +196,7 @@ Catatan:
 ## 6.5 `gold.qty.current`
 **Definisi:** jumlah emas yang pemain pegang saat ini.
 
-**Sumber event:** `events.action_type = day.saturday.gold_trade`
+**Sumber event:** `events.action_type in ('InvestasiEmas', 'JualEmas')`
 
 **Aturan agregasi:**
 - BUY menambah `qty`
@@ -214,9 +214,9 @@ Catatan:
 ## 6.6 `orders.completed.count`
 **Definisi:** jumlah order yang pemain klaim.
 
-**Sumber event:** `events.action_type = order.claimed`
+**Sumber event:** `events.action_type = JualMasakan`
 
-**Rumus:** `count(*) per player_id`
+**Rumus:** `count(*) per user_id`
 
 ---
 
@@ -224,19 +224,19 @@ Catatan:
 **Definisi:** total kartu bahan yang pemain miliki saat ini.
 
 **Sumber event:**
-- menambah: `ingredient.purchased`
-- mengurangi: `order.claimed` (karena klaim order mengonsumsi bahan)
+- menambah: `BahanMasakan`
+- mengurangi: `JualMasakan` (karena klaim order mengonsumsi bahan)
 
 **Aturan agregasi minimum:**
-- Sistem menambah 1 untuk setiap `ingredient.purchased`.
-- Sistem mengurangi `len(required_ingredient_card_ids)` untuk setiap `order.claimed`.
+- Sistem menambah 1 untuk setiap `BahanMasakan`.
+- Sistem mengurangi `len(required_ingredient_card_ids)` untuk setiap `JualMasakan`.
 
 **Rumus (pseudocode):**
-- `ingredient_total = count(ingredient.purchased) - sum(len(order.claimed.required_ingredient_card_ids))`
+- `ingredient_total = count(BahanMasakan) - sum(len(JualMasakan.required_ingredient_card_ids))`
 
 **Validasi:**
 - Nilai tidak boleh negatif.
-- Sistem menolak `order.claimed` bila pemain tidak memiliki bahan yang diminta.
+- Sistem menolak `JualMasakan` bila pemain tidak memiliki bahan yang diminta.
 
 ---
 
@@ -248,9 +248,9 @@ Catatan:
 - `constraints.require_primary_before_others`
 
 **Sumber event:**
-- `need.primary.purchased`
-- `need.secondary.purchased`
-- `need.tertiary.purchased`
+- `Kebutuhan`
+- `Kebutuhan`
+- `Kebutuhan`
 
 **Definisi hari patuh:**
 Sistem menilai setiap `day_index` pada sesi:
@@ -280,27 +280,27 @@ Sistem menilai setiap `day_index` pada sesi:
 ## 6.9 `actions.used.total`
 **Definisi:** total token aksi yang pemain pakai selama sesi.
 
-**Sumber event:** `turn.action.used`
+**Sumber event:** `events.action_slot` pada event pemain.
 
 **Rumus:**
-- `sum(payload.used) per player_id`
+- `count(distinct (day_index, turn_number, action_slot)) per user_id`
 
 ---
 
 ## 6.10 `rules.violations.count`
 **Definisi:** jumlah pelanggaran aturan domain yang terjadi dalam sesi atau yang terkait pemain.
 
-**Sumber data (pilih satu dan konsisten):**
-1. `validation_logs.is_valid=false`, atau
-2. hasil validasi domain saat sistem menolak event (log aplikasi).
+**Sumber data:**
+1. `validation_logs` untuk event invalid yang ditolak sebelum masuk `events`.
+2. log aplikasi terstruktur sebagai bukti operasional tambahan.
 
 **Aturan:**
 - Jika sistem menolak event, sistem tetap mencatat kegagalan pada `validation_logs`.
 - Sistem tidak menyimpan event gagal pada tabel `events`.
 
 **Rumus:**
-- level sesi: `count(validation_logs) untuk session_id dan is_valid=false`
-- level pemain: sistem pakai `details_json.player_id` atau metadata request bila tersedia
+- level sesi: `count(validation_logs) untuk session_id`
+- level Player: sistem pakai `details_json.user_id` atau metadata request bila tersedia
 
 ---
 
@@ -308,13 +308,13 @@ Sistem menilai setiap `day_index` pada sesi:
 **Definisi:** total Poin Kebahagiaan pemain berdasarkan kartu kebutuhan, bonus set, donasi, investasi emas, dana pensiun, tujuan keuangan, dan penalti.
 
 **Sumber data:**
-- `need.*.purchased` (poin kartu kebutuhan)
-- `ruleset.scoring.donation_rank_points` atau `donation.rank.awarded`
-- `ruleset.scoring.gold_points_by_qty` atau `gold.points.awarded`
-- `ruleset.scoring.pension_rank_points` atau `pension.rank.awarded`
-- `saving.goal.achieved`
-- `mission.assigned`
-- `loan.syariah.taken`, `loan.syariah.repaid`
+- `Kebutuhan` (poin kartu kebutuhan)
+- `ruleset.scoring.donation_rank_points` atau `PoinPeringkatDonasi`
+- `ruleset.scoring.gold_points_by_qty` atau `PoinEmas`
+- `ruleset.scoring.pension_rank_points` atau `PoinPeringkatPensiun`
+- `TujuanFinansial`
+- `BagikanMisiKoleksi`
+- `PinjamanSyariah`, `BayarPinjaman`
 
 **Rumus ringkas:**
 ```
@@ -330,8 +330,8 @@ total = need_points
 
 **Catatan:**
 - `saving_goal_points` tidak dihitung bila ada pinjaman belum lunas.
-- Penalti misi diambil dari `mission.assigned.penalty_points`.
-- Penalti pinjaman diambil dari `loan.syariah.taken.penalty_points` untuk loan yang belum lunas.
+- Penalti misi diambil dari `BagikanMisiKoleksi.penalty_points`.
+- Penalti pinjaman diambil dari `PinjamanSyariah.penalty_points` untuk loan yang belum lunas.
 
 ---
 
@@ -359,45 +359,45 @@ Catatan: `payload.points` wajib diisi pada event kebutuhan.
 ## 6.14 `happiness.donation.points`
 **Definisi:** poin dari juara donasi.
 
-**Sumber data:** tabel `ruleset.scoring.donation_rank_points` (jika tersedia), atau `donation.rank.awarded`.
+**Sumber data:** tabel `ruleset.scoring.donation_rank_points` (jika tersedia), atau `PoinPeringkatDonasi`.
 
 **Rumus:** `sum(points_awarded)` per Jumat sesuai peringkat donasi.
 
-**Aturan tie breaker:** jika jumlah donasi sama, gunakan `tie_breaker.assigned.number` (lebih besar menang).
+**Aturan tie breaker:** jika jumlah donasi sama, gunakan `BagikanTieBreaker.number` (lebih besar menang).
 
 ---
 
 ## 6.15 `happiness.gold.points`
 **Definisi:** poin investasi emas.
 
-**Sumber data:** tabel `ruleset.scoring.gold_points_by_qty` (jika tersedia), atau `gold.points.awarded`.
+**Sumber data:** tabel `ruleset.scoring.gold_points_by_qty` (jika tersedia), atau `PoinEmas`.
 
 ---
 
 ## 6.16 `happiness.pension.points`
 **Definisi:** poin juara dana pensiun.
 
-**Sumber data:** tabel `ruleset.scoring.pension_rank_points` (jika tersedia), atau `pension.rank.awarded`.
+**Sumber data:** tabel `ruleset.scoring.pension_rank_points` (jika tersedia), atau `PoinPeringkatPensiun`.
 
-**Aturan tie breaker:** jika saldo sama, gunakan `tie_breaker.assigned.number` (lebih besar menang).
+**Aturan tie breaker:** jika saldo sama, gunakan `BagikanTieBreaker.number` (lebih besar menang).
 
 ---
 
 ## 6.17 `happiness.saving_goal.points`
 **Definisi:** poin tujuan keuangan.
 
-**Sumber event:** `saving.goal.achieved`.
+**Sumber event:** `TujuanFinansial`.
 
 **Aturan:** poin hanya dihitung jika tidak ada pinjaman syariah yang belum lunas.
 
-Catatan: `saving.deposit.created.amount` maksimal 15 koin per aksi (rulebook).
+Catatan: `Menabung.amount` maksimal 15 koin per aksi (rulebook).
 
 ---
 
 ## 6.18 `happiness.mission.penalty`
 **Definisi:** penalti misi koleksi yang gagal.
 
-**Sumber event:** `mission.assigned`.
+**Sumber event:** `BagikanMisiKoleksi`.
 
 **Aturan:** jika target misi tidak terpenuhi, penalti diambil dari `payload.penalty_points`.
 
@@ -408,7 +408,7 @@ Catatan: rulebook menetapkan `penalty_points = 10`.
 ## 6.19 `happiness.loan.penalty`
 **Definisi:** penalti pinjaman syariah yang belum lunas.
 
-**Sumber event:** `loan.syariah.taken`, `loan.syariah.repaid`.
+**Sumber event:** `PinjamanSyariah`, `BayarPinjaman`.
 
 **Aturan:** penalti diambil dari `payload.penalty_points` pada loan yang belum lunas.
 
@@ -420,28 +420,29 @@ Sistem memakai pemetaan berikut sebagai aturan implementasi.
 
 | Event | Metrik yang terpengaruh |
 |---|---|
-| transaction.recorded | cashflow.in.total, cashflow.out.total, cashflow.net.total |
-| day.friday.donation | donation.total, cashflow.out.total, cashflow.net.total |
-| day.saturday.gold_trade | gold.qty.current, cashflow.* (bila ada biaya/hasil) |
-| risk.life.drawn | cashflow.in.total / cashflow.out.total |
-| saving.deposit.created | cashflow.out.total |
-| saving.deposit.withdrawn | cashflow.in.total |
-| ingredient.purchased | inventory.ingredient.total, cashflow.out.total |
-| ingredient.discarded | inventory.ingredient.total |
-| order.claimed | orders.completed.count, inventory.ingredient.total, cashflow.in.total |
-| order.passed | gameplay.raw.variables (meal_orders_available_passed) |
-| work.freelance.completed | cashflow.in.total |
-| need.primary.purchased | compliance.primary_need.rate, cashflow.out.total |
+| CatatTransaksi | cashflow.in.total, cashflow.out.total, cashflow.net.total |
+| JumatBerkah | donation.total, cashflow.out.total, cashflow.net.total |
+| InvestasiEmas | gold.qty.current, cashflow.out.total |
+| JualEmas | gold.qty.current, cashflow.in.total |
+| RisikoKehidupan | cashflow.in.total / cashflow.out.total |
+| Menabung | cashflow.out.total |
+| TarikTabungan | cashflow.in.total |
+| BahanMasakan | inventory.ingredient.total, cashflow.out.total |
+| BuangBahanMasakan | inventory.ingredient.total |
+| JualMasakan | orders.completed.count, inventory.ingredient.total, cashflow.in.total |
+| LewatiOrder | gameplay.raw.variables (meal_orders_available_passed) |
+| KerjaLepas | cashflow.in.total |
+| Kebutuhan | compliance.primary_need.rate, cashflow.out.total |
 | need.secondary/tertiary.purchased | compliance.primary_need.rate, cashflow.out.total |
-| turn.action.used | actions.used.total |
+| AkhirGiliran | actions.used.total |
 | event ditolak validasi | rules.violations.count |
-| mission.assigned | happiness.mission.penalty, happiness.points.total |
-| donation.rank.awarded | happiness.donation.points, happiness.points.total |
-| gold.points.awarded | happiness.gold.points, happiness.points.total |
-| pension.rank.awarded | happiness.pension.points, happiness.points.total |
-| saving.goal.achieved | happiness.saving_goal.points, happiness.points.total |
-| risk.emergency.used | cashflow.in.total, cashflow.out.total, gameplay.raw.variables (emergency_options_used) |
-| loan.syariah.taken/loan.syariah.repaid | happiness.loan.penalty, loan.unpaid.flag |
+| BagikanMisiKoleksi | happiness.mission.penalty, happiness.points.total |
+| PoinPeringkatDonasi | happiness.donation.points, happiness.points.total |
+| PoinEmas | happiness.gold.points, happiness.points.total |
+| PoinPeringkatPensiun | happiness.pension.points, happiness.points.total |
+| TujuanFinansial | happiness.saving_goal.points, happiness.points.total |
+| GunakanOpsiDarurat | cashflow.in.total, cashflow.out.total, gameplay.raw.variables (emergency_options_used) |
+| PinjamanSyariah/BayarPinjaman | happiness.loan.penalty, loan.unpaid.flag |
 
 Catatan:
 - Jika tabel `ruleset.scoring.*` tersedia, sistem dapat menghitung `happiness.*` tanpa event awarding.
@@ -451,29 +452,29 @@ Catatan:
 ## 8. Aturan Penyimpanan Snapshot
 ### 8.1 Struktur record
 Sistem menyimpan hasil pada tabel `metric_snapshots` dengan:
-- `session_id` dan opsional `player_id`,
+- `session_id`, opsional `user_id`, dan opsional `session_player_id`,
 - `metric_name`,
 - `metric_value_numeric` atau `metric_value_json`,
 - `ruleset_version_id`.
 
 Catatan implementasi:
-- Snapshot agregat level sesi menyimpan `player_id = null`.
+- Snapshot agregat level sesi menyimpan `user_id = null` dan `session_player_id = null`.
 
 ### 8.2 Strategi “latest only”
 Untuk dasbor real-time, sistem boleh menyimpan snapshot “terbaru saja” per metrik:
 - sistem ambil snapshot terbaru per `metric_name` berdasarkan `computed_at`.
 
-Jika sistem membutuhkan histori, sistem simpan snapshot berkala berdasarkan `turn_number` atau `day_index` pada JSON.
+Jika sistem membutuhkan histori, sistem simpan snapshot berkala berdasarkan `action_slot` atau `day_index` pada JSON.
 
 ---
 
 ## 9. Contoh Perhitungan (Skenario Singkat)
 ### 9.1 Data contoh
 Sesi S1, pemain P1:
-1. `transaction.recorded` OUT 5 (beli kebutuhan primer)
-2. `ingredient.purchased` OUT 1
-3. `order.claimed` IN 15, konsumsi 2 bahan
-4. `day.friday.donation` OUT 2
+1. `CatatTransaksi` OUT 5 (beli kebutuhan primer)
+2. `BahanMasakan` OUT 1
+3. `JualMasakan` IN 15, konsumsi 2 bahan
+4. `JumatBerkah` OUT 2
 
 ### 9.2 Hasil metrik
 - `cashflow.in.total = 15`
@@ -482,7 +483,7 @@ Sesi S1, pemain P1:
 - `donation.total = 2`
 - `orders.completed.count = 1`
 - `inventory.ingredient.total = 1 - 2 = -1` → sistem tidak boleh menghasilkan nilai ini  
-  Sistem harus menolak `order.claimed` bila pemain belum punya 2 bahan.
+  Sistem harus menolak `JualMasakan` bila pemain belum punya 2 bahan.
 
 Catatan: contoh ini menegaskan pentingnya validasi domain sebelum agregasi.
 

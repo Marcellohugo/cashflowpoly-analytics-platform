@@ -1,10 +1,10 @@
-﻿# Spesifikasi *Ruleset* dan Validasi Konfigurasi  
+# Spesifikasi *Ruleset* dan Validasi Konfigurasi
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Spesifikasi *Ruleset* dan Validasi Konfigurasi
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -23,15 +23,15 @@ Sistem menjaga aturan inti berikut tetap stabil:
 2. Sistem mengurutkan event per sesi dan mencegah dampak ganda dari event duplikat.
 3. Sistem mengikat event pada versi *ruleset* yang aktif saat event terjadi.
 4. Sistem menerapkan batas tetap berbasis rulebook:
-   - `saving.deposit.created.amount` maksimal 15 koin per aksi.
-   - `loan.syariah.taken.principal` = 10 koin dan `penalty_points` = 15 poin.
-   - `insurance.multirisk.purchased.premium` = 1 koin.
-   - `mission.assigned.penalty_points` = 10 poin.
-   - `need.*.purchased.points` wajib diisi.
+   - `Menabung.amount` maksimal 15 koin per aksi.
+   - `PinjamanSyariah.principal` = 10 koin dan `penalty_points` = 15 poin.
+   - `Asuransi.premium` = 1 koin.
+   - `BagikanMisiKoleksi.penalty_points` = 10 poin.
+   - `Kebutuhan.points` wajib diisi.
 
 ### 2.2 Parameter variabel
 Sistem mengelola parameter variabel seperti:
-- jumlah token aksi per giliran,
+- jumlah token aksi per hari pemain,
 - saldo awal,
 - batas kepemilikan,
 - batas nominal transaksi,
@@ -50,46 +50,52 @@ Sistem menyimpan data *ruleset* melalui dua entitas:
 - `name` (string)
 - `description` (string, opsional)
 - `created_at` (timestamp)
-- `created_by` (string/user_id)
+- `created_by_user_id` (UUID FK ke `app_users.user_id`, opsional)
+- `is_archived`, `archived_at`
 
 2) **RulesetVersion**
 - `ruleset_version_id` (UUID)
 - `ruleset_id` (UUID)
 - `version` (int, mulai dari 1)
-- `status` (enum: `DRAFT`, `ACTIVE`, `RETIRED`)
-- `config_json` (JSON)
+- `status` (enum: `DRAFT`, `ACTIVE`, `ARCHIVED`)
 - `config_hash` (string)  
   Sistem menghitung hash untuk mendeteksi perubahan dan memudahkan audit.
 - `created_at` (timestamp)
-- `created_by` (string/user_id)
+- `created_by_user_id` (UUID FK ke `app_users.user_id`, opsional)
 
 ### 3.2 Kebijakan versi
 Sistem menerapkan kebijakan berikut:
 1. Sistem membuat versi baru setiap kali instruktur mengubah konfigurasi.
 2. Sistem menyimpan `ruleset_version_id` pada setiap event.
-3. Sistem mengizinkan satu versi aktif per sesi permainan.
+3. Sistem mengizinkan satu versi `ACTIVE` per ruleset; sesi mengunci satu
+   `ruleset_version_id` saat dibuat.
 4. Sistem melarang penghapusan versi yang sudah dipakai oleh sesi.
+5. Sistem melarang penghapusan versi `ACTIVE`; instruktur harus mengaktifkan
+   versi lain terlebih dahulu.
+6. Ruleset default bersifat read-only dan tidak dapat diedit/dihapus.
+7. Ruleset yang sudah dipakai sesi dikembalikan sebagai
+   `is_locked_by_session=true` dan tidak dapat dihapus.
 
 ### 3.3 Lifecycle ruleset
 Lifecycle ditetapkan eksplisit sebagai berikut.
 
 Lifecycle entitas `rulesets`:
 1. `ACTIVE_RECORD`: ruleset aktif dipakai operasional.
-2. `DELETED`: hard delete, hanya jika ruleset belum pernah dipakai sesi.
+2. `ARCHIVED`: ruleset disembunyikan dari operasi baru tanpa menghapus histori.
 
 Lifecycle entitas `ruleset_versions`:
 1. `DRAFT`: versi disiapkan namun belum dijadikan aktif.
 2. `ACTIVE`: versi aktif pada ruleset tersebut.
-3. `RETIRED`: versi lama yang tidak aktif.
+3. `ARCHIVED`: versi lama yang tidak aktif.
 
 Aturan transisi minimum:
-1. `ACTIVE_RECORD -> DELETED` hanya jika `IsRulesetUsed=false`.
-2. `ACTIVE -> RETIRED` saat versi baru diaktifkan.
+1. `ACTIVE_RECORD -> ARCHIVED` memakai soft archive, bukan hard delete histori.
+2. `ACTIVE -> ARCHIVED` saat versi baru diaktifkan.
 
 ---
 
-## 4. Struktur `config_json`
-Sistem menyimpan konfigurasi pada JSON dengan struktur top-level berikut.
+## 4. Struktur `definition` JSON
+API menerima konfigurasi ruleset sebagai JSON dengan struktur top-level berikut, lalu menyimpannya ke tabel ruleset relasional.
 
 ### 4.1 Struktur top-level
 ```json
@@ -144,7 +150,7 @@ Tabel berikut merangkum parameter utama. Penambahan parameter lain diperbolehkan
 | Parameter | Tipe | Wajib | Default | Rentang | Deskripsi |
 |---|---|---:|---:|---|---|
 | mode | enum | Ya | PEMULA | PEMULA/MAHIR | Sistem memilih paket fitur sesuai mode. |
-| actions_per_turn | int | Ya | 2 | 1–10 | Sistem membatasi jumlah aksi per giliran. |
+| actions_per_turn | int | Ya | 2 | 1–10 | Sistem membatasi jumlah aksi per hari pemain. |
 | starting_cash | int | Ya | 0 | 0–1.000.000 | Sistem menetapkan saldo awal per pemain pada awal sesi. |
 | constraints.cash_min | int | Ya | 0 | 0–1.000.000 | Sistem melarang saldo turun di bawah nilai ini. |
 
@@ -195,12 +201,12 @@ Catatan:
 - `scoring.donation_rank_points` berisi item `{ "rank": int, "points": int }`.
 - `scoring.gold_points_by_qty` berisi item `{ "qty": int, "points": int }`.
 - `scoring.pension_rank_points` berisi item `{ "rank": int, "points": int }`.
-- Jika tabel scoring tidak diisi, sistem mengandalkan event awarding (`donation.rank.awarded`, `gold.points.awarded`, `pension.rank.awarded`).
+- Jika tabel scoring tidak diisi, sistem mengandalkan event awarding (`PoinPeringkatDonasi`, `PoinEmas`, `PoinPeringkatPensiun`).
 
 ---
 
 ## 6. Aturan Validasi Konfigurasi
-Sistem menjalankan validasi berikut sebelum menyimpan versi baru dan sebelum instruktur mengaktifkan versi untuk sesi.
+Sistem menjalankan validasi berikut sebelum menyimpan versi baru dan sebelum instruktur mengaktifkan versi ruleset.
 
 ### 6.1 Validasi struktur
 Sistem memeriksa:
@@ -222,9 +228,9 @@ Sistem memeriksa:
 ### 6.3 Validasi konflik dan dependensi
 Sistem memeriksa:
 1. Jika `mode=PEMULA`, sistem menolak `advanced.*.enabled=true`.
-2. Jika `weekday_rules.friday.enabled=false`, sistem menolak event `day.friday.donation` pada sesi yang memakai versi ini.
+2. Jika `weekday_rules.friday.enabled=false`, sistem menolak event `JumatBerkah` pada sesi yang memakai versi ini.
 3. Jika `constraints.require_primary_before_others=true`, sistem menolak event pembelian kebutuhan lain sebelum pemain memenuhi kebutuhan primer pada hari itu.
-4. Jika `constraints.primary_need_max_per_day=0`, sistem menolak event `need.primary.purchased`.
+4. Jika `constraints.primary_need_max_per_day=0`, sistem menolak event `Kebutuhan`.
 
 ### 6.4 Validasi kompatibilitas versi
 Sistem menetapkan nomor versi secara otomatis. Sistem melarang instruktur mengubah nomor versi manual.
@@ -236,22 +242,22 @@ Sistem menerapkan aturan berikut:
 1. Klien mengirim `ruleset_version_id` pada setiap event.
 2. Sistem memeriksa kecocokan `ruleset_version_id` dengan ruleset aktif sesi.
 3. Sistem menolak event jika `ruleset_version_id` tidak cocok.
-4. Jika sistem mencatat log validasi ke `validation_logs`, sistem sebaiknya menyimpan referensi `event_pk` bila event sudah tersimpan, dan memakai `event_id` sebagai atribut audit/idempotensi.
+4. Event valid masuk ke `events`. Event invalid tidak masuk event stream utama dan dicatat ke `validation_logs` dengan `raw_payload_json`.
 
 Sistem memetakan aturan *ruleset* ke validasi event:
-- `actions_per_turn` memvalidasi `turn.action.used`.
-- `donation.min_amount` memvalidasi `day.friday.donation`.
-- batas kartu bahan memvalidasi `ingredient.purchased`.
-- aturan kebutuhan primer memvalidasi `need.*.purchased`.
-- `freelance.income` memvalidasi `work.freelance.completed`.
-- fitur mode mahir memvalidasi event `loan.*` dan `insurance.*`.
-- `advanced.saving_goal.enabled` memvalidasi event `saving.*`.
-- mode `MAHIR` memvalidasi event `risk.life.drawn`.
+- `actions_per_turn` memvalidasi `AkhirGiliran`.
+- `donation.min_amount` memvalidasi `JumatBerkah`.
+- batas kartu bahan memvalidasi `BahanMasakan`.
+- aturan kebutuhan primer memvalidasi `Kebutuhan`.
+- `freelance.income` memvalidasi `KerjaLepas`.
+- fitur mode mahir memvalidasi event `PinjamanSyariah`, `BayarPinjaman`, dan `Asuransi`.
+- `advanced.saving_goal.enabled` memvalidasi event `Menabung`, `TarikTabungan`, dan `TujuanFinansial`.
+- mode `MAHIR` memvalidasi event `RisikoKehidupan`.
 - `scoring.*` mengatur perhitungan poin donasi/emas/pensiun pada modul analitika.
 
 Catatan implementasi logging:
-- Untuk event yang ditolak sebelum disimpan ke `events`, `validation_logs.event_pk` dapat bernilai `null`.
-- Untuk event yang valid dan tersimpan, `validation_logs.event_pk` sebaiknya mengacu ke `events.event_pk` agar keterlacakan dan integritas referensi terjaga.
+- `validation_logs` dipakai untuk event invalid atau duplikat yang ditolak.
+- `validation_logs` menyimpan `session_id`, `ruleset_version_id`, `event_id`, `error_code`, `error_message`, `raw_payload_json`, dan `details_json`.
 
 ---
 
@@ -259,7 +265,7 @@ Catatan implementasi logging:
 Bagian ini merangkum endpoint yang menangani *ruleset*. Dokumen kontrak lengkap tetap berada pada dokumen “Spesifikasi Event dan Kontrak REST API”.
 
 Catatan akses:
-- Endpoint mutasi ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Web Analitik MVC dapat memakai endpoint ini untuk create/edit/delete/activate ruleset dan aktivasi ruleset sesi pada akun Instruktur.
+- Endpoint mutasi ruleset dan aktivasi versi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Web Analitik MVC dapat memakai endpoint ini untuk create/edit/delete/activate ruleset pada akun Instruktur.
 
 ### 8.1 Endpoint minimum
 1. `POST /api/v1/rulesets`  
@@ -274,11 +280,17 @@ Catatan akses:
 4. `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`  
    Instruktur mengaktifkan versi ruleset secara eksplisit pada level ruleset.
 
-5. `POST /api/v1/sessions/{sessionId}/ruleset/activate`  
-   Instruktur mengaktifkan versi tertentu untuk sesi.
+5. `POST /api/v1/sessions`
+   Instruktur membuat sesi dengan `ruleset_version_id` yang dipilih.
 
-### 8.2 Respons aktivasi
-Sistem mengembalikan `ruleset_version_id` yang aktif pada sesi.
+6. `DELETE /api/v1/rulesets/{rulesetId}/versions/{version}`
+   Instruktur menghapus versi non-aktif yang belum dipakai sesi/event.
+
+7. `DELETE /api/v1/rulesets/{rulesetId}`
+   Instruktur menghapus ruleset miliknya bila bukan default dan belum terkunci sesi.
+
+### 8.2 Respons aktivasi versi
+Sistem mengembalikan `ruleset_id`, `ruleset_version_id`, dan nomor versi yang diaktifkan. Session tidak memiliki endpoint aktivasi ruleset terpisah.
 
 ---
 
@@ -387,7 +399,7 @@ Sistem siap masuk tahap implementasi modul manajemen *ruleset* jika:
 4. Sistem mengunci versi aktif pada sesi.
 5. Sistem menolak event dengan `ruleset_version_id` yang tidak cocok.
 6. Sistem menegakkan lifecycle ruleset sesuai bagian 3.3.
-7. Sistem mencatat jejak audit perubahan (`created_by`, `activated_by`) untuk operasi ruleset utama.
+7. Sistem mencatat jejak audit perubahan (`created_by_user_id`, `created_at`, dan status versi) untuk operasi ruleset utama.
 
 
 

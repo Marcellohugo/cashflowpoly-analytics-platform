@@ -4,13 +4,13 @@
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
 - Versi: 1.7
-- Tanggal: 17 Februari 2026
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada tanggal 17 Februari 2026.
+Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline dokumentasi 18 Juni 2026.
 
 Cakupan laporan ini:
 - verifikasi teknis otomatis (build, test, docker compose, uji asap, uji beban dasar),
@@ -23,7 +23,7 @@ Cakupan laporan ini:
 
 ## 2. Identitas Pengujian
 - Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
-- Tanggal pengujian: 17 Februari 2026
+- Tanggal pengujian: 18 Juni 2026
 - Versi aplikasi (git commit): area kerja Git lokal (terdapat perubahan belum di-commit)
 - Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
@@ -57,7 +57,7 @@ Kriteria kelulusan tercapai untuk cakupan dasar otomatis: tidak ada kegagalan pa
 | Uji asap rate-limit | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
 | Uji asap UI Web | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |
 | Uji beban dasar | Skenario request berulang ke endpoint ingest dan analytics | PASS | Ingest P95 18.72 ms, Analytics P95 867.26 ms, error rate 0% |
-| Observability API | `GET /api/v1/observability/metrics` | PASS | respons `200`, metrik endpoint tersedia |
+| Observability API | `GET /api/v1/observability/metrics/summary` + `GET /metrics` | PASS | respons `200`, endpoint summary dan Prometheus tersedia |
 | Security audit API | `GET /api/v1/security/audit-logs` | PASS | respons `200`, jejak event keamanan tersedia |
 
 Catatan:
@@ -66,12 +66,13 @@ Catatan:
 
 Tambahan cek endpoint analitika:
 - `GET /api/v1/analytics/rulesets/{rulesetId}/summary` -> `200`
-- `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` -> `200`
-- `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` -> `200`
+- `GET /api/v1/analytics/sessions/{sessionId}/transactions?userId=...` -> `200`
+- `GET /api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay` -> `200`
 - `POST /api/v1/analytics/sessions/{sessionId}/recompute` -> `200`
 
 Tambahan cek endpoint observability & security:
-- `GET /api/v1/observability/metrics?top=15` -> `200`
+- `GET /api/v1/observability/metrics/summary` -> `200`
+- `GET /metrics` -> `200`
 - `GET /api/v1/security/audit-logs?limit=20` -> `200`
 
 ---

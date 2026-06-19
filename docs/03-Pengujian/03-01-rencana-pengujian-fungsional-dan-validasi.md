@@ -1,10 +1,10 @@
-﻿# Rencana Pengujian Fungsional dan Validasi Sistem  
+# Rencana Pengujian Fungsional dan Validasi Sistem
 ## Sistem Informasi Dasbor Analitika & Manajemen *Ruleset* Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Rencana Pengujian Fungsional dan Validasi
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -47,7 +47,8 @@ Sistem menyiapkan:
 ### 3.3 Data uji minimum
 Sistem membutuhkan:
 - `session_id`
-- `player_id` (1–3 pemain)
+- `user_id` akun Player (1-3 pemain)
+- `session_player_id`/`session_participant_id` bila memvalidasi projection state
 - `ruleset_version_id` yang aktif pada sesi
 - daftar event contoh dengan `sequence_number` berurutan
 
@@ -117,7 +118,7 @@ Setiap skenario memuat:
 - Endpoint: `POST /api/v1/sessions`
 - Input contoh:
 ```json
-{ "session_name": "Sesi Uji 01", "mode": "PEMULA", "ruleset_id": "UUID" }
+{ "session_name": "Sesi Uji 01", "mode": "PEMULA", "ruleset_version_id": "UUID" }
 ```
 - Langkah:
 1. Kirim permintaan.
@@ -163,7 +164,7 @@ Catatan:
 {
   "name": "Ruleset Default",
   "description": "Default pemula",
-  "config": {
+  "definition": {
     "mode": "PEMULA",
     "actions_per_turn": 2,
     "starting_cash": 20,
@@ -215,7 +216,7 @@ Catatan:
 
 **TC-API-06 — Update ruleset membuat versi baru**
 - Endpoint: `PUT /api/v1/rulesets/{rulesetId}`
-- Input: perubahan kecil pada `config`
+- Input: perubahan kecil pada `definition`
 - Ekspektasi:
   - Status: `200`
   - DB: `ruleset_versions` menambah versi baru berstatus awal `DRAFT`.
@@ -233,24 +234,28 @@ Catatan:
 - Prasyarat: versi target tersedia dan masih `DRAFT`.
 - Ekspektasi:
   - Status: `200`
-  - DB: versi target menjadi `ACTIVE` dan versi `ACTIVE` lama menjadi `RETIRED`.
+  - DB: versi target menjadi `ACTIVE` dan versi `ACTIVE` lama menjadi `ARCHIVED`.
 
-**TC-API-08 — Aktivasi ruleset pada sesi**
-- Endpoint: `POST /api/v1/sessions/{sessionId}/ruleset/activate`
+**TC-API-08 — Buat sesi dengan ruleset_version_id**
+- Endpoint: `POST /api/v1/sessions`
 - Input contoh:
 ```json
-{ "ruleset_id": "UUID", "version": 2 }
+{
+  "session_name": "Kelas A - Pertemuan 1",
+  "mode": "PEMULA",
+  "ruleset_version_id": "UUID"
+}
 ```
 - Ekspektasi:
-  - Status: `200`
-  - DB: `session_ruleset_activations` menambah 1 baris.
+  - Status: `201`
+  - DB: `sessions.ruleset_version_id` terisi sesuai input.
 
-**TC-API-09 — Tolak aktivasi ruleset pada sesi END**
-- Endpoint: `POST /api/v1/sessions/{sessionId}/ruleset/activate`
-- Kondisi: sesi `ENDED`
+**TC-API-09 — Tolak create session tanpa ruleset_version_id**
+- Endpoint: `POST /api/v1/sessions`
+- Kondisi: payload tidak memiliki `ruleset_version_id`
 - Ekspektasi:
-  - Status: `422`
-  - DB: tidak menambah aktivasi.
+  - Status: `400`
+  - DB: tidak membuat session.
 
 ---
 
@@ -262,16 +267,17 @@ Catatan:
 {
   "event_id": "UUID",
   "session_id": "UUID",
-  "player_id": "UUID",
+  "user_id": "UUID",
   "actor_type": "PLAYER",
   "timestamp": "2026-01-27T10:00:00Z",
   "day_index": 0,
   "weekday": "MON",
   "turn_number": 1,
+  "action_slot": 1,
   "sequence_number": 1,
-  "action_type": "turn.action.used",
+  "action_type": "CatatTransaksi",
   "ruleset_version_id": "UUID",
-  "payload": { "used": 1 }
+  "payload": { "direction": "IN", "amount": 1, "category": "TEST" }
 }
 ```
 - Ekspektasi:
@@ -298,7 +304,7 @@ Catatan:
   - `error_code` menyebut urutan event.
 
 **TC-API-14 — Tolak payload tidak sesuai tipe**
-- Kirim `payload.used = "satu"` pada event `turn.action.used`.
+- Kirim `payload.amount = "satu"` pada event `CatatTransaksi`.
 - Ekspektasi:
   - Status: `400` atau `422`
   - Body error sesuai standar.
@@ -317,16 +323,17 @@ Catatan:
     - `ruleset_version_id` konteks
 
 **TC-API-16 — Histori transaksi pemain**
-- Endpoint: `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId={playerId}`
+- Endpoint: `GET /api/v1/analytics/sessions/{sessionId}/transactions?userId={userId}`
 - Ekspektasi:
   - Status: `200`
   - Body list transaksi terurut waktu desc/asc (pilih satu dan konsisten).
 
-**TC-API-17 — Tolak query tanpa playerId saat endpoint mewajibkan**
-- Endpoint: transaksi tanpa `playerId`
+**TC-API-17 — Histori transaksi tanpa filter userId**
+- Endpoint: transaksi tanpa `userId`
 - Ekspektasi:
-  - Status: `400`
-  - `error_code` menyebut parameter wajib.
+  - Status: `200`
+  - Instruktur menerima semua transaksi sesi yang sesuai scope.
+  - Player tetap hanya menerima transaksi miliknya.
 
 ---
 
@@ -380,11 +387,11 @@ Sistem menjalankan uji integrasi memakai rangkaian event yang menyerupai permain
 2. Aktivasi ruleset (TC-API-08).
 3. Daftarkan 2 pemain (jika endpoint tersedia).
 4. Kirim rangkaian event berurutan:
-   - `turn.action.used`
-   - `need.primary.purchased`
-   - `ingredient.purchased`
-   - `order.claimed`
-   - `day.friday.donation`
+   - `AkhirGiliran`
+   - `Kebutuhan`
+   - `BahanMasakan`
+   - `JualMasakan`
+   - `JumatBerkah`
 5. Panggil `GET /api/v1/analytics/sessions/{sessionId}`.
 
 **Ekspektasi:**
@@ -407,8 +414,8 @@ Ekspektasi: `orphan_projections = 0`.
 **Tujuan:** sistem menolak event yang melanggar aturan ruleset.
 
 **Langkah:**
-1. Aktivasi ruleset dengan `constraints.require_primary_before_others=true`.
-2. Kirim event `need.secondary.purchased` sebelum `need.primary.purchased` pada hari yang sama.
+1. Buat sesi dengan `ruleset_version_id` yang memiliki `constraints.require_primary_before_others=true`.
+2. Kirim event `Kebutuhan` sebelum `Kebutuhan` pada hari yang sama.
 3. Ambil respons error.
 
 **Ekspektasi:**
@@ -416,24 +423,23 @@ Ekspektasi: `orphan_projections = 0`.
 - Sistem tidak menyimpan event pada `events`.
 - Sistem mencatat kegagalan pada `validation_logs` jika modul ini aktif.
 
-Jika `validation_logs` menyimpan `event_pk`, validasi integritas referensi:
+Validasi payload invalid tersimpan tanpa event utama:
 ```sql
-select count(*) as orphan_validation_logs
+select count(*) as invalid_logs
 from validation_logs vl
-left join events e on e.event_pk = vl.event_pk
-where vl.event_pk is not null and e.event_pk is null;
+where vl.raw_payload_json is not null;
 ```
-Ekspektasi: `orphan_validation_logs = 0`.
+Ekspektasi: `invalid_logs > 0`.
 
 ### 8.3 Skenario integrasi perubahan ruleset (IT-03)
 **Tujuan:** sistem menempelkan event ke versi ruleset yang benar.
 
 **Langkah:**
-1. Aktifkan ruleset versi 1 pada sesi.
+1. Buat sesi dengan ruleset versi 1.
 2. Kirim 3 event valid.
 3. Buat/update ruleset hingga terbentuk versi 2 berstatus `DRAFT`.
 4. Aktifkan versi 2 secara global melalui endpoint aktivasi versi ruleset.
-5. Aktifkan ruleset versi 2 pada sesi.
+5. Buat sesi baru dengan `ruleset_version_id` versi 2 untuk skenario perbandingan.
 6. Kirim 3 event valid berikutnya.
 7. Ambil ringkasan analitika dan audit event.
 
@@ -463,7 +469,7 @@ UI hanya menampilkan nilai dari API. UI tidak menghitung ulang metrik di klien.
 ```sql
 select metric_name, metric_value_numeric
 from metric_snapshots
-where session_id = '<SESSION_ID>' and player_id is null
+where session_id = '<SESSION_ID>' and user_id is null and session_player_id is null
 order by computed_at desc;
 ```
 4. Bandingkan nilai UI dan nilai DB untuk metrik yang sama.
@@ -475,13 +481,13 @@ order by computed_at desc;
 **Tujuan:** tabel transaksi pemain cocok dengan tabel proyeksi.
 
 **Langkah:**
-1. Buka `/sessions/{sessionId}/players/{playerId}`.
+1. Buka `/sessions/{sessionId}/players/{userId}`.
 2. Catat 5 baris transaksi teratas.
 3. Jalankan query DB:
 ```sql
 select timestamp, direction, amount, category
 from event_cashflow_projections
-where session_id = '<SESSION_ID>' and player_id = '<PLAYER_ID>'
+where session_id = '<SESSION_ID>' and user_id = '<USER_ID>'
 order by timestamp desc
 limit 5;
 ```
@@ -550,22 +556,22 @@ Sistem lulus tahap pengujian dan validasi jika:
 
 ## 13. Tambahan TC Event Skor & Risiko
 Tambahan pengujian untuk event baru:
-1. TC-API-23 — `mission.assigned` valid (penetapan misi)
-2. TC-API-24 — `donation.rank.awarded` valid (award poin)
-3. TC-API-25 — `gold.points.awarded` valid (award poin emas)
-4. TC-API-26 — `pension.rank.awarded` valid (award poin pensiun)
-5. TC-API-27 — `saving.deposit.created` dan `saving.deposit.withdrawn` valid (deposit max 15 koin/aksi)
-6. TC-API-28 — `saving.goal.achieved` valid
-7. TC-API-29 — `risk.life.drawn` valid untuk mode MAHIR
-8. TC-API-30 — `loan.syariah.repaid` menolak pembayaran melebihi principal
-9. TC-API-31 — `work.freelance.completed` valid sesuai `freelance.income`
-10. TC-API-32 — `turn.ended` menolak jika `order.claimed` tanpa `risk.life.drawn` (mode MAHIR)
+1. TC-API-23 — `BagikanMisiKoleksi` valid (penetapan misi)
+2. TC-API-24 — `PoinPeringkatDonasi` valid (award poin)
+3. TC-API-25 — `PoinEmas` valid (award poin emas)
+4. TC-API-26 — `PoinPeringkatPensiun` valid (award poin pensiun)
+5. TC-API-27 — `Menabung` dan `TarikTabungan` valid (deposit max 15 koin/aksi)
+6. TC-API-28 — `TujuanFinansial` valid
+7. TC-API-29 — `RisikoKehidupan` valid untuk mode MAHIR
+8. TC-API-30 — `BayarPinjaman` menolak pembayaran melebihi principal
+9. TC-API-31 — `KerjaLepas` valid sesuai `freelance.income`
+10. TC-API-32 — `AkhirGiliran` menolak jika `JualMasakan` tanpa `RisikoKehidupan` (mode MAHIR)
 11. TC-API-33 — ruleset scoring menghitung poin donasi/emas/pensiun pada analitika
 
 Catatan tambahan:
-- `mission.assigned.penalty_points` harus 10 (rulebook).
-- `loan.syariah.taken.principal` harus 10 dan `penalty_points` harus 15.
-- `insurance.multirisk.purchased.premium` harus 1 dan `insurance.multirisk.used` harus merujuk risiko OUT milik pemain.
+- `BagikanMisiKoleksi.penalty_points` harus 10 (rulebook).
+- `PinjamanSyariah.principal` harus 10 dan `penalty_points` harus 15.
+- `Asuransi.premium` harus 1 dan `Asuransi` harus merujuk risiko OUT milik pemain.
 
 Catatan:
 - TC ini mengikuti format skenario uji pada bagian TC-API sebelumnya.
@@ -593,7 +599,7 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 2. Verifikasi endpoint kritikal:
    - autentikasi (`login/register`),
    - ruleset (create/update/activate/delete),
-   - sesi (create/start/end/activate ruleset),
+   - sesi (create/start/end dengan `ruleset_version_id`),
    - ingest event dan analytics.
 
 ### 14.2A RBAC smoke test
@@ -606,7 +612,7 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 
 ### 14.2B Web UI smoke test
 1. Login ke UI menggunakan akun valid.
-2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/home/rulebook`) dapat diakses tanpa error, dan route kompatibilitas `/analytics` melakukan redirect yang benar ke halaman sesi.
+2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/rulebook`) dapat diakses tanpa error, dan route kompatibilitas `/analytics` atau `/Analytics` melakukan redirect yang benar ke halaman sesi.
 3. Verifikasi Swagger API (`/swagger`) dapat diakses.
 
 ### 14.3 Definition of Done (DoD)
@@ -628,5 +634,5 @@ Fitur dinyatakan selesai jika:
    - output build/test,
    - status compose/health,
    - ringkasan load test,
-   - sampel SQL/security audit/observability.
+   - sampel SQL/security audit/observability (`/api/v1/observability/metrics/summary` dan `/metrics`).
 

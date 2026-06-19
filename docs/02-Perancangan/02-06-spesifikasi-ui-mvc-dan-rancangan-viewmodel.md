@@ -1,10 +1,10 @@
-﻿# Spesifikasi UI MVC dan Rancangan ViewModel
+# Spesifikasi UI MVC dan Rancangan ViewModel
 ## Web Analitik Cashflowpoly (ASP.NET Core MVC + Razor Views)
 
 ### Dokumen
 - Nama dokumen: Spesifikasi UI MVC dan Rancangan ViewModel
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -29,7 +29,7 @@ Dokumen ini mengikuti:
 3. Endpoint terproteksi wajib memakai token Bearer dari session.
 4. UI tidak menghitung rumus metrik domain; UI hanya presentasi data API.
 5. UI menampilkan state error API secara eksplisit (`401`, `403`, `422`, `429`, `500`).
-6. UI MVC bersifat analitik untuk gameplay, tetapi Instruktur dapat mengelola ruleset dan mengaktifkan ruleset sesi dari UI. Pembuatan sesi, penambahan Player, start/end sesi, input keputusan Player, dan ingest event tetap dilakukan melalui Klien Game/IDN atau integrasi API.
+6. UI MVC bersifat analitik untuk gameplay, tetapi Instruktur dapat mengelola ruleset dan mengaktifkan versi ruleset dari UI. Pembuatan sesi, penambahan Player, start/end sesi, input keputusan Player, dan ingest event tetap dilakukan melalui Klien Game/IDN atau integrasi API.
 
 ---
 
@@ -43,7 +43,6 @@ Cashflowpoly.Ui/
     LanguageController.cs
     PlayerDirectoryController.cs
     PlayersController.cs
-    ComponentsController.cs
     RulesetsController.cs
     SessionsController.cs
   Infrastructure/
@@ -57,6 +56,7 @@ Cashflowpoly.Ui/
   Contracts/
     Dtos.cs
     ErrorResponse.cs
+    RulesetDefinitionDtos.cs
   Models/
     AnalyticsViewModels.cs
     AuthViewModels.cs
@@ -68,7 +68,6 @@ Cashflowpoly.Ui/
     Auth/
     Home/
     Players/
-    Components/
     Rulesets/
     Sessions/
     Shared/
@@ -89,15 +88,13 @@ Cashflowpoly.Ui/
 | Sessions | `/sessions` | `SessionsController` | Login |
 | Session details | `/sessions/{sessionId}` | `SessionsController` | Login |
 | Players | `/players` | `PlayerDirectoryController` | Instruktur |
-| Player details | `/sessions/{sessionId}/players/{playerId}` | `PlayersController` | Login |
-| Components | `/components` | `ComponentsController` | Login |
+| Player details | `/sessions/{sessionId}/players/{userId}` | `PlayersController` | Login |
 | Rulesets | `/rulesets` | `RulesetsController` | Login |
 | Ruleset create | `/rulesets/create` | `RulesetsController` | Instruktur |
 | Ruleset edit | `/rulesets/{rulesetId}/edit` | `RulesetsController` | Instruktur |
 | Ruleset details | `/rulesets/{rulesetId}` | `RulesetsController` | Login |
-| Session ruleset activation | `/sessions/{sessionId}/ruleset` | `SessionsController` | Instruktur |
 | Analytics (legacy route) | `/analytics` | `AnalyticsController` | Login (redirect kompatibilitas) |
-| Rulebook | `/home/rulebook` | `HomeController` | Login |
+| Rulebook | `/rulebook` | `HomeController` | Login |
 
 ---
 
@@ -144,7 +141,7 @@ Tabel pemetaan endpoint API ke halaman UI mengikuti `docs/02-Perancangan/02-05-r
 1. Middleware UI memaksa login untuk semua route non publik.
 2. Session menyimpan `role`, `username`, dan `access_token`.
 3. Aksi mutasi gameplay tidak dirender oleh Web Analitik MVC.
-4. Aksi create/edit/delete/activate ruleset dan aktivasi ruleset sesi hanya dirender untuk role Instruktur.
+4. Aksi create/edit/delete/activate versi ruleset hanya dirender untuk role Instruktur.
 5. Jika API membalas `403`, UI tetap menampilkan halaman read-only bila memungkinkan.
 
 ---
@@ -168,4 +165,4 @@ Standar penanganan error UI mengikuti `docs/02-Perancangan/02-05-rancangan-dashb
 3. Alur login/register/logout berjalan.
 4. UI merender aksi manajemen ruleset untuk Instruktur dan tidak merender aksi tersebut untuk Player.
 5. UI tidak merender aksi mutasi gameplay yang menjadi tanggung jawab Klien Game/IDN.
-6. Halaman detail sesi (analitika), ruleset, dan komponen menampilkan error state dengan benar.
+6. Halaman detail sesi (analitika), ruleset, detail/default components ruleset, dan rulebook menampilkan error state dengan benar.

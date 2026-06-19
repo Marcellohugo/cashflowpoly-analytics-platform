@@ -1,10 +1,10 @@
-﻿# Analisis Kebutuhan Sistem  
+# Analisis Kebutuhan Sistem
 ## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Analisis Kebutuhan Sistem
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -52,7 +52,7 @@ Targetnya, metrik dan tampilan dasbor diperbarui setelah sistem menerima event p
 
 ## 4. Aturan Domain yang Mempengaruhi Sistem
 Dalam rancangan ini, aturan permainan yang berdampak pada pencatatan dan validasi meliputi:
-1. Pemain menjalankan dua aksi per giliran menggunakan token aksi.
+1. Pemain menjalankan maksimal dua aksi per hari pemain menggunakan token aksi.
 2. Hari Jumat menjalankan mekanik donasi, dan hari Sabtu menjalankan mekanik investasi emas.
 3. Setiap transaksi yang menambah atau mengurangi koin wajib tercatat sebagai arus kas.
 4. Aturan pembelian kebutuhan primer mensyaratkan pembelian kebutuhan primer sebelum kebutuhan lain serta membatasi pembelian kebutuhan primer maksimal satu kali per hari.
@@ -94,7 +94,7 @@ Kebutuhan fungsional berikut dirumuskan agar dapat diuji.
 - FR-API-02 Sistem memvalidasi struktur payload, tipe data, dan field wajib pada event.
 - FR-API-03 Sistem memvalidasi aturan domain yang relevan pada event, seperti batas kepemilikan, batas transaksi, dan prasyarat aksi.
 - FR-API-04 Sistem menerapkan idempotensi dengan menolak event duplikat pada kombinasi `session_id` dan `event_id`.
-- FR-API-05 Sistem menjaga keterurutan event di dalam sesi dengan `sequence_number` atau `turn_number`.
+- FR-API-05 Sistem menjaga keterurutan event di dalam sesi dengan `sequence_number` atau `action_slot`.
 - FR-API-06 Sistem menyimpan event yang valid ke basis data.
 - FR-API-07 Sistem menyediakan endpoint untuk mengambil daftar event per sesi dalam urutan yang konsisten.
 - FR-API-08 Sistem menyediakan autentikasi berbasis token Bearer untuk endpoint API.
@@ -104,7 +104,9 @@ Aturan server (ringkas, tanpa mengubah kontrak payload) ditegaskan sebagai berik
 - Sistem menyimpan event dengan `event_pk` sebagai primary key internal.
 - Sistem menerapkan idempotensi pada kombinasi `session_id + event_id`.
 - Sistem menolak `sequence_number` duplikat dalam satu sesi.
-- Sistem mengizinkan `events.player_id = null` untuk event sistem.
+- Event aksi Player memakai `user_id`; event sistem memakai `user_id = null`.
+- API me-resolve `user_id` ke `session_participant_id`/`session_player_id`
+  saat event valid diproses.
 
 Kriteria uji minimum:
 1. Sistem mengembalikan kode status konsisten untuk sukses dan gagal.
@@ -115,11 +117,11 @@ Kriteria uji minimum:
 - FR-RS-01 Sistem menyediakan endpoint pembuatan ruleset untuk role `INSTRUCTOR`.
 - FR-RS-02 Sistem menyediakan endpoint pembaruan ruleset berbasis versi untuk role `INSTRUCTOR`.
 - FR-RS-03 Sistem menyediakan endpoint penghapusan ruleset dengan pembatasan bila ruleset sudah dipakai pada sesi.
-- FR-RS-04 Sistem menyediakan endpoint aktivasi ruleset untuk sesi tertentu.
+- FR-RS-04 Sistem menyediakan endpoint aktivasi versi ruleset pada level ruleset.
 - FR-RS-05 Sistem menyimpan versi ruleset dan riwayat perubahan agar analisis tetap akurat saat konfigurasi berubah.
 - FR-RS-06 Sistem memvalidasi konfigurasi ruleset sebelum aktivasi untuk mencegah nilai di luar batas dan konflik konfigurasi.
 - FR-RS-07 Sistem menyediakan endpoint pembuatan sesi, penambahan Player ke sesi, start session, end session, dan state session untuk Klien Game/IDN.
-- FR-RS-08 Web Analitik menyediakan daftar/detail ruleset, create/edit/delete ruleset, aktivasi versi ruleset, dan aktivasi ruleset sesi untuk role Instruktur; Player hanya dapat membaca ruleset yang sesuai hak aksesnya.
+- FR-RS-08 Web Analitik menyediakan daftar/detail ruleset, create/edit/delete ruleset, dan aktivasi versi ruleset untuk role Instruktur; Player hanya dapat membaca ruleset yang sesuai hak aksesnya. Session memilih `ruleset_version_id` saat dibuat oleh Klien Game/IDN atau integrasi API.
 
 ### 7.3 Pengolahan dan agregasi metrik
 - FR-MTR-01 Sistem menghitung metrik dari log event mentah menjadi indikator terukur.
@@ -140,19 +142,20 @@ Kriteria uji minimum:
 
 ## 8. Kebutuhan Data
 Data minimum yang disimpan mencakup:
-1. Data pemain
+1. Data akun pengguna dan peserta sesi
 2. Data sesi permainan
 3. Data event permainan
 4. Data ruleset dan versi ruleset
 5. Data metrik hasil agregasi
 
 ### 8.1 Entitas minimum
-- Player: `player_id`, nama/alias, atribut peran
-- Session: `session_id`, waktu mulai, waktu selesai, status, mode, ruleset aktif
+- AppUser: `user_id`, username, display_name, role, status aktif
+- SessionParticipant: `session_participant_id`, session_id, `user_id`, urutan pemain, nama tampil pada sesi
+- Session: `session_id`, waktu mulai, waktu selesai, status, mode, `ruleset_version_id`
 - Ruleset: `ruleset_id`, nama, deskripsi, status, konfigurasi
 - RulesetVersion: `ruleset_version_id`, ruleset_id, nomor versi, konfigurasi, waktu dibuat, pembuat
-- EventLog: `event_pk` (PK internal), `event_id` (idempotensi dari klien), session_id, player_id (boleh null untuk event sistem), timestamp, turn_number, action_type, payload, ruleset_version_id, sequence_number
-- MetricSnapshot: `metric_id`, session_id, player_id (opsional), timestamp, nama metrik, nilai metrik
+- EventLog: `event_pk` (PK internal), `event_id` (idempotensi dari klien), session_id, `user_id` (boleh null untuk event sistem), `session_player_id` hasil resolve peserta sesi, timestamp, `turn_number`, action_slot, action_type, payload, ruleset_version_id, sequence_number
+- MetricSnapshot: `metric_id`, session_id, `user_id` (opsional untuk level sesi), `session_player_id` (opsional), timestamp, nama metrik, nilai metrik
 
 ### 8.2 Integritas data
 Integritas data yang dijaga:
@@ -179,7 +182,7 @@ Kebutuhan non-fungsional berikut ditetapkan.
 - NFR-AUD-02 Sistem mencatat error dan exception dengan informasi yang cukup untuk debugging.
 - NFR-AUD-03 Sistem menyediakan jejak event terurut untuk rekonstruksi state.
 - NFR-AUD-04 Sistem menyertakan `trace_id` pada respons error dan log server.
-- NFR-AUD-05 Sistem menyimpan jejak perubahan ruleset (siapa, kapan, versi berapa) pada kolom audit (`created_by`, `activated_by`) dan log aplikasi.
+- NFR-AUD-05 Sistem menyimpan jejak perubahan ruleset (siapa, kapan, versi berapa) pada kolom audit `created_by_user_id`, `created_at`, status versi, dan log aplikasi.
 
 ### 9.3 Kinerja
 - NFR-PERF-01 Sistem merespons ingest event tunggal dengan P95 <= 500 ms pada beban kelas normal.
@@ -209,48 +212,41 @@ Kebutuhan non-fungsional berikut ditetapkan.
 Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 
 ### 10.1 Event sesi
-- session.created
-- session.started
-- session.ended
+- MulaiSesi
+- AkhiriSesi
 
 ### 10.2 Event giliran
-- turn.started
-- turn.ended
-- turn.action.used
+- AkhirGiliran
 
 ### 10.3 Event transaksi dan arus kas
-- cash.increased
-- cash.decreased
-- transaction.recorded
+- CatatTransaksi
 
 ### 10.4 Event aturan harian
-- day.friday.donation
-- day.saturday.gold_trade
+- JumatBerkah
+- InvestasiEmas
+- JualEmas
 
 ### 10.5 Event kebutuhan dan bahan
-- need.primary.purchased
-- need.secondary.purchased
-- need.tertiary.purchased
-- ingredient.purchased
-- order.claimed
-- work.freelance.completed
+- Kebutuhan
+- BahanMasakan
+- JualMasakan
+- KerjaLepas
 
 ### 10.6 Event mode mahir
-- loan.syariah.taken
-- loan.syariah.repaid
-- insurance.multirisk.purchased
-- saving.deposit.created
-- saving.deposit.withdrawn
-- saving.goal.achieved
-- risk.life.drawn
-- insurance.multirisk.used
+- PinjamanSyariah
+- BayarPinjaman
+- Asuransi
+- Menabung
+- TarikTabungan
+- TujuanFinansial
+- RisikoKehidupan
 
 ### 10.7 Event misi dan skor
-- mission.assigned
-- donation.rank.awarded
-- gold.points.awarded
-- pension.rank.awarded
-- tie_breaker.assigned
+- BagikanMisiKoleksi
+- PoinPeringkatDonasi
+- PoinEmas
+- PoinPeringkatPensiun
+- BagikanTieBreaker
 
 Catatan: daftar event ini dapat bertambah saat spesifikasi desain dibuat, namun setiap event wajib mengikuti konteks minimum event dan aturan validasi.
 

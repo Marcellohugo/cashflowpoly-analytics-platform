@@ -38,7 +38,8 @@ Diagram UML yang dibutuhkan: semuanya.
 
 3. Klien Game/IDN
    - Antarmuka operasional permainan.
-   - Mengirim setup sesi, aktivasi ruleset, daftar Player, start/end sesi, state permainan, dan event permainan ke API.
+   - Mengirim setup sesi, pemilihan `ruleset_version_id`, daftar Player, start/end sesi, dan event permainan ke API.
+   - Membaca state sesi bila diperlukan; perubahan state gameplay dilakukan melalui event ingestion, bukan `PUT /state`.
    - Wajib memakai token Bearer untuk endpoint terproteksi.
 
 4. API
@@ -49,10 +50,11 @@ Diagram UML yang dibutuhkan: semuanya.
 5. Web Analitik
    - UI MVC berbasis Razor Views.
    - Membaca daftar sesi, detail sesi, ruleset, timeline event, metrik sesi, dan metrik Player dari API.
-   - Tidak membuat/mengubah sesi, ruleset, Player, atau event permainan.
+   - Tidak membuat/mengubah sesi, Player, state gameplay, atau event permainan.
+   - Dapat mengelola ruleset untuk role Instruktur.
 
 6. Database PostgreSQL
-   - Menyimpan akun, Player, sesi, ruleset, versi ruleset, event, proyeksi arus kas, metric snapshot, validation log, dan audit keamanan.
+   - Menyimpan akun, peserta sesi, sesi, ruleset, versi ruleset, event, proyeksi arus kas, metric snapshot, validation log, skor akhir, narrative log, retensi log, dan audit keamanan.
 
 ### Fitur utama
 1. Login/register
@@ -80,7 +82,7 @@ Diagram UML yang dibutuhkan: semuanya.
 
 5. Penyimpanan event valid
    - API menyimpan event valid ke PostgreSQL.
-   - API mencatat validation log untuk event valid maupun invalid.
+   - API mencatat validation log untuk event invalid yang ditolak.
 
 6. Web Analitik real-time
    - Instruktur melihat jumlah event, cash in, cash out, net cashflow, performa Player, dan pelanggaran validasi.
@@ -140,13 +142,12 @@ Diagram UML yang dibutuhkan: semuanya.
 - Melihat analitika sesi, Player, ruleset, timeline event, dan validation violations.
 - Melihat direktori Player.
 - Melihat audit keamanan dan observability bila endpoint diizinkan.
-- Melalui Klien Game/IDN atau integrasi API:
+   - Melalui Klien Game/IDN atau integrasi API:
   - membuat sesi,
-  - memilih/mengaktifkan ruleset pada sesi,
+  - memilih `ruleset_version_id` saat membuat sesi,
   - menambahkan Player ke sesi,
   - memulai/mengakhiri sesi,
-  - mengirim event permainan,
-  - menyimpan state sesi.
+  - mengirim event permainan.
 
 #### Player (`PLAYER`)
 - Login/register.
@@ -211,18 +212,19 @@ Sequence diagram yang disarankan:
 #### Class Diagram
 Entitas utama:
 - AppUser
-- UserPlayerLink
-- Player
 - Session
-- SessionPlayer
+- SessionParticipant
 - Ruleset
 - RulesetVersion
-- SessionRulesetActivation
 - EventLog
+- EventAssetReference
 - CashflowProjection
 - MetricSnapshot
 - ValidationLog
+- SessionFinalScore
+- SessionNarrativeLog
 - SecurityAuditLog
+- LogRetentionPolicy
 
 Komponen aplikasi:
 - UI Controllers: AuthController, HomeController, SessionsController, PlayersController, PlayerDirectoryController, RulesetsController

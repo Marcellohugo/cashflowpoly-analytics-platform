@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Menjalankan Sistem
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -145,7 +145,7 @@ Sistem berjalan baik jika:
 3. endpoint sample dapat dipanggil,
 4. MVC bisa jalan dan menampilkan halaman,
 5. login API mengembalikan token Bearer dan endpoint terproteksi bisa diakses dengan token tersebut.
-6. endpoint observability (`/api/v1/observability/metrics`) dan security audit (`/api/v1/security/audit-logs`) dapat diakses oleh role `INSTRUCTOR`.
+6. endpoint observability ringkas (`/api/v1/observability/metrics/summary`), endpoint Prometheus (`/metrics` pada service API), dan security audit (`/api/v1/security/audit-logs`) dapat diverifikasi; endpoint observability dan audit API mensyaratkan role `INSTRUCTOR`.
 
 ---
 

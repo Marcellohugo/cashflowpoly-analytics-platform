@@ -1,10 +1,10 @@
-﻿# Rancangan Dashboard Analitika Berbasis ASP.NET Core MVC (Razor Views)
+# Rancangan Dashboard Analitika Berbasis ASP.NET Core MVC (Razor Views)
 ## Sistem Informasi Dasbor Analitika Cashflowpoly
 
 ### Dokumen
 - Nama dokumen: Rancangan Dashboard Analitika (MVC)
-- Versi: 1.1
-- Tanggal: 8 Februari 2026
+- Versi: 1.2
+- Tanggal: 18 Juni 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -48,7 +48,7 @@ Instruktur dapat:
 1. login ke Web Analitik,
 2. melihat sesi yang dibuat melalui Klien Game/IDN,
 3. melihat semua analitika sesi/pemain,
-4. mengelola ruleset dan aktivasi ruleset sesi,
+4. mengelola ruleset dan aktivasi versi ruleset,
 5. melihat referensi dan agregasi analitika per ruleset.
 
 ### 3.2 Player
@@ -97,15 +97,14 @@ Tujuan aturan ini adalah mencegah bug grafik memanjang tanpa batas.
 | Home | `HomeController` | `Index` | `/` | Ringkasan akses dan pintasan fitur utama. |
 | Sessions | `SessionsController` | `Index` | `/sessions` | Daftar sesi. |
 | Session Details | `SessionsController` | `Details` | `/sessions/{sessionId}` | Ringkasan analitika sesi dan daftar pemain. |
-| Player Details | `PlayersController` | `Details` | `/sessions/{sessionId}/players/{playerId}` | Analitika detail pemain. |
-| Components | `ComponentsController` | `Index` | `/components` | Katalog komponen default Pemula/Mahir. |
+| Player Details | `PlayersController` | `Details` | `/sessions/{sessionId}/players/{userId}` | Analitika detail Player. |
 | Ruleset | `RulesetsController` | `Index` | `/rulesets` | Daftar ruleset dan aksi manajemen Instruktur. |
 | Ruleset Details | `RulesetsController` | `Details` | `/rulesets/{rulesetId}` | Detail ruleset dan versi. |
+| Ruleset Default Components | `RulesetsController` | `DefaultComponents` | `/rulesets/default-components/{rulesetVersionId}` | Katalog komponen default/version ruleset. |
 | Ruleset Create/Edit | `RulesetsController` | `Create`/`Edit` | `/rulesets/create`, `/rulesets/{rulesetId}/edit` | Form create/edit ruleset Instruktur. |
 | Session Analytics | `SessionsController` | `Details` | `/sessions/{sessionId}` | Menampilkan ringkasan analitika sesi, pemain, dan ruleset aktif. |
-| Session Ruleset Activation | `SessionsController` | `Ruleset` | `/sessions/{sessionId}/ruleset` | Aktivasi ruleset sesi untuk Instruktur. |
 | Analytics (Legacy) | `AnalyticsController` | `Index` | `/analytics` | Route kompatibilitas; redirect ke daftar sesi atau detail sesi. |
-| Rulebook | `HomeController` | `Rulebook` | `/home/rulebook` | Konten rulebook permainan. |
+| Rulebook | `HomeController` | `Rulebook` | `/rulebook` | Konten rulebook permainan. |
 
 ---
 
@@ -125,7 +124,7 @@ Menampilkan:
 3. grafik garis ringkas (tren kas dan performa),
 4. tautan ke detail pemain.
 
-### 6.3 Detail pemain (`/sessions/{sessionId}/players/{playerId}`)
+### 6.3 Detail pemain (`/sessions/{sessionId}/players/{userId}`)
 Menampilkan:
 1. metrik pemain,
 2. histori transaksi,
@@ -164,8 +163,8 @@ Catatan implementasi:
 | Komponen default | `GET /api/v1/rulesets/components/defaults` | Bearer |
 | Analitika sesi | `GET /api/v1/analytics/sessions/{sessionId}` | Bearer |
 | Linimasa event sesi | `GET /api/v1/sessions/{sessionId}/events` | Bearer |
-| Histori transaksi | `GET /api/v1/analytics/sessions/{sessionId}/transactions?playerId=...` | Bearer |
-| Gameplay snapshot | `GET /api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay` | Bearer |
+| Histori transaksi | `GET /api/v1/analytics/sessions/{sessionId}/transactions?userId=...` | Bearer |
+| Gameplay snapshot | `GET /api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay` | Bearer |
 | Analitika per ruleset | `GET /api/v1/analytics/rulesets/{rulesetId}/summary` | Bearer |
 
 Endpoint operasional berikut tetap tersedia di API, tetapi dipakai oleh Klien Game/IDN atau integrasi API, bukan oleh Web Analitik MVC:
@@ -182,7 +181,9 @@ Endpoint ruleset berikut juga dipanggil oleh Web Analitik MVC untuk role Instruk
 - `POST /api/v1/rulesets/{rulesetId}/versions/{version}/activate`
 - `DELETE /api/v1/rulesets/{rulesetId}`
 - `DELETE /api/v1/rulesets/{rulesetId}/versions/{version}`
-- `POST /api/v1/sessions/{sessionId}/ruleset/activate`
+
+Session memilih `ruleset_version_id` langsung saat dibuat; Web Analitik tidak
+menyediakan form aktivasi ruleset per session.
 
 ---
 

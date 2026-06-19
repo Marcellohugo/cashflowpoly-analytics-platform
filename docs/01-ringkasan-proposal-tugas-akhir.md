@@ -1,4 +1,4 @@
-﻿# Proposal Tugas Akhir  
+# Proposal Tugas Akhir
 **Rancang Bangun Dasbor Analitika dan Sistem Informasi Manajemen Ruleset untuk Gim Papan Cashflowpoly**
 
 Marco Marcello Hugo  
@@ -112,7 +112,7 @@ Evaluasi sistem mencakup uji fungsional endpoint API, uji integrasi alur pemrose
 Penelitian ini mengisi kesenjangan dengan:
 
 - memodelkan keputusan permainan sebagai *event* terstruktur,  
-- mengembangkan modul *ruleset* dinamis dengan versioning dan aktivasi per sesi, serta  
+- mengembangkan modul *ruleset* dinamis dengan versioning, aktivasi versi ruleset, dan penguncian `ruleset_version_id` saat sesi dibuat, serta
 - membangun dasbor analitika yang menautkan metrik pembelajaran dengan histori keputusan dan konteks *ruleset*.
 
 ---
