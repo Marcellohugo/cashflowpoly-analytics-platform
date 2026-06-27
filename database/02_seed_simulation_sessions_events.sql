@@ -69,6 +69,9 @@ where session_id in (select session_id from seed_session_scope);
 delete from event_cashflow_projections
 where session_id in (select session_id from seed_session_scope);
 
+delete from session_rule_effects
+where session_id in (select session_id from seed_session_scope);
+
 delete from event_asset_references
 where session_id in (select session_id from seed_session_scope);
 
@@ -369,25 +372,26 @@ scenario_event_seed as (
       ('PEMULA', null, 0, 0, 1, 2, 'SYSTEM', 'BagikanTieBreaker', 'BagikanTieBreaker', '{"number":2,"card_code":"tie_breaker_2"}'::jsonb),
       ('PEMULA', null, 0, 0, 1, 3, 'SYSTEM', 'BagikanTieBreaker', 'BagikanTieBreaker', '{"number":3,"card_code":"tie_breaker_3"}'::jsonb),
       ('PEMULA', null, 0, 0, 1, 4, 'SYSTEM', 'BagikanTieBreaker', 'BagikanTieBreaker', '{"number":4,"card_code":"tie_breaker_4"}'::jsonb),
+      ('PEMULA', null, 0, -4, 1, 1, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
+      ('PEMULA', null, 0, -3, 1, 2, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
+      ('PEMULA', null, 0, -2, 1, 3, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
+      ('PEMULA', null, 0, -1, 1, 4, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
       ('PEMULA', null, 0, 1, 1, 1, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_boneka","target_tertiary_card_id":"boneka","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
       ('PEMULA', null, 0, 2, 1, 2, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_gameboy","target_tertiary_card_id":"gameboy","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
       ('PEMULA', null, 0, 3, 1, 3, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_hiburan","target_tertiary_card_id":"hiburan","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
-      ('PEMULA', null, 0, 4, 1, 4, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_boneka","target_tertiary_card_id":"boneka","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
+      ('PEMULA', null, 0, 4, 1, 4, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_jam","target_tertiary_card_id":"jam","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
       ('PEMULA', null, 0, 5, 1, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 0, 6, 1, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
+      ('PEMULA', null, 1, -4, 1, 1, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4,"setup":"INITIAL"}'::jsonb),
       ('PEMULA', null, 0, 7, 1, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 0, 8, 1, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
+      ('PEMULA', null, 1, -3, 1, 2, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4,"setup":"INITIAL"}'::jsonb),
       ('PEMULA', null, 0, 9, 1, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('PEMULA', null, 0, 10, 1, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
+      ('PEMULA', null, 1, -2, 1, 3, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3,"setup":"INITIAL"}'::jsonb),
       ('PEMULA', null, 0, 11, 1, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 0, 12, 1, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
+      ('PEMULA', null, 1, -1, 1, 4, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2,"setup":"INITIAL"}'::jsonb),
       ('PEMULA', null, 0, 13, 1, null, 'SYSTEM', 'AmbilKartuDariDeck', 'AmbilKartuDariDeck', '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}'::jsonb),
-      ('PEMULA', null, 0, 14, 1, 1, 'SYSTEM', 'KartuDiambilDariPasar', 'KartuDiambilDariPasar', '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}'::jsonb),
-      ('PEMULA', null, 0, 15, 1, null, 'SYSTEM', 'KartuMasukDiscard', 'KartuMasukDiscard', '{"asset_type":"ORDER","asset_code":"order_setup_placeholder"}'::jsonb),
-      ('PEMULA', null, 0, 16, 1, null, 'SYSTEM', 'IsiUlangPasar', 'IsiUlangPasar', '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"sayur"}'::jsonb),
       ('PEMULA', null, 1, 0, 2, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 1, 1, 2, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('PEMULA', null, 1, 2, 2, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('PEMULA', null, 1, 1, 2, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
+      ('PEMULA', null, 1, 2, 2, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 1, 3, 2, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
       ('PEMULA', null, 1, 4, 2, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
       ('PEMULA', null, 1, 5, 2, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
@@ -399,15 +403,15 @@ scenario_event_seed as (
       ('PEMULA', null, 2, 3, 3, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
       ('PEMULA', null, 2, 4, 3, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
       ('PEMULA', null, 2, 5, 3, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 2, 6, 3, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('PEMULA', null, 2, 6, 3, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 2, 7, 3, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
       ('PEMULA', null, 3, 0, 4, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 3, 1, 4, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('PEMULA', null, 3, 2, 4, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
+      ('PEMULA', null, 3, 1, 4, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
+      ('PEMULA', null, 3, 2, 4, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 3, 3, 4, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('PEMULA', null, 3, 4, 4, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('PEMULA', null, 3, 4, 4, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 3, 5, 4, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('PEMULA', null, 3, 6, 4, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('PEMULA', null, 3, 6, 4, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 3, 7, 4, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
       ('PEMULA', null, 4, 0, 5, 1, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":2}'::jsonb),
       ('PEMULA', null, 4, 1, 5, 2, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":3}'::jsonb),
@@ -417,43 +421,44 @@ scenario_event_seed as (
       ('PEMULA', null, 4, 5, 5, 2, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":2,"points":5}'::jsonb),
       ('PEMULA', null, 4, 6, 5, 1, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":3,"points":2}'::jsonb),
       ('PEMULA', null, 4, 7, 5, null, 'SYSTEM', 'UmumkanJuaraDonasi', 'UmumkanJuaraDonasi', '{"summary":"Manalu Juara 1, Marcello Juara 2, Marco Juara 3","winners":[{"rank":1,"player_name":"Manalu","player_order_no":4,"points":7},{"rank":2,"player_name":"Marcello","player_order_no":2,"points":5},{"rank":3,"player_name":"Marco","player_order_no":1,"points":2}]}'::jsonb),
+      ('PEMULA', null, 5, -1, 0, null, 'SYSTEM', 'BukaHargaEmas', 'BukaHargaEmas', '{"gold_price":6}'::jsonb),
       ('PEMULA', null, 5, 0, 6, 1, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}'::jsonb),
       ('PEMULA', null, 5, 1, 6, 2, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}'::jsonb),
       ('PEMULA', null, 5, 2, 6, 3, 'PLAYER', null, 'LewatiTransaksiEmas', '{"note":"Tidak membeli dan tidak menjual emas"}'::jsonb),
       ('PEMULA', null, 5, 3, 6, 4, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}'::jsonb),
       ('PEMULA', null, 6, 0, 7, null, 'SYSTEM', null, 'HariMingguLibur', '{"note":"Hari Minggu libur"}'::jsonb),
-      ('PEMULA', null, 7, 0, 8, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 7, 1, 8, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 7, 2, 8, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('PEMULA', null, 7, 3, 8, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 7, 4, 8, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
-      ('PEMULA', null, 7, 5, 8, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 7, 6, 8, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 7, 7, 8, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 8, 0, 9, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('PEMULA', null, 7, 0, 8, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 1, 8, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 2, 8, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 3, 8, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 4, 8, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 5, 8, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 6, 8, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 7, 7, 8, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 8, 0, 9, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 8, 1, 9, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"boneka","amount":6,"points":3}'::jsonb),
-      ('PEMULA', null, 8, 2, 9, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
+      ('PEMULA', null, 8, 2, 9, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 8, 3, 9, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"gameboy","amount":8,"points":4}'::jsonb),
-      ('PEMULA', null, 8, 4, 9, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
+      ('PEMULA', null, 8, 4, 9, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 8, 5, 9, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"hiburan","amount":5,"points":2}'::jsonb),
-      ('PEMULA', null, 8, 6, 9, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 8, 7, 9, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"boneka","amount":6,"points":3}'::jsonb),
-      ('PEMULA', null, 9, 0, 10, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('PEMULA', null, 8, 6, 9, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 8, 7, 9, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"jam","amount":7,"points":3}'::jsonb),
+      ('PEMULA', null, 9, 0, 10, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 9, 1, 10, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 9, 2, 10, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
+      ('PEMULA', null, 9, 2, 10, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 9, 3, 10, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 9, 4, 10, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
+      ('PEMULA', null, 9, 4, 10, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 9, 5, 10, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 9, 6, 10, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('PEMULA', null, 9, 6, 10, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 9, 7, 10, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 10, 0, 11, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 10, 1, 11, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 10, 2, 11, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 10, 3, 11, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 10, 4, 11, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 10, 5, 11, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 10, 6, 11, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
-      ('PEMULA', null, 10, 7, 11, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
+      ('PEMULA', null, 10, 0, 11, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 1, 11, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 2, 11, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 3, 11, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 4, 11, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 5, 11, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 6, 11, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 10, 7, 11, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 11, 0, 12, 1, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":5}'::jsonb),
       ('PEMULA', null, 11, 1, 12, 2, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":2}'::jsonb),
       ('PEMULA', null, 11, 2, 12, 3, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":4}'::jsonb),
@@ -462,43 +467,44 @@ scenario_event_seed as (
       ('PEMULA', null, 11, 5, 12, 3, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":2,"points":5}'::jsonb),
       ('PEMULA', null, 11, 6, 12, 4, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":3,"points":2}'::jsonb),
       ('PEMULA', null, 11, 7, 12, null, 'SYSTEM', 'UmumkanJuaraDonasi', 'UmumkanJuaraDonasi', '{"summary":"Marco Juara 1, Hugo Juara 2, Manalu Juara 3","winners":[{"rank":1,"player_name":"Marco","player_order_no":1,"points":7},{"rank":2,"player_name":"Hugo","player_order_no":3,"points":5},{"rank":3,"player_name":"Manalu","player_order_no":4,"points":2}]}'::jsonb),
+      ('PEMULA', null, 12, -1, 0, null, 'SYSTEM', 'BukaHargaEmas', 'BukaHargaEmas', '{"gold_price":8}'::jsonb),
       ('PEMULA', null, 12, 0, 13, 1, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":8,"qty":1,"amount":8}'::jsonb),
       ('PEMULA', null, 12, 1, 13, 2, 'PLAYER', 'JualEmas', 'JualEmas', '{"trade_type":"SELL","unit_price":8,"qty":1,"amount":8}'::jsonb),
       ('PEMULA', null, 12, 2, 13, 3, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":8,"qty":1,"amount":8}'::jsonb),
-      ('PEMULA', null, 12, 3, 13, 4, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":8,"qty":1,"amount":8}'::jsonb),
+      ('PEMULA', null, 12, 3, 13, 4, 'PLAYER', null, 'LewatiTransaksiEmas', '{"note":"Tidak membeli dan tidak menjual emas"}'::jsonb),
       ('PEMULA', null, 13, 0, 14, null, 'SYSTEM', null, 'HariMingguLibur', '{"note":"Hari Minggu libur"}'::jsonb),
-      ('PEMULA', null, 14, 0, 15, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('PEMULA', null, 14, 1, 15, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 14, 2, 15, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('PEMULA', null, 14, 3, 15, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('PEMULA', null, 14, 4, 15, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('PEMULA', null, 14, 5, 15, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 14, 6, 15, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
-      ('PEMULA', null, 14, 7, 15, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('PEMULA', null, 15, 0, 16, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 15, 1, 16, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 15, 2, 16, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 15, 3, 16, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 15, 4, 16, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('PEMULA', null, 15, 5, 16, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 15, 6, 16, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 15, 7, 16, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 16, 0, 17, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
+      ('PEMULA', null, 14, 0, 15, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 1, 15, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 2, 15, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 3, 15, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 4, 15, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 5, 15, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 6, 15, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 14, 7, 15, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 0, 16, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 1, 16, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 2, 16, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 3, 16, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 4, 16, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 5, 16, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 6, 16, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 15, 7, 16, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 16, 0, 17, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 16, 1, 17, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 16, 2, 17, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
+      ('PEMULA', null, 16, 2, 17, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 16, 3, 17, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 16, 4, 17, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
+      ('PEMULA', null, 16, 4, 17, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 16, 5, 17, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 16, 6, 17, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 16, 7, 17, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('PEMULA', null, 17, 0, 18, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
-      ('PEMULA', null, 17, 1, 18, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 17, 2, 18, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 17, 3, 18, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 17, 4, 18, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 17, 5, 18, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 17, 6, 18, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('PEMULA', null, 17, 7, 18, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
+      ('PEMULA', null, 16, 6, 17, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 16, 7, 17, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 0, 18, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 1, 18, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 2, 18, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 3, 18, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 4, 18, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 5, 18, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 6, 18, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 17, 7, 18, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 18, 0, 19, 1, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":3}'::jsonb),
       ('PEMULA', null, 18, 1, 19, 2, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":5}'::jsonb),
       ('PEMULA', null, 18, 2, 19, 3, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":2}'::jsonb),
@@ -507,42 +513,43 @@ scenario_event_seed as (
       ('PEMULA', null, 18, 5, 19, 4, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":2,"points":5}'::jsonb),
       ('PEMULA', null, 18, 6, 19, 1, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":3,"points":2}'::jsonb),
       ('PEMULA', null, 18, 7, 19, null, 'SYSTEM', 'UmumkanJuaraDonasi', 'UmumkanJuaraDonasi', '{"summary":"Marcello Juara 1, Manalu Juara 2, Marco Juara 3","winners":[{"rank":1,"player_name":"Marcello","player_order_no":2,"points":7},{"rank":2,"player_name":"Manalu","player_order_no":4,"points":5},{"rank":3,"player_name":"Marco","player_order_no":1,"points":2}]}'::jsonb),
+      ('PEMULA', null, 19, -1, 0, null, 'SYSTEM', 'BukaHargaEmas', 'BukaHargaEmas', '{"gold_price":7}'::jsonb),
       ('PEMULA', null, 19, 0, 20, 1, 'PLAYER', 'JualEmas', 'JualEmas', '{"trade_type":"SELL","unit_price":7,"qty":1,"amount":7}'::jsonb),
       ('PEMULA', null, 19, 1, 20, 2, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":7,"qty":1,"amount":7}'::jsonb),
       ('PEMULA', null, 19, 2, 20, 3, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":7,"qty":1,"amount":7}'::jsonb),
       ('PEMULA', null, 19, 3, 20, 4, 'PLAYER', null, 'LewatiTransaksiEmas', '{"note":"Tidak membeli dan tidak menjual emas"}'::jsonb),
       ('PEMULA', null, 20, 0, 21, null, 'SYSTEM', null, 'HariMingguLibur', '{"note":"Hari Minggu libur"}'::jsonb),
-      ('PEMULA', null, 21, 0, 22, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
-      ('PEMULA', null, 21, 1, 22, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"boneka","amount":6,"points":3}'::jsonb),
-      ('PEMULA', null, 21, 2, 22, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 21, 3, 22, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"gameboy","amount":8,"points":4}'::jsonb),
-      ('PEMULA', null, 21, 4, 22, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 21, 5, 22, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"hiburan","amount":5,"points":2}'::jsonb),
-      ('PEMULA', null, 21, 6, 22, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 21, 7, 22, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"boneka","amount":6,"points":3}'::jsonb),
+      ('PEMULA', null, 21, 0, 22, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 1, 22, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 2, 22, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 3, 22, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 4, 22, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 5, 22, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 6, 22, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 21, 7, 22, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 22, 0, 23, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 22, 1, 23, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
+      ('PEMULA', null, 22, 1, 23, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 22, 2, 23, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 22, 3, 23, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
+      ('PEMULA', null, 22, 3, 23, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 22, 4, 23, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 22, 5, 23, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('PEMULA', null, 22, 5, 23, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 22, 6, 23, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 22, 7, 23, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 23, 0, 24, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('PEMULA', null, 23, 1, 24, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 23, 2, 24, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('PEMULA', null, 23, 3, 24, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 23, 4, 24, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('PEMULA', null, 23, 5, 24, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('PEMULA', null, 23, 6, 24, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('PEMULA', null, 23, 7, 24, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('PEMULA', null, 24, 0, 25, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
+      ('PEMULA', null, 22, 7, 23, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 0, 24, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 1, 24, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 2, 24, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 3, 24, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 4, 24, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 5, 24, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 6, 24, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 23, 7, 24, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('PEMULA', null, 24, 0, 25, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 24, 1, 25, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 24, 2, 25, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
+      ('PEMULA', null, 24, 2, 25, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 24, 3, 25, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 24, 4, 25, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
+      ('PEMULA', null, 24, 4, 25, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 24, 5, 25, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('PEMULA', null, 24, 6, 25, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
+      ('PEMULA', null, 24, 6, 25, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 24, 7, 25, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('PEMULA', null, 24, 8, 25, null, 'SYSTEM', 'AkhiriSesi', 'AkhiriSesi', '{"end_note":"Selesai sesi pemula sesuai dokumen skenario"}'::jsonb),
 
@@ -552,50 +559,54 @@ scenario_event_seed as (
       ('MAHIR', null, 0, 0, 1, 2, 'SYSTEM', 'BagikanTieBreaker', 'BagikanTieBreaker', '{"number":2,"card_code":"tie_breaker_2"}'::jsonb),
       ('MAHIR', null, 0, 0, 1, 3, 'SYSTEM', 'BagikanTieBreaker', 'BagikanTieBreaker', '{"number":3,"card_code":"tie_breaker_3"}'::jsonb),
       ('MAHIR', null, 0, 0, 1, 4, 'SYSTEM', 'BagikanTieBreaker', 'BagikanTieBreaker', '{"number":4,"card_code":"tie_breaker_4"}'::jsonb),
+      ('MAHIR', null, 0, -24, 1, 1, 'SYSTEM', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-001","principal":10,"installment":0,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -23, 1, 2, 'SYSTEM', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-002","principal":10,"installment":0,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -22, 1, 3, 'SYSTEM', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-003","principal":10,"installment":0,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -21, 1, 4, 'SYSTEM', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-004","principal":10,"installment":0,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -20, 1, 1, 'SYSTEM', 'Asuransi', 'Asuransi', '{"product_code":"multirisk_basic","policy_instance_id":"INS-SETUP-001","premium":0,"coverage_type":"MULTIRISK","setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -19, 1, 2, 'SYSTEM', 'Asuransi', 'Asuransi', '{"product_code":"multirisk_basic","policy_instance_id":"INS-SETUP-002","premium":0,"coverage_type":"MULTIRISK","setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -18, 1, 3, 'SYSTEM', 'Asuransi', 'Asuransi', '{"product_code":"multirisk_basic","policy_instance_id":"INS-SETUP-003","premium":0,"coverage_type":"MULTIRISK","setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -17, 1, 4, 'SYSTEM', 'Asuransi', 'Asuransi', '{"product_code":"multirisk_basic","policy_instance_id":"INS-SETUP-004","premium":0,"coverage_type":"MULTIRISK","setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -4, 1, 1, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -3, 1, 2, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -2, 1, 3, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 0, -1, 1, 4, 'SYSTEM', 'BagikanEmasAwal', 'BagikanEmasAwal', '{"qty":1,"setup":"INITIAL"}'::jsonb),
       ('MAHIR', null, 0, 1, 1, 1, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_boneka","target_tertiary_card_id":"boneka","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
       ('MAHIR', null, 0, 2, 1, 2, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_gameboy","target_tertiary_card_id":"gameboy","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
       ('MAHIR', null, 0, 3, 1, 3, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_hiburan","target_tertiary_card_id":"hiburan","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
-      ('MAHIR', null, 0, 4, 1, 4, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_boneka","target_tertiary_card_id":"boneka","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
-      ('MAHIR', null, 0, 5, 1, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('MAHIR', null, 0, 6, 1, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', null, 0, 7, 1, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('MAHIR', null, 0, 8, 1, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 0, 9, 1, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('MAHIR', null, 0, 10, 1, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', null, 0, 11, 1, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
-      ('MAHIR', null, 0, 12, 1, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
+      ('MAHIR', null, 0, 4, 1, 4, 'SYSTEM', 'BagikanMisiKoleksi', 'BagikanMisiKoleksi', '{"mission_id":"misi_jam","target_tertiary_card_id":"jam","penalty_points":10,"require_primary":true,"require_secondary":true}'::jsonb),
+      ('MAHIR', null, 1, -4, 1, 1, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 1, -3, 1, 2, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 1, -2, 1, 3, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4,"setup":"INITIAL"}'::jsonb),
+      ('MAHIR', null, 1, -1, 1, 4, 'SYSTEM', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3,"setup":"INITIAL"}'::jsonb),
       ('MAHIR', null, 0, 21, 1, null, 'SYSTEM', 'AmbilKartuDariDeck', 'AmbilKartuDariDeck', '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}'::jsonb),
-      ('MAHIR', null, 0, 22, 1, 1, 'SYSTEM', 'KartuDiambilDariPasar', 'KartuDiambilDariPasar', '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}'::jsonb),
-      ('MAHIR', null, 0, 23, 1, null, 'SYSTEM', 'KartuMasukDiscard', 'KartuMasukDiscard', '{"asset_type":"ORDER","asset_code":"order_setup_placeholder"}'::jsonb),
-      ('MAHIR', null, 0, 24, 1, null, 'SYSTEM', 'IsiUlangPasar', 'IsiUlangPasar', '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"sayur"}'::jsonb),
-      ('MAHIR', null, 1, 0, 2, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', 'mahir-risk-001', 1, 1, 2, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_bonus_tunjangan","note":"Dapat tunjangan keluarga"}'::jsonb),
-      ('MAHIR', null, 1, 2, 2, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-001","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
-      ('MAHIR', null, 1, 3, 2, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('MAHIR', 'mahir-risk-002', 1, 4, 2, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_perbaikan","note":"Biaya perbaikan mendadak"}'::jsonb),
+      ('MAHIR', null, 1, 0, 2, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"lontong_balap","required_ingredient_card_ids":["sayur","nasi_putih"],"income":13}'::jsonb),
+      ('MAHIR', 'mahir-risk-001', 1, 1, 2, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_listrik","note":"Pemadaman listrik"}'::jsonb),
+      ('MAHIR', null, 1, 2, 2, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"semanggi_surabaya","required_ingredient_card_ids":["sayur","sayur"],"income":14}'::jsonb),
+      ('MAHIR', 'mahir-risk-002', 1, 3, 2, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_listrik","note":"Pemadaman listrik"}'::jsonb),
       ('MAHIR', null, 1, 5, 2, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
       ('MAHIR', null, 1, 6, 2, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('MAHIR', 'mahir-risk-003', 1, 7, 2, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_bonus_kompetisi","note":"Hadiah kompetisi"}'::jsonb),
+      ('MAHIR', 'mahir-risk-003', 1, 7, 2, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_listrik","note":"Pemadaman listrik"}'::jsonb),
       ('MAHIR', null, 1, 8, 2, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('MAHIR', null, 1, 9, 2, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
-      ('MAHIR', 'mahir-risk-004', 1, 10, 2, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_bonus_tetangga","note":"Tetangga berbagi rezeki"}'::jsonb),
-      ('MAHIR', null, 1, 11, 2, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-002","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
+      ('MAHIR', null, 1, 9, 2, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
+      ('MAHIR', 'mahir-risk-004', 1, 10, 2, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_listrik","note":"Pemadaman listrik"}'::jsonb),
+      ('MAHIR', null, 1, 11, 2, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
       ('MAHIR', null, 2, 0, 3, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
       ('MAHIR', null, 2, 1, 3, 1, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_rumah","amount":5}'::jsonb),
-      ('MAHIR', null, 2, 2, 3, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
+      ('MAHIR', null, 2, 2, 3, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
       ('MAHIR', null, 2, 3, 3, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', null, 2, 4, 3, 3, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_rumah","amount":5}'::jsonb),
+      ('MAHIR', null, 2, 4, 3, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
       ('MAHIR', null, 2, 5, 3, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
       ('MAHIR', null, 2, 6, 3, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('MAHIR', null, 2, 7, 3, 4, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":5}'::jsonb),
-      ('MAHIR', null, 3, 0, 4, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('MAHIR', null, 2, 7, 3, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('MAHIR', null, 3, 0, 4, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
       ('MAHIR', null, 3, 1, 4, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 3, 2, 4, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('MAHIR', 'mahir-risk-005', 3, 3, 4, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_bayar_obat","note":"Biaya obat keluarga"}'::jsonb),
-      ('MAHIR', null, 3, 4, 4, 2, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":5}'::jsonb),
+      ('MAHIR', null, 3, 2, 4, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"soto_daging","required_ingredient_card_ids":["daging","telur"],"income":17}'::jsonb),
+      ('MAHIR', 'mahir-risk-005', 3, 3, 4, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_perbaikan_atap","note":"Bencana banjir"}'::jsonb),
+      ('MAHIR', null, 3, 4, 4, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
       ('MAHIR', null, 3, 5, 4, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
       ('MAHIR', null, 3, 6, 4, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('MAHIR', 'mahir-risk-006', 3, 7, 4, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_bonus_proyek","note":"Dapat bonus proyek"}'::jsonb),
+      ('MAHIR', 'mahir-risk-006', 3, 7, 4, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_perbaikan_atap","note":"Bencana banjir"}'::jsonb),
       ('MAHIR', null, 3, 8, 4, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
       ('MAHIR', null, 3, 9, 4, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
       ('MAHIR', null, 4, 0, 5, 1, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":1}'::jsonb),
@@ -606,56 +617,52 @@ scenario_event_seed as (
       ('MAHIR', null, 4, 5, 5, 2, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":2,"points":5}'::jsonb),
       ('MAHIR', null, 4, 6, 5, 3, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":3,"points":2}'::jsonb),
       ('MAHIR', null, 4, 7, 5, null, 'SYSTEM', 'UmumkanJuaraDonasi', 'UmumkanJuaraDonasi', '{"summary":"Manalu Juara 1, Marcello Juara 2, Hugo Juara 3","winners":[{"rank":1,"player_name":"Manalu","player_order_no":4,"points":7},{"rank":2,"player_name":"Marcello","player_order_no":2,"points":5},{"rank":3,"player_name":"Hugo","player_order_no":3,"points":2}]}'::jsonb),
+      ('MAHIR', null, 5, -1, 0, null, 'SYSTEM', 'BukaHargaEmas', 'BukaHargaEmas', '{"gold_price":6}'::jsonb),
       ('MAHIR', null, 5, 0, 6, 1, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}'::jsonb),
       ('MAHIR', null, 5, 1, 6, 2, 'PLAYER', null, 'LewatiTransaksiEmas', '{"note":"Tidak membeli dan tidak menjual emas"}'::jsonb),
       ('MAHIR', null, 5, 2, 6, 3, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}'::jsonb),
       ('MAHIR', null, 5, 3, 6, 4, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}'::jsonb),
       ('MAHIR', null, 6, 0, 7, null, 'SYSTEM', null, 'HariMingguLibur', '{"note":"Hari Minggu libur"}'::jsonb),
-      ('MAHIR', null, 7, 0, 8, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('MAHIR', 'mahir-risk-007', 7, 1, 8, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_sekolah_adik","note":"Bantu biaya sekolah adik"}'::jsonb),
-      ('MAHIR', null, 7, 2, 8, 1, 'PLAYER', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_id":"loan-seed-mahir-2-004","principal":10,"installment":2,"duration_turn":5,"penalty_points":15}'::jsonb),
-      ('MAHIR', null, 7, 3, 8, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('MAHIR', null, 7, 4, 8, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
+      ('MAHIR', null, 7, 0, 8, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"sego_penyet","required_ingredient_card_ids":["telur","tahu_tempe","nasi_putih"],"income":22}'::jsonb),
+      ('MAHIR', 'mahir-risk-007', 7, 1, 8, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_perbaikan_atap","note":"Bencana banjir"}'::jsonb),
+      ('MAHIR', null, 7, 2, 8, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
+      ('MAHIR', null, 7, 4, 8, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
       ('MAHIR', null, 7, 5, 8, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
-      ('MAHIR', null, 7, 6, 8, 3, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-003","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
-      ('MAHIR', null, 7, 7, 8, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('MAHIR', null, 7, 8, 8, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('MAHIR', 'mahir-risk-008', 7, 9, 8, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_motor_bocor","note":"Servis motor darurat"}'::jsonb),
-      ('MAHIR', null, 7, 10, 8, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-008"}'::jsonb),
-      ('MAHIR', null, 7, 11, 8, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
+      ('MAHIR', null, 7, 6, 8, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('MAHIR', null, 7, 7, 8, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
+      ('MAHIR', null, 7, 8, 8, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"rawon","required_ingredient_card_ids":["daging","telur","tahu_tempe"],"income":24}'::jsonb),
+      ('MAHIR', 'mahir-risk-008', 7, 9, 8, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_perbaikan_atap","note":"Bencana banjir"}'::jsonb),
+      ('MAHIR', null, 7, 10, 8, 4, 'PLAYER', 'GunakanOpsiDarurat', 'GunakanOpsiDarurat', '{"risk_event_ref":"mahir-risk-008","direction":"IN","amount":1}'::jsonb),
+      ('MAHIR', null, 7, 11, 8, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
       ('MAHIR', null, 8, 0, 9, 1, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_rumah","amount":10}'::jsonb),
-      ('MAHIR', null, 8, 1, 9, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('MAHIR', null, 8, 2, 9, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 8, 3, 9, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
-      ('MAHIR', 'mahir-risk-009', 8, 4, 9, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_uang_saku_hilang","note":"Kehilangan uang saku"}'::jsonb),
-      ('MAHIR', null, 8, 5, 9, 2, 'PLAYER', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_id":"loan-seed-mahir-2-005","principal":10,"installment":2,"duration_turn":5,"penalty_points":15}'::jsonb),
-      ('MAHIR', null, 8, 6, 9, 2, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-004","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
-      ('MAHIR', null, 8, 7, 9, 3, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_rumah","amount":10}'::jsonb),
+      ('MAHIR', null, 8, 1, 9, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
+      ('MAHIR', null, 8, 2, 9, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
+      ('MAHIR', null, 8, 3, 9, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_telur","required_ingredient_card_ids":["telur","telur","tahu_tempe"],"income":25}'::jsonb),
+      ('MAHIR', 'mahir-risk-009', 8, 4, 9, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_tagihan_internet","note":"Ulang tahun"}'::jsonb),
+      ('MAHIR', null, 8, 7, 9, 3, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"biaya_kursus","amount":10}'::jsonb),
       ('MAHIR', null, 8, 8, 9, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('MAHIR', null, 8, 9, 9, 4, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":10}'::jsonb),
+      ('MAHIR', null, 8, 9, 9, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
       ('MAHIR', null, 8, 10, 9, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
       ('MAHIR', null, 9, 0, 10, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', null, 9, 1, 10, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('MAHIR', 'mahir-risk-010', 9, 2, 10, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_tagihan_medis","note":"Tagihan medis ringan"}'::jsonb),
-      ('MAHIR', null, 9, 3, 10, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-010"}'::jsonb),
+      ('MAHIR', null, 9, 1, 10, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"sego_penyet","required_ingredient_card_ids":["telur","tahu_tempe","nasi_putih"],"income":22}'::jsonb),
+      ('MAHIR', 'mahir-risk-010', 9, 2, 10, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_tagihan_internet","note":"Ulang tahun"}'::jsonb),
+      ('MAHIR', null, 9, 3, 10, 1, 'PLAYER', 'GunakanOpsiDarurat', 'GunakanOpsiDarurat', '{"risk_event_ref":"mahir-risk-010","direction":"IN","amount":1}'::jsonb),
       ('MAHIR', null, 9, 4, 10, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
       ('MAHIR', null, 9, 5, 10, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
       ('MAHIR', null, 9, 6, 10, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', null, 9, 7, 10, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
-      ('MAHIR', 'mahir-risk-011', 9, 8, 10, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_perjalanan","note":"Biaya perjalanan mendadak"}'::jsonb),
-      ('MAHIR', null, 9, 9, 10, 3, 'PLAYER', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_id":"loan-seed-mahir-2-006","principal":10,"installment":2,"duration_turn":5,"penalty_points":15}'::jsonb),
+      ('MAHIR', null, 9, 7, 10, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"sate_klopo","required_ingredient_card_ids":["daging","daging","nasi_putih"],"income":26}'::jsonb),
+      ('MAHIR', 'mahir-risk-011', 9, 8, 10, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_tagihan_internet","note":"Ulang tahun"}'::jsonb),
       ('MAHIR', null, 9, 10, 10, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 9, 11, 10, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
-      ('MAHIR', 'mahir-risk-012', 9, 12, 10, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_peralatan_rusak","note":"Peralatan rumah rusak"}'::jsonb),
-      ('MAHIR', null, 9, 13, 10, 4, 'PLAYER', 'PinjamanSyariah', 'PinjamanSyariah', '{"loan_id":"loan-seed-mahir-2-007","principal":10,"installment":2,"duration_turn":5,"penalty_points":15}'::jsonb),
-      ('MAHIR', null, 10, 0, 11, 1, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_id":"loan-seed-mahir-2-004","amount":10}'::jsonb),
-      ('MAHIR', null, 10, 1, 11, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-005","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
-      ('MAHIR', null, 10, 2, 11, 2, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_id":"loan-seed-mahir-2-005","amount":10}'::jsonb),
+      ('MAHIR', null, 9, 11, 10, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_pecel","required_ingredient_card_ids":["nasi_putih","tahu_tempe","sayur"],"income":20}'::jsonb),
+      ('MAHIR', 'mahir-risk-012', 9, 12, 10, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_tagihan_internet","note":"Ulang tahun"}'::jsonb),
+      ('MAHIR', null, 10, 0, 11, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
+      ('MAHIR', null, 10, 1, 11, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 10, 2, 11, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('MAHIR', null, 10, 3, 11, 2, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":5}'::jsonb),
-      ('MAHIR', null, 10, 4, 11, 3, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_id":"loan-seed-mahir-2-006","amount":10}'::jsonb),
-      ('MAHIR', null, 10, 5, 11, 3, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-006","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
-      ('MAHIR', null, 10, 6, 11, 4, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_id":"loan-seed-mahir-2-007","amount":10}'::jsonb),
-      ('MAHIR', null, 10, 7, 11, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-007","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
+      ('MAHIR', null, 10, 4, 11, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 10, 5, 11, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 10, 6, 11, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 10, 7, 11, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('MAHIR', null, 11, 0, 12, 1, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":4}'::jsonb),
       ('MAHIR', null, 11, 1, 12, 2, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":2}'::jsonb),
       ('MAHIR', null, 11, 2, 12, 3, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":5}'::jsonb),
@@ -664,6 +671,7 @@ scenario_event_seed as (
       ('MAHIR', null, 11, 5, 12, 1, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":2,"points":5}'::jsonb),
       ('MAHIR', null, 11, 6, 12, 4, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":3,"points":2}'::jsonb),
       ('MAHIR', null, 11, 7, 12, null, 'SYSTEM', 'UmumkanJuaraDonasi', 'UmumkanJuaraDonasi', '{"summary":"Hugo Juara 1, Marco Juara 2, Manalu Juara 3","winners":[{"rank":1,"player_name":"Hugo","player_order_no":3,"points":7},{"rank":2,"player_name":"Marco","player_order_no":1,"points":5},{"rank":3,"player_name":"Manalu","player_order_no":4,"points":2}]}'::jsonb),
+      ('MAHIR', null, 12, -1, 0, null, 'SYSTEM', 'BukaHargaEmas', 'BukaHargaEmas', '{"gold_price":8}'::jsonb),
       ('MAHIR', null, 12, 0, 13, 1, 'PLAYER', 'JualEmas', 'JualEmas', '{"trade_type":"SELL","unit_price":8,"qty":1,"amount":8}'::jsonb),
       ('MAHIR', null, 12, 1, 13, 2, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":8,"qty":1,"amount":8}'::jsonb),
       ('MAHIR', null, 12, 2, 13, 3, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":8,"qty":1,"amount":8}'::jsonb),
@@ -678,36 +686,37 @@ scenario_event_seed as (
       ('MAHIR', null, 14, 6, 15, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"boneka","amount":6,"points":3}'::jsonb),
       ('MAHIR', null, 14, 7, 15, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
       ('MAHIR', null, 15, 0, 16, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 15, 1, 16, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
+      ('MAHIR', null, 15, 1, 16, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"semanggi_surabaya","required_ingredient_card_ids":["sayur","sayur"],"income":14}'::jsonb),
       ('MAHIR', 'mahir-risk-013', 15, 2, 16, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_kebutuhan_keluarga","note":"Bantu kebutuhan keluarga"}'::jsonb),
-      ('MAHIR', null, 15, 3, 16, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Pengganti pinjaman yang tidak tersedia di stok"}'::jsonb),
+      ('MAHIR', null, 15, 3, 16, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-013"}'::jsonb),
       ('MAHIR', null, 15, 4, 16, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
-      ('MAHIR', null, 15, 5, 16, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
+      ('MAHIR', null, 15, 5, 16, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"lontong_balap","required_ingredient_card_ids":["sayur","nasi_putih"],"income":13}'::jsonb),
       ('MAHIR', 'mahir-risk-014', 15, 6, 16, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_servis_sepeda","note":"Servis sepeda mendadak"}'::jsonb),
       ('MAHIR', null, 15, 7, 16, 2, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-014"}'::jsonb),
       ('MAHIR', null, 15, 8, 16, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 15, 9, 16, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
+      ('MAHIR', null, 15, 9, 16, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_telur","required_ingredient_card_ids":["telur","telur","tahu_tempe"],"income":25}'::jsonb),
       ('MAHIR', 'mahir-risk-015', 15, 10, 16, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_listrik","note":"Tagihan listrik membesar"}'::jsonb),
-      ('MAHIR', null, 15, 11, 16, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Pengganti pinjaman yang tidak tersedia di stok"}'::jsonb),
+      ('MAHIR', null, 15, 11, 16, 3, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-015"}'::jsonb),
       ('MAHIR', null, 15, 12, 16, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
-      ('MAHIR', null, 15, 13, 16, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('MAHIR', null, 15, 13, 16, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"soto_daging","required_ingredient_card_ids":["daging","telur"],"income":17}'::jsonb),
       ('MAHIR', 'mahir-risk-016', 15, 14, 16, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_kesehatan","note":"Biaya kesehatan keluarga"}'::jsonb),
       ('MAHIR', null, 15, 15, 16, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-016"}'::jsonb),
       ('MAHIR', null, 16, 0, 17, 1, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_rumah","amount":10}'::jsonb),
-      ('MAHIR', null, 16, 1, 17, 1, 'PLAYER', 'TujuanFinansial', 'TujuanFinansial', '{"goal_id":"beli_rumah","cost":12,"points":6}'::jsonb),
-      ('MAHIR', null, 16, 2, 17, 2, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":10}'::jsonb),
-      ('MAHIR', null, 16, 3, 17, 2, 'PLAYER', 'TujuanFinansial', 'TujuanFinansial', '{"goal_id":"beli_motor","cost":8,"points":4}'::jsonb),
-      ('MAHIR', null, 16, 4, 17, 3, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_rumah","amount":10}'::jsonb),
-      ('MAHIR', null, 16, 5, 17, 3, 'PLAYER', 'TujuanFinansial', 'TujuanFinansial', '{"goal_id":"beli_rumah","cost":12,"points":6}'::jsonb),
-      ('MAHIR', null, 16, 6, 17, 4, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":10}'::jsonb),
-      ('MAHIR', null, 16, 7, 17, 4, 'PLAYER', 'TujuanFinansial', 'TujuanFinansial', '{"goal_id":"beli_motor","cost":8,"points":4}'::jsonb),
-      ('MAHIR', null, 17, 0, 18, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-008","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
+      ('MAHIR', null, 16, 1, 17, 1, 'SYSTEM', 'TujuanFinansial', 'TujuanFinansial', '{"goal_id":"beli_rumah","cost":25,"points":20}'::jsonb),
+      ('MAHIR', null, 16, 2, 17, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 16, 3, 17, 2, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"beli_motor","amount":10}'::jsonb),
+      ('MAHIR', null, 16, 4, 17, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 16, 5, 17, 3, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"biaya_kursus","amount":10}'::jsonb),
+      ('MAHIR', null, 16, 6, 17, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 16, 7, 17, 4, 'PLAYER', 'Menabung', 'Menabung', '{"goal_id":"dana_darurat","amount":10}'::jsonb),
+      ('MAHIR', null, 16, 8, 17, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 17, 0, 18, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-008","policy_instance_id":"INS-SEED-008","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
       ('MAHIR', null, 17, 1, 18, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 17, 2, 18, 2, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-009","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
+      ('MAHIR', null, 17, 2, 18, 2, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-009","policy_instance_id":"INS-SEED-009","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
       ('MAHIR', null, 17, 3, 18, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 17, 4, 18, 3, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-010","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
+      ('MAHIR', null, 17, 4, 18, 3, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-010","policy_instance_id":"INS-SEED-010","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
       ('MAHIR', null, 17, 5, 18, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 17, 6, 18, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-011","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
+      ('MAHIR', null, 17, 6, 18, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"policy_id":"INS-SEED-011","policy_instance_id":"INS-SEED-011","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}'::jsonb),
       ('MAHIR', null, 17, 7, 18, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('MAHIR', null, 18, 0, 19, 1, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":2}'::jsonb),
       ('MAHIR', null, 18, 1, 19, 2, 'PLAYER', 'JumatBerkah', 'JumatBerkah', '{"amount":4}'::jsonb),
@@ -717,53 +726,92 @@ scenario_event_seed as (
       ('MAHIR', null, 18, 5, 19, 2, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":2,"points":5}'::jsonb),
       ('MAHIR', null, 18, 6, 19, 3, 'SYSTEM', 'PoinPeringkatDonasi', 'PoinPeringkatDonasi', '{"rank":3,"points":2}'::jsonb),
       ('MAHIR', null, 18, 7, 19, null, 'SYSTEM', 'UmumkanJuaraDonasi', 'UmumkanJuaraDonasi', '{"summary":"Manalu Juara 1, Marcello Juara 2, Hugo Juara 3","winners":[{"rank":1,"player_name":"Manalu","player_order_no":4,"points":7},{"rank":2,"player_name":"Marcello","player_order_no":2,"points":5},{"rank":3,"player_name":"Hugo","player_order_no":3,"points":2}]}'::jsonb),
+      ('MAHIR', null, 19, -1, 0, null, 'SYSTEM', 'BukaHargaEmas', 'BukaHargaEmas', '{"gold_price":7}'::jsonb),
       ('MAHIR', null, 19, 0, 20, 1, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":7,"qty":1,"amount":7}'::jsonb),
       ('MAHIR', null, 19, 1, 20, 2, 'PLAYER', 'JualEmas', 'JualEmas', '{"trade_type":"SELL","unit_price":7,"qty":1,"amount":7}'::jsonb),
       ('MAHIR', null, 19, 2, 20, 3, 'PLAYER', 'InvestasiEmas', 'InvestasiEmas', '{"trade_type":"BUY","unit_price":7,"qty":1,"amount":7}'::jsonb),
       ('MAHIR', null, 19, 3, 20, 4, 'PLAYER', null, 'LewatiTransaksiEmas', '{"note":"Tidak membeli dan tidak menjual emas"}'::jsonb),
       ('MAHIR', null, 20, 0, 21, null, 'SYSTEM', null, 'HariMingguLibur', '{"note":"Hari Minggu libur"}'::jsonb),
       ('MAHIR', null, 21, 0, 22, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('MAHIR', null, 21, 1, 22, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
+      ('MAHIR', null, 21, 1, 22, 1, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
       ('MAHIR', null, 21, 2, 22, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}'::jsonb),
       ('MAHIR', null, 21, 3, 22, 2, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
       ('MAHIR', null, 21, 4, 22, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}'::jsonb),
-      ('MAHIR', null, 21, 5, 22, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"telur","ingredient_name":"Telur","amount":4}'::jsonb),
+      ('MAHIR', null, 21, 5, 22, 3, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
       ('MAHIR', null, 21, 6, 22, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"daging","ingredient_name":"Daging","amount":5}'::jsonb),
       ('MAHIR', null, 21, 7, 22, 4, 'PLAYER', 'BahanMasakan', 'BahanMasakan', '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}'::jsonb),
-      ('MAHIR', null, 22, 0, 23, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('MAHIR', null, 22, 0, 23, 1, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_pecel","required_ingredient_card_ids":["nasi_putih","tahu_tempe","sayur"],"income":20}'::jsonb),
       ('MAHIR', 'mahir-risk-017', 22, 1, 23, 1, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_uang_kas","note":"Uang kas keluarga berkurang"}'::jsonb),
       ('MAHIR', null, 22, 2, 23, 1, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-017"}'::jsonb),
       ('MAHIR', null, 22, 3, 23, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 22, 4, 23, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"resep-sayur-bumbu","required_ingredient_card_ids":["sayur","tahu_tempe"],"income":12}'::jsonb),
+      ('MAHIR', null, 22, 4, 23, 2, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"rawon","required_ingredient_card_ids":["daging","telur","tahu_tempe"],"income":24}'::jsonb),
       ('MAHIR', 'mahir-risk-018', 22, 5, 23, 2, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_biaya_transport","note":"Biaya transport bertambah"}'::jsonb),
-      ('MAHIR', null, 22, 6, 23, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Pengganti pinjaman yang tidak tersedia di stok"}'::jsonb),
+      ('MAHIR', null, 22, 6, 23, 2, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-018"}'::jsonb),
       ('MAHIR', null, 22, 7, 23, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 22, 8, 23, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}'::jsonb),
+      ('MAHIR', null, 22, 8, 23, 3, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"sate_klopo","required_ingredient_card_ids":["daging","daging","nasi_putih"],"income":26}'::jsonb),
       ('MAHIR', 'mahir-risk-019', 22, 9, 23, 3, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_tagihan_air","note":"Tagihan air meningkat"}'::jsonb),
       ('MAHIR', null, 22, 10, 23, 3, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-019"}'::jsonb),
       ('MAHIR', null, 22, 11, 23, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 22, 12, 23, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}'::jsonb),
+      ('MAHIR', null, 22, 12, 23, 4, 'PLAYER', 'JualMasakan', 'JualMasakan', '{"order_card_id":"rujak_cingur","required_ingredient_card_ids":["sayur","tahu_tempe","nasi_putih","daging"],"income":28}'::jsonb),
       ('MAHIR', 'mahir-risk-020', 22, 13, 23, 4, 'PLAYER', 'RisikoKehidupan', 'RisikoKehidupan', '{"risk_id":"risk_perbaikan_atap","note":"Perbaikan atap rumah"}'::jsonb),
-      ('MAHIR', null, 22, 14, 23, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Pengganti pinjaman yang tidak tersedia di stok"}'::jsonb),
+      ('MAHIR', null, 22, 14, 23, 4, 'PLAYER', 'Asuransi', 'Asuransi', '{"risk_event_ref":"mahir-risk-020"}'::jsonb),
       ('MAHIR', null, 22, 15, 23, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 23, 0, 24, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('MAHIR', null, 23, 1, 24, 1, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('MAHIR', null, 23, 2, 24, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('MAHIR', null, 23, 3, 24, 2, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('MAHIR', null, 23, 4, 24, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('MAHIR', null, 23, 5, 24, 3, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('MAHIR', null, 23, 6, 24, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"buku","amount":2,"points":1}'::jsonb),
-      ('MAHIR', null, 23, 7, 24, 4, 'PLAYER', 'Kebutuhan', 'Kebutuhan', '{"card_id":"sepatu","amount":4,"points":2}'::jsonb),
-      ('MAHIR', null, 24, 0, 25, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Tidak ada cicilan karena pinjaman tidak diambil"}'::jsonb),
+      ('MAHIR', null, 23, 0, 24, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 1, 24, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 2, 24, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 3, 24, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 4, 24, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 5, 24, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 6, 24, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 23, 7, 24, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
+      ('MAHIR', null, 24, 0, 25, 1, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-001","amount":10}'::jsonb),
       ('MAHIR', null, 24, 1, 25, 1, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 24, 2, 25, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Tidak ada cicilan karena pinjaman tidak diambil"}'::jsonb),
+      ('MAHIR', null, 24, 2, 25, 2, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-002","amount":10}'::jsonb),
       ('MAHIR', null, 24, 3, 25, 2, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 24, 4, 25, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Tidak ada cicilan karena pinjaman tidak diambil"}'::jsonb),
+      ('MAHIR', null, 24, 4, 25, 3, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-003","amount":10}'::jsonb),
       ('MAHIR', null, 24, 5, 25, 3, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
-      ('MAHIR', null, 24, 6, 25, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1,"note":"Tidak ada cicilan karena pinjaman tidak diambil"}'::jsonb),
+      ('MAHIR', null, 24, 6, 25, 4, 'PLAYER', 'BayarPinjaman', 'BayarPinjaman', '{"loan_code":"loan_syariah_10","loan_instance_id":"loan-setup-mahir-004","amount":10}'::jsonb),
       ('MAHIR', null, 24, 7, 25, 4, 'PLAYER', 'KerjaLepas', 'KerjaLepas', '{"amount":1}'::jsonb),
       ('MAHIR', null, 24, 8, 25, null, 'SYSTEM', 'AkhiriSesi', 'AkhiriSesi', '{"end_note":"Selesai sesi mahir sesuai dokumen skenario"}'::jsonb)
   ) as x(session_key, ref_key, day_index, event_order, action_slot, player_no, actor_type, action_id, action_type, payload)
+),
+setup_market_seed as (
+  select
+    session_key,
+    null::text as ref_key,
+    0 as day_index,
+    -200 + sort_order as event_order,
+    0 as action_slot,
+    null::int as player_no,
+    'SYSTEM'::text as actor_type,
+    'AmbilKartuDariDeck'::text as action_id,
+    'AmbilKartuDariDeck'::text as action_type,
+    jsonb_build_object(
+      'setup', 'INITIAL_MARKET',
+      'slot_group', slot_group,
+      'slot_code', slot_code,
+      'asset_type', asset_type,
+      'asset_code', asset_code
+    ) as payload
+  from (values ('PEMULA'), ('MAHIR')) sessions(session_key)
+  cross join (
+    values
+      (1, 'INGREDIENT_MARKET', 'SLOT_1', 'INGREDIENT', 'nasi_putih'),
+      (2, 'INGREDIENT_MARKET', 'SLOT_2', 'INGREDIENT', 'sayur'),
+      (3, 'INGREDIENT_MARKET', 'SLOT_3', 'INGREDIENT', 'tahu_tempe'),
+      (4, 'INGREDIENT_MARKET', 'SLOT_4', 'INGREDIENT', 'telur'),
+      (5, 'INGREDIENT_MARKET', 'SLOT_5', 'INGREDIENT', 'daging'),
+      (6, 'ORDER_MARKET', 'SLOT_1', 'ORDER', 'lontong_balap'),
+      (7, 'ORDER_MARKET', 'SLOT_2', 'ORDER', 'semanggi_surabaya'),
+      (8, 'ORDER_MARKET', 'SLOT_3', 'ORDER', 'nasi_goreng'),
+      (9, 'ORDER_MARKET', 'SLOT_4', 'ORDER', 'tahu_campur'),
+      (10, 'ORDER_MARKET', 'SLOT_5', 'ORDER', 'soto_daging'),
+      (11, 'NEED_MARKET', 'SLOT_1', 'NEED', 'buku'),
+      (12, 'NEED_MARKET', 'SLOT_2', 'NEED', 'buku'),
+      (13, 'NEED_MARKET', 'SLOT_3', 'NEED', 'buku'),
+      (14, 'NEED_MARKET', 'SLOT_4', 'NEED', 'buku'),
+      (15, 'NEED_MARKET', 'SLOT_5', 'NEED', 'buku')
+  ) slots(sort_order, slot_group, slot_code, asset_type, asset_code)
 ),
 transition_seed as (
   select
@@ -782,8 +830,15 @@ transition_seed as (
       'completed_players', 4,
       'used', count(*) filter (
         where actor_type = 'PLAYER'
-          and action_type <> 'RisikoKehidupan'
-          and not (action_type = 'Asuransi' and payload ? 'risk_event_ref')
+          and action_type not in (
+            'RisikoKehidupan', 'GunakanOpsiDarurat',
+            'JumatBerkah', 'InvestasiEmas', 'JualEmas',
+            'LewatiTransaksiEmas', 'HariMingguLibur'
+          )
+          and not (
+            action_type in ('Asuransi', 'PinjamanSyariah')
+            and (payload ? 'risk_event_ref' or payload ? 'risk_event_id')
+          )
       ),
       'remaining', 0
     ) as payload
@@ -794,6 +849,9 @@ transition_seed as (
 event_seed as (
   select *
   from scenario_event_seed
+  union all
+  select *
+  from setup_market_seed
   union all
   select *
   from transition_seed
@@ -809,13 +867,34 @@ ordered_events as (
     es.day_index,
     es.event_order,
     case
+      when es.actor_type = 'PLAYER'
+           and es.player_no is not null
+           and (
+             es.action_type in (
+               'RisikoKehidupan', 'GunakanOpsiDarurat',
+               'JumatBerkah', 'InvestasiEmas', 'JualEmas',
+               'LewatiTransaksiEmas', 'HariMingguLibur'
+             )
+             or (
+               es.action_type in ('Asuransi', 'PinjamanSyariah')
+               and (es.payload ? 'risk_event_id' or es.payload ? 'risk_event_ref')
+             )
+           ) then 0
       when es.actor_type = 'PLAYER' and es.player_no is not null then
-        least(2, row_number() over (
-          partition by
-            es.session_key,
-            es.day_index,
-            case when es.actor_type = 'PLAYER' then es.player_no end
-          order by es.event_order, es.action_type
+        (count(*) filter (
+          where es.actor_type = 'PLAYER'
+            and es.action_type not in (
+              'RisikoKehidupan', 'GunakanOpsiDarurat',
+              'JumatBerkah', 'InvestasiEmas', 'JualEmas',
+              'LewatiTransaksiEmas', 'HariMingguLibur'
+            )
+            and not (
+              es.action_type in ('Asuransi', 'PinjamanSyariah')
+              and (es.payload ? 'risk_event_id' or es.payload ? 'risk_event_ref')
+            )
+        ) over (
+          partition by es.session_key, es.day_index, es.player_no
+          order by es.event_order
         ))::int
       else 0
     end as action_slot,
@@ -919,7 +998,10 @@ select
   re.day_index,
   re.weekday,
   re.turn_number,
-  re.action_slot,
+  case 
+    when re.action_type in ('JumatBerkah', 'RisikoKehidupan', 'GunakanOpsiDarurat', 'InvestasiEmas', 'JualEmas', 'LewatiTransaksiEmas', 'HariMingguLibur') then 0
+    else re.action_slot
+  end,
   re.sequence_number,
   ra.ruleset_action_id,
   re.action_type,
@@ -1052,7 +1134,14 @@ with cashflow_candidates as (
       '91000000-0000-0000-0000-000000000002'::uuid
     )
     and e.user_id is not null
-    and e.actor_type = 'PLAYER'
+    and (
+      e.actor_type = 'PLAYER'
+      or (
+        e.actor_type = 'SYSTEM'
+        and e.payload->>'setup' = 'INITIAL'
+        and e.action_type in ('BahanMasakan', 'PinjamanSyariah')
+      )
+    )
 ),
 cashflow_rows as (
   select
@@ -1105,6 +1194,46 @@ select
 from cashflow_rows
 order by session_id, projection_number
 on conflict (session_id, event_id, projection_order) do nothing;
+
+insert into session_rule_effects (
+  session_id,
+  source_risk_id,
+  effect_type,
+  scope,
+  target_scope,
+  value_delta,
+  starts_day,
+  ends_day,
+  is_active,
+  metadata_json
+)
+select
+  e.session_id,
+  risk_catalog.ruleset_life_risk_id,
+  risk_catalog.effect_type,
+  coalesce(risk_catalog.payload_json->>'scope', 'CURRENT_PLAYER'),
+  e.user_id::text,
+  case risk_catalog.direction
+    when 'IN' then risk_catalog.amount
+    when 'OUT' then -risk_catalog.amount
+    else null
+  end,
+  e.day_index + 1,
+  e.day_index + 1,
+  true,
+  jsonb_build_object(
+    'source', '02_seed_simulation_sessions_events',
+    'event_id', e.event_id,
+    'risk_id', e.payload->>'risk_id',
+    'direction', risk_catalog.direction,
+    'amount', risk_catalog.amount
+  )
+from events e
+join ruleset_life_risks risk_catalog
+  on risk_catalog.ruleset_version_id = e.ruleset_version_id
+ and lower(risk_catalog.risk_code) = lower(e.payload->>'risk_id')
+where e.session_id = '91000000-0000-0000-0000-000000000002'::uuid
+  and e.action_type = 'RisikoKehidupan';
 
 create temporary table seed_participant_asset_projection on commit drop as
 with seed_asset_events as (
@@ -1330,13 +1459,7 @@ from seed_participant_asset_projection ar
 join ruleset_sharia_loans rsl
   on rsl.ruleset_version_id = ar.ruleset_version_id
  and rsl.loan_code = ar.asset_code
-where ar.asset_type = 'LOAN'
-on conflict (session_participant_id, ruleset_sharia_loan_id) do update
-set outstanding_amount = excluded.outstanding_amount,
-    installment_amount = excluded.installment_amount,
-    status = excluded.status,
-    metadata_json = excluded.metadata_json,
-    updated_at = excluded.updated_at;
+where ar.asset_type = 'LOAN';
 
 insert into session_participant_insurances (
   session_id,
@@ -1510,7 +1633,7 @@ insert into session_participant_balances (
 select
   pc.session_id,
   pc.session_participant_id,
-  greatest(pc.starting_cash + pc.net_cashflow, 0),
+  pc.starting_cash + pc.net_cashflow,
   greatest(pc.starting_happiness + pet.happiness_delta, 0),
   greatest(pc.starting_saving + pet.saving_delta, 0),
   greatest(pet.donation_total, 0),
@@ -1610,7 +1733,7 @@ ingredient_totals as (
     session_participant_id,
     ruleset_version_id,
     ruleset_game_asset_id,
-    greatest(sum(quantity_delta), 0)::int as qty,
+    sum(quantity_delta)::int as qty,
     max(moved_at) as updated_at
   from ingredient_moves
   group by session_id, session_participant_id, ruleset_version_id, ruleset_game_asset_id
@@ -2046,6 +2169,133 @@ set owner_session_participant_id = excluded.owner_session_participant_id,
     last_event_id = excluded.last_event_id,
     updated_at = excluded.updated_at;
 
+with expected_holdings as (
+  select
+    spi.session_id,
+    spi.session_participant_id,
+    spi.ruleset_game_asset_id,
+    spi.qty::int as qty
+  from session_participant_inventory spi
+  union all
+  select
+    spnp.session_id,
+    spnp.session_participant_id,
+    rn.ruleset_game_asset_id,
+    count(*)::int as qty
+  from session_participant_need_purchases spnp
+  join ruleset_needs rn on rn.ruleset_need_id = spnp.ruleset_need_id
+  group by spnp.session_id, spnp.session_participant_id, rn.ruleset_game_asset_id
+  union all
+  select
+    spgh.session_id,
+    spgh.session_participant_id,
+    spgh.ruleset_game_asset_id,
+    spgh.quantity::int as qty
+  from session_participant_gold_holdings spgh
+),
+holding_units as (
+  select
+    eh.session_id,
+    eh.session_participant_id,
+    eh.ruleset_game_asset_id,
+    row_number() over (
+      partition by eh.session_id, eh.ruleset_game_asset_id
+      order by eh.session_participant_id, unit_no
+    )::int as unit_no
+  from expected_holdings eh
+  cross join lateral generate_series(1, eh.qty) as units(unit_no)
+  where eh.qty > 0
+),
+deck_positions as (
+  select
+    scp.card_position_id,
+    scp.session_id,
+    scp.ruleset_game_asset_id,
+    row_number() over (
+      partition by scp.session_id, scp.ruleset_game_asset_id
+      order by scp.copy_number
+    )::int as unit_no
+  from session_card_positions scp
+  where scp.session_id in (
+      '91000000-0000-0000-0000-000000000001'::uuid,
+      '91000000-0000-0000-0000-000000000002'::uuid
+    )
+    and scp.zone = 'DECK'
+    and scp.status = 'ACTIVE'
+)
+update session_card_positions scp
+set owner_session_participant_id = hu.session_participant_id,
+    zone = 'PLAYER',
+    slot_code = null,
+    slot_group = null,
+    position_order = 10000 + hu.unit_no,
+    updated_at = now()
+from holding_units hu
+join deck_positions dp
+  on dp.session_id = hu.session_id
+ and dp.ruleset_game_asset_id = hu.ruleset_game_asset_id
+and dp.unit_no = hu.unit_no
+where scp.card_position_id = dp.card_position_id;
+
+with risk_discards as (
+  select
+    e.session_id,
+    rga.ruleset_game_asset_id,
+    count(*)::int as qty
+  from events e
+  join ruleset_game_assets rga
+    on rga.ruleset_version_id = e.ruleset_version_id
+   and rga.asset_type = 'RISK'
+   and lower(rga.asset_code) = lower(e.payload->>'risk_id')
+  where e.session_id in (
+      '91000000-0000-0000-0000-000000000001'::uuid,
+      '91000000-0000-0000-0000-000000000002'::uuid
+    )
+    and e.action_type = 'RisikoKehidupan'
+  group by e.session_id, rga.ruleset_game_asset_id
+),
+risk_units as (
+  select
+    rd.session_id,
+    rd.ruleset_game_asset_id,
+    row_number() over (
+      partition by rd.session_id, rd.ruleset_game_asset_id
+      order by unit_no
+    )::int as unit_no
+  from risk_discards rd
+  cross join lateral generate_series(1, rd.qty) as units(unit_no)
+),
+deck_risk_positions as (
+  select
+    scp.card_position_id,
+    scp.session_id,
+    scp.ruleset_game_asset_id,
+    row_number() over (
+      partition by scp.session_id, scp.ruleset_game_asset_id
+      order by scp.copy_number
+    )::int as unit_no
+  from session_card_positions scp
+  where scp.session_id in (
+      '91000000-0000-0000-0000-000000000001'::uuid,
+      '91000000-0000-0000-0000-000000000002'::uuid
+    )
+    and scp.zone = 'DECK'
+    and scp.status = 'ACTIVE'
+)
+update session_card_positions scp
+set owner_session_participant_id = null,
+    zone = 'DISCARD',
+    slot_code = null,
+    slot_group = null,
+    position_order = 20000 + ru.unit_no,
+    updated_at = now()
+from risk_units ru
+join deck_risk_positions drp
+  on drp.session_id = ru.session_id
+ and drp.ruleset_game_asset_id = ru.ruleset_game_asset_id
+ and drp.unit_no = ru.unit_no
+where scp.card_position_id = drp.card_position_id;
+
 create temporary table seed_pension_rank_points on commit drop as
 with ranked as (
   select
@@ -2387,6 +2637,38 @@ projection_agg as (
    and p.user_id = pb.user_id
   group by pb.session_id, pb.user_id
 ),
+gold_holding_agg as (
+  select
+    pb.session_id,
+    pb.user_id,
+    coalesce(sum(spgh.quantity), 0)::int as gold_qty
+  from player_base pb
+  left join session_participant_gold_holdings spgh
+    on spgh.session_id = pb.session_id
+   and spgh.session_participant_id = pb.session_player_id
+  group by pb.session_id, pb.user_id
+),
+score_component_agg as (
+  select
+    fs.session_id,
+    fs.session_participant_id,
+    fs.total_points,
+    coalesce(sum(fsc.points) filter (where fsc.component_code in ('NEED_POINTS', 'NEED_SET_BONUS')), 0)::int as need_points,
+    coalesce(sum(fsc.points) filter (where fsc.component_code = 'DONATION'), 0)::int as donation_points,
+    coalesce(sum(fsc.points) filter (where fsc.component_code = 'GOLD'), 0)::int as gold_points,
+    coalesce(sum(fsc.points) filter (where fsc.component_code = 'PENSION'), 0)::int as pension_points,
+    coalesce(sum(fsc.points) filter (where fsc.component_code = 'SAVING_GOAL'), 0)::int as saving_goal_points,
+    coalesce(sum(fsc.points) filter (where fsc.component_code in ('MISSION_PENALTY', 'LOAN_PENALTY')), 0)::int as penalty_points
+  from session_final_scores fs
+  join session_final_score_components fsc
+    on fsc.session_id = fs.session_id
+   and fsc.session_final_score_id = fs.session_final_score_id
+  where fs.session_id in (
+      '91000000-0000-0000-0000-000000000001'::uuid,
+      '91000000-0000-0000-0000-000000000002'::uuid
+    )
+  group by fs.session_id, fs.session_participant_id, fs.total_points
+),
 player_metric_base as (
   select
     pb.*,
@@ -2413,7 +2695,7 @@ player_metric_base as (
     ea.gold_cards_sold,
     ea.gold_investment_coins_spent,
     ea.gold_investment_coins_earned,
-    (ea.gold_cards_purchased - ea.gold_cards_sold) as gold_cards_held_end,
+    gh.gold_qty as gold_cards_held_end,
     (ea.gold_investment_coins_earned - ea.gold_investment_coins_spent) as gold_investment_net,
     ea.life_risk_cards_drawn,
     ea.life_risk_costs_total,
@@ -2431,6 +2713,13 @@ player_metric_base as (
     greatest(ea.sharia_loan_principal_total - ea.sharia_loan_repaid_total, 0) as sharia_loans_outstanding_coins,
     greatest(ea.sharia_loans_taken - ea.sharia_loans_repaid, 0) as sharia_loans_unpaid_end,
     ea.mission_assigned_count,
+    sca.total_points as score_total_points,
+    sca.need_points as score_need_points,
+    sca.donation_points as score_donation_points,
+    sca.gold_points as score_gold_points,
+    sca.pension_points as score_pension_points,
+    sca.saving_goal_points as score_saving_goal_points,
+    sca.penalty_points as score_penalty_points,
     pa.cash_in_total,
     pa.cash_out_total,
     (pa.cash_in_total - pa.cash_out_total) as cash_net_total,
@@ -2439,6 +2728,8 @@ player_metric_base as (
   from player_base pb
   join event_agg ea on ea.session_id = pb.session_id and ea.user_id = pb.user_id
   join projection_agg pa on pa.session_id = pb.session_id and pa.user_id = pb.user_id
+  join gold_holding_agg gh on gh.session_id = pb.session_id and gh.user_id = pb.user_id
+  join score_component_agg sca on sca.session_id = pb.session_id and sca.session_participant_id = pb.session_player_id
 ),
 snapshot_rows as (
   select
@@ -2497,7 +2788,7 @@ snapshot_rows as (
       'donations', jsonb_build_object(
         'donation_events', donation_events,
         'donation_total_coins', donation_total_coins,
-        'donation_happiness_points', donation_total_coins
+        'donation_happiness_points', score_donation_points
       ),
       'gold', jsonb_build_object(
         'gold_cards_purchased', gold_cards_purchased,
@@ -2511,7 +2802,8 @@ snapshot_rows as (
         'leftover_coins_end_game', coins_held_current,
         'ingredient_cards_value_end', greatest(ingredients_collected - ingredients_wasted, 0),
         'coins_in_savings_goal', coins_saved,
-        'pension_fund_total', coins_held_current + greatest(ingredients_collected - ingredients_wasted, 0) + coins_saved
+        'pension_fund_total', coins_held_current + greatest(ingredients_collected - ingredients_wasted, 0) + coins_saved,
+        'pension_happiness_points', score_pension_points
       ),
       'life_risk', jsonb_build_object(
         'life_risks_available', life_risk_cards_drawn,
@@ -2544,7 +2836,7 @@ snapshot_rows as (
         'event_count', event_count
       ),
       'outcomes', jsonb_build_object(
-        'total_happiness_points', need_points + donation_total_coins + saving_goal_points,
+        'total_happiness_points', score_total_points,
         'finish_line_reached', true,
         'dnf_flag', false
       ),
@@ -2620,12 +2912,12 @@ snapshot_rows as (
       'risk_appetite_score_normalized', round((life_risk_cards_drawn::numeric / greatest(player_event_count, 1)) * 100, 2),
       'sharia_loans_outstanding_coins', sharia_loans_outstanding_coins,
       'happiness_portfolio', jsonb_build_object(
-        'need_cards_pts', need_points,
-        'donations_pts', donation_total_coins,
-        'gold_pts', greatest(gold_investment_net, 0),
-        'pension_pts', greatest(coins_held_current, 0),
-        'financial_goals_pts', saving_goal_points,
-        'mission_bonus_pts', 0
+        'need_cards_pts', score_need_points,
+        'donations_pts', score_donation_points,
+        'gold_pts', score_gold_points,
+        'pension_pts', score_pension_points,
+        'financial_goals_pts', score_saving_goal_points,
+        'mission_bonus_pts', score_penalty_points
       ),
       'notes', '[]'::jsonb
     ) as metric_payload_json
@@ -2677,3 +2969,7 @@ from numbered_snapshots
 order by snapshot_number;
 
 commit;
+
+
+
+

@@ -552,11 +552,11 @@ values
         "actions_per_turn": 2,
         "starting_cash": 10,
         "player_ordering": "PLAYER_ORDER",
-        "weekday_rules": { "friday": { "feature": "DONATION",
+        "weekday_rules": { "FRI": { "feature": "DONATION",
         "enabled": true },
-        "saturday": { "feature": "GOLD_TRADE",
+        "SAT": { "feature": "GOLD_TRADE",
         "enabled": true },
-        "sunday": { "feature": "REST",
+        "SUN": { "feature": "REST",
         "enabled": true } },
         "constraints": { "cash_min": 0,
         "max_ingredient_total": 6,
@@ -809,7 +809,7 @@ insert into ruleset_player_ordering_rules (
                             all select sr.ruleset_version_id,
                             'GOLD' :: varchar(40),
                             concat(
-                                'gold_card',
+                                'gold_card_',
                                 coalesce((item ->> 'qty') :: int, ord :: int)
                             ),
                             concat(
@@ -1592,7 +1592,9 @@ from
     seed_rulesets sr cross
     join lateral jsonb_array_elements(
         sr.definition_json -> 'component_catalog' -> 'tujuanFinansial'
-    ) with ordinality as x(item, ord) on conflict (ruleset_version_id, goal_code) do update set item_name = excluded.item_name,
+    ) with ordinality as x(item, ord)
+where coalesce((sr.definition_json -> 'advanced' -> 'saving_goal' ->> 'enabled')::boolean, false)
+on conflict (ruleset_version_id, goal_code) do update set item_name = excluded.item_name,
     purchase_price = excluded.purchase_price,
     happiness_points = excluded.happiness_points,
     sort_order = excluded.sort_order,
@@ -1768,7 +1770,7 @@ from
     and rga.asset_code = concat(
         'gold_card_',
         coalesce((item ->> 'qty') :: int, ord :: int)
-    ) on conflict (ruleset_version_id, asset_code) do update set quantity = excluded.quantity,
+    ) on conflict (ruleset_version_id, asset_code, quantity) do update set quantity = excluded.quantity,
     points = excluded.points,
     sort_order = excluded.sort_order,
     card_qty = excluded.card_qty,
@@ -2060,12 +2062,12 @@ insert into ruleset_sharia_loans (
                 'loan_syariah_10',
                 'Pinjaman Syariah 10',
                 10,
-                2,
-                5,
+                0,
+                null :: int,
                 15,
                 251,
                 8,
-                '{"principal":10,"installment":2,"duration":5,"penalty_points":15,"card_supply":8}' :: jsonb
+                '{"principal":10,"installment":0,"duration":null,"penalty_points":15,"card_supply":8}' :: jsonb
             )
     ) as extra(
         ruleset_version_id,
@@ -2437,4 +2439,56 @@ insert into ruleset_life_risks (
     card_qty = excluded.card_qty,
     payload_json = excluded.payload_json;
 
+-- Sync physical cards as assets in ruleset_game_assets to allow positioning them
+-- Sync COLLECTION_MISSION
+insert into ruleset_game_assets (ruleset_version_id, asset_type, asset_code, display_name, sort_order, is_active, metadata_json)
+select ruleset_version_id, 'COLLECTION_MISSION', mission_code, item_name, 500 + sort_order, is_active, jsonb_build_object('source', 'ruleset_collection_missions')
+from ruleset_collection_missions
+on conflict (ruleset_version_id, asset_type, asset_code) do update set display_name = excluded.display_name, sort_order = excluded.sort_order, is_active = excluded.is_active, metadata_json = excluded.metadata_json;
+
+-- Sync FINANCIAL_GOAL
+insert into ruleset_game_assets (ruleset_version_id, asset_type, asset_code, display_name, sort_order, is_active, metadata_json)
+select ruleset_version_id, 'FINANCIAL_GOAL', goal_code, item_name, 600 + sort_order, is_active, jsonb_build_object('source', 'ruleset_financial_goals')
+from ruleset_financial_goals
+on conflict (ruleset_version_id, asset_type, asset_code) do update set display_name = excluded.display_name, sort_order = excluded.sort_order, is_active = excluded.is_active, metadata_json = excluded.metadata_json;
+
+-- Sync SHARIA_LOAN
+insert into ruleset_game_assets (ruleset_version_id, asset_type, asset_code, display_name, sort_order, is_active, metadata_json)
+select ruleset_version_id, 'SHARIA_LOAN', loan_code, item_name, 1000 + sort_order, is_active, jsonb_build_object('source', 'ruleset_sharia_loans')
+from ruleset_sharia_loans
+on conflict (ruleset_version_id, asset_type, asset_code) do update set display_name = excluded.display_name, sort_order = excluded.sort_order, is_active = excluded.is_active, metadata_json = excluded.metadata_json;
+
+-- Sync INSURANCE
+insert into ruleset_game_assets (ruleset_version_id, asset_type, asset_code, display_name, sort_order, is_active, metadata_json)
+select ruleset_version_id, 'INSURANCE', product_code, item_name, 1100 + sort_order, is_active, jsonb_build_object('source', 'ruleset_insurance_products')
+from ruleset_insurance_products
+on conflict (ruleset_version_id, asset_type, asset_code) do update set display_name = excluded.display_name, sort_order = excluded.sort_order, is_active = excluded.is_active, metadata_json = excluded.metadata_json;
+
+-- Insert DONATION_AWARD
+insert into ruleset_game_assets (ruleset_version_id, asset_type, asset_code, display_name, sort_order, is_active, metadata_json)
+values 
+  ('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid, 'DONATION_AWARD', 'donation_award_rank_1', 'Peringkat Donasi 1', 1301, true, '{"card_qty": 3}'::jsonb),
+  ('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid, 'DONATION_AWARD', 'donation_award_rank_2', 'Peringkat Donasi 2', 1302, true, '{"card_qty": 3}'::jsonb),
+  ('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid, 'DONATION_AWARD', 'donation_award_rank_3', 'Peringkat Donasi 3', 1303, true, '{"card_qty": 3}'::jsonb),
+  ('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid, 'DONATION_AWARD', 'donation_award_rank_1', 'Peringkat Donasi 1', 1301, true, '{"card_qty": 3}'::jsonb),
+  ('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid, 'DONATION_AWARD', 'donation_award_rank_2', 'Peringkat Donasi 2', 1302, true, '{"card_qty": 3}'::jsonb),
+  ('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid, 'DONATION_AWARD', 'donation_award_rank_3', 'Peringkat Donasi 3', 1303, true, '{"card_qty": 3}'::jsonb)
+on conflict (ruleset_version_id, asset_type, asset_code) do update set display_name = excluded.display_name, sort_order = excluded.sort_order, is_active = excluded.is_active, metadata_json = excluded.metadata_json;
+
+-- Insert PENSION_AWARD
+insert into ruleset_game_assets (ruleset_version_id, asset_type, asset_code, display_name, sort_order, is_active, metadata_json)
+values 
+  ('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid, 'PENSION_AWARD', 'pension_award_rank_1', 'Peringkat Pensiun 1', 1401, true, '{"card_qty": 1}'::jsonb),
+  ('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid, 'PENSION_AWARD', 'pension_award_rank_2', 'Peringkat Pensiun 2', 1402, true, '{"card_qty": 1}'::jsonb),
+  ('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid, 'PENSION_AWARD', 'pension_award_rank_3', 'Peringkat Pensiun 3', 1403, true, '{"card_qty": 1}'::jsonb),
+  ('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid, 'PENSION_AWARD', 'pension_award_rank_1', 'Peringkat Pensiun 1', 1401, true, '{"card_qty": 1}'::jsonb),
+  ('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid, 'PENSION_AWARD', 'pension_award_rank_2', 'Peringkat Pensiun 2', 1402, true, '{"card_qty": 1}'::jsonb),
+  ('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid, 'PENSION_AWARD', 'pension_award_rank_3', 'Peringkat Pensiun 3', 1403, true, '{"card_qty": 1}'::jsonb)
+on conflict (ruleset_version_id, asset_type, asset_code) do update set display_name = excluded.display_name, sort_order = excluded.sort_order, is_active = excluded.is_active, metadata_json = excluded.metadata_json;
+
+-- Audit ruleset component counts
+select validate_ruleset_component_counts('f5b4c67b-0825-4970-9f07-3b68e8fcb524'::uuid);
+select validate_ruleset_component_counts('7c3bfd8a-27d7-4468-b8d7-cf90131bc61d'::uuid);
+
 commit;
+

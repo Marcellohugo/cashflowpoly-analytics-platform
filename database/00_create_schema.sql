@@ -148,7 +148,7 @@ create table if not exists ruleset_game_settings (
   cash_min int not null default 0,
   max_ingredient_total int not null default 0,
   max_same_ingredient int not null default 0,
-  primary_need_max_per_day int not null default 0,
+  primary_need_max_per_day int null default 1,
   require_primary_before_others boolean not null default true,
   donation_min_amount int not null default 1,
   donation_max_amount int not null default 1,
@@ -181,7 +181,10 @@ create table if not exists ruleset_game_settings (
   constraint ck_ruleset_game_settings_cash_min check (cash_min >= 0),
   constraint ck_ruleset_game_settings_max_ingredient_total check (max_ingredient_total >= 0),
   constraint ck_ruleset_game_settings_max_same_ingredient check (max_same_ingredient >= 0),
-  constraint ck_ruleset_game_settings_primary_need_max_per_day check (primary_need_max_per_day >= 0),
+  constraint ck_ruleset_game_settings_primary_need_max_per_day check (
+    primary_need_max_per_day is null
+    or primary_need_max_per_day >= 0
+  ),
   constraint ck_ruleset_game_settings_donation_bounds check (
     donation_min_amount >= 1
     and donation_max_amount >= donation_min_amount
@@ -272,6 +275,25 @@ create table if not exists ruleset_game_assets (
   ),
   constraint ck_ruleset_game_assets_sort_order check (sort_order >= 1),
   constraint fk_ruleset_game_assets_ruleset_version_id foreign key (ruleset_version_id) references ruleset_versions (ruleset_version_id) on delete cascade
+);
+
+alter table ruleset_game_assets drop constraint if exists ck_ruleset_game_assets_type;
+alter table ruleset_game_assets add constraint ck_ruleset_game_assets_type check (
+  asset_type in (
+    'INGREDIENT',
+    'ORDER',
+    'NEED',
+    'GOLD_PRICE',
+    'GOLD',
+    'RISK',
+    'DONATION_AWARD',
+    'PENSION_AWARD',
+    'TIE_BREAKER',
+    'COLLECTION_MISSION',
+    'FINANCIAL_GOAL',
+    'SHARIA_LOAN',
+    'INSURANCE'
+  )
 );
 
 create index if not exists ix_ruleset_game_assets_ruleset on ruleset_game_assets (
@@ -713,7 +735,7 @@ create table if not exists ruleset_sharia_loans (
   item_name varchar(160) not null,
   principal int not null,
   installment int not null,
-  duration_days int not null,
+  duration_days int null,
   penalty_points int not null default 0,
   sort_order int not null,
   card_qty int null,
@@ -724,7 +746,10 @@ create table if not exists ruleset_sharia_loans (
   constraint uq_ruleset_sharia_loans_version_id unique (ruleset_version_id, ruleset_sharia_loan_id),
   constraint ck_ruleset_sharia_loans_principal check (principal >= 0),
   constraint ck_ruleset_sharia_loans_installment check (installment >= 0),
-  constraint ck_ruleset_sharia_loans_duration_days check (duration_days >= 1),
+  constraint ck_ruleset_sharia_loans_duration_days check (
+    duration_days is null
+    or duration_days >= 1
+  ),
   constraint ck_ruleset_sharia_loans_penalty_points check (penalty_points >= 0),
   constraint ck_ruleset_sharia_loans_sort_order check (sort_order >= 1),
   constraint ck_ruleset_sharia_loans_card_qty check (
@@ -2043,6 +2068,11 @@ coalesce(
   rgold.card_qty,
   rtb.card_qty,
   rlr.card_qty,
+  rcm.card_qty,
+  rfg.card_qty,
+  rsl.card_qty,
+  rip.card_qty,
+  nullif(rga.metadata_json->>'card_qty', '')::int,
   1
 ) as card_qty,
 rga.is_active
@@ -2052,9 +2082,39 @@ and case
   when 'NEED' then coalesce(rn.is_active, false)
   when 'GOLD_PRICE' then coalesce(rgp.is_active, false)
   when 'GOLD' then coalesce(rgold.is_active, false)
-  when 'TIE_BREAKER' then rtb.ruleset_tie_breaker_id is not null when 'RISK' then rlr.ruleset_life_risk_id is not null else false end as is_active,
-  rga.metadata_json || coalesce(ri.payload_json, '{}' :: jsonb) || coalesce(ro.payload_json, '{}' :: jsonb) || coalesce(rn.payload_json, '{}' :: jsonb) || coalesce(rgp.payload_json, '{}' :: jsonb) || coalesce(rgold.payload_json, '{}' :: jsonb) || coalesce(rtb.payload_json, '{}' :: jsonb) || coalesce(rlr.payload_json, '{}' :: jsonb) as payload_json,
-  rga.created_at from ruleset_game_assets rga left join ruleset_ingredients ri on ri.ruleset_game_asset_id = rga.ruleset_game_asset_id left join ruleset_orders ro on ro.ruleset_game_asset_id = rga.ruleset_game_asset_id left join ruleset_needs rn on rn.ruleset_game_asset_id = rga.ruleset_game_asset_id left join ruleset_gold_prices rgp on rgp.ruleset_game_asset_id = rga.ruleset_game_asset_id left join ruleset_gold_assets rgold on rgold.ruleset_game_asset_id = rga.ruleset_game_asset_id left join ruleset_tie_breakers rtb on rtb.ruleset_game_asset_id = rga.ruleset_game_asset_id left join ruleset_life_risks rlr on rlr.ruleset_game_asset_id = rga.ruleset_game_asset_id;
+  when 'TIE_BREAKER' then rtb.ruleset_tie_breaker_id is not null
+  when 'RISK' then rlr.ruleset_life_risk_id is not null
+  when 'COLLECTION_MISSION' then coalesce(rcm.is_active, false)
+  when 'FINANCIAL_GOAL' then coalesce(rfg.is_active, false)
+  when 'SHARIA_LOAN' then true
+  when 'INSURANCE' then true
+  when 'DONATION_AWARD' then true
+  when 'PENSION_AWARD' then true
+  else false end as is_active,
+  rga.metadata_json 
+  || coalesce(ri.payload_json, '{}' :: jsonb) 
+  || coalesce(ro.payload_json, '{}' :: jsonb) 
+  || coalesce(rn.payload_json, '{}' :: jsonb) 
+  || coalesce(rgp.payload_json, '{}' :: jsonb) 
+  || coalesce(rgold.payload_json, '{}' :: jsonb) 
+  || coalesce(rtb.payload_json, '{}' :: jsonb) 
+  || coalesce(rlr.payload_json, '{}' :: jsonb)
+  || coalesce(rcm.payload_json, '{}' :: jsonb)
+  || coalesce(rfg.payload_json, '{}' :: jsonb)
+  || coalesce(rsl.payload_json, '{}' :: jsonb)
+  || coalesce(rip.payload_json, '{}' :: jsonb) as payload_json,
+  rga.created_at from ruleset_game_assets rga 
+  left join ruleset_ingredients ri on ri.ruleset_game_asset_id = rga.ruleset_game_asset_id 
+  left join ruleset_orders ro on ro.ruleset_game_asset_id = rga.ruleset_game_asset_id 
+  left join ruleset_needs rn on rn.ruleset_game_asset_id = rga.ruleset_game_asset_id 
+  left join ruleset_gold_prices rgp on rgp.ruleset_game_asset_id = rga.ruleset_game_asset_id 
+  left join ruleset_gold_assets rgold on rgold.ruleset_game_asset_id = rga.ruleset_game_asset_id 
+  left join ruleset_tie_breakers rtb on rtb.ruleset_game_asset_id = rga.ruleset_game_asset_id 
+  left join ruleset_life_risks rlr on rlr.ruleset_game_asset_id = rga.ruleset_game_asset_id
+  left join ruleset_collection_missions rcm on rcm.ruleset_version_id = rga.ruleset_version_id and rcm.mission_code = rga.asset_code
+  left join ruleset_financial_goals rfg on rfg.ruleset_version_id = rga.ruleset_version_id and rfg.goal_code = rga.asset_code
+  left join ruleset_sharia_loans rsl on rsl.ruleset_version_id = rga.ruleset_version_id and rsl.loan_code = rga.asset_code
+  left join ruleset_insurance_products rip on rip.ruleset_version_id = rga.ruleset_version_id and rip.product_code = rga.asset_code;
 
 create or replace view ruleset_catalog_item_requirements as select ror.ruleset_order_requirement_id as requirement_id,
 ro.ruleset_game_asset_id as ruleset_catalog_item_id,
@@ -2077,6 +2137,8 @@ rcmr.payload_json from ruleset_collection_mission_requirements rcmr;
 create or replace function enforce_session_card_position_catalog() returns trigger language plpgsql as $$ declare allowed_asset_type text := 'CARD_POSITION';
 
 v_card_qty int;
+v_total_cards int;
+v_same_ingredient_count int;
 
 begin if not exists (
   select
@@ -2100,6 +2162,46 @@ if new.copy_number > coalesce(v_card_qty, 0) then raise exception 'Card copy_num
 new.copy_number,
 coalesce(v_card_qty, 0) using errcode = '23514';
 
+end if;
+
+-- 1. Ensure total active positions for this card in the session does not exceed catalog count
+if new.status = 'ACTIVE' then
+  select count(*) into v_total_cards
+  from session_card_positions
+  where session_id = new.session_id
+    and ruleset_game_asset_id = new.ruleset_game_asset_id
+    and status = 'ACTIVE'
+    and card_position_id <> new.card_position_id;
+
+  if (v_total_cards + 1) > coalesce(v_card_qty, 0) then
+    raise exception 'Total active positions for card % exceeds card_qty %',
+      new.ruleset_game_asset_id, coalesce(v_card_qty, 0) using errcode = '23514';
+  end if;
+end if;
+
+-- 2. Enforce market slot limit of 5
+if new.status = 'ACTIVE' and new.zone = 'MARKET' then
+  if new.slot_code not in ('SLOT_1', 'SLOT_2', 'SLOT_3', 'SLOT_4', 'SLOT_5') then
+    raise exception 'Market slot code % is invalid. Must be SLOT_1 to SLOT_5',
+      new.slot_code using errcode = '23514';
+  end if;
+end if;
+
+-- 3. Enforce maximum of 2 of the same ingredient type in the ingredient market
+if new.status = 'ACTIVE' and new.zone = 'MARKET' and new.slot_group = 'INGREDIENT_MARKET' then
+  select count(*) into v_same_ingredient_count
+  from session_card_positions
+  where session_id = new.session_id
+    and zone = 'MARKET'
+    and slot_group = 'INGREDIENT_MARKET'
+    and ruleset_game_asset_id = new.ruleset_game_asset_id
+    and status = 'ACTIVE'
+    and card_position_id <> new.card_position_id;
+
+  if (v_same_ingredient_count + 1) > 2 then
+    raise exception 'Ingredient market cannot contain more than 2 cards of the same ingredient type',
+      new.ruleset_game_asset_id using errcode = '23514';
+  end if;
 end if;
 
 if new.zone = 'PLAYER' and new.owner_session_participant_id is null then raise exception 'PLAYER card zone requires owner_session_participant_id' using errcode = '23514';
@@ -2150,6 +2252,37 @@ end;
 
 $$;
 
+create or replace function validate_ingredient_inventory_limits() returns trigger language plpgsql as $$
+declare
+  v_total_ingredients int;
+  v_asset_type varchar(40);
+begin
+  select asset_type into v_asset_type
+  from ruleset_game_assets
+  where ruleset_version_id = new.ruleset_version_id
+    and ruleset_game_asset_id = new.ruleset_game_asset_id;
+
+  if v_asset_type = 'INGREDIENT' then
+    if new.qty > 3 then
+      raise exception 'Ingredient quantity limit exceeded: max 3 of the same type' using errcode = '23514';
+    end if;
+
+    select coalesce(sum(qty), 0) into v_total_ingredients
+    from session_participant_inventory spi
+    join ruleset_game_assets rga on spi.ruleset_version_id = rga.ruleset_version_id and spi.ruleset_game_asset_id = rga.ruleset_game_asset_id
+    where spi.session_participant_id = new.session_participant_id
+      and spi.ruleset_game_asset_id <> new.ruleset_game_asset_id
+      and rga.asset_type = 'INGREDIENT';
+
+    if v_total_ingredients + new.qty > 6 then
+      raise exception 'Total ingredient limit exceeded: max 6 total cards' using errcode = '23514';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
 create or replace function enforce_event_asset_reference_catalog() returns trigger language plpgsql as $$ declare allowed_asset_type text := 'EVENT_REFERENCE';
 
 begin if not exists (
@@ -2190,6 +2323,7 @@ as $$ declare
   v_player_order_no int;
   v_action_mode varchar(10);
   v_behavior_id varchar(80);
+  v_expected_weekday varchar(3);
 begin
   if exists (
     select 1
@@ -2215,6 +2349,22 @@ begin
   if new.ruleset_version_id is distinct from v_active_ruleset_version_id then
     raise exception 'Event ruleset version must match active session ruleset'
       using errcode = '23514';
+  end if;
+
+  -- 1. Check action type and actor type compatibility (PLAYER vs SYSTEM)
+  if new.action_type in (
+    'SetupModalAwal', 'SetupBahanAwal', 'SetupEmasAwal', 'SetupMisiAwal', 'SetupPinjamanAwal', 'SetupAsuransiAwal',
+    'BagikanEmasAwal', 'BagikanTieBreaker', 'BagikanMisiKoleksi', 'IsiUlangPasar', 'AmbilKartuDariDeck',
+    'KartuDiambilDariPasar', 'KartuMasukDiscard', 'MulaiSesi', 'AkhiriSesi', 'UmumkanJuaraDonasi',
+    'PoinPeringkatDonasi', 'PoinEmas', 'PoinPeringkatPensiun'
+  ) then
+    if new.actor_type <> 'SYSTEM' then
+      raise exception 'Action % must be executed by SYSTEM', new.action_type using errcode = '23514';
+    end if;
+  else
+    if new.actor_type <> 'PLAYER' then
+      raise exception 'Action % must be executed by PLAYER', new.action_type using errcode = '23514';
+    end if;
   end if;
 
   if new.actor_type = 'SYSTEM' then
@@ -2263,9 +2413,21 @@ begin
         using errcode = '23514';
     end if;
 
-    if new.action_slot < 1 then
-      raise exception 'PLAYER event action_slot must be >= 1'
-        using errcode = '23514';
+    -- 2. Enforce free action slots check
+    if (
+      new.action_type in ('JumatBerkah', 'RisikoKehidupan', 'GunakanOpsiDarurat', 'InvestasiEmas', 'JualEmas', 'LewatiTransaksiEmas', 'HariMingguLibur')
+      or (
+        new.action_type in ('Asuransi', 'PinjamanSyariah')
+        and (new.payload ? 'risk_event_id' or new.payload ? 'risk_event_ref')
+      )
+    ) then
+      if new.action_slot <> 0 then
+        raise exception 'Free action % must have action_slot = 0', new.action_type using errcode = '23514';
+      end if;
+    else
+      if new.action_slot < 1 then
+        raise exception 'Non-free PLAYER action % must have action_slot >= 1', new.action_type using errcode = '23514';
+      end if;
     end if;
   end if;
 
@@ -2300,15 +2462,339 @@ begin
       using errcode = '23514';
   end if;
 
+  if new.day_index > 0 then
+    v_expected_weekday := case (((new.day_index - 1) % 7 + 7) % 7)
+      when 0 then 'MON'
+      when 1 then 'TUE'
+      when 2 then 'WED'
+      when 3 then 'THU'
+      when 4 then 'FRI'
+      when 5 then 'SAT'
+      else 'SUN'
+    end;
+
+    if new.weekday is distinct from v_expected_weekday then
+      raise exception 'Event day_index % must use weekday %',
+        new.day_index,
+        v_expected_weekday
+        using errcode = '23514';
+    end if;
+  end if;
+
   if v_session_mode = 'PEMULA' and (
-       new.action_type in ('PinjamanSyariah', 'BayarPinjaman', 'Asuransi', 'RisikoKehidupan', 'GunakanOpsiDarurat', 'Menabung', 'TujuanFinansial', 'TarikTabungan')
+       new.action_type in ('PinjamanSyariah', 'BayarPinjaman', 'Asuransi', 'RisikoKehidupan', 'GunakanOpsiDarurat', 'Menabung', 'TujuanFinansial')
      ) then
     raise exception 'Event action % is not allowed in PEMULA mode', new.action_type
       using errcode = '23514';
   end if;
 
+  -- 3. Payload card catalog reference checks
+  if new.action_type = 'Kebutuhan' then
+    if not (new.payload ? 'card_id') then
+      raise exception 'Kebutuhan event payload must contain card_id' using errcode = '23514';
+    end if;
+    if not exists (
+      select 1
+      from ruleset_catalog_items
+      where ruleset_version_id = new.ruleset_version_id
+        and item_type = 'NEED'
+        and item_code = new.payload->>'card_id'
+        and is_active
+    ) then
+      raise exception 'Need card % is not in catalog or is inactive', new.payload->>'card_id' using errcode = '23514';
+    end if;
+  end if;
+
+  if new.action_type in ('BahanMasakan', 'SetupBahanAwal') then
+    if not (new.payload ? 'card_id') then
+      raise exception 'BahanMasakan event payload must contain card_id' using errcode = '23514';
+    end if;
+    if not exists (
+      select 1
+      from ruleset_catalog_items
+      where ruleset_version_id = new.ruleset_version_id
+        and item_type = 'INGREDIENT'
+        and item_code = new.payload->>'card_id'
+        and is_active
+    ) then
+      raise exception 'Ingredient card % is not in catalog or is inactive', new.payload->>'card_id' using errcode = '23514';
+    end if;
+  end if;
+
+  if new.action_type = 'JualMasakan' then
+    if not (new.payload ? 'order_card_id') then
+      raise exception 'JualMasakan event payload must contain order_card_id' using errcode = '23514';
+    end if;
+    if not exists (
+      select 1
+      from ruleset_catalog_items
+      where ruleset_version_id = new.ruleset_version_id
+        and item_type = 'ORDER'
+        and item_code = new.payload->>'order_card_id'
+        and is_active
+    ) then
+      raise exception 'Order card % is not in catalog or is inactive', new.payload->>'order_card_id' using errcode = '23514';
+    end if;
+  end if;
+
+  if new.action_type in ('InvestasiEmas', 'JualEmas') then
+    if not (new.payload ? 'qty' and new.payload ? 'unit_price') then
+      raise exception 'Gold trade must specify qty and unit_price' using errcode = '23514';
+    end if;
+  end if;
+
+  -- 4. JualMasakan ingredient requirements check
+  if new.action_type = 'JualMasakan' then
+    declare
+      v_missing_ingredients boolean;
+    begin
+      select exists (
+        select 1
+        from ruleset_order_requirements req
+        join ruleset_orders ro on ro.ruleset_order_id = req.ruleset_order_id
+        left join session_participant_inventory spi
+          on spi.session_participant_id = new.session_player_id
+         and spi.ruleset_game_asset_id = req.required_asset_id
+        where ro.ruleset_version_id = new.ruleset_version_id
+          and ro.order_code = new.payload->>'order_card_id'
+          and (spi.qty is null or spi.qty < req.qty_required)
+      ) into v_missing_ingredients;
+
+      if v_missing_ingredients then
+        raise exception 'Player does not have required ingredients for order %', new.payload->>'order_card_id' using errcode = '23514';
+      end if;
+    end;
+  end if;
+
+  -- 5. Need purchases: Primer before Sekunder/Tersier, price/points match
+  if new.action_type = 'Kebutuhan' then
+    declare
+      v_need_tier varchar(40);
+      v_purchase_price int;
+      v_happiness_points int;
+      v_has_primary boolean;
+    begin
+      select need_tier, purchase_price, happiness_points
+      into v_need_tier, v_purchase_price, v_happiness_points
+      from ruleset_needs rn
+      where rn.ruleset_version_id = new.ruleset_version_id
+        and rn.need_code = new.payload->>'card_id';
+
+      if v_need_tier is not null then
+        if (new.payload->>'amount')::int <> v_purchase_price then
+          raise exception 'Payment amount % does not match need card price %',
+            (new.payload->>'amount')::int, v_purchase_price using errcode = '23514';
+        end if;
+
+        if (new.payload->>'points')::int <> v_happiness_points then
+          raise exception 'Happiness points % does not match need card points %',
+            (new.payload->>'points')::int, v_happiness_points using errcode = '23514';
+        end if;
+
+        if v_need_tier in ('sekunder', 'tersier') then
+          select exists (
+            select 1
+            from session_participant_need_purchases spnp
+            join ruleset_needs rn on rn.ruleset_need_id = spnp.ruleset_need_id
+            where spnp.session_participant_id = new.session_player_id
+              and rn.need_tier = 'primer'
+          ) into v_has_primary;
+
+          if not v_has_primary then
+            raise exception 'Must purchase a primary need (Primer) before secondary/tertiary needs'
+              using errcode = '23514';
+          end if;
+        end if;
+      end if;
+    end;
+  end if;
+
+  -- 6. MAHIR mode JualMasakan -> RisikoKehidupan sequence validation
+  if v_session_mode = 'MAHIR' then
+    declare
+      v_last_action_type varchar(80);
+      v_last_player_id uuid;
+    begin
+      select action_type, session_player_id
+      into v_last_action_type, v_last_player_id
+      from events
+      where session_id = new.session_id
+        and actor_type = 'PLAYER'
+      order by sequence_number desc
+      limit 1;
+
+      if v_last_action_type = 'JualMasakan' then
+        if new.action_type <> 'RisikoKehidupan' or new.session_player_id is distinct from v_last_player_id then
+          raise exception 'JualMasakan in MAHIR mode must be followed immediately by RisikoKehidupan for the same player'
+            using errcode = '23514';
+        end if;
+      end if;
+    end;
+  end if;
+
+  -- 7. GunakanOpsiDarurat validation
+  if new.action_type = 'GunakanOpsiDarurat' then
+    declare
+      v_risk_event_id uuid;
+      v_risk_amount int;
+      v_risk_direction varchar(10);
+      v_current_coins int;
+    begin
+      v_risk_event_id := coalesce(
+        (new.payload->>'risk_event_id')::uuid,
+        (new.payload->>'risk_event_ref')::uuid
+      );
+
+      if v_risk_event_id is null then
+        raise exception 'Emergency option must reference a risk event' using errcode = '23514';
+      end if;
+
+      select (payload->>'amount')::int, (payload->>'direction')::varchar(10)
+      into v_risk_amount, v_risk_direction
+      from events
+      where event_id = v_risk_event_id;
+
+      if v_risk_direction <> 'OUT' or v_risk_amount <= 0 then
+        raise exception 'Emergency options can only be used for cost-based risks' using errcode = '23514';
+      end if;
+
+      select coins into v_current_coins
+      from session_participant_balances
+      where session_participant_id = new.session_player_id;
+
+      if coalesce(v_current_coins, 0) >= v_risk_amount then
+        raise exception 'Emergency options are only allowed when player cash is insufficient' using errcode = '23514';
+      end if;
+
+      if new.payload->>'option_type' = 'SELL_NEED' then
+        declare
+          v_owns_need boolean;
+        begin
+          select exists (
+            select 1
+            from session_participant_need_purchases spnp
+            join ruleset_needs rn on rn.ruleset_need_id = spnp.ruleset_need_id
+            where spnp.session_participant_id = new.session_player_id
+              and rn.need_code = new.payload->>'card_id'
+          ) into v_owns_need;
+
+          if not v_owns_need then
+            raise exception 'Player does not own need card % to sell', new.payload->>'card_id' using errcode = '23514';
+          end if;
+        end;
+      end if;
+    end;
+  end if;
+
+  -- 8. PinjamanSyariah validation (cash insufficient + active loan limit)
+  if new.action_type = 'PinjamanSyariah' then
+    declare
+      v_loan_card_qty int;
+      v_active_loans_count int;
+    begin
+      if (new.payload ? 'risk_event_ref' or new.payload ? 'risk_event_id') then
+        declare
+          v_risk_event_id uuid;
+          v_risk_amount int;
+          v_risk_direction varchar(10);
+          v_current_coins int;
+        begin
+          v_risk_event_id := coalesce(
+            (new.payload->>'risk_event_id')::uuid,
+            (new.payload->>'risk_event_ref')::uuid
+          );
+
+          select (payload->>'amount')::int, (payload->>'direction')::varchar(10)
+          into v_risk_amount, v_risk_direction
+          from events
+          where event_id = v_risk_event_id;
+
+          if v_risk_direction <> 'OUT' or v_risk_amount <= 0 then
+            raise exception 'Sharia loans can only be taken for cost-based risks' using errcode = '23514';
+          end if;
+
+          select coins into v_current_coins
+          from session_participant_balances
+          where session_participant_id = new.session_player_id;
+
+          if coalesce(v_current_coins, 0) >= v_risk_amount then
+            raise exception 'Sharia loans with risk reference are only allowed when player cash is insufficient' using errcode = '23514';
+          end if;
+        end;
+      end if;
+
+      select card_qty into v_loan_card_qty
+      from ruleset_catalog_items
+      where ruleset_version_id = new.ruleset_version_id
+        and item_type = 'SHARIA_LOAN'
+        and item_code = new.payload->>'loan_code';
+
+      select count(*) into v_active_loans_count
+      from session_participant_loans spl
+      join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
+      where spl.session_id = new.session_id
+        and rsl.loan_code = new.payload->>'loan_code'
+        and spl.status = 'ACTIVE';
+
+      if (v_active_loans_count + 1) > coalesce(v_loan_card_qty, 0) then
+        raise exception 'Active loan count for % exceeds catalog limit %',
+          new.payload->>'loan_code', coalesce(v_loan_card_qty, 0) using errcode = '23514';
+      end if;
+    end;
+  end if;
+
+  -- 9. Insurance validation (reject global/SYSTEM risks + ACTIVE status / uses remaining check)
+  if new.action_type = 'Asuransi' and (new.payload ? 'risk_event_id' or new.payload ? 'risk_event_ref') then
+    declare
+      v_risk_event_id uuid;
+      v_actor_type varchar(10);
+      v_ins_status varchar(20);
+      v_ins_uses int;
+    begin
+      v_risk_event_id := coalesce(
+        (new.payload->>'risk_event_id')::uuid,
+        (new.payload->>'risk_event_ref')::uuid
+      );
+
+      select actor_type into v_actor_type
+      from events
+      where session_id = new.session_id
+        and event_id = v_risk_event_id;
+
+      if v_actor_type = 'SYSTEM' then
+        raise exception 'Insurance cannot be used to mitigate global (SYSTEM) risks'
+          using errcode = '23514';
+      end if;
+
+      select status, remaining_uses
+      into v_ins_status, v_ins_uses
+      from session_participant_insurances
+      where session_participant_id = new.session_player_id
+        and status = 'ACTIVE';
+
+      if v_ins_status is null or v_ins_uses < 1 then
+        raise exception 'Insurance claim requires active policy with remaining uses' using errcode = '23514';
+      end if;
+    end;
+  end if;
+
+  -- 10. Menabung validation (max 15 coins per action)
+  if new.action_type = 'Menabung' then
+    declare
+      v_amount int;
+    begin
+      if not (new.payload ? 'amount') then
+        raise exception 'Menabung event payload must contain amount' using errcode = '23514';
+      end if;
+      v_amount := (new.payload->>'amount')::int;
+      if v_amount < 1 or v_amount > 15 then
+        raise exception 'Saving amount % must be between 1 and 15 coins per action', v_amount using errcode = '23514';
+      end if;
+    end;
+  end if;
+
   if new.action_type in ('JumatBerkah', 'PoinPeringkatDonasi', 'UmumkanJuaraDonasi') and new.weekday <> 'FRI' then
-    raise exception 'Donati on events must occur on FRI'
+    raise exception 'Donation events must occur on FRI'
       using errcode = '23514';
   end if;
 
@@ -2369,6 +2855,18 @@ begin
       using errcode = '23514';
   end if;
 
+  if tg_table_name = 'events'
+     and new.action_slot = 0
+     and (
+       new.action_type in ('JumatBerkah', 'RisikoKehidupan', 'GunakanOpsiDarurat', 'InvestasiEmas', 'JualEmas', 'LewatiTransaksiEmas', 'HariMingguLibur')
+       or (
+         new.action_type in ('Asuransi', 'PinjamanSyariah')
+         and (new.payload ? 'risk_event_id' or new.payload ? 'risk_event_ref')
+       )
+     ) then
+    return new;
+  end if;
+
   if new.action_slot < 1 then
     raise exception 'PLAYER action_slot must be >= 1'
       using errcode = '23514';
@@ -2427,6 +2925,48 @@ return new;
 
 end;
 
+$$;
+
+create or replace function validate_player_cashflow_running_balances() returns trigger language plpgsql as $$
+declare
+  v_running_balance int := 0;
+  v_rec record;
+begin
+  select rgs.starting_cash
+  into v_running_balance
+  from session_participants sp
+  join sessions s on s.session_id = sp.session_id
+  join ruleset_game_settings rgs on rgs.ruleset_version_id = s.ruleset_version_id
+  where sp.session_id = new.session_id
+    and sp.user_id = new.user_id;
+
+  v_running_balance := coalesce(v_running_balance, 0);
+
+  for v_rec in
+    select 
+      ecp.direction,
+      ecp.amount,
+      e.sequence_number,
+      ecp.projection_order
+    from event_cashflow_projections ecp
+    join events e on ecp.event_pk = e.event_pk
+    where ecp.session_id = new.session_id
+      and ecp.user_id = new.user_id
+    order by e.sequence_number asc, ecp.projection_order asc
+  loop
+    if v_rec.direction = 'IN' then
+      v_running_balance := v_running_balance + v_rec.amount;
+    elsif v_rec.direction = 'OUT' then
+      v_running_balance := v_running_balance - v_rec.amount;
+    end if;
+
+    if v_running_balance < 0 then
+      raise exception 'Insufficent cash balance: running balance would drop to % coins', v_running_balance using errcode = '23514';
+    end if;
+  end loop;
+
+  return new;
+end;
 $$;
 
 create or replace function enforce_ruleset_order_requirement_asset_type() returns trigger language plpgsql as $$ begin if not exists (
@@ -2755,6 +3295,14 @@ update
   ruleset_version_id,
   ruleset_game_asset_id on session_participant_inventory for each row execute function enforce_session_projection_asset_catalog();
 
+drop trigger if exists trg_session_participant_inventory_limits on session_participant_inventory;
+
+create trigger trg_session_participant_inventory_limits before
+insert
+  or
+update
+  on session_participant_inventory for each row execute function validate_ingredient_inventory_limits();
+
 drop trigger if exists trg_session_participant_gold_holdings_updated_at on session_participant_gold_holdings;
 
 create trigger trg_session_participant_gold_holdings_updated_at before
@@ -2860,6 +3408,14 @@ update
   event_pk,
   event_id on event_cashflow_projections for each row execute function enforce_event_cashflow_projection_consistency();
 
+drop trigger if exists trg_validate_player_cashflow_running_balances on event_cashflow_projections;
+
+create trigger trg_validate_player_cashflow_running_balances after
+insert
+  or
+update
+  on event_cashflow_projections for each row execute function validate_player_cashflow_running_balances();
+
 drop trigger if exists trg_ruleset_order_requirements_asset_type on ruleset_order_requirements;
 
 create trigger trg_ruleset_order_requirements_asset_type before
@@ -2901,6 +3457,125 @@ insert
 update
   or delete on session_participants for each row execute function sync_session_player_count_from_participants();
 
+create or replace function validate_ruleset_component_counts(p_ruleset_version_id uuid)
+returns void language plpgsql as $$
+declare
+  v_ingredient_total int;
+  v_need_total int;
+  v_risk_total int;
+  v_donation_award_total int;
+  v_pension_award_total int;
+  v_order_total int;
+  v_gold_price_total int;
+  v_gold_total int;
+  v_sharia_loan_total int;
+  v_financial_goal_total int;
+  v_collection_mission_total int;
+begin
+  -- 1. Ingredients total cards must be exactly 25 (5 copies of 5 ingredient types)
+  select coalesce(sum(card_qty), 0) into v_ingredient_total
+  from ruleset_ingredients
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_ingredient_total <> 25 then
+    raise exception 'Component audit failed: Total ingredients must be exactly 25, got %', v_ingredient_total using errcode = '23514';
+  end if;
+
+  -- 2. Needs total cards must be exactly 25
+  select coalesce(sum(card_qty), 0) into v_need_total
+  from ruleset_needs
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_need_total <> 25 then
+    raise exception 'Component audit failed: Total needs must be exactly 25, got %', v_need_total using errcode = '23514';
+  end if;
+
+  -- 3. Physical life risks must be exactly 24
+  select coalesce(sum(card_qty), 0) into v_risk_total
+  from ruleset_life_risks
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_risk_total <> 24 then
+    raise exception 'Component audit failed: Total physical life risks must be exactly 24, got %', v_risk_total using errcode = '23514';
+  end if;
+
+  -- 4. DONATION_AWARD cards must be exactly 3 per rank (total 9)
+  select coalesce(sum(coalesce(nullif(metadata_json->>'card_qty', '')::int, 1)), 0) into v_donation_award_total
+  from ruleset_game_assets
+  where ruleset_version_id = p_ruleset_version_id
+    and asset_type = 'DONATION_AWARD';
+
+  if v_donation_award_total <> 9 then
+    raise exception 'Component audit failed: Total donation award cards must be exactly 9, got %', v_donation_award_total using errcode = '23514';
+  end if;
+
+  -- 5. PENSION_AWARD cards must be exactly 1 per rank (total 3)
+  select coalesce(sum(coalesce(nullif(metadata_json->>'card_qty', '')::int, 1)), 0) into v_pension_award_total
+  from ruleset_game_assets
+  where ruleset_version_id = p_ruleset_version_id
+    and asset_type = 'PENSION_AWARD';
+
+  if v_pension_award_total <> 3 then
+    raise exception 'Component audit failed: Total pension award cards must be exactly 3, got %', v_pension_award_total using errcode = '23514';
+  end if;
+
+  -- 6. Orders total cards must be exactly 25
+  select coalesce(sum(card_qty), 0) into v_order_total
+  from ruleset_orders
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_order_total <> 25 then
+    raise exception 'Component audit failed: Total orders must be exactly 25, got %', v_order_total using errcode = '23514';
+  end if;
+
+  -- 7. Gold price cards must be exactly 6
+  select coalesce(sum(card_qty), 0) into v_gold_price_total
+  from ruleset_gold_prices
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_gold_price_total <> 6 then
+    raise exception 'Component audit failed: Total gold price cards must be exactly 6, got %', v_gold_price_total using errcode = '23514';
+  end if;
+
+  -- 8. Physical gold cards must be exactly 20 (read from metadata_json to match ruleset_gold_assets card_qty)
+  select coalesce(sum(coalesce(nullif(metadata_json->>'card_qty', '')::int, 1)), 0) into v_gold_total
+  from ruleset_game_assets
+  where ruleset_version_id = p_ruleset_version_id
+    and asset_type = 'GOLD';
+
+  if v_gold_total <> 20 then
+    raise exception 'Component audit failed: Total physical gold cards must be exactly 20, got %', v_gold_total using errcode = '23514';
+  end if;
+
+  -- 9. Sharia loan cards must be exactly 8
+  select coalesce(sum(card_qty), 0) into v_sharia_loan_total
+  from ruleset_sharia_loans
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_sharia_loan_total <> 8 then
+    raise exception 'Component audit failed: Total sharia loan cards must be exactly 8, got %', v_sharia_loan_total using errcode = '23514';
+  end if;
+
+  -- 10. Financial goal cards must be exactly 5
+  select coalesce(sum(card_qty), 0) into v_financial_goal_total
+  from ruleset_financial_goals
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_financial_goal_total <> 5 then
+    raise exception 'Component audit failed: Total financial goal cards must be exactly 5, got %', v_financial_goal_total using errcode = '23514';
+  end if;
+
+  -- 11. Collection mission cards must be exactly 4
+  select coalesce(sum(card_qty), 0) into v_collection_mission_total
+  from ruleset_collection_missions
+  where ruleset_version_id = p_ruleset_version_id;
+
+  if v_collection_mission_total <> 4 then
+    raise exception 'Component audit failed: Total collection mission cards must be exactly 4, got %', v_collection_mission_total using errcode = '23514';
+  end if;
+end;
+$$;
+
 select
   apply_default_log_retention_policies();
 
@@ -2908,3 +3583,4 @@ select
   assert_schema_baseline('canonical_relational_baseline', '3.0.0');
 
 commit;
+
