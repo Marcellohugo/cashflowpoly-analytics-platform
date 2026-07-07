@@ -580,7 +580,7 @@ Model data dianggap sinkron dengan implementasi jika:
 
 ## 16. Riwayat Normalisasi & Keputusan Desain (Design History)
 
-Bagian ini mencatat latar belakang perancangan normalisasi database dan pemangkasan kompleksitas dari model warisan (*legacy*) ke skema *event-first* aktif.
+Bagian ini mencatat latar belakang perancangan normalisasi database dan pemangkasan kompleksitas menuju skema *event-first* aktif.
 
 ### 16.1 Mengapa Desain Event-First Dipilih?
 - **Events sebagai Single Source of Truth**: Seluruh keadaan (*state*) sesi permainan, saldo koin, kepemilikan aset, pinjaman, dan metrik analitik dapat dibangun ulang sewaktu-waktu dari tabel `events`.

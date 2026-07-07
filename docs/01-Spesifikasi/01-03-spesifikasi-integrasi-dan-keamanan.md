@@ -20,8 +20,7 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 ### 2.1 Versi kontrak aktif
 - Versi kontrak API aktif: `v1`.
 - Prefix route aktif: `/api/v1/...`.
-- Route lama `/api/...` **default nonaktif**.
-- Kompatibilitas route lama hanya aktif bila `FeatureFlags__EnableLegacyApiCompatibility=true` (transisi sementara).
+- Route tanpa versi `/api/...` **nonaktif**.
 
 ### 2.2 Kebijakan kompatibilitas
 1. Perubahan non-breaking boleh menambah field response baru.

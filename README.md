@@ -55,7 +55,6 @@ UI tidak mengakses database secara langsung. UI membaca data dari REST API agar 
 
 Catatan kontrak API:
 - Prefix endpoint aktif: `/api/v1/...`.
-- Opsi transisi (default nonaktif): set `FeatureFlags__EnableLegacyApiCompatibility=true` bila sementara perlu rewrite `/api/*` ke `/api/v1/*`.
 
 ## Alur utama sistem
 1. Instruktur dan Player login/sign in ke Web Analitik atau Klien Game/IDN.
@@ -236,7 +235,7 @@ Rute UI utama:
 - Detail Player dalam sesi: `/sessions/{id}/players/{userId}`
 - Ruleset: `/rulesets`
 - Rulebook: `/rulebook`
-- Legacy analytics redirect: `/Analytics` atau `/analytics`
+- Analytics redirect: `/Analytics` atau `/analytics`
 
 ### 2) Sambungkan DBeaver ke PostgreSQL
 Gunakan konfigurasi berikut:

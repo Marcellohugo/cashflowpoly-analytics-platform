@@ -45,7 +45,7 @@ Cashflowpoly.Ui/
     PlayerDirectoryController.cs -> Direktori data pemain global
     RulesetsController.cs      -> CRUD, aktivasi, dan detail ruleset
     LanguageController.cs      -> Preferensi bahasa (bilingual)
-    AnalyticsController.cs     -> Redirect kompatibilitas rute legacy
+    AnalyticsController.cs     -> Redirect rute analytics
   Infrastructure/
     ApiAuthHelper.cs           -> Helper auth API backend
     AuthSessionExtensions.cs    -> Extension session server-side
@@ -84,7 +84,7 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 | Detail Versi Ruleset | `/rulesets/{id}` | `RulesetsController` | `Details` | `INSTRUCTOR` / `PLAYER` |
 | Formulir Buat Ruleset | `/rulesets/create` | `RulesetsController` | `Create` | `INSTRUCTOR` |
 | Formulir Edit Ruleset | `/rulesets/{id}/edit` | `RulesetsController` | `Edit` | `INSTRUCTOR` |
-| Rute Legacy (Kesesuaian) | `/analytics` | `AnalyticsController` | `Index` | Redirect ke `/sessions` |
+| Rute Analytics (Redirect) | `/analytics` | `AnalyticsController` | `Index` | Redirect ke `/sessions` |
 
 ---
 

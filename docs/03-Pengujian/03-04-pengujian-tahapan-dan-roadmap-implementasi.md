@@ -59,7 +59,7 @@ Roadmap pengerjaan dibagi menjadi 10 tahap pengerjaan terukur:
 1. Mengintegrasikan rute navigasi dasbor, daftar sesi, dan detail sesi.
 2. Membuat tampilan performa grafis pemain individu beserta histori transaksinya.
 3. Mengintegrasikan formulir pembuatan, pengeditan, dan aktivasi ruleset untuk Instruktur.
-4. Menyediakan redirect kompatibilitas rute legacy `/analytics` dan halaman buku aturan.
+4. Menyediakan redirect rute `/analytics` dan halaman buku aturan.
 
 ### Tahap I - Pengujian Integrasi & Deployment
 1. Menjalankan seluruh rangkaian pengujian fungsional unit testing dan integration testing.

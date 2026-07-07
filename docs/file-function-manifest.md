@@ -11,7 +11,7 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `Cashflowpoly.sln` | Root | Solution .NET untuk API, UI, dan test project. |
 | `.gitattributes` | Root | Aturan atribut Git lintas platform. |
 | `.gitignore` | Root | Daftar file/folder yang tidak dilacak Git. |
-| `config/env/.env.example` | Konfigurasi | Template environment fallback/legacy. |
+| `config/env/.env.example` | Konfigurasi | Template environment fallback. |
 | `config/env/.env.dev.example` | Konfigurasi | Template environment development Docker Compose. |
 | `config/env/.env.prod.example` | Konfigurasi | Template environment production. |
 | `infra/docker/docker-compose.yml` | Infrastruktur | Definisi service dasar `db`, `api`, dan `ui`. |
