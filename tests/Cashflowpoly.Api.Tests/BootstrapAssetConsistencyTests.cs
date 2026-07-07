@@ -340,13 +340,36 @@ public sealed class BootstrapAssetConsistencyTests
         var projectorBody = ExtractFunction(schemaContent, "project_session_event");
 
         Assert.Contains("and not spnp.is_sold", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("v_option_type not in ('SELL_NEED', 'TAKE_SHARIA_LOAN', 'USE_INSURANCE')", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("v_option_type not in", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'SELL_GOLD'", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("GunakanOpsiDarurat event payload must contain option_type", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELL_GOLD emergency option must contain qty, unit_price, and amount", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("v_active_gold_price", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("BukaHargaEmas", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Kepemilikan emas tidak cukup", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("upper(v_event.payload->>'option_type') = 'USE_INSURANCE'", projectorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Matches(@"upper\(v_event\.payload\s*->>\s*'option_type'\)\s*=\s*'USE_INSURANCE'", projectorBody);
+        Assert.Matches(@"upper\(v_event\.payload\s*->>\s*'option_type'\)\s*=\s*'SELL_GOLD'", projectorBody);
         Assert.DoesNotContain("when v_event.action_type = 'GunakanOpsiDarurat' then upper(nullif(v_event.payload->>'direction", projectorBody, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CanonicalSchema_ShouldLockRulebookWeekdayRiskLoanInsuranceAndSavingsRules()
+    {
+        var schemaPath = Path.Combine(RepoRoot, "database", "00_create_schema.sql");
+        var seedPath = Path.Combine(RepoRoot, "database", "01_seed_default_rulesets_components.sql");
+        var schemaContent = File.ReadAllText(schemaPath);
+        var seedContent = File.ReadAllText(seedPath);
+        var scopeValidatorBody = ExtractFunction(schemaContent, "enforce_event_session_scope");
+        var projectorBody = ExtractFunction(schemaContent, "project_session_event");
+
+        Assert.Contains("Friday player actions are limited to donation", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Saturday player actions are limited to gold trades", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("v_new_risk_effect_type", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("v_new_risk_direction", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RisikoKehidupan in MAHIR mode must immediately follow JualMasakan for the same player", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Emergency loan principal must match catalog principal", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Insurance premium must match catalog premium", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("'TarikTabungan'", seedContent, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -615,6 +638,23 @@ public sealed class BootstrapAssetConsistencyTests
     }
 
     [Fact]
+    public void DefaultRulesetSeed_ShouldIncludePemulaTieBreakerAssets()
+    {
+        var seedPath = Path.Combine(RepoRoot, "database", "01_seed_default_rulesets_components.sql");
+        var seedContent = File.ReadAllText(seedPath);
+
+        foreach (var tieBreakerCode in new[] { "tie_breaker_1", "tie_breaker_2", "tie_breaker_3", "tie_breaker_4" })
+        {
+            Assert.Matches(
+                $@"\(\s*'f5b4c67b-0825-4970-9f07-3b68e8fcb524'\s*::\s*uuid\s*,\s*'TIE_BREAKER'\s*,\s*'{tieBreakerCode}'",
+                seedContent);
+            Assert.Matches(
+                $@"\(\s*'f5b4c67b-0825-4970-9f07-3b68e8fcb524'\s*::\s*uuid\s*,\s*'{tieBreakerCode}'\s*,\s*\d+\s*,\s*\d+\s*,\s*1\s*,\s*'\{{\""number\"":",
+                seedContent);
+        }
+    }
+
+    [Fact]
     public void DefaultRulesetSeed_ShouldKeepRulesetBaselinesAlignedWithRulebook()
     {
         var seedPath = Path.Combine(RepoRoot, "database", "01_seed_default_rulesets_components.sql");
@@ -738,6 +778,43 @@ public sealed class BootstrapAssetConsistencyTests
         }
     }
 
+    [Fact]
+    public void ManualSimulationSeed_ShouldUseRuntimeGoldScoringTieBreakersAndMahirRiskSequence()
+    {
+        var seedPath = Path.Combine(RepoRoot, "database", "02_seed_simulation_sessions_events.sql");
+        var seedContent = File.ReadAllText(seedPath);
+
+        Assert.Contains("resolve_gold_points(", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rga.quantity = spgh.quantity", seedContent, StringComparison.OrdinalIgnoreCase);
+
+        var events = ParseSimulationSeedEvents(seedContent).ToList();
+        var pemulaTieBreakers = events
+            .Where(e => e.Mode == "PEMULA" && e.ActionType == "BagikanTieBreaker")
+            .ToList();
+        Assert.Equal(4, pemulaTieBreakers.Count);
+        Assert.Equal(
+            new[] { 1, 2, 3, 4 },
+            pemulaTieBreakers.Select(e => e.PlayerNo.GetValueOrDefault()).OrderBy(playerNo => playerNo).ToArray());
+        Assert.All(pemulaTieBreakers, e => Assert.Equal(0, e.DayIndex));
+
+        var mahirPlayerEvents = events
+            .Where(e => e.Mode == "MAHIR" && e.ActorType == "PLAYER")
+            .OrderBy(e => e.DayIndex)
+            .ThenBy(e => e.EventOrder)
+            .ThenBy(e => e.ActionType, StringComparer.Ordinal)
+            .ThenBy(e => e.PlayerNo ?? 0)
+            .ToList();
+        var invalidRisks = mahirPlayerEvents
+            .Select((e, index) => new { Event = e, Previous = index > 0 ? mahirPlayerEvents[index - 1] : null })
+            .Where(pair => pair.Event.ActionType == "RisikoKehidupan"
+                && (pair.Previous is null
+                    || pair.Previous.ActionType != "JualMasakan"
+                    || pair.Previous.PlayerNo != pair.Event.PlayerNo))
+            .Select(pair => $"{pair.Event.RefKey ?? "<null>"} day={pair.Event.DayIndex} player={pair.Event.PlayerNo}")
+            .ToList();
+        Assert.Empty(invalidRisks);
+    }
+
     private static string ResolveRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
@@ -780,10 +857,41 @@ public sealed class BootstrapAssetConsistencyTests
     {
         var match = Regex.Match(
             sql,
-            $@"create or replace function {Regex.Escape(functionName)}\b[\s\S]*?\n\$\$;",
+            $@"create\s+or\s+replace\s+function\s+{Regex.Escape(functionName)}\b[\s\S]*?\n\$\$;",
             RegexOptions.IgnoreCase);
 
         Assert.True(match.Success, $"Function '{functionName}' should exist in canonical schema.");
         return match.Value;
     }
+
+    private static IEnumerable<SimulationSeedEvent> ParseSimulationSeedEvents(string seedContent)
+    {
+        const string pattern =
+            @"(?s)\(\s*'(?<mode>PEMULA|MAHIR)'\s*,\s*(?<ref>null|'[^']*')\s*,\s*(?<day>-?\d+)\s*,\s*(?<eventOrder>-?\d+)\s*,\s*(?<actionSlot>null|\d+)\s*,\s*(?<playerNo>null|\d+)\s*,\s*'(?<actor>[^']+)'\s*,\s*(?<actionId>null|'[^']*')\s*,\s*'(?<action>[^']+)'\s*,\s*'(?<payload>(?:''|[^'])*)' :: jsonb\s*\)";
+
+        foreach (Match match in Regex.Matches(seedContent, pattern, RegexOptions.IgnoreCase))
+        {
+            yield return new SimulationSeedEvent(
+                match.Groups["mode"].Value.ToUpperInvariant(),
+                match.Groups["ref"].Value.Equals("null", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : match.Groups["ref"].Value.Trim('\''),
+                int.Parse(match.Groups["day"].Value),
+                int.Parse(match.Groups["eventOrder"].Value),
+                match.Groups["playerNo"].Value.Equals("null", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : int.Parse(match.Groups["playerNo"].Value),
+                match.Groups["actor"].Value.ToUpperInvariant(),
+                match.Groups["action"].Value);
+        }
+    }
+
+    private sealed record SimulationSeedEvent(
+        string Mode,
+        string? RefKey,
+        int DayIndex,
+        int EventOrder,
+        int? PlayerNo,
+        string ActorType,
+        string ActionType);
 }

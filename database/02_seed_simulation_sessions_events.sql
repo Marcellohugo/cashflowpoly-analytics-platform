@@ -652,6 +652,54 @@ scenario_event_seed as (
         (
           'PEMULA',
           null,
+          0,
+          -40,
+          1,
+          1,
+          'SYSTEM',
+          'BagikanTieBreaker',
+          'BagikanTieBreaker',
+          '{"number":1,"card_code":"tie_breaker_1"}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          -39,
+          1,
+          2,
+          'SYSTEM',
+          'BagikanTieBreaker',
+          'BagikanTieBreaker',
+          '{"number":2,"card_code":"tie_breaker_2"}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          -38,
+          1,
+          3,
+          'SYSTEM',
+          'BagikanTieBreaker',
+          'BagikanTieBreaker',
+          '{"number":3,"card_code":"tie_breaker_3"}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          -37,
+          1,
+          4,
+          'SYSTEM',
+          'BagikanTieBreaker',
+          'BagikanTieBreaker',
+          '{"number":4,"card_code":"tie_breaker_4"}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
           1,
           -4,
           1,
@@ -3160,6 +3208,18 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
+          null,
+          1,
+          1,
+          2,
+          1,
+          'PLAYER',
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"lontong_balap","required_ingredient_card_ids":["sayur","nasi_putih"],"income":13}' :: jsonb
+        ),
+        (
+          'MAHIR',
           'mahir-risk-001',
           1,
           1,
@@ -3180,7 +3240,7 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3198,13 +3258,13 @@ scenario_event_seed as (
           'MAHIR',
           null,
           1,
-          5,
+          3,
           2,
           2,
           'PLAYER',
-          'Kebutuhan',
-          'Kebutuhan',
-          '{"card_id":"buku_1","amount":2,"points":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3216,13 +3276,13 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"telur","ingredient_name":"Telur","amount":5}' :: jsonb
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":3}' :: jsonb
         ),
         (
           'MAHIR',
           'mahir-risk-003',
           1,
-          7,
+          6,
           2,
           3,
           'PLAYER',
@@ -3234,13 +3294,13 @@ scenario_event_seed as (
           'MAHIR',
           null,
           1,
-          8,
+          6,
           2,
           3,
           'PLAYER',
-          'Kebutuhan',
-          'Kebutuhan',
-          '{"card_id":"buku_2","amount":3,"points":2}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"lontong_balap","required_ingredient_card_ids":["sayur","nasi_putih"],"income":13}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3270,7 +3330,7 @@ scenario_event_seed as (
           'MAHIR',
           null,
           1,
-          11,
+          10,
           2,
           4,
           'PLAYER',
@@ -3280,27 +3340,15 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-021',
-          1,
-          12,
-          2,
-          4,
-          'PLAYER',
-          'RisikoKehidupan',
-          'RisikoKehidupan',
-          '{"risk_id":"risk_sakit_perut","note":"Sakit perut"}' :: jsonb
-        ),
-        (
-          'MAHIR',
           null,
           2,
           0,
           3,
           1,
           'PLAYER',
-          'Kebutuhan',
-          'Kebutuhan',
-          '{"card_id":"baju_1","amount":2,"points":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3468,7 +3516,7 @@ scenario_event_seed as (
           'PLAYER',
           'JualMasakan',
           'JualMasakan',
-          '{"order_card_id":"tahu_campur","required_ingredient_card_ids":["daging","tahu_tempe"],"income":16}' :: jsonb
+          '{"order_card_id":"soto_daging","required_ingredient_card_ids":["daging","telur"],"income":17}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3688,18 +3736,6 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-007',
-          7,
-          1,
-          8,
-          1,
-          'PLAYER',
-          'RisikoKehidupan',
-          'RisikoKehidupan',
-          '{"risk_id":"risk_menang_undian","note":"Menang undian"}' :: jsonb
-        ),
-        (
-          'MAHIR',
           null,
           7,
           2,
@@ -3790,9 +3826,9 @@ scenario_event_seed as (
           8,
           4,
           'PLAYER',
-          'BahanMasakan',
-          'BahanMasakan',
-          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"nasi_goreng","required_ingredient_card_ids":["nasi_putih","telur"],"income":15}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3828,7 +3864,7 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3864,7 +3900,7 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4057,30 +4093,6 @@ scenario_event_seed as (
           'BahanMasakan',
           'BahanMasakan',
           '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          9,
-          11,
-          10,
-          4,
-          'PLAYER',
-          'JualMasakan',
-          'JualMasakan',
-          '{"order_card_id":"nasi_pecel","required_ingredient_card_ids":["nasi_putih","tahu_tempe","sayur"],"income":20}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          'mahir-risk-012',
-          9,
-          12,
-          10,
-          4,
-          'PLAYER',
-          'RisikoKehidupan',
-          'RisikoKehidupan',
-          '{"risk_id":"risk_sakit_gigi","note":"Sakit gigi"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4378,9 +4390,9 @@ scenario_event_seed as (
           15,
           2,
           'PLAYER',
-          'Kebutuhan',
-          'Kebutuhan',
-          '{"card_id":"gameboy_1","amount":6,"points":5}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4402,9 +4414,9 @@ scenario_event_seed as (
           15,
           3,
           'PLAYER',
-          'Kebutuhan',
-          'Kebutuhan',
-          '{"card_id":"hiburan_1","amount":6,"points":5}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4482,18 +4494,6 @@ scenario_event_seed as (
           'MAHIR',
           null,
           15,
-          4,
-          16,
-          2,
-          'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          15,
           5,
           16,
           2,
@@ -4516,7 +4516,7 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-014',
+          null,
           15,
           7,
           16,
@@ -4524,7 +4524,7 @@ scenario_event_seed as (
           'PLAYER',
           'Asuransi',
           'Asuransi',
-          '{}' :: jsonb
+          '{"policy_id":"INS-SEED-012","policy_instance_id":"INS-SEED-012","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4536,7 +4536,7 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4564,18 +4564,6 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-015',
-          15,
-          11,
-          16,
-          3,
-          'PLAYER',
-          'Asuransi',
-          'Asuransi',
-          '{}' :: jsonb
-        ),
-        (
-          'MAHIR',
           null,
           15,
           12,
@@ -4596,7 +4584,7 @@ scenario_event_seed as (
           'PLAYER',
           'JualMasakan',
           'JualMasakan',
-          '{"order_card_id":"soto_daging","required_ingredient_card_ids":["daging","telur"],"income":17}' :: jsonb
+          '{"order_card_id":"rawon","required_ingredient_card_ids":["daging","telur","tahu_tempe"],"income":24}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5028,7 +5016,7 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5104,7 +5092,7 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-017',
+          null,
           22,
           2,
           23,
@@ -5112,19 +5100,7 @@ scenario_event_seed as (
           'PLAYER',
           'Asuransi',
           'Asuransi',
-          '{}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          22,
-          3,
-          23,
-          1,
-          'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          '{"policy_id":"INS-SEED-014","policy_instance_id":"INS-SEED-014","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5136,7 +5112,7 @@ scenario_event_seed as (
           'PLAYER',
           'JualMasakan',
           'JualMasakan',
-          '{"order_card_id":"rawon","required_ingredient_card_ids":["daging","telur","tahu_tempe"],"income":24}' :: jsonb
+          '{"order_card_id":"nasi_campur","required_ingredient_card_ids":["nasi_putih","telur","daging","sayur"],"income":27}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5152,7 +5128,7 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-018',
+          null,
           22,
           6,
           23,
@@ -5160,19 +5136,7 @@ scenario_event_seed as (
           'PLAYER',
           'Asuransi',
           'Asuransi',
-          '{}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          22,
-          7,
-          23,
-          2,
-          'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          '{"policy_id":"INS-SEED-015","policy_instance_id":"INS-SEED-015","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5200,7 +5164,7 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-019',
+          null,
           22,
           10,
           23,
@@ -5208,19 +5172,7 @@ scenario_event_seed as (
           'PLAYER',
           'Asuransi',
           'Asuransi',
-          '{}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          22,
-          11,
-          23,
-          3,
-          'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          '{"policy_id":"INS-SEED-016","policy_instance_id":"INS-SEED-016","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5248,7 +5200,7 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-020',
+          null,
           22,
           14,
           23,
@@ -5256,19 +5208,7 @@ scenario_event_seed as (
           'PLAYER',
           'Asuransi',
           'Asuransi',
-          '{}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          22,
-          15,
-          23,
-          4,
-          'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          '{"policy_id":"INS-SEED-017","policy_instance_id":"INS-SEED-017","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -6048,16 +5988,11 @@ with component_values as (
     coalesce(
       (
         select
-          rga.points
+          resolve_gold_points(coalesce(sum(spgh.quantity), 0) :: int, sp.ruleset_version_id)
         from
           session_participant_gold_holdings spgh
-          join ruleset_game_assets asset on asset.ruleset_game_asset_id = spgh.ruleset_game_asset_id
-          join ruleset_gold_assets rga on rga.ruleset_version_id = asset.ruleset_version_id
-          and rga.quantity = spgh.quantity
         where
           spgh.session_participant_id = sp.session_participant_id
-        limit
-          1
       ), 0
     ) :: int as gold_points,
     coalesce(

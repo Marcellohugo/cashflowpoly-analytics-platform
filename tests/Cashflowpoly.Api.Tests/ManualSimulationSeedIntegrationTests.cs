@@ -292,7 +292,7 @@ public sealed class ManualSimulationSeedIntegrationTests
 
             if (row.SessionName.Contains("Pemula", StringComparison.OrdinalIgnoreCase))
             {
-                Assert.Equal(0, row.SetupTieBreakerCount);
+                Assert.Equal(1, row.SetupTieBreakerCount);
                 Assert.Equal(0, row.SetupLoanCount);
                 Assert.Equal(0, row.SetupInsuranceCount);
             }
@@ -399,13 +399,13 @@ public sealed class ManualSimulationSeedIntegrationTests
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 20, 0, "InvestasiEmas", "BUY");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Hugo", 20, 0, "InvestasiEmas", "BUY");
 
-        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 15, 1, "Kebutuhan", "gameboy_1");
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 15, 1, "BahanMasakan", "daging");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 15, 1, "Kebutuhan", "boneka_2");
 
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 1, 0, "SetupBahanAwal", "nasi_putih");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 1, 0, "SetupAsuransiAwal", "");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 8, 2, "JualMasakan", "sego_penyet");
-        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 9, 1, "BahanMasakan", "telur");
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 9, 1, "BahanMasakan", "sayur");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 9, 2, "JualMasakan", "semanggi_surabaya");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Hugo", 10, 0, "RisikoKehidupan", "");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 1, 0, "SetupPinjamanAwal", "");
@@ -619,7 +619,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Equal(9, missionAndDonationChecks[SeedMahirSessionName].DonationRankAwardedCount);
         Assert.Equal(3, missionAndDonationChecks[SeedPemulaSessionName].DonationWinnersAnnouncedCount);
         Assert.Equal(3, missionAndDonationChecks[SeedMahirSessionName].DonationWinnersAnnouncedCount);
-        Assert.Equal(0, missionAndDonationChecks[SeedPemulaSessionName].TieBreakerAssignedCount);
+        Assert.Equal(4, missionAndDonationChecks[SeedPemulaSessionName].TieBreakerAssignedCount);
         Assert.Equal(4, missionAndDonationChecks[SeedMahirSessionName].TieBreakerAssignedCount);
 
         var winnerAnnouncementSummaries = (await connection.QueryAsync<string>(
