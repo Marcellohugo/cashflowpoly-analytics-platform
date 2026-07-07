@@ -535,7 +535,7 @@ values
         'PEMULA',
         'Cashflowpoly Default - Mode Pemula',
         'Seed ruleset mode pemula dalam definition_json terpadu dan katalog generik.',
-        $ json $ { "mode": "PEMULA",
+        $json$ { "mode": "PEMULA",
         "actions_per_turn": 2,
         "starting_cash": 20,
         "player_ordering": "PLAYER_ORDER",
@@ -692,7 +692,7 @@ values
         "kebutuhanTarget": [{ "order": 1, "type": "TIER", "value": "primer" }, { "order": 2, "type": "TIER", "value": "sekunder" }, { "order": 3, "type": "FAMILY", "value": "hiburan" }] } ],
         "tujuanFinansial": [{ "id": "tujuan_25", "nama": "Kumpul Keluarga", "hargaBeli": 25, "poinKebahagiaan": 20 },{ "id": "tujuan_28", "nama": "Tamasya", "hargaBeli": 28, "poinKebahagiaan": 25 },{ "id": "tujuan_30", "nama": "Keluar Kota", "hargaBeli": 30, "poinKebahagiaan": 28 },{ "id": "tujuan_32", "nama": "Beli Mobil Baru", "hargaBeli": 32, "poinKebahagiaan": 30 },{ "id": "tujuan_35", "nama": "Beli Rumah Baru", "hargaBeli": 35, "poinKebahagiaan": 35 }],
         "narasi": [{"id": "jual_pertama","nama": "jual_pertama","teks": ["Penjualan pertama membuka kepercayaan diri.","Momentum baik harus dijaga."],
-        "prerequisiteAksi": [{ "aksi": "JualMasakan", "value": 1 }] } ] } } $ json $ :: jsonb
+        "prerequisiteAksi": [{ "aksi": "JualMasakan", "value": 1 }] } ] } } $json$ :: jsonb
     ),
     (
         'a68f53f9-92a2-446f-9f62-5a4f502a0199',
@@ -700,7 +700,7 @@ values
         'MAHIR',
         'Cashflowpoly Default - Mode Mahir',
         'Seed ruleset mode mahir dalam definition_json terpadu dan katalog generik.',
-        $ json $ { "mode": "MAHIR",
+        $json$ { "mode": "MAHIR",
         "actions_per_turn": 2,
         "starting_cash": 10,
         "player_ordering": "PLAYER_ORDER",
@@ -863,7 +863,7 @@ values
           { "id": "tujuan_35", "nama": "Beli Rumah Baru", "hargaBeli": 35, "poinKebahagiaan": 35 }
         ],
         "narasi": [{"id": "jual_pertama","nama": "jual_pertama","teks": ["Penjualan pertama membuka kepercayaan diri.","Momentum baik harus dijaga."],
-        "prerequisiteAksi": [{ "aksi": "JualMasakan", "value": 1 }] } ] } } $ json $ :: jsonb
+        "prerequisiteAksi": [{ "aksi": "JualMasakan", "value": 1 }] } ] } } $json$ :: jsonb
     );
 
 insert into
@@ -1012,8 +1012,10 @@ from
                 'FRI' :: varchar(8),
                 coalesce(
                     sr.definition_json #>>'{weekday_rules,friday,feature}', sr.definition_json#>>'{weekday_rules,FRI,feature}', 'DONATION')::varchar(40), coalesce(sr.definition_json#>>'{weekday_rules,friday,enabled}', sr.definition_json#>>'{weekday_rules,FRI,enabled}', 'true')::boolean),(20, 'SAT'::varchar(8), coalesce(sr.definition_json#>>'{weekday_rules,saturday,feature}', sr.definition_json#>>'{weekday_rules,SAT,feature}', 'GOLD_TRADE')::varchar(40), coalesce(sr.definition_json#>>'{weekday_rules,saturday,enabled}', sr.definition_json#>>'{weekday_rules,SAT,enabled}', 'true')::boolean),(30, 'SUN'::varchar(8), coalesce(sr.definition_json#>>'{weekday_rules,sunday,feature}', sr.definition_json#>>'{weekday_rules,SUN,feature}', 'REST')::varchar(40), coalesce(sr.definition_json#>>'{weekday_rules,sunday,enabled}', sr.definition_json#>>'{weekday_rules,SUN,enabled}', 'true')::boolean)) mapped(sort_order, weekday_code, feature_code, is_enabled) on conflict (ruleset_version_id, sort_order) do update set ordering_code = excluded.ordering_code,weekday_code = excluded.weekday_code,feature_code = excluded.feature_code,is_enabled = excluded.is_enabled;
-                    delete from
+                    update
                         ruleset_game_assets
+                    set
+                        is_active = false
                     where
                         ruleset_version_id = 'f5b4c67b-0825-4970-9f07-3b68e8fcb524' :: uuid
                         and asset_type in ('RISK', 'TIE_BREAKER');

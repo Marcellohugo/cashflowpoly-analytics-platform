@@ -796,6 +796,7 @@ create table if not exists ruleset_insurance_products (
   item_name varchar(160) not null,
   premium int not null,
   usage_limit int not null,
+  is_active boolean not null default true,
   sort_order int not null,
   card_qty int null,
   payload_json jsonb not null default '{}' :: jsonb,
@@ -814,6 +815,11 @@ create table if not exists ruleset_insurance_products (
 );
 
 create index if not exists ix_ruleset_insurance_products_ruleset on ruleset_insurance_products (ruleset_version_id, sort_order, product_code);
+
+alter table
+  ruleset_insurance_products
+add
+  column if not exists is_active boolean not null default true;
 
 create table if not exists ruleset_life_risks (
   ruleset_life_risk_id uuid not null default gen_random_uuid(),
@@ -4404,7 +4410,17 @@ from
   and rci.card_qty > 0
   cross join lateral generate_series(1, rci.card_qty) as copies(copy_number)
 where
-  s.session_id = p_session_id on conflict (session_id, ruleset_game_asset_id, copy_number) do nothing;
+  s.session_id = p_session_id
+  and not exists (
+    select
+      1
+    from
+      session_card_positions existing
+    where
+      existing.session_id = s.session_id
+      and existing.ruleset_game_asset_id = rci.ruleset_catalog_item_id
+      and existing.copy_number = copies.copy_number
+  ) on conflict (session_id, ruleset_game_asset_id, copy_number) do nothing;
 
 end;
 
@@ -5932,7 +5948,7 @@ select
     digest(
       string_agg(
         entry,
-        E '\n'
+        E'\n'
         order by
           entry
       ),
