@@ -60,16 +60,16 @@ public sealed class DatabaseStartupIntegrationTests
             bool HasTriggerConditions,
             bool HasGameSettings,
             bool HasDisplayName,
-            bool HasLegacyParticipantAssets,
-            bool HasLegacyActionLogs,
-            bool HasLegacyInterpreterCommands,
-            bool HasLegacyQuestScripts,
-            bool HasLegacyNarrativeScripts,
-            bool HasLegacyNarrativeAssets,
-            bool HasLegacyDonationRankings,
-            bool HasLegacyPensionRankings,
-            bool HasLegacyPlayersTable,
-            bool HasLegacyCatalogTable,
+            bool HasRemovedParticipantAssets,
+            bool HasRemovedActionLogs,
+            bool HasRemovedInterpreterCommands,
+            bool HasRemovedQuestScripts,
+            bool HasRemovedNarrativeScripts,
+            bool HasRemovedNarrativeAssets,
+            bool HasRemovedDonationRankings,
+            bool HasRemovedPensionRankings,
+            bool HasRemovedPlayersTable,
+            bool HasRemovedCatalogTable,
             bool HasConfigJsonColumn,
             bool HasEventInventoryEffectsTable,
             bool HasRulesetCreatedByUserId,
@@ -96,28 +96,28 @@ public sealed class DatabaseStartupIntegrationTests
                       and table_name = 'app_users'
                       and column_name = 'display_name'
                 ) as HasDisplayName,
-                to_regclass('public.session_participant_assets') is not null as HasLegacyParticipantAssets,
-                to_regclass('public.session_action_logs') is not null as HasLegacyActionLogs,
-                to_regclass('public.interpreter_commands') is not null as HasLegacyInterpreterCommands,
-                to_regclass('public.quest_scripts') is not null as HasLegacyQuestScripts,
-                to_regclass('public.narrative_scripts') is not null as HasLegacyNarrativeScripts,
-                to_regclass('public.narrative_assets') is not null as HasLegacyNarrativeAssets,
-                to_regclass('public.session_donation_event_rankings') is not null as HasLegacyDonationRankings,
-                to_regclass('public.session_pension_rankings') is not null as HasLegacyPensionRankings,
+                to_regclass('public.session_participant_assets') is not null as HasRemovedParticipantAssets,
+                to_regclass('public.session_action_logs') is not null as HasRemovedActionLogs,
+                to_regclass('public.interpreter_commands') is not null as HasRemovedInterpreterCommands,
+                to_regclass('public.quest_scripts') is not null as HasRemovedQuestScripts,
+                to_regclass('public.narrative_scripts') is not null as HasRemovedNarrativeScripts,
+                to_regclass('public.narrative_assets') is not null as HasRemovedNarrativeAssets,
+                to_regclass('public.session_donation_event_rankings') is not null as HasRemovedDonationRankings,
+                to_regclass('public.session_pension_rankings') is not null as HasRemovedPensionRankings,
                 exists (
                     select 1
                     from information_schema.tables
                     where table_schema = 'public'
                       and table_name = 'session_players'
                       and table_type = 'BASE TABLE'
-                ) as HasLegacyPlayersTable,
+                ) as HasRemovedPlayersTable,
                 exists (
                     select 1
                     from information_schema.tables
                     where table_schema = 'public'
                       and table_name = 'ruleset_catalog_items'
                       and table_type = 'BASE TABLE'
-                ) as HasLegacyCatalogTable,
+                ) as HasRemovedCatalogTable,
                 exists (
                     select 1
                     from information_schema.columns
@@ -187,16 +187,16 @@ public sealed class DatabaseStartupIntegrationTests
         Assert.True(canonicalSchemaState.HasGameSettings);
         Assert.True(canonicalSchemaState.HasDisplayName);
         Assert.True(canonicalSchemaState.HasCitextUsername);
-        Assert.False(canonicalSchemaState.HasLegacyParticipantAssets);
-        Assert.False(canonicalSchemaState.HasLegacyActionLogs);
-        Assert.False(canonicalSchemaState.HasLegacyInterpreterCommands);
-        Assert.False(canonicalSchemaState.HasLegacyQuestScripts);
-        Assert.False(canonicalSchemaState.HasLegacyNarrativeScripts);
-        Assert.False(canonicalSchemaState.HasLegacyNarrativeAssets);
-        Assert.False(canonicalSchemaState.HasLegacyDonationRankings);
-        Assert.False(canonicalSchemaState.HasLegacyPensionRankings);
-        Assert.False(canonicalSchemaState.HasLegacyPlayersTable);
-        Assert.False(canonicalSchemaState.HasLegacyCatalogTable);
+        Assert.False(canonicalSchemaState.HasRemovedParticipantAssets);
+        Assert.False(canonicalSchemaState.HasRemovedActionLogs);
+        Assert.False(canonicalSchemaState.HasRemovedInterpreterCommands);
+        Assert.False(canonicalSchemaState.HasRemovedQuestScripts);
+        Assert.False(canonicalSchemaState.HasRemovedNarrativeScripts);
+        Assert.False(canonicalSchemaState.HasRemovedNarrativeAssets);
+        Assert.False(canonicalSchemaState.HasRemovedDonationRankings);
+        Assert.False(canonicalSchemaState.HasRemovedPensionRankings);
+        Assert.False(canonicalSchemaState.HasRemovedPlayersTable);
+        Assert.False(canonicalSchemaState.HasRemovedCatalogTable);
         Assert.False(canonicalSchemaState.HasConfigJsonColumn);
         Assert.False(canonicalSchemaState.HasEventInventoryEffectsTable);
         Assert.True(canonicalSchemaState.HasRulesetCreatedByUserId);
