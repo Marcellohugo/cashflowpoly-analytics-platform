@@ -845,18 +845,6 @@ scenario_event_seed as (
           'PEMULA',
           null,
           0,
-          13,
-          1,
-          null,
-          'SYSTEM',
-          'AmbilKartuDariDeck',
-          'AmbilKartuDariDeck',
-          '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}' :: jsonb
-        ),
-        (
-          'PEMULA',
-          null,
-          0,
           14,
           1,
           1,
@@ -864,18 +852,6 @@ scenario_event_seed as (
           'KartuDiambilDariPasar',
           'KartuDiambilDariPasar',
           '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}' :: jsonb
-        ),
-        (
-          'PEMULA',
-          null,
-          0,
-          15,
-          1,
-          null,
-          'SYSTEM',
-          'KartuMasukDiscard',
-          'KartuMasukDiscard',
-          '{"asset_type":"ORDER","asset_code":"lontong_balap"}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1199,7 +1175,7 @@ scenario_event_seed as (
           'PLAYER',
           'JumatBerkah',
           'JumatBerkah',
-          '{"amount":3}' :: jsonb
+          '{"amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1223,7 +1199,7 @@ scenario_event_seed as (
           'PLAYER',
           'JumatBerkah',
           'JumatBerkah',
-          '{"amount":4}' :: jsonb
+          '{"amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1329,9 +1305,9 @@ scenario_event_seed as (
           6,
           4,
           'PLAYER',
-          'InvestasiEmas',
-          'InvestasiEmas',
-          '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}' :: jsonb
+          null,
+          'LewatiTransaksiEmas',
+          '{"note":"Saldo tidak cukup untuk membeli emas"}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1763,7 +1739,7 @@ scenario_event_seed as (
           'PLAYER',
           'JumatBerkah',
           'JumatBerkah',
-          '{"amount":4}' :: jsonb
+          '{"amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1775,7 +1751,7 @@ scenario_event_seed as (
           'PLAYER',
           'JumatBerkah',
           'JumatBerkah',
-          '{"amount":3}' :: jsonb
+          '{"amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1795,7 +1771,7 @@ scenario_event_seed as (
           11,
           5,
           12,
-          3,
+          4,
           'SYSTEM',
           'PoinPeringkatDonasi',
           'PoinPeringkatDonasi',
@@ -1807,7 +1783,7 @@ scenario_event_seed as (
           11,
           6,
           12,
-          4,
+          3,
           'SYSTEM',
           'PoinPeringkatDonasi',
           'PoinPeringkatDonasi',
@@ -1823,7 +1799,7 @@ scenario_event_seed as (
           'SYSTEM',
           'UmumkanJuaraDonasi',
           'UmumkanJuaraDonasi',
-          '{"summary":"Marco Juara 1, Hugo Juara 2, Manalu Juara 3","winners":[{"rank":1,"player_name":"Marco","player_order_no":1,"points":7},{"rank":2,"player_name":"Hugo","player_order_no":3,"points":5},{"rank":3,"player_name":"Manalu","player_order_no":4,"points":2}]}' :: jsonb
+          '{"summary":"Marco Juara 1, Manalu Juara 2, Hugo Juara 3","winners":[{"rank":1,"player_name":"Marco","player_order_no":1,"points":7},{"rank":2,"player_name":"Manalu","player_order_no":4,"points":5},{"rank":3,"player_name":"Hugo","player_order_no":3,"points":2}]}' :: jsonb
         ),
         (
           'PEMULA',
@@ -3150,18 +3126,6 @@ scenario_event_seed as (
           'MAHIR',
           null,
           0,
-          21,
-          1,
-          null,
-          'SYSTEM',
-          'AmbilKartuDariDeck',
-          'AmbilKartuDariDeck',
-          '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          0,
           22,
           1,
           1,
@@ -3169,18 +3133,6 @@ scenario_event_seed as (
           'KartuDiambilDariPasar',
           'KartuDiambilDariPasar',
           '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          0,
-          23,
-          1,
-          null,
-          'SYSTEM',
-          'KartuMasukDiscard',
-          'KartuMasukDiscard',
-          '{"asset_type":"ORDER","asset_code":"lontong_balap"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3276,7 +3228,7 @@ scenario_event_seed as (
           'PLAYER',
           'BahanMasakan',
           'BahanMasakan',
-          '{"card_id":"sayur","ingredient_name":"Sayur","amount":3}' :: jsonb
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3600,7 +3552,7 @@ scenario_event_seed as (
           'PLAYER',
           'JumatBerkah',
           'JumatBerkah',
-          '{"amount":4}' :: jsonb
+          '{"amount":3}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3670,9 +3622,9 @@ scenario_event_seed as (
           6,
           1,
           'PLAYER',
-          'InvestasiEmas',
-          'InvestasiEmas',
-          '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}' :: jsonb
+          null,
+          'LewatiTransaksiEmas',
+          '{"note":"Saldo tidak cukup untuk membeli emas"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3844,18 +3796,6 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
-          'mahir-risk-008',
-          7,
-          10,
-          8,
-          4,
-          'PLAYER',
-          'GunakanOpsiDarurat',
-          'GunakanOpsiDarurat',
-          '{"option_type":"USE_INSURANCE"}' :: jsonb
-        ),
-        (
-          'MAHIR',
           null,
           7,
           11,
@@ -3936,7 +3876,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_30","amount":10}' :: jsonb
+          '{"goal_id":"tujuan_30","amount":3}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4009,18 +3949,6 @@ scenario_event_seed as (
           'RisikoKehidupan',
           'RisikoKehidupan',
           '{"risk_id":"risk_ekstrakurikuler_anak","note":"Ekstrakurikuler anak"}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          'mahir-risk-010',
-          9,
-          3,
-          10,
-          1,
-          'PLAYER',
-          'GunakanOpsiDarurat',
-          'GunakanOpsiDarurat',
-          '{"option_type":"USE_INSURANCE"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4368,7 +4296,7 @@ scenario_event_seed as (
           'PLAYER',
           'Kebutuhan',
           'Kebutuhan',
-          '{"card_id":"boneka_1","amount":6,"points":5}' :: jsonb
+          '{"card_id":"buku_1","amount":2,"points":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5638,7 +5566,7 @@ ordered_events as (
           and (
             es.ref_key is not null
             or es.payload ? 'risk_event_id'
-            or es.payload ->> 'setup' = 'INITIAL'
+            or coalesce(es.payload ->> 'setup' = 'INITIAL', false)
           )
         )
       ) then 0
@@ -5662,7 +5590,7 @@ ordered_events as (
               and (
                 es.ref_key is not null
                 or es.payload ? 'risk_event_id'
-                or es.payload ->> 'setup' = 'INITIAL'
+                or coalesce(es.payload ->> 'setup' = 'INITIAL', false)
               )
             )
         ) over (
@@ -5988,7 +5916,7 @@ with component_values as (
     coalesce(
       (
         select
-          resolve_gold_points(coalesce(sum(spgh.quantity), 0) :: int, sp.ruleset_version_id)
+          resolve_gold_points(coalesce(sum(spgh.quantity), 0) :: int, s.ruleset_version_id)
         from
           session_participant_gold_holdings spgh
         where
@@ -6009,6 +5937,7 @@ with component_values as (
     ) :: int as loan_penalty_points
   from
     session_participants sp
+    join sessions s on s.session_id = sp.session_id
     left join events e on e.session_id = sp.session_id
     and e.user_id = sp.user_id
     left join session_participant_tie_breakers sptb on sptb.session_id = sp.session_id
@@ -6023,6 +5952,7 @@ with component_values as (
   group by
     sp.session_id,
     sp.session_participant_id,
+    s.ruleset_version_id,
     sptb.tie_number,
     spr.points_awarded
 ),

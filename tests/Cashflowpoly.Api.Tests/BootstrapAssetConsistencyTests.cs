@@ -144,6 +144,9 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("create table if not exists session_participant_gold_holdings", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("create table if not exists session_participant_loans", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("create table if not exists session_participant_insurances", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Matches(
+            "create table if not exists ruleset_insurance_products[\\s\\S]*is_active boolean not null default true",
+            schemaContent);
         Assert.Contains("create table if not exists session_participant_tie_breakers", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("create table if not exists session_final_scores", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("create table if not exists session_final_score_components", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -166,9 +169,11 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("create table if not exists session_projection_checkpoints", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("fk_session_projection_checkpoints_last_event_id", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("last_event_pk", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("create or replace function project_session_event", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("create or replace function project_session_events", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("create or replace function rebuild_session_projection", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("create or replace function project_session_event", schemaContent);
+        AssertSqlContains("create or replace function project_session_events", schemaContent);
+        AssertSqlContains("create or replace function ensure_session_card_positions_initialized", schemaContent);
+        Assert.Contains("existing.ruleset_game_asset_id = rci.ruleset_catalog_item_id", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("create or replace function rebuild_session_projection", schemaContent);
         Assert.Contains("SQL-only projection rebuild is disabled to prevent destructive state loss", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("v_projected := project_session_events", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("enforce_event_session_scope", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -224,8 +229,8 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("ck_session_states_current_action_slot check (current_action_slot >= 0)", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ck_session_narrative_logs_action_slot check (action_slot >= 1)", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("enforce_action_slot_within_ruleset_limit", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("tg_table_name = 'events' and new.actor_type = 'SYSTEM'", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("tg_table_name = 'session_states' and coalesce(new.turn_number, 0) = 0", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("tg_table_name = 'events' and new.actor_type = 'SYSTEM'", schemaContent);
+        AssertSqlContains("tg_table_name = 'session_states' and coalesce(new.turn_number, 0) = 0", schemaContent);
         Assert.Contains("rgs.actions_per_turn", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("trg_events_action_slot_limit", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("trg_session_states_action_slot_limit", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -242,8 +247,8 @@ public sealed class BootstrapAssetConsistencyTests
 
         Assert.Contains("turn_number int not null", eventsTable, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("turn_number int not null", sessionStatesTable, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ck_events_turn_number check (turn_number between 0 and 4)", eventsTable, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ck_session_states_turn_number check (turn_number between 0 and 4)", sessionStatesTable, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("ck_events_turn_number check (turn_number between 0 and 4)", eventsTable);
+        AssertSqlContains("ck_session_states_turn_number check (turn_number between 0 and 4)", sessionStatesTable);
         Assert.Contains("ck_events_actor_turn_slot_shape", eventsTable, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("new.actor_type = 'SYSTEM'", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("new.turn_number <> 0", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -261,8 +266,8 @@ public sealed class BootstrapAssetConsistencyTests
 
         Assert.Contains("behavior_id varchar(80) not null", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("v_behavior_id", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("select a.mode, ra.behavior_id", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("new.action_type is distinct from v_behavior_id", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("select a.mode, ra.behavior_id", schemaContent);
+        AssertSqlContains("new.action_type is distinct from v_behavior_id", schemaContent);
         Assert.Contains("Event action_type % must match ruleset action behavior_id %", schemaContent, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -280,8 +285,8 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("session_card_positions' then 'CARD_POSITION'", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("event_asset_references' then 'EVENT_REFERENCE'", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("copy_number > coalesce(v_card_qty, 0)", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("new.zone = 'PLAYER' and new.owner_session_participant_id is null", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("new.zone <> 'PLAYER' and new.owner_session_participant_id is not null", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("new.zone = 'PLAYER' and new.owner_session_participant_id is null", schemaContent);
+        AssertSqlContains("new.zone <> 'PLAYER' and new.owner_session_participant_id is not null", schemaContent);
         Assert.Contains("projection_order int not null default 1", projectionsTable, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("unique (session_id, event_id, projection_order)", projectionsTable, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("enforce_event_cashflow_projection_consistency", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -312,7 +317,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("fk_session_rule_effects_session_id", ruleEffectsTable, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("required_need_family_code varchar(120) null", missionRequirementsTable, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'NEED_FAMILY'", missionRequirementsTable, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("create or replace function apply_game_event", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("create or replace function apply_game_event", schemaContent);
     }
 
     [Fact]
@@ -393,6 +398,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("p.prokind in ('f', 'p')", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("d.deptype = 'e'", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_views", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("E '\\n'", schemaContent, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -408,10 +414,10 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("rank_type in ('DONATION', 'PENSION')", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("create table if not exists ruleset_donation_rank_points", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("create table if not exists ruleset_pension_rank_points", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("create or replace view ruleset_catalog_item_requirements", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("create or replace view ruleset_collection_mission_requirement_items", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("create or replace view ruleset_catalog_item_requirements", schemaContent);
+        AssertSqlContains("create or replace view ruleset_collection_mission_requirement_items", schemaContent);
         Assert.DoesNotContain("rcmr.ruleset_collection_mission_id", ExtractView(schemaContent, "ruleset_catalog_item_requirements"), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_rank_points", seedContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("insert into ruleset_rank_points", seedContent);
         Assert.DoesNotContain("insert into ruleset_donation_rank_points", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("insert into ruleset_pension_rank_points", seedContent, StringComparison.OrdinalIgnoreCase);
     }
@@ -539,26 +545,27 @@ public sealed class BootstrapAssetConsistencyTests
         var seedContent = File.ReadAllText(seedPath);
 
         Assert.Contains("created_by_user_id", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("$ json $", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("insert into app_menus", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("insert into role_menu_permissions", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(
             string.Concat("ruleset", "_player", "_ordering", "_instructor", "_users"),
             seedContent,
             StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_game_assets", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_game_settings", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_orders", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_collection_mission_requirements", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_need_set_bonuses", seedContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("insert into ruleset_game_assets", seedContent);
+        AssertSqlContains("insert into ruleset_game_settings", seedContent);
+        AssertSqlContains("insert into ruleset_orders", seedContent);
+        AssertSqlContains("insert into ruleset_collection_mission_requirements", seedContent);
+        AssertSqlContains("insert into ruleset_need_set_bonuses", seedContent);
         Assert.Contains("'THREE_DIFFERENT'", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("'THREE_SAME'", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_gold_prices", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_tie_breakers", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_sharia_loans", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_insurance_products", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_life_risks", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_narratives", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_narrative_scenes", seedContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("insert into ruleset_gold_prices", seedContent);
+        AssertSqlContains("insert into ruleset_tie_breakers", seedContent);
+        AssertSqlContains("insert into ruleset_sharia_loans", seedContent);
+        AssertSqlContains("insert into ruleset_insurance_products", seedContent);
+        AssertSqlContains("insert into ruleset_life_risks", seedContent);
+        AssertSqlContains("insert into ruleset_narratives", seedContent);
+        AssertSqlContains("insert into ruleset_narrative_scenes", seedContent);
         Assert.Contains("BagikanEmasAwal", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("AmbilKartuDariDeck", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("KartuDiambilDariPasar", seedContent, StringComparison.OrdinalIgnoreCase);
@@ -569,7 +576,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("card.taken", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("card.discarded", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("market.refilled", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into ruleset_trigger_conditions", seedContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("insert into ruleset_trigger_conditions", seedContent);
         Assert.DoesNotContain("insert into ruleset_quests", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(@"""quest""", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("asset_type = 'NARRATIVE'", seedContent, StringComparison.OrdinalIgnoreCase);
@@ -718,14 +725,14 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("insert into session_participant_tie_breakers", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("insert into session_participant_collection_missions", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("insert into session_pension_rankings", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into session_final_scores", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("insert into session_final_score_components", seedContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("insert into session_final_scores", seedContent);
+        AssertSqlContains("insert into session_final_score_components", seedContent);
         Assert.Contains("BagikanTieBreaker", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tie_breaker.assigned", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("session_participant_collection_missions", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("session_participant_quest_progress", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("session_ruleset_activations", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("spb.coins + spb.saving + coalesce(ingredients.leftover_qty, 0)", seedContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("spb.coins + spb.saving + coalesce(ingredients.leftover_qty, 0)", seedContent);
         Assert.DoesNotContain("least(latest.day_index, rgs.finish_day)", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(@"""ingredient_name"":""Bumbu""", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(
@@ -785,6 +792,7 @@ public sealed class BootstrapAssetConsistencyTests
         var seedContent = File.ReadAllText(seedPath);
 
         Assert.Contains("resolve_gold_points(", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("sp.ruleset_version_id", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("rga.quantity = spgh.quantity", seedContent, StringComparison.OrdinalIgnoreCase);
 
         var events = ParseSimulationSeedEvents(seedContent).ToList();
@@ -831,6 +839,19 @@ public sealed class BootstrapAssetConsistencyTests
         throw new DirectoryNotFoundException("Tidak dapat menemukan root repositori (Cashflowpoly.sln).");
     }
 
+    private static void AssertSqlContains(string expected, string actual)
+    {
+        Assert.Contains(NormalizeSql(expected), NormalizeSql(actual), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeSql(string sql)
+    {
+        var normalized = Regex.Replace(sql, @"\s+", " ").Trim();
+        normalized = Regex.Replace(normalized, @"\(\s+", "(");
+        normalized = Regex.Replace(normalized, @"\s+\)", ")");
+        return normalized;
+    }
+
     private static string ExtractCreateTable(string sql, string tableName)
     {
         var match = Regex.Match(
@@ -846,7 +867,7 @@ public sealed class BootstrapAssetConsistencyTests
     {
         var match = Regex.Match(
             sql,
-            $@"create or replace view {Regex.Escape(viewName)} as(?<body>.*?);",
+            $@"create\s+or\s+replace\s+view\s+{Regex.Escape(viewName)}\s+as(?<body>.*?);",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         Assert.True(match.Success, $"View '{viewName}' should exist in canonical schema.");
