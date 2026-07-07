@@ -2891,6 +2891,22 @@ end if;
 
 end if;
 
+if new.actor_type = 'PLAYER'
+and new.weekday = 'FRI'
+and new.action_type <> 'JumatBerkah' then raise exception 'Friday player actions are limited to donation' using errcode = '23514';
+
+end if;
+
+if new.actor_type = 'PLAYER'
+and new.weekday = 'SAT'
+and new.action_type not in (
+  'InvestasiEmas',
+  'JualEmas',
+  'LewatiTransaksiEmas'
+) then raise exception 'Saturday player actions are limited to gold trades' using errcode = '23514';
+
+end if;
+
 if v_session_mode = 'PEMULA'
 and (
   new.action_type in (
@@ -3341,6 +3357,18 @@ end if;
 
 end if;
 
+if new.action_type = 'RisikoKehidupan'
+and (
+  v_last_action_type is distinct
+  from
+    'JualMasakan'
+    or new.session_player_id is distinct
+  from
+    v_last_player_id
+) then raise exception 'RisikoKehidupan in MAHIR mode must immediately follow JualMasakan for the same player' using errcode = '23514';
+
+end if;
+
 end;
 
 end if;
@@ -3416,7 +3444,12 @@ end if;
 v_option_type := upper(nullif(new.payload ->> 'option_type', ''));
 
 if v_option_type is null
-or v_option_type not in ('SELL_NEED', 'TAKE_SHARIA_LOAN', 'USE_INSURANCE') then raise exception 'Emergency option_type % is not supported',
+or v_option_type not in (
+  'SELL_NEED',
+  'SELL_GOLD',
+  'TAKE_SHARIA_LOAN',
+  'USE_INSURANCE'
+) then raise exception 'Emergency option_type % is not supported',
 new.payload ->> 'option_type' using errcode = '23514';
 
 end if;
@@ -3504,33 +3537,117 @@ end;
 
 end if;
 
-if v_option_type = 'TAKE_SHARIA_LOAN' then if not (
+if v_option_type = 'SELL_GOLD' then declare v_qty int;
+
+v_unit_price int;
+
+v_sell_amount int;
+
+v_active_gold_price int;
+
+v_current_gold_qty int;
+
+v_gold_asset_code text;
+
+begin if not (
+  new.payload ? 'qty'
+  and new.payload ? 'unit_price'
+  and new.payload ? 'amount'
+) then raise exception 'SELL_GOLD emergency option must contain qty, unit_price, and amount' using errcode = '23514';
+
+end if;
+
+v_qty := (new.payload ->> 'qty') :: int;
+
+v_unit_price := (new.payload ->> 'unit_price') :: int;
+
+v_sell_amount := (new.payload ->> 'amount') :: int;
+
+v_gold_asset_code := coalesce(
+  nullif(new.payload ->> 'asset_code', ''),
+  'gold_card'
+);
+
+if v_qty < 1
+or v_unit_price < 0
+or v_sell_amount <> v_qty * v_unit_price then raise exception 'SELL_GOLD qty/unit_price/amount is invalid' using errcode = '23514';
+
+end if;
+
+select
+  (price_evt.payload ->> 'gold_price') :: int into v_active_gold_price
+from
+  events price_evt
+where
+  price_evt.session_id = new.session_id
+  and price_evt.action_type = 'BukaHargaEmas'
+  and price_evt.day_index <= new.day_index
+order by
+  price_evt.day_index desc,
+  price_evt.sequence_number desc
+limit
+  1;
+
+if v_active_gold_price is null then raise exception 'SELL_GOLD emergency option requires an active BukaHargaEmas event' using errcode = '23514';
+
+end if;
+
+if v_unit_price <> v_active_gold_price then raise exception 'SELL_GOLD unit_price % must match active price %',
+v_unit_price,
+v_active_gold_price using errcode = '23514';
+
+end if;
+
+select
+  coalesce(sum(spgh.quantity), 0) :: int into v_current_gold_qty
+from
+  session_participant_gold_holdings spgh
+  join ruleset_game_assets rga on rga.ruleset_game_asset_id = spgh.ruleset_game_asset_id
+  and rga.ruleset_version_id = spgh.ruleset_version_id
+where
+  spgh.session_participant_id = new.session_player_id
+  and rga.asset_type = 'GOLD'
+  and lower(rga.asset_code) = lower(v_gold_asset_code);
+
+if coalesce(v_current_gold_qty, 0) < v_qty then raise exception 'Kepemilikan emas tidak cukup untuk SELL_GOLD: required %, available %',
+v_qty,
+coalesce(v_current_gold_qty, 0) using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
+if v_option_type = 'TAKE_SHARIA_LOAN' then declare v_catalog_principal int;
+
+begin if not (
   new.payload ? 'loan_code'
   and new.payload ? 'principal'
 ) then raise exception 'TAKE_SHARIA_LOAN emergency option must contain loan_code and principal' using errcode = '23514';
 
 end if;
 
-if (new.payload ->> 'principal') :: int < 1
-or (new.payload ->> 'principal') :: int > v_risk_amount then raise exception 'TAKE_SHARIA_LOAN principal % must be between 1 and risk amount %',
-(new.payload ->> 'principal') :: int,
-v_risk_amount using errcode = '23514';
+select
+  rsl.principal into v_catalog_principal
+from
+  ruleset_sharia_loans rsl
+where
+  rsl.ruleset_version_id = new.ruleset_version_id
+  and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
+  and rsl.is_active;
 
-end if;
-
-if not exists (
-  select
-    1
-  from
-    ruleset_sharia_loans rsl
-  where
-    rsl.ruleset_version_id = new.ruleset_version_id
-    and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
-    and rsl.is_active
-) then raise exception 'Emergency loan % is not active in this ruleset',
+if v_catalog_principal is null then raise exception 'Emergency loan % is not active in this ruleset',
 new.payload ->> 'loan_code' using errcode = '23514';
 
 end if;
+
+if (new.payload ->> 'principal') :: int <> v_catalog_principal then raise exception 'Emergency loan principal must match catalog principal %',
+v_catalog_principal using errcode = '23514';
+
+end if;
+
+end;
 
 end if;
 
@@ -3562,7 +3679,55 @@ if new.action_type = 'PinjamanSyariah' then declare v_loan_card_qty int;
 
 v_active_loans_count int;
 
-begin if (
+v_catalog_principal int;
+
+v_catalog_repayment int;
+
+v_catalog_penalty int;
+
+begin if not (
+  new.payload ? 'loan_code'
+  and new.payload ? 'principal'
+) then raise exception 'PinjamanSyariah event payload must contain loan_code and principal' using errcode = '23514';
+
+end if;
+
+select
+  principal,
+  repayment_amount,
+  penalty_points into v_catalog_principal,
+  v_catalog_repayment,
+  v_catalog_penalty
+from
+  ruleset_sharia_loans
+where
+  ruleset_version_id = new.ruleset_version_id
+  and lower(loan_code) = lower(new.payload ->> 'loan_code')
+  and is_active;
+
+if v_catalog_principal is null then raise exception 'Sharia loan % is not active in this ruleset',
+new.payload ->> 'loan_code' using errcode = '23514';
+
+end if;
+
+if (new.payload ->> 'principal') :: int <> v_catalog_principal then raise exception 'Sharia loan principal must match catalog principal %',
+v_catalog_principal using errcode = '23514';
+
+end if;
+
+if new.payload ? 'repayment_amount'
+and (new.payload ->> 'repayment_amount') :: int <> v_catalog_repayment then raise exception 'Sharia loan repayment_amount must match catalog repayment_amount %',
+v_catalog_repayment using errcode = '23514';
+
+end if;
+
+if new.payload ? 'penalty_points'
+and (new.payload ->> 'penalty_points') :: int <> v_catalog_penalty then raise exception 'Sharia loan penalty_points must match catalog penalty_points %',
+v_catalog_penalty using errcode = '23514';
+
+end if;
+
+if (
   new.payload ? 'risk_event_ref'
   or new.payload ? 'risk_event_id'
 ) then declare v_risk_event_id uuid;
@@ -3640,7 +3805,43 @@ end;
 
 end if;
 
--- 9. Insurance validation (reject global/SYSTEM risks + ACTIVE status / uses remaining check)
+-- 9. Insurance validation (premium catalog match + reject global/SYSTEM risks + ACTIVE status / uses remaining check)
+if new.action_type = 'Asuransi'
+and not (
+  new.payload ? 'risk_event_id'
+  or new.payload ? 'risk_event_ref'
+) then declare v_catalog_premium int;
+
+begin if not (
+  new.payload ? 'product_code'
+  and new.payload ? 'premium'
+) then raise exception 'Insurance activation must contain product_code and premium' using errcode = '23514';
+
+end if;
+
+select
+  premium into v_catalog_premium
+from
+  ruleset_insurance_products
+where
+  ruleset_version_id = new.ruleset_version_id
+  and lower(product_code) = lower(new.payload ->> 'product_code')
+  and is_active;
+
+if v_catalog_premium is null then raise exception 'Insurance product % is not active in this ruleset',
+new.payload ->> 'product_code' using errcode = '23514';
+
+end if;
+
+if (new.payload ->> 'premium') :: int <> v_catalog_premium then raise exception 'Insurance premium must match catalog premium %',
+v_catalog_premium using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
 if new.action_type = 'Asuransi'
 and (
   new.payload ? 'risk_event_id'
@@ -4401,7 +4602,12 @@ with risk_catalog as (
       when v_event.action_type = 'Asuransi'
       and v_event.payload ? 'risk_event_id' then 'IN'
       when v_event.action_type = 'GunakanOpsiDarurat'
-      and upper(v_event.payload ->> 'option_type') in ('SELL_NEED', 'TAKE_SHARIA_LOAN', 'USE_INSURANCE') then 'IN'
+      and upper(v_event.payload ->> 'option_type') in (
+        'SELL_NEED',
+        'SELL_GOLD',
+        'TAKE_SHARIA_LOAN',
+        'USE_INSURANCE'
+      ) then 'IN'
     end as direction,
     case
       when v_event.action_type in ('PinjamanSyariah', 'SetupPinjamanAwal') then (v_event.payload ->> 'principal') :: int
@@ -4409,6 +4615,8 @@ with risk_catalog as (
       and upper(v_event.payload ->> 'option_type') = 'TAKE_SHARIA_LOAN' then (v_event.payload ->> 'principal') :: int
       when v_event.action_type = 'GunakanOpsiDarurat'
       and upper(v_event.payload ->> 'option_type') = 'SELL_NEED' then (v_event.payload ->> 'amount') :: int
+      when v_event.action_type = 'GunakanOpsiDarurat'
+      and upper(v_event.payload ->> 'option_type') = 'SELL_GOLD' then (v_event.payload ->> 'amount') :: int
       when v_event.action_type = 'GunakanOpsiDarurat'
       and upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE' then (
         select
@@ -5041,6 +5249,10 @@ if v_event.action_type in (
   'JualEmas',
   'SetupEmasAwal',
   'BagikanEmasAwal'
+)
+or (
+  v_event.action_type = 'GunakanOpsiDarurat'
+  and upper(v_event.payload ->> 'option_type') = 'SELL_GOLD'
 ) then
 insert into
   session_participant_gold_holdings (
@@ -5061,7 +5273,11 @@ select
   greatest(
     0,
     case
-      when v_event.action_type = 'JualEmas' then - coalesce((v_event.payload ->> 'qty') :: int, 1)
+      when v_event.action_type = 'JualEmas'
+      or (
+        v_event.action_type = 'GunakanOpsiDarurat'
+        and upper(v_event.payload ->> 'option_type') = 'SELL_GOLD'
+      ) then - coalesce((v_event.payload ->> 'qty') :: int, 1)
       else coalesce((v_event.payload ->> 'qty') :: int, 1)
     end
   ),
@@ -5082,7 +5298,11 @@ limit
 update
 set
   quantity = session_participant_gold_holdings.quantity + case
-    when v_event.action_type = 'JualEmas' then - coalesce((v_event.payload ->> 'qty') :: int, 1)
+    when v_event.action_type = 'JualEmas'
+    or (
+      v_event.action_type = 'GunakanOpsiDarurat'
+      and upper(v_event.payload ->> 'option_type') = 'SELL_GOLD'
+    ) then - coalesce((v_event.payload ->> 'qty') :: int, 1)
     else coalesce((v_event.payload ->> 'qty') :: int, 1)
   end,
   last_event_id = v_event.event_id,
