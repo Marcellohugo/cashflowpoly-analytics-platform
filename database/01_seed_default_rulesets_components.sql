@@ -114,18 +114,6 @@ values
         true
     ),
     (
-        'TarikTabungan',
-        'Tarik Tabungan',
-        'TarikTabungan',
-        'MAHIR',
-        'IN',
-        true,
-        false,
-        true,
-        false,
-        true
-    ),
-    (
         'TujuanFinansial',
         'Tujuan Finansial',
         'TujuanFinansial',
@@ -1149,6 +1137,42 @@ insert into
                         804,
                         true,
                         '{"source":"static.gold_price"}' :: jsonb
+                    ),
+                    (
+                        'f5b4c67b-0825-4970-9f07-3b68e8fcb524' :: uuid,
+                        'TIE_BREAKER',
+                        'tie_breaker_1',
+                        'Tie Breaker 1',
+                        901,
+                        true,
+                        '{"source":"static.tie_breaker"}' :: jsonb
+                    ),
+                    (
+                        'f5b4c67b-0825-4970-9f07-3b68e8fcb524' :: uuid,
+                        'TIE_BREAKER',
+                        'tie_breaker_2',
+                        'Tie Breaker 2',
+                        902,
+                        true,
+                        '{"source":"static.tie_breaker"}' :: jsonb
+                    ),
+                    (
+                        'f5b4c67b-0825-4970-9f07-3b68e8fcb524' :: uuid,
+                        'TIE_BREAKER',
+                        'tie_breaker_3',
+                        'Tie Breaker 3',
+                        903,
+                        true,
+                        '{"source":"static.tie_breaker"}' :: jsonb
+                    ),
+                    (
+                        'f5b4c67b-0825-4970-9f07-3b68e8fcb524' :: uuid,
+                        'TIE_BREAKER',
+                        'tie_breaker_4',
+                        'Tie Breaker 4',
+                        904,
+                        true,
+                        '{"source":"static.tie_breaker"}' :: jsonb
                     ),
                     (
                         '7c3bfd8a-27d7-4468-b8d7-cf90131bc61d' :: uuid,
