@@ -55,8 +55,7 @@ internal static class RulesetDefinitionMapper
                 SaturdayFeature = ReadNestedWeekdayFeature(weekdayRules, "saturday", "SAT", "GOLD_TRADE"),
                 SaturdayEnabled = ReadNestedWeekdayEnabled(weekdayRules, "saturday", "SAT", true),
                 SundayFeature = ReadNestedWeekdayFeature(weekdayRules, "sunday", "SUN", "REST"),
-                SundayEnabled = ReadNestedWeekdayEnabled(weekdayRules, "sunday", "SUN", true),
-                InstructorPlayerUsernames = ReadStringList(root, "instructor_player_usernames")
+                SundayEnabled = ReadNestedWeekdayEnabled(weekdayRules, "sunday", "SUN", true)
             },
             Ingredients = ReadIngredients(componentCatalog),
             Orders = ReadOrders(componentCatalog),
@@ -181,7 +180,7 @@ internal static class RulesetDefinitionMapper
                 ["loan_code"] = item.LoanCode,
                 ["item_name"] = item.ItemName,
                 ["principal"] = item.Principal,
-                ["installment"] = item.Installment,
+                ["repayment_amount"] = item.RepaymentAmount,
                 ["duration_days"] = item.DurationDays,
                 ["penalty_points"] = item.PenaltyPoints,
                 ["card_qty"] = item.CardQty
@@ -272,11 +271,6 @@ internal static class RulesetDefinitionMapper
             }
         };
 
-        if (definition.PlayerOrdering.InstructorPlayerUsernames.Count > 0)
-        {
-            root["instructor_player_usernames"] = new JsonArray(definition.PlayerOrdering.InstructorPlayerUsernames
-                .Select(username => (JsonNode)username).ToArray());
-        }
 
         return root.ToJsonString(new JsonSerializerOptions
         {
@@ -308,7 +302,8 @@ internal static class RulesetDefinitionMapper
                     .Select(x => x.GetString() ?? string.Empty)
                     .Where(x => !string.IsNullOrWhiteSpace(x))
                     .ToList()
-                : []
+                : [],
+            CardQty = item.TryGetProperty("cardQty", out var cq) && cq.ValueKind == JsonValueKind.Number ? cq.GetInt32() : (int?)null
         });
     }
 
@@ -412,7 +407,7 @@ internal static class RulesetDefinitionMapper
             LoanCode = ReadString(item, "loan_code", string.Empty),
             ItemName = ReadString(item, "item_name", string.Empty),
             Principal = ReadInt(item, "principal", 0),
-            Installment = ReadInt(item, "installment", 0),
+            RepaymentAmount = ReadInt(item, "repayment_amount", 0),
             DurationDays = ReadInt(item, "duration_days", 0),
             PenaltyPoints = ReadInt(item, "penalty_points", 0),
             CardQty = ReadNullableInt(item, "card_qty")

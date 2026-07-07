@@ -29,7 +29,7 @@ public static class PlayerMetricLabelFormatter
             return translate("players.details.series");
         }
 
-        var normalized = key.Trim().ToLowerInvariant();
+        var normalized = NormalizeMetricLexiconKey(key);
         var aliasLexiconKey = normalized switch
         {
             "coins_net_end" => "players.raw.coins_net_end_game",
@@ -48,7 +48,7 @@ public static class PlayerMetricLabelFormatter
             return localizedLabel;
         }
 
-        var text = key.Replace('_', ' ').Trim();
+        var text = normalized.Replace('_', ' ').Trim();
         if (text.Length == 0)
         {
             return translate("players.details.metric_fallback");
@@ -289,5 +289,61 @@ public static class PlayerMetricLabelFormatter
         }
 
         return translated;
+    }
+
+    private static string NormalizeMetricLexiconKey(string key)
+    {
+        var trimmed = key.Trim();
+        var builder = new StringBuilder(trimmed.Length);
+
+        for (var index = 0; index < trimmed.Length; index++)
+        {
+            var current = trimmed[index];
+            if (char.IsLetterOrDigit(current))
+            {
+                if (builder.Length > 0 &&
+                    char.IsUpper(current) &&
+                    ShouldInsertWordBoundary(trimmed, index))
+                {
+                    AppendSeparator(builder);
+                }
+
+                builder.Append(char.ToLowerInvariant(current));
+                continue;
+            }
+
+            AppendSeparator(builder);
+        }
+
+        return builder.ToString().Trim('_');
+    }
+
+    private static bool ShouldInsertWordBoundary(string value, int index)
+    {
+        if (index == 0)
+        {
+            return false;
+        }
+
+        var previous = value[index - 1];
+        if (!char.IsLetterOrDigit(previous))
+        {
+            return false;
+        }
+
+        if (char.IsLower(previous) || char.IsDigit(previous))
+        {
+            return true;
+        }
+
+        return index + 1 < value.Length && char.IsLower(value[index + 1]);
+    }
+
+    private static void AppendSeparator(StringBuilder builder)
+    {
+        if (builder.Length > 0 && builder[^1] != '_')
+        {
+            builder.Append('_');
+        }
     }
 }

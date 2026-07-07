@@ -16,6 +16,17 @@ public sealed class PlayerMetricLabelFormatterTests
         Assert.Equal("Coins - Ending Coins - History - Item 2", label);
     }
 
+    [Theory]
+    [InlineData("CoinsSpentPerTurn[0].Amount", "Coins Spent per Turn - Item 1 - Amount")]
+    [InlineData("ingredientTypesHeld.White Rice", "Ingredient Types Held - White Rice")]
+    [InlineData("incomeDiversificationComponents.FreelanceIncome", "Income Diversification Components - Freelance Income")]
+    public void FormatMetricPathLabel_NormalizesGameplayMetricKeysBeforeLocalization(string path, string expected)
+    {
+        var label = PlayerMetricLabelFormatter.FormatMetricPathLabel(path, Translate);
+
+        Assert.Equal(expected, label);
+    }
+
     [Fact]
     public void LocalizeTransactionDetail_FormatsOpeningCashAndCashflowCategories()
     {
@@ -69,6 +80,12 @@ public sealed class PlayerMetricLabelFormatterTests
             "common.value" => "Value",
             "players.raw.coins" => "Coins",
             "players.raw.coins_net_end_game" => "Ending Coins",
+            "players.raw.coins_spent_per_turn" => "Coins Spent per Turn",
+            "players.raw.amount" => "Amount",
+            "players.raw.ingredient_types_held" => "Ingredient Types Held",
+            "players.raw.white_rice" => "White Rice",
+            "players.metric.income_diversification_components" => "Income Diversification Components",
+            "players.metric.freelance_income" => "Freelance Income",
             "players.details.transaction_label" => "Transaction",
             "players.details.transaction.opening_cash" => "Opening Cash",
             "players.details.transaction.opening_cash_with_amount" => "Opening Cash ({0})",

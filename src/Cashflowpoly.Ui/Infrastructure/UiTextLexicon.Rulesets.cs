@@ -123,13 +123,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.form.starting_cash"] = ("Kas Awal per Pemain", "Starting Cash per Player");
         terms["rulesets.form.player_ordering"] = ("Urutan Pemain", "Player Ordering");
         terms["rulesets.form.player_ordering_player_order"] = ("Urutan Bergabung (Sesi)", "Join Order (Session)");
-        terms["rulesets.form.player_ordering_instructor_order"] = ("Urutan Instruktur (Username)", "Instructor Order (Username)");
-        terms["rulesets.form.player_ordering_fixed_hint"] = ("Urutan pemain ditetapkan instruktur melalui username Player 1-4.", "Player order is fixed by instructor via Player 1-4 usernames.");
-        terms["rulesets.form.player_slots_title"] = ("Mapping Player 1-4 (Username)", "Player 1-4 Mapping (Username)");
-        terms["rulesets.form.player_slot_1_username"] = ("Player 1 Username", "Player 1 Username");
-        terms["rulesets.form.player_slot_2_username"] = ("Player 2 Username", "Player 2 Username");
-        terms["rulesets.form.player_slot_3_username"] = ("Player 3 Username", "Player 3 Username");
-        terms["rulesets.form.player_slot_4_username"] = ("Player 4 Username", "Player 4 Username");
+        terms["rulesets.form.player_ordering_fixed_hint"] = ("Player ditambahkan manual ke sesi melalui Klien Game/IDN setelah sesi dibuat.", "Players are manually added to the session through the Game/IDN Client after the session is created.");
         terms["rulesets.form.player_ordering_event_sequence"] = ("Aktivitas Pertama", "First Event");
         terms["rulesets.form.player_ordering_player_id"] = ("ID Pemain", "Player ID");
         terms["rulesets.form.player_ordering_username"] = ("Username (A-Z)", "Username (A-Z)");

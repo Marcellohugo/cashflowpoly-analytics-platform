@@ -176,6 +176,7 @@ internal static partial class UiTextLexicon
         terms["common.finish"] = ("Selesai", "Finish");
         terms["common.session"] = ("Sesi", "Session");
         terms["common.na"] = ("Tidak Ada", "N/A");
+        terms["common.running_balance"] = ("Saldo Berjalan", "Running Balance");
         terms["error.title"] = ("Terjadi Kesalahan", "An Error Occurred");
         terms["error.notice"] = ("Pemberitahuan Sistem", "System Notice");
         terms["error.message"] = ("Terjadi kesalahan saat memproses permintaan.", "An error occurred while processing your request.");

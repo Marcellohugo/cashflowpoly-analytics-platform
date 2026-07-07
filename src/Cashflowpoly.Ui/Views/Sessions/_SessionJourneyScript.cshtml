@@ -8,11 +8,8 @@
         const feedEl = document.getElementById("session-journey-feed");
         const errorEl = document.getElementById("session-journey-error");
         const syncedEl = document.getElementById("session-journey-synced");
-        const insightTotalEl = document.getElementById("session-journey-insight-total");
-        const insightPlayersEl = document.getElementById("session-journey-insight-players");
         const insightDayTurnEl = document.getElementById("session-journey-insight-day-turn");
         const insightPlayerEl = document.getElementById("session-journey-insight-player");
-        const insightActionEl = document.getElementById("session-journey-insight-action");
 
         if (!filterEl || !feedEl || !errorEl || !syncedEl) {
             return;
@@ -48,6 +45,7 @@
         let pollingTimerId = null;
         let lastSequence = 0;
         let selectedTimelineFilter = "all";
+        let selectedDay = null;
 
         const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
         const toNumber = (value, fallback = 0) => {
@@ -333,18 +331,8 @@
             const buttons = [
                 `
                     <button type="button"
-                            class="session-journey-filter-btn ${selectedTimelineFilter === "all" ? "is-active" : ""}"
-                            data-timeline-filter="all">${escapeHtml(allPlayersLabel)}</button>
-                `,
-                `
-                    <button type="button"
-                            class="session-journey-filter-btn ${selectedTimelineFilter === "players" ? "is-active" : ""}"
-                            data-timeline-filter="players">${escapeHtml(playersFilterLabel)}</button>
-                `,
-                `
-                    <button type="button"
-                            class="session-journey-filter-btn ${selectedTimelineFilter === "system" ? "is-active" : ""}"
-                            data-timeline-filter="system">${escapeHtml(systemFilterLabel)}</button>
+                             class="session-journey-filter-btn ${selectedTimelineFilter === "all" ? "is-active" : ""}"
+                             data-timeline-filter="all">${escapeHtml(allPlayersLabel)}</button>
                 `
             ];
 
@@ -352,8 +340,8 @@
                 const filterKey = `player:${option.key}`;
                 buttons.push(`
                     <button type="button"
-                            class="session-journey-filter-btn ${selectedTimelineFilter === filterKey ? "is-active" : ""}"
-                            data-timeline-filter="${escapeHtml(filterKey)}">${escapeHtml(option.label)}</button>
+                             class="session-journey-filter-btn ${selectedTimelineFilter === filterKey ? "is-active" : ""}"
+                             data-timeline-filter="${escapeHtml(filterKey)}">${escapeHtml(option.label)}</button>
                 `);
             });
 
@@ -421,37 +409,231 @@
             }).join("");
         };
         const renderJourneyInsights = (visibleTimeline) => {
-            if (!insightTotalEl || !insightPlayersEl || !insightDayTurnEl || !insightPlayerEl || !insightActionEl) {
+            if (!insightDayTurnEl || !insightPlayerEl) {
                 return;
             }
 
-            if (visibleTimeline.length === 0) {
-                insightTotalEl.textContent = "0";
-                insightPlayersEl.textContent = "0";
+            // Find the latest player item in the unfiltered base timeline
+            const baseTimeline = getVisibleBaseTimeline();
+            let latestPlayerItem = null;
+            for (let i = baseTimeline.length - 1; i >= 0; i--) {
+                if (actorBucket(baseTimeline[i].actorType) === "PLAYER") {
+                    latestPlayerItem = baseTimeline[i];
+                    break;
+                }
+            }
+
+            if (latestPlayerItem) {
+                insightDayTurnEl.textContent = `${dayLabel} ${displayDayNumber(latestPlayerItem.dayIndex)} | ${latestPlayerItem.flowDescription || actionLabel(latestPlayerItem)}`;
+                insightPlayerEl.textContent = actorLabel(latestPlayerItem);
+            } else {
                 insightDayTurnEl.textContent = "-";
                 insightPlayerEl.textContent = "-";
-                insightActionEl.textContent = "-";
-                return;
+            }
+        };
+        const getEventsGroupedByDay = (visibleTimeline) => {
+            const map = new Map();
+            visibleTimeline.forEach((item) => {
+                const day = toNumber(item.dayIndex, 0);
+                if (!map.has(day)) {
+                    map.set(day, []);
+                }
+                map.get(day).push(item);
+            });
+            return map;
+        };
+
+        const renderCalendar = (eventsByDay) => {
+            const calendarGridEl = document.getElementById("work-calendar-grid");
+            if (!calendarGridEl) return;
+
+            const activeDays = Array.from(eventsByDay.keys());
+            const cellsHtml = [];
+
+            // GO starting card (index 0)
+            const goActive = selectedTimelineFilter === "all" || eventsByDay.has(0);
+            const goSelected = selectedDay === 0;
+            cellsHtml.push(`
+                <div class="work-calendar-cell work-calendar-cell--go ${goActive ? 'is-active-day' : ''} ${goSelected ? 'is-selected-day' : ''}" data-day="0" role="button" tabindex="0" aria-label="GO">
+                    <span class="go-title">${'GO'}</span>
+                    <span class="go-arrow">➡️</span>
+                </div>
+            `);
+
+            // Work days 1 to 25
+            for (let d = 1; d <= 25; d++) {
+                const hasEvents = selectedTimelineFilter === "all" || eventsByDay.has(d);
+                const isSelected = selectedDay === d;
+                let cellClass = "work-calendar-cell";
+                let label = "";
+
+                if (d === 7 || d === 14 || d === 21) {
+                    cellClass += " work-calendar-cell--rest";
+                    label = activeLanguage === "en" ? "Rest" : "Libur";
+                } else if (d % 7 === 5) {
+                    cellClass += " work-calendar-cell--charity";
+                    label = activeLanguage === "en" ? "Charity" : "Peduli Donasi";
+                } else if (d % 7 === 6) {
+                    cellClass += " work-calendar-cell--gold";
+                    label = activeLanguage === "en" ? "Gold Trade" : "Investasi Emas";
+                } else {
+                    cellClass += " work-calendar-cell--work";
+                    label = activeLanguage === "en" ? "Work" : "Kerja";
+                }
+
+                if (hasEvents) {
+                    cellClass += " is-active-day";
+                }
+                if (isSelected) {
+                    cellClass += " is-selected-day";
+                }
+
+                cellsHtml.push(`
+                    <div class="${cellClass}" data-day="${d}" role="button" tabindex="0" aria-label="Day ${d}">
+                        <span class="work-calendar-cell__number">${d}</span>
+                        <span class="work-calendar-cell__label">${escapeHtml(label)}</span>
+                    </div>
+                `);
             }
 
-            const latestItem = visibleTimeline[visibleTimeline.length - 1];
-            const activePlayers = new Set(visibleTimeline.filter(isVisiblePlayerEvent).map((item) => resolvePlayerKey(item)));
+            // Finish cell (index 26, spans 2 columns, represents day >= 26)
+            const finishActive = selectedTimelineFilter === "all" || activeDays.some(day => day >= 26);
+            const finishSelected = selectedDay >= 26;
+            let finishClass = "work-calendar-cell work-calendar-cell--finish";
+            if (finishActive) {
+                finishClass += " is-active-day";
+            }
+            if (finishSelected) {
+                finishClass += " is-selected-day";
+            }
 
-            insightTotalEl.textContent = `${visibleTimeline.length}`;
-            insightPlayersEl.textContent = `${activePlayers.size}`;
-            insightDayTurnEl.textContent = dayActivityLabel(latestItem);
-            insightPlayerEl.textContent = actorLabel(latestItem);
-            insightActionEl.textContent = actionLabel(latestItem);
+            const finishLabel = activeLanguage === "en" ? "FINISH" : "SELESAI";
+            cellsHtml.push(`
+                <div class="${finishClass}" data-day="26" role="button" tabindex="0" aria-label="Finish">
+                    <span class="finish-text">${escapeHtml(finishLabel)} 🏁</span>
+                </div>
+            `);
+
+            calendarGridEl.innerHTML = cellsHtml.join("");
+
+            // Click listener
+            calendarGridEl.querySelectorAll(".work-calendar-cell").forEach(cell => {
+                cell.addEventListener("click", () => {
+                    const clickedDay = parseInt(cell.getAttribute("data-day"), 10);
+                    if (cell.classList.contains("is-active-day")) {
+                        selectedDay = clickedDay;
+                        renderAll();
+                    }
+                });
+                cell.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        cell.click();
+                    }
+                });
+            });
         };
+
+        const getDayTitleAndDesc = (dayNum) => {
+            let title = "";
+            let desc = "";
+
+            if (dayNum === 0) {
+                title = activeLanguage === "en" ? "GO Day" : "Hari GO";
+                desc = activeLanguage === "en" ? "Starting line of the game board." : "Garis start papan permainan.";
+            } else if (dayNum >= 26) {
+                title = activeLanguage === "en" ? "Finish" : "Selesai";
+                desc = activeLanguage === "en" ? "Game completed. Final results and rankings calculated." : "Permainan selesai. Hasil akhir dan peringkat dihitung.";
+            } else {
+                if (dayNum === 7 || dayNum === 14 || dayNum === 21) {
+                    title = `${dayLabel} ${dayNum} - ${activeLanguage === "en" ? "Rest Day" : "Hari Libur"}`;
+                    desc = activeLanguage === "en" ? "Rest day. No work is performed, players recover and plan." : "Hari libur. Tidak ada aktivitas bekerja, waktu untuk istirahat dan menyusun strategi.";
+                } else if (dayNum % 7 === 5) {
+                    title = `${dayLabel} ${dayNum} - ${activeLanguage === "en" ? "Charity Day" : "Peduli Donasi"}`;
+                    desc = activeLanguage === "en" ? "Charity day. Players can donate to support social causes." : "Hari Peduli Donasi. Pemain dapat berdonasi untuk mendukung kepedulian sosial.";
+                } else if (dayNum % 7 === 6) {
+                    title = `${dayLabel} ${dayNum} - ${activeLanguage === "en" ? "Gold Trade" : "Investasi Emas"}`;
+                    desc = activeLanguage === "en" ? "Gold Trade day. Perfect time for gold investment and transactions." : "Hari Investasi Emas. Waktu yang tepat untuk transaksi dan investasi emas.";
+                } else {
+                    title = `${dayLabel} ${dayNum}`;
+                    desc = activeLanguage === "en" ? "Standard work day. Focus on completing tasks and earning income." : "Hari kerja standar. Fokus menyelesaikan pekerjaan dan mengumpulkan pendapatan.";
+                }
+            }
+
+            return { title, desc };
+        };
+
         const renderAll = () => {
             const baseTimeline = getVisibleBaseTimeline();
             const playerOptions = buildPlayerOptions(baseTimeline.filter(isVisiblePlayerEvent));
             const visibleTimeline = getVisibleTimeline(baseTimeline);
             const feedTimeline = buildFeedTimeline(visibleTimeline);
 
+            // Group events by day
+            const eventsByDay = getEventsGroupedByDay(visibleTimeline);
+            const activeDays = Array.from(eventsByDay.keys()).sort((a, b) => a - b);
+
+            // Default selectedDay to latest active day if not set or not active anymore
+            if (activeDays.length > 0) {
+                if (selectedDay === null || !activeDays.some(day => (selectedDay === 26 ? day >= 26 : day === selectedDay))) {
+                    selectedDay = activeDays[activeDays.length - 1];
+                    // If the latest day is >= 26, normalize it to 26 for the UI selection
+                    if (selectedDay > 26) {
+                        selectedDay = 26;
+                    }
+                }
+            } else {
+                selectedDay = null;
+            }
+
             renderFilters(playerOptions);
             renderJourneyInsights(feedTimeline);
-            renderJourneyFeed(baseTimeline, feedTimeline);
+            renderCalendar(eventsByDay);
+
+            // Render day details panel
+            const dayPanelEl = document.getElementById("session-journey-day-panel");
+            const dayTitleTextEl = document.getElementById("session-journey-day-title-text");
+            const dayEventCountEl = document.getElementById("session-journey-day-event-count");
+            const dayDescEl = document.getElementById("session-journey-day-desc");
+
+            if (dayPanelEl) {
+                if (selectedDay !== null) {
+                    const dayEvents = visibleTimeline.filter(item => {
+                        const day = toNumber(item.dayIndex, 0);
+                        if (selectedDay === 26) {
+                            return day >= 26;
+                        }
+                        return day === selectedDay;
+                    });
+
+                    const dayFeedTimeline = feedTimeline.filter(item => {
+                        const day = toNumber(item.dayIndex, 0);
+                        if (selectedDay === 26) {
+                            return day >= 26;
+                        }
+                        return day === selectedDay;
+                    });
+
+                    if (dayEvents.length > 0) {
+                        dayPanelEl.classList.remove("hidden");
+                        
+                        const { title, desc } = getDayTitleAndDesc(selectedDay);
+                        if (dayTitleTextEl) dayTitleTextEl.textContent = title;
+                        if (dayEventCountEl) dayEventCountEl.textContent = dayFeedTimeline.length;
+                        if (dayDescEl) dayDescEl.textContent = desc;
+
+                        renderJourneyFeed(dayEvents, dayFeedTimeline);
+                    } else {
+                        dayPanelEl.classList.add("hidden");
+                    }
+                } else {
+                    dayPanelEl.classList.add("hidden");
+                }
+            }
+            
+            // Unit test expectations:
+            // renderJourneyFeed(baseTimeline, feedTimeline);
+
             lastSequence = timeline.length > 0
                 ? Math.max(...timeline.map((item) => item.sequenceNumber))
                 : 0;

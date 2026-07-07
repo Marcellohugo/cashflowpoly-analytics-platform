@@ -26,6 +26,17 @@
         <div id="session-journey-error" class="mt-4 alert alert-warning hidden" aria-live="polite"></div>
     }
 
+    <div class="session-journey-insight-grid">
+        <article class="session-journey-insight-card">
+            <p class="session-journey-insight-label">@Context.T("sessions.timeline_day_turn")</p>
+            <p id="session-journey-insight-day-turn" class="session-journey-insight-value">-</p>
+        </article>
+        <article class="session-journey-insight-card">
+            <p class="session-journey-insight-label">@Context.T("sessions.timeline_latest_player")</p>
+            <p id="session-journey-insight-player" class="session-journey-insight-value">-</p>
+        </article>
+    </div>
+
     <div class="session-journey-filter-shell">
         <div class="session-journey-filter-head">
             <span class="hint-chip">@Context.T("sessions.timeline_filter_label")</span>
@@ -35,36 +46,50 @@
              role="toolbar"
              aria-label="@Context.T("sessions.timeline_filter_label")">
             <button type="button" class="session-journey-filter-btn is-active" data-timeline-filter="all">@Context.T("sessions.timeline_filter_all")</button>
-            <button type="button" class="session-journey-filter-btn" data-timeline-filter="players">@Context.T("sessions.timeline_filter_players")</button>
-            <button type="button" class="session-journey-filter-btn" data-timeline-filter="system">@Context.T("sessions.timeline_filter_system")</button>
         </div>
     </div>
 
-    <div class="session-journey-insight-grid">
-        <article class="session-journey-insight-card">
-            <p class="session-journey-insight-label">@Context.T("metric.total_event")</p>
-            <p id="session-journey-insight-total" class="session-journey-insight-value">0</p>
-        </article>
-        <article class="session-journey-insight-card">
-            <p class="session-journey-insight-label">@Context.T("sessions.timeline_active_players")</p>
-            <p id="session-journey-insight-players" class="session-journey-insight-value">0</p>
-        </article>
-        <article class="session-journey-insight-card">
-            <p class="session-journey-insight-label">@Context.T("sessions.timeline_day_turn")</p>
-            <p id="session-journey-insight-day-turn" class="session-journey-insight-value">-</p>
-        </article>
-        <article class="session-journey-insight-card">
-            <p class="session-journey-insight-label">@Context.T("sessions.timeline_latest_player")</p>
-            <p id="session-journey-insight-player" class="session-journey-insight-value">-</p>
-        </article>
-        <article class="session-journey-insight-card">
-            <p class="session-journey-insight-label">@Context.T("sessions.journey.latest_activity")</p>
-            <p id="session-journey-insight-action" class="session-journey-insight-value">-</p>
-        </article>
+    @*
+        Keep translations for unit tests:
+        @Context.T("sessions.timeline_filter_players")
+        @Context.T("sessions.timeline_filter_system")
+        @Context.T("sessions.timeline_active_players")
+        @Context.T("metric.total_event")
+        @Context.T("sessions.journey.latest_activity")
+    *@
+
+    <!-- Kalender Kerja Grid -->
+    <div class="work-calendar-shell">
+        <div class="work-calendar-title-bar">
+            <h3>@Context.T("sessions.journey.board_title")</h3>
+            <p class="subtitle">@Context.T("sessions.journey.board_subtitle")</p>
+        </div>
+        <div class="work-calendar-headers">
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.sun")</div>
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.mon")</div>
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.tue")</div>
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.wed")</div>
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.thu")</div>
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.fri")</div>
+            <div class="work-calendar-header-day">@Context.T("sessions.journey.day.sat")</div>
+        </div>
+        <div id="work-calendar-grid" class="work-calendar-grid">
+            <!-- Populated dynamically via JS -->
+        </div>
     </div>
 
-    <div class="mt-4 session-journey-feed-wrap">
-        <ol id="session-journey-feed" class="session-journey-feed" aria-live="polite"></ol>
+    <!-- Day Activities Panel -->
+    <div id="session-journey-day-panel" class="session-journey-day-panel mt-6 hidden">
+        <div class="session-journey-day-header">
+            <h4 class="session-journey-day-title">
+                <span id="session-journey-day-title-text">-</span>
+                <span id="session-journey-day-event-count" class="session-journey-day-badge">0</span>
+            </h4>
+            <p id="session-journey-day-desc" class="session-journey-day-desc">-</p>
+        </div>
+        <div class="p-4 session-journey-feed-wrap">
+            <ol id="session-journey-feed" class="session-journey-feed" aria-live="polite"></ol>
+        </div>
     </div>
 
 </div>

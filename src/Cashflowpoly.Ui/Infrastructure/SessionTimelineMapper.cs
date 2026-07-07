@@ -511,17 +511,19 @@ public static class SessionTimelineMapper
         var principalText = TryGetNumber(payload, "principal", out var principal)
             ? FormatNumber(principal)
             : L(language, "nominal tidak diketahui", "unknown amount");
-        var installmentText = TryGetNumber(payload, "installment", out var installment)
-            ? FormatNumber(installment)
-            : L(language, "cicilan tidak diketahui", "unknown installment");
+        var repaymentText = TryGetNumber(payload, "repayment_amount", out var repaymentAmount)
+            ? FormatNumber(repaymentAmount)
+            : TryGetNumber(payload, "installment", out var installment)
+                ? FormatNumber(installment)
+                : L(language, "nominal pelunasan tidak diketahui", "unknown repayment amount");
         var durationText = TryGetInt(payload, "duration_turn", out var durationTurn)
             ? durationTurn.ToString(CultureInfo.InvariantCulture)
             : L(language, "?", "?");
 
         return L(
             language,
-            $"Mengambil pinjaman {loanId} (pokok {principalText}, cicilan {installmentText}, durasi {durationText} turn).",
-            $"Took loan {loanId} (principal {principalText}, installment {installmentText}, duration {durationText} turns).");
+            $"Mengambil pinjaman {loanId} (pokok {principalText}, pelunasan {repaymentText}, durasi {durationText} turn).",
+            $"Took loan {loanId} (principal {principalText}, repayment {repaymentText}, duration {durationText} turns).");
     }
 
     /// <summary>

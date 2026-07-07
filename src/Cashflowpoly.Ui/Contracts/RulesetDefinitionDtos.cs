@@ -99,7 +99,7 @@ public sealed class RulesetSettingsDto
     public int MaxSameIngredient { get; init; }
 
     [JsonPropertyName("primary_need_max_per_day")]
-    public int PrimaryNeedMaxPerDay { get; init; }
+    public int? PrimaryNeedMaxPerDay { get; init; }
 
     [JsonPropertyName("require_primary_before_others")]
     public bool RequirePrimaryBeforeOthers { get; init; } = true;
@@ -151,9 +151,6 @@ public sealed class RulesetPlayerOrderingDto
 
     [JsonPropertyName("sunday_enabled")]
     public bool SundayEnabled { get; init; } = true;
-
-    [JsonPropertyName("instructor_player_usernames")]
-    public List<string> InstructorPlayerUsernames { get; init; } = [];
 }
 
 public sealed class RulesetActionDto
@@ -190,6 +187,9 @@ public sealed class RulesetOrderDto
 
     [JsonPropertyName("bahan")]
     public List<string> Bahan { get; init; } = [];
+
+    [JsonPropertyName("cardQty")]
+    public int? CardQty { get; init; }
 }
 
 public sealed class RulesetNeedDto
@@ -199,6 +199,9 @@ public sealed class RulesetNeedDto
 
     [JsonPropertyName("nama")]
     public string Nama { get; init; } = string.Empty;
+
+    [JsonPropertyName("family")]
+    public string? Family { get; init; }
 
     [JsonPropertyName("tipe")]
     public string Tipe { get; init; } = string.Empty;
@@ -360,8 +363,8 @@ public sealed class RulesetShariaLoanDto
     [JsonPropertyName("principal")]
     public int Principal { get; init; }
 
-    [JsonPropertyName("installment")]
-    public int Installment { get; init; }
+    [JsonPropertyName("repayment_amount")]
+    public int RepaymentAmount { get; init; }
 
     [JsonPropertyName("duration_days")]
     public int DurationDays { get; init; }
@@ -407,6 +410,15 @@ public sealed class RulesetLifeRiskDto
 
     [JsonPropertyName("amount")]
     public int Amount { get; init; }
+
+    [JsonPropertyName("target_scope")]
+    public string TargetScope { get; init; } = "SELF";
+
+    [JsonPropertyName("value_delta")]
+    public int? ValueDelta { get; init; }
+
+    [JsonPropertyName("duration_days")]
+    public int? DurationDays { get; init; }
 
     [JsonPropertyName("card_qty")]
     public int? CardQty { get; init; }

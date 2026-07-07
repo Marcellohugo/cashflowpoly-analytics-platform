@@ -102,6 +102,13 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_actor_help"] = ("Kategori aktor di grafik: siapa yang memicu aktivitas selama sesi.", "Actor categories in the chart: who triggered events during the session.");
         terms["sessions.journey.board_title"] = ("Jejak perjalanan permainan", "Board-style game journey");
         terms["sessions.journey.board_subtitle"] = ("Visual papan ini otomatis mengikuti urutan aktivitas terbaru yang masuk dari IDN/API.", "This board visual automatically follows the latest event order from IDN/API.");
+        terms["sessions.journey.day.sun"] = ("Min", "Sun");
+        terms["sessions.journey.day.mon"] = ("Sen", "Mon");
+        terms["sessions.journey.day.tue"] = ("Sel", "Tue");
+        terms["sessions.journey.day.wed"] = ("Rab", "Wed");
+        terms["sessions.journey.day.thu"] = ("Kam", "Thu");
+        terms["sessions.journey.day.fri"] = ("Jum", "Fri");
+        terms["sessions.journey.day.sat"] = ("Sab", "Sat");
         terms["sessions.journey.last_sync"] = ("Sinkron Data Terakhir", "Last Data Sync");
         terms["sessions.journey.latest_activity"] = ("Aksi Terakhir", "Latest Action");
         terms["sessions.journey.graph_title"] = ("Grafik Interaktif Pergerakan IDN", "Interactive IDN Movement Graph");

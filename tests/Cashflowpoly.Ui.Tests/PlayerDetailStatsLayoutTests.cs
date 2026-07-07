@@ -23,6 +23,31 @@ public sealed class PlayerDetailStatsLayoutTests
     }
 
     [Fact]
+    public void PlayerDetails_ShouldRenderLocalizedIntroductionsForEveryStatsTab()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+
+        Assert.Contains("@Context.T(\"players.stats.tab.summary.desc\")", view, StringComparison.Ordinal);
+        Assert.Contains("@Context.T(\"players.stats.tab.finance.desc\")", view, StringComparison.Ordinal);
+        Assert.Contains("@Context.T(\"players.stats.tab.behavior.desc\")", view, StringComparison.Ordinal);
+        Assert.Contains("@Context.T(\"players.stats.tab.happiness.desc\")", view, StringComparison.Ordinal);
+        Assert.Contains("@Context.T(\"players.stats.tab.technical.desc\")", view, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-stats-tab-panel .tab-panel-intro", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlayerDetails_ShouldIncludeDerivedComponentGroupsInTechnicalTab()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"income_diversification_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"goal_setting_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"fulfillment_diversity_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"donation_commitment_components\")", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlayerDetails_ShouldKeepRawAndDerivedChartsOutOfPrimarySections()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
@@ -37,8 +62,7 @@ public sealed class PlayerDetailStatsLayoutTests
     {
         var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
 
-        Assert.Contains(".player-detail-overhaul .player-stats-key-grid,", css, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-stats-mini-grid,", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-stats-mini-grid {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-insights {", css, StringComparison.Ordinal);
         Assert.Contains("overflow-x: auto;", css, StringComparison.Ordinal);
         Assert.Contains("inline-size: 100%;", css, StringComparison.Ordinal);
@@ -47,7 +71,6 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("scrollbar-gutter: stable both-edges;", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-panels {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-tab-panel {", css, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-stats-key-grid .player-stat-kpi", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-mini-grid .stat-card", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-insights .player-stat-insight", css, StringComparison.Ordinal);
     }

@@ -7,17 +7,17 @@ public sealed class AnalyticsController : Controller
     [HttpGet]
     public IActionResult Index(string? sessionId = null)
     {
-        return ResolveLegacyAnalyticsTarget(sessionId);
+        return ResolveAnalyticsRedirectTarget(sessionId);
     }
 
     [HttpPost]
     [ActionName("Index")]
     public IActionResult IndexPost(string? sessionId = null)
     {
-        return ResolveLegacyAnalyticsTarget(sessionId);
+        return ResolveAnalyticsRedirectTarget(sessionId);
     }
 
-    private IActionResult ResolveLegacyAnalyticsTarget(string? sessionId)
+    private IActionResult ResolveAnalyticsRedirectTarget(string? sessionId)
     {
         if (Guid.TryParse(sessionId, out var parsedSessionId))
         {

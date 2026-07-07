@@ -194,6 +194,11 @@ public sealed class PlayersController : Controller
             return null;
         }
 
+        if (gameplay.RawJson.HasValue)
+        {
+            return gameplay.RawJson.Value;
+        }
+
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
         {
             coins = new
@@ -225,6 +230,11 @@ public sealed class PlayersController : Controller
         if (gameplay is null)
         {
             return null;
+        }
+
+        if (gameplay.DerivedJson.HasValue)
+        {
+            return gameplay.DerivedJson.Value;
         }
 
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(new

@@ -12,14 +12,6 @@
         return PlayerMetricLabelFormatter.LocalizeTransactionDetail(rawDetail, Context.T);
     }
 
-    (string Title, string Json)? BuildMergedRowChart(
-        string domainTitle,
-        IEnumerable<(string Path, string Value)> rows,
-        bool isRawDomain)
-    {
-        return PlayerMetricChartPayloadBuilder.BuildMergedRowChart(domainTitle, rows, isRawDomain, Context.T);
-    }
-
     static List<(string Path, string Value)> MergeUniqueRows(params IEnumerable<(string Path, string Value)>[] rowSets)
     {
         return PlayerMetricCollectionHelper.MergeUniqueRows(rowSets);
@@ -39,54 +31,6 @@
         return PlayerMetricCollectionHelper.FilterRowsByKeywords(rows, keywords);
     }
 
-    static List<(string Title, string Json)> MergeUniqueCharts(params IEnumerable<(string Title, string Json)>[] chartSets)
-    {
-        return PlayerMetricCollectionHelper.MergeUniqueCharts(chartSets);
-    }
-
-    static List<(string Title, string Json)> FilterChartsByKeywords(
-        IEnumerable<(string Title, string Json)> charts,
-        params string[] keywords)
-    {
-        return PlayerMetricCollectionHelper.FilterChartsByKeywords(charts, keywords);
-    }
-
-    List<(string Title, string Json)> BuildSectionCharts(
-        string domainTitle,
-        List<(string Path, string Value)> rows,
-        List<(string Title, string Json)> baseCharts,
-        int maxCharts = 4,
-        bool isRawDomain = false)
-    {
-        var chartCandidates = new List<(string Title, string Json)>();
-        var mergedChart = BuildMergedRowChart(domainTitle, rows, isRawDomain);
-        if (mergedChart.HasValue)
-        {
-            chartCandidates.Add(mergedChart.Value);
-        }
-
-        chartCandidates.AddRange(baseCharts);
-        var charts = MergeUniqueCharts(chartCandidates);
-        if (charts.Count > maxCharts)
-        {
-            return charts.Take(maxCharts).ToList();
-        }
-
-        return charts;
-    }
-
-    static List<(string Title, string Json)> GetGroupCharts(
-        Dictionary<string, List<(string Title, string Json)>> source,
-        params string[] keys)
-    {
-        return PlayerMetricCollectionHelper.GetGroupCharts(source, keys);
-    }
-
-    List<(string Title, string Json)> BuildLineChartsForGroup(string groupKey, JsonElement groupElement, bool isRawDomain)
-    {
-        return PlayerMetricChartPayloadBuilder.BuildLineChartsForGroup(groupKey, groupElement, isRawDomain, Context.T);
-    }
-
     static int ResolvePlayerAvatarIndex(int turnOrder)
     {
         if (turnOrder <= 0)
@@ -104,17 +48,6 @@
     var derivedGroups = PlayerMetricJsonMapper.BuildMetricGroups(Model.GameplayDerived, trueText, falseText, nullText);
     var rawGroupMap = rawGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
     var derivedGroupMap = derivedGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
-    var rawGroupElementMap = PlayerMetricJsonMapper.BuildMetricGroupElements(Model.GameplayRaw);
-    var derivedGroupElementMap = PlayerMetricJsonMapper.BuildMetricGroupElements(Model.GameplayDerived);
-    var rawGroupChartsMap = rawGroupElementMap.ToDictionary(
-        item => item.Key,
-        item => BuildLineChartsForGroup(item.Key, item.Value, true),
-        StringComparer.OrdinalIgnoreCase);
-    var derivedGroupChartsMap = derivedGroupElementMap.ToDictionary(
-        item => item.Key,
-        item => BuildLineChartsForGroup(item.Key, item.Value, false),
-        StringComparer.OrdinalIgnoreCase);
-
     var mappedRawKeys = new HashSet<string>(
         new[] { "coins", "ingredients", "meal_orders", "needs", "donations", "gold", "pension", "life_risk", "financial_goals", "actions", "turns" },
         StringComparer.OrdinalIgnoreCase);
@@ -123,111 +56,53 @@
     var part11Rows = MergeUniqueRows(
         GetGroupRows(rawGroupMap, "turns"),
         GetGroupRows(rawGroupMap, rawFallbackKeys));
-    var part11Charts = MergeUniqueCharts(
-        GetGroupCharts(rawGroupChartsMap, "turns"),
-        GetGroupCharts(rawGroupChartsMap, rawFallbackKeys));
 
-    var rawSections = new List<(string Title, string Description, List<(string Title, string Json)> Charts)>
+    var rawSections = new List<(string Title, string Description, List<(string Path, string Value)> Rows)>
     {
         (
             Context.T("players.details.raw.coin_finance.title"),
             Context.T("players.details.raw.coin_finance.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.coin_finance.title"),
-                GetGroupRows(rawGroupMap, "coins"),
-                GetGroupCharts(rawGroupChartsMap, "coins"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "coins")),
         (
             Context.T("players.details.raw.ingredients.title"),
             Context.T("players.details.raw.ingredients.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.ingredients.title"),
-                GetGroupRows(rawGroupMap, "ingredients"),
-                GetGroupCharts(rawGroupChartsMap, "ingredients"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "ingredients")),
         (
             Context.T("players.details.raw.meal_orders.title"),
             Context.T("players.details.raw.meal_orders.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.meal_orders.title"),
-                GetGroupRows(rawGroupMap, "meal_orders"),
-                GetGroupCharts(rawGroupChartsMap, "meal_orders"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "meal_orders")),
         (
             Context.T("players.details.raw.needs.title"),
             Context.T("players.details.raw.needs.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.needs.title"),
-                GetGroupRows(rawGroupMap, "needs"),
-                GetGroupCharts(rawGroupChartsMap, "needs"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "needs")),
         (
             Context.T("players.details.raw.donations.title"),
             Context.T("players.details.raw.donations.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.donations.title"),
-                GetGroupRows(rawGroupMap, "donations"),
-                GetGroupCharts(rawGroupChartsMap, "donations"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "donations")),
         (
             Context.T("players.details.raw.gold.title"),
             Context.T("players.details.raw.gold.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.gold.title"),
-                GetGroupRows(rawGroupMap, "gold"),
-                GetGroupCharts(rawGroupChartsMap, "gold"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "gold")),
         (
             Context.T("players.details.raw.pension.title"),
             Context.T("players.details.raw.pension.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.pension.title"),
-                GetGroupRows(rawGroupMap, "pension"),
-                GetGroupCharts(rawGroupChartsMap, "pension"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "pension")),
         (
             Context.T("players.details.raw.life_risk.title"),
             Context.T("players.details.raw.life_risk.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.life_risk.title"),
-                GetGroupRows(rawGroupMap, "life_risk"),
-                GetGroupCharts(rawGroupChartsMap, "life_risk"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "life_risk")),
         (
             Context.T("players.details.raw.financial_goals.title"),
             Context.T("players.details.raw.financial_goals.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.financial_goals.title"),
-                GetGroupRows(rawGroupMap, "financial_goals"),
-                GetGroupCharts(rawGroupChartsMap, "financial_goals"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "financial_goals")),
         (
             Context.T("players.details.raw.actions.title"),
             Context.T("players.details.raw.actions.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.actions.title"),
-                GetGroupRows(rawGroupMap, "actions"),
-                GetGroupCharts(rawGroupChartsMap, "actions"),
-                maxCharts: 5,
-                isRawDomain: true)),
+            GetGroupRows(rawGroupMap, "actions")),
         (
             Context.T("players.details.raw.turns.title"),
             Context.T("players.details.raw.turns.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.raw.turns.title"),
-                part11Rows,
-                part11Charts,
-                maxCharts: 5,
-                isRawDomain: true))
+            part11Rows)
     };
 
     var derivedSummaryRows = GetGroupRows(derivedGroupMap, "summary");
@@ -242,6 +117,7 @@
             "business_efficiency",
             "gold_roi",
             "growth_pattern"),
+        GetGroupRows(derivedGroupMap, "income_diversification_components"),
         GetGroupRows(derivedGroupMap, "expense_management_components"));
 
     var strategicDerivedRows = MergeUniqueRows(
@@ -254,7 +130,8 @@
             "goal_setting_ambition",
             "risk_exposure",
             "risk_mitigation"),
-        GetGroupRows(derivedGroupMap, "risk_appetite_components"));
+        GetGroupRows(derivedGroupMap, "risk_appetite_components"),
+        GetGroupRows(derivedGroupMap, "goal_setting_components"));
 
     var behaviorDerivedRows = FilterRowsByKeywords(
         derivedSummaryRows,
@@ -270,6 +147,8 @@
             "fulfillment_diversity",
             "donation_commitment",
             "mission_achievement"),
+        GetGroupRows(derivedGroupMap, "fulfillment_diversity_components"),
+        GetGroupRows(derivedGroupMap, "donation_commitment_components"),
         GetGroupRows(derivedGroupMap, "happiness_portfolio"));
 
     var mappedDerivedPaths = new HashSet<string>(
@@ -285,48 +164,24 @@
         behaviorDerivedRows = MergeUniqueRows(behaviorDerivedRows, fallbackDerivedRows);
     }
 
-    var derivedSections = new List<(string Title, string Description, List<(string Title, string Json)> Charts)>
+    var derivedSections = new List<(string Title, string Description, List<(string Path, string Value)> Rows)>
     {
         (
             Context.T("players.details.derived.financial.title"),
             Context.T("players.details.derived.financial.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.derived.financial.title"),
-                financialDerivedRows,
-                FilterChartsByKeywords(
-                    GetGroupCharts(derivedGroupChartsMap, "summary", "expense_management_components"),
-                    "net", "income", "expense", "business", "gold", "growth"),
-                maxCharts: 4)),
+            financialDerivedRows),
         (
             Context.T("players.details.derived.strategy.title"),
             Context.T("players.details.derived.strategy.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.derived.strategy.title"),
-                strategicDerivedRows,
-                FilterChartsByKeywords(
-                    GetGroupCharts(derivedGroupChartsMap, "summary", "risk_appetite_components"),
-                    "risk", "debt", "goal", "loan"),
-                maxCharts: 4)),
+            strategicDerivedRows),
         (
             Context.T("players.details.derived.behavior.title"),
             Context.T("players.details.derived.behavior.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.derived.behavior.title"),
-                behaviorDerivedRows,
-                FilterChartsByKeywords(
-                    GetGroupCharts(derivedGroupChartsMap, "summary"),
-                    "action", "meal", "order", "planning", "donation"),
-                maxCharts: 4)),
+            behaviorDerivedRows),
         (
             Context.T("players.details.derived.flourishing.title"),
             Context.T("players.details.derived.flourishing.desc"),
-            BuildSectionCharts(
-                Context.T("players.details.derived.flourishing.title"),
-                flourishingDerivedRows,
-                FilterChartsByKeywords(
-                    GetGroupCharts(derivedGroupChartsMap, "summary", "happiness_portfolio"),
-                    "fulfillment", "mission", "happiness", "donation"),
-                maxCharts: 4))
+            flourishingDerivedRows)
     };
 
     var cashflowJourney = Model.CashflowJourney;
@@ -625,6 +480,7 @@
                      class="player-stats-tab-panel is-active"
                      role="tabpanel"
                      aria-labelledby="player-stats-tab-summary">
+                <p class="tab-panel-intro">@Context.T("players.stats.tab.summary.desc")</p>
                 <div class="chart-grid chart-grid-feature">
                     <article class="chart-card chart-card-feature">
                         <h3 class="chart-title">@Context.T("players.stats.chart.cashflow_snapshot")</h3>
@@ -635,32 +491,6 @@
                              aria-label="@Context.T("players.stats.chart.cashflow_snapshot")"></svg>
                     </article>
                 </div>
-                @if (hasCashflowJourney)
-                {
-                    <div class="chart-grid chart-grid-feature mt-4">
-                        <article class="chart-card chart-card-feature">
-                            <h3 class="chart-title">@Context.T("players.cashflow_journey.chart_title")</h3>
-                            <svg class="metric-line-chart js-metric-line-chart"
-                                 viewBox="0 0 840 360"
-                                 data-chart="@cashflowJourneyChartPayload"
-                                 role="img"
-                                 aria-label="@Context.T("players.cashflow_journey.chart_title")"></svg>
-                        </article>
-                    </div>
-                }
-                @if (Model.Summary is not null)
-                {
-                    <div class="chart-grid chart-grid-feature mt-4">
-                        <article class="chart-card chart-card-feature">
-                            <h3 class="chart-title">@Context.T("players.stats.chart.happiness_composition")</h3>
-                            <svg class="metric-line-chart js-metric-line-chart"
-                                 viewBox="0 0 840 360"
-                                 data-chart="@happinessCompositionChartPayload"
-                                 role="img"
-                                 aria-label="@Context.T("players.stats.chart.happiness_composition")"></svg>
-                        </article>
-                    </div>
-                }
             </section>
 
             <section id="player-stats-panel-finance"
@@ -668,6 +498,7 @@
                      role="tabpanel"
                      aria-labelledby="player-stats-tab-finance"
                      hidden>
+                <p class="tab-panel-intro">@Context.T("players.stats.tab.finance.desc")</p>
                 @if (!hasCashflowJourney)
                 {
                     <div class="alert alert-info">
@@ -713,6 +544,17 @@
                             cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)))
                     </div>
 
+                    <div class="chart-grid chart-grid-feature mt-4">
+                        <article class="chart-card chart-card-feature">
+                            <h3 class="chart-title">@Context.T("players.cashflow_journey.chart_title")</h3>
+                            <svg class="metric-line-chart js-metric-line-chart"
+                                 viewBox="0 0 840 360"
+                                 data-chart="@cashflowJourneyChartPayload"
+                                 role="img"
+                                 aria-label="@Context.T("players.cashflow_journey.chart_title")"></svg>
+                        </article>
+                    </div>
+
                     <div class="mt-4 metric-panel">
                         <div class="metric-list">
                             <div class="metric-row">
@@ -741,6 +583,7 @@
                      role="tabpanel"
                      aria-labelledby="player-stats-tab-behavior"
                      hidden>
+                <p class="tab-panel-intro">@Context.T("players.stats.tab.behavior.desc")</p>
                 @if (Model.Summary is null)
                 {
                     <div class="alert alert-info">@Context.T("players.detail.empty_analytics")</div>
@@ -783,6 +626,7 @@
                      role="tabpanel"
                      aria-labelledby="player-stats-tab-happiness"
                      hidden>
+                <p class="tab-panel-intro">@Context.T("players.stats.tab.happiness.desc")</p>
                 @if (Model.Summary is null)
                 {
                     <div class="alert alert-info">@Context.T("players.detail.empty_analytics")</div>
@@ -825,6 +669,7 @@
                      role="tabpanel"
                      aria-labelledby="player-stats-tab-technical"
                      hidden>
+                <p class="tab-panel-intro">@Context.T("players.stats.tab.technical.desc")</p>
                 @if (!hasGameplayData)
                 {
                     <div class="alert alert-info" aria-live="polite">
@@ -846,58 +691,26 @@
                                     <article class="metric-domain-card metric-domain-card-flat">
                                         <div class="metric-domain-heading">
                                             <h3>@domain.Title</h3>
-                                            <span class="metric-domain-count">@domain.Charts.Count @Context.T("players.details.chart_count_suffix")</span>
+                                            <span class="metric-domain-count">@domain.Rows.Count @Context.T("players.metric_items_suffix")</span>
                                         </div>
                                         <p class="metric-domain-intro">@domain.Description</p>
-                                        @if (domain.Charts.Count == 0)
+                                        @if (domain.Rows.Count == 0)
                                         {
                                             <p class="metric-domain-empty">@Context.T("players.details.chart_domain_empty")</p>
                                         }
                                         else
                                         {
-                                            var summaryChart = domain.Charts.FirstOrDefault(chart =>
-                                                chart.Title.Contains("Ringkasan Gabungan", StringComparison.OrdinalIgnoreCase) ||
-                                                chart.Title.Contains("Combined Snapshot", StringComparison.OrdinalIgnoreCase));
-                                            var hasSummaryChart = !string.IsNullOrWhiteSpace(summaryChart.Title);
-                                            var detailCharts = hasSummaryChart
-                                                ? domain.Charts.Where(chart =>
-                                                    !string.Equals(chart.Title, summaryChart.Title, StringComparison.OrdinalIgnoreCase))
-                                                    .ToList()
-                                                : domain.Charts;
-                                            if (hasSummaryChart)
-                                            {
-                                                <div class="chart-grid chart-grid-feature mt-4">
-                                                    <article class="chart-card chart-card-feature">
-                                                        <h3 class="chart-title">@summaryChart.Title</h3>
-                                                        <svg class="metric-line-chart js-metric-line-chart"
-                                                             viewBox="0 0 840 360"
-                                                             data-chart="@summaryChart.Json"
-                                                             role="img"
-                                                             aria-label="@summaryChart.Title"></svg>
-                                                    </article>
+                                            <div class="mt-3 metric-panel">
+                                                <div class="metric-list">
+                                                    @foreach (var row in domain.Rows)
+                                                    {
+                                                        <div class="metric-row">
+                                                            <span class="metric-key">@PlayerMetricLabelFormatter.FormatMetricPathLabel(row.Path, Context.T)</span>
+                                                            <span class="metric-value font-mono">@row.Value</span>
+                                                        </div>
+                                                    }
                                                 </div>
-                                            }
-                                            if (detailCharts.Count > 0)
-                                            {
-                                                <div class="chart-scroll-region mt-4"
-                                                     role="region"
-                                                     aria-label="@Context.T("players.details.chart_scroll_region")">
-                                                    <p class="chart-scroll-hint">@Context.T("players.details.chart_scroll_hint")</p>
-                                                    <div class="chart-grid chart-grid-scroll mt-2">
-                                                        @foreach (var chart in detailCharts)
-                                                        {
-                                                            <article class="chart-card">
-                                                                <h3 class="chart-title">@chart.Title</h3>
-                                                                <svg class="metric-line-chart js-metric-line-chart"
-                                                                     viewBox="0 0 840 360"
-                                                                     data-chart="@chart.Json"
-                                                                     role="img"
-                                                                     aria-label="@chart.Title"></svg>
-                                                            </article>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
+                                            </div>
                                         }
                                     </article>
                                 }
@@ -916,58 +729,26 @@
                                     <article class="metric-domain-card metric-domain-card-flat">
                                         <div class="metric-domain-heading">
                                             <h3>@domain.Title</h3>
-                                            <span class="metric-domain-count">@domain.Charts.Count @Context.T("players.details.chart_count_suffix")</span>
+                                            <span class="metric-domain-count">@domain.Rows.Count @Context.T("players.metric_items_suffix")</span>
                                         </div>
                                         <p class="metric-domain-intro">@domain.Description</p>
-                                        @if (domain.Charts.Count == 0)
+                                        @if (domain.Rows.Count == 0)
                                         {
                                             <p class="metric-domain-empty">@Context.T("players.details.chart_domain_empty")</p>
                                         }
                                         else
                                         {
-                                            var summaryChart = domain.Charts.FirstOrDefault(chart =>
-                                                chart.Title.Contains("Ringkasan Gabungan", StringComparison.OrdinalIgnoreCase) ||
-                                                chart.Title.Contains("Combined Snapshot", StringComparison.OrdinalIgnoreCase));
-                                            var hasSummaryChart = !string.IsNullOrWhiteSpace(summaryChart.Title);
-                                            var detailCharts = hasSummaryChart
-                                                ? domain.Charts.Where(chart =>
-                                                    !string.Equals(chart.Title, summaryChart.Title, StringComparison.OrdinalIgnoreCase))
-                                                    .ToList()
-                                                : domain.Charts;
-                                            if (hasSummaryChart)
-                                            {
-                                                <div class="chart-grid chart-grid-feature mt-4">
-                                                    <article class="chart-card chart-card-feature">
-                                                        <h3 class="chart-title">@summaryChart.Title</h3>
-                                                        <svg class="metric-line-chart js-metric-line-chart"
-                                                             viewBox="0 0 840 360"
-                                                             data-chart="@summaryChart.Json"
-                                                             role="img"
-                                                             aria-label="@summaryChart.Title"></svg>
-                                                    </article>
+                                            <div class="mt-3 metric-panel">
+                                                <div class="metric-list">
+                                                    @foreach (var row in domain.Rows)
+                                                    {
+                                                        <div class="metric-row">
+                                                            <span class="metric-key">@PlayerMetricLabelFormatter.FormatMetricPathLabel(row.Path, Context.T)</span>
+                                                            <span class="metric-value font-mono">@row.Value</span>
+                                                        </div>
+                                                    }
                                                 </div>
-                                            }
-                                            if (detailCharts.Count > 0)
-                                            {
-                                                <div class="chart-scroll-region mt-4"
-                                                     role="region"
-                                                     aria-label="@Context.T("players.details.chart_scroll_region")">
-                                                    <p class="chart-scroll-hint">@Context.T("players.details.chart_scroll_hint")</p>
-                                                    <div class="chart-grid chart-grid-scroll mt-2">
-                                                        @foreach (var chart in detailCharts)
-                                                        {
-                                                            <article class="chart-card">
-                                                                <h3 class="chart-title">@chart.Title</h3>
-                                                                <svg class="metric-line-chart js-metric-line-chart"
-                                                                     viewBox="0 0 840 360"
-                                                                     data-chart="@chart.Json"
-                                                                     role="img"
-                                                                     aria-label="@chart.Title"></svg>
-                                                            </article>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
+                                            </div>
                                         }
                                     </article>
                                 }
@@ -976,6 +757,73 @@
                     </div>
                 }
             </section>
+        </div>
+    </div>
+
+    <div id="player-transaction-history" class="players-fusion-metrics player-detail-section mt-6 player-transactions-section">
+        <div class="players-fusion-head ruleset-section-head">
+            <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
+            <h2 class="ruleset-section-title">@Context.T("players.transaction_history")</h2>
+            <p class="ruleset-section-subtitle">@Context.T("players.cashflow_journey.subtitle")</p>
+        </div>
+
+        <div class="mt-4 table-wrap">
+            <table class="w-full text-left text-sm mobile-card-table">
+                <thead class="table-head">
+                    <tr>
+                        <th class="px-4 py-3">@Context.T("common.time")</th>
+                        <th class="px-4 py-3">@Context.T("common.category")</th>
+                        <th class="px-4 py-3 text-center">@Context.T("common.direction")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("common.transaction_amount")</th>
+                        <th class="px-4 py-3 text-right">@Context.T("common.running_balance")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Transactions == null || Model.Transactions.Count == 0)
+                {
+                    <tr>
+                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="5">@Context.T("players.no_transactions")</td>
+                    </tr>
+                }
+                else
+                {
+                    var runningBal = Model.CashflowJourney?.StartingCash ?? 20.0;
+                    foreach (var tx in Model.Transactions.OrderBy(t => t.Timestamp))
+                    {
+                        var isIncoming = string.Equals(tx.Direction, "IN", StringComparison.OrdinalIgnoreCase);
+                        if (isIncoming)
+                        {
+                            runningBal += tx.Amount;
+                        }
+                        else if (string.Equals(tx.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
+                        {
+                            runningBal -= tx.Amount;
+                        }
+                        var directionPillClass = isIncoming ? "status-active" : "status-retired";
+                        var amountClass = isIncoming ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold";
+                        var sign = isIncoming ? "+" : "-";
+
+                        <tr class="border-t border-slate-200">
+                            <td class="px-4 py-3 text-slate-700 font-mono text-xs" data-label="@Context.T("common.time")">
+                                @tx.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+                            </td>
+                            <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.category")">
+                                @LocalizeTransactionDetail($"{tx.Direction} - {tx.Category} ({tx.Amount})")
+                            </td>
+                            <td class="px-4 py-3 text-center" data-label="@Context.T("common.direction")">
+                                <span class="status-pill @directionPillClass">@tx.Direction</span>
+                            </td>
+                            <td class="px-4 py-3 text-right @amountClass" data-label="@Context.T("common.transaction_amount")">
+                                @sign@tx.Amount.ToString("N0", CultureInfo.CurrentCulture)
+                            </td>
+                            <td class="px-4 py-3 text-right font-mono text-slate-900" data-label="@Context.T("common.running_balance")">
+                                @runningBal.ToString("N0", CultureInfo.CurrentCulture)
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
         </div>
     </div>
 </section>
