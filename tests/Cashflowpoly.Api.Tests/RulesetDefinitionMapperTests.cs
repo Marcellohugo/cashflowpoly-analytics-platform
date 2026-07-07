@@ -8,7 +8,7 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class RulesetDefinitionMapperTests
 {
     [Fact]
-    public void FromConfigJson_IgnoresLegacyQuestAndScripts_AndKeepsDataDrivenNarrativeConditions()
+    public void FromConfigJson_IgnoresRemovedQuestAndScripts_AndKeepsDataDrivenNarrativeConditions()
     {
         const string configJson = """
             {

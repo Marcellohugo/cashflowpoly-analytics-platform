@@ -134,17 +134,18 @@ internal sealed class EventIngestionService : IEventIngestionService
     public async Task<(EventStoredResponse? Result, int StatusCode, ErrorResponse? Error)> IngestEventAsync(
         EventRequest request, ClaimsPrincipal user, CancellationToken ct)
     {
-        var validation = await ValidateEventAsync(request, user, ct);
+        var enrichedRequest = await EnrichEventRequestAsync(request, ct);
+        var validation = await ValidateEventAsync(enrichedRequest, user, ct);
         if (!validation.IsValid)
         {
             await _events.InsertValidationLogAsync(
-                request.SessionId,
-                request.EventId,
-                request.RulesetVersionId,
-                request.Payload.GetRawText(),
+                enrichedRequest.SessionId,
+                enrichedRequest.EventId,
+                enrichedRequest.RulesetVersionId,
+                enrichedRequest.Payload.GetRawText(),
                 validation.Error?.ErrorCode,
                 validation.Error?.Message,
-                _validationSerializer.BuildValidationDetailsJson(request, validation.Error),
+                _validationSerializer.BuildValidationDetailsJson(enrichedRequest, validation.Error),
                 ct);
 
             return (null, validation.StatusCode, validation.Error);
@@ -152,14 +153,14 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         try
         {
-            await StoreEventAsync(request, ct);
-            return (new EventStoredResponse(true, request.EventId), StatusCodes.Status201Created, null);
+            await StoreEventAsync(enrichedRequest, ct);
+            return (new EventStoredResponse(true, enrichedRequest.EventId), StatusCodes.Status201Created, null);
         }
         catch (PostgresException ex) when (ex.SqlState == "23505")
         {
             var error = BuildError("DUPLICATE", "Event sudah ada");
-            await _events.InsertValidationLogAsync(request.SessionId, request.EventId, request.RulesetVersionId, request.Payload.GetRawText(), error.ErrorCode, error.Message,
-                _validationSerializer.BuildValidationDetailsJson(request, error), ct);
+            await _events.InsertValidationLogAsync(enrichedRequest.SessionId, enrichedRequest.EventId, enrichedRequest.RulesetVersionId, enrichedRequest.Payload.GetRawText(), error.ErrorCode, error.Message,
+                _validationSerializer.BuildValidationDetailsJson(enrichedRequest, error), ct);
             return (null, StatusCodes.Status409Conflict, error);
         }
     }
@@ -190,33 +191,34 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         foreach (var evt in request.Events)
         {
-            var validation = await ValidateEventAsync(evt, user, ct);
+            var enrichedRequest = await EnrichEventRequestAsync(evt, ct);
+            var validation = await ValidateEventAsync(enrichedRequest, user, ct);
             if (!validation.IsValid)
             {
-                failed.Add(new EventBatchFailed(evt.EventId, validation.Error?.ErrorCode ?? "VALIDATION_ERROR"));
+                failed.Add(new EventBatchFailed(enrichedRequest.EventId, validation.Error?.ErrorCode ?? "VALIDATION_ERROR"));
                 await _events.InsertValidationLogAsync(
-                    evt.SessionId,
-                    evt.EventId,
-                    evt.RulesetVersionId,
-                    evt.Payload.GetRawText(),
+                    enrichedRequest.SessionId,
+                    enrichedRequest.EventId,
+                    enrichedRequest.RulesetVersionId,
+                    enrichedRequest.Payload.GetRawText(),
                     validation.Error?.ErrorCode,
                     validation.Error?.Message,
-                    _validationSerializer.BuildValidationDetailsJson(evt, validation.Error),
+                    _validationSerializer.BuildValidationDetailsJson(enrichedRequest, validation.Error),
                     ct);
                 continue;
             }
 
             try
             {
-                await StoreEventAsync(evt, ct);
+                await StoreEventAsync(enrichedRequest, ct);
                 storedCount++;
             }
             catch (PostgresException ex) when (ex.SqlState == "23505")
             {
-                failed.Add(new EventBatchFailed(evt.EventId, "DUPLICATE"));
+                failed.Add(new EventBatchFailed(enrichedRequest.EventId, "DUPLICATE"));
                 var dupError = BuildError("DUPLICATE", "Event sudah ada");
-                await _events.InsertValidationLogAsync(evt.SessionId, evt.EventId, evt.RulesetVersionId, evt.Payload.GetRawText(), dupError.ErrorCode, dupError.Message,
-                    _validationSerializer.BuildValidationDetailsJson(evt, dupError), ct);
+                await _events.InsertValidationLogAsync(enrichedRequest.SessionId, enrichedRequest.EventId, enrichedRequest.RulesetVersionId, enrichedRequest.Payload.GetRawText(), dupError.ErrorCode, dupError.Message,
+                    _validationSerializer.BuildValidationDetailsJson(enrichedRequest, dupError), ct);
             }
         }
 
@@ -468,7 +470,121 @@ internal sealed class EventIngestionService : IEventIngestionService
             ClientRequestId = request.ClientRequestId
         };
 
-        // Kumpulkan proyeksi sebelum transaksi
+        // Simpan event + seluruh proyeksi state dalam satu transaksi.
+        await using var conn = await _events.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+
+        var projections = new List<CashflowProjectionDb>();
+        var isLifeRisk = string.Equals(request.ActionType, GameActionCatalog.RisikoKehidupan, StringComparison.OrdinalIgnoreCase);
+        RulesetLifeRiskDto? activeRisk = null;
+        if (isLifeRisk && config is not null && TryResolveLifeRisk(config, request.Payload, out activeRisk))
+        {
+            if (string.Equals(activeRisk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase))
+            {
+                var participantUserIds = new List<Guid>();
+                const string sql = "select user_id from session_participants where session_id = @sessionId";
+                await using (var cmd = new NpgsqlCommand(sql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("sessionId", request.SessionId);
+                    await using (var reader = await cmd.ExecuteReaderAsync(ct))
+                    {
+                        while (await reader.ReadAsync(ct))
+                        {
+                            participantUserIds.Add(reader.GetGuid(0));
+                        }
+                    }
+                }
+
+                foreach (var pUserId in participantUserIds)
+                {
+                    projections.Add(new CashflowProjectionDb
+                    {
+                        ProjectionId = Guid.NewGuid(),
+                        SessionId = request.SessionId,
+                        UserId = pUserId,
+                        EventPk = eventPk,
+                        EventId = request.EventId,
+                        Timestamp = timestamp,
+                        Direction = "OUT",
+                        Amount = activeRisk.Amount,
+                        Category = "RISK_LIFE",
+                        Reference = activeRisk.RiskCode,
+                        Note = null
+                    });
+                }
+            }
+            else if (string.Equals(activeRisk.EffectType, "PLAYER_TO_PLAYER_TRANSFER", StringComparison.OrdinalIgnoreCase) && request.UserId.HasValue)
+            {
+                var participantUserIds = new List<Guid>();
+                const string sql = "select user_id from session_participants where session_id = @sessionId";
+                await using (var cmd = new NpgsqlCommand(sql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("sessionId", request.SessionId);
+                    await using (var reader = await cmd.ExecuteReaderAsync(ct))
+                    {
+                        while (await reader.ReadAsync(ct))
+                        {
+                            participantUserIds.Add(reader.GetGuid(0));
+                        }
+                    }
+                }
+
+                var otherPlayersCount = 0;
+                foreach (var pUserId in participantUserIds)
+                {
+                    if (pUserId != request.UserId.Value)
+                    {
+                        otherPlayersCount++;
+                        projections.Add(new CashflowProjectionDb
+                        {
+                            ProjectionId = Guid.NewGuid(),
+                            SessionId = request.SessionId,
+                            UserId = pUserId,
+                            EventPk = eventPk,
+                            EventId = request.EventId,
+                            Timestamp = timestamp,
+                            Direction = "OUT",
+                            Amount = 1,
+                            Category = "RISK_LIFE",
+                            Reference = activeRisk.RiskCode,
+                            Note = null
+                        });
+                    }
+                }
+
+                if (otherPlayersCount > 0)
+                {
+                    projections.Add(new CashflowProjectionDb
+                    {
+                        ProjectionId = Guid.NewGuid(),
+                        SessionId = request.SessionId,
+                        UserId = request.UserId.Value,
+                        EventPk = eventPk,
+                        EventId = request.EventId,
+                        Timestamp = timestamp,
+                        Direction = "IN",
+                        Amount = otherPlayersCount,
+                        Category = "RISK_LIFE",
+                        Reference = activeRisk.RiskCode,
+                        Note = null
+                    });
+                }
+            }
+        }
+
+        if (projections.Count == 0)
+        {
+            if (!TryBuildCatalogRiskProjection(request, timestamp, eventPk, config, out var projection))
+            {
+                _projectionBuilder.TryBuild(request, timestamp, eventPk, out projection);
+            }
+
+            if (projection is not null)
+            {
+                projections.Add(projection);
+            }
+        }
+
         CashflowProjectionDb? insuranceOffset = null;
         if (_insuranceOffsetBuilder.TryReadRiskEventReference(request, out _, out var riskEventId))
         {
@@ -479,25 +595,10 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
         }
 
-        var projections = new List<CashflowProjectionDb>();
-        if (!TryBuildCatalogRiskProjection(request, timestamp, eventPk, config, out var projection))
-        {
-            _projectionBuilder.TryBuild(request, timestamp, eventPk, out projection);
-        }
-
-        if (projection is not null)
-        {
-            projections.Add(projection);
-        }
-
         if (insuranceOffset is not null)
         {
             projections.Add(insuranceOffset);
         }
-
-        // Simpan event + seluruh proyeksi state dalam satu transaksi.
-        await using var conn = await _events.OpenConnectionAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
 
         if (request.UserId.HasValue)
         {
@@ -646,6 +747,43 @@ internal sealed class EventIngestionService : IEventIngestionService
                RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out var config, out _)
             ? config
             : null;
+    }
+
+    private async Task<EventRequest> EnrichEventRequestAsync(EventRequest request, CancellationToken ct)
+    {
+        if (string.Equals(request.ActionType, GameActionCatalog.JualMasakan, StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.Payload.TryGetProperty("order_card_id", out var orderCardIdProp) &&
+                orderCardIdProp.ValueKind == JsonValueKind.String)
+            {
+                var orderCardId = orderCardIdProp.GetString()!;
+                var config = await GetRulesetConfigAsync(request.RulesetVersionId, ct);
+                if (config is not null)
+                {
+                    var order = config.Orders.FirstOrDefault(o => string.Equals(o.Id, orderCardId, StringComparison.OrdinalIgnoreCase));
+                    if (order is not null)
+                    {
+                        var requiredCardIds = new List<string>();
+                        foreach (var bahanName in order.Bahan)
+                        {
+                            var matchedIng = config.Ingredients.FirstOrDefault(i => string.Equals(i.Nama, bahanName, StringComparison.OrdinalIgnoreCase));
+                            var cardId = matchedIng?.Id ?? bahanName.ToLowerInvariant().Replace(" ", "_");
+                            requiredCardIds.Add(cardId);
+                        }
+
+                        var node = System.Text.Json.Nodes.JsonNode.Parse(request.Payload.GetRawText());
+                        if (node is System.Text.Json.Nodes.JsonObject obj)
+                        {
+                            obj["required_ingredient_card_ids"] = System.Text.Json.JsonSerializer.SerializeToNode(requiredCardIds);
+                            obj["income"] = order.HargaJual;
+                            var newPayload = JsonSerializer.Deserialize<JsonElement>(obj.ToJsonString());
+                            request = request with { Payload = newPayload };
+                        }
+                    }
+                }
+            }
+        }
+        return request;
     }
 
     private bool TryBuildCatalogRiskProjection(
@@ -1091,13 +1229,13 @@ internal sealed class EventIngestionService : IEventIngestionService
                     new ErrorDetail("user_id", "REQUIRED"));
             }
 
-            if (!_payloadReader.TryReadLoanTaken(payload, out var loanId, out var principal, out var installment, out var duration, out var penaltyPoints))
+            if (!_payloadReader.TryReadLoanTaken(payload, out var loanId, out var principal, out var repaymentAmount, out var duration, out var penaltyPoints))
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Payload loan taken tidak valid",
                     new ErrorDetail("payload.loan_id", "REQUIRED"));
             }
 
-            if (principal <= 0 || installment <= 0 || duration <= 0)
+            if (principal <= 0 || repaymentAmount < 0 || duration <= 0)
             {
                 return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Nilai pinjaman tidak valid",
                     new ErrorDetail("payload.principal", "OUT_OF_RANGE"));
@@ -1111,7 +1249,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var matchesLoanCatalog = config.ShariaLoans.Any(loan =>
                 loan.Principal == principal &&
-                loan.Installment == installment &&
+                loan.RepaymentAmount == repaymentAmount &&
                 loan.DurationDays == duration &&
                 loan.PenaltyPoints == penaltyPoints);
             if (!matchesLoanCatalog)

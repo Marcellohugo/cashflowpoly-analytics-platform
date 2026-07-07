@@ -198,6 +198,22 @@ internal sealed class AnalyticsService : IAnalyticsService
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
         var startingCash = activeRuleset.Config?.StartingCash ?? 0;
 
+        var snapshotsJson = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, userId, ct);
+        var rawJsonText = snapshotsJson.FirstOrDefault(s => s.MetricName == "gameplay.raw.variables")?.MetricValueJson;
+        var derivedJsonText = snapshotsJson.FirstOrDefault(s => s.MetricName == "gameplay.derived.metrics")?.MetricValueJson;
+
+        JsonElement? rawJson = null;
+        JsonElement? derivedJson = null;
+
+        if (!string.IsNullOrWhiteSpace(rawJsonText))
+        {
+            try { rawJson = JsonDocument.Parse(rawJsonText).RootElement.Clone(); } catch {}
+        }
+        if (!string.IsNullOrWhiteSpace(derivedJsonText))
+        {
+            try { derivedJson = JsonDocument.Parse(derivedJsonText).RootElement.Clone(); } catch {}
+        }
+
         return (new GameplayMetricsResponse(
             sessionId,
             userId,
@@ -226,7 +242,9 @@ internal sealed class AnalyticsService : IAnalyticsService
                 ReadMetric(values, "loan.unpaid.flag") > 0.5d),
             new GameplayComplianceMetrics(
                 ReadMetric(values, "compliance.primary_need.rate"),
-                (int)ReadMetric(values, "rules.violations.count"))), 200, null);
+                (int)ReadMetric(values, "rules.violations.count")),
+            rawJson,
+            derivedJson), 200, null);
     }
 
     public async Task<(RulesetAnalyticsSummaryResponse? Result, int StatusCode, ErrorResponse? Error)> GetRulesetAnalyticsSummaryAsync(
@@ -701,10 +719,18 @@ internal sealed class AnalyticsService : IAnalyticsService
 
     private int SumGoldQuantity(IEnumerable<EventDb> events)
         => events
-            .Where(e => e.ActionType == GameActionCatalog.InvestasiEmas ||
+            .Where(e => e.ActionType == GameActionCatalog.GoldInitialGranted ||
+                        e.ActionType == GameActionCatalog.InvestasiEmas ||
                         e.ActionType == GameActionCatalog.JualEmas)
             .Select(e =>
             {
+                if (e.ActionType == GameActionCatalog.GoldInitialGranted)
+                {
+                    return _payloadReader.TryReadGoldTradeDetailed(e.Payload, out _, out var initialQty, out _, out _)
+                        ? initialQty
+                        : 1;
+                }
+
                 if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
                 {
                     return 0;

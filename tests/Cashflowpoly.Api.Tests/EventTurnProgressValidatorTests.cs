@@ -10,7 +10,7 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class EventTurnProgressValidatorTests
 {
     [Fact]
-    public void RequiresHistory_ReturnsFalseForLegacyActionUsed()
+    public void RequiresHistory_ReturnsFalseForRemovedActionUsed()
     {
         var request = CreateRequest("turn.action.used", """{"used":1,"remaining":2}""");
 
@@ -46,6 +46,24 @@ public sealed class EventTurnProgressValidatorTests
         Assert.False(result.IsValid);
         Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.StatusCode);
         Assert.Equal("Setiap klaim pesanan harus diikuti pengambilan risiko pada mode MAHIR", result.Message);
+    }
+
+    [Fact]
+    public void TryValidateTurnEndedMahir_AcceptsOrderPairedWithFreeRiskSlot()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var request = CreateRequest("AkhirGiliran", "{}", sessionId, playerId);
+        var history = new[]
+        {
+            CreateEvent("JualMasakan", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, actionSlot: 1),
+            CreateEvent("RisikoKehidupan", """{"risk_id":"risk-a"}""", sessionId, playerId, actionSlot: 0)
+        };
+
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, out var result);
+
+        Assert.True(handled);
+        Assert.True(result.IsValid);
     }
 
     private static EventRequest CreateRequest(

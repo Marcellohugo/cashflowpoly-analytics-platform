@@ -39,7 +39,7 @@ internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEva
                 NeedTierClassifier.FromPayloadJson(e.Payload) == NeedTier.Primary);
             var violationReasons = new List<string>();
 
-            if (primaryCount > config.PrimaryNeedMaxPerDay)
+            if (config.PrimaryNeedMaxPerDay.HasValue && primaryCount > config.PrimaryNeedMaxPerDay.Value)
             {
                 violationReasons.Add("PRIMARY_NEED_MAX_EXCEEDED");
             }

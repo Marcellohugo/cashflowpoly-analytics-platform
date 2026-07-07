@@ -20,8 +20,16 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
         IEnumerable<EventDb> history,
         out EventSavingGoalValidation result)
     {
-        if (string.Equals(request.ActionType, "Menabung", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(request.ActionType, "TarikTabungan", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "TarikTabungan", StringComparison.OrdinalIgnoreCase))
+        {
+            result = Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "TarikTabungan bukan aksi resmi ruleset rulebook");
+            return true;
+        }
+
+        if (string.Equals(request.ActionType, "Menabung", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateDeposit(request, config, history);
             return true;
@@ -29,6 +37,15 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
 
         if (string.Equals(request.ActionType, "TujuanFinansial", StringComparison.OrdinalIgnoreCase))
         {
+            if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase))
+            {
+                result = Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "TujuanFinansial bukan aksi pemain terpisah; kartu tujuan diperoleh otomatis saat Menabung mencapai target");
+                return true;
+            }
+
             result = ValidateGoalAchieved(request, config, history);
             return true;
         }

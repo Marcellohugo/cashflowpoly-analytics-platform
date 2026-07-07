@@ -53,7 +53,9 @@ public sealed class EventAnalyticsIntegrationTests
             "/api/v1/rulesets",
             createRulesetPayload,
             instructorToken);
-        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+        Assert.True(
+            createRulesetResponse.StatusCode == HttpStatusCode.Created,
+            await createRulesetResponse.Content.ReadAsStringAsync());
 
         var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
         Assert.NotNull(createdRuleset);
@@ -193,18 +195,17 @@ public sealed class EventAnalyticsIntegrationTests
             weekday = "MON",
             action_slot = 1,
             sequence_number = 1,
-            action_type = "CatatTransaksi",
+            action_type = "KerjaLepas",
             ruleset_version_id = activeVersion.RulesetVersionId,
             payload = new
             {
-                direction = "IN",
-                amount = 10,
-                category = "NEED_PRIMARY",
-                counterparty = "BANK"
+                amount = 1
             }
         };
         var event1Response = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", event1Payload, instructorToken);
-        Assert.Equal(HttpStatusCode.Created, event1Response.StatusCode);
+        Assert.True(
+            event1Response.StatusCode == HttpStatusCode.Created,
+            await event1Response.Content.ReadAsStringAsync());
 
         var event2Payload = new
         {
@@ -216,20 +217,22 @@ public sealed class EventAnalyticsIntegrationTests
             timestamp = now.AddSeconds(1).ToString("O"),
             day_index = 0,
             weekday = "MON",
-            action_slot = 1,
+            action_slot = 2,
             sequence_number = 2,
-            action_type = "CatatTransaksi",
+            action_type = "Kebutuhan",
             ruleset_version_id = activeVersion.RulesetVersionId,
             payload = new
             {
-                direction = "OUT",
+                card_id = "buku",
                 amount = 3,
-                category = "NEED_PRIMARY",
-                counterparty = "BANK"
+                points = 1,
+                need_tier = "primer"
             }
         };
         var event2Response = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", event2Payload, instructorToken);
-        Assert.Equal(HttpStatusCode.Created, event2Response.StatusCode);
+        Assert.True(
+            event2Response.StatusCode == HttpStatusCode.Created,
+            await event2Response.Content.ReadAsStringAsync());
 
         var analyticsResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -242,14 +245,14 @@ public sealed class EventAnalyticsIntegrationTests
         var analyticsRoot = analyticsBody.RootElement;
         var summary = analyticsRoot.GetProperty("summary");
         Assert.Equal(2, summary.GetProperty("event_count").GetInt32());
-        Assert.Equal(10d, summary.GetProperty("cash_in_total").GetDouble(), 6);
+        Assert.Equal(1d, summary.GetProperty("cash_in_total").GetDouble(), 6);
         Assert.Equal(3d, summary.GetProperty("cash_out_total").GetDouble(), 6);
-        Assert.Equal(7d, summary.GetProperty("cashflow_net_total").GetDouble(), 6);
+        Assert.Equal(-2d, summary.GetProperty("cashflow_net_total").GetDouble(), 6);
 
         var byPlayer = analyticsRoot.GetProperty("by_player")
             .EnumerateArray()
             .Single(item => item.GetProperty("user_id").GetGuid() == createdUserId);
-        Assert.Equal(10d, byPlayer.GetProperty("cash_in_total").GetDouble(), 6);
+        Assert.Equal(1d, byPlayer.GetProperty("cash_in_total").GetDouble(), 6);
         Assert.Equal(3d, byPlayer.GetProperty("cash_out_total").GetDouble(), 6);
         Assert.Equal(0, byPlayer.GetProperty("orders_completed_count").GetInt32());
         Assert.Equal(0, byPlayer.GetProperty("inventory_ingredient_total").GetInt32());
@@ -267,7 +270,7 @@ public sealed class EventAnalyticsIntegrationTests
         var transactions = await transactionsResponse.Content.ReadFromJsonAsync<TransactionHistoryResponse>();
         Assert.NotNull(transactions);
         Assert.Equal(2, transactions.Items.Count);
-        Assert.Equal(10d, transactions.Items[0].Amount, 6);
+        Assert.Equal(1d, transactions.Items[0].Amount, 6);
         Assert.Equal(3d, transactions.Items[1].Amount, 6);
 
         var recomputeResponse = await SendJsonAsync(
@@ -303,7 +306,9 @@ public sealed class EventAnalyticsIntegrationTests
             "/api/v1/rulesets",
             createRulesetPayload,
             instructorToken);
-        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+        Assert.True(
+            createRulesetResponse.StatusCode == HttpStatusCode.Created,
+            await createRulesetResponse.Content.ReadAsStringAsync());
 
         var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
         Assert.NotNull(createdRuleset);
@@ -382,40 +387,41 @@ public sealed class EventAnalyticsIntegrationTests
             .OrderByDescending(v => v.Version)
             .First();
 
-        var orderedByPlayerId = players.OrderBy(x => x.UserId).ToList();
         var playerOrderByUserId = players
             .Select((player, index) => new { player.UserId, Order = index + 1 })
             .ToDictionary(item => item.UserId, item => item.Order);
         var now = DateTimeOffset.UtcNow;
         long sequence = 1;
-        foreach (var player in orderedByPlayerId.AsEnumerable().Reverse())
+        foreach (var player in players)
         {
-            var eventPayload = new
+            for (var slot = 1; slot <= 2; slot++)
             {
-                event_id = Guid.NewGuid(),
-                session_id = createdSession.SessionId,
-                user_id = player.UserId,
-                actor_type = "PLAYER",
-                turn_number = playerOrderByUserId[player.UserId],
-                timestamp = now.AddSeconds(sequence).ToString("O"),
-                day_index = 0,
-                weekday = "MON",
-                action_slot = 1,
-                sequence_number = sequence,
-                action_type = "CatatTransaksi",
-                ruleset_version_id = activeVersion.RulesetVersionId,
-                payload = new
+                var eventPayload = new
                 {
-                    direction = "IN",
-                    amount = 5,
-                    category = "NEED_PRIMARY",
-                    counterparty = "BANK"
-                }
-            };
+                    event_id = Guid.NewGuid(),
+                    session_id = createdSession.SessionId,
+                    user_id = player.UserId,
+                    actor_type = "PLAYER",
+                    turn_number = playerOrderByUserId[player.UserId],
+                    timestamp = now.AddSeconds(sequence).ToString("O"),
+                    day_index = 0,
+                    weekday = "MON",
+                    action_slot = slot,
+                    sequence_number = sequence,
+                    action_type = "KerjaLepas",
+                    ruleset_version_id = activeVersion.RulesetVersionId,
+                    payload = new
+                    {
+                        amount = 1
+                    }
+                };
 
-            var eventResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", eventPayload, instructorToken);
-            Assert.Equal(HttpStatusCode.Created, eventResponse.StatusCode);
-            sequence += 1;
+                var eventResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", eventPayload, instructorToken);
+                Assert.True(
+                    eventResponse.StatusCode == HttpStatusCode.Created,
+                    await eventResponse.Content.ReadAsStringAsync());
+                sequence += 1;
+            }
         }
 
         var analyticsResponse = await SendJsonAsync(
@@ -438,28 +444,24 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Memvalidasi bahwa urutan pemain tetap mengikuti player_order_no walaupun ruleset lama
-    /// membawa konfigurasi INSTRUCTOR_ORDER. MVP final tidak menyimpan tabel username
-    /// ordering instruktur.
+    /// Memvalidasi bahwa penambahan pemain via username tanpa player_order_no tetap
+    /// mengikuti urutan assignment sesi.
     /// </summary>
-    public async Task AddPlayersByUsername_WithInstructorOrderRuleset_UsesSeatOrder()
+    public async Task AddPlayersByUsername_WithoutExplicitOrder_UsesAssignmentOrder()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        var instructorUsername = $"it_evt_manual_order_instructor_{suffix}";
-        const string instructorPassword = "IntegrationManualOrderInstructorPass!123";
+        var instructorUsername = $"it_evt_assignment_order_instructor_{suffix}";
+        const string instructorPassword = "IntegrationAssignmentOrderInstructorPass!123";
         var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
-        var firstPlayerUsername = $"it_evt_manual_order_player_1_{suffix}";
-        var secondPlayerUsername = $"it_evt_manual_order_player_2_{suffix}";
-        var thirdPlayerUsername = $"it_evt_manual_order_player_3_{suffix}";
+        var firstPlayerUsername = $"it_evt_assignment_order_player_1_{suffix}";
+        var secondPlayerUsername = $"it_evt_assignment_order_player_2_{suffix}";
+        var thirdPlayerUsername = $"it_evt_assignment_order_player_3_{suffix}";
 
         var createRulesetPayload = new
         {
-            name = $"Ruleset Manual Order IT {suffix}",
-            description = "Integration instructor manual order by username",
-            definition = BuildRulesetDefinition(
-                startingCash: 20,
-                playerOrdering: "INSTRUCTOR_ORDER",
-                instructorPlayerUsernames: new[] { thirdPlayerUsername, firstPlayerUsername, secondPlayerUsername, "" })
+            name = $"Ruleset Assignment Order IT {suffix}",
+            description = "Integration assignment order by username",
+            definition = BuildRulesetDefinition(startingCash: 20)
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -467,7 +469,9 @@ public sealed class EventAnalyticsIntegrationTests
             "/api/v1/rulesets",
             createRulesetPayload,
             instructorToken);
-        Assert.Equal(HttpStatusCode.Created, createRulesetResponse.StatusCode);
+        Assert.True(
+            createRulesetResponse.StatusCode == HttpStatusCode.Created,
+            await createRulesetResponse.Content.ReadAsStringAsync());
 
         var createdRuleset = await createRulesetResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
         Assert.NotNull(createdRuleset);
@@ -477,7 +481,7 @@ public sealed class EventAnalyticsIntegrationTests
             "/api/v1/sessions",
             new
             {
-                session_name = $"Session Manual Order IT {suffix}",
+                session_name = $"Session Assignment Order IT {suffix}",
                 mode = "PEMULA",
                 ruleset_version_id = createdRuleset.RulesetVersionId
             },
@@ -501,9 +505,9 @@ public sealed class EventAnalyticsIntegrationTests
                 "/api/v1/players",
                 new
                 {
-                    display_name = $"Player Manual Order {i} {suffix}",
+                    display_name = $"Player Assignment Order {i} {suffix}",
                     username,
-                    password = "IntegrationManualOrderPlayerPass!123"
+                    password = "IntegrationAssignmentOrderPlayerPass!123"
                 },
                 instructorToken);
             Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
@@ -520,23 +524,32 @@ public sealed class EventAnalyticsIntegrationTests
         var addFirst = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/players",
-            new { username = firstPlayer.Username, player_order_no = 1 },
+            new { username = firstPlayer.Username },
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, addFirst.StatusCode);
+        var addedFirst = await addFirst.Content.ReadFromJsonAsync<AddSessionPlayerResponse>();
+        Assert.NotNull(addedFirst);
+        Assert.Equal(1, addedFirst.PlayerOrder);
 
         var addSecond = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/players",
-            new { username = secondPlayer.Username, player_order_no = 2 },
+            new { username = secondPlayer.Username },
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, addSecond.StatusCode);
+        var addedSecond = await addSecond.Content.ReadFromJsonAsync<AddSessionPlayerResponse>();
+        Assert.NotNull(addedSecond);
+        Assert.Equal(2, addedSecond.PlayerOrder);
 
         var addThird = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/players",
-            new { username = thirdPlayer.Username, player_order_no = 3 },
+            new { username = thirdPlayer.Username },
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, addThird.StatusCode);
+        var addedThird = await addThird.Content.ReadFromJsonAsync<AddSessionPlayerResponse>();
+        Assert.NotNull(addedThird);
+        Assert.Equal(3, addedThird.PlayerOrder);
 
         var analyticsResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -674,18 +687,18 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Memvalidasi bahwa path API legacy (/api/...) mengembalikan 404 Not Found
+    /// Memvalidasi bahwa path API tanpa versi (/api/...) mengembalikan 404 Not Found
     /// dan path versioned (/api/v1/...) berfungsi dengan benar.
     /// </summary>
-    public async Task LegacyApiRoute_ReturnsNotFound_AndV1AuthWorks()
+    public async Task UnversionedApiRoute_ReturnsNotFound_AndV1AuthWorks()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        var username = $"it_legacy_{suffix}";
-        const string password = "LegacyRoutePass!123";
+        var username = $"it_unversioned_{suffix}";
+        const string password = "UnversionedRoutePass!123";
 
         var registerPayload = new RegisterRequest(username, password, "INSTRUCTOR", null);
-        var legacyRegisterResponse = await _client.PostAsJsonAsync("/api/auth/register", registerPayload);
-        Assert.Equal(HttpStatusCode.NotFound, legacyRegisterResponse.StatusCode);
+        var unversionedRegisterResponse = await _client.PostAsJsonAsync("/api/auth/register", registerPayload);
+        Assert.Equal(HttpStatusCode.NotFound, unversionedRegisterResponse.StatusCode);
 
         var registerResponse = await _client.PostAsJsonAsync("/api/v1/auth/register", registerPayload);
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
@@ -698,8 +711,8 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.NotNull(login);
         Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
 
-        var legacySessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/sessions", null, login.AccessToken);
-        Assert.Equal(HttpStatusCode.NotFound, legacySessionsResponse.StatusCode);
+        var unversionedSessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/sessions", null, login.AccessToken);
+        Assert.Equal(HttpStatusCode.NotFound, unversionedSessionsResponse.StatusCode);
 
         var sessionsResponse = await SendJsonAsync(HttpMethod.Get, "/api/v1/sessions", null, login.AccessToken);
         Assert.Equal(HttpStatusCode.OK, sessionsResponse.StatusCode);
@@ -1080,8 +1093,7 @@ public sealed class EventAnalyticsIntegrationTests
     /// </summary>
     private static RulesetDefinitionDto BuildRulesetDefinition(
         int startingCash,
-        string playerOrdering = "PLAYER_ORDER",
-        string[]? instructorPlayerUsernames = null)
+        string playerOrdering = "PLAYER_ORDER")
     {
         return new RulesetDefinitionDto
         {
@@ -1118,13 +1130,13 @@ public sealed class EventAnalyticsIntegrationTests
                 SaturdayFeature = "GOLD_TRADE",
                 SaturdayEnabled = true,
                 SundayFeature = "REST",
-                SundayEnabled = true,
-                InstructorPlayerUsernames = instructorPlayerUsernames?.ToList() ?? []
+                SundayEnabled = true
             },
             Actions =
             [
                 new RulesetActionDto { ActionId = "BahanMasakan" },
                 new RulesetActionDto { ActionId = "JualMasakan" },
+                new RulesetActionDto { ActionId = "Kebutuhan" },
                 new RulesetActionDto { ActionId = "KerjaLepas" }
             ],
             Ingredients =
@@ -1145,7 +1157,7 @@ public sealed class EventAnalyticsIntegrationTests
             ],
             Needs =
             [
-                new RulesetNeedDto { Id = "buku", Nama = "buku", Tipe = "primer", HargaBeli = 2, PoinKebahagiaan = 1 },
+                new RulesetNeedDto { Id = "buku", Nama = "buku", Tipe = "primer", HargaBeli = 3, PoinKebahagiaan = 1 },
                 new RulesetNeedDto { Id = "boneka", Nama = "boneka", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3 }
             ],
             CollectionMissions =

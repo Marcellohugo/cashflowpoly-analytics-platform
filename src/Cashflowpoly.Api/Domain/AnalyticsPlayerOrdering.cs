@@ -22,11 +22,6 @@ internal sealed class PlayerOrderingService : IPlayerOrdering
     {
         return ordering switch
         {
-            PlayerOrdering.InstructorOrder => players
-                .OrderBy(player => ResolvePlayerOrder(playerPlayerOrders, player.UserId))
-                .ThenBy(player => ResolveFirstSequence(firstEventSequenceByPlayer, player.UserId))
-                .ThenBy(player => player.UserId)
-                .ToList(),
             PlayerOrdering.Username => players
                 .OrderBy(player => HasOrderingUsername(usernamesByPlayer, player.UserId) ? 0 : 1)
                 .ThenBy(player => ResolveOrderingUsername(usernamesByPlayer, player.UserId), UsernameOrderingComparer)

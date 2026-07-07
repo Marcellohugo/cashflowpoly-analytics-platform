@@ -1059,7 +1059,8 @@ public sealed class RulesetRepository
                         ItemName = ingredient.Nama,
                         DisplayName = ingredient.Nama,
                         PurchasePrice = ingredient.HargaBeli,
-                        SortOrder = index + 1
+                        SortOrder = index + 1,
+                        PayloadJson = "{}"
                     },
                     tx,
                     cancellationToken: ct));
@@ -1820,7 +1821,7 @@ public sealed class RulesetRepository
                 loan_code,
                 item_name,
                 principal,
-                installment,
+                repayment_amount,
                 duration_days,
                 penalty_points,
                 sort_order,
@@ -1834,7 +1835,7 @@ public sealed class RulesetRepository
                 @LoanCode,
                 @ItemName,
                 @Principal,
-                @Installment,
+                @RepaymentAmount,
                 @DurationDays,
                 @PenaltyPoints,
                 @SortOrder,
@@ -1857,7 +1858,7 @@ public sealed class RulesetRepository
                         loan.LoanCode,
                         loan.ItemName,
                         loan.Principal,
-                        loan.Installment,
+                        loan.RepaymentAmount,
                         loan.DurationDays,
                         loan.PenaltyPoints,
                         SortOrder = index + 1,
@@ -2084,7 +2085,8 @@ public sealed class RulesetRepository
                     item_name as Nama,
                     sell_price as HargaJual,
                     happiness_points as PoinKebahagiaan,
-                    sort_order as SortOrder
+                    sort_order as SortOrder,
+                    card_qty as CardQty
                 from ruleset_orders
                 where ruleset_version_id = @rulesetVersionId
                   and is_active
@@ -2129,7 +2131,8 @@ public sealed class RulesetRepository
             PoinKebahagiaan = row.PoinKebahagiaan,
             Bahan = orderRequirementLookup.TryGetValue(row.RulesetOrderId, out var requirements)
                 ? requirements
-                : []
+                : [],
+            CardQty = row.CardQty
         }).ToList();
 
         var needs = (await conn.QueryAsync<RulesetNeedDto>(
@@ -2389,7 +2392,7 @@ public sealed class RulesetRepository
                     loan_code as LoanCode,
                     item_name as ItemName,
                     principal as Principal,
-                    installment as Installment,
+                    repayment_amount as RepaymentAmount,
                     duration_days as DurationDays,
                     penalty_points as PenaltyPoints,
                     card_qty as CardQty
@@ -2460,7 +2463,7 @@ public sealed class RulesetRepository
                 SavingGoalEnabled = settings.SavingGoalEnabled,
                 FreelanceIncome = settings.FreelanceIncome
             },
-            PlayerOrdering = BuildPlayerOrdering(orderingRules, instructorUsernames),
+            PlayerOrdering = BuildPlayerOrdering(orderingRules),
             Actions = actions,
             Ingredients = ingredients,
             Orders = orders,
@@ -2481,8 +2484,7 @@ public sealed class RulesetRepository
     }
 
     private static RulesetPlayerOrderingDto BuildPlayerOrdering(
-        IReadOnlyCollection<PlayerOrderingRuleRow> rules,
-        IReadOnlyCollection<string> instructorUsernames)
+        IReadOnlyCollection<PlayerOrderingRuleRow> rules)
     {
         var orderingCode = rules
             .Where(rule => !string.IsNullOrWhiteSpace(rule.OrderingCode))
@@ -2502,8 +2504,7 @@ public sealed class RulesetRepository
             SaturdayFeature = saturday?.FeatureCode ?? "GOLD_TRADE",
             SaturdayEnabled = saturday?.IsEnabled ?? true,
             SundayFeature = sunday?.FeatureCode ?? "REST",
-            SundayEnabled = sunday?.IsEnabled ?? true,
-            InstructorPlayerUsernames = instructorUsernames.ToList()
+            SundayEnabled = sunday?.IsEnabled ?? true
         };
     }
 
@@ -2615,6 +2616,7 @@ public sealed class RulesetRepository
         public int HargaJual { get; init; }
         public int PoinKebahagiaan { get; init; }
         public int SortOrder { get; init; }
+        public int? CardQty { get; init; }
     }
 
     private sealed class OrderRequirementRow

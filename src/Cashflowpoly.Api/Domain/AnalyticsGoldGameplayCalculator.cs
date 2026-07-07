@@ -25,6 +25,10 @@ internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
         var goldInvestmentSpent = 0;
         var goldInvestmentEarned = 0;
 
+        var initialGoldQty = playerEvents
+            .Where(e => e.ActionType == GameActionCatalog.GoldInitialGranted)
+            .Sum(e => _payloadReader.TryReadGoldTradeDetailed(e.Payload, out _, out var qty, out _, out _) ? qty : 1);
+
         foreach (var evt in playerEvents.Where(e =>
                      e.ActionType == GameActionCatalog.InvestasiEmas ||
                      e.ActionType == GameActionCatalog.JualEmas))
@@ -59,7 +63,7 @@ internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
         return new AnalyticsGoldGameplayMetrics(
             goldBuyQty,
             goldSellQty,
-            goldBuyQty - goldSellQty,
+            initialGoldQty + goldBuyQty - goldSellQty,
             goldPurchasePrices,
             goldSalePrices,
             goldInvestmentSpent,

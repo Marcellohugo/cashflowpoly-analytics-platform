@@ -115,7 +115,8 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
             amount = riskAmount;
             category = "RISK_LIFE";
         }
-        else if (string.Equals(action, GameActionCatalog.PinjamanSyariah, StringComparison.OrdinalIgnoreCase) &&
+        else if ((string.Equals(action, GameActionCatalog.PinjamanSyariah, StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(action, GameActionCatalog.SetupPinjamanAwal, StringComparison.OrdinalIgnoreCase)) &&
                  _payloadReader.TryReadLoanTaken(request.Payload, out _, out var principal, out _, out _, out _))
         {
             direction = "IN";

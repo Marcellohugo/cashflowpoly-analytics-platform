@@ -12,6 +12,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
         var playerId = Guid.NewGuid();
         var events = new List<EventDb>
         {
+            CreateEvent(playerId, "BagikanEmasAwal", """{"asset_code":"gold_card","qty":1,"unit_value":5,"setup":"INITIAL"}"""),
             CreateGoldTrade(playerId, "BUY", qty: 3, unitPrice: 4, amount: 12),
             CreateGoldTrade(playerId, "SELL", qty: 1, unitPrice: 5, amount: 5),
             CreateGoldTrade(playerId, "BUY", qty: 2, unitPrice: 6, amount: 12),
@@ -22,7 +23,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
 
         Assert.Equal(5, metrics.GoldBuyQty);
         Assert.Equal(1, metrics.GoldSellQty);
-        Assert.Equal(4, metrics.GoldHeldEnd);
+        Assert.Equal(5, metrics.GoldHeldEnd);
         Assert.Equal(new[] { 4, 6 }, metrics.GoldPurchasePrices);
         Assert.Equal(new[] { 5 }, metrics.GoldSalePrices);
         Assert.Equal(24, metrics.GoldInvestmentSpent);

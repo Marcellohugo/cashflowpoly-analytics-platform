@@ -33,7 +33,11 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 
     private EventDomainValidationResult ValidateTurnEndedMahir(EventRequest request, IEnumerable<EventDb> history)
     {
-        var turnEvents = history.Where(e => e.ActionSlot == request.ActionSlot && e.UserId.HasValue).ToList();
+        var turnEvents = history
+            .Where(e => e.SessionId == request.SessionId &&
+                        e.DayIndex == request.DayIndex &&
+                        e.UserId.HasValue)
+            .ToList();
 
         var orderCounts = turnEvents
             .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.JualMasakan))

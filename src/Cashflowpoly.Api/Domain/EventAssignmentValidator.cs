@@ -14,7 +14,8 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
         IEnumerable<EventDb> history,
         out EventDomainValidationResult result)
     {
-        if (string.Equals(request.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(request.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateMission(request, history);
             return true;
@@ -75,7 +76,8 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 
         var alreadyAssigned = history.Any(e =>
             e.UserId == request.UserId &&
-            e.ActionType == "BagikanMisiKoleksi");
+            (string.Equals(e.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(e.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase)));
         if (alreadyAssigned)
         {
             return EventDomainValidationResult.Fail(

@@ -96,41 +96,32 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         double pensionPoints,
         RulesetConfig? config)
     {
-        double needPoints = 0;
-        var primaryCount = 0;
-        var secondaryCount = 0;
-        var tertiaryCount = 0;
-        var tertiaryCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var activeNeeds = new List<NeedCard>();
         var missions = new List<MissionAssignment>();
         var loans = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         double savingGoalPoints = 0;
 
-        foreach (var evt in playerEvents)
+        foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
         {
             if (evt.ActionType == "Kebutuhan" &&
-                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var tertiaryCardId, out var needPointsValueTertiary))
+                _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out var points))
             {
-                needPoints += needPointsValueTertiary;
+                activeNeeds.Add(new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload), points));
+            }
 
-                switch (NeedTierClassifier.FromPayloadJson(evt.Payload))
+            if (evt.ActionType == "GunakanOpsiDarurat" &&
+                _payloadReader.TryReadSoldNeed(evt.Payload, out var soldNeedCardId))
+            {
+                var soldIndex = activeNeeds.FindIndex(need =>
+                    string.Equals(need.CardId, soldNeedCardId, StringComparison.OrdinalIgnoreCase));
+                if (soldIndex >= 0)
                 {
-                    case NeedTier.Primary:
-                        primaryCount += 1;
-                        break;
-                    case NeedTier.Secondary:
-                        secondaryCount += 1;
-                        break;
-                    case NeedTier.Tertiary:
-                        tertiaryCount += 1;
-                        if (!string.IsNullOrWhiteSpace(tertiaryCardId))
-                        {
-                            tertiaryCardIds.Add(tertiaryCardId);
-                        }
-                        break;
+                    activeNeeds.RemoveAt(soldIndex);
                 }
             }
 
-            if (evt.ActionType == "BagikanMisiKoleksi" &&
+            if ((string.Equals(evt.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(evt.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase)) &&
                 _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
@@ -154,6 +145,16 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 }
             }
         }
+
+        var needPoints = activeNeeds.Sum(need => need.Points);
+        var primaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Primary);
+        var secondaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Secondary);
+        var tertiaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Tertiary);
+        var tertiaryCardIds = activeNeeds
+            .Where(need => need.Tier == NeedTier.Tertiary)
+            .Select(need => need.CardId)
+            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var differentBonus = ResolveNeedSetBonus(config, "THREE_DIFFERENT", requiredCount: 3, points: 4);
         var sameBonus = ResolveNeedSetBonus(config, "THREE_SAME", requiredCount: 3, points: 2);
@@ -422,10 +423,11 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 inventoryByPlayer[playerId] = inventory;
             }
 
-            if (evt.ActionType == "BahanMasakan" &&
-                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out _))
+            if ((evt.ActionType == "BahanMasakan" || evt.ActionType == "SetupBahanAwal") &&
+                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out var setupAmount))
             {
-                inventory[cardId] = inventory.TryGetValue(cardId, out var current) ? current + 1 : 1;
+                var added = evt.ActionType == "SetupBahanAwal" ? setupAmount : 1;
+                inventory[cardId] = inventory.TryGetValue(cardId, out var current) ? current + added : added;
             }
             else if (evt.ActionType == "BuangBahanMasakan" &&
                      TryReadString(evt.Payload, "card_id", out var discardedCardId))
@@ -487,18 +489,29 @@ internal sealed class HappinessCalculator : IHappinessCalculator
 
     private int ResolvePointsByQty(int qty, IReadOnlyList<QtyPoint> table)
     {
-        var bestQty = 0;
-        var bestPoints = 0;
-        foreach (var entry in table)
+        if (qty <= 0 || table.Count == 0)
         {
-            if (entry.Qty <= qty && entry.Qty >= bestQty)
-            {
-                bestQty = entry.Qty;
-                bestPoints = entry.Points;
-            }
+            return 0;
         }
 
-        return bestPoints;
+        var maxTableQty = table.Max(x => x.Qty);
+        if (qty <= maxTableQty)
+        {
+            var bestPoints = 0;
+            foreach (var entry in table)
+            {
+                if (entry.Qty <= qty && entry.Points > bestPoints)
+                {
+                    bestPoints = entry.Points;
+                }
+            }
+            return bestPoints;
+        }
+        else
+        {
+            var maxTablePoints = table.First(x => x.Qty == maxTableQty).Points;
+            return maxTablePoints + ResolvePointsByQty(qty - maxTableQty, table);
+        }
     }
 
     public double SumRankAwarded(IEnumerable<EventDb> events, string actionType)
@@ -527,4 +540,5 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         double RepaidAmount);
 
     private sealed record NeedSetBonus(int RequiredCount, int Points);
+    private sealed record NeedCard(string CardId, NeedTier Tier, double Points);
 }

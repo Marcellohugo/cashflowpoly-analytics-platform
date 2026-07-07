@@ -122,6 +122,51 @@ public sealed class EventRequestShapeValidatorTests
         Assert.Contains(result.Details, detail => detail.Field == "action_slot" && detail.Issue == "OUT_OF_RANGE");
     }
 
+    [Theory]
+    [InlineData("JumatBerkah")]
+    [InlineData("RisikoKehidupan")]
+    [InlineData("GunakanOpsiDarurat")]
+    public void Validate_AcceptsPlayerActionSlotZeroForRulebookFreeActions(string actionType)
+    {
+        var request = CreateRequest() with { ActionType = actionType, ActionSlot = 0 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.True(result.IsValid, result.Message);
+    }
+
+    [Theory]
+    [InlineData("Asuransi")]
+    [InlineData("PinjamanSyariah")]
+    public void Validate_AcceptsPlayerActionSlotZeroForRiskResponses(string actionType)
+    {
+        using var document = JsonDocument.Parse("""{"risk_event_ref":"risk-001"}""");
+        var request = CreateRequest() with
+        {
+            ActionType = actionType,
+            ActionSlot = 0,
+            Payload = document.RootElement.Clone()
+        };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.True(result.IsValid, result.Message);
+    }
+
+    [Theory]
+    [InlineData("Asuransi")]
+    [InlineData("PinjamanSyariah")]
+    public void Validate_RejectsPlayerActionSlotZeroForRiskActionsWithoutRiskReference(string actionType)
+    {
+        var request = CreateRequest() with { ActionType = actionType, ActionSlot = 0 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.Contains(result.Details, detail => detail.Field == "action_slot" && detail.Issue == "OUT_OF_RANGE");
+    }
+
     [Fact]
     public void Validate_RejectsNegativeTurnNumber()
     {

@@ -1,12 +1,10 @@
 using Cashflowpoly.Api.Data;
-using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -177,8 +175,6 @@ public sealed class PlayersController : ControllerBase
                 "Session belum memiliki ruleset aktif"));
         }
 
-        var requiresInstructorOrder = false;
-        var instructorOrderLookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var activeRulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(activeRulesetVersionId.Value, ct);
         if (activeRulesetVersion?.Definition is null ||
             !string.Equals(activeRulesetVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
@@ -199,13 +195,6 @@ public sealed class PlayersController : ControllerBase
                 $"Seat number maksimal {maxPlayers}"));
         }
 
-        if (RulesetRuntimeMapper.TryBuildConfig(activeRulesetVersion.Definition, out var activeConfig, out _) &&
-            activeConfig?.PlayerOrdering == PlayerOrdering.InstructorOrder)
-        {
-            requiresInstructorOrder = true;
-            instructorOrderLookup = BuildInstructorOrderLookup(activeRulesetVersion.Definition, maxPlayers);
-        }
-
         PlayerDb? player = null;
         if (request.UserId.HasValue)
         {
@@ -222,35 +211,6 @@ public sealed class PlayersController : ControllerBase
         }
 
         var userId = player.UserId;
-        var resolvedPlayerOrder = request.PlayerOrder;
-        if (requiresInstructorOrder && !resolvedPlayerOrder.HasValue)
-        {
-            var requestedUsername = string.IsNullOrWhiteSpace(request.Username)
-                ? null
-                : request.Username.Trim();
-            if (string.IsNullOrWhiteSpace(requestedUsername))
-            {
-                var usernameMap = await _users.GetUsernamesByUserIdsAsync(new[] { userId }, ct);
-                requestedUsername = usernameMap.TryGetValue(userId, out var mappedUsername)
-                    ? mappedUsername
-                    : null;
-            }
-
-            if (!string.IsNullOrWhiteSpace(requestedUsername) &&
-                instructorOrderLookup.TryGetValue(requestedUsername.Trim(), out var inferredPlayerOrder))
-            {
-                resolvedPlayerOrder = inferredPlayerOrder;
-            }
-        }
-
-        if (requiresInstructorOrder && !resolvedPlayerOrder.HasValue)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                "Ruleset mewajibkan player_order_no atau username yang terdaftar pada slot Player 1-4"));
-        }
-
         var alreadyInSession = await _players.IsPlayerInSessionAsync(sessionId, userId, ct);
         if (!alreadyInSession)
         {
@@ -267,7 +227,7 @@ public sealed class PlayersController : ControllerBase
         var playerOrder = await _players.AddPlayerToSessionAndAssignPlayerOrderAsync(
             sessionId,
             userId,
-            resolvedPlayerOrder,
+            request.PlayerOrder,
             ct);
 
         return Ok(new AddSessionPlayerResponse(userId, playerOrder));
@@ -279,30 +239,4 @@ public sealed class PlayersController : ControllerBase
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    private static Dictionary<string, int> BuildInstructorOrderLookup(RulesetDefinitionDto definition, int maxPlayers)
-    {
-        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-        var position = 1;
-        foreach (var username in definition.PlayerOrdering.InstructorPlayerUsernames)
-        {
-            if (position > maxPlayers)
-            {
-                break;
-            }
-
-            if (!string.IsNullOrWhiteSpace(username))
-            {
-                var normalized = username.Trim();
-                if (!result.ContainsKey(normalized))
-                {
-                    result[normalized] = position;
-                }
-            }
-
-            position++;
-        }
-
-        return result;
-    }
 }

@@ -853,9 +853,9 @@ public sealed class SessionStateRepository
                         PlayerIndex = ranking.TryGetProperty("player_order_no", out var playerIndexProp) &&
                                       playerIndexProp.ValueKind == JsonValueKind.Number
                             ? playerIndexProp.GetInt32()
-                            : ranking.TryGetProperty("player_index", out var legacyPlayerIndexProp) &&
-                              legacyPlayerIndexProp.ValueKind == JsonValueKind.Number
-                            ? legacyPlayerIndexProp.GetInt32()
+                            : ranking.TryGetProperty("player_index", out var playerIndexAliasProp) &&
+                              playerIndexAliasProp.ValueKind == JsonValueKind.Number
+                            ? playerIndexAliasProp.GetInt32()
                             : 0,
                         TotalDonasi = ranking.TryGetProperty("total_donasi", out var totalDonasiProp) &&
                                       totalDonasiProp.ValueKind == JsonValueKind.Number
@@ -1627,7 +1627,8 @@ public sealed class RulesetSectionCatalog
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var kebutuhanTypes = definition.Needs
             .Where(item => !string.IsNullOrWhiteSpace(item.Nama) && !string.IsNullOrWhiteSpace(item.Tipe))
-            .ToDictionary(item => item.Nama, item => item.Tipe, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(item => item.Nama, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Tipe, StringComparer.OrdinalIgnoreCase);
         var targetKebutuhanIds = definition.CollectionMissions
             .Select(item => item.Id)
             .Where(item => !string.IsNullOrWhiteSpace(item))

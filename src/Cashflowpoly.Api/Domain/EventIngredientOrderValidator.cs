@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
@@ -33,7 +35,7 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
 
         if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.JualMasakan))
         {
-            result = ValidateOrderClaim(request, history);
+            result = ValidateOrderClaim(request, config, history);
             return true;
         }
 
@@ -61,14 +63,52 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
             return new EventIngredientOrderValidation(commonValidation, null);
         }
 
+        var matchedIng = config.Ingredients.FirstOrDefault(i => string.Equals(i.Id, cardId, StringComparison.OrdinalIgnoreCase));
+        if (matchedIng is null)
+        {
+            return Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                $"Bahan {cardId} tidak terdaftar pada katalog ruleset aktif");
+        }
+
+        var modifier = 0;
+        foreach (var evt in history)
+        {
+            var eventPayload = _payloadReader.ReadPayload(evt.Payload);
+            if (GameActionCatalog.Is(evt.ActionType, eventPayload, GameActionCatalog.RisikoKehidupan) &&
+                _payloadReader.TryGetString(eventPayload, "risk_id", out var riskId))
+            {
+                var risk = config.LifeRisks.FirstOrDefault(r => string.Equals(r.RiskCode, riskId, StringComparison.OrdinalIgnoreCase));
+                if (risk is not null && string.Equals(risk.EffectType, "INGREDIENT_PRICE_MODIFIER", StringComparison.OrdinalIgnoreCase))
+                {
+                    var startDay = evt.DayIndex;
+                    var endDay = startDay + (risk.DurationDays ?? 1) - 1;
+                    if (request.DayIndex >= startDay && request.DayIndex <= endDay)
+                    {
+                        modifier += string.Equals(risk.Direction, "IN", StringComparison.OrdinalIgnoreCase) ? risk.Amount : -risk.Amount;
+                    }
+                }
+            }
+        }
+
+        var expectedPrice = Math.Max(0, matchedIng.HargaBeli + modifier);
+        if (amount != expectedPrice)
+        {
+            return Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                $"Harga pembelian bahan {cardId} ({amount}) tidak sesuai dengan harga katalog modified ({expectedPrice})");
+        }
+
         var inventory = _derivedState.BuildIngredientInventory(history, request.UserId!.Value);
-        if (inventory.Total + amount > config.MaxIngredientTotal)
+        if (inventory.Total + 1 > config.MaxIngredientTotal)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Total kartu bahan melebihi batas ruleset");
         }
 
         var currentSame = inventory.ByCardId.TryGetValue(cardId, out var currentQty) ? currentQty : 0;
-        if (currentSame + amount > config.MaxSameIngredient)
+        if (currentSame + 1 > config.MaxSameIngredient)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Jumlah kartu bahan sejenis melebihi batas ruleset");
         }
@@ -112,7 +152,7 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
         return new EventIngredientOrderValidation(EventDomainValidationResult.Valid, null);
     }
 
-    private EventIngredientOrderValidation ValidateOrderClaim(EventRequest request, IEnumerable<EventDb> history)
+    private EventIngredientOrderValidation ValidateOrderClaim(EventRequest request, RulesetConfig config, IEnumerable<EventDb> history)
     {
         if (request.UserId is null)
         {
@@ -123,22 +163,48 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
                 new ErrorDetail("user_id", "REQUIRED"));
         }
 
-        if (!_payloadReader.TryReadOrderClaim(request.Payload, out var requiredCards, out var income))
+        if (!request.Payload.TryGetProperty("order_card_id", out var orderCardIdProp) ||
+            orderCardIdProp.ValueKind != JsonValueKind.String)
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Payload order claim tidak valid",
-                new ErrorDetail("payload.required_ingredient_card_ids", "REQUIRED"));
+                new ErrorDetail("payload.order_card_id", "REQUIRED"));
         }
 
-        if (income <= 0)
+        var orderCardId = orderCardIdProp.GetString()!;
+        var order = config.Orders.FirstOrDefault(o => string.Equals(o.Id, orderCardId, StringComparison.OrdinalIgnoreCase));
+        if (order is null)
         {
             return Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Income harus > 0",
-                new ErrorDetail("payload.income", "OUT_OF_RANGE"));
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                $"Kartu pesanan {orderCardId} tidak terdaftar pada katalog ruleset aktif");
+        }
+
+        if (order.CardQty.HasValue)
+        {
+            var claimedCount = history.Count(e =>
+                string.Equals(e.ActionType, GameActionCatalog.JualMasakan, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                    _payloadReader.ReadPayload(e.Payload).TryGetProperty("order_card_id", out var idProp) && idProp.ValueKind == JsonValueKind.String ? idProp.GetString() : null,
+                    orderCardId,
+                    StringComparison.OrdinalIgnoreCase
+                ));
+
+            if (claimedCount >= order.CardQty.Value)
+            {
+                return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", $"Kartu pesanan {orderCardId} telah mencapai batas kuantitas fisik ({order.CardQty.Value})");
+            }
+        }
+
+        var requiredCards = new List<string>();
+        foreach (var bahanName in order.Bahan)
+        {
+            var matchedIng = config.Ingredients.FirstOrDefault(i => string.Equals(i.Nama, bahanName, StringComparison.OrdinalIgnoreCase));
+            var cardId = matchedIng?.Id ?? bahanName.ToLowerInvariant().Replace(" ", "_");
+            requiredCards.Add(cardId);
         }
 
         var inventory = _derivedState.BuildIngredientInventory(history, request.UserId.Value);

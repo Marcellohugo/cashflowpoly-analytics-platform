@@ -19,7 +19,7 @@ public sealed class AnalyticsRiskLoanCalculatorTests
             CreateEvent(riskTwo, sessionId, playerId, "RisikoKehidupan", """{"risk_id":"risk-2","direction":"OUT","amount":4}"""),
             CreateEvent(Guid.NewGuid(), sessionId, playerId, "Asuransi", """{"risk_event_id":"risk-1"}"""),
             CreateEvent(Guid.NewGuid(), sessionId, playerId, "GunakanOpsiDarurat", """{"risk_event_id":"risk-2","option_type":"OTHER","direction":"OUT","amount":2}"""),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "PinjamanSyariah", """{"loan_id":"loan-a","principal":10,"installment":5,"duration_turns":2,"penalty_points":15}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "PinjamanSyariah", """{"loan_id":"loan-a","principal":10,"repayment_amount":5,"duration_turns":2,"penalty_points":15}"""),
             CreateEvent(Guid.NewGuid(), sessionId, playerId, "BayarPinjaman", """{"loan_id":"loan-a","amount":4}""")
         };
         var projections = new List<CashflowProjectionDb>

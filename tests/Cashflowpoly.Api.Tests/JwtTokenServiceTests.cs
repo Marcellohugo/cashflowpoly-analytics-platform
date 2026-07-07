@@ -81,7 +81,7 @@ public sealed class JwtTokenServiceTests
         Assert.Equal(user.Username, token.Claims.First(c => c.Type == ClaimTypes.Name).Value);
         Assert.Equal(user.UserId.ToString(), token.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
         Assert.Equal("PLAYER", token.Claims.First(c => c.Type == ClaimTypes.Role).Value);
-        Assert.Equal("legacy", token.Header.Kid);
+        Assert.Equal("default", token.Header.Kid);
 
         var minExpected = beforeIssue.AddMinutes(15).AddSeconds(-2);
         var maxExpected = afterIssue.AddMinutes(15).AddSeconds(2);

@@ -68,7 +68,8 @@ internal static class NeedTierClassifier
 
     private static NeedTier FromCardId(string? cardId)
     {
-        var value = (cardId ?? string.Empty).Trim().ToLowerInvariant();
+        cardId = System.Text.RegularExpressions.Regex.Replace(cardId ?? string.Empty, "_[0-9]+$", "");
+        var value = cardId.Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(value))
         {
             return NeedTier.Unknown;

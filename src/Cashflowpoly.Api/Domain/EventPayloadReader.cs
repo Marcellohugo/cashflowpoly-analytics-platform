@@ -379,29 +379,50 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca loan_id, principal, installment, duration, dan penalty_points dari payload event pinjaman.
+    /// Membaca loan_id, principal, repayment_amount opsional, duration opsional, dan penalty_points dari payload event pinjaman.
     /// </summary>
     public bool TryReadLoanTaken(
         JsonElement payload,
         out string loanId,
         out int principal,
-        out int installment,
+        out int repaymentAmount,
         out int duration,
         out int penaltyPoints)
     {
         loanId = string.Empty;
         principal = 0;
-        installment = 0;
+        repaymentAmount = 0;
         duration = 0;
         penaltyPoints = 0;
 
         if (!TryGetString(payload, "loan_id", out loanId) ||
             !TryGetInt32(payload, "principal", out principal) ||
-            !TryGetInt32(payload, "installment", out installment) ||
-            !TryGetInt32(payload, "duration_turn", out duration) ||
             !TryGetInt32(payload, "penalty_points", out penaltyPoints))
         {
             return false;
+        }
+
+        if (!TryGetInt32(payload, "repayment_amount", out repaymentAmount, required: false) &&
+            !TryGetInt32(payload, "installment", out repaymentAmount, required: false))
+        {
+            return false;
+        }
+
+        if (!TryGetInt32(payload, "duration_turn", out duration, required: false) ||
+            (duration == 0 && !TryGetInt32(payload, "duration_turns", out duration, required: false)))
+        {
+            return false;
+        }
+
+        if (duration == 0 &&
+            !TryGetInt32(payload, "duration_days", out duration, required: false))
+        {
+            return false;
+        }
+
+        if (duration == 0)
+        {
+            duration = 1;
         }
 
         return !string.IsNullOrWhiteSpace(loanId);

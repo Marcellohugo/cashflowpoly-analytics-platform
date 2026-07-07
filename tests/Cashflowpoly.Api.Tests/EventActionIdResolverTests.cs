@@ -66,7 +66,7 @@ public sealed class EventActionIdResolverTests
     [InlineData("day.saturday.gold_trade")]
     [InlineData("session.started")]
     [InlineData("turn.ended")]
-    public void Resolve_ReturnsNull_ForLegacyTechnicalActionTypes(string actionType)
+    public void Resolve_ReturnsNull_ForRemovedTechnicalActionTypes(string actionType)
     {
         var resolved = EventActionIdResolver.Resolve(actionType, Parse("""{"trade_type":"SELL"}"""));
 

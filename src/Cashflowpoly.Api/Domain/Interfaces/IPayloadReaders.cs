@@ -14,6 +14,7 @@ public interface IAnalyticsPayloadReader
     bool TryReadSavingDeposit(string payloadJson, out string goalId, out int amount);
     bool TryReadIngredientPurchase(string payloadJson, out string cardId, out int amount);
     bool TryReadNeedPurchase(string payloadJson, out int amount, out string cardId, out int points);
+    bool TryReadSoldNeed(string payloadJson, out string cardId);
     bool TryReadMissionAssigned(string payloadJson, out string missionId, out string targetTertiaryCardId, out int penaltyPoints, out bool requirePrimary, out bool requireSecondary);
     bool TryReadTieBreaker(string payloadJson, out int number);
     bool TryReadRankAwarded(string payloadJson, out int rank, out int points);
@@ -48,7 +49,7 @@ public interface IEventPayloadReader
     bool TryReadRiskLife(JsonElement payload, out string riskId, out string direction, out int amount);
     bool TryReadInsuranceUsed(JsonElement payload, out string riskEventId);
     bool TryReadEmergencyOption(JsonElement payload, out string riskEventId, out string optionType, out string direction, out int amount);
-    bool TryReadLoanTaken(JsonElement payload, out string loanId, out int principal, out int installment, out int duration, out int penaltyPoints);
+    bool TryReadLoanTaken(JsonElement payload, out string loanId, out int principal, out int repaymentAmount, out int duration, out int penaltyPoints);
     bool TryReadLoanRepay(JsonElement payload, out string loanId, out int amount);
     bool TryReadInsurance(JsonElement payload, out int premium);
 }

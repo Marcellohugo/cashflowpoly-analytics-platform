@@ -28,6 +28,8 @@ public sealed class EventIngredientOrderValidatorTests
         var request = CreateRequest("BahanMasakan", """{"card_id":"flour","amount":2}""", playerId);
         var history = new[]
         {
+            CreateEvent("BahanMasakan", """{"card_id":"egg","amount":2}""", playerId),
+            CreateEvent("BahanMasakan", """{"card_id":"egg","amount":2}""", playerId),
             CreateEvent("BahanMasakan", """{"card_id":"egg","amount":2}""", playerId)
         };
 
@@ -47,7 +49,7 @@ public sealed class EventIngredientOrderValidatorTests
         var request = CreateRequest("BuangBahanMasakan", """{"card_id":"flour","amount":2}""", playerId);
         var history = new[]
         {
-            CreateEvent("BahanMasakan", """{"card_id":"flour","amount":1}""", playerId)
+            CreateEvent("BahanMasakan", """{"card_id":"flour","amount":2}""", playerId)
         };
 
         var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -61,11 +63,11 @@ public sealed class EventIngredientOrderValidatorTests
     public void TryValidateOrderClaim_ReturnsValidWhenInventoryCoversRequiredCards()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("JualMasakan", """{"required_ingredient_card_ids":["flour","egg"],"income":8}""", playerId);
+        var request = CreateRequest("JualMasakan", """{"order_card_id":"bread"}""", playerId);
         var history = new[]
         {
-            CreateEvent("BahanMasakan", """{"card_id":"flour","amount":1}""", playerId),
-            CreateEvent("BahanMasakan", """{"card_id":"egg","amount":1}""", playerId)
+            CreateEvent("BahanMasakan", """{"card_id":"flour","amount":2}""", playerId),
+            CreateEvent("BahanMasakan", """{"card_id":"egg","amount":2}""", playerId)
         };
 
         var handled = new EventIngredientOrderValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -136,6 +138,17 @@ public sealed class EventIngredientOrderValidatorTests
             InsuranceEnabled: false,
             SavingGoalEnabled: false,
             FreelanceIncome: 5,
-            Scoring: null);
+            Scoring: null)
+        {
+            Ingredients = new List<RulesetIngredientDto>
+            {
+                new() { Id = "flour", Nama = "Flour", HargaBeli = 2 },
+                new() { Id = "egg", Nama = "Egg", HargaBeli = 2 }
+            },
+            Orders = new List<RulesetOrderDto>
+            {
+                new() { Id = "bread", Nama = "Bread", HargaJual = 8, Bahan = new List<string> { "Flour", "Egg" } }
+            }
+        };
     }
 }

@@ -244,7 +244,9 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("economy")] GameplayEconomyMetrics Economy,
     [property: JsonPropertyName("progress")] GameplayProgressMetrics Progress,
     [property: JsonPropertyName("score")] GameplayScoreMetrics Score,
-    [property: JsonPropertyName("compliance")] GameplayComplianceMetrics Compliance);
+    [property: JsonPropertyName("compliance")] GameplayComplianceMetrics Compliance,
+    [property: JsonPropertyName("raw_json")] JsonElement? RawJson = null,
+    [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null);
 
 public sealed record GameplayEconomyMetrics(
     [property: JsonPropertyName("starting_cash")] double StartingCash,

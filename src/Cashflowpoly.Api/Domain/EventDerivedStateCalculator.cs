@@ -20,10 +20,10 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
         {
             var payload = _payloadReader.ReadPayload(evt.Payload);
             if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.BahanMasakan) &&
-                _payloadReader.TryReadIngredientPurchase(payload, out var cardId, out var amount))
+                _payloadReader.TryReadIngredientPurchase(payload, out var cardId, out _))
             {
-                inventory.Total += amount;
-                inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + amount : amount;
+                inventory.Total += 1;
+                inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + 1 : 1;
             }
 
             if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.JualMasakan) &&

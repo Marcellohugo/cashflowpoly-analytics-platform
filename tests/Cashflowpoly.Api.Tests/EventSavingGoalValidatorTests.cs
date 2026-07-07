@@ -46,10 +46,10 @@ public sealed class EventSavingGoalValidatorTests
     }
 
     [Fact]
-    public void TryValidateWithdraw_RejectsInsufficientSavingBalance()
+    public void TryValidateWithdraw_RejectsWithdrawBecauseRulebookHasNoWithdrawAction()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("TarikTabungan", """{"goal_id":"goal-a","amount":8}""", playerId);
+        var request = CreateRequest("TarikTabungan", """{"goal_id":"goal-a","amount":5}""", playerId);
         var history = new[]
         {
             CreateEvent("Menabung", """{"goal_id":"goal-a","amount":5}""", playerId)
@@ -59,14 +59,19 @@ public sealed class EventSavingGoalValidatorTests
 
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
-        Assert.Equal("Saldo tabungan tidak mencukupi", result.Validation.Message);
+        Assert.Equal("TarikTabungan bukan aksi resmi ruleset rulebook", result.Validation.Message);
     }
 
     [Fact]
     public void TryValidateGoalAchieved_RejectsCostAboveSavingBalance()
     {
         var playerId = Guid.NewGuid();
-        var request = CreateRequest("TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":8}""", playerId);
+        var request = CreateRequest("TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":8}""", playerId) with
+        {
+            ActorType = "SYSTEM",
+            ActionSlot = 0,
+            TurnNumber = 0
+        };
         var history = new[]
         {
             CreateEvent("Menabung", """{"goal_id":"goal-a","amount":5}""", playerId)
@@ -77,6 +82,19 @@ public sealed class EventSavingGoalValidatorTests
         Assert.True(handled);
         Assert.False(result.Validation.IsValid);
         Assert.Equal("Saldo tabungan tidak mencukupi untuk goal", result.Validation.Message);
+    }
+
+    [Fact]
+    public void TryValidateGoalAchieved_RejectsSeparatePlayerAction()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest("TujuanFinansial", """{"goal_id":"goal-a","points":20,"cost":25}""", playerId);
+
+        var handled = new EventSavingGoalValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+
+        Assert.True(handled);
+        Assert.False(result.Validation.IsValid);
+        Assert.Equal("TujuanFinansial bukan aksi pemain terpisah; kartu tujuan diperoleh otomatis saat Menabung mencapai target", result.Validation.Message);
     }
 
     private static EventRequest CreateRequest(string actionType, string payloadJson, Guid? playerId)
@@ -95,7 +113,8 @@ public sealed class EventSavingGoalValidatorTests
             actionType,
             Guid.NewGuid(),
             document.RootElement.Clone(),
-            "client-123");
+            "client-123",
+            1);
     }
 
     private static EventDb CreateEvent(string actionType, string payloadJson, Guid playerId)

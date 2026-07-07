@@ -56,6 +56,21 @@ public sealed class EventEconomyActionValidatorTests
         Assert.Equal("Kepemilikan emas tidak mencukupi", result.Validation.Message);
     }
 
+    [Fact]
+    public void TryValidate_GoldTradeAllowsNonSaturdayWhenTriggeredByLifeRisk()
+    {
+        var request = CreateRequest(
+            "InvestasiEmas",
+            """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5,"risk_event_id":"95000000-0000-0000-0000-000000000123"}""",
+            weekday: "MON");
+
+        var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+
+        Assert.True(handled);
+        Assert.True(result.Validation.IsValid);
+        Assert.Equal(5, result.OutgoingAmount);
+    }
+
     private static EventRequest CreateRequest(
         string actionType,
         string payloadJson,

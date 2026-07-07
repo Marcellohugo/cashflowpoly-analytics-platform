@@ -63,6 +63,31 @@ public sealed class AnalyticsNeedMissionCalculatorTests
         Assert.Null(metrics.MissionAchievement);
     }
 
+    [Fact]
+    public void Compute_ExcludesNeedSoldForEmergencyFromProfileAndMission()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"rice","amount":3,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"book","amount":4,"points":1}"""),
+            CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"bike","amount":7,"points":2}"""),
+            CreateEvent(playerId, sessionId, "GunakanOpsiDarurat", """{"option_type":"SELL_NEED","direction":"IN","amount":3,"card_id":"bike"}"""),
+            CreateEvent(playerId, sessionId, "BagikanMisiKoleksi", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
+        };
+
+        var metrics = new NeedMissionCalculator().Compute(events, Array.Empty<CashflowProjectionDb>());
+
+        Assert.Equal(2, metrics.NeedCardsPurchased);
+        Assert.Equal(1, metrics.PrimaryNeeds);
+        Assert.Equal(1, metrics.SecondaryNeeds);
+        Assert.Equal(0, metrics.TertiaryNeeds);
+        Assert.False(metrics.HasBasicNeedProfile);
+        Assert.False(metrics.SpecificTertiaryAcquired);
+        Assert.False(metrics.CollectionMissionComplete);
+    }
+
     private static EventDb CreateEvent(Guid playerId, Guid sessionId, string actionType, string payload)
     {
         return new EventDb

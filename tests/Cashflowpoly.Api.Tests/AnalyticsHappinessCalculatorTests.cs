@@ -28,6 +28,28 @@ public sealed class AnalyticsHappinessCalculatorTests
     }
 
     [Fact]
+    public void ComputeBreakdown_ExcludesNeedSoldForEmergency()
+    {
+        var playerEvents = new List<EventDb>
+        {
+            BuildEvent("Kebutuhan", """{"amount":2,"card_id":"primary-food","points":1}"""),
+            BuildEvent("Kebutuhan", """{"amount":3,"card_id":"secondary-school","points":2}"""),
+            BuildEvent("Kebutuhan", """{"amount":4,"card_id":"tertiary-bike","points":3}"""),
+            BuildEvent("GunakanOpsiDarurat", """{"option_type":"SELL_NEED","direction":"IN","amount":1,"card_id":"secondary-school"}""")
+        };
+
+        var breakdown = new HappinessCalculator().ComputeBreakdown(
+            playerEvents,
+            donationPoints: 0,
+            goldPoints: 0,
+            pensionPoints: 0);
+
+        Assert.Equal(4, breakdown.NeedPoints);
+        Assert.Equal(0, breakdown.NeedSetBonusPoints);
+        Assert.Equal(4, breakdown.Total);
+    }
+
+    [Fact]
     public void ComputeBreakdown_SuppressesSavingGoalPoints_WhenLoanIsUnpaid()
     {
         var playerEvents = new List<EventDb>
@@ -75,6 +97,24 @@ public sealed class AnalyticsHappinessCalculatorTests
         Assert.Equal(5, byPlayer[firstPlayerId].GoldPoints);
         Assert.Equal(7, byPlayer[secondPlayerId].Total);
         Assert.Equal(7, byPlayer[secondPlayerId].DonationPoints);
+    }
+
+    [Fact]
+    public void ComputeByPlayer_ScoresGoldInRepeatingBestSets()
+    {
+        var playerId = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            BuildEvent(playerId, "InvestasiEmas", """{"trade_type":"BUY","qty":5,"unit_price":5,"amount":25}""", dayIndex: 5, sequenceNumber: 1)
+        };
+        var config = BuildConfig(new RulesetScoringConfig(
+            [],
+            [new QtyPoint(1, 3), new QtyPoint(2, 5), new QtyPoint(3, 8), new QtyPoint(4, 12)],
+            []));
+
+        var byPlayer = new HappinessCalculator().ComputeByPlayer(events, [], config);
+
+        Assert.Equal(15, byPlayer[playerId].GoldPoints);
     }
 
     private static EventDb BuildEvent(string actionType, string payload)

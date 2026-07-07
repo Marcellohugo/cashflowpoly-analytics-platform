@@ -41,7 +41,7 @@ internal static class DatabaseInitialization
         catch (PostgresException ex) when (RequiresSchemaReset(ex))
         {
             throw new InvalidOperationException(
-                $"Legacy database baseline detected while ensuring '{schemaPath}'. Reset database terlebih dahulu lalu jalankan startup ulang. Detail: {ex.MessageText}",
+                $"Removed database baseline detected while ensuring '{schemaPath}'. Reset database terlebih dahulu lalu jalankan startup ulang. Detail: {ex.MessageText}",
                 ex);
         }
 
@@ -109,6 +109,6 @@ internal static class DatabaseInitialization
     private static bool RequiresSchemaReset(PostgresException ex)
     {
         return ex.MessageText.Contains("reset required", StringComparison.OrdinalIgnoreCase) ||
-               ex.MessageText.Contains("legacy schema detected", StringComparison.OrdinalIgnoreCase);
+               ex.MessageText.Contains("removed schema detected", StringComparison.OrdinalIgnoreCase);
     }
 }

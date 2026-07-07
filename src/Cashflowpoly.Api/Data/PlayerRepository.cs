@@ -134,10 +134,10 @@ public sealed class PlayerRepository
             set player_name = excluded.player_name
             """;
 
-        const string reorderByUserIdSql = """
+        const string reorderByJoinedAtSql = """
             with ranked as (
                 select session_participant_id,
-                       row_number() over (order by user_id asc)::int as new_player_order
+                       row_number() over (order by joined_at asc, user_id asc)::int as new_player_order
                 from session_participants
                 where session_id = @sessionId
             )
@@ -239,7 +239,7 @@ public sealed class PlayerRepository
         }
         else
         {
-            await conn.ExecuteAsync(new CommandDefinition(reorderByUserIdSql, new { sessionId }, tx, cancellationToken: ct));
+            await conn.ExecuteAsync(new CommandDefinition(reorderByJoinedAtSql, new { sessionId }, tx, cancellationToken: ct));
         }
 
         var assignment = await conn.QuerySingleOrDefaultAsync<SessionParticipantAssignmentDb>(

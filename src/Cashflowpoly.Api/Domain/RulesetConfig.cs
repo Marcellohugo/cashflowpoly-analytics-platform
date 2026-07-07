@@ -14,7 +14,7 @@ public sealed record RulesetConfig(
     int CashMin,
     int MaxIngredientTotal,
     int MaxSameIngredient,
-    int PrimaryNeedMaxPerDay,
+    int? PrimaryNeedMaxPerDay,
     bool RequirePrimaryBeforeOthers,
     bool FridayEnabled,
     bool SaturdayEnabled,
@@ -38,6 +38,10 @@ public sealed record RulesetConfig(
     public IReadOnlyList<RulesetInsuranceProductDto> InsuranceProducts { get; init; } = [];
 
     public IReadOnlyList<RulesetLifeRiskDto> LifeRisks { get; init; } = [];
+
+    public IReadOnlyList<RulesetOrderDto> Orders { get; init; } = [];
+
+    public IReadOnlyList<RulesetIngredientDto> Ingredients { get; init; } = [];
 }
 
 /// <summary>
@@ -64,7 +68,6 @@ public sealed record QtyPoint(int Qty, int Points);
 public enum PlayerOrdering
 {
     PlayerOrder,
-    InstructorOrder,
     EventSequence,
     PlayerId,
     Username
@@ -188,7 +191,9 @@ internal static class RulesetRuntimeMapper
             GoldPrices = definition.GoldPrices.ToList(),
             ShariaLoans = definition.ShariaLoans.ToList(),
             InsuranceProducts = definition.InsuranceProducts.ToList(),
-            LifeRisks = definition.LifeRisks.ToList()
+            LifeRisks = definition.LifeRisks.ToList(),
+            Orders = definition.Orders.ToList(),
+            Ingredients = definition.Ingredients.ToList()
         };
         return true;
     }
@@ -250,7 +255,7 @@ internal static class RulesetRuntimeMapper
         {
             if (string.IsNullOrWhiteSpace(loan.LoanCode) ||
                 loan.Principal <= 0 ||
-                loan.Installment <= 0 ||
+                loan.RepaymentAmount < 0 ||
                 loan.DurationDays <= 0 ||
                 loan.PenaltyPoints < 0)
             {
@@ -301,7 +306,7 @@ internal static class RulesetRuntimeMapper
         {
             if (string.IsNullOrWhiteSpace(risk.RiskCode) ||
                 string.IsNullOrWhiteSpace(risk.EffectType) ||
-                risk.Direction is not ("IN" or "OUT") ||
+                (!string.IsNullOrWhiteSpace(risk.Direction) && risk.Direction is not ("IN" or "OUT")) ||
                 risk.Amount < 0)
             {
                 errors.Add(new ErrorDetail("definition.life_risks", "INVALID"));
@@ -709,10 +714,6 @@ internal static class RulesetConfigParser
             case "PLAYER_ORDER":
                 ordering = PlayerOrdering.PlayerOrder;
                 return true;
-            case "INSTRUCTOR_ORDER":
-            case "MANUAL_ORDER":
-                ordering = PlayerOrdering.InstructorOrder;
-                return true;
             case "EVENT_SEQUENCE":
                 ordering = PlayerOrdering.EventSequence;
                 return true;
@@ -720,8 +721,6 @@ internal static class RulesetConfigParser
                 ordering = PlayerOrdering.PlayerId;
                 return true;
             case "USERNAME":
-            case "IDN":
-            case "USERNAME_IDN":
                 ordering = PlayerOrdering.Username;
                 return true;
             default:

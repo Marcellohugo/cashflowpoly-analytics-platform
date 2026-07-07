@@ -17,7 +17,8 @@ internal sealed class IngredientInventoryCalculator : IIngredientInventoryCalcul
 
         foreach (var evt in events)
         {
-            if (evt.ActionType == "BahanMasakan" &&
+            if ((string.Equals(evt.ActionType, "BahanMasakan", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase)) &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out var amount))
             {
                 inventory.Total += amount;

@@ -25,47 +25,48 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
         IEnumerable<EventDb> playerEvents,
         IEnumerable<CashflowProjectionDb> playerProjections)
     {
-        var primaryNeeds = 0;
-        var secondaryNeeds = 0;
-        var tertiaryNeeds = 0;
-        var distinctNeedCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var tertiaryCardIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var activeNeeds = new List<NeedCard>();
         var missions = new List<MissionAssignment>();
 
-        foreach (var evt in playerEvents)
+        foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
         {
             if (evt.ActionType == "Kebutuhan" &&
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
             {
-                if (!string.IsNullOrWhiteSpace(cardId))
-                {
-                    distinctNeedCardIds.Add(cardId);
-                }
+                activeNeeds.Add(new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload)));
+            }
 
-                switch (NeedTierClassifier.FromPayloadJson(evt.Payload))
+            if (evt.ActionType == "GunakanOpsiDarurat" &&
+                _payloadReader.TryReadSoldNeed(evt.Payload, out var soldNeedCardId))
+            {
+                var soldIndex = activeNeeds.FindIndex(need =>
+                    string.Equals(need.CardId, soldNeedCardId, StringComparison.OrdinalIgnoreCase));
+                if (soldIndex >= 0)
                 {
-                    case NeedTier.Primary:
-                        primaryNeeds += 1;
-                        break;
-                    case NeedTier.Secondary:
-                        secondaryNeeds += 1;
-                        break;
-                    case NeedTier.Tertiary:
-                        tertiaryNeeds += 1;
-                        if (!string.IsNullOrWhiteSpace(cardId))
-                        {
-                            tertiaryCardIds.Add(cardId);
-                        }
-                        break;
+                    activeNeeds.RemoveAt(soldIndex);
                 }
             }
 
-            if (evt.ActionType == "BagikanMisiKoleksi" &&
+            if ((string.Equals(evt.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(evt.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase)) &&
                 _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
             }
         }
+
+        var primaryNeeds = activeNeeds.Count(need => need.Tier == NeedTier.Primary);
+        var secondaryNeeds = activeNeeds.Count(need => need.Tier == NeedTier.Secondary);
+        var tertiaryNeeds = activeNeeds.Count(need => need.Tier == NeedTier.Tertiary);
+        var distinctNeedCardIds = activeNeeds
+            .Select(need => need.CardId)
+            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var tertiaryCardIds = activeNeeds
+            .Where(need => need.Tier == NeedTier.Tertiary)
+            .Select(need => System.Text.RegularExpressions.Regex.Replace(need.CardId, "_[0-9]+$", ""))
+            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var needCardsPurchased = primaryNeeds + secondaryNeeds + tertiaryNeeds;
         var hasBasicNeedProfile = primaryNeeds > 0 && secondaryNeeds > 0 && tertiaryNeeds > 0;
@@ -129,4 +130,6 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
         int PenaltyPoints,
         bool RequirePrimary,
         bool RequireSecondary);
+
+    private sealed record NeedCard(string CardId, NeedTier Tier);
 }

@@ -36,7 +36,7 @@ public static class RulesetDefinitionMapper
                 CashMin = ReadInt(constraints, "cash_min", 0),
                 MaxIngredientTotal = ReadInt(constraints, "max_ingredient_total", 0),
                 MaxSameIngredient = ReadInt(constraints, "max_same_ingredient", 0),
-                PrimaryNeedMaxPerDay = ReadInt(constraints, "primary_need_max_per_day", 0),
+                PrimaryNeedMaxPerDay = ReadNullableInt(constraints, "primary_need_max_per_day"),
                 RequirePrimaryBeforeOthers = ReadBool(constraints, "require_primary_before_others", true),
                 DonationMinAmount = ReadInt(donation, "min_amount", 1),
                 DonationMaxAmount = ReadInt(donation, "max_amount", 1),
@@ -55,8 +55,7 @@ public static class RulesetDefinitionMapper
                 SaturdayFeature = ReadNestedWeekdayFeature(weekdayRules, "saturday", "SAT", "GOLD_TRADE"),
                 SaturdayEnabled = ReadNestedWeekdayEnabled(weekdayRules, "saturday", "SAT", true),
                 SundayFeature = ReadNestedWeekdayFeature(weekdayRules, "sunday", "SUN", "REST"),
-                SundayEnabled = ReadNestedWeekdayEnabled(weekdayRules, "sunday", "SUN", true),
-                InstructorPlayerUsernames = ReadStringList(root, "instructor_player_usernames")
+                SundayEnabled = ReadNestedWeekdayEnabled(weekdayRules, "sunday", "SUN", true)
             },
             Ingredients = ReadIngredients(componentCatalog),
             Orders = ReadOrders(componentCatalog),
@@ -107,7 +106,9 @@ public static class RulesetDefinitionMapper
                 ["cash_min"] = definition.Settings.CashMin,
                 ["max_ingredient_total"] = definition.Settings.MaxIngredientTotal,
                 ["max_same_ingredient"] = definition.Settings.MaxSameIngredient,
-                ["primary_need_max_per_day"] = definition.Settings.PrimaryNeedMaxPerDay,
+                ["primary_need_max_per_day"] = definition.Settings.PrimaryNeedMaxPerDay.HasValue
+                    ? JsonValue.Create(definition.Settings.PrimaryNeedMaxPerDay.Value)
+                    : null,
                 ["require_primary_before_others"] = definition.Settings.RequirePrimaryBeforeOthers
             },
             ["donation"] = new JsonObject
@@ -175,7 +176,7 @@ public static class RulesetDefinitionMapper
                 ["loan_code"] = item.LoanCode,
                 ["item_name"] = item.ItemName,
                 ["principal"] = item.Principal,
-                ["installment"] = item.Installment,
+                ["repayment_amount"] = item.RepaymentAmount,
                 ["duration_days"] = item.DurationDays,
                 ["penalty_points"] = item.PenaltyPoints,
                 ["card_qty"] = item.CardQty
@@ -195,6 +196,9 @@ public static class RulesetDefinitionMapper
                 ["effect_type"] = item.EffectType,
                 ["direction"] = item.Direction,
                 ["amount"] = item.Amount,
+                ["target_scope"] = item.TargetScope,
+                ["value_delta"] = item.ValueDelta,
+                ["duration_days"] = item.DurationDays,
                 ["card_qty"] = item.CardQty
             }).ToArray()),
             ["component_catalog"] = new JsonObject
@@ -227,6 +231,7 @@ public static class RulesetDefinitionMapper
                 {
                     ["id"] = item.Id,
                     ["nama"] = item.Nama,
+                    ["family"] = string.IsNullOrWhiteSpace(item.Family) ? item.Id : item.Family,
                     ["tipe"] = item.Tipe,
                     ["hargaBeli"] = item.HargaBeli,
                     ["poinKebahagiaan"] = item.PoinKebahagiaan
@@ -266,12 +271,6 @@ public static class RulesetDefinitionMapper
             }
         };
 
-        if (definition.PlayerOrdering.InstructorPlayerUsernames.Count > 0)
-        {
-            root["instructor_player_usernames"] = new JsonArray(definition.PlayerOrdering.InstructorPlayerUsernames
-                .Select(username => (JsonNode)username).ToArray());
-        }
-
         return root.ToJsonString(new JsonSerializerOptions
         {
             WriteIndented = false
@@ -297,9 +296,41 @@ public static class RulesetDefinitionMapper
             HargaJual = ReadInt(item, "hargaJual", 0),
             PoinKebahagiaan = ReadInt(item, "poinKebahagiaan", 0),
             Bahan = item.TryGetProperty("bahan", out var bahan) && bahan.ValueKind == JsonValueKind.Array
-                ? bahan.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
-                : []
+                ? bahan.EnumerateArray().SelectMany(ReadOrderIngredientCodes).ToList()
+                : [],
+            CardQty = item.TryGetProperty("cardQty", out var cq) && cq.ValueKind == JsonValueKind.Number ? cq.GetInt32() : (int?)null
         });
+    }
+
+    private static IEnumerable<string> ReadOrderIngredientCodes(JsonElement item)
+    {
+        if (item.ValueKind == JsonValueKind.String)
+        {
+            var value = item.GetString();
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                yield return value;
+            }
+
+            yield break;
+        }
+
+        if (item.ValueKind != JsonValueKind.Object)
+        {
+            yield break;
+        }
+
+        var code = ReadString(item, "ingredientCode", string.Empty);
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            yield break;
+        }
+
+        var qty = Math.Max(1, ReadInt(item, "qty", 1));
+        for (var i = 0; i < qty; i++)
+        {
+            yield return code;
+        }
     }
 
     private static List<RulesetNeedDto> ReadNeeds(JsonElement componentCatalog)
@@ -308,6 +339,7 @@ public static class RulesetDefinitionMapper
         {
             Id = ReadString(item, "id", string.Empty),
             Nama = ReadString(item, "nama", string.Empty),
+            Family = ReadString(item, "family", string.Empty),
             Tipe = ReadString(item, "tipe", string.Empty),
             HargaBeli = ReadInt(item, "hargaBeli", 0),
             PoinKebahagiaan = ReadInt(item, "poinKebahagiaan", 0)
@@ -402,7 +434,7 @@ public static class RulesetDefinitionMapper
             LoanCode = ReadString(item, "loan_code", string.Empty),
             ItemName = ReadString(item, "item_name", string.Empty),
             Principal = ReadInt(item, "principal", 0),
-            Installment = ReadInt(item, "installment", 0),
+            RepaymentAmount = ReadInt(item, "repayment_amount", 0),
             DurationDays = ReadInt(item, "duration_days", 0),
             PenaltyPoints = ReadInt(item, "penalty_points", 0),
             CardQty = ReadNullableInt(item, "card_qty")
@@ -430,6 +462,9 @@ public static class RulesetDefinitionMapper
             EffectType = ReadString(item, "effect_type", string.Empty),
             Direction = ReadString(item, "direction", string.Empty),
             Amount = ReadInt(item, "amount", 0),
+            TargetScope = ReadString(item, "target_scope", "SELF"),
+            ValueDelta = ReadNullableInt(item, "value_delta"),
+            DurationDays = ReadNullableInt(item, "duration_days"),
             CardQty = ReadNullableInt(item, "card_qty")
         });
     }
@@ -535,13 +570,6 @@ public static class RulesetDefinitionMapper
                property.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? property.GetBoolean()
             : null;
-    }
-
-    private static List<string> ReadStringList(JsonElement root, string propertyName)
-    {
-        return root.TryGetProperty(propertyName, out var array) && array.ValueKind == JsonValueKind.Array
-            ? array.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList()
-            : [];
     }
 
     private static JsonElement ReadPayload(JsonElement script)

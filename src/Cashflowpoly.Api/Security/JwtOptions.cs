@@ -13,7 +13,7 @@ public sealed class JwtOptions
     public string SigningKeysJson { get; set; } = string.Empty;
     public string SigningKeyEnvironmentVariable { get; set; } = "JWT_SIGNING_KEY";
     public string SigningKeysJsonEnvironmentVariable { get; set; } = "JWT_SIGNING_KEYS_JSON";
-    public string ActiveKeyId { get; set; } = "legacy";
+    public string ActiveKeyId { get; set; } = "default";
     /// <summary>
     /// Daftar konfigurasi signing key yang mendukung rotasi (multi-key).
     /// </summary>

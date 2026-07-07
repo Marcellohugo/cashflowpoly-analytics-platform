@@ -28,7 +28,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
     {
         var ingredientPurchaseMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var ingredientsCollected = 0;
-        foreach (var evt in playerEvents.Where(e => e.ActionType == "BahanMasakan"))
+        foreach (var evt in playerEvents.Where(e => string.Equals(e.ActionType, "BahanMasakan", StringComparison.OrdinalIgnoreCase) || string.Equals(e.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase)))
         {
             if (_payloadReader.TryReadIngredientPurchaseDetailed(evt.Payload, out var cardId, out var ingredientName, out var amount))
             {
@@ -114,7 +114,8 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
 
         foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
         {
-            if (evt.ActionType == "BahanMasakan" &&
+            if ((string.Equals(evt.ActionType, "BahanMasakan", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase)) &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var purchasedCardId, out var purchaseAmount) &&
                 !string.IsNullOrWhiteSpace(purchasedCardId))
             {
@@ -124,7 +125,12 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
                     purchaseCostByCardId[purchasedCardId] = queue;
                 }
 
-                queue.Enqueue(Math.Max(0, purchaseAmount));
+                var cost = string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase) ? 0d : Math.Max(0, purchaseAmount);
+                var times = string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase) ? purchaseAmount : 1;
+                for (int i = 0; i < times; i++)
+                {
+                    queue.Enqueue(cost);
+                }
             }
 
             if (evt.ActionType == "JualMasakan" &&

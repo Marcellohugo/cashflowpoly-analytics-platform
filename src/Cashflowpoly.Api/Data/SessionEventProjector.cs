@@ -1123,7 +1123,7 @@ public sealed class SessionEventProjector
                 request.Payload,
                 out var loanId,
                 out var principal,
-                out var installment,
+                out var repaymentAmount,
                 out var duration,
                 out var penaltyPoints))
         {
@@ -1133,7 +1133,7 @@ public sealed class SessionEventProjector
         var metadataJson = JsonSerializer.Serialize(new
         {
             principal,
-            installment,
+            repayment_amount = repaymentAmount,
             duration_days = duration,
             penalty_points = penaltyPoints,
             repaid_amount = 0
@@ -1149,7 +1149,7 @@ public sealed class SessionEventProjector
                 ruleset_sharia_loan_id,
                 principal_amount,
                 outstanding_amount,
-                installment_amount,
+                repayment_amount,
                 status,
                 source_event_id,
                 last_event_id,
@@ -1165,7 +1165,7 @@ public sealed class SessionEventProjector
                 rsl.ruleset_sharia_loan_id,
                 @principal,
                 @principal,
-                @installment,
+                @repaymentAmount,
                 'ACTIVE',
                 @eventId,
                 @eventId,
@@ -1179,7 +1179,7 @@ public sealed class SessionEventProjector
             on conflict (session_participant_id, ruleset_sharia_loan_id) do update
             set principal_amount = excluded.principal_amount,
                 outstanding_amount = excluded.outstanding_amount,
-                installment_amount = excluded.installment_amount,
+                repayment_amount = excluded.repayment_amount,
                 status = excluded.status,
                 last_event_id = excluded.last_event_id,
                 metadata_json = session_participant_loans.metadata_json || excluded.metadata_json,
@@ -1193,7 +1193,7 @@ public sealed class SessionEventProjector
                 rulesetVersionId = request.RulesetVersionId,
                 loanId,
                 principal,
-                installment,
+                repaymentAmount,
                 metadataJson,
                 eventId = request.EventId
             },

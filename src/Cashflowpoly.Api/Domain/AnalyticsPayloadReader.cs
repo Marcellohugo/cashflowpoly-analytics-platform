@@ -113,7 +113,13 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
                !actionType.Equals(GameActionCatalog.PensionRankAwarded, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.GoldInitialGranted, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.TieBreakerAssigned, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.MissionAssigned, StringComparison.OrdinalIgnoreCase);
+               !actionType.Equals(GameActionCatalog.MissionAssigned, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.SetupModalAwal, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.SetupBahanAwal, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.SetupEmasAwal, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.SetupPinjamanAwal, StringComparison.OrdinalIgnoreCase) &&
+               !actionType.Equals(GameActionCatalog.SetupAsuransiAwal, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -573,6 +579,37 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
             }
 
             return requiredCards.Count > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    public bool TryReadSoldNeed(string payloadJson, out string cardId)
+    {
+        cardId = string.Empty;
+        if (string.IsNullOrWhiteSpace(payloadJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("option_type", out var typeProp) ||
+                !string.Equals(typeProp.GetString(), "SELL_NEED", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!doc.RootElement.TryGetProperty("card_id", out var cardProp))
+            {
+                return false;
+            }
+
+            cardId = cardProp.GetString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(cardId);
         }
         catch (JsonException)
         {

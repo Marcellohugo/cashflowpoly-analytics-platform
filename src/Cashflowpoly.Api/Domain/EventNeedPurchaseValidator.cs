@@ -49,11 +49,6 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             return new EventNeedPurchaseValidation(payloadValidation, null);
         }
 
-        if (config.PrimaryNeedMaxPerDay == 0)
-        {
-            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang pembelian kebutuhan primer");
-        }
-
         if (request.UserId is null)
         {
             return Fail(
@@ -69,7 +64,7 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.Kebutuhan) &&
             NeedTierClassifier.FromPayloadJson(e.Payload) == NeedTier.Primary);
 
-        if (primaryCount >= config.PrimaryNeedMaxPerDay)
+        if (config.PrimaryNeedMaxPerDay is > 0 && primaryCount >= config.PrimaryNeedMaxPerDay.Value)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Pembelian kebutuhan primer melebihi batas harian");
         }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
@@ -140,7 +141,8 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur perdagangan emas tidak aktif");
         }
 
-        if (!string.Equals(request.Weekday, "SAT", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(request.Weekday, "SAT", StringComparison.OrdinalIgnoreCase) &&
+            !IsLifeRiskTriggeredGoldTrade(request.Payload))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -213,12 +215,33 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Amount tidak sesuai unit_price * qty");
         }
 
-        if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && !config.GoldAllowBuy)
+        var goldTradeOpened = false;
+        foreach (var evt in history)
+        {
+            var eventPayload = _payloadReader.ReadPayload(evt.Payload);
+            if (GameActionCatalog.Is(evt.ActionType, eventPayload, GameActionCatalog.RisikoKehidupan) &&
+                _payloadReader.TryGetString(eventPayload, "risk_id", out var riskId))
+            {
+                var risk = config.LifeRisks.FirstOrDefault(r => string.Equals(r.RiskCode, riskId, StringComparison.OrdinalIgnoreCase));
+                if (risk is not null && string.Equals(risk.EffectType, "GOLD_TRADE", StringComparison.OrdinalIgnoreCase))
+                {
+                    var startDay = evt.DayIndex;
+                    var endDay = startDay + (risk.DurationDays ?? 1) - 1;
+                    if (request.DayIndex >= startDay && request.DayIndex <= endDay)
+                    {
+                        goldTradeOpened = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && !config.GoldAllowBuy && !goldTradeOpened)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang BUY emas");
         }
 
-        if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && !config.GoldAllowSell)
+        if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && !config.GoldAllowSell && !goldTradeOpened)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang SELL emas");
         }
@@ -268,5 +291,11 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         return new EventEconomyActionValidation(
             EventDomainValidationResult.Fail(statusCode, errorCode, message, details),
             null);
+    }
+
+    private static bool IsLifeRiskTriggeredGoldTrade(System.Text.Json.JsonElement payload)
+    {
+        return (payload.TryGetProperty("risk_event_id", out var idProp) && idProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(idProp.GetString())) ||
+               (payload.TryGetProperty("risk_event_ref", out var refProp) && refProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(refProp.GetString()));
     }
 }

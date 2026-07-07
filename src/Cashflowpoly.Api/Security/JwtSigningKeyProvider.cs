@@ -143,7 +143,7 @@ public sealed class JwtSigningKeyProvider
 
             configuredKeys.Add(new JwtSigningKeyOptions
             {
-                KeyId = string.IsNullOrWhiteSpace(options.ActiveKeyId) ? "legacy" : options.ActiveKeyId.Trim(),
+                KeyId = string.IsNullOrWhiteSpace(options.ActiveKeyId) ? "default" : options.ActiveKeyId.Trim(),
                 SigningKey = fallbackSigningKey,
                 ActivateAtUtc = DateTimeOffset.MinValue
             });
