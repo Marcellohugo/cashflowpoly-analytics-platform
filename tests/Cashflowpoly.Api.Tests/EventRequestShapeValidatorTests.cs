@@ -126,9 +126,61 @@ public sealed class EventRequestShapeValidatorTests
     [InlineData("JumatBerkah")]
     [InlineData("RisikoKehidupan")]
     [InlineData("GunakanOpsiDarurat")]
+    [InlineData("InvestasiEmas")]
+    [InlineData("JualEmas")]
+    [InlineData("LewatiTransaksiEmas")]
     public void Validate_AcceptsPlayerActionSlotZeroForRulebookFreeActions(string actionType)
     {
         var request = CreateRequest() with { ActionType = actionType, ActionSlot = 0 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.True(result.IsValid, result.Message);
+    }
+
+    [Theory]
+    [InlineData("JumatBerkah")]
+    [InlineData("RisikoKehidupan")]
+    [InlineData("GunakanOpsiDarurat")]
+    [InlineData("InvestasiEmas")]
+    [InlineData("JualEmas")]
+    [InlineData("LewatiTransaksiEmas")]
+    public void Validate_RejectsNonZeroSlotForRulebookFreeActions(string actionType)
+    {
+        var request = CreateRequest() with { ActionType = actionType, ActionSlot = 1 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Details, detail => detail.Field == "action_slot" && detail.Issue == "INVALID_FOR_ACTION");
+    }
+
+    [Theory]
+    [InlineData("HariMingguLibur")]
+    [InlineData("AkhirGiliran")]
+    public void Validate_RejectsSystemOnlyActionsFromPlayer(string actionType)
+    {
+        var request = CreateRequest() with { ActionType = actionType, ActionSlot = 0 };
+
+        var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Details, detail => detail.Field == "actor_type" && detail.Issue == "SYSTEM_REQUIRED");
+    }
+
+    [Theory]
+    [InlineData("HariMingguLibur")]
+    [InlineData("AkhirGiliran")]
+    public void Validate_AcceptsSystemOnlyActionsWithZeroTurnAndSlot(string actionType)
+    {
+        var request = CreateRequest() with
+        {
+            ActionType = actionType,
+            ActorType = "SYSTEM",
+            UserId = null,
+            TurnNumber = 0,
+            ActionSlot = 0
+        };
 
         var result = new EventRequestShapeValidator().Validate(request, scopedPlayerId: null);
 

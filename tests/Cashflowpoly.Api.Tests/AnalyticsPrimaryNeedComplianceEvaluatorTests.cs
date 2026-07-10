@@ -38,6 +38,22 @@ public sealed class AnalyticsPrimaryNeedComplianceEvaluatorTests
         Assert.Empty(result.Details);
     }
 
+    [Fact]
+    public void Evaluate_PrimaryPurchasedOnPreviousDay_AllowsSecondaryNeed()
+    {
+        var events = new List<EventDb>
+        {
+            BuildEvent("Kebutuhan", """{"card_id":"rice"}""", dayIndex: 1, sequenceNumber: 1),
+            BuildEvent("Kebutuhan", """{"card_id":"book"}""", dayIndex: 2, sequenceNumber: 2)
+        };
+
+        var result = new PrimaryNeedComplianceEvaluator().Evaluate(events, BuildConfig());
+
+        Assert.Equal(1, result.Rate);
+        Assert.Equal(2, result.CompliantDays);
+        Assert.All(result.Details, detail => Assert.True(detail.compliant));
+    }
+
     private static EventDb BuildEvent(string actionType, string payload, int dayIndex, long sequenceNumber)
     {
         return new EventDb

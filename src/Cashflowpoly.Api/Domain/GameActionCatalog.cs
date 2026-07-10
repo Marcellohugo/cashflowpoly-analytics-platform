@@ -2,6 +2,13 @@ using System.Text.Json;
 
 namespace Cashflowpoly.Api.Domain;
 
+internal enum PlayerActionSlotPolicy
+{
+    Unspecified,
+    Free,
+    Consumes
+}
+
 internal static class GameActionCatalog
 {
     public const string BahanMasakan = "BahanMasakan";
@@ -62,6 +69,40 @@ internal static class GameActionCatalog
             ResolveGameActionId(actionType, payload),
             canonicalActionId,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static PlayerActionSlotPolicy GetPlayerActionSlotPolicy(string? actionType, JsonElement payload)
+    {
+        var actionId = ResolveGameActionId(actionType, payload);
+        if (actionId is JumatBerkah or RisikoKehidupan or RiskEmergencyUsed or
+            InvestasiEmas or JualEmas or GoldSkipped)
+        {
+            return PlayerActionSlotPolicy.Free;
+        }
+
+        if (actionId is Asuransi or PinjamanSyariah)
+        {
+            return HasRiskReference(payload)
+                ? PlayerActionSlotPolicy.Free
+                : PlayerActionSlotPolicy.Consumes;
+        }
+
+        return actionId is BahanMasakan or IngredientDiscarded or JualMasakan or OrderPassed or
+            Kebutuhan or KerjaLepas or Menabung or SavingDepositWithdrawn or TujuanFinansial or BayarPinjaman
+            ? PlayerActionSlotPolicy.Consumes
+            : PlayerActionSlotPolicy.Unspecified;
+    }
+
+    public static bool RequiresSystemActor(string? actionType, JsonElement payload)
+    {
+        return ResolveGameActionId(actionType, payload) is SundayRest or AkhirGiliran;
+    }
+
+    private static bool HasRiskReference(JsonElement payload)
+    {
+        return payload.ValueKind == JsonValueKind.Object &&
+               (payload.TryGetProperty("risk_event_id", out _) ||
+                payload.TryGetProperty("risk_event_ref", out _));
     }
 
     private static string? ResolveCanonicalGameAction(string actionType)

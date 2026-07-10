@@ -3,12 +3,12 @@ using Cashflowpoly.Api.Data;
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>
-/// Evaluator murni untuk compliance kebutuhan primer per hari.
+/// Evaluator murni untuk compliance kebutuhan primer sepanjang sesi.
 /// </summary>
 internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEvaluator
 {
     /// <summary>
-    /// Mengevaluasi kepatuhan kebutuhan primer per hari dengan pengecekan urutan beli dan batas harian.
+    /// Mengevaluasi urutan pembelian kebutuhan sepanjang sesi dan batas primer per hari.
     /// </summary>
     public PrimaryNeedComplianceResult Evaluate(List<EventDb> playerEvents, RulesetConfig? config)
     {
@@ -30,6 +30,7 @@ internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEva
 
         var details = new List<PrimaryNeedComplianceDayDetail>();
         var compliantDays = 0;
+        var primarySeen = false;
 
         foreach (var dayIndex in days)
         {
@@ -46,7 +47,6 @@ internal sealed class PrimaryNeedComplianceEvaluator : IPrimaryNeedComplianceEva
 
             if (config.RequirePrimaryBeforeOthers)
             {
-                var primarySeen = false;
                 foreach (var evt in dayEvents)
                 {
                     if (evt.ActionType != "Kebutuhan")

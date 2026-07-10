@@ -229,7 +229,7 @@ Sistem memeriksa:
 Sistem memeriksa:
 1. Jika `mode=PEMULA`, sistem menolak `advanced.*.enabled=true`.
 2. Jika `weekday_rules.friday.enabled=false`, sistem menolak event `JumatBerkah` pada sesi yang memakai versi ini.
-3. Jika `constraints.require_primary_before_others=true`, sistem menolak event pembelian kebutuhan lain sebelum pemain memenuhi kebutuhan primer pada hari itu.
+3. Jika `constraints.require_primary_before_others=true`, sistem menolak event pembelian kebutuhan lain sebelum pemain pernah membeli kebutuhan primer pada sesi tersebut.
 4. Jika `constraints.primary_need_max_per_day=0`, sistem menolak event `Kebutuhan`.
 
 ### 6.4 Validasi kompatibilitas versi

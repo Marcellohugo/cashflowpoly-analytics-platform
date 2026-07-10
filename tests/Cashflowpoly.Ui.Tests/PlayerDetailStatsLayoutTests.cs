@@ -23,6 +23,31 @@ public sealed class PlayerDetailStatsLayoutTests
     }
 
     [Fact]
+    public void PlayerDetails_ShouldRenderCashflowJourneyBeforeInstructorEvaluation()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+
+        var cashflowJourneyIndex = view.IndexOf("id=\"player-transaction-history\"", StringComparison.Ordinal);
+        var instructorEvaluationIndex = view.IndexOf("id=\"player-statistics-dashboard\"", StringComparison.Ordinal);
+
+        Assert.NotEqual(-1, cashflowJourneyIndex);
+        Assert.NotEqual(-1, instructorEvaluationIndex);
+        Assert.True(cashflowJourneyIndex < instructorEvaluationIndex);
+    }
+
+    [Fact]
+    public void PlayerDetails_ShouldRenderCashflowJourneyAsAccordion()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+
+        Assert.Contains("<details id=\"player-transaction-history\"", view, StringComparison.Ordinal);
+        Assert.Contains("player-transactions-section data-toggle", view, StringComparison.Ordinal);
+        Assert.Contains("<summary class=\"players-fusion-head ruleset-section-head\">", view, StringComparison.Ordinal);
+        Assert.Contains(".player-transactions-section.data-toggle > summary > .ruleset-section-title::after", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlayerDetails_ShouldRenderLocalizedIntroductionsForEveryStatsTab()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));

@@ -2034,6 +2034,20 @@ body > footer .footer-shell {
     content: " -";
 }
 
+.player-transactions-section.data-toggle > summary::after {
+    content: none;
+}
+
+.player-transactions-section.data-toggle > summary > .ruleset-section-title::after {
+    content: " +";
+    color: #1a8c82;
+    font-weight: 900;
+}
+
+.player-transactions-section.data-toggle[open] > summary > .ruleset-section-title::after {
+    content: " -";
+}
+
 .players-unified-metrics {
     border: 2px solid #95ded6;
     border-radius: 1rem;
@@ -4721,5 +4735,156 @@ body > footer .footer-shell {
     .work-calendar-cell--finish .finish-text {
         font-size: 0.78rem;
     }
+}
+
+/* Palette override: stop the default theme from reading as all-green. */
+:root {
+    --line: #2ea69b;
+    --line-soft: #87d7cf;
+    --teal: #12a89a;
+    --teal-deep: #0d857a;
+}
+
+body:not(.role-player) {
+    background:
+        radial-gradient(circle at 10% 14%, rgba(18, 168, 154, 0.2), transparent 40%),
+        radial-gradient(circle at 86% 10%, rgba(239, 78, 78, 0.18), transparent 35%),
+        radial-gradient(circle at 88% 88%, rgba(255, 190, 46, 0.28), transparent 38%),
+        linear-gradient(135deg, var(--bg-sky) 0%, var(--bg-mint) 42%, var(--bg-sun) 74%, var(--bg-peach) 100%);
+}
+
+body:not(.role-player) .sticky.top-0 {
+    border-bottom-color: rgba(46, 166, 155, 0.28) !important;
+}
+
+body:not(.role-player) .nav-pill,
+body:not(.role-player) .nav-center,
+body:not(.role-player) .nav-trigger,
+body:not(.role-player) .nav-mobile-toggle,
+body:not(.role-player) .language-toggle,
+body:not(.role-player) .profile-chip,
+body:not(.role-player) .nav-menu,
+body:not(.role-player) .profile-meta,
+.section-shell,
+.glass-surface,
+.table-wrap,
+.stat-card,
+.session-journey-day-panel {
+    border-color: var(--line-soft) !important;
+}
+
+body:not(.role-player) .nav-pill,
+body:not(.role-player) .nav-center,
+body:not(.role-player) .nav-trigger,
+body:not(.role-player) .nav-mobile-toggle {
+    background: linear-gradient(145deg, #ffffff, #ecfffb) !important;
+}
+
+body:not(.role-player) .nav-center .nav-link.is-active,
+body:not(.role-player) .nav-menu-item.active,
+body:not(.role-player) .language-toggle .language-pill {
+    background: linear-gradient(145deg, #66d8cb, #36b6a8) !important;
+    color: #0f5f58 !important;
+    border-color: #2ea69a !important;
+}
+
+.section-shell,
+.glass-surface,
+.table-wrap,
+.stat-card {
+    background: var(--card) !important;
+    box-shadow: 0 14px 32px rgba(19, 100, 136, 0.14);
+}
+
+.stat-card::before {
+    background: linear-gradient(130deg, rgba(18, 168, 154, 0.12), rgba(255, 190, 46, 0.08), transparent 70%) !important;
+}
+
+.badge-emerald,
+.text-emerald-700 {
+    color: #0a5d55 !important;
+}
+
+.badge-emerald {
+    background: linear-gradient(145deg, #6ce0d3, #39bfb1) !important;
+    border-color: #169f92 !important;
+}
+
+.btn-ghost {
+    border-color: #79d1c8 !important;
+    color: #1a8c82 !important;
+    background: linear-gradient(145deg, #ffffff, #f6fbff) !important;
+}
+
+:where(a, button, input, select, textarea, summary, [role="button"]):focus-visible {
+    outline-color: rgba(18, 168, 154, 0.36);
+}
+
+.auth-input:focus {
+    border-color: #1f9f8f !important;
+    box-shadow: 0 0 0 3px rgba(31, 159, 143, 0.2);
+}
+
+.auth-login-btn {
+    border-color: #1f8c80;
+    background: linear-gradient(180deg, #37b8a5 0%, #1d9a8b 100%);
+    color: #fff;
+    box-shadow: 0 14px 28px rgba(23, 121, 110, 0.28);
+}
+
+.auth-split-right {
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.22), transparent 36%),
+        linear-gradient(155deg, #3ab5a6 0%, #2f96b2 100%);
+}
+
+.auth-register-copy a,
+.auth-signup-cta:hover {
+    color: #1f8f83;
+}
+
+.work-calendar-cell.is-selected-day {
+    border-color: #1a8c82 !important;
+    box-shadow:
+        0 0 0 2px #ffffff,
+        0 0 0 5px #1a8c82,
+        0 12px 24px rgba(26, 140, 130, 0.25) !important;
+}
+
+.session-journey-day-header {
+    background: linear-gradient(90deg, #edf9f6, #f7fffd);
+    border-bottom-color: #c7e9e4;
+}
+
+.session-journey-day-title {
+    color: #1a6d63;
+}
+
+.session-journey-day-badge {
+    background: #1a8c82;
+}
+
+body:not(.role-player) .nav-trigger,
+body:not(.role-player) .nav-mobile-toggle {
+    border-color: #83d8cf !important;
+    background: linear-gradient(145deg, #ffffff, #ecfffb) !important;
+    color: #1f7689 !important;
+}
+
+body:not(.role-player) .nav-dropdown[open] .nav-trigger,
+body:not(.role-player) .nav-shell.is-open .nav-mobile-toggle {
+    border-color: #39bfb1 !important;
+    background: linear-gradient(145deg, #ecfffb, #e1fbf7) !important;
+    color: #0f736a !important;
+}
+
+body:not(.role-player) .language-toggle {
+    border-color: #6fc9c0 !important;
+    color: #197a72 !important;
+}
+
+body:not(.role-player) .language-toggle .language-pill {
+    border-color: #0fa093 !important;
+    background: linear-gradient(145deg, #63d6cb, #2fb9ad) !important;
 }
 

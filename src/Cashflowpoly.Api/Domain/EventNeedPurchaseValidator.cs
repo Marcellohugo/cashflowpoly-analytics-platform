@@ -87,7 +87,6 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         {
             var hasPrimary = history.Any(e =>
                 e.UserId == request.UserId &&
-                e.DayIndex == request.DayIndex &&
                 GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.Kebutuhan) &&
                 NeedTierClassifier.FromPayloadJson(e.Payload) == NeedTier.Primary);
 

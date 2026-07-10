@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Domain;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
@@ -79,6 +80,43 @@ public sealed class EventActionIdResolverTests
         var actionId = EventActionIdResolver.Resolve("unknown.action.type", Parse("""{"amount":5}"""));
 
         Assert.Null(actionId);
+    }
+
+    [Theory]
+    [InlineData("BahanMasakan")]
+    [InlineData("JualMasakan")]
+    [InlineData("Kebutuhan")]
+    [InlineData("KerjaLepas")]
+    [InlineData("Menabung")]
+    [InlineData("BayarPinjaman")]
+    public void SlotPolicy_ConsumesRegularPlayerActions(string actionType)
+    {
+        Assert.Equal(PlayerActionSlotPolicy.Consumes, GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{}")));
+    }
+
+    [Theory]
+    [InlineData("JumatBerkah")]
+    [InlineData("RisikoKehidupan")]
+    [InlineData("GunakanOpsiDarurat")]
+    [InlineData("InvestasiEmas")]
+    [InlineData("JualEmas")]
+    [InlineData("LewatiTransaksiEmas")]
+    public void SlotPolicy_DoesNotConsumeRulebookFreeActions(string actionType)
+    {
+        Assert.Equal(PlayerActionSlotPolicy.Free, GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{}")));
+    }
+
+    [Theory]
+    [InlineData("Asuransi")]
+    [InlineData("PinjamanSyariah")]
+    public void SlotPolicy_DoesNotConsumeRiskResponses(string actionType)
+    {
+        Assert.Equal(
+            PlayerActionSlotPolicy.Free,
+            GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{\"risk_event_id\":\"risk-1\"}")));
+        Assert.Equal(
+            PlayerActionSlotPolicy.Consumes,
+            GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{}")));
     }
 
     private static JsonElement Parse(string json)

@@ -672,7 +672,7 @@ Payload:
 
 Validasi:
 - `risk_event_id` wajib dan harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
-- `option_type` bernilai `SELL_NEED`, `SELL_GOLD`, `SELL_GOAL`, atau `OTHER`.
+- `option_type` bernilai `SELL_NEED`, `SELL_GOLD`, `TAKE_SHARIA_LOAN`, atau `USE_INSURANCE`.
 - `direction` bernilai `IN` atau `OUT`.
 - `amount > 0`.
 

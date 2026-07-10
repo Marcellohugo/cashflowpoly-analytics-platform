@@ -35,29 +35,7 @@ internal sealed class EventIngestionService : IEventIngestionService
     /// </summary>
     private static readonly FrozenSet<string> AllowedEmergencyOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        "SELL_NEED", "SELL_GOLD", "SELL_GOAL", "OTHER"
-    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly FrozenSet<string> OrderedActionTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        GameActionCatalog.BahanMasakan,
-        GameActionCatalog.IngredientDiscarded,
-        GameActionCatalog.JualMasakan,
-        GameActionCatalog.OrderPassed,
-        GameActionCatalog.Kebutuhan,
-        GameActionCatalog.KerjaLepas,
-        GameActionCatalog.Menabung,
-        GameActionCatalog.SavingDepositWithdrawn,
-        GameActionCatalog.TujuanFinansial,
-        GameActionCatalog.JumatBerkah,
-        GameActionCatalog.InvestasiEmas,
-        GameActionCatalog.JualEmas,
-        GameActionCatalog.PinjamanSyariah,
-        GameActionCatalog.BayarPinjaman,
-        GameActionCatalog.Asuransi,
-        GameActionCatalog.RisikoKehidupan,
-        GameActionCatalog.RiskEmergencyUsed,
-        GameActionCatalog.AkhirGiliran
+        "SELL_NEED", "SELL_GOLD", "TAKE_SHARIA_LOAN", "USE_INSURANCE"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private readonly SessionRepository _sessions;
@@ -364,22 +342,10 @@ internal sealed class EventIngestionService : IEventIngestionService
             return Valid;
         }
 
-        if (!OrderedActionTypes.Contains(request.ActionType))
-        {
-            return Valid;
-        }
-
         if (request.UserId is null)
         {
             return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Player wajib diisi",
                 new ErrorDetail("user_id", "REQUIRED"));
-        }
-
-        if (request.ActionSlot < 1 || request.ActionSlot > config.ActionsPerTurn)
-        {
-            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
-                "Aksi pemain di luar slot aksi harian",
-                new ErrorDetail("action_slot", "OUT_OF_RANGE"));
         }
 
         var participantId = await _players.GetSessionParticipantIdAsync(request.SessionId, request.UserId.Value, ct);
@@ -401,9 +367,25 @@ internal sealed class EventIngestionService : IEventIngestionService
                 new ErrorDetail("turn_number", "MISMATCH"));
         }
 
+        if (GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload) != PlayerActionSlotPolicy.Consumes)
+        {
+            return Valid;
+        }
+
+        if (request.ActionSlot < 1 || request.ActionSlot > config.ActionsPerTurn)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Aksi pemain di luar slot aksi harian",
+                new ErrorDetail("action_slot", "OUT_OF_RANGE"));
+        }
+
         var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
         var dayEvents = events
-            .Where(e => e.DayIndex == request.DayIndex && e.SessionPlayerId.HasValue && OrderedActionTypes.Contains(e.ActionType))
+            .Where(e => e.DayIndex == request.DayIndex &&
+                        e.SessionPlayerId.HasValue &&
+                        GameActionCatalog.GetPlayerActionSlotPolicy(
+                            e.ActionType,
+                            _payloadReader.ReadPayload(string.IsNullOrWhiteSpace(e.Payload) ? "{}" : e.Payload)) == PlayerActionSlotPolicy.Consumes)
             .ToList();
 
         var currentPlayerUsedSlots = dayEvents

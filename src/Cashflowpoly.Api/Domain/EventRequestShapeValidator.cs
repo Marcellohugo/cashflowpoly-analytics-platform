@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
@@ -96,14 +95,35 @@ internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
         }
 
         if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+            GameActionCatalog.RequiresSystemActor(request.ActionType, request.Payload))
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Action type ini harus dibuat oleh sistem",
+                new ErrorDetail("actor_type", "SYSTEM_REQUIRED"));
+        }
+
+        if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
             request.ActionSlot < 1 &&
-            !AllowsFreePlayerActionSlot(request.ActionType, request.Payload))
+            GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload) != PlayerActionSlotPolicy.Free)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
                 "VALIDATION_ERROR",
                 "Player event harus memakai action slot minimal 1",
                 new ErrorDetail("action_slot", "OUT_OF_RANGE"));
+        }
+
+        if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+            request.ActionSlot != 0 &&
+            GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload) == PlayerActionSlotPolicy.Free)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Aksi gratis pemain harus memakai action slot 0",
+                new ErrorDetail("action_slot", "INVALID_FOR_ACTION"));
         }
 
         if (request.DayIndex < 0)
@@ -152,21 +172,5 @@ internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
         }
 
         return EventDomainValidationResult.Valid;
-    }
-
-    private static bool AllowsFreePlayerActionSlot(string actionType, JsonElement payload)
-    {
-        return actionType.Equals("JumatBerkah", StringComparison.OrdinalIgnoreCase) ||
-               actionType.Equals("RisikoKehidupan", StringComparison.OrdinalIgnoreCase) ||
-               actionType.Equals("GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase) ||
-               IsRiskResponse(actionType, payload);
-    }
-
-    private static bool IsRiskResponse(string actionType, JsonElement payload)
-    {
-        return (actionType.Equals("Asuransi", StringComparison.OrdinalIgnoreCase) ||
-                actionType.Equals("PinjamanSyariah", StringComparison.OrdinalIgnoreCase)) &&
-               (payload.TryGetProperty("risk_event_id", out _) ||
-                payload.TryGetProperty("risk_event_ref", out _));
     }
 }

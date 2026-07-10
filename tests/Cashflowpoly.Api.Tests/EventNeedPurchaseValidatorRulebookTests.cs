@@ -29,6 +29,28 @@ public sealed class EventNeedPurchaseValidatorRulebookTests
         Assert.Equal(2, result.OutgoingAmount);
     }
 
+    [Fact]
+    public void TryValidate_PrimaryPurchasedOnPreviousDay_AllowsSecondaryNeedPurchase()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest("Kebutuhan", """{"card_id":"sekolah","amount":4,"points":2,"need_tier":"sekunder"}""", playerId);
+        var primaryPurchase = CreateEvent("Kebutuhan", """{"card_id":"beras","amount":2,"points":1,"need_tier":"primer"}""", playerId);
+        primaryPurchase.DayIndex = 1;
+        var history = new[]
+        {
+            primaryPurchase
+        };
+
+        var handled = new EventNeedPurchaseValidator().TryValidate(
+            request,
+            CreateConfig(primaryNeedMaxPerDay: 1),
+            history,
+            out var result);
+
+        Assert.True(handled);
+        Assert.True(result.Validation.IsValid, result.Validation.Message);
+    }
+
     private static EventRequest CreateRequest(string actionType, string payloadJson, Guid playerId)
     {
         using var document = JsonDocument.Parse(payloadJson);
