@@ -471,6 +471,104 @@ public sealed class EventRepository
             new CommandDefinition(sql, new { sessionId, eventId }, cancellationToken: ct));
     }
 
+    internal async Task<bool> IsRiskResolvedAsync(Guid sessionId, Guid riskEventId, CancellationToken ct)
+    {
+        const string sql = """
+            select exists (
+                select 1
+                from event_cashflow_projections
+                where session_id = @sessionId
+                  and category = 'RISK_LIFE'
+                  and (event_id = @riskEventId or reference = @riskEventId::text)
+            )
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<bool>(
+            new CommandDefinition(sql, new { sessionId, riskEventId }, cancellationToken: ct));
+    }
+
+    internal async Task<int?> GetOwnedNeedSaleAmountAsync(
+        Guid sessionId,
+        Guid userId,
+        string cardId,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select floor(spnp.paid_amount / 2.0)::int
+            from session_participant_need_purchases spnp
+            join session_participants sp on sp.session_participant_id = spnp.session_participant_id
+            join ruleset_needs rn on rn.ruleset_need_id = spnp.ruleset_need_id
+            where sp.session_id = @sessionId
+              and sp.user_id = @userId
+              and lower(rn.need_code) = lower(@cardId)
+              and not spnp.is_sold
+            order by spnp.purchased_at_day, spnp.sort_order
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<int?>(
+            new CommandDefinition(sql, new { sessionId, userId, cardId }, cancellationToken: ct));
+    }
+
+    internal async Task<int> GetGoldQuantityAsync(Guid sessionId, Guid userId, CancellationToken ct)
+    {
+        const string sql = """
+            select coalesce(sum(spgh.quantity), 0)::int
+            from session_participant_gold_holdings spgh
+            join session_participants sp on sp.session_participant_id = spgh.session_participant_id
+            where sp.session_id = @sessionId
+              and sp.user_id = @userId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql, new { sessionId, userId }, cancellationToken: ct));
+    }
+
+    internal async Task<bool> HasActiveInsuranceAsync(Guid sessionId, Guid userId, CancellationToken ct)
+    {
+        const string sql = """
+            select exists (
+                select 1
+                from session_participant_insurances spi
+                join session_participants sp on sp.session_participant_id = spi.session_participant_id
+                where sp.session_id = @sessionId
+                  and sp.user_id = @userId
+                  and spi.status = 'ACTIVE'
+                  and spi.remaining_uses > 0
+            )
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<bool>(
+            new CommandDefinition(sql, new { sessionId, userId }, cancellationToken: ct));
+    }
+
+    internal async Task<int?> GetActiveLoanOutstandingAsync(
+        Guid sessionId,
+        Guid userId,
+        string loanCode,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select spl.outstanding_amount
+            from session_participant_loans spl
+            join session_participants sp on sp.session_participant_id = spl.session_participant_id
+            join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
+            where sp.session_id = @sessionId
+              and sp.user_id = @userId
+              and lower(rsl.loan_code) = lower(@loanCode)
+              and spl.status = 'ACTIVE'
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<int?>(
+            new CommandDefinition(sql, new { sessionId, userId, loanCode }, cancellationToken: ct));
+    }
+
     private static object BuildEventParameters(EventDb record)
     {
         return new

@@ -789,6 +789,174 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
+    public async Task MahirRisk_WithInsufficientCash_IsResolvedByCatalogEmergencyLoan()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorToken = (await RegisterAsync(
+            $"it_risk_instructor_{suffix}",
+            "IntegrationRiskInstructorPass!123",
+            "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(
+            instructorToken,
+            $"risk_{suffix}",
+            BuildRulesetDefinition(startingCash: 2, mode: "MAHIR"));
+        var orderEventId = Guid.NewGuid();
+        var riskEventId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+
+        var orderResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = orderEventId,
+            session_id = setup.SessionId,
+            user_id = setup.UserId,
+            actor_type = "PLAYER",
+            timestamp = now,
+            day_index = 0,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 1,
+            sequence_number = 1,
+            action_type = "JualMasakan",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { order_card_id = "nasi_goreng" }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.Created, orderResponse.StatusCode);
+
+        var riskResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = riskEventId,
+            session_id = setup.SessionId,
+            user_id = setup.UserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(1),
+            day_index = 0,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 0,
+            sequence_number = 2,
+            action_type = "RisikoKehidupan",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                risk_id = "risk_cost_4",
+                source_order_event_id = orderEventId
+            }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.Created, riskResponse.StatusCode);
+
+        var emergencyResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = setup.UserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(2),
+            day_index = 0,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 0,
+            sequence_number = 3,
+            action_type = "GunakanOpsiDarurat",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                risk_event_id = riskEventId,
+                option_type = "TAKE_SHARIA_LOAN",
+                loan_code = "loan_syariah_10",
+                direction = "IN",
+                amount = 100
+            }
+        }, instructorToken);
+        Assert.True(emergencyResponse.StatusCode == HttpStatusCode.Created, await emergencyResponse.Content.ReadAsStringAsync());
+
+        var transactionsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.UserId}",
+            null,
+            instructorToken);
+        var transactions = await transactionsResponse.Content.ReadFromJsonAsync<TransactionHistoryResponse>();
+        Assert.NotNull(transactions);
+        Assert.Contains(transactions.Items, item => item.Category == "EMERGENCY_OPTION" && item.Direction == "IN" && item.Amount == 10);
+        Assert.Contains(transactions.Items, item => item.Category == "RISK_LIFE" && item.Direction == "OUT" && item.Amount == 4);
+        Assert.DoesNotContain(transactions.Items, item => item.Amount == 100);
+    }
+
+    [Fact]
+    public async Task MahirInsurance_CannotBeUsedAfterPolicyBecomesInactive()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorToken = (await RegisterAsync(
+            $"it_insurance_instructor_{suffix}",
+            "IntegrationInsuranceInstructorPass!123",
+            "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(
+            instructorToken,
+            $"insurance_{suffix}",
+            BuildRulesetDefinition(startingCash: 5, mode: "MAHIR", riskAmount: 10));
+        var sequence = 0L;
+        var now = DateTimeOffset.UtcNow;
+
+        async Task<HttpResponseMessage> SendEventAsync(
+            string actionType,
+            int dayIndex,
+            int actionSlot,
+            object payload,
+            Guid? eventId = null)
+        {
+            sequence++;
+            return await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+            {
+                event_id = eventId ?? Guid.NewGuid(),
+                session_id = setup.SessionId,
+                user_id = setup.UserId,
+                actor_type = "PLAYER",
+                timestamp = now.AddSeconds(sequence),
+                day_index = dayIndex,
+                weekday = "MON",
+                turn_number = 1,
+                action_slot = actionSlot,
+                sequence_number = sequence,
+                action_type = actionType,
+                ruleset_version_id = setup.RulesetVersionId,
+                payload
+            }, instructorToken);
+        }
+
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "Asuransi",
+            0,
+            1,
+            new { product_code = "multirisk_basic", policy_id = "multirisk_basic", premium = 1 })).StatusCode);
+
+        var firstOrderId = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "JualMasakan", 0, 2, new { order_card_id = "nasi_goreng" }, firstOrderId)).StatusCode);
+        var firstRiskId = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "RisikoKehidupan",
+            0,
+            0,
+            new { risk_id = "risk_cost_4", source_order_event_id = firstOrderId },
+            firstRiskId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "Asuransi", 0, 0, new { risk_event_id = firstRiskId })).StatusCode);
+
+        var secondOrderId = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "JualMasakan", 1, 1, new { order_card_id = "nasi_goreng" }, secondOrderId)).StatusCode);
+        var secondRiskId = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "RisikoKehidupan",
+            1,
+            0,
+            new { risk_id = "risk_cost_4", source_order_event_id = secondOrderId },
+            secondRiskId)).StatusCode);
+
+        var secondUse = await SendEventAsync("Asuransi", 1, 0, new { risk_event_id = secondRiskId });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, secondUse.StatusCode);
+    }
+
+    [Fact]
     /// <summary>
     /// Memvalidasi bahwa PLAYER tidak dapat mengakses event atau mengirim event ke sesi
     /// yang bukan miliknya, dan menerima error FORBIDDEN.
@@ -915,13 +1083,15 @@ public sealed class EventAnalyticsIntegrationTests
     /// </summary>
     private async Task<(Guid SessionId, Guid UserId, Guid RulesetVersionId)> CreateReadySessionAsync(
         string instructorToken,
-        string suffix)
+        string suffix,
+        RulesetDefinitionDto? definition = null)
     {
+        definition ??= BuildRulesetDefinition(startingCash: 50);
         var createRulesetPayload = new
         {
             name = $"Ruleset Invalid IT {suffix}",
             description = "Integration invalid event validation",
-            definition = BuildRulesetDefinition(startingCash: 50)
+            definition
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -937,7 +1107,7 @@ public sealed class EventAnalyticsIntegrationTests
         var createSessionPayload = new
         {
             session_name = $"Session Invalid IT {suffix}",
-            mode = "PEMULA",
+            mode = definition.Mode,
             ruleset_version_id = createdRuleset.RulesetVersionId
         };
 
@@ -1093,11 +1263,13 @@ public sealed class EventAnalyticsIntegrationTests
     /// </summary>
     private static RulesetDefinitionDto BuildRulesetDefinition(
         int startingCash,
-        string playerOrdering = "PLAYER_ORDER")
+        string playerOrdering = "PLAYER_ORDER",
+        string mode = "PEMULA",
+        int riskAmount = 4)
     {
         return new RulesetDefinitionDto
         {
-            Mode = "PEMULA",
+            Mode = mode,
             Settings = new RulesetSettingsDto
             {
                 ActionsPerTurn = 2,
@@ -1117,9 +1289,9 @@ public sealed class EventAnalyticsIntegrationTests
                 DonationMaxAmount = 999999,
                 GoldTradeAllowBuy = true,
                 GoldTradeAllowSell = true,
-                LoanEnabled = false,
-                InsuranceEnabled = false,
-                SavingGoalEnabled = false,
+                LoanEnabled = mode == "MAHIR",
+                InsuranceEnabled = mode == "MAHIR",
+                SavingGoalEnabled = mode == "MAHIR",
                 FreelanceIncome = 1
             },
             PlayerOrdering = new RulesetPlayerOrderingDto
@@ -1137,7 +1309,12 @@ public sealed class EventAnalyticsIntegrationTests
                 new RulesetActionDto { ActionId = "BahanMasakan" },
                 new RulesetActionDto { ActionId = "JualMasakan" },
                 new RulesetActionDto { ActionId = "Kebutuhan" },
-                new RulesetActionDto { ActionId = "KerjaLepas" }
+                new RulesetActionDto { ActionId = "KerjaLepas" },
+                new RulesetActionDto { ActionId = "RisikoKehidupan" },
+                new RulesetActionDto { ActionId = "GunakanOpsiDarurat" },
+                new RulesetActionDto { ActionId = "PinjamanSyariah" },
+                new RulesetActionDto { ActionId = "BayarPinjaman" },
+                new RulesetActionDto { ActionId = "Asuransi" }
             ],
             Ingredients =
             [
@@ -1150,9 +1327,9 @@ public sealed class EventAnalyticsIntegrationTests
                 {
                     Id = "nasi_goreng",
                     Nama = "nasi goreng",
-                    HargaJual = 15,
+                    HargaJual = mode == "MAHIR" ? 1 : 15,
                     PoinKebahagiaan = 0,
-                    Bahan = ["Nasi Putih", "Telur"]
+                    Bahan = mode == "MAHIR" ? [] : ["Nasi Putih", "Telur"]
                 }
             ],
             Needs =
@@ -1204,6 +1381,44 @@ public sealed class EventAnalyticsIntegrationTests
                 new RulesetPensionRankPointDto { Rank = 1, Points = 5 },
                 new RulesetPensionRankPointDto { Rank = 2, Points = 3 },
                 new RulesetPensionRankPointDto { Rank = 3, Points = 1 }
+            ],
+            ShariaLoans =
+            [
+                new RulesetShariaLoanDto
+                {
+                    LoanCode = "loan_syariah_10",
+                    ItemName = "Pinjaman Syariah 10",
+                    Principal = 10,
+                    RepaymentAmount = 10,
+                    DurationDays = 1,
+                    PenaltyPoints = 10,
+                    CardQty = 4
+                }
+            ],
+            InsuranceProducts =
+            [
+                new RulesetInsuranceProductDto
+                {
+                    ProductCode = "multirisk_basic",
+                    ItemName = "Asuransi",
+                    Premium = 1,
+                    UsageLimit = 1,
+                    CardQty = 4
+                }
+            ],
+            LifeRisks =
+            [
+                new RulesetLifeRiskDto
+                {
+                    RiskCode = "risk_cost_4",
+                    ItemName = "Biaya 4",
+                    EffectType = "COIN_EFFECT",
+                    Direction = "OUT",
+                    Amount = riskAmount,
+                    TargetScope = "SELF",
+                    DurationDays = 1,
+                    CardQty = 4
+                }
             ]
         };
     }

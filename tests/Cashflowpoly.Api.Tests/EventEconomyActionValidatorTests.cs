@@ -35,6 +35,19 @@ public sealed class EventEconomyActionValidatorTests
     }
 
     [Fact]
+    public void TryValidate_DonationRejectsSecondSubmissionOnSameFriday()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest("JumatBerkah", """{"amount":3}""", playerId, weekday: "FRI");
+        var history = new[] { CreateEvent(playerId, "JumatBerkah", """{"amount":2}""", sessionId: request.SessionId) };
+
+        new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Equal("DONATION_ALREADY_SUBMITTED", result.Validation.ErrorCode);
+    }
+
+    [Fact]
     public void TryValidate_GoldSellRejectsInsufficientInventory()
     {
         var playerId = Guid.NewGuid();
@@ -59,16 +72,40 @@ public sealed class EventEconomyActionValidatorTests
     [Fact]
     public void TryValidate_GoldTradeAllowsNonSaturdayWhenTriggeredByLifeRisk()
     {
+        var riskEventId = Guid.NewGuid();
         var request = CreateRequest(
             "InvestasiEmas",
-            """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5,"risk_event_id":"95000000-0000-0000-0000-000000000123"}""",
+            $$"""{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5,"risk_event_id":"{{riskEventId}}"}""",
             weekday: "MON");
+        var history = new[]
+        {
+            CreateEvent(
+                request.UserId!.Value,
+                "RisikoKehidupan",
+                """{"risk_id":"risk_gold"}""",
+                riskEventId,
+                request.SessionId)
+        };
 
-        var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+        var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
         Assert.True(result.Validation.IsValid);
         Assert.Equal(5, result.OutgoingAmount);
+    }
+
+    [Fact]
+    public void TryValidate_GoldTradeRejectsFakeRiskReferenceOutsideSaturday()
+    {
+        var request = CreateRequest(
+            "InvestasiEmas",
+            $$"""{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5,"risk_event_id":"{{Guid.NewGuid()}}"}""",
+            weekday: "MON");
+
+        new EventEconomyActionValidator().TryValidate(request, CreateConfig(), Array.Empty<EventDb>(), out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Validation.StatusCode);
     }
 
     private static EventRequest CreateRequest(
@@ -94,12 +131,17 @@ public sealed class EventEconomyActionValidatorTests
             "client-123");
     }
 
-    private static EventDb CreateEvent(Guid playerId, string actionType, string payload)
+    private static EventDb CreateEvent(
+        Guid playerId,
+        string actionType,
+        string payload,
+        Guid? eventId = null,
+        Guid? sessionId = null)
     {
         return new EventDb
         {
-            EventId = Guid.NewGuid(),
-            SessionId = Guid.NewGuid(),
+            EventId = eventId ?? Guid.NewGuid(),
+            SessionId = sessionId ?? Guid.NewGuid(),
             UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
@@ -136,6 +178,20 @@ public sealed class EventEconomyActionValidatorTests
             InsuranceEnabled: false,
             SavingGoalEnabled: false,
             FreelanceIncome: 5,
-            Scoring: null);
+            Scoring: null)
+        {
+            LifeRisks =
+            [
+                new RulesetLifeRiskDto
+                {
+                    RiskCode = "risk_gold",
+                    ItemName = "Gold trade",
+                    EffectType = "GOLD_TRADE",
+                    Direction = "IN",
+                    Amount = 0,
+                    DurationDays = 1
+                }
+            ]
+        };
     }
 }

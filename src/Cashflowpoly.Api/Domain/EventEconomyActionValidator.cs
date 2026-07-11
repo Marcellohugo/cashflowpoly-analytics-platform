@@ -27,7 +27,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
 
         if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.JumatBerkah))
         {
-            result = ValidateFridayDonation(request, config);
+            result = ValidateFridayDonation(request, config, history);
             return true;
         }
 
@@ -98,7 +98,10 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, outgoing);
     }
 
-    private EventEconomyActionValidation ValidateFridayDonation(EventRequest request, RulesetConfig config)
+    private EventEconomyActionValidation ValidateFridayDonation(
+        EventRequest request,
+        RulesetConfig config,
+        IEnumerable<EventDb> history)
     {
         if (!config.FridayEnabled)
         {
@@ -128,6 +131,14 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Jumlah donasi di luar batas");
         }
 
+        if (request.UserId.HasValue && history.Any(e =>
+                e.UserId == request.UserId &&
+                e.DayIndex == request.DayIndex &&
+                GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.JumatBerkah)))
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DONATION_ALREADY_SUBMITTED", "Donasi Jumat sudah dikirim pemain pada hari ini");
+        }
+
         return new EventEconomyActionValidation(EventDomainValidationResult.Valid, request.UserId is null ? null : amount);
     }
 
@@ -141,8 +152,9 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Fitur perdagangan emas tidak aktif");
         }
 
+        var referencedGoldRiskIsActive = HasActiveReferencedGoldRisk(request, config, history);
         if (!string.Equals(request.Weekday, "SAT", StringComparison.OrdinalIgnoreCase) &&
-            !IsLifeRiskTriggeredGoldTrade(request.Payload))
+            !referencedGoldRiskIsActive)
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -293,9 +305,37 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             null);
     }
 
-    private static bool IsLifeRiskTriggeredGoldTrade(System.Text.Json.JsonElement payload)
+    private bool HasActiveReferencedGoldRisk(
+        EventRequest request,
+        RulesetConfig config,
+        IEnumerable<EventDb> history)
     {
-        return (payload.TryGetProperty("risk_event_id", out var idProp) && idProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(idProp.GetString())) ||
-               (payload.TryGetProperty("risk_event_ref", out var refProp) && refProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(refProp.GetString()));
+        if ((!_payloadReader.TryGetString(request.Payload, "risk_event_id", out var riskEventIdText) &&
+             !_payloadReader.TryGetString(request.Payload, "risk_event_ref", out riskEventIdText)) ||
+            !Guid.TryParse(riskEventIdText, out var riskEventId))
+        {
+            return false;
+        }
+
+        var riskEvent = history.FirstOrDefault(e => e.EventId == riskEventId && e.SessionId == request.SessionId);
+        if (riskEvent is null ||
+            !GameActionCatalog.Is(riskEvent.ActionType, _payloadReader.ReadPayload(riskEvent.Payload), GameActionCatalog.RisikoKehidupan))
+        {
+            return false;
+        }
+
+        var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
+        if (!_payloadReader.TryGetString(riskPayload, "risk_id", out var riskId))
+        {
+            return false;
+        }
+
+        var risk = config.LifeRisks.FirstOrDefault(item =>
+            string.Equals(item.RiskCode, riskId, StringComparison.OrdinalIgnoreCase));
+        var endDay = riskEvent.DayIndex + (risk?.DurationDays ?? 1) - 1;
+        return risk is not null &&
+               string.Equals(risk.EffectType, "GOLD_TRADE", StringComparison.OrdinalIgnoreCase) &&
+               request.DayIndex >= riskEvent.DayIndex &&
+               request.DayIndex <= endDay;
     }
 }

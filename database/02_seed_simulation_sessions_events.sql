@@ -3816,7 +3816,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_35","amount":10}' :: jsonb
+          '{"goal_id":"tujuan_35","amount":13}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3898,15 +3898,15 @@ scenario_event_seed as (
           9,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'Menabung',
+          'Menabung',
+          '{"goal_id":"tujuan_28","amount":5}' :: jsonb
         ),
         (
           'MAHIR',
           null,
           8,
-          10,
+          11,
           9,
           4,
           'PLAYER',
@@ -4068,7 +4068,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_32","amount":5}' :: jsonb
+          '{"goal_id":"tujuan_32","amount":7}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4536,7 +4536,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_35","amount":10}' :: jsonb
+          '{"goal_id":"tujuan_35","amount":15}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5329,6 +5329,54 @@ scenario_event_seed as (
           'KerjaLepas',
           'KerjaLepas',
           '{"amount":1}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-008',
+          8,
+          10,
+          9,
+          4,
+          'PLAYER',
+          'GunakanOpsiDarurat',
+          'GunakanOpsiDarurat',
+          '{"option_type":"SELL_GOLD","amount":6,"asset_code":"gold_card","qty":1,"unit_price":6}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-006',
+          8,
+          99,
+          9,
+          3,
+          'PLAYER',
+          'GunakanOpsiDarurat',
+          'GunakanOpsiDarurat',
+          '{"option_type":"TAKE_SHARIA_LOAN","amount":10,"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","principal":10,"repayment_amount":10}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-005',
+          14,
+          99,
+          15,
+          2,
+          'PLAYER',
+          'GunakanOpsiDarurat',
+          'GunakanOpsiDarurat',
+          '{"option_type":"USE_INSURANCE","amount":6}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-001',
+          21,
+          99,
+          22,
+          1,
+          'PLAYER',
+          'GunakanOpsiDarurat',
+          'GunakanOpsiDarurat',
+          '{"option_type":"SELL_NEED","amount":1,"card_id":"buku_1"}' :: jsonb
         ),
         (
           'MAHIR',

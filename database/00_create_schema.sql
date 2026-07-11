@@ -739,6 +739,7 @@ create table if not exists ruleset_tie_breakers (
   tie_number int not null,
   sort_order int not null,
   card_qty int null,
+  is_active boolean not null default true,
   payload_json jsonb not null default '{}' :: jsonb,
   created_at timestamptz not null default now(),
   constraint pk_ruleset_tie_breakers primary key (ruleset_tie_breaker_id),
@@ -756,6 +757,11 @@ create table if not exists ruleset_tie_breakers (
 
 create index if not exists ix_ruleset_tie_breakers_ruleset on ruleset_tie_breakers (ruleset_version_id, sort_order, tie_breaker_code);
 
+alter table
+  ruleset_tie_breakers
+add
+  column if not exists is_active boolean not null default true;
+
 create table if not exists ruleset_sharia_loans (
   ruleset_sharia_loan_id uuid not null default gen_random_uuid(),
   ruleset_version_id uuid not null,
@@ -767,6 +773,7 @@ create table if not exists ruleset_sharia_loans (
   penalty_points int not null default 0,
   sort_order int not null,
   card_qty int null,
+  is_active boolean not null default true,
   payload_json jsonb not null default '{}' :: jsonb,
   created_at timestamptz not null default now(),
   constraint pk_ruleset_sharia_loans primary key (ruleset_sharia_loan_id),
@@ -788,6 +795,11 @@ create table if not exists ruleset_sharia_loans (
 );
 
 create index if not exists ix_ruleset_sharia_loans_ruleset on ruleset_sharia_loans (ruleset_version_id, sort_order, loan_code);
+
+alter table
+  ruleset_sharia_loans
+add
+  column if not exists is_active boolean not null default true;
 
 create table if not exists ruleset_insurance_products (
   ruleset_insurance_product_id uuid not null default gen_random_uuid(),
@@ -3497,13 +3509,18 @@ from
 where
   session_participant_id = new.session_player_id;
 
-if coalesce(v_current_coins, 0) >= v_risk_amount then raise exception 'Emergency options are only allowed when player cash is insufficient' using errcode = '23514';
+if coalesce(v_current_coins, 0) >= v_risk_amount then raise exception 'Emergency option % requires insufficient cash: player cash %, risk amount %',
+v_option_type,
+coalesce(v_current_coins, 0),
+v_risk_amount using errcode = '23514';
 
 end if;
 
 if v_option_type = 'SELL_NEED' then declare v_owns_need boolean;
 
 v_sell_amount int;
+
+v_expected_sell_amount int;
 
 begin if not (
   new.payload ? 'card_id'
@@ -3514,10 +3531,7 @@ end if;
 
 v_sell_amount := (new.payload ->> 'amount') :: int;
 
-if v_sell_amount < 1
-or v_sell_amount > v_risk_amount then raise exception 'SELL_NEED amount % must be between 1 and risk amount %',
-v_sell_amount,
-v_risk_amount using errcode = '23514';
+if v_sell_amount < 1 then raise exception 'SELL_NEED amount must be positive' using errcode = '23514';
 
 end if;
 
@@ -3534,8 +3548,29 @@ select
       and not spnp.is_sold
   ) into v_owns_need;
 
+select
+  floor(spnp.paid_amount / 2.0) :: int into v_expected_sell_amount
+from
+  session_participant_need_purchases spnp
+  join ruleset_needs rn on rn.ruleset_need_id = spnp.ruleset_need_id
+where
+  spnp.session_participant_id = new.session_player_id
+  and rn.need_code = new.payload ->> 'card_id'
+  and not spnp.is_sold
+order by
+  spnp.purchased_at_day,
+  spnp.sort_order
+limit
+  1;
+
 if not v_owns_need then raise exception 'Player does not own need card % to sell',
 new.payload ->> 'card_id' using errcode = '23514';
+
+end if;
+
+if v_sell_amount <> v_expected_sell_amount then raise exception 'SELL_NEED amount % must equal floor(purchase price / 2) %',
+v_sell_amount,
+v_expected_sell_amount using errcode = '23514';
 
 end if;
 
@@ -3901,10 +3936,55 @@ from
   session_participant_insurances
 where
   session_participant_id = new.session_player_id
-  and status = 'ACTIVE';
+  and status = 'ACTIVE'
+  and remaining_uses > 0
+order by
+  created_at
+limit
+  1 for update;
 
 if v_ins_status is null
 or v_ins_uses < 1 then raise exception 'Insurance claim requires active policy with remaining uses' using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
+if new.action_type = 'BayarPinjaman' then declare v_outstanding int;
+
+v_payment int;
+
+begin if not (new.payload ? 'amount') then raise exception 'BayarPinjaman event payload must contain amount' using errcode = '23514';
+
+end if;
+
+v_payment := (new.payload ->> 'amount') :: int;
+
+select
+  spl.outstanding_amount into v_outstanding
+from
+  session_participant_loans spl
+  join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
+where
+  spl.session_participant_id = new.session_player_id
+  and spl.status = 'ACTIVE'
+  and lower(rsl.loan_code) = lower(
+    coalesce(
+      new.payload ->> 'loan_code',
+      new.payload ->> 'loan_id'
+    )
+  )
+limit
+  1 for update;
+
+if v_outstanding is null then raise exception 'Active sharia loan was not found' using errcode = '23514';
+
+end if;
+
+if v_payment <> v_outstanding then raise exception 'BayarPinjaman must pay the full outstanding amount %',
+v_outstanding using errcode = '23514';
 
 end if;
 
@@ -4067,6 +4147,21 @@ new.payload ->> 'goal_id' using errcode = '23514';
 end if;
 
 end;
+
+end if;
+
+if new.action_type = 'JumatBerkah'
+and exists (
+  select
+    1
+  from
+    events donation
+  where
+    donation.session_id = new.session_id
+    and donation.user_id = new.user_id
+    and donation.day_index = new.day_index
+    and donation.action_type = 'JumatBerkah'
+) then raise exception 'DONATION_ALREADY_SUBMITTED' using errcode = '23514';
 
 end if;
 
@@ -6776,6 +6871,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.0');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.2');
 
 commit;

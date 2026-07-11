@@ -130,6 +130,34 @@ public sealed class EventCashflowProjectionBuilderTests
         Assert.Equal("BANK", projection.Counterparty);
     }
 
+    [Fact]
+    public void TryBuild_EmergencyLoanUsesCatalogPrincipalInsteadOfClientCashflowFields()
+    {
+        var request = BuildRequest(
+            actionType: "GunakanOpsiDarurat",
+            payloadJson: """
+                {
+                  "risk_event_id":"00000000-0000-0000-0000-000000000001",
+                  "option_type":"TAKE_SHARIA_LOAN",
+                  "principal":10,
+                  "direction":"OUT",
+                  "amount":100
+                }
+                """);
+
+        var ok = new EventCashflowProjectionBuilder().TryBuild(
+            request,
+            DateTimeOffset.Parse("2026-01-02T03:04:05Z"),
+            Guid.NewGuid(),
+            out var projection);
+
+        Assert.True(ok);
+        Assert.NotNull(projection);
+        Assert.Equal("IN", projection.Direction);
+        Assert.Equal(10, projection.Amount);
+        Assert.Equal("EMERGENCY_OPTION", projection.Category);
+    }
+
     private static EventRequest BuildRequest(
         string actionType,
         string payloadJson,

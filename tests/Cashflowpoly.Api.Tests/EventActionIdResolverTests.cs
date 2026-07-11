@@ -113,10 +113,13 @@ public sealed class EventActionIdResolverTests
     {
         Assert.Equal(
             PlayerActionSlotPolicy.Free,
-            GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{\"risk_event_id\":\"risk-1\"}")));
+            GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{\"risk_event_id\":\"95000000-0000-0000-0000-000000000123\"}")));
         Assert.Equal(
             PlayerActionSlotPolicy.Consumes,
             GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{}")));
+        Assert.Equal(
+            PlayerActionSlotPolicy.Consumes,
+            GameActionCatalog.GetPlayerActionSlotPolicy(actionType, Parse("{\"risk_event_id\":\"fake\"}")));
     }
 
     private static JsonElement Parse(string json)

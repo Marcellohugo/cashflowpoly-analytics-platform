@@ -106,6 +106,9 @@ public sealed class SessionEventProjector
             case GameActionCatalog.BayarPinjaman:
                 await ProjectLoanRepaidAsync(request, participantId, conn, tx, ct);
                 break;
+            case GameActionCatalog.RiskEmergencyUsed:
+                await ProjectEmergencyOptionAsync(request, participantId, conn, tx, ct);
+                break;
             case GameActionCatalog.Asuransi:
                 if (_payloadReader.TryReadInsuranceUsed(request.Payload, out _))
                 {
@@ -128,6 +131,131 @@ public sealed class SessionEventProjector
         }
 
         await UpdateProjectionCheckpointAsync(request.SessionId, storedEvent.SequenceNumber, storedEvent.EventId, conn, tx, ct);
+    }
+
+    private async Task ProjectEmergencyOptionAsync(
+        EventRequest request,
+        Guid participantId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!_payloadReader.TryGetString(request.Payload, "option_type", out var optionType))
+        {
+            return;
+        }
+
+        switch (optionType.ToUpperInvariant())
+        {
+            case "SELL_NEED":
+                await ProjectEmergencyNeedSaleAsync(request, participantId, conn, tx, ct);
+                break;
+            case "SELL_GOLD":
+                await ProjectEmergencyGoldSaleAsync(request, participantId, conn, tx, ct);
+                break;
+            case "TAKE_SHARIA_LOAN":
+                await ProjectLoanTakenAsync(request, participantId, conn, tx, ct);
+                break;
+            case "USE_INSURANCE":
+                await ProjectInsuranceUsedAsync(request, participantId, conn, tx, ct);
+                break;
+        }
+    }
+
+    private async Task ProjectEmergencyNeedSaleAsync(
+        EventRequest request,
+        Guid participantId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!_payloadReader.TryGetString(request.Payload, "card_id", out var cardId))
+        {
+            return;
+        }
+
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update session_participant_need_purchases purchase
+            set is_sold = true,
+                sold_at_day_index = @dayIndex,
+                sold_event_id = @eventId
+            where purchase.session_participant_need_purchase_id = (
+                select candidate.session_participant_need_purchase_id
+                from session_participant_need_purchases candidate
+                join ruleset_needs rn on rn.ruleset_need_id = candidate.ruleset_need_id
+                where candidate.session_participant_id = @participantId
+                  and lower(rn.need_code) = lower(@cardId)
+                  and not candidate.is_sold
+                order by candidate.purchased_at_day, candidate.sort_order
+                limit 1
+            )
+            """,
+            new { participantId, cardId, dayIndex = request.DayIndex, eventId = request.EventId },
+            tx,
+            cancellationToken: ct));
+
+        var soldCount = await conn.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            select count(*)::int
+            from session_participant_need_purchases
+            where session_participant_id = @participantId
+              and sold_event_id = @eventId
+            """,
+            new { participantId, eventId = request.EventId },
+            tx,
+            cancellationToken: ct));
+        if (soldCount != 1)
+        {
+            throw new InvalidOperationException("Penjualan kebutuhan darurat harus menghapus tepat satu kartu.");
+        }
+
+        await RefreshMissionCompletionAsync(request.SessionId, participantId, request.EventId, conn, tx, ct);
+    }
+
+    private async Task ProjectEmergencyGoldSaleAsync(
+        EventRequest request,
+        Guid participantId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!_payloadReader.TryGetInt32(request.Payload, "qty", out var qty) || qty <= 0)
+        {
+            return;
+        }
+
+        var affected = await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update session_participant_gold_holdings holding
+            set quantity = holding.quantity - @qty,
+                last_event_id = @eventId,
+                updated_at = now()
+            where holding.session_participant_id = @participantId
+              and holding.ruleset_game_asset_id = (
+                  select rga.ruleset_game_asset_id
+                  from ruleset_game_assets rga
+                  where rga.ruleset_version_id = @rulesetVersionId
+                    and rga.asset_type = 'GOLD'
+                    and rga.is_active
+                  order by rga.sort_order
+                  limit 1
+              )
+              and holding.quantity >= @qty
+            """,
+            new
+            {
+                participantId,
+                rulesetVersionId = request.RulesetVersionId,
+                qty,
+                eventId = request.EventId
+            },
+            tx,
+            cancellationToken: ct));
+        if (affected != 1)
+        {
+            throw new InvalidOperationException("Penjualan emas darurat harus mengurangi tepat satu holding.");
+        }
     }
 
     private async Task UpdateSessionStateAsync(
@@ -1347,7 +1475,7 @@ public sealed class SessionEventProjector
         NpgsqlTransaction tx,
         CancellationToken ct)
     {
-        await conn.ExecuteAsync(new CommandDefinition(
+        var affected = await conn.ExecuteAsync(new CommandDefinition(
             """
             update session_participant_insurances asset
             set remaining_uses = greatest(remaining_uses - 1, 0),
@@ -1367,6 +1495,7 @@ public sealed class SessionEventProjector
                 from session_participant_insurances candidate
                 where candidate.session_participant_id = @participantId
                   and candidate.status = 'ACTIVE'
+                  and candidate.remaining_uses > 0
                 order by candidate.created_at asc
                 limit 1
             )
@@ -1379,6 +1508,11 @@ public sealed class SessionEventProjector
             },
             tx,
             cancellationToken: ct));
+
+        if (affected != 1)
+        {
+            throw new InvalidOperationException("Penggunaan asuransi harus mengurangi tepat satu polis aktif.");
+        }
     }
 
     private async Task ProjectTieBreakerAsync(

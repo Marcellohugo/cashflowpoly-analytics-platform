@@ -26,7 +26,6 @@ public sealed class EventPayloadReaderTests
             {
               "risk_event_id": "risk-123",
               "option_type": "SELL_GOLD",
-              "direction": "IN",
               "amount": 6
             }
             """);

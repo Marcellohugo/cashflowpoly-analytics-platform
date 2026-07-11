@@ -428,9 +428,28 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Contains("JualMasakan", mahirActions);
         Assert.Contains("RisikoKehidupan", mahirActions);
         Assert.Contains("Asuransi", mahirActions);
+        Assert.Contains("GunakanOpsiDarurat", mahirActions);
         Assert.Contains("AmbilKartuDariDeck", mahirActions);
         Assert.Contains("KartuDiambilDariPasar", mahirActions);
         Assert.Contains("IsiUlangPasar", mahirActions);
+
+        var emergencyOptions = (await connection.QueryAsync<string>(
+            """
+            select upper(e.payload->>'option_type')
+            from sessions s
+            join events e on e.session_id = s.session_id
+            where s.session_name = @mahirSessionName
+              and e.action_type = 'GunakanOpsiDarurat'
+              and e.actor_type = 'PLAYER'
+              and e.action_slot = 0
+              and e.payload ? 'risk_event_id'
+            """,
+            new { mahirSessionName = SeedMahirSessionName }))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Equal(
+            new[] { "SELL_GOLD", "SELL_NEED", "TAKE_SHARIA_LOAN", "USE_INSURANCE" },
+            emergencyOptions.OrderBy(option => option));
 
         var relationalReadModelCounts = await connection.QuerySingleAsync<RelationalReadModelCountRow>(
             """
@@ -936,14 +955,37 @@ public sealed class ManualSimulationSeedIntegrationTests
 
                 if (optionType.Equals("SELL_NEED", StringComparison.OrdinalIgnoreCase))
                 {
+                    var cardId = ReadString(payload, "card_id");
+                    if (!player.PrimaryNeeds.Remove(cardId) &&
+                        !player.SecondaryNeeds.Remove(cardId) &&
+                        !player.TertiaryNeeds.Remove(cardId))
+                    {
+                        throw new InvalidOperationException($"Kartu kebutuhan darurat tidak dimiliki: {cardId}.");
+                    }
+
                     ApplyCashIn(player, ReadInt(payload, "amount"));
+                    break;
+                }
+
+                if (optionType.Equals("SELL_GOLD", StringComparison.OrdinalIgnoreCase))
+                {
+                    var qty = ReadInt(payload, "qty");
+                    var amount = ReadInt(payload, "amount");
+                    if (player.GoldQty < qty)
+                    {
+                        throw new InvalidOperationException("Emas darurat tidak mencukupi untuk dijual.");
+                    }
+
+                    player.GoldQty -= qty;
+                    player.GoldNetAmount -= amount;
+                    ApplyCashIn(player, amount);
                     break;
                 }
 
                 if (optionType.Equals("TAKE_SHARIA_LOAN", StringComparison.OrdinalIgnoreCase))
                 {
-                    var emergencyLoanCode = ReadString(payload, "loan_code");
-                    player.Loans[emergencyLoanCode] = ReadInt(payload, "principal");
+                    var emergencyLoanId = ReadString(payload, "loan_id");
+                    player.Loans[emergencyLoanId] = ReadInt(payload, "principal");
                     ApplyCashIn(player, ReadInt(payload, "principal"));
                     break;
                 }

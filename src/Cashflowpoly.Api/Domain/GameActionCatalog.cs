@@ -100,9 +100,17 @@ internal static class GameActionCatalog
 
     private static bool HasRiskReference(JsonElement payload)
     {
-        return payload.ValueKind == JsonValueKind.Object &&
-               (payload.TryGetProperty("risk_event_id", out _) ||
-                payload.TryGetProperty("risk_event_ref", out _));
+        if (payload.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        return (payload.TryGetProperty("risk_event_id", out var id) &&
+                id.ValueKind == JsonValueKind.String &&
+                Guid.TryParse(id.GetString(), out _)) ||
+               (payload.TryGetProperty("risk_event_ref", out var reference) &&
+                reference.ValueKind == JsonValueKind.String &&
+                Guid.TryParse(reference.GetString(), out _));
     }
 
     private static string? ResolveCanonicalGameAction(string actionType)

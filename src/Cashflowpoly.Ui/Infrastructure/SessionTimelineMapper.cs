@@ -589,17 +589,12 @@ public static class SessionTimelineMapper
     private static string DescribeRiskEmergency(JsonElement payload, string language)
     {
         if (!TryGetString(payload, "option_type", out var optionType) ||
-            !TryGetString(payload, "direction", out var direction) ||
             !TryGetNumber(payload, "amount", out var amount))
         {
             return BuildGenericDescription("GunakanOpsiDarurat", payload, language);
         }
 
-        var directionText = direction.Equals("IN", StringComparison.OrdinalIgnoreCase)
-            ? L(language, "menambah saldo", "adds balance")
-            : direction.Equals("OUT", StringComparison.OrdinalIgnoreCase)
-                ? L(language, "mengurangi saldo", "reduces balance")
-                : direction.ToUpperInvariant();
+        var directionText = L(language, "menambah saldo", "adds balance");
 
         return L(
             language,

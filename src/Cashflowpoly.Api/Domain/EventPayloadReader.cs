@@ -353,7 +353,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     }
 
     /// <summary>
-    /// Membaca risk_event_id, option_type, direction, dan amount dari payload event GunakanOpsiDarurat.
+    /// Membaca opsi darurat yang nominal dan arahnya sudah dihitung server.
     /// </summary>
     public bool TryReadEmergencyOption(
         JsonElement payload,
@@ -368,14 +368,22 @@ internal sealed class EventPayloadReader : IEventPayloadReader
         amount = 0;
 
         if (!TryGetString(payload, "risk_event_id", out riskEventId) ||
-            !TryGetString(payload, "option_type", out optionType) ||
-            !TryGetString(payload, "direction", out direction) ||
-            !TryGetInt32(payload, "amount", out amount))
+            !TryGetString(payload, "option_type", out optionType))
         {
             return false;
         }
 
-        return !string.IsNullOrWhiteSpace(riskEventId);
+        direction = "IN";
+        if (string.Equals(optionType, "TAKE_SHARIA_LOAN", StringComparison.OrdinalIgnoreCase))
+        {
+            TryGetInt32(payload, "principal", out amount);
+        }
+        else
+        {
+            TryGetInt32(payload, "amount", out amount);
+        }
+
+        return !string.IsNullOrWhiteSpace(riskEventId) && amount > 0;
     }
 
     /// <summary>
