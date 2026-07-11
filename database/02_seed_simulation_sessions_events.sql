@@ -800,10 +800,22 @@ scenario_event_seed as (
           5,
           1,
           1,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          6,
+          2,
+          1,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -812,10 +824,22 @@ scenario_event_seed as (
           7,
           1,
           2,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          8,
+          2,
+          2,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -824,10 +848,22 @@ scenario_event_seed as (
           9,
           1,
           3,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"daging","ingredient_name":"Daging","amount":5,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          10,
+          2,
+          3,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -836,10 +872,22 @@ scenario_event_seed as (
           12,
           1,
           4,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
+        ),
+        (
+          'PEMULA',
+          null,
+          0,
+          13,
+          2,
+          4,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1281,9 +1329,9 @@ scenario_event_seed as (
           6,
           2,
           'PLAYER',
-          'InvestasiEmas',
-          'InvestasiEmas',
-          '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}' :: jsonb
+          null,
+          'LewatiTransaksiEmas',
+          '{"note":"Menjaga saldo setelah pembelian bahan Hari 1"}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1511,7 +1559,7 @@ scenario_event_seed as (
           'PLAYER',
           'Kebutuhan',
           'Kebutuhan',
-          '{"card_id":"jam_2","amount":7,"points":6}' :: jsonb
+          '{"card_id":"jam_1","amount":6,"points":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -3081,10 +3129,22 @@ scenario_event_seed as (
           5,
           1,
           1,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          0,
+          6,
+          2,
+          1,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3093,10 +3153,22 @@ scenario_event_seed as (
           7,
           1,
           2,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"daging","ingredient_name":"Daging","amount":5,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          0,
+          8,
+          2,
+          2,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3105,10 +3177,22 @@ scenario_event_seed as (
           9,
           1,
           3,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          0,
+          10,
+          2,
+          3,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3117,10 +3201,22 @@ scenario_event_seed as (
           12,
           1,
           4,
-          'SYSTEM',
-          'SetupBahanAwal',
-          'SetupBahanAwal',
-          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3,"setup":"INITIAL"}' :: jsonb
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          0,
+          13,
+          2,
+          4,
+          'PLAYER',
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3372,7 +3468,7 @@ scenario_event_seed as (
           'PLAYER',
           'Kebutuhan',
           'Kebutuhan',
-          '{"card_id":"baju_2","amount":3,"points":2}' :: jsonb
+          '{"card_id":"baju_1","amount":2,"points":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3612,7 +3708,7 @@ scenario_event_seed as (
           'SYSTEM',
           'BukaHargaEmas',
           'BukaHargaEmas',
-          '{"gold_price":6}' :: jsonb
+          '{"gold_price":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3646,9 +3742,9 @@ scenario_event_seed as (
           6,
           3,
           'PLAYER',
-          null,
-          'LewatiTransaksiEmas',
-          '{"note":"Menyiapkan pelunasan pinjaman sebelum opsi darurat"}' :: jsonb
+          'JualEmas',
+          'JualEmas',
+          '{"trade_type":"SELL","unit_price":5,"qty":1,"amount":5,"note":"Menyiapkan pelunasan pinjaman sebelum opsi darurat"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3660,7 +3756,7 @@ scenario_event_seed as (
           'PLAYER',
           'InvestasiEmas',
           'InvestasiEmas',
-          '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}' :: jsonb
+          '{"trade_type":"BUY","unit_price":5,"qty":1,"amount":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3720,7 +3816,7 @@ scenario_event_seed as (
           'PLAYER',
           'InvestasiEmas',
           'InvestasiEmas',
-          '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6,"source":"risk_investasi_emas"}' :: jsonb
+          '{"trade_type":"BUY","unit_price":5,"qty":1,"amount":5,"source":"risk_investasi_emas"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3816,7 +3912,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_35","amount":13}' :: jsonb
+          '{"goal_id":"tujuan_35","amount":10}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3900,7 +3996,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_28","amount":5}' :: jsonb
+          '{"goal_id":"tujuan_28","amount":4}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4068,7 +4164,7 @@ scenario_event_seed as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_32","amount":7}' :: jsonb
+          '{"goal_id":"tujuan_32","amount":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5340,7 +5436,7 @@ scenario_event_seed as (
           'PLAYER',
           'GunakanOpsiDarurat',
           'GunakanOpsiDarurat',
-          '{"option_type":"SELL_GOLD","amount":6,"asset_code":"gold_card","qty":1,"unit_price":6}' :: jsonb
+          '{"option_type":"SELL_GOLD","amount":5,"asset_code":"gold_card","qty":1,"unit_price":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5563,7 +5659,7 @@ transition_seed as (
   from
     scenario_event_seed
   where
-    day_index between 1
+    day_index between 0
     and 23
   group by
     session_key,
@@ -5690,10 +5786,7 @@ numbered_events as (
       or action_type = 'BagikanTieBreaker'
       or action_type like 'Setup%'
       or coalesce(payload ->> 'setup', '') like 'INITIAL%'
-      or (
-        day_index = 0
-        and action_type in ('KartuDiambilDariPasar', 'IsiUlangPasar')
-      ) then 0
+      then 0
       else day_index + 1
     end as stored_day_index,
     base_timestamp + (day_index * interval '1 day') + (event_order * interval '1 minute') as event_timestamp,

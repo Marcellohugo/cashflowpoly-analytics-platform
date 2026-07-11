@@ -132,9 +132,9 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 ### Mode Pemula - Hari 6 - Sabtu
 - Sistem membuka 1 Kartu Harga Emas
 - Marco Hari 6 -> Investasi Emas: beli 1 Kartu Emas
-- Marcello Hari 6 -> Investasi Emas: beli 1 Kartu Emas
+- Marcello Hari 6 -> Lewati Transaksi Emas (`LewatiTransaksiEmas`) untuk menjaga saldo setelah pembelian bahan Hari 1
 - Hugo Hari 6 -> Lewati Transaksi Emas (`LewatiTransaksiEmas`): tidak membeli dan tidak menjual
-- Manalu Hari 6 -> Investasi Emas: beli 1 Kartu Emas
+- Manalu Hari 6 -> Lewati Transaksi Emas (`LewatiTransaksiEmas`) karena saldo tidak cukup
 - Setelah Investasi Emas selesai -> Mr. Cashflowpoly maju ke Hari 7
 
 ### Mode Pemula - Hari 7 - Minggu
@@ -381,11 +381,11 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Setelah Donasi selesai -> Mr. Cashflowpoly maju ke Hari 6
 
 ### Mode Mahir - Hari 6 - Sabtu
-- Sistem membuka 1 Kartu Harga Emas
-- Marco Hari 6 -> Investasi Emas: beli 1 Kartu Emas
+- Sistem membuka 1 Kartu Harga Emas dengan harga 5 koin
+- Marco Hari 6 -> Lewati Transaksi Emas (`LewatiTransaksiEmas`) karena saldo tidak cukup
 - Marcello Hari 6 -> Lewati Transaksi Emas (`LewatiTransaksiEmas`): tidak membeli dan tidak menjual
-- Hugo Hari 6 -> Lewati transaksi emas untuk menyiapkan saldo pelunasan pinjaman setup
-- Manalu Hari 6 -> Investasi Emas: beli 1 Kartu Emas
+- Hugo Hari 6 -> Jual 1 Kartu Emas awal seharga 5 koin untuk menyiapkan pelunasan pinjaman setup
+- Manalu Hari 6 -> Investasi Emas: beli 1 Kartu Emas seharga 5 koin
 - Setelah Investasi Emas selesai -> Mr. Cashflowpoly maju ke Hari 7
 
 ### Mode Mahir - Hari 7 - Minggu
@@ -410,7 +410,7 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Marcello Hari 9 Aksi 2 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
 - Hugo Hari 9 Aksi 1 -> Lunasi pinjaman setup melalui `BayarPinjaman`; setelah itu gunakan `GunakanOpsiDarurat` bertipe `TAKE_SHARIA_LOAN` untuk menyelesaikan risiko pending dengan produk yang sama
 - Hugo Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Beras
-- Manalu Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
+- Manalu Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 4 koin
 - Manalu Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Daging
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 10
 

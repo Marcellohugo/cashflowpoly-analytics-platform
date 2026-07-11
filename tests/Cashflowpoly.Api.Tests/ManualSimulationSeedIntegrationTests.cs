@@ -203,7 +203,7 @@ public sealed class ManualSimulationSeedIntegrationTests
 
         Assert.All(calendarChecks.Values, row =>
         {
-            Assert.Equal(25, row.DayCount);
+            Assert.Equal(26, row.DayCount);
             Assert.Equal(0, row.MinDayIndex);
             Assert.Equal(25, row.MaxDayIndex);
             Assert.Equal(0, row.WeekdayMismatchCount);
@@ -255,6 +255,7 @@ public sealed class ManualSimulationSeedIntegrationTests
                 s.session_name,
                 sp.session_participant_id,
                 count(*) filter (where e.action_type = 'SetupBahanAwal' and e.day_index = 0)::int as setup_ingredient_count,
+                count(*) filter (where e.actor_type = 'PLAYER' and e.day_index = 1)::int as day_one_player_action_count,
                 count(*) filter (where e.action_type = 'SetupEmasAwal' and e.day_index = 0)::int as setup_gold_count,
                 count(*) filter (where e.action_type = 'SetupMisiAwal' and e.day_index = 0)::int as setup_mission_count,
                 count(*) filter (where e.action_type = 'BagikanTieBreaker' and e.day_index = 0)::int as setup_tie_breaker_count,
@@ -287,7 +288,8 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Equal(8, setupRows.Count);
         foreach (var row in setupRows)
         {
-            Assert.Equal(1, row.SetupIngredientCount);
+            Assert.Equal(0, row.SetupIngredientCount);
+            Assert.Equal(2, row.DayOnePlayerActionCount);
             Assert.Equal(1, row.SetupGoldCount);
             Assert.Equal(1, row.SetupMissionCount);
 
@@ -376,14 +378,18 @@ public sealed class ManualSimulationSeedIntegrationTests
                 mahirSessionName = SeedMahirSessionName
             })).ToList();
 
-        AssertScenarioEvent(
-            scenarioAlignmentRows,
-            "PEMULA",
-            "Marco",
-            0,
-            0,
-            "SetupBahanAwal",
-            "nasi_putih");
+        foreach (var (player, firstIngredient, secondIngredient) in new[]
+        {
+            ("Marco", "nasi_putih", "telur"),
+            ("Marcello", "nasi_putih", "telur"),
+            ("Hugo", "daging", "tahu_tempe"),
+            ("Manalu", "nasi_putih", "sayur")
+        })
+        {
+            AssertScenarioEvent(scenarioAlignmentRows, "PEMULA", player, 1, 1, "BahanMasakan", firstIngredient);
+            AssertScenarioEvent(scenarioAlignmentRows, "PEMULA", player, 1, 2, "BahanMasakan", secondIngredient);
+        }
+
         AssertScenarioEvent(
             scenarioAlignmentRows,
             "PEMULA",
@@ -406,19 +412,19 @@ public sealed class ManualSimulationSeedIntegrationTests
             "Marcello",
             6,
             0,
-            "InvestasiEmas",
-            "BUY");
+            "LewatiTransaksiEmas",
+            "Menjaga saldo setelah pembelian bahan Hari 1");
 
-        foreach (var player in new[] { "Marco", "Marcello", "Hugo", "Manalu" })
+        foreach (var (player, firstIngredient, secondIngredient) in new[]
         {
-            AssertScenarioEvent(
-                scenarioAlignmentRows,
-                "MAHIR",
-                player,
-                0,
-                0,
-                "SetupBahanAwal",
-                player is "Marcello" ? "daging" : player is "Manalu" ? "tahu_tempe" : "nasi_putih");
+            ("Marco", "nasi_putih", "telur"),
+            ("Marcello", "daging", "tahu_tempe"),
+            ("Hugo", "nasi_putih", "telur"),
+            ("Manalu", "sayur", "tahu_tempe")
+        })
+        {
+            AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", player, 1, 1, "BahanMasakan", firstIngredient);
+            AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", player, 1, 2, "BahanMasakan", secondIngredient);
         }
 
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 13, 0, "InvestasiEmas", "BUY");
@@ -429,7 +435,6 @@ public sealed class ManualSimulationSeedIntegrationTests
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 15, 1, "BahanMasakan", "daging");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 15, 1, "Kebutuhan", "boneka_2");
 
-        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 0, 0, "SetupBahanAwal", "nasi_putih");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 0, 0, "SetupAsuransiAwal", "");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 8, 2, "JualMasakan", "sego_penyet");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 9, 1, "BahanMasakan", "sayur");
@@ -1821,6 +1826,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         public string SessionName { get; init; } = string.Empty;
         public Guid SessionParticipantId { get; init; }
         public int SetupIngredientCount { get; init; }
+        public int DayOnePlayerActionCount { get; init; }
         public int SetupGoldCount { get; init; }
         public int SetupMissionCount { get; init; }
         public int SetupTieBreakerCount { get; init; }
