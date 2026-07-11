@@ -52,7 +52,11 @@
             const numericValue = Number(value);
             return Number.isFinite(numericValue) ? numericValue : fallback;
         };
-        const displayDayNumber = (dayIndex) => Math.max(1, toNumber(dayIndex, 1));
+        const displayDayNumber = (dayIndex) => Math.max(0, toNumber(dayIndex, 0));
+        const dayPositionLabel = (dayIndex) => {
+            const dayNumber = displayDayNumber(dayIndex);
+            return dayNumber === 0 ? "GO" : `${dayLabel} ${dayNumber}`;
+        };
         const readValue = (obj, camelKey, pascalKey) => {
             if (!obj || typeof obj !== "object") {
                 return undefined;
@@ -121,8 +125,8 @@
         const dayActivityLabel = (item) => {
             const actorType = actorBucket(item.actorType);
             return actorType === "PLAYER"
-                ? `${dayLabel} ${displayDayNumber(item.dayIndex)} | ${actionSlotLabelText(item)}`
-                : `${dayLabel} ${displayDayNumber(item.dayIndex)} | ${actorLabel(item)}`;
+                ? `${dayPositionLabel(item.dayIndex)} | ${actionSlotLabelText(item)}`
+                : `${dayPositionLabel(item.dayIndex)} | ${actorLabel(item)}`;
         };
         const actionSlotRole = (item) => String(item.actionSlotRole ?? "action").trim().toLowerCase() || "action";
         const isPrimaryTimelineItem = (item) =>
@@ -190,7 +194,7 @@
                         sequenceNumber,
                         dayIndex: toNumber(readValue(item, "dayIndex", "DayIndex"), 0),
                         weekday: String(readValue(item, "weekday", "Weekday") ?? ""),
-                        actionSlot: Math.max(1, toNumber(readValue(item, "actionSlot", "ActionSlot"), 1)),
+                        actionSlot: Math.max(0, toNumber(readValue(item, "actionSlot", "ActionSlot"), 0)),
                         actorType: String(readValue(item, "actorType", "ActorType") ?? ""),
                         playerId: readValue(item, "playerId", "PlayerId"),
                         playerDisplayName: readValue(item, "playerDisplayName", "PlayerDisplayName"),
@@ -424,7 +428,7 @@
             }
 
             if (latestPlayerItem) {
-                insightDayTurnEl.textContent = `${dayLabel} ${displayDayNumber(latestPlayerItem.dayIndex)} | ${latestPlayerItem.flowDescription || actionLabel(latestPlayerItem)}`;
+                insightDayTurnEl.textContent = `${dayPositionLabel(latestPlayerItem.dayIndex)} | ${latestPlayerItem.flowDescription || actionLabel(latestPlayerItem)}`;
                 insightPlayerEl.textContent = actorLabel(latestPlayerItem);
             } else {
                 insightDayTurnEl.textContent = "-";
@@ -573,9 +577,12 @@
             const eventsByDay = getEventsGroupedByDay(visibleTimeline);
             const activeDays = Array.from(eventsByDay.keys()).sort((a, b) => a - b);
 
-            // Default selectedDay to latest active day if not set or not active anymore
+            // Keep empty board days selectable in the unfiltered calendar.
             if (activeDays.length > 0) {
-                if (selectedDay === null || !activeDays.some(day => (selectedDay === 26 ? day >= 26 : day === selectedDay))) {
+                const selectedDayIsAvailable = selectedTimelineFilter === "all"
+                    ? selectedDay !== null && selectedDay >= 0 && selectedDay <= 26
+                    : activeDays.some(day => (selectedDay === 26 ? day >= 26 : day === selectedDay));
+                if (!selectedDayIsAvailable) {
                     selectedDay = activeDays[activeDays.length - 1];
                     // If the latest day is >= 26, normalize it to 26 for the UI selection
                     if (selectedDay > 26) {
@@ -614,17 +621,17 @@
                         return day === selectedDay;
                     });
 
-                    if (dayEvents.length > 0) {
-                        dayPanelEl.classList.remove("hidden");
-                        
-                        const { title, desc } = getDayTitleAndDesc(selectedDay);
-                        if (dayTitleTextEl) dayTitleTextEl.textContent = title;
-                        if (dayEventCountEl) dayEventCountEl.textContent = dayFeedTimeline.length;
-                        if (dayDescEl) dayDescEl.textContent = desc;
+                    dayPanelEl.classList.remove("hidden");
 
+                    const { title, desc } = getDayTitleAndDesc(selectedDay);
+                    if (dayTitleTextEl) dayTitleTextEl.textContent = title;
+                    if (dayEventCountEl) dayEventCountEl.textContent = dayFeedTimeline.length;
+                    if (dayDescEl) dayDescEl.textContent = desc;
+
+                    if (dayEvents.length > 0) {
                         renderJourneyFeed(dayEvents, dayFeedTimeline);
                     } else {
-                        dayPanelEl.classList.add("hidden");
+                        feedEl.innerHTML = `<li class="session-journey-empty">${escapeHtml(emptyMessage)}</li>`;
                     }
                 } else {
                     dayPanelEl.classList.add("hidden");

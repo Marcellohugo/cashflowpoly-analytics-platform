@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Rancangan Kontrak API dan Event
-- Versi: 2.0
-- Tanggal: 18 Juni 2026
+- Versi: 2.1
+- Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -64,7 +64,7 @@ Setiap event dikirim sebagai JSON dengan skema umum berikut:
 | day_index | int | Ya | Indeks hari dalam sesi. |
 | weekday | string | Ya | Nilai: `MON,TUE,WED,THU,FRI,SAT,SUN`. |
 | turn_number | int | Ya | Nomor giliran yang dipakai validator urutan pemain. |
-| action_slot | int | Ya | Slot aksi pemain pada hari tersebut, bernilai 1 atau 2. |
+| action_slot | int | Ya | `0` untuk event sistem/aksi gratis; `1..actions_per_turn` untuk aksi pemain yang memakai token. |
 | action_type | string | Ya | Jenis event. |
 | sequence_number | long | Ya | Nomor urut event per sesi. |
 | ruleset_version_id | string (UUID) | Ya | Versi ruleset yang aktif saat event terjadi. |
@@ -78,7 +78,11 @@ Catatan:
 - `timestamp` harus format UTC atau menyertakan offset zona waktu.
 - `day_index` minimal `0`.
 - `turn_number` minimal `0`.
-- `action_slot` minimal `1`.
+- `action_slot` minimal `0`.
+- Event `SYSTEM` selalu memakai `turn_number=0` dan `action_slot=0`.
+- Aksi gratis pemain memakai `action_slot=0`: `JumatBerkah`, `RisikoKehidupan`, `BayarRisiko`, `GunakanOpsiDarurat`, `InvestasiEmas`, `JualEmas`, dan `LewatiTransaksiEmas`.
+- `Asuransi` dan `PinjamanSyariah` memakai `action_slot=0` hanya ketika payload membawa UUID `risk_event_id`/`risk_event_ref` yang valid; tanpa referensi risiko keduanya memakai token aksi reguler.
+- Aksi pemain reguler memakai slot `1..actions_per_turn`. Kebijakan slot bersumber dari katalog kanonik `GameActionCatalog` dan dijaga kembali oleh database.
 - `sequence_number` minimal `0`.
 
 ### 3.2 Struktur respons error (standar)
@@ -138,9 +142,8 @@ Payload:
 ```
 
 Validasi:
-- `turn_number` harus cocok dengan urutan pemain aktif.
-- `action_slot` wajib berada dalam batas `ruleset_game_settings.actions_per_turn`.
-- Pada mode MAHIR, jumlah `RisikoKehidupan` per pemain harus sama dengan jumlah `JualMasakan` pada giliran yang sama.
+- `actor_type` wajib `SYSTEM`, `turn_number=0`, dan `action_slot=0`.
+- Sebelum giliran berakhir, setiap `JualMasakan` mode MAHIR wajib sudah dirujuk tepat satu `RisikoKehidupan` melalui `source_order_event_id`.
 
 Efek data:
 - Menandai akhir aksi/giliran pemain.
@@ -189,6 +192,7 @@ Validasi:
 - `weekday` harus `FRI`.
 - `amount >= donation_min`.
 - `amount > 0`.
+- Satu pemain hanya boleh mengirim satu `JumatBerkah` pada `day_index` yang sama (`DONATION_ALREADY_SUBMITTED`).
 
 Efek data:
 - Mengurangi saldo.
@@ -236,6 +240,7 @@ Validasi:
 - `qty > 0`.
 - `amount = unit_price * qty`.
 - Sistem menolak jika kepemilikan emas kurang.
+- Kepemilikan dibaca dari `session_participant_gold_holdings`, sehingga emas awal, pembelian, penjualan reguler, dan `SELL_GOLD` darurat dihitung dari state yang sama.
 
 Efek data:
 - Menambah saldo dan mengurangi kepemilikan emas.
@@ -255,7 +260,7 @@ Payload:
 
 Validasi:
 - `weekday` tidak membatasi, namun sistem membatasi maksimal 1 pembelian kebutuhan primer per hari.
-- Sistem menolak pembelian kebutuhan non-primer jika kebutuhan primer belum terpenuhi pada hari itu.
+- Sistem menolak pembelian kebutuhan non-primer jika pemain belum pernah memenuhi kebutuhan primer pada sesi tersebut.
 - `amount > 0`.
 - `card_id` wajib diisi.
 - `points` wajib diisi (nilai poin pada kartu kebutuhan).
@@ -372,26 +377,24 @@ Efek data:
 Payload:
 ```json
 {
-  "loan_id": "LOAN-001",
+  "loan_id": "loan_syariah_10",
+  "loan_code": "loan_syariah_10",
   "principal": 10,
-  "installment": 10,
-  "duration_turn": 1,
+  "repayment_amount": 10,
+  "duration_days": 1,
   "penalty_points": 15
 }
 ```
 
 Validasi:
-- `principal > 0`.
-- `installment > 0`.
-- `duration_turn > 0`.
-- `penalty_points >= 0`.
-- `principal` harus **10** koin (sesuai rulebook).
-- `penalty_points` harus **15** poin (sesuai rulebook).
-- Sistem menolak jika aturan ruleset melarang pinjaman pada kondisi tertentu.
+- Detail principal, nilai pelunasan, durasi, dan penalti wajib sama dengan produk pada katalog ruleset aktif.
+- Pemain maksimal memiliki satu pinjaman `ACTIVE` untuk produk yang sama. Produk tersebut dapat diambil lagi setelah pinjaman sebelumnya `PAID`.
+- Jika memakai slot 0, payload wajib membawa `risk_event_id` yang menunjuk risiko `OUT` berstatus pending milik pemain dan saldo pemain memang tidak cukup.
+- Satu risiko tidak dapat dipakai untuk mengambil pinjaman berulang.
 
 Efek data:
 - Menambah saldo.
-- Mencatat kewajiban cicilan.
+- Membuat/mengaktifkan holding pada `session_participant_loans` dan mencatat penalti produk.
 
 ---
 
@@ -399,8 +402,8 @@ Efek data:
 Payload:
 ```json
 {
-  "loan_id": "LOAN-001",
-  "amount": 5
+  "loan_id": "loan_syariah_10",
+  "amount": 10
 }
 ```
 
@@ -408,12 +411,12 @@ Validasi:
 - `amount > 0`.
 - Pemain memiliki saldo cukup.
 - Loan masih aktif.
-- Sistem menolak pembayaran melebihi sisa pinjaman.
-- `loan_id` harus terdaftar pada loan yang masih aktif.
+- `amount` wajib sama dengan seluruh `outstanding_amount`; cicilan parsial tidak didukung.
+- `loan_id`/kode produk harus terdaftar pada loan yang masih aktif.
 
 Efek data:
 - Mengurangi saldo.
-- Mengurangi sisa kewajiban.
+- Mengubah `outstanding_amount` menjadi 0 dan status menjadi `PAID`.
 
 ---
 
@@ -622,26 +625,27 @@ Efek data:
 Payload:
 ```json
 {
-  "risk_id": "RISK-012",
-  "direction": "OUT",
-  "amount": 3,
+  "risk_id": "risk_cost_4",
+  "source_order_event_id": "uuid-event-jual-masakan",
   "note": "Biaya kesehatan"
 }
 ```
 
 Validasi:
 - `risk_id` wajib.
-- `direction` bernilai `IN` atau `OUT`.
-- `amount > 0`.
+- Nilai `effect_type`, `direction`, `amount`, target, dan durasi diambil dari katalog `ruleset_life_risks`, bukan dari klien.
 - Hanya tersedia pada mode mahir.
-- Sistem menolak jika jumlah `RisikoKehidupan` melebihi jumlah `JualMasakan` pemain pada giliran yang sama.
+- `source_order_event_id` wajib menunjuk `JualMasakan` pada sesi, pemain, dan hari yang sama.
+- Satu event pesanan hanya boleh dipasangkan dengan satu event risiko.
 
 Efek data:
-- Menambah/mengurangi saldo sesuai `direction`.
+- Risiko `OUT` pemain disimpan sebagai pending tanpa langsung mengurangi saldo.
+- Risiko `OUT` menjadi selesai saat ada `BayarRisiko`, penggunaan asuransi, atau opsi darurat yang menyediakan dana cukup.
+- Risiko bonus/non-pembayaran tetap diproyeksikan sesuai efek katalog.
 
 ---
 
-#### 4.8.4 `Asuransi`
+#### 4.8.4 `BayarRisiko`
 Payload:
 ```json
 {
@@ -651,34 +655,56 @@ Payload:
 
 Validasi:
 - `risk_event_id` wajib.
-- `risk_event_id` harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
+- Referensi harus menunjuk risiko `OUT` pending milik pemain pada sesi yang sama.
+- Saldo pemain harus cukup untuk membayar nilai risiko dari katalog.
 
 Efek data:
-- Menandai penggunaan asuransi terhadap kartu risiko.
+- Membuat proyeksi `RISK_LIFE OUT` dan menandai risiko selesai.
 
 ---
 
-#### 4.8.5 `GunakanOpsiDarurat`
+#### 4.8.5 `Asuransi` untuk penyelesaian risiko
 Payload:
+```json
+{
+  "risk_event_id": "uuid-event"
+}
+```
+
+Validasi:
+- Polis pemain wajib berstatus `ACTIVE` dan `remaining_uses > 0`.
+- `risk_event_id` harus menunjuk risiko `OUT` pending milik pemain yang sama.
+- Asuransi dapat dipilih walaupun saldo pemain cukup.
+
+Efek data:
+- Membuat `INSURANCE_OFFSET IN` dan `RISK_LIFE OUT` dengan nominal yang sama.
+- Mengurangi `remaining_uses`; polis menjadi `INACTIVE` ketika penggunaan habis.
+
+---
+
+#### 4.8.6 `GunakanOpsiDarurat`
+Payload dasar:
 ```json
 {
   "risk_event_id": "uuid-event",
   "option_type": "SELL_NEED",
-  "direction": "IN",
-  "amount": 3,
-  "note": "Menjual kartu kebutuhan untuk menutup risiko"
+  "need_card_id": "buku_1"
 }
 ```
 
 Validasi:
 - `risk_event_id` wajib dan harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
 - `option_type` bernilai `SELL_NEED`, `SELL_GOLD`, `TAKE_SHARIA_LOAN`, atau `USE_INSURANCE`.
-- `direction` bernilai `IN` atau `OUT`.
-- `amount > 0`.
+- Klien tidak menentukan `direction` atau `amount`; server menghapus nilai tersebut dari request dan menghitung ulang berdasarkan katalog/state.
+- `SELL_NEED` membutuhkan `need_card_id`/`card_id` yang dimiliki pemain; nilai jual adalah pembulatan ke bawah dari setengah harga beli dan kartu ditandai terjual.
+- `SELL_GOLD` membutuhkan `qty` dan `gold_price_event_id`; server memeriksa holding dan memakai harga emas aktif, lalu mengurangi holding.
+- `TAKE_SHARIA_LOAN` membutuhkan `loan_code`; server memakai detail katalog dan menolak produk yang masih memiliki pinjaman aktif.
+- `USE_INSURANCE` membutuhkan polis aktif. Opsi ini tidak mensyaratkan saldo kurang dan tidak membuat proyeksi `EMERGENCY_OPTION` tambahan.
 
 Efek data:
-- Menambah catatan penggunaan opsi darurat.
-- Jika `direction = IN/OUT`, sistem memproyeksikan arus kas sesuai nilai `amount`.
+- `SELL_NEED`, `SELL_GOLD`, dan `TAKE_SHARIA_LOAN` membuat `EMERGENCY_OPTION IN` sesuai nilai hasil perhitungan server dan memperbarui aset/utang terkait.
+- `USE_INSURANCE` hanya membuat pasangan `INSURANCE_OFFSET IN` dan `RISK_LIFE OUT`.
+- Risiko ditandai selesai ketika asuransi digunakan atau saldo setelah dana masuk cukup untuk membayar nilai risiko.
 
 ---
 

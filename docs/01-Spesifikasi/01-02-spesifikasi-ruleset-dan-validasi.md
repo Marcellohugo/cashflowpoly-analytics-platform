@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Spesifikasi *Ruleset* dan Validasi Konfigurasi
-- Versi: 1.2
-- Tanggal: 18 Juni 2026
+- Versi: 1.3
+- Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -231,6 +231,11 @@ Sistem memeriksa:
 2. Jika `weekday_rules.friday.enabled=false`, sistem menolak event `JumatBerkah` pada sesi yang memakai versi ini.
 3. Jika `constraints.require_primary_before_others=true`, sistem menolak event pembelian kebutuhan lain sebelum pemain pernah membeli kebutuhan primer pada sesi tersebut.
 4. Jika `constraints.primary_need_max_per_day=0`, sistem menolak event `Kebutuhan`.
+5. Satu pemain hanya boleh mengirim satu `JumatBerkah` pada hari Jumat yang sama.
+6. Setiap `JualMasakan` mode MAHIR hanya boleh menjadi sumber satu `RisikoKehidupan` melalui `source_order_event_id`.
+7. Risiko katalog berarah `OUT` tetap pending sampai diselesaikan; saldo cukup tidak otomatis memilih pembayaran tunai.
+8. Satu pemain hanya boleh memiliki satu pinjaman `ACTIVE` untuk produk yang sama dan `BayarPinjaman` wajib melunasi seluruh outstanding.
+9. Validasi jual emas membaca `session_participant_gold_holdings`, bukan menghitung ulang sebagian event.
 
 ### 6.4 Validasi kompatibilitas versi
 Sistem menetapkan nomor versi secara otomatis. Sistem melarang instruktur mengubah nomor versi manual.
@@ -250,9 +255,9 @@ Sistem memetakan aturan *ruleset* ke validasi event:
 - batas kartu bahan memvalidasi `BahanMasakan`.
 - aturan kebutuhan primer memvalidasi `Kebutuhan`.
 - `freelance.income` memvalidasi `KerjaLepas`.
-- fitur mode mahir memvalidasi event `PinjamanSyariah`, `BayarPinjaman`, dan `Asuransi`.
+- fitur mode mahir memvalidasi event `PinjamanSyariah`, `BayarPinjaman`, `Asuransi`, `BayarRisiko`, dan `GunakanOpsiDarurat`.
 - `advanced.saving_goal.enabled` memvalidasi event `Menabung`, `TarikTabungan`, dan `TujuanFinansial`.
-- mode `MAHIR` memvalidasi event `RisikoKehidupan`.
+- mode `MAHIR` memvalidasi pasangan `JualMasakan`/`RisikoKehidupan`, status penyelesaian risiko, polis aktif, aset darurat, dan pinjaman aktif.
 - `scoring.*` mengatur perhitungan poin donasi/emas/pensiun pada modul analitika.
 
 Catatan implementasi logging:

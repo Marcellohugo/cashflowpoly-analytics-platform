@@ -4719,7 +4719,7 @@ insert into
   )
 select
   v_event.session_id,
-  v_event.day_index,
+  greatest(v_event.day_index, 1),
   v_event.weekday,
   case
     when v_event.actor_type = 'SYSTEM' then 0

@@ -32,14 +32,14 @@ public static class SessionTimelineMapper
             .ThenBy(item => item.SequenceNumber)
             .Select(item =>
             {
-                var actionSlot = item.ActionSlot < 1 ? 1 : item.ActionSlot;
+                var actionSlot = Math.Max(0, item.ActionSlot);
                 var actionSlotRole = ResolveActionSlotRole(item.ActionType, item.Payload);
 
                 return new SessionTimelineEventViewModel
                 {
                     Timestamp = item.Timestamp,
                     SequenceNumber = item.SequenceNumber,
-                    DayIndex = item.DayIndex,
+                    DayIndex = ResolveJourneyDayIndex(item),
                     Weekday = ResolveWeekdayLabel(item.Weekday, normalizedLanguage),
                     ActionSlot = actionSlot,
                     ActorType = item.ActorType,
@@ -52,6 +52,22 @@ public static class SessionTimelineMapper
                 };
             })
             .ToList();
+    }
+
+    private static int ResolveJourneyDayIndex(EventRequest item)
+    {
+        if (string.Equals(item.ActionType, "MulaiSesi", StringComparison.OrdinalIgnoreCase) ||
+            item.ActionType.StartsWith("Setup", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        return item.Payload.ValueKind == JsonValueKind.Object &&
+               item.Payload.TryGetProperty("setup", out var setup) &&
+               setup.ValueKind == JsonValueKind.String &&
+               string.Equals(setup.GetString(), "INITIAL", StringComparison.OrdinalIgnoreCase)
+            ? 0
+            : item.DayIndex;
     }
 
     /// <summary>

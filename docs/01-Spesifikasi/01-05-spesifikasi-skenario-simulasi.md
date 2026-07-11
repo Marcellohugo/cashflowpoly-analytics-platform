@@ -3,10 +3,10 @@
 
 ### Dokumen
 - Nama dokumen: Spesifikasi Skenario Simulasi Permainan
-- Versi: 1.1
+- Versi: 1.2
 - Status: Disesuaikan dengan DDL/DML dan alur event API
 - Tanggal: 5 Juni 2026
-- Tanggal penyesuaian: 18 Juni 2026
+- Tanggal penyesuaian: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -40,11 +40,12 @@ Dokumen ini menyatukan skenario permainan untuk Mode Pemula dan Mode Mahir. Tim 
 2. Setiap baris aksi pemain menghasilkan satu event dengan `actor_type=PLAYER`, kecuali bagian yang secara eksplisit menyebut sistem.
 3. Setiap perpindahan hari menghasilkan event sistem dengan `actor_type=SYSTEM` dan `action_type=AkhirGiliran`.
 4. Setiap hari Minggu menghasilkan event sistem dengan `actor_type=SYSTEM` dan `action_type=HariMingguLibur`.
-5. Seed simulasi membuat event setup sebelum aksi utama, seperti pembagian Tie Breaker, penugasan Misi Koleksi, dan pengisian awal deck/market. Event setup ini membantu audit posisi kartu dan tidak mengurangi jatah aksi harian pemain.
-6. Mode Pemula dan Mode Mahir tidak memberi emas awal otomatis. Pemain hanya memperoleh emas melalui event `InvestasiEmas` pada hari Sabtu.
-7. Mode Mahir tidak memberi pinjaman atau asuransi gratis pada setup awal. Pemain hanya memperoleh Pinjaman Syariah dan Asuransi Multi Risiko melalui aksi sesuai hari berjalan.
+5. Seed simulasi mencatat event setup pada `day_index=0` (kotak GO) sebelum aksi utama, seperti pembagian Tie Breaker, penugasan Misi Koleksi, dan pengisian awal deck/market. Event setup ini membantu audit posisi kartu dan tidak mengurangi jatah aksi harian pemain.
+6. Seed memberi satu emas awal per pemain melalui `SetupEmasAwal`; holding tersebut dapat dipakai oleh penjualan reguler maupun opsi darurat.
+7. Setup Mode Mahir memberi satu `SetupPinjamanAwal` dan satu `SetupAsuransiAwal` per pemain untuk merepresentasikan kondisi awal skenario uji. Keduanya tidak mengurangi slot aksi.
 8. Sistem hanya membuat event `BayarPinjaman` bila pemain memiliki pinjaman aktif. Jika pemain tidak memiliki pinjaman aktif, sistem mencatat aksi alternatif sesuai skenario, misalnya `KerjaLepas` atau catatan audit tanpa transaksi.
-9. Sistem hanya memakai Asuransi Multi Risiko setelah pemain mengaktifkan `Asuransi`. Jika pemain belum memiliki asuransi aktif, risiko negatif harus dibayar dengan koin atau dicatat sebagai risiko tanpa perlindungan.
+9. Risiko `OUT` disimpan pending. Pemain menyelesaikannya dengan `BayarRisiko`, polis aktif, atau `GunakanOpsiDarurat`; saldo cukup tidak otomatis memilih pembayaran tunai.
+10. Satu pemain hanya boleh memiliki satu pinjaman aktif per produk. Seed melunasi pinjaman setup Hugo sebelum memakai `TAKE_SHARIA_LOAN` untuk produk yang sama.
 
 ### 1.5 Pemetaan Istilah Papan ke Kode Katalog
 Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan katalog DDL/DML.
@@ -383,7 +384,7 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Sistem membuka 1 Kartu Harga Emas
 - Marco Hari 6 -> Investasi Emas: beli 1 Kartu Emas
 - Marcello Hari 6 -> Lewati Transaksi Emas (`LewatiTransaksiEmas`): tidak membeli dan tidak menjual
-- Hugo Hari 6 -> Investasi Emas: beli 1 Kartu Emas
+- Hugo Hari 6 -> Lewati transaksi emas untuk menyiapkan saldo pelunasan pinjaman setup
 - Manalu Hari 6 -> Investasi Emas: beli 1 Kartu Emas
 - Setelah Investasi Emas selesai -> Mr. Cashflowpoly maju ke Hari 7
 
@@ -405,9 +406,9 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 ### Mode Mahir - Hari 9 - Selasa
 - Marco Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
 - Marco Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Beras
-- Marcello Hari 9 Aksi 1 -> Jual 1 Kartu Pesanan Masakan: sayur tahu tempe (`resep-sayur-bumbu`) memakai Sayur + Bumbu + ambil 1 Kartu Risiko Kehidupan; jika koin kurang, ambil 1 Kartu Pinjaman Syariah (`PinjamanSyariah`) untuk menutup biaya risiko
+- Marcello Hari 9 Aksi 1 -> Jual 1 Kartu Pesanan Masakan: sayur tahu tempe (`resep-sayur-bumbu`) memakai Sayur + Bumbu + ambil 1 Kartu Risiko Kehidupan
 - Marcello Hari 9 Aksi 2 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
-- Hugo Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
+- Hugo Hari 9 Aksi 1 -> Lunasi pinjaman setup melalui `BayarPinjaman`; setelah itu gunakan `GunakanOpsiDarurat` bertipe `TAKE_SHARIA_LOAN` untuk menyelesaikan risiko pending dengan produk yang sama
 - Hugo Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Beras
 - Manalu Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
 - Manalu Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Daging
@@ -603,11 +604,12 @@ Bagian ini membantu pengembang mengubah skenario naratif menjadi payload event t
 | Jual emas | `JualEmas` | `PLAYER` | `gold_price_code`, `qty`, `coin_delta`. |
 | Lewati transaksi emas | `LewatiTransaksiEmas` | `PLAYER` | `reason`. |
 | Hari Minggu libur | `HariMingguLibur` | `SYSTEM` | `day_number`, `weekday=SUN`. |
-| Pinjaman syariah | `PinjamanSyariah` | `PLAYER` | `loan_code`, `principal`, `installment`, `duration_days`. |
-| Bayar pinjaman | `BayarPinjaman` | `PLAYER` | `loan_code`, `amount_paid`, `remaining_balance`. |
+| Pinjaman syariah | `PinjamanSyariah` | `PLAYER` | `loan_code`, `loan_id`, `principal`, `repayment_amount`, `duration_days`, `penalty_points`. |
+| Bayar pinjaman | `BayarPinjaman` | `PLAYER` | `loan_id`, `amount` sebesar seluruh outstanding. |
 | Asuransi multi risiko | `Asuransi` | `PLAYER` | `product_code`, `premium`, `coverage_status`. |
-| Risiko kehidupan | `RisikoKehidupan` | `PLAYER` | `risk_code`, `effect_type`, `direction`, `amount`, `covered_by_insurance`. |
-| Opsi darurat | `GunakanOpsiDarurat` | `PLAYER` | `reason`, `effect`. |
+| Risiko kehidupan | `RisikoKehidupan` | `PLAYER` | `risk_id`, `source_order_event_id`; nilai efek diambil server dari katalog. |
+| Bayar risiko | `BayarRisiko` | `PLAYER` | `risk_event_id`. |
+| Opsi darurat | `GunakanOpsiDarurat` | `PLAYER` | `risk_event_id`, `option_type`, dan referensi aset sesuai opsi; `amount` dihitung server. |
 | Perpindahan hari | `AkhirGiliran` | `SYSTEM` | `from_day`, `to_day`, `completed_players`. |
 | Akhir sesi | `AkhiriSesi` | `SYSTEM` | `final_day`, `winner_player_id`, ringkasan skor. |
 
@@ -623,9 +625,10 @@ Bagian ini membantu pengembang mengubah skenario naratif menjadi payload event t
 9. Mode Pemula tidak menjalankan aksi pinjaman, asuransi, risiko kehidupan, tabungan tujuan keuangan, dan tujuan finansial.
 10. Mode Mahir menjalankan fitur tambahan untuk risiko, asuransi, pinjaman syariah, tabungan tujuan keuangan, dan tujuan finansial.
 11. Sistem hanya mencatat `BayarPinjaman` saat pemain memiliki pinjaman aktif.
-12. Sistem hanya memakai perlindungan asuransi jika pemain sudah mengaktifkan `Asuransi`.
+12. Sistem hanya memakai perlindungan asuransi jika polis `ACTIVE` dan `remaining_uses > 0`.
 13. Sistem menghitung skor akhir setelah Hari 25 selesai.
 14. Jika total poin seri, sistem menentukan pemenang memakai angka Kartu Tie Breaker terbesar.
+15. Setiap `JualMasakan` Mode Mahir dipasangkan dengan tepat satu `RisikoKehidupan` melalui `source_order_event_id`.
 
 ## 6. Catatan Penyesuaian terhadap DDL/DML
 1. Dokumen ini mempertahankan semua hari, urutan pemain, pola Jumat-Sabtu-Minggu, dan alur akhir permainan.

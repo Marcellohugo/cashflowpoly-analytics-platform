@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Rencana Pengujian Fungsional dan Validasi
-- Versi: 1.2
-- Tanggal: 18 Juni 2026
+- Versi: 1.3
+- Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -563,15 +563,23 @@ Tambahan pengujian untuk event baru:
 5. TC-API-27 — `Menabung` dan `TarikTabungan` valid (deposit max 15 koin/aksi)
 6. TC-API-28 — `TujuanFinansial` valid
 7. TC-API-29 — `RisikoKehidupan` valid untuk mode MAHIR
-8. TC-API-30 — `BayarPinjaman` menolak pembayaran melebihi principal
+8. TC-API-30 — `BayarPinjaman` menolak pembayaran yang tidak sama dengan seluruh outstanding
 9. TC-API-31 — `KerjaLepas` valid sesuai `freelance.income`
 10. TC-API-32 — `AkhirGiliran` menolak jika `JualMasakan` tanpa `RisikoKehidupan` (mode MAHIR)
 11. TC-API-33 — ruleset scoring menghitung poin donasi/emas/pensiun pada analitika
+12. TC-API-34 — `RisikoKehidupan` wajib merujuk `JualMasakan` valid melalui `source_order_event_id`
+13. TC-API-35 — seluruh risiko `OUT` tetap pending sampai menerima event penyelesaian
+14. TC-API-36 — `BayarRisiko` hanya menerima risiko pending milik pemain dengan saldo cukup
+15. TC-API-37 — `USE_INSURANCE` memerlukan polis aktif dan hanya membuat satu offset
+16. TC-API-38 — `GunakanOpsiDarurat` menghitung nominal server-side dan mengubah kebutuhan/emas/pinjaman/polis secara atomik
+17. TC-API-39 — donasi Jumat kedua pemain pada hari yang sama ditolak dengan `DONATION_ALREADY_SUBMITTED`
+18. TC-API-40 — `JualEmas` membaca holding relasional, termasuk emas setup dan penjualan darurat
+19. TC-API-41 — produk pinjaman yang masih aktif tidak dapat diambil kembali; setelah `PAID` dapat dipakai lagi
 
 Catatan tambahan:
 - `BagikanMisiKoleksi.penalty_points` harus 10 (rulebook).
 - `PinjamanSyariah.principal` harus 10 dan `penalty_points` harus 15.
-- `Asuransi.premium` harus 1 dan `Asuransi` harus merujuk risiko OUT milik pemain.
+- `Asuransi.premium` harus sesuai katalog; penggunaan polis harus merujuk risiko `OUT` pending milik pemain serta memeriksa `ACTIVE` dan `remaining_uses`.
 
 Catatan:
 - TC ini mengikuti format skenario uji pada bagian TC-API sebelumnya.

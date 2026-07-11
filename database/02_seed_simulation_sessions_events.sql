@@ -700,7 +700,7 @@ scenario_event_seed as (
         (
           'PEMULA',
           null,
-          1,
+          0,
           -4,
           1,
           1,
@@ -712,7 +712,7 @@ scenario_event_seed as (
         (
           'PEMULA',
           null,
-          1,
+          0,
           -3,
           1,
           2,
@@ -724,7 +724,7 @@ scenario_event_seed as (
         (
           'PEMULA',
           null,
-          1,
+          0,
           -2,
           1,
           3,
@@ -736,7 +736,7 @@ scenario_event_seed as (
         (
           'PEMULA',
           null,
-          1,
+          0,
           -1,
           1,
           4,
@@ -2892,7 +2892,7 @@ scenario_event_seed as (
           'SYSTEM',
           'SetupPinjamanAwal',
           'SetupPinjamanAwal',
-          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-001","principal":10,"repayment_amount":10,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
+          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-001","principal":10,"repayment_amount":10,"duration_days":25,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -2904,7 +2904,7 @@ scenario_event_seed as (
           'SYSTEM',
           'SetupPinjamanAwal',
           'SetupPinjamanAwal',
-          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-002","principal":10,"repayment_amount":10,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
+          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-002","principal":10,"repayment_amount":10,"duration_days":25,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -2916,7 +2916,7 @@ scenario_event_seed as (
           'SYSTEM',
           'SetupPinjamanAwal',
           'SetupPinjamanAwal',
-          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","principal":10,"repayment_amount":10,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
+          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","principal":10,"repayment_amount":10,"duration_days":25,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -2928,7 +2928,7 @@ scenario_event_seed as (
           'SYSTEM',
           'SetupPinjamanAwal',
           'SetupPinjamanAwal',
-          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-004","principal":10,"repayment_amount":10,"duration_turn":null,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
+          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-004","principal":10,"repayment_amount":10,"duration_days":25,"penalty_points":15,"setup":"INITIAL"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -2981,7 +2981,7 @@ scenario_event_seed as (
         (
           'MAHIR',
           null,
-          1,
+          0,
           -4,
           1,
           1,
@@ -2993,7 +2993,7 @@ scenario_event_seed as (
         (
           'MAHIR',
           null,
-          1,
+          0,
           -3,
           1,
           2,
@@ -3005,7 +3005,7 @@ scenario_event_seed as (
         (
           'MAHIR',
           null,
-          1,
+          0,
           -2,
           1,
           3,
@@ -3017,7 +3017,7 @@ scenario_event_seed as (
         (
           'MAHIR',
           null,
-          1,
+          0,
           -1,
           1,
           4,
@@ -5352,7 +5352,7 @@ scenario_event_seed as (
           'PLAYER',
           'GunakanOpsiDarurat',
           'GunakanOpsiDarurat',
-          '{"option_type":"TAKE_SHARIA_LOAN","amount":10,"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","principal":10,"repayment_amount":10}' :: jsonb
+          '{"option_type":"TAKE_SHARIA_LOAN","amount":10,"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","principal":10,"repayment_amount":10,"duration_days":25,"penalty_points":15}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5563,7 +5563,7 @@ transition_seed as (
   from
     scenario_event_seed
   where
-    day_index between 0
+    day_index between 1
     and 23
   group by
     session_key,
@@ -5685,7 +5685,17 @@ numbered_events as (
     (
       event_uuid_prefix || lpad(event_number :: text, 12, '0')
     ) :: uuid as event_id,
-    day_index + 1 as stored_day_index,
+    case
+      when action_type = 'MulaiSesi'
+      or action_type = 'BagikanTieBreaker'
+      or action_type like 'Setup%'
+      or coalesce(payload ->> 'setup', '') like 'INITIAL%'
+      or (
+        day_index = 0
+        and action_type in ('KartuDiambilDariPasar', 'IsiUlangPasar')
+      ) then 0
+      else day_index + 1
+    end as stored_day_index,
     base_timestamp + (day_index * interval '1 day') + (event_order * interval '1 minute') as event_timestamp,
     case
       day_index % 7
@@ -5740,22 +5750,6 @@ resolved_events as (
         ) :: text
       )
       when e.action_type = 'Kebutuhan' then e.payload :: jsonb || jsonb_build_object('need_tier', rn.need_tier)
-      when e.action_type = 'RisikoKehidupan' then e.payload :: jsonb || jsonb_build_object(
-        'risk_id',
-        case
-          e.payload ->> 'risk_id'
-          when 'risk_biaya_listrik' then 'risk_pemadaman_listrik'
-          when 'risk_servis_sepeda' then 'risk_ban_bocor'
-          when 'risk_biaya_kesehatan' then 'risk_sakit_gigi'
-          when 'risk_uang_kas' then 'risk_depresi'
-          when 'risk_biaya_transport' then 'risk_ganti_oli'
-          when 'risk_tagihan_air' then 'risk_ganti_aki'
-          when 'risk_perbaikan_atap' then 'risk_mobil_tabrakan'
-          when 'risk_kebutuhan_keluarga' then 'risk_ekstrakurikuler_anak'
-          when 'risk_tagihan_internet' then 'risk_study_tour'
-          else e.payload ->> 'risk_id'
-        end
-      )
       else e.payload
     end as payload
   from

@@ -24,6 +24,22 @@ public sealed class SessionTimelineMapperTests
     }
 
     [Fact]
+    public void MapTimeline_ShouldPlaceInitialSetupOnGoWithoutMovingGameplayDayOne()
+    {
+        var events = new List<EventRequest>
+        {
+            CreateEvent("MulaiSesi", """{"start_note":"Mulai sesi"}""", "MON", actionSlot: 0, actorType: "SYSTEM", dayIndex: 1),
+            CreateEvent("SetupBahanAwal", """{"card_id":"sayur","setup":"INITIAL"}""", "MON", sequenceNumber: 2, actionSlot: 0, actorType: "SYSTEM", dayIndex: 1),
+            CreateEvent("KerjaLepas", """{"amount":1}""", "MON", sequenceNumber: 3, dayIndex: 1)
+        };
+
+        var timeline = SessionTimelineMapper.MapTimeline(events, "id");
+
+        Assert.Equal(new[] { 0, 0, 1 }, timeline.Select(item => item.DayIndex));
+        Assert.Equal(new[] { 0, 0, 1 }, timeline.Select(item => item.ActionSlot));
+    }
+
+    [Fact]
     public void MapTimeline_ShouldClassifyInsuranceEventsAsFinancing()
     {
         var events = new List<EventRequest>
@@ -120,7 +136,8 @@ public sealed class SessionTimelineMapperTests
         long sequenceNumber = 1,
         int actionSlot = 1,
         string actorType = "PLAYER",
-        Guid? userId = null)
+        Guid? userId = null,
+        int dayIndex = 0)
     {
         using var document = JsonDocument.Parse(payloadJson);
         return new EventRequest(
@@ -129,7 +146,7 @@ public sealed class SessionTimelineMapperTests
             userId,
             actorType,
             DateTimeOffset.Parse("2026-02-02T01:00:00Z"),
-            0,
+            dayIndex,
             weekday,
             actionSlot,
             sequenceNumber,

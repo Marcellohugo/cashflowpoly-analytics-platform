@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Analisis Kebutuhan Sistem
-- Versi: 1.2
-- Tanggal: 18 Juni 2026
+- Versi: 1.3
+- Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -107,6 +107,9 @@ Aturan server (ringkas, tanpa mengubah kontrak payload) ditegaskan sebagai berik
 - Event aksi Player memakai `user_id`; event sistem memakai `user_id = null`.
 - API me-resolve `user_id` ke `session_participant_id`/`session_player_id`
   saat event valid diproses.
+- Kebijakan `action_slot` berasal dari katalog aksi kanonik: aksi reguler memakai slot `1..actions_per_turn`, sedangkan event sistem dan aksi gratis memakai slot `0`.
+- Pada mode MAHIR, `RisikoKehidupan` merujuk pesanan melalui `source_order_event_id`; risiko biaya disimpan pending sampai diselesaikan oleh pembayaran tunai, asuransi, atau opsi darurat.
+- Nilai transaksi yang berasal dari katalog/aset darurat dihitung ulang oleh server. Klien tidak menjadi sumber nilai `direction` atau `amount` untuk `GunakanOpsiDarurat`.
 
 Kriteria uji minimum:
 1. Sistem mengembalikan kode status konsisten untuk sukses dan gagal.
@@ -217,6 +220,7 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 
 ### 10.2 Event giliran
 - AkhirGiliran
+- HariMingguLibur
 
 ### 10.3 Event transaksi dan arus kas
 - CatatTransaksi
@@ -225,11 +229,15 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - JumatBerkah
 - InvestasiEmas
 - JualEmas
+- LewatiTransaksiEmas
+- BukaHargaEmas
 
 ### 10.5 Event kebutuhan dan bahan
 - Kebutuhan
 - BahanMasakan
+- BuangBahanMasakan
 - JualMasakan
+- LewatiOrder
 - KerjaLepas
 
 ### 10.6 Event mode mahir
@@ -240,8 +248,23 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - TarikTabungan
 - TujuanFinansial
 - RisikoKehidupan
+- BayarRisiko
+- GunakanOpsiDarurat
 
-### 10.7 Event misi dan skor
+### 10.7 Event setup dan pengelolaan kartu
+- SetupModalAwal
+- SetupBahanAwal
+- SetupEmasAwal
+- SetupMisiAwal
+- SetupPinjamanAwal
+- SetupAsuransiAwal
+- BagikanEmasAwal
+- AmbilKartuDariDeck
+- KartuDiambilDariPasar
+- KartuMasukDiscard
+- IsiUlangPasar
+
+### 10.8 Event misi dan skor
 - BagikanMisiKoleksi
 - PoinPeringkatDonasi
 - PoinEmas

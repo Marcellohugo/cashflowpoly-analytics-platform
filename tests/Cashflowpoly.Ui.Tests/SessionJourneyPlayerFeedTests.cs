@@ -57,15 +57,30 @@ public sealed class SessionJourneyPlayerFeedTests
     }
 
     [Fact]
-    public void SessionJourneyScript_ShouldRenderOneBasedDayIndexWithoutIncrementing()
+    public void SessionJourneyScript_ShouldRenderDayZeroAsGoWithoutIncrementing()
     {
         var repoRoot = ResolveRepositoryRoot();
         var scriptPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneyScript.cshtml");
         var scriptContent = File.ReadAllText(scriptPath);
 
         Assert.Contains("displayDayNumber", scriptContent);
+        Assert.Contains("dayPositionLabel", scriptContent);
+        Assert.Contains("dayNumber === 0 ? \"GO\"", scriptContent);
         Assert.DoesNotContain("dayIndex + 1", scriptContent);
-        Assert.Contains("${displayDayNumber(item.dayIndex)}", scriptContent);
+        Assert.Contains("${dayPositionLabel(item.dayIndex)}", scriptContent);
+        Assert.Contains("Math.max(0, toNumber(readValue(item, \"actionSlot\", \"ActionSlot\"), 0))", scriptContent);
+    }
+
+    [Fact]
+    public void SessionJourneyScript_ShouldKeepEmptyBoardDaySelected()
+    {
+        var repoRoot = ResolveRepositoryRoot();
+        var scriptPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneyScript.cshtml");
+        var scriptContent = File.ReadAllText(scriptPath);
+
+        Assert.Contains("const selectedDayIsAvailable = selectedTimelineFilter === \"all\"", scriptContent);
+        Assert.Contains("selectedDay >= 0 && selectedDay <= 26", scriptContent);
+        Assert.Contains("dayEventCountEl.textContent = dayFeedTimeline.length", scriptContent);
     }
 
     [Fact]

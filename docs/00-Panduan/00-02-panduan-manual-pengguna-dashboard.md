@@ -3,8 +3,8 @@
 
 ### Informasi Dokumen
 - **Nama Dokumen**: Panduan Manual Pengguna Dashboard
-- **Versi**: 1.3
-- **Tanggal**: 20 Juni 2026
+- **Versi**: 1.4
+- **Tanggal**: 11 Juli 2026
 - **Penyusun**: Marco Marcello Hugo
 
 ---
@@ -73,7 +73,7 @@ Halaman utama pemantauan analitika sesi permainan yang memuat:
    - Total Donasi.
    - Total Emas yang dimiliki.
    - Indikator pinjaman belum lunas (ditandai jika pemain masih memiliki utang).
-3. **Timeline Event (Riwayat Perjalanan)**: Menampilkan event permainan secara berurutan (*real-time*).
+3. **Timeline Event (Riwayat Perjalanan)**: Menampilkan event permainan secara berurutan (*real-time*). Event setup dengan `day_index=0` ditempatkan pada kotak **GO**, bukan Hari 1.
 4. Klik pada nama pemain di tabel untuk masuk ke halaman detail performa individu.
 
 ### 4.4 Halaman Detail Performa Pemain (`/sessions/{id}/players/{userId}`)
@@ -84,7 +84,9 @@ Menyajikan visualisasi mendalam tentang performa literasi keuangan seorang pemai
    - Poin sosial (Donasi) dan proteksi aset (Kepemilikan Emas & Asuransi).
    - Penalti yang didapat akibat keputusan keuangan yang buruk.
 2. **Grafik & Chart**: Menampilkan grafik arus kas dan kepemilikan aset yang berfluktuasi seiring giliran permainan.
-3. **Tabel Histori Transaksi**: Menampilkan daftar transaksi yang dilakukan pemain secara rinci (Tipe, Jumlah, Saldo Akhir, dan Waktu Transaksi).
+3. **Alur Keuangan Pemain**: Bagian ini tampil sebelum **Evaluasi Instruktur**. Judul **Riwayat Aktivitas Keuangan** memiliki kontrol buka/tutup di sisi kanan dan dapat dilipat untuk mengurangi kepadatan halaman.
+4. **Tabel Histori Transaksi**: Menampilkan daftar transaksi yang dilakukan pemain secara rinci (Tipe, Jumlah, Saldo Akhir, dan Waktu Transaksi).
+5. **Evaluasi Instruktur**: Menampilkan indikator utama dan tab rincian setelah bagian alur keuangan.
 
 ### 4.5 Halaman Manajemen Ruleset (`/rulesets`)
 Tempat Instruktur mengonfigurasi aturan permainan yang akan diikat pada sesi:

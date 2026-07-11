@@ -3,13 +3,13 @@
 
 ### Dokumen
 - Nama dokumen: Rancangan Model Data dan Basis Data
-- Versi: 2.0
-- Tanggal: 18 Juni 2026
+- Versi: 2.1
+- Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 > Baseline kanonis schema berada pada `database/00_create_schema.sql`.
 > Dokumen ini menjelaskan alur, relasi, dan fungsi tabel berdasarkan baseline
-> implementasi 18 Juni 2026. Jika ada perbedaan detail teknis, skrip SQL
+> implementasi 11 Juli 2026 (baseline `3.0.4`). Jika ada perbedaan detail teknis, skrip SQL
 > kanonis menjadi acuan terakhir.
 
 ---
@@ -283,15 +283,17 @@ Projection peserta menyimpan state turunan per peserta:
 | `session_participant_financial_goals` | Progres tujuan keuangan. |
 | `session_participant_collection_missions` | Status misi koleksi. |
 | `session_participant_action_counters` | Penggunaan aksi per ruleset action. |
-| `session_participant_gold_holdings` | Kepemilikan emas. |
-| `session_participant_loans` | Pinjaman syariah aktif/lunas. |
-| `session_participant_insurances` | Asuransi aktif/terpakai. |
+| `session_participant_gold_holdings` | Kepemilikan emas hasil setup, beli/jual reguler, dan jual darurat; menjadi sumber validasi kuantitas. |
+| `session_participant_loans` | Pinjaman syariah aktif/lunas; unik per peserta dan produk. |
+| `session_participant_insurances` | Polis, status `ACTIVE/INACTIVE`, dan `remaining_uses`. |
 | `session_participant_tie_breakers` | Nilai tie breaker peserta. |
 
 Aturan umum:
 - Semua tabel membawa `session_id` dan `session_participant_id`.
 - Perubahan projection harus berasal dari event valid.
 - Projection menyimpan provenance event jika kolom tersedia.
+- Satu peserta maksimal memiliki satu pinjaman `ACTIVE` per produk. Baris produk yang sama boleh diaktifkan kembali setelah status sebelumnya `PAID`.
+- Update penggunaan asuransi dan pembuatan offset dilakukan dalam transaksi event yang sama; penggunaan hanya valid saat polis aktif dan sisa penggunaan positif.
 
 ---
 
@@ -375,6 +377,9 @@ Kolom penting:
 Aturan:
 - Baris projection wajib merujuk event valid.
 - Query endpoint transaksi memakai `userId` sebagai filter opsional.
+- Risiko kehidupan pemain berarah `OUT` dianggap pending selama belum ada projection kategori `RISK_LIFE` yang merujuk `risk_event_id` tersebut.
+- `BayarRisiko` membuat `RISK_LIFE OUT`. Penyelesaian asuransi membuat pasangan `INSURANCE_OFFSET IN` dan `RISK_LIFE OUT` dengan nominal sama.
+- `GunakanOpsiDarurat` bertipe `USE_INSURANCE` tidak membuat baris `EMERGENCY_OPTION`, sehingga offset tidak terhitung ganda.
 
 ### 10.2 `session_projection_checkpoints`
 Fungsi:
@@ -596,6 +601,7 @@ Untuk merapikan model data dan meminimalkan permukaan validasi, beberapa konsep 
 2. **Gameplay Asset Registry**: Seluruh aset permainan kartu/fisik (bahan masakan, pesanan, kebutuhan dasar/sekunder/tersier) didaftarkan di bawah tabel terpusat `ruleset_game_assets` untuk mempermudah referensi silang.
 3. **Penyederhanaan Konsep Inventory**: Konsep inventarisasi bahan makanan yang terpecah-pecah digabung menjadi tabel proyeksi inventaris tunggal `session_participant_inventory`.
 4. **Penyelesaian Aksi (Action Resolution)**: Seluruh aksi permainan dirujuk melalui `ruleset_actions.ruleset_action_id` sehingga penamaan string bebas pada payload JSON event dapat divalidasi ke katalog DDL.
+5. **Status Risiko tanpa Tabel Tambahan**: Risiko `OUT` pending direpresentasikan oleh event `RisikoKehidupan` yang belum memiliki projection penyelesaian `RISK_LIFE`. Pendekatan ini menjaga replay deterministik tanpa tabel status kedua.
 
 ### 16.3 Fitur yang Dihilangkan untuk Efisiensi
 1. **Penghapusan Quest**: Konsep Quest dipangkas keluar dari MVP. Target pencapaian pemain direpresentasikan secara penuh oleh Misi Koleksi (*Collection Mission*) dan Tujuan Keuangan (*Financial Goal*).

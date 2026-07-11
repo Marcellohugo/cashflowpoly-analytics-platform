@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 26 Juni 2026.**
+**Tanggal ringkasan: 11 Juli 2026. Baseline schema: 3.0.4.**
 
 ## 1. Ringkasan Besar
 
@@ -389,16 +389,17 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 | Event | Fungsi |
 | --- | --- |
 | RisikoKehidupan | Mengambil/menjalankan risiko setelah jual masakan. |
+| BayarRisiko | Membayar risiko `OUT` pending secara tunai. |
 | Asuransi | Membeli asuransi atau memakai asuransi pada risiko. |
 | PinjamanSyariah | Mengambil/menerima pinjaman 10. |
 | BayarPinjaman | Melunasi pinjaman. |
 | Menabung | Setor tabungan tujuan, maksimal 15 koin per aksi. |
-| TujuanFinansial | Event sistem saat target tabungan tercapai. |
+| TarikTabungan | Menarik saldo tabungan tujuan. |
+| TujuanFinansial | Aksi pemain untuk memperoleh tujuan finansial saat prasyarat terpenuhi. |
 | GunakanOpsiDarurat | Menutup risiko dengan opsi darurat. |
 
 **Catatan rulebook:**
-- TarikTabungan tidak termasuk aksi resmi rulebook dan validator menolaknya.
-- TujuanFinansial bukan aksi pemain terpisah. Jika tabungan cukup, kartu tujuan diperoleh otomatis dari alur Menabung dan dicatat oleh sistem.
+- Implementasi digital menyediakan `TarikTabungan` dan `TujuanFinansial` sebagai aksi reguler pemain yang memakai token aksi.
 
 ## 11. Struktur Event API
 
@@ -414,7 +415,7 @@ Setiap event minimal membawa:
 | day_index | Ya | Index hari, mulai 0. |
 | weekday | Ya | MON sampai SUN. |
 | turn_number | Ya | Nomor giliran. |
-| action_slot | Ya | Slot aksi. |
+| action_slot | Ya | Slot 0 untuk event sistem/aksi gratis; slot 1..N untuk aksi reguler pemain. |
 | action_type | Ya | Nama event/action. |
 | sequence_number | Ya | Urutan event per sesi. |
 | ruleset_version_id | Ya | Harus cocok dengan sesi. |
@@ -480,13 +481,16 @@ Request Event
 - JualMasakan: pemain harus punya bahan yang cukup.
 - Kebutuhan: points wajib ada; urutan primer/sekuner/tersier divalidasi.
 - JumatBerkah: weekday harus FRI, nominal dalam batas.
+- JumatBerkah: maksimal satu donasi per pemain pada hari yang sama.
 - InvestasiEmas/JualEmas: weekday harus SAT kecuali dipicu risiko emas.
-- JualEmas: emas yang dijual harus dimiliki.
-- PinjamanSyariah: principal 10, penalti 15.
-- BayarPinjaman: pinjaman aktif dan saldo cukup.
-- Asuransi: premium 1 untuk pembelian; penggunaan harus merujuk risiko valid.
+- JualEmas: kuantitas dibaca dari `session_participant_gold_holdings`.
+- RisikoKehidupan: merujuk `JualMasakan` melalui `source_order_event_id`; risiko `OUT` tetap pending sampai diselesaikan.
+- GunakanOpsiDarurat: nominal/direction dihitung server dan aset/utang/polis diperbarui atomik.
+- PinjamanSyariah: detail sesuai katalog dan maksimal satu pinjaman aktif per produk/pemain.
+- BayarPinjaman: wajib melunasi seluruh outstanding.
+- Asuransi: premium sesuai katalog; penggunaan memerlukan polis `ACTIVE` dengan `remaining_uses > 0`.
 - Menabung: amount > 0 dan maksimal 15.
-- TujuanFinansial: hanya sistem, bukan aksi player terpisah.
+- TarikTabungan/TujuanFinansial: aksi reguler pemain dan memakai slot aksi.
 
 ## 14. Projection dan State
 
@@ -564,19 +568,21 @@ Setiap event berdampak koin diproyeksikan ke event_cashflow_projections.
 
 | Event | Direction | Category contoh |
 | --- | --- | --- |
-| BahanMasakan | OUT | INGREDIENT_PURCHASE |
-| JualMasakan | IN | ORDER_INCOME |
-| Kebutuhan | OUT | NEED_PURCHASE |
+| BahanMasakan | OUT | INGREDIENT |
+| JualMasakan | IN | ORDER |
+| Kebutuhan | OUT | NEED_PRIMARY / NEED_SECONDARY / NEED_TERTIARY |
 | KerjaLepas | IN | FREELANCE |
 | JumatBerkah | OUT | DONATION |
 | InvestasiEmas | OUT | GOLD_TRADE |
 | JualEmas | IN | GOLD_TRADE |
 | PinjamanSyariah | IN | LOAN_TAKEN |
-| BayarPinjaman | OUT | LOAN_REPAYMENT |
+| BayarPinjaman | OUT | LOAN_REPAID |
 | Asuransi premium | OUT | INSURANCE_PREMIUM |
-| RisikoKehidupan negatif | OUT | LIFE_RISK |
-| RisikoKehidupan bonus | IN | LIFE_RISK |
-| Menabung | OUT | SAVING_GOAL |
+| BayarRisiko/penyelesaian risiko | OUT | RISK_LIFE |
+| RisikoKehidupan bonus | IN | RISK_LIFE |
+| Asuransi untuk risiko | IN | INSURANCE_OFFSET |
+| Opsi darurat non-asuransi | IN | EMERGENCY_OPTION |
+| Menabung | OUT | SAVING_DEPOSIT |
 
 Dashboard transaksi membaca projection ini, bukan menghitung ulang di browser.
 

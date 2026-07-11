@@ -3,8 +3,8 @@
 
 ### Informasi Dokumen
 - **Nama Dokumen**: Rancangan Definisi dan Agregasi Metrik
-- **Versi**: 1.5
-- **Tanggal**: 20 Juni 2026
+- **Versi**: 1.6
+- **Tanggal**: 11 Juli 2026
 - **Penyusun**: Marco Marcello Hugo
 
 ---
@@ -114,9 +114,9 @@ Sistem melacak metrik inti berikut untuk penyajian data antarmuka dasbor:
 -   **Rumus**:
     $$\text{Rasio Kepatuhan} = \frac{\text{Jumlah Hari Patuh}}{\text{Total Hari yang Dievaluasi}}$$
 -   **Kriteria Hari Patuh**:
-    1.  Membeli minimal 1 kartu kebutuhan primer pada hari wajib sesuai ruleset.
-    2.  Tidak membeli kartu kebutuhan sekunder/tersier sebelum kebutuhan primer dibeli pada hari tersebut.
-    3.  Jumlah pembelian tidak melampaui batas maksimal harian ruleset.
+    1.  Tidak membeli kebutuhan sekunder/tersier sebelum pemain pernah membeli kebutuhan primer pada sesi tersebut.
+    2.  Status pemenuhan primer dibawa ke hari berikutnya; pemain tidak wajib membeli primer ulang setiap hari.
+    3.  Jumlah pembelian primer pada hari tersebut tidak melampaui batas maksimal harian ruleset.
 
 ### 5.2 `happiness.need.bonus` (Bonus Set Kebutuhan)
 -   **Tujuan**: Memberikan poin tambahan bagi pemain yang memiliki variasi kebutuhan seimbang (*diversity*).

@@ -178,7 +178,8 @@ public sealed class ManualSimulationSeedIntegrationTests
                 min(e.day_index)::int as min_day_index,
                 max(e.day_index)::int as max_day_index,
                 count(*) filter (
-                    where e.weekday <> case (((e.day_index - 1) % 7 + 7) % 7)
+                    where e.day_index > 0
+                      and e.weekday <> case (((e.day_index - 1) % 7 + 7) % 7)
                         when 0 then 'MON'
                         when 1 then 'TUE'
                         when 2 then 'WED'
@@ -203,7 +204,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.All(calendarChecks.Values, row =>
         {
             Assert.Equal(25, row.DayCount);
-            Assert.Equal(1, row.MinDayIndex);
+            Assert.Equal(0, row.MinDayIndex);
             Assert.Equal(25, row.MaxDayIndex);
             Assert.Equal(0, row.WeekdayMismatchCount);
         });
@@ -253,18 +254,18 @@ public sealed class ManualSimulationSeedIntegrationTests
             select
                 s.session_name,
                 sp.session_participant_id,
-                count(*) filter (where e.action_type = 'SetupBahanAwal' and e.day_index = 1)::int as setup_ingredient_count,
-                count(*) filter (where e.action_type = 'SetupEmasAwal' and e.day_index = 1)::int as setup_gold_count,
-                count(*) filter (where e.action_type = 'SetupMisiAwal' and e.day_index = 1)::int as setup_mission_count,
-                count(*) filter (where e.action_type = 'BagikanTieBreaker' and e.day_index = 1)::int as setup_tie_breaker_count,
+                count(*) filter (where e.action_type = 'SetupBahanAwal' and e.day_index = 0)::int as setup_ingredient_count,
+                count(*) filter (where e.action_type = 'SetupEmasAwal' and e.day_index = 0)::int as setup_gold_count,
+                count(*) filter (where e.action_type = 'SetupMisiAwal' and e.day_index = 0)::int as setup_mission_count,
+                count(*) filter (where e.action_type = 'BagikanTieBreaker' and e.day_index = 0)::int as setup_tie_breaker_count,
                 count(*) filter (
                     where e.action_type = 'SetupPinjamanAwal'
-                      and e.day_index = 1
+                      and e.day_index = 0
                       and e.payload->>'setup' = 'INITIAL'
                 )::int as setup_loan_count,
                 count(*) filter (
                     where e.action_type = 'SetupAsuransiAwal'
-                      and e.day_index = 1
+                      and e.day_index = 0
                       and coalesce((e.payload->>'premium')::int, -1) = 0
                       and e.payload->>'setup' = 'INITIAL'
                 )::int as setup_insurance_count
@@ -287,7 +288,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         foreach (var row in setupRows)
         {
             Assert.Equal(1, row.SetupIngredientCount);
-            Assert.Equal(0, row.SetupGoldCount);
+            Assert.Equal(1, row.SetupGoldCount);
             Assert.Equal(1, row.SetupMissionCount);
 
             if (row.SessionName.Contains("Pemula", StringComparison.OrdinalIgnoreCase))
@@ -315,6 +316,32 @@ public sealed class ManualSimulationSeedIntegrationTests
             new { mahirSessionName = SeedMahirSessionName });
         Assert.Equal(4, mahirLoanCount);
 
+        var mahirLoanCatalogMismatchCount = await connection.ExecuteScalarAsync<int>(
+            """
+            select count(*)::int
+            from sessions s
+            join events e on e.session_id = s.session_id
+            join ruleset_sharia_loans loan
+              on loan.ruleset_version_id = e.ruleset_version_id
+             and lower(loan.loan_code) = lower(e.payload->>'loan_code')
+            where s.session_name = @mahirSessionName
+              and (
+                e.action_type = 'SetupPinjamanAwal'
+                or (
+                  e.action_type = 'GunakanOpsiDarurat'
+                  and upper(e.payload->>'option_type') = 'TAKE_SHARIA_LOAN'
+                )
+              )
+              and (
+                (e.payload->>'principal')::int <> loan.principal
+                or (e.payload->>'repayment_amount')::int <> loan.repayment_amount
+                or (e.payload->>'duration_days')::int <> loan.duration_days
+                or (e.payload->>'penalty_points')::int <> loan.penalty_points
+              )
+            """,
+            new { mahirSessionName = SeedMahirSessionName });
+        Assert.Equal(0, mahirLoanCatalogMismatchCount);
+
         var scenarioAlignmentRows = (await connection.QueryAsync<ScenarioAlignmentRow>(
             """
             select
@@ -338,8 +365,8 @@ public sealed class ManualSimulationSeedIntegrationTests
             where s.session_name in (@pemulaSessionName, @mahirSessionName)
               and e.actor_type in ('PLAYER', 'SYSTEM')
               and (
-                (s.mode = 'PEMULA' and e.day_index in (1, 2, 6))
-                or (s.mode = 'MAHIR' and e.day_index in (1, 2, 8, 9, 10, 13, 15, 16, 20, 23, 25))
+                (s.mode = 'PEMULA' and e.day_index in (0, 1, 2, 6))
+                or (s.mode = 'MAHIR' and e.day_index in (0, 1, 2, 8, 9, 10, 13, 15, 16, 20, 23, 25))
               )
             order by s.mode, e.day_index, sp.player_order_no, e.sequence_number
             """,
@@ -353,7 +380,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             scenarioAlignmentRows,
             "PEMULA",
             "Marco",
-            1,
+            0,
             0,
             "SetupBahanAwal",
             "nasi_putih");
@@ -388,7 +415,7 @@ public sealed class ManualSimulationSeedIntegrationTests
                 scenarioAlignmentRows,
                 "MAHIR",
                 player,
-                1,
+                0,
                 0,
                 "SetupBahanAwal",
                 player is "Marcello" ? "daging" : player is "Manalu" ? "tahu_tempe" : "nasi_putih");
@@ -402,13 +429,13 @@ public sealed class ManualSimulationSeedIntegrationTests
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 15, 1, "BahanMasakan", "daging");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 15, 1, "Kebutuhan", "boneka_2");
 
-        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 1, 0, "SetupBahanAwal", "nasi_putih");
-        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 1, 0, "SetupAsuransiAwal", "");
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 0, 0, "SetupBahanAwal", "nasi_putih");
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 0, 0, "SetupAsuransiAwal", "");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marco", 8, 2, "JualMasakan", "sego_penyet");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 9, 1, "BahanMasakan", "sayur");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 9, 2, "JualMasakan", "semanggi_surabaya");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Hugo", 10, 0, "RisikoKehidupan", "");
-        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 1, 0, "SetupPinjamanAwal", "");
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 0, 0, "SetupPinjamanAwal", "");
 
         var mahirActions = (await connection.QueryAsync<string>(
             """
@@ -1186,7 +1213,7 @@ public sealed class ManualSimulationSeedIntegrationTests
                 break;
 
             case "MulaiSesi":
-                Assert.Equal(1, evt.DayIndex);
+                Assert.Equal(0, evt.DayIndex);
                 break;
 
             case "BagikanMisiKoleksi":

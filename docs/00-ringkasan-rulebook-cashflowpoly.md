@@ -154,6 +154,11 @@ Jika koin tidak cukup, pemain dapat:
 - menjual kartu emas sesuai harga aktif,
 - mengambil pinjaman syariah.
 
+Pemetaan digital:
+- `RisikoKehidupan` berarah `OUT` dicatat pending.
+- Pilihan bayar ke bank dicatat sebagai `BayarRisiko`; asuransi dan opsi darurat merujuk `risk_event_id` yang sama.
+- Nominal risiko dan hasil penjualan darurat dihitung server dari katalog/state.
+
 ### 2) Aktifkan 1x kartu asuransi multi risiko
 - Letakkan 1 token aksi di papan asuransi dan bank syariah.
 - Bayar **1 koin** premi ke bank.
@@ -171,10 +176,13 @@ Jika koin tidak cukup, pemain dapat:
   - kartu tujuan keuangan hangus,
   - pemain terkena minus poin pinjaman.
 
+Pemetaan digital: satu pemain maksimal memiliki satu pinjaman aktif untuk produk yang sama. `BayarPinjaman` melunasi seluruh outstanding; produk dapat diambil kembali setelah status `PAID`.
+
 ## I. Aksi bebas (tanpa token aksi)
 
 ### 1) Peduli donasi (hari Jumat)
 - Semua pemain memberikan donasi secara tertutup (minimal 1 koin).
+- Setiap pemain hanya mengirim satu donasi pada hari Jumat yang sama.
 - Donasi dibuka bersamaan.
 - Tentukan peringkat donasi.
 - Poin juara donasi:
@@ -182,11 +190,6 @@ Jika koin tidak cukup, pemain dapat:
   - Juara 2: 5 poin.
   - Juara 3: 2 poin.
 - Jika donasi sama, gunakan angka terbesar kartu tie breaker.
-
-### 2) Investasi emas (hari Sabtu)
-- Buka 1 kartu harga emas.
-- Pemain bergiliran membeli atau menjual kartu emas sesuai harga aktif.
-- Jumlah transaksi emas per pemain tidak dibatasi.
 
 ## J. Catatan arus kas (opsional)
 

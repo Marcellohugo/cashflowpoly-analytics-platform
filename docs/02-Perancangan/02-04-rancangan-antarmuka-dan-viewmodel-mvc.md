@@ -3,8 +3,8 @@
 
 ### Informasi Dokumen
 - **Nama Dokumen**: Rancangan Antarmuka dan ViewModel MVC
-- **Versi**: 1.3
-- **Tanggal**: 20 Juni 2026
+- **Versi**: 1.4
+- **Tanggal**: 11 Juli 2026
 - **Penyusun**: Marco Marcello Hugo
 
 ---
@@ -98,6 +98,16 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 - **Koin / Uang**: Ditampilkan dengan pemisah ribuan (contoh: `10,000`).
 - **Persentase / Rasio**: Ditampilkan dalam skala 0-100 dengan pembulatan dua digit desimal (contoh: `85.50%`).
 - **Placeholder Data Kosong**: Jika data bernilai null/empty, wajib digantikan placeholder aman seperti `-` atau `N/A`, bukan dibiarkan kosong.
+
+### 5.3 Detail Pemain
+- Urutan utama halaman adalah ringkasan pemain, **Alur Keuangan Pemain**, lalu **Evaluasi Instruktur**.
+- **Riwayat Aktivitas Keuangan** memakai elemen native `<details>/<summary>` agar dapat dilipat tanpa state JavaScript tambahan.
+- Indikator buka/tutup ditempatkan di sisi kanan judul dan tetap memiliki target interaksi serta status aksesibel bawaan browser.
+
+### 5.4 Jejak Perjalanan Sesi
+- `day_index=0` merepresentasikan fase setup dan ditampilkan sebagai **GO**.
+- Hari permainan memakai indeks `1..25`; formatter tidak menambah atau memaksa indeks 0 menjadi Hari 1.
+- `action_slot=0` dipertahankan untuk event sistem dan aksi gratis.
 
 ---
 

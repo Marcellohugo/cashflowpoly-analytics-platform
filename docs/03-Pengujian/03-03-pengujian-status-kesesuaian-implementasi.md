@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 2.0
-- Tanggal: 18 Juni 2026
+- Versi: 2.1
+- Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -23,7 +23,7 @@ Acuan utama:
 ## 2. Ringkasan Kesesuaian per Area
 | Area | Status | Catatan |
 |---|---|---|
-| Ingest event + validasi domain | Sesuai | Validasi urutan, idempotensi, ruleset aktif, dan aturan event utama sudah ada. |
+| Ingest event + validasi domain | Sesuai | Kebijakan slot terpusat, pasangan pesanan-risiko berbasis UUID, risiko pending, penyelesaian tunai/asuransi/darurat, donasi tunggal, holding emas, dan batas pinjaman aktif sudah dijaga API serta database. |
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
 | API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
 | UI dashboard (home/sessions/players/rulesets/rulebook/analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route redirect. |
@@ -38,12 +38,13 @@ Acuan utama:
 ---
 
 ## 3. Daftar Gap Prioritas
-Gap prioritas sebelumnya telah ditutup pada baseline implementasi.
+Gap prioritas Mode Mahir sebelumnya telah ditutup pada baseline schema `3.0.4`.
 
 Pekerjaan lanjutan yang masih direkomendasikan (non-blocker):
-1. Integrasikan exporter tracing/metrics ke platform observability eksternal (Grafana/OTel collector) untuk environment produksi.
-2. Aktifkan rotasi secret terjadwal melalui secret manager yang dipakai environment deploy (misalnya KV/Secrets Manager) dengan SOP operasional.
-3. Tambahkan uji performa skenario beban paralel jangka panjang (durasi > 30 menit) untuk uji stabilitas.
+1. Selaraskan fixture integrasi `buku.cardQty=0` agar suite API penuh 279/279 hijau.
+2. Integrasikan exporter tracing/metrics ke platform observability eksternal (Grafana/OTel collector) untuk environment produksi.
+3. Aktifkan rotasi secret terjadwal melalui secret manager yang dipakai environment deploy (misalnya KV/Secrets Manager) dengan SOP operasional.
+4. Tambahkan uji performa skenario beban paralel jangka panjang (durasi > 30 menit) untuk uji stabilitas.
 
 ---
 
