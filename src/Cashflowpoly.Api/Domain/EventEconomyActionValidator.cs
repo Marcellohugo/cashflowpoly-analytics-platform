@@ -258,36 +258,6 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang SELL emas");
         }
 
-        if (string.Equals(tradeType, "SELL", StringComparison.OrdinalIgnoreCase) && request.UserId is not null)
-        {
-            var goldQty = 0;
-            foreach (var evt in history.Where(e => e.UserId == request.UserId))
-            {
-                var eventPayload = _payloadReader.ReadPayload(evt.Payload);
-                var eventAction = GameActionCatalog.ResolveGameActionId(evt.ActionType, eventPayload);
-                if (eventAction is not (GameActionCatalog.InvestasiEmas or GameActionCatalog.JualEmas))
-                {
-                    continue;
-                }
-
-                if (!_payloadReader.TryReadGoldTrade(eventPayload, out var evtTradeType, out var evtQty, out _, out _) &&
-                    !_payloadReader.TryGetInt32(eventPayload, "qty", out evtQty))
-                {
-                    continue;
-                }
-
-                var eventIsBuy = string.Equals(eventAction, GameActionCatalog.InvestasiEmas, StringComparison.OrdinalIgnoreCase) ||
-                                 (!string.Equals(eventAction, GameActionCatalog.JualEmas, StringComparison.OrdinalIgnoreCase) &&
-                                  string.Equals(evtTradeType, "BUY", StringComparison.OrdinalIgnoreCase));
-                goldQty += eventIsBuy ? evtQty : -evtQty;
-            }
-
-            if (goldQty < qty)
-            {
-                return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Kepemilikan emas tidak mencukupi");
-            }
-        }
-
         var outgoing = string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && request.UserId is not null
             ? amount
             : (double?)null;

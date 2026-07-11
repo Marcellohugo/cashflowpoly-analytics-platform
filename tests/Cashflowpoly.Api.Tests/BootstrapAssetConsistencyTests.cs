@@ -762,7 +762,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("insert into session_participant_financial_goals", postApplyRuntimeBlock, StringComparison.OrdinalIgnoreCase);
 
         var freeActionListPattern =
-            @"'JumatBerkah'[\s\S]{0,160}'RisikoKehidupan'[\s\S]{0,160}'GunakanOpsiDarurat'[\s\S]{0,160}'InvestasiEmas'[\s\S]{0,160}'JualEmas'[\s\S]{0,160}'LewatiTransaksiEmas'[\s\S]{0,160}'HariMingguLibur'";
+            @"'JumatBerkah'[\s\S]{0,160}'RisikoKehidupan'[\s\S]{0,160}'BayarRisiko'[\s\S]{0,160}'GunakanOpsiDarurat'[\s\S]{0,160}'InvestasiEmas'[\s\S]{0,160}'JualEmas'[\s\S]{0,160}'LewatiTransaksiEmas'[\s\S]{0,160}'HariMingguLibur'";
         Assert.True(
             Regex.Matches(seedContent, freeActionListPattern, RegexOptions.IgnoreCase).Count >= 3,
             "Manual simulation seed must use the canonical free-action list in all action_slot calculations.");

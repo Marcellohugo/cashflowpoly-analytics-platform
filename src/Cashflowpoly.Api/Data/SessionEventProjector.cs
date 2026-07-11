@@ -931,6 +931,7 @@ public sealed class SessionEventProjector
                      string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase));
         var quantityDelta = isBuy ? qty : -qty;
         var amountDelta = isBuy ? amount : -amount;
+        var assetCode = ReadOptionalCode(request.Payload, "asset_code") ?? "gold_card";
         var metadataJson = JsonSerializer.Serialize(new
         {
             last_trade_type = tradeType.ToUpperInvariant(),
@@ -962,7 +963,7 @@ public sealed class SessionEventProjector
             from ruleset_game_assets rga
             where rga.ruleset_version_id = @rulesetVersionId
               and rga.asset_type = 'GOLD'
-              and rga.asset_code = 'gold_card_1'
+              and rga.asset_code = @assetCode
             limit 1
             on conflict (session_participant_id, ruleset_game_asset_id) do update
             set quantity = greatest(0, coalesce(session_participant_gold_holdings.quantity, 0) + @quantityDelta),
@@ -974,6 +975,7 @@ public sealed class SessionEventProjector
                 sessionId = request.SessionId,
                 participantId,
                 rulesetVersionId = request.RulesetVersionId,
+                assetCode,
                 quantityDelta,
                 eventId = request.EventId
             },
@@ -991,7 +993,7 @@ public sealed class SessionEventProjector
         var quantity = _payloadReader.TryGetInt32(request.Payload, "qty", out var qty)
             ? Math.Max(1, qty)
             : 1;
-        var assetCode = ReadOptionalCode(request.Payload, "asset_code") ?? "gold_card_1";
+        var assetCode = ReadOptionalCode(request.Payload, "asset_code") ?? "gold_card";
 
         await conn.ExecuteAsync(new CommandDefinition(
             """

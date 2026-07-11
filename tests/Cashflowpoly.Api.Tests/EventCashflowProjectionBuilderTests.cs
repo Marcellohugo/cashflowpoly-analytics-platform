@@ -158,6 +158,29 @@ public sealed class EventCashflowProjectionBuilderTests
         Assert.Equal("EMERGENCY_OPTION", projection.Category);
     }
 
+    [Fact]
+    public void TryBuild_EmergencyInsuranceDoesNotCreateGenericCashIn()
+    {
+        var request = BuildRequest(
+            actionType: "GunakanOpsiDarurat",
+            payloadJson: """
+                {
+                  "risk_event_id":"00000000-0000-0000-0000-000000000001",
+                  "option_type":"USE_INSURANCE",
+                  "amount":10
+                }
+                """);
+
+        var ok = new EventCashflowProjectionBuilder().TryBuild(
+            request,
+            DateTimeOffset.Parse("2026-01-02T03:04:05Z"),
+            Guid.NewGuid(),
+            out var projection);
+
+        Assert.False(ok);
+        Assert.Null(projection);
+    }
+
     private static EventRequest BuildRequest(
         string actionType,
         string payloadJson,

@@ -25,11 +25,13 @@ internal static class GameActionCatalog
     public const string InvestasiEmas = "InvestasiEmas";
     public const string JualEmas = "JualEmas";
     public const string GoldSkipped = "LewatiTransaksiEmas";
+    public const string GoldPriceOpened = "BukaHargaEmas";
     public const string SundayRest = "HariMingguLibur";
     public const string PinjamanSyariah = "PinjamanSyariah";
     public const string BayarPinjaman = "BayarPinjaman";
     public const string Asuransi = "Asuransi";
     public const string RisikoKehidupan = "RisikoKehidupan";
+    public const string BayarRisiko = "BayarRisiko";
     public const string RiskEmergencyUsed = "GunakanOpsiDarurat";
     public const string DonationRankAwarded = "PoinPeringkatDonasi";
     public const string DonationWinnersAnnounced = "UmumkanJuaraDonasi";
@@ -74,7 +76,7 @@ internal static class GameActionCatalog
     public static PlayerActionSlotPolicy GetPlayerActionSlotPolicy(string? actionType, JsonElement payload)
     {
         var actionId = ResolveGameActionId(actionType, payload);
-        if (actionId is JumatBerkah or RisikoKehidupan or RiskEmergencyUsed or
+        if (actionId is JumatBerkah or RisikoKehidupan or BayarRisiko or RiskEmergencyUsed or
             InvestasiEmas or JualEmas or GoldSkipped)
         {
             return PlayerActionSlotPolicy.Free;
@@ -95,7 +97,7 @@ internal static class GameActionCatalog
 
     public static bool RequiresSystemActor(string? actionType, JsonElement payload)
     {
-        return ResolveGameActionId(actionType, payload) is SundayRest or AkhirGiliran;
+        return ResolveGameActionId(actionType, payload) is SundayRest or GoldPriceOpened or AkhirGiliran;
     }
 
     private static bool HasRiskReference(JsonElement payload)
@@ -131,11 +133,13 @@ internal static class GameActionCatalog
             "investasiemas" => InvestasiEmas,
             "jualemas" => JualEmas,
             "lewatitransaksiemas" => GoldSkipped,
+            "bukahargaemas" => GoldPriceOpened,
             "hariminggulibur" => SundayRest,
             "pinjamansyariah" => PinjamanSyariah,
             "bayarpinjaman" => BayarPinjaman,
             "asuransi" => Asuransi,
             "risikokehidupan" => RisikoKehidupan,
+            "bayarrisiko" => BayarRisiko,
             "gunakanopsidarurat" => RiskEmergencyUsed,
             "poinperingkatdonasi" => DonationRankAwarded,
             "umumkanjuaradonasi" => DonationWinnersAnnounced,

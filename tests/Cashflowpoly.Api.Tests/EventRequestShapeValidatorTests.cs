@@ -125,6 +125,7 @@ public sealed class EventRequestShapeValidatorTests
     [Theory]
     [InlineData("JumatBerkah")]
     [InlineData("RisikoKehidupan")]
+    [InlineData("BayarRisiko")]
     [InlineData("GunakanOpsiDarurat")]
     [InlineData("InvestasiEmas")]
     [InlineData("JualEmas")]

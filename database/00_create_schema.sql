@@ -2827,6 +2827,7 @@ if (
   new.action_type in (
     'JumatBerkah',
     'RisikoKehidupan',
+    'BayarRisiko',
     'GunakanOpsiDarurat',
     'InvestasiEmas',
     'JualEmas',
@@ -2932,6 +2933,7 @@ and (
     'BayarPinjaman',
     'Asuransi',
     'RisikoKehidupan',
+    'BayarRisiko',
     'GunakanOpsiDarurat',
     'Menabung',
     'TarikTabungan',
@@ -3442,6 +3444,70 @@ and exists (
 
 end if;
 
+if new.action_type = 'BayarRisiko' then declare v_risk_event_id uuid;
+
+v_risk_amount int;
+
+v_risk_direction varchar(10);
+
+v_current_coins int;
+
+begin v_risk_event_id := fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id');
+
+select
+  risk_catalog.amount,
+  risk_catalog.direction into v_risk_amount,
+  v_risk_direction
+from
+  events risk_evt
+  join ruleset_life_risks risk_catalog on risk_catalog.ruleset_version_id = risk_evt.ruleset_version_id
+  and lower(risk_catalog.risk_code) = lower(risk_evt.payload ->> 'risk_id')
+where
+  risk_evt.session_id = new.session_id
+  and risk_evt.event_id = v_risk_event_id
+  and risk_evt.user_id = new.user_id
+  and risk_evt.action_type = 'RisikoKehidupan'
+limit
+  1 for update of risk_evt;
+
+if v_risk_direction <> 'OUT'
+or coalesce(v_risk_amount, 0) <= 0 then raise exception 'BayarRisiko requires a valid player OUT risk' using errcode = '23514';
+
+end if;
+
+if exists (
+  select
+    1
+  from
+    event_cashflow_projections projection
+  where
+    projection.session_id = new.session_id
+    and projection.category = 'RISK_LIFE'
+    and (
+      projection.event_id = v_risk_event_id
+      or projection.reference = v_risk_event_id :: text
+    )
+) then raise exception 'Risk event is already resolved' using errcode = '23514';
+
+end if;
+
+select
+  coins into v_current_coins
+from
+  session_participant_balances
+where
+  session_participant_id = new.session_player_id for update;
+
+if coalesce(v_current_coins, 0) < v_risk_amount then raise exception 'Saldo tidak cukup untuk BayarRisiko: required %, available %',
+v_risk_amount,
+coalesce(v_current_coins, 0) using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
 -- 7. GunakanOpsiDarurat validation
 if new.action_type = 'GunakanOpsiDarurat' then declare v_option_type text;
 
@@ -3509,7 +3575,8 @@ from
 where
   session_participant_id = new.session_player_id;
 
-if coalesce(v_current_coins, 0) >= v_risk_amount then raise exception 'Emergency option % requires insufficient cash: player cash %, risk amount %',
+if v_option_type <> 'USE_INSURANCE'
+and coalesce(v_current_coins, 0) >= v_risk_amount then raise exception 'Emergency option % requires insufficient cash: player cash %, risk amount %',
 v_option_type,
 coalesce(v_current_coins, 0),
 v_risk_amount using errcode = '23514';
@@ -3688,6 +3755,21 @@ v_catalog_principal using errcode = '23514';
 
 end if;
 
+if exists (
+  select
+    1
+  from
+    session_participant_loans spl
+    join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
+  where
+    spl.session_participant_id = new.session_player_id
+    and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
+    and spl.status = 'ACTIVE'
+) then raise exception 'Player already has an active loan for product %',
+new.payload ->> 'loan_code' using errcode = '23514';
+
+end if;
+
 end;
 
 end if;
@@ -3765,6 +3847,21 @@ end if;
 if new.payload ? 'penalty_points'
 and (new.payload ->> 'penalty_points') :: int <> v_catalog_penalty then raise exception 'Sharia loan penalty_points must match catalog penalty_points %',
 v_catalog_penalty using errcode = '23514';
+
+end if;
+
+if exists (
+  select
+    1
+  from
+    session_participant_loans spl
+    join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
+  where
+    spl.session_participant_id = new.session_player_id
+    and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
+    and spl.status = 'ACTIVE'
+) then raise exception 'Player already has an active loan for product %',
+new.payload ->> 'loan_code' using errcode = '23514';
 
 end if;
 
@@ -4286,6 +4383,7 @@ and (
   v_action_type in (
     'JumatBerkah',
     'RisikoKehidupan',
+    'BayarRisiko',
     'GunakanOpsiDarurat',
     'InvestasiEmas',
     'JualEmas',
@@ -4712,6 +4810,7 @@ with risk_catalog as (
       and v_event.payload ? 'premium' then 'OUT'
       when v_event.action_type = 'Asuransi'
       and v_event.payload ? 'risk_event_id' then 'IN'
+      when v_event.action_type = 'BayarRisiko' then 'OUT'
       when v_event.action_type = 'GunakanOpsiDarurat'
       and upper(v_event.payload ->> 'option_type') in (
         'SELL_NEED',
@@ -4743,6 +4842,12 @@ with risk_catalog as (
         from
           insurance_risk
       )
+      when v_event.action_type = 'BayarRisiko' then (
+        select
+          amount
+        from
+          insurance_risk
+      )
       when v_event.action_type = 'Asuransi'
       and v_event.payload ? 'premium' then (v_event.payload ->> 'premium') :: int
       else nullif(v_event.payload ->> 'amount', '') :: int
@@ -4768,6 +4873,9 @@ with risk_catalog as (
       and v_event.payload ? 'risk_event_id' then 'INSURANCE_CLAIM'
       when v_event.action_type = 'Asuransi'
       and v_event.payload ? 'premium' then 'INSURANCE_PREMIUM'
+      when v_event.action_type = 'BayarRisiko' then 'RISK_LIFE'
+      when v_event.action_type = 'GunakanOpsiDarurat'
+      and upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE' then 'INSURANCE_OFFSET'
       when v_event.action_type = 'GunakanOpsiDarurat' then 'EMERGENCY_OPTION'
     end as category,
     coalesce(
@@ -6871,6 +6979,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.2');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.4');
 
 commit;

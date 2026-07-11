@@ -138,7 +138,8 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
             category = "INSURANCE_PREMIUM";
         }
         else if (string.Equals(action, "GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase) &&
-                 _payloadReader.TryReadEmergencyOption(request.Payload, out _, out _, out var emergencyDirection, out var emergencyAmount))
+                 _payloadReader.TryReadEmergencyOption(request.Payload, out _, out var emergencyOption, out var emergencyDirection, out var emergencyAmount) &&
+                 !string.Equals(emergencyOption, "USE_INSURANCE", StringComparison.OrdinalIgnoreCase))
         {
             direction = emergencyDirection.ToUpperInvariant();
             amount = emergencyAmount;

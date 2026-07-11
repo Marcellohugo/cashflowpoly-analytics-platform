@@ -869,6 +869,32 @@ public sealed class EventAnalyticsIntegrationTests
         }, instructorToken);
         Assert.True(emergencyResponse.StatusCode == HttpStatusCode.Created, await emergencyResponse.Content.ReadAsStringAsync());
 
+        var duplicateLoanResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = setup.UserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(3),
+            day_index = 0,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 2,
+            sequence_number = 4,
+            action_type = "PinjamanSyariah",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                loan_id = "loan_syariah_10",
+                loan_code = "loan_syariah_10",
+                principal = 10,
+                repayment_amount = 10,
+                duration_days = 1,
+                penalty_points = 10
+            }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, duplicateLoanResponse.StatusCode);
+
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
             $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.UserId}",
@@ -892,7 +918,7 @@ public sealed class EventAnalyticsIntegrationTests
         var setup = await CreateReadySessionAsync(
             instructorToken,
             $"insurance_{suffix}",
-            BuildRulesetDefinition(startingCash: 5, mode: "MAHIR", riskAmount: 10));
+            BuildRulesetDefinition(startingCash: 15, mode: "MAHIR", riskAmount: 10));
         var sequence = 0L;
         var now = DateTimeOffset.UtcNow;
 
@@ -939,7 +965,10 @@ public sealed class EventAnalyticsIntegrationTests
             new { risk_id = "risk_cost_4", source_order_event_id = firstOrderId },
             firstRiskId)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "Asuransi", 0, 0, new { risk_event_id = firstRiskId })).StatusCode);
+            "GunakanOpsiDarurat",
+            0,
+            0,
+            new { risk_event_id = firstRiskId, option_type = "USE_INSURANCE", direction = "IN", amount = 100 })).StatusCode);
 
         var secondOrderId = Guid.NewGuid();
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
@@ -954,6 +983,74 @@ public sealed class EventAnalyticsIntegrationTests
 
         var secondUse = await SendEventAsync("Asuransi", 1, 0, new { risk_event_id = secondRiskId });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, secondUse.StatusCode);
+        sequence--;
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "BayarRisiko", 1, 0, new { risk_event_id = secondRiskId })).StatusCode);
+
+        var transactionsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.UserId}",
+            null,
+            instructorToken);
+        var transactions = await transactionsResponse.Content.ReadFromJsonAsync<TransactionHistoryResponse>();
+        Assert.NotNull(transactions);
+        Assert.Single(transactions.Items, item => item.Category == "INSURANCE_OFFSET" && item.Amount == 10);
+        Assert.DoesNotContain(transactions.Items, item => item.Category == "EMERGENCY_OPTION" && item.Amount == 10);
+    }
+
+    [Fact]
+    public async Task MahirGoldSell_UsesRelationalHoldingIncludingInitialGold()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructorToken = (await RegisterAsync(
+            $"it_gold_instructor_{suffix}",
+            "IntegrationGoldInstructorPass!123",
+            "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(
+            instructorToken,
+            $"gold_{suffix}",
+            BuildRulesetDefinition(startingCash: 10, mode: "MAHIR"));
+        var now = DateTimeOffset.UtcNow;
+
+        async Task<HttpResponseMessage> SendEventAsync(
+            string actionType,
+            string actorType,
+            Guid? userId,
+            long sequence,
+            object payload)
+        {
+            return await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+            {
+                event_id = Guid.NewGuid(),
+                session_id = setup.SessionId,
+                user_id = userId,
+                actor_type = actorType,
+                timestamp = now.AddSeconds(sequence),
+                day_index = 6,
+                weekday = "SAT",
+                turn_number = actorType == "SYSTEM" ? 0 : 1,
+                action_slot = 0,
+                sequence_number = sequence,
+                action_type = actionType,
+                ruleset_version_id = setup.RulesetVersionId,
+                payload
+            }, instructorToken);
+        }
+
+        var initialGold = await SendEventAsync(
+            "BagikanEmasAwal", "SYSTEM", setup.UserId, 1, new { qty = 1, asset_code = "gold_card_1" });
+        Assert.True(
+            initialGold.StatusCode == HttpStatusCode.Created,
+            await initialGold.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "BukaHargaEmas", "SYSTEM", null, 2, new { gold_price = 6 })).StatusCode);
+        var firstSell = await SendEventAsync(
+            "JualEmas", "PLAYER", setup.UserId, 3, new { trade_type = "SELL", qty = 1, unit_price = 6, amount = 6, asset_code = "gold_card_1" });
+        Assert.True(firstSell.StatusCode == HttpStatusCode.Created, await firstSell.Content.ReadAsStringAsync());
+
+        var secondSell = await SendEventAsync(
+            "JualEmas", "PLAYER", setup.UserId, 4, new { trade_type = "SELL", qty = 1, unit_price = 6, amount = 6, asset_code = "gold_card_1" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, secondSell.StatusCode);
     }
 
     [Fact]
@@ -1314,7 +1411,12 @@ public sealed class EventAnalyticsIntegrationTests
                 new RulesetActionDto { ActionId = "GunakanOpsiDarurat" },
                 new RulesetActionDto { ActionId = "PinjamanSyariah" },
                 new RulesetActionDto { ActionId = "BayarPinjaman" },
-                new RulesetActionDto { ActionId = "Asuransi" }
+                new RulesetActionDto { ActionId = "Asuransi" },
+                new RulesetActionDto { ActionId = "BayarRisiko" },
+                new RulesetActionDto { ActionId = "BagikanEmasAwal" },
+                new RulesetActionDto { ActionId = "BukaHargaEmas" },
+                new RulesetActionDto { ActionId = "InvestasiEmas" },
+                new RulesetActionDto { ActionId = "JualEmas" }
             ],
             Ingredients =
             [

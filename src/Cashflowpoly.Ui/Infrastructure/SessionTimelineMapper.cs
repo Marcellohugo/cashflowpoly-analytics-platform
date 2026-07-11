@@ -105,7 +105,7 @@ public static class SessionTimelineMapper
             return L(language, "Peduli Donasi", "Donation Care");
         }
 
-        if (actionType is "RisikoKehidupan" or "GunakanOpsiDarurat")
+        if (actionType is "RisikoKehidupan" or "BayarRisiko" or "GunakanOpsiDarurat")
         {
             return L(language, "Risiko", "Risk");
         }
@@ -143,6 +143,7 @@ public static class SessionTimelineMapper
         return actionType switch
         {
             "RisikoKehidupan" => "effect",
+            "BayarRisiko" => "response",
             "GunakanOpsiDarurat" => "response",
             "Asuransi" when IsInsuranceUse(payload) => "response",
             _ => "action"

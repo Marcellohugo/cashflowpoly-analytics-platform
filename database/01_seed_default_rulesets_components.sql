@@ -234,6 +234,18 @@ values
         true
     ),
     (
+        'BayarRisiko',
+        'Bayar Risiko',
+        'BayarRisiko',
+        'MAHIR',
+        'OUT',
+        true,
+        false,
+        false,
+        false,
+        true
+    ),
+    (
         'GunakanOpsiDarurat',
         'Gunakan Opsi Darurat',
         'GunakanOpsiDarurat',

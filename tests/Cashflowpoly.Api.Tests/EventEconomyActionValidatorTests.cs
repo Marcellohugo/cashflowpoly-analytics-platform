@@ -48,7 +48,7 @@ public sealed class EventEconomyActionValidatorTests
     }
 
     [Fact]
-    public void TryValidate_GoldSellRejectsInsufficientInventory()
+    public void TryValidate_GoldSellLeavesInventoryCheckToRelationalHolding()
     {
         var playerId = Guid.NewGuid();
         var request = CreateRequest(
@@ -64,9 +64,7 @@ public sealed class EventEconomyActionValidatorTests
         var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
 
         Assert.True(handled);
-        Assert.False(result.Validation.IsValid);
-        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.Validation.StatusCode);
-        Assert.Equal("Kepemilikan emas tidak mencukupi", result.Validation.Message);
+        Assert.True(result.Validation.IsValid);
     }
 
     [Fact]

@@ -226,6 +226,7 @@ Catatan keamanan lokal:
   - `JWT_SIGNING_KEYS_JSON` (array JSON key + `kid` + window aktivasi), atau
   - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
 - Registrasi publik untuk semua role (`INSTRUCTOR` dan `PLAYER`) tersedia melalui endpoint `POST /api/v1/auth/register`.
+- Model pinjaman digital membatasi satu pinjaman aktif per produk untuk setiap pemain; produk yang sama dapat diambil lagi setelah pinjaman sebelumnya lunas.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 Rute UI utama:
 - Home: `/`

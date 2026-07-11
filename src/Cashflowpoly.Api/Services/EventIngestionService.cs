@@ -475,7 +475,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 string.Equals(activeRisk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(activeRisk.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
             {
-                deferRiskCashflow = await GetCurrentCashBalanceAsync(request, config, ct) < activeRisk.Amount;
+                deferRiskCashflow = true;
             }
 
             if (string.Equals(activeRisk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase))
@@ -597,6 +597,25 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (insuranceOffset is not null)
         {
             projections.Add(insuranceOffset);
+        }
+
+        if (insuranceOffset is null &&
+            config is not null &&
+            IsInsuranceResolution(request) &&
+            TryGetRiskEventReference(request.Payload, out var insuranceRiskEventId))
+        {
+            var insuranceRiskEvent = await _events.GetEventByIdAsync(request.SessionId, insuranceRiskEventId, ct);
+            if (TryBuildCatalogInsuranceOffset(
+                    request,
+                    timestamp,
+                    eventPk,
+                    insuranceRiskEvent,
+                    config,
+                    out insuranceOffset) &&
+                insuranceOffset is not null)
+            {
+                projections.Add(insuranceOffset);
+            }
         }
 
         if (config is not null &&
@@ -731,7 +750,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 Add(references, payload, "GOLD", "asset_code", "TARGET");
                 if (references.Count == 0)
                 {
-                    references.Add(new EventAssetReferenceInput("GOLD", "gold_card_1", "TARGET", "$.asset_code"));
+                    references.Add(new EventAssetReferenceInput("GOLD", "gold_card", "TARGET", "$.asset_code"));
                 }
                 break;
             case GameActionCatalog.InvestasiEmas:
@@ -1164,7 +1183,8 @@ internal sealed class EventIngestionService : IEventIngestionService
             IsAction(request, GameActionCatalog.InvestasiEmas) ||
             IsAction(request, GameActionCatalog.JualEmas))
         {
-            IEnumerable<EventDb> events = IsAction(request, GameActionCatalog.InvestasiEmas) ||
+            IEnumerable<EventDb> events = IsAction(request, GameActionCatalog.JumatBerkah) ||
+                                          IsAction(request, GameActionCatalog.InvestasiEmas) ||
                                           IsAction(request, GameActionCatalog.JualEmas)
                 ? await _events.GetAllEventsBySessionAsync(request.SessionId, ct)
                 : Array.Empty<EventDb>();
@@ -1173,6 +1193,15 @@ internal sealed class EventIngestionService : IEventIngestionService
                 if (!economyValidation.Validation.IsValid)
                 {
                     return BuildOutcome(economyValidation.Validation);
+                }
+
+                if (IsAction(request, GameActionCatalog.JualEmas) &&
+                    request.UserId.HasValue &&
+                    _payloadReader.TryGetInt32(request.Payload, "qty", out var sellQty) &&
+                    await _events.GetGoldQuantityAsync(request.SessionId, request.UserId.Value, ct) < sellQty)
+                {
+                    return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                        "Kepemilikan emas tidak mencukupi");
                 }
 
                 if (economyValidation.OutgoingAmount.HasValue)
@@ -1254,6 +1283,45 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
 
             return Valid;
+        }
+
+        if (IsAction(request, GameActionCatalog.BayarRisiko))
+        {
+            if (!string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Pembayaran risiko hanya tersedia di mode MAHIR");
+            }
+
+            if (request.UserId is null ||
+                !_payloadReader.TryGetString(payload, "risk_event_id", out var riskEventIdText) ||
+                !Guid.TryParse(riskEventIdText, out var riskEventId))
+            {
+                return BuildOutcome(StatusCodes.Status400BadRequest, "VALIDATION_ERROR",
+                    "BayarRisiko wajib merujuk risk_event_id",
+                    new ErrorDetail("payload.risk_event_id", "REQUIRED"));
+            }
+
+            var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+            var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
+            if (riskEvent is null ||
+                riskEvent.UserId != request.UserId ||
+                !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan) ||
+                !TryResolveLifeRisk(config, _payloadReader.ReadPayload(riskEvent.Payload), out var risk) ||
+                !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
+                risk.Amount <= 0)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "BayarRisiko hanya dapat menyelesaikan risiko OUT milik pemain");
+            }
+
+            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, ct))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Risk event sudah diselesaikan");
+            }
+
+            return await EnsureSufficientBalanceAsync(request, config, risk.Amount, ct);
         }
 
         if (IsAction(request, GameActionCatalog.Asuransi) &&
@@ -1391,7 +1459,8 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var projections = await _events.GetCashflowProjectionsAsync(request.SessionId, ct);
             var currentBalance = _playerBalanceCalc.Compute(request.UserId.Value, config.StartingCash, projections);
-            if (currentBalance >= risk.Amount)
+            if (!string.Equals(optionType, "USE_INSURANCE", StringComparison.OrdinalIgnoreCase) &&
+                currentBalance >= risk.Amount)
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                     "Opsi darurat hanya dapat digunakan saat saldo tidak cukup membayar risiko");
@@ -1445,6 +1514,16 @@ internal sealed class EventIngestionService : IEventIngestionService
                     {
                         return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                             "Pinjaman darurat tidak sesuai katalog ruleset");
+                    }
+
+                    if (await _events.GetActiveLoanOutstandingAsync(
+                            request.SessionId,
+                            request.UserId.Value,
+                            loanCode,
+                            ct) is not null)
+                    {
+                        return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                            "Pemain sudah memiliki pinjaman aktif untuk produk ini");
                     }
 
                     if (events.Any(e =>
@@ -1501,7 +1580,11 @@ internal sealed class EventIngestionService : IEventIngestionService
                     new ErrorDetail("payload.penalty_points", "OUT_OF_RANGE"));
             }
 
+            var loanCode = _payloadReader.TryGetString(payload, "loan_code", out var requestedLoanCode)
+                ? requestedLoanCode
+                : loanId;
             var matchesLoanCatalog = config.ShariaLoans.Any(loan =>
+                string.Equals(loan.LoanCode, loanCode, StringComparison.OrdinalIgnoreCase) &&
                 loan.Principal == principal &&
                 loan.RepaymentAmount == repaymentAmount &&
                 loan.DurationDays == duration &&
@@ -1512,6 +1595,16 @@ internal sealed class EventIngestionService : IEventIngestionService
                     StatusCodes.Status422UnprocessableEntity,
                     "DOMAIN_RULE_VIOLATION",
                     "Detail pinjaman tidak tersedia pada katalog ruleset aktif");
+            }
+
+            if (await _events.GetActiveLoanOutstandingAsync(
+                    request.SessionId,
+                    request.UserId.Value,
+                    loanCode,
+                    ct) is not null)
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Pemain sudah memiliki pinjaman aktif untuk produk ini");
             }
 
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);

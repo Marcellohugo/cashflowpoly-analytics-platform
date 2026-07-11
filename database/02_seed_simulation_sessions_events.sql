@@ -3646,9 +3646,9 @@ scenario_event_seed as (
           6,
           3,
           'PLAYER',
-          'InvestasiEmas',
-          'InvestasiEmas',
-          '{"trade_type":"BUY","unit_price":6,"qty":1,"amount":6}' :: jsonb
+          null,
+          'LewatiTransaksiEmas',
+          '{"note":"Menyiapkan pelunasan pinjaman sebelum opsi darurat"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -3874,9 +3874,9 @@ scenario_event_seed as (
           9,
           3,
           'PLAYER',
-          'Menabung',
-          'Menabung',
-          '{"goal_id":"tujuan_30","amount":3}' :: jsonb
+          'BayarPinjaman',
+          'BayarPinjaman',
+          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","amount":10}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5542,6 +5542,7 @@ transition_seed as (
           and action_type not in (
             'JumatBerkah',
             'RisikoKehidupan',
+            'BayarRisiko',
             'GunakanOpsiDarurat',
             'InvestasiEmas',
             'JualEmas',
@@ -5603,6 +5604,7 @@ ordered_events as (
         es.action_type in (
           'JumatBerkah',
           'RisikoKehidupan',
+          'BayarRisiko',
           'GunakanOpsiDarurat',
           'InvestasiEmas',
           'JualEmas',
@@ -5627,6 +5629,7 @@ ordered_events as (
             and es.action_type not in (
               'JumatBerkah',
               'RisikoKehidupan',
+              'BayarRisiko',
               'GunakanOpsiDarurat',
               'InvestasiEmas',
               'JualEmas',
