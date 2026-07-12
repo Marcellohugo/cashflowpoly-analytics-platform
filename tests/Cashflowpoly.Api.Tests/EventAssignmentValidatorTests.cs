@@ -42,6 +42,44 @@ public sealed class EventAssignmentValidatorTests
     }
 
     [Fact]
+    public void TryValidate_MissionRejectsCardAssignedToAnotherPlayer()
+    {
+        var request = CreateRequest(
+            Guid.NewGuid(),
+            "SetupMisiAwal",
+            """{"mission_id":"m-1","target_tertiary_card_id":"bike","penalty_points":10}""");
+        var history = new[]
+        {
+            CreateEvent(
+                Guid.NewGuid(),
+                "SetupMisiAwal",
+                """{"mission_id":"m-1","target_tertiary_card_id":"bike","penalty_points":10}""")
+        };
+
+        var handled = new EventAssignmentValidator().TryValidate(request, history, 4, out var result);
+
+        Assert.True(handled);
+        Assert.False(result.IsValid);
+        Assert.Equal("Kartu Misi Koleksi sudah ditetapkan untuk pemain lain", result.Message);
+    }
+
+    [Fact]
+    public void TryValidate_TieBreakerRejectsNumberAssignedToAnotherPlayer()
+    {
+        var request = CreateRequest(Guid.NewGuid(), "BagikanTieBreaker", """{"number":3}""");
+        var history = new[]
+        {
+            CreateEvent(Guid.NewGuid(), "BagikanTieBreaker", """{"number":3}""")
+        };
+
+        var handled = new EventAssignmentValidator().TryValidate(request, history, 4, out var result);
+
+        Assert.True(handled);
+        Assert.False(result.IsValid);
+        Assert.Equal("Nomor tie breaker sudah ditetapkan untuk pemain lain", result.Message);
+    }
+
+    [Fact]
     public void TryValidate_TieBreakerRejectsNumberOutsideParticipantRange()
     {
         var request = CreateRequest(Guid.NewGuid(), "BagikanTieBreaker", """{"number":5}""");

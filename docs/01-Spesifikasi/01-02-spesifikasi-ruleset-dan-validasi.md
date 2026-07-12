@@ -241,6 +241,10 @@ Sistem memeriksa:
 12. Syarat Primer menggunakan riwayat pembelian sepanjang sesi, walaupun kartu Primer kemudian dijual.
 13. Jumlah kartu deck bahan masakan tidak divalidasi; refill dapat membuat posisi logis baru tanpa menghapus batas market dan batas kartu di tangan.
 14. Nomor tie breaker wajib berada pada rentang `1..jumlah pemain`; skor emas di atas tier terbesar memakai nilai tier terbesar tersebut.
+15. Sebelum sesi dimulai, katalog wajib menyediakan minimal tiga jenis bahan, lima kartu pesanan, lima kebutuhan Primer, misi unik sejumlah pemain, dan Tie Breaker unik `#1..#N`.
+16. Tie Breaker `#1..#N` dibagikan acak; pemilik `#1` menjadi pemain pertama dan urutan peserta mengikuti nomor kartu.
+17. Misi tidak boleh diberikan kepada lebih dari satu pemain dan payload misi pemain lain disembunyikan selama sesi aktif.
+18. Slot market kosong hanya diisi server setelah aksi reguler terakhir pemain; `market_refills` merupakan field payload khusus server.
 
 ### 6.4 Validasi kompatibilitas versi
 Sistem menetapkan nomor versi secara otomatis. Sistem melarang instruktur mengubah nomor versi manual.

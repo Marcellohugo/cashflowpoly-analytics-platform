@@ -795,6 +795,12 @@ public sealed class AuthRbacRulesetIntegrationTests
                     Id = "telur",
                     Nama = "Telur",
                     HargaBeli = 4
+                },
+                new RulesetIngredientDto
+                {
+                    Id = "sayur",
+                    Nama = "Sayur",
+                    HargaBeli = 2
                 }
             ],
             Orders =
@@ -805,7 +811,8 @@ public sealed class AuthRbacRulesetIntegrationTests
                     Nama = "nasi goreng",
                     HargaJual = 15,
                     PoinKebahagiaan = 0,
-                    Bahan = ["Nasi Putih", "Telur"]
+                    Bahan = ["Nasi Putih", "Telur"],
+                    CardQty = 5
                 }
             },
             Needs =
@@ -820,11 +827,55 @@ public sealed class AuthRbacRulesetIntegrationTests
                 },
                 new RulesetNeedDto
                 {
+                    Id = "baju",
+                    Nama = "baju",
+                    Tipe = "primer",
+                    HargaBeli = 2,
+                    PoinKebahagiaan = 1
+                },
+                new RulesetNeedDto
+                {
+                    Id = "sepatu",
+                    Nama = "sepatu",
+                    Tipe = "primer",
+                    HargaBeli = 2,
+                    PoinKebahagiaan = 1
+                },
+                new RulesetNeedDto
+                {
+                    Id = "tempat_makan",
+                    Nama = "tempat makan",
+                    Tipe = "primer",
+                    HargaBeli = 2,
+                    PoinKebahagiaan = 1
+                },
+                new RulesetNeedDto
+                {
+                    Id = "alat_tulis",
+                    Nama = "alat tulis",
+                    Tipe = "primer",
+                    HargaBeli = 2,
+                    PoinKebahagiaan = 1
+                },
+                new RulesetNeedDto
+                {
                     Id = "boneka",
                     Nama = "boneka",
                     Tipe = "tersier",
                     HargaBeli = 6,
                     PoinKebahagiaan = 3
+                },
+                new RulesetNeedDto
+                {
+                    Id = "gameboy", Nama = "gameboy", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3
+                },
+                new RulesetNeedDto
+                {
+                    Id = "hiburan", Nama = "hiburan", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3
+                },
+                new RulesetNeedDto
+                {
+                    Id = "jam", Nama = "jam", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3
                 }
             },
             CollectionMissions =
@@ -850,6 +901,33 @@ public sealed class AuthRbacRulesetIntegrationTests
                             Type = "tersier",
                             Value = "boneka"
                         }
+                    ]
+                },
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_gameboy", Nama = "gameboy", PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
+                        new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "gameboy" }
+                    ]
+                },
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_hiburan", Nama = "hiburan", PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
+                        new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "hiburan" }
+                    ]
+                },
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_jam", Nama = "jam", PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
+                        new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "jam" }
                     ]
                 }
             ],
@@ -898,6 +976,13 @@ public sealed class AuthRbacRulesetIntegrationTests
                 new RulesetPensionRankPointDto { Rank = 1, Points = 5 },
                 new RulesetPensionRankPointDto { Rank = 2, Points = 3 },
                 new RulesetPensionRankPointDto { Rank = 3, Points = 1 }
+            ],
+            TieBreakers =
+            [
+                new RulesetTieBreakerDto { TieBreakerCode = "tie_breaker_1", TieNumber = 1, CardQty = 1 },
+                new RulesetTieBreakerDto { TieBreakerCode = "tie_breaker_2", TieNumber = 2, CardQty = 1 },
+                new RulesetTieBreakerDto { TieBreakerCode = "tie_breaker_3", TieNumber = 3, CardQty = 1 },
+                new RulesetTieBreakerDto { TieBreakerCode = "tie_breaker_4", TieNumber = 4, CardQty = 1 }
             ]
         };
     }

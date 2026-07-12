@@ -2,7 +2,7 @@
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan penguncian `ruleset_version_id` pada sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
 
-Baseline dokumentasi ini mengikuti implementasi aktual per 12 Juli 2026 dengan schema `3.0.6`.
+Baseline dokumentasi ini mengikuti implementasi aktual per 12 Juli 2026 dengan schema `3.0.7`.
 
 ## Tujuan
 Tujuan utama:
@@ -231,7 +231,10 @@ Catatan keamanan lokal:
 - Risiko `OUT` Mode Mahir disimpan pending dan diselesaikan melalui `BayarRisiko`, asuransi aktif, atau `GunakanOpsiDarurat`. Nominal opsi darurat dihitung server.
 - Penggunaan asuransi hanya memakai event `Asuransi` dengan `risk_event_id`; satu klaim mengurangi tepat satu `remaining_uses` polis aktif dan membuat pasangan `INSURANCE_OFFSET IN` serta `RISK_LIFE OUT` secara atomik.
 - `GunakanOpsiDarurat` hanya menerima `SELL_NEED`, `SELL_GOLD`, atau `TAKE_SHARIA_LOAN`; `direction` dan `amount` tidak dipercaya dari klien.
-- Pembelian bahan/kebutuhan dan klaim pesanan harus merujuk kartu yang sedang berada di pasar. Refill memakai kartu `DECK`/`DISCARD`; khusus bahan masakan, jumlah kartu deck tidak dihitung dan posisi logis baru dapat dibuat saat deck/discard kosong.
+- Saat sesi dimulai, server mengacak pembagian Tie Breaker `#1..#N`; pemilik `#1` menjadi pemain pertama dan `player_order_no` seluruh peserta mengikuti nomor kartu. Bahan awal dan misi unik juga diacak. Pasar awal selalu berisi lima bahan, lima pesanan, dan lima kebutuhan Primer; sesi ditolak jika katalog tidak mencukupi.
+- Payload `SetupMisiAwal` hanya terlihat penuh oleh pemain pemilik dan Instruktur selama sesi aktif. Pemain lain menerima status `HIDDEN`; seluruh misi baru terbuka setelah sesi `ENDED`.
+- Pembelian bahan/kebutuhan dan klaim pesanan harus merujuk kartu yang sedang berada di pasar. Setelah aksi reguler terakhir pemain, server mengisi seluruh slot kosong secara atomik dan menyimpan hasilnya pada `payload.market_refills`; klien tidak boleh mengirim `AmbilKartuDariDeck` atau `IsiUlangPasar` saat runtime.
+- Refill non-bahan memakai kartu `DECK` lalu `DISCARD`. Khusus bahan masakan, jumlah kartu deck tidak dihitung dan posisi logis baru dapat dibuat saat deck/discard kosong. Kartu pesanan yang berhasil diklaim tetap menjadi kartu milik pemain.
 - Harga transaksi emas wajib berasal dari `BukaHargaEmas` pada hari yang sama. Syarat Primer bersifat historis, tie breaker dibatasi `1..jumlah pemain`, dan skor emas di atas empat kartu berhenti pada tier tertinggi ruleset.
 - Donasi Jumat dibatasi satu kali per pemain per hari serta tetap `SEALED` sampai semua pemain mengirim; validasi jual emas memakai `session_participant_gold_holdings`.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Domain;
@@ -189,7 +190,7 @@ public sealed class SessionStateRepository
             setupPlayers.Add(new SetupParticipant(sessionPlayerId, userId, playerOrder));
         }
 
-        var nextSequenceNumber = await InitializeSetupAsync(
+        var setup = await InitializeSetupAsync(
             conn,
             tx,
             sessionId,
@@ -225,7 +226,7 @@ public sealed class SessionStateRepository
             {
                 sessionId,
                 startedAt = now,
-                firstPlayerId = setupPlayers[0].SessionParticipantId,
+                firstPlayerId = setup.FirstPlayerId,
                 actionsPerTurn = gameConfig.ActionsPerTurn
             },
             tx,
@@ -239,11 +240,11 @@ public sealed class SessionStateRepository
             throw new InvalidOperationException("Session state gagal dibuat.");
         }
 
-        state.NextSequenceNumber = nextSequenceNumber;
+        state.NextSequenceNumber = setup.NextSequenceNumber;
         return new CreateSessionWithStateResult(sessionId, ruleset.RulesetId, ruleset.RulesetVersionId, state);
     }
 
-    private static async Task<long> InitializeSetupAsync(
+    private static async Task<(long NextSequenceNumber, Guid FirstPlayerId)> InitializeSetupAsync(
         NpgsqlConnection conn,
         NpgsqlTransaction tx,
         Guid sessionId,
@@ -254,16 +255,80 @@ public sealed class SessionStateRepository
         DateTimeOffset timestamp,
         CancellationToken ct)
     {
-        var ingredients = definition.Ingredients.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
-        var orders = definition.Orders.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
-        var needs = definition.Needs.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
-        var missions = definition.CollectionMissions.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
-        if (ingredients.Count == 0 || orders.Count == 0 || needs.Count == 0 || missions.Count == 0)
+        var orderedPlayers = players.OrderBy(item => item.PlayerOrder).ToList();
+        if (orderedPlayers.Count == 0)
         {
-            throw new InvalidOperationException("Ruleset wajib memiliki bahan, pesanan, kebutuhan, dan misi untuk setup sesi.");
+            throw new InvalidOperationException("Session wajib memiliki pemain sebelum setup dijalankan.");
         }
 
-        var tieBreakers = definition.TieBreakers.OrderBy(item => item.TieNumber).ToList();
+        var ingredients = definition.Ingredients
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var orders = definition.Orders.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
+        var primaryNeeds = definition.Needs
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id) &&
+                           item.Tipe.Equals("primer", StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var missions = definition.CollectionMissions
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var tieBreakers = definition.TieBreakers
+            .Where(item => item.TieNumber >= 1)
+            .ToList();
+        var duplicateTieNumber = tieBreakers
+            .GroupBy(item => item.TieNumber)
+            .FirstOrDefault(group => group.Count() > 1);
+        var tieBreakersByNumber = duplicateTieNumber is null
+            ? tieBreakers.ToDictionary(item => item.TieNumber)
+            : [];
+        var orderDeck = orders
+            .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 1)))
+            .ToList();
+
+        if (ingredients.Count < 3)
+        {
+            throw new InvalidOperationException("Ruleset membutuhkan minimal 3 jenis bahan untuk mengisi 5 slot pasar tanpa lebih dari 2 kartu sejenis.");
+        }
+
+        if (orderDeck.Count < 5)
+        {
+            throw new InvalidOperationException("Ruleset membutuhkan minimal 5 kartu pesanan untuk pasar awal.");
+        }
+
+        if (primaryNeeds.Count < 5)
+        {
+            throw new InvalidOperationException("Ruleset membutuhkan minimal 5 Kartu Aneka Kebutuhan Primer untuk pasar awal.");
+        }
+
+        if (missions.Count < orderedPlayers.Count)
+        {
+            throw new InvalidOperationException("Jumlah Kartu Misi Koleksi tidak mencukupi untuk seluruh pemain.");
+        }
+
+        if (duplicateTieNumber is not null ||
+            Enumerable.Range(1, orderedPlayers.Count).Any(number => !tieBreakersByNumber.ContainsKey(number)))
+        {
+            throw new InvalidOperationException($"Ruleset wajib memiliki Tie Breaker unik #1 sampai #{orderedPlayers.Count}.");
+        }
+
+        var tieBreakerDeck = Enumerable.Range(1, orderedPlayers.Count)
+            .Select(number => tieBreakersByNumber[number])
+            .ToList();
+        Shuffle(tieBreakerDeck);
+        var tieBreakerByPlayerId = orderedPlayers
+            .Select((player, index) => new { player.SessionParticipantId, TieBreaker = tieBreakerDeck[index] })
+            .ToDictionary(item => item.SessionParticipantId, item => item.TieBreaker);
+        var firstPlayerId = tieBreakerByPlayerId.Single(item => item.Value.TieNumber == 1).Key;
+        await ApplyTieBreakerTurnOrderAsync(conn, tx, sessionId, tieBreakerByPlayerId, ct);
+        var ingredientDrawPile = ingredients.SelectMany(item => Enumerable.Repeat(item, 2)).ToList();
+        Shuffle(ingredientDrawPile);
+        Shuffle(missions);
+        Shuffle(orderDeck);
+        Shuffle(primaryNeeds);
+
         var loan = definition.ShariaLoans.FirstOrDefault();
         var insurance = definition.InsuranceProducts.FirstOrDefault();
         var isMahir = string.Equals(mode, "MAHIR", StringComparison.OrdinalIgnoreCase);
@@ -277,13 +342,12 @@ public sealed class SessionStateRepository
             conn, tx, sessionId, rulesetVersionId, null, null, sequence++, "MulaiSesi",
             new { setup = "INITIAL" }, timestamp, ct);
 
-        for (var index = 0; index < players.Count; index++)
+        for (var index = 0; index < orderedPlayers.Count; index++)
         {
-            var player = players[index];
-            var tieBreaker = tieBreakers.Count > 0 ? tieBreakers[index % tieBreakers.Count] : null;
-            var tieNumber = tieBreaker?.TieNumber ?? player.PlayerOrder;
-            var ingredient = ingredients[index % ingredients.Count];
-            var mission = missions[index % missions.Count];
+            var player = orderedPlayers[index];
+            var tieBreaker = tieBreakerByPlayerId[player.SessionParticipantId];
+            var ingredient = ingredientDrawPile[index];
+            var mission = missions[index];
             var targetFamily = mission.KebutuhanTarget.FirstOrDefault(item =>
                     item.Type.Equals("FAMILY", StringComparison.OrdinalIgnoreCase) ||
                     item.Type.Equals("NEED_FAMILY", StringComparison.OrdinalIgnoreCase))
@@ -300,7 +364,7 @@ public sealed class SessionStateRepository
             await InsertAndProjectSetupEventAsync(
                 conn, tx, sessionId, rulesetVersionId, player.SessionParticipantId, player.UserId,
                 sequence++, "BagikanTieBreaker",
-                new { number = tieNumber, card_code = tieBreaker?.TieBreakerCode ?? $"tie_breaker_{tieNumber}" },
+                new { number = tieBreaker.TieNumber, card_code = tieBreaker.TieBreakerCode },
                 timestamp, ct);
             await InsertAndProjectSetupEventAsync(
                 conn, tx, sessionId, rulesetVersionId, player.SessionParticipantId, player.UserId,
@@ -365,15 +429,15 @@ public sealed class SessionStateRepository
             (
                 SlotGroup: "INGREDIENT_MARKET",
                 AssetType: "INGREDIENT",
-                Codes: ingredients.SelectMany(item => Enumerable.Repeat(item.Id, 2)).Take(5).ToList()),
+                Codes: ingredientDrawPile.Skip(orderedPlayers.Count).Concat(ingredientDrawPile).Take(5).Select(item => item.Id).ToList()),
             (
                 SlotGroup: "ORDER_MARKET",
                 AssetType: "ORDER",
-                Codes: orders.SelectMany(item => Enumerable.Repeat(item.Id, Math.Max(1, item.CardQty ?? 1))).Take(5).ToList()),
+                Codes: orderDeck.Take(5).Select(item => item.Id).ToList()),
             (
                 SlotGroup: "NEED_MARKET",
                 AssetType: "NEED",
-                Codes: needs.Select(item => item.Id).Take(5).ToList())
+                Codes: primaryNeeds.Take(5).Select(item => item.Id).ToList())
         };
         foreach (var market in marketGroups)
         {
@@ -394,7 +458,43 @@ public sealed class SessionStateRepository
             }
         }
 
-        return sequence;
+        return (sequence, firstPlayerId);
+    }
+
+    private static void Shuffle<T>(IList<T> items)
+    {
+        for (var index = items.Count - 1; index > 0; index--)
+        {
+            var swapIndex = RandomNumberGenerator.GetInt32(index + 1);
+            (items[index], items[swapIndex]) = (items[swapIndex], items[index]);
+        }
+    }
+
+    private static Task ApplyTieBreakerTurnOrderAsync(
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        Guid sessionId,
+        IReadOnlyDictionary<Guid, RulesetTieBreakerDto> tieBreakerByPlayerId,
+        CancellationToken ct)
+    {
+        return conn.ExecuteAsync(new CommandDefinition(
+            """
+            set constraints uq_session_participants_session_seat deferred;
+
+            update session_participants participant
+            set player_order_no = assignment.tie_number
+            from unnest(@participantIds::uuid[], @tieNumbers::int[]) as assignment(session_participant_id, tie_number)
+            where participant.session_id = @sessionId
+              and participant.session_participant_id = assignment.session_participant_id;
+            """,
+            new
+            {
+                sessionId,
+                participantIds = tieBreakerByPlayerId.Keys.ToArray(),
+                tieNumbers = tieBreakerByPlayerId.Values.Select(item => item.TieNumber).ToArray()
+            },
+            tx,
+            cancellationToken: ct));
     }
 
     private static Task InsertAndProjectSetupEventAsync(
@@ -475,7 +575,7 @@ public sealed class SessionStateRepository
             tx,
             cancellationToken: ct))).ToList();
 
-        var nextSequenceNumber = await InitializeSetupAsync(
+        var setup = await InitializeSetupAsync(
             conn,
             tx,
             sessionId,
@@ -514,14 +614,14 @@ public sealed class SessionStateRepository
             {
                 sessionId,
                 rulesetVersionId,
-                firstPlayerId = players[0].SessionParticipantId,
+                firstPlayerId = setup.FirstPlayerId,
                 startedAt
             },
             tx,
             cancellationToken: ct));
 
         await tx.CommitAsync(ct);
-        return nextSequenceNumber;
+        return setup.NextSequenceNumber;
     }
 
     public async Task<SessionStateResponse?> GetStateAsync(Guid sessionId, CancellationToken ct)

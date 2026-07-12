@@ -148,6 +148,8 @@ public sealed class BootstrapAssetConsistencyTests
             "create table if not exists ruleset_insurance_products[\\s\\S]*is_active boolean not null default true",
             schemaContent);
         Assert.Contains("create table if not exists session_participant_tie_breakers", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("uq_ruleset_tie_breakers_ruleset_number", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("uq_session_collection_missions_session_card", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("create table if not exists session_final_scores", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("create table if not exists session_final_score_components", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(
@@ -172,6 +174,7 @@ public sealed class BootstrapAssetConsistencyTests
         AssertSqlContains("create or replace function project_session_event", schemaContent);
         AssertSqlContains("create or replace function project_session_events", schemaContent);
         AssertSqlContains("create or replace function ensure_session_card_positions_initialized", schemaContent);
+        AssertSqlContains("create or replace function project_market_refill", schemaContent);
         Assert.Contains("existing.ruleset_game_asset_id = rci.ruleset_catalog_item_id", schemaContent, StringComparison.OrdinalIgnoreCase);
         AssertSqlContains("create or replace function rebuild_session_projection", schemaContent);
         Assert.Contains("SQL-only projection rebuild is disabled to prevent destructive state loss", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -408,6 +411,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("checksum varchar", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("compute_schema_fingerprint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("assert_schema_baseline", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.7')", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("information_schema.columns", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_constraint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_indexes", schemaContent, StringComparison.OrdinalIgnoreCase);

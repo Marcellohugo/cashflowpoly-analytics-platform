@@ -9,7 +9,7 @@
 
 > Baseline kanonis schema berada pada `database/00_create_schema.sql`.
 > Dokumen ini menjelaskan alur, relasi, dan fungsi tabel berdasarkan baseline
-> implementasi 12 Juli 2026 (baseline `3.0.6`). Jika ada perbedaan detail teknis, skrip SQL
+> implementasi 12 Juli 2026 (baseline `3.0.7`). Jika ada perbedaan detail teknis, skrip SQL
 > kanonis menjadi acuan terakhir.
 
 ---
@@ -361,6 +361,9 @@ Aturan:
 - Non-bahan mengikuti `card_qty` katalog dan refill hanya mengambil posisi dari `DECK`/`DISCARD`.
 - Bahan masakan tidak menjalankan pengecekan jumlah kartu deck atau batas `copy_number`; projector dapat membuat posisi logis baru ketika deck/discard kosong.
 - Pengecualian bahan tidak mengubah batas maksimal lima slot, dua bahan sejenis di market, tiga bahan sejenis di tangan, dan enam bahan total per pemain.
+- Refill runtime dijalankan server setelah aksi reguler terakhir pemain. Pilihan kartu disimpan pada array `market_refills` di payload event sumber dan diproyeksikan ulang oleh `project_session_event`.
+- Kartu pesanan yang diklaim berpindah ke zona `PLAYER`; hanya bahan resep yang dikonsumsi yang berpindah ke `DISCARD`.
+- Nomor Tie Breaker unik per versi ruleset dan satu kartu Misi Koleksi tidak dapat diberikan kepada dua peserta dalam sesi yang sama.
 
 ---
 

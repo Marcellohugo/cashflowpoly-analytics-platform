@@ -1102,7 +1102,7 @@ public sealed class RulesetRepository
                 @SellPrice,
                 @HappinessPoints,
                 @SortOrder,
-                null,
+                @CardQty,
                 true,
                 '{}',
                 now()
@@ -1156,7 +1156,8 @@ public sealed class RulesetRepository
                         ItemName = orderEntry.Item.Nama,
                         SellPrice = orderEntry.Item.HargaJual,
                         HappinessPoints = orderEntry.Item.PoinKebahagiaan,
-                        SortOrder = orderEntry.Index + 1
+                        SortOrder = orderEntry.Index + 1,
+                        orderEntry.Item.CardQty
                     },
                     tx,
                     cancellationToken: ct));

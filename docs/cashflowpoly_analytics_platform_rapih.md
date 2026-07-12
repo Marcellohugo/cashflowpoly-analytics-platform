@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 12 Juli 2026. Baseline schema: 3.0.6.**
+**Tanggal ringkasan: 12 Juli 2026. Baseline schema: 3.0.7.**
 
 ## 1. Ringkasan Besar
 
@@ -295,12 +295,15 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 ## 9.3 Mulai sesi
 
 - Klien memanggil POST /api/v1/sessions/{sessionId}/start.
-- API mengubah status CREATED -> STARTED.
+- API memvalidasi minimal tiga jenis bahan, lima kartu pesanan, lima kebutuhan Primer, misi unik yang cukup, serta Tie Breaker unik `#1..#N`.
+- API mengocok dan membagikan Tie Breaker `#1..#N`; pemilik `#1` menjadi pemain pertama dan `player_order_no` peserta diperbarui secara atomik mengikuti nomor kartu.
+- API mengacak bahan awal, misi, serta isi pasar awal. Pasar kebutuhan berisi tepat lima kartu Primer.
+- API mengubah status CREATED -> STARTED dan menyimpan pemain pemilik Tie Breaker `#1` sebagai pemain aktif pertama.
 - Sesi siap menerima event.
 
 ## 9.4 Setup gameplay
 
-**Setup bisa dicatat sebagai event sistem, misalnya:**
+**Setup dicatat sebagai event sistem agar hasil acak dapat diaudit dan direplay:**
 
 | Event | Actor | Fungsi |
 | --- | --- | --- |
@@ -310,7 +313,9 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 | SetupEmasAwal | SYSTEM | Memberi 1 emas awal. |
 | SetupPinjamanAwal | SYSTEM | Mode Mahir: memberi pinjaman awal 10. |
 | SetupAsuransiAwal | SYSTEM | Mode Mahir: memberi proteksi gratis. |
-| AmbilKartuDariDeck / IsiUlangPasar | SYSTEM | Mengisi market awal dan refill. |
+| AmbilKartuDariDeck | SYSTEM | Mencatat hasil pengisian market awal. |
+
+Selama sesi aktif, payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pemain pemilik misi. Pemain lain menerima `{ "status": "HIDDEN" }`; setelah sesi berstatus `ENDED`, seluruh misi dapat dibaca.
 
 ## 9.5 Gameplay harian
 
@@ -319,6 +324,8 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 - Player 2 menjalankan aksi slot 1 dan 2.
 - Player 3 menjalankan aksi slot 1 dan 2.
 - Player 4 menjalankan aksi slot 1 dan 2.
+- Setelah aksi reguler terakhir setiap pemain, server mengisi semua slot pasar kosong dalam transaksi yang sama. Hasil acak disimpan pada `payload.market_refills` milik event aksi tersebut sehingga replay tetap deterministik.
+- Klien tidak mengirim event draw/refill manual ketika sesi berjalan.
 - Sistem mengirim/menyimpan event akhir giliran/perpindahan hari.
 - Mr. Cashflowpoly maju ke tanggal berikutnya.
 
@@ -544,8 +551,10 @@ Saat bahan tidak tersedia di `DECK`/`DISCARD`, refill boleh membuat posisi logis
 **Alur kartu pesanan:**
 
 ```
-DECK -> MARKET -> DISCARD
+DECK -> MARKET -> PLAYER
 ```
+
+Pesanan yang berhasil diklaim tetap menjadi kartu milik pemain; bahan resep yang dipakai masuk `DISCARD`.
 
 **Alur kartu kebutuhan:**
 

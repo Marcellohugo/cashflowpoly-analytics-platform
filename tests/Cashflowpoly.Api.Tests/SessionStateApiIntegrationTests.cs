@@ -109,6 +109,17 @@ public sealed class SessionStateApiIntegrationTests
         var token = await RegisterInstructorAndGetTokenAsync();
         var names = Enumerable.Range(1, playerCount).Select(index => $"P{index}").ToArray();
         var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", token);
+        using var sectionsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            "/api/v1/rulesets/sections?mode=MAHIR",
+            null,
+            token);
+        using var sectionsBody = await ReadJsonAsync(sectionsResponse);
+        var primaryNeedIds = sectionsBody.RootElement.GetProperty("kebutuhan")
+            .EnumerateArray()
+            .Where(item => item.GetProperty("tipe").GetString() == "primer")
+            .Select(item => item.GetProperty("id").GetString()!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         using var createResponse = await SendJsonAsync(
             HttpMethod.Post,
@@ -148,6 +159,34 @@ public sealed class SessionStateApiIntegrationTests
                 5,
                 initialMarketEvents.Count(item =>
                     item.GetProperty("payload").GetProperty("slot_group").GetString() == group)));
+        Assert.All(
+            initialMarketEvents.Where(item =>
+                item.GetProperty("payload").GetProperty("slot_group").GetString() == "NEED_MARKET"),
+            item => Assert.Contains(
+                item.GetProperty("payload").GetProperty("asset_code").GetString()!,
+                primaryNeedIds));
+
+        var tieNumbers = setupEvents
+            .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
+            .Select(item => item.GetProperty("payload").GetProperty("number").GetInt32())
+            .OrderBy(number => number)
+            .ToArray();
+        Assert.Equal(Enumerable.Range(1, playerCount), tieNumbers);
+        var turnOrderByUserId = createdState.GetProperty("players")
+            .EnumerateArray()
+            .ToDictionary(
+                item => item.GetProperty("user_id").GetGuid(),
+                item => item.GetProperty("player_order_no").GetInt32());
+        Assert.All(
+            setupEvents.Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker"),
+            item => Assert.Equal(
+                item.GetProperty("payload").GetProperty("number").GetInt32(),
+                turnOrderByUserId[item.GetProperty("user_id").GetGuid()]));
+        var missionIds = setupEvents
+            .Where(item => item.GetProperty("action_type").GetString() == "SetupMisiAwal")
+            .Select(item => item.GetProperty("payload").GetProperty("mission_id").GetString())
+            .ToList();
+        Assert.Equal(playerCount, missionIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
 
         using var getResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -208,7 +247,9 @@ public sealed class SessionStateApiIntegrationTests
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
         using var getBody = await ReadJsonAsync(getResponse);
         Assert.Equal(1, getBody.RootElement.GetProperty("state_version").GetInt64());
-        Assert.Equal("Doni", getBody.RootElement.GetProperty("players")[0].GetProperty("name").GetString());
+        Assert.Equal(
+            players.Select(item => item.GetProperty("name").GetString()),
+            getBody.RootElement.GetProperty("players").EnumerateArray().Select(item => item.GetProperty("name").GetString()));
     }
 
     [Fact]
@@ -400,6 +441,9 @@ public sealed class SessionStateApiIntegrationTests
 
         var players = state.GetProperty("players").EnumerateArray().ToList();
         Assert.Equal(playerCount, players.Count);
+        Assert.Equal(
+            names.OrderBy(name => name, StringComparer.Ordinal),
+            players.Select(item => item.GetProperty("name").GetString()!).OrderBy(name => name, StringComparer.Ordinal));
         var expectedMissionIds = new HashSet<string>(StringComparer.Ordinal)
         {
             "misi_boneka",
@@ -420,7 +464,6 @@ public sealed class SessionStateApiIntegrationTests
             Assert.NotEqual(Guid.Empty, players[i].GetProperty("session_player_id").GetGuid());
             Assert.NotEqual(Guid.Empty, players[i].GetProperty("user_id").GetGuid());
             Assert.Equal(i + 1, players[i].GetProperty("player_order_no").GetInt32());
-            Assert.Equal(names[i], players[i].GetProperty("name").GetString());
             var initialIngredient = Assert.Single(players[i].GetProperty("bahan").EnumerateArray());
             var ingredientName = initialIngredient.GetProperty("nama").GetString()!;
             Assert.Equal(1, initialIngredient.GetProperty("jumlah").GetInt32());

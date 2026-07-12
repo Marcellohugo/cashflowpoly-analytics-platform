@@ -117,6 +117,9 @@ Validasi:
 
 Efek data:
 - Mengubah status sesi menjadi `STARTED`.
+- Mengocok Tie Breaker `#1..#N`, menetapkan pemilik `#1` sebagai pemain pertama, dan memperbarui `player_order_no` mengikuti nomor kartu dalam transaksi setup yang sama.
+- Mengacak bahan awal dan misi unik setiap pemain.
+- Mengisi lima slot bahan, lima slot pesanan, dan lima slot kebutuhan Primer. Start mengembalikan `422 DOMAIN_RULE_VIOLATION` bila katalog setup tidak mencukupi atau memiliki nomor Tie Breaker duplikat.
 
 ---
 
@@ -150,7 +153,7 @@ Efek data:
 
 ---
 
-#### 4.2.2 `AmbilKartuDariDeck`, `KartuMasukDiscard`, dan `IsiUlangPasar`
+#### 4.2.2 Pengelolaan posisi kartu dan refill pasar
 Payload draw/refill:
 ```json
 {
@@ -163,9 +166,12 @@ Payload draw/refill:
 
 Validasi dan efek data:
 - Ketiganya merupakan event `SYSTEM` dengan `turn_number=0` dan `action_slot=0`.
+- `AmbilKartuDariDeck` dan `IsiUlangPasar` hanya digunakan oleh setup, seed, atau proses internal. Endpoint ingest menolak pengiriman manual kedua action tersebut saat runtime.
 - `KartuMasukDiscard` mengosongkan slot pasar atau memindahkan aset pemain ke `DISCARD`.
 - Draw/refill hanya mengisi slot kosong dan memilih kartu non-bahan dari `DECK` atau `DISCARD`, tidak memindahkan kartu yang masih terbuka di slot pasar lain.
 - Khusus `INGREDIENT`, sistem tidak menghitung batas `card_qty` deck. Jika tidak ada posisi di `DECK`/`DISCARD`, projector membuat posisi logis baru; batas lima slot, maksimal dua bahan sejenis di pasar, maksimal tiga bahan sejenis di tangan, dan maksimal enam bahan total tetap berlaku.
+- Setelah aksi reguler terakhir (`action_slot=actions_per_turn`), server mengisi semua slot kosong secara atomik. Hasil refill disisipkan ke event aksi sebagai array khusus server `market_refills` dengan item `slot_group`, `slot_code`, `asset_type`, dan `asset_code`.
+- Klien yang mengirim `payload.market_refills` menerima `400 VALIDATION_ERROR`. Menyimpan hasil acak pada event sumber membuat replay memilih kartu yang sama tanpa menambah sequence event baru.
 
 ---
 
@@ -485,6 +491,7 @@ Validasi:
 
 Efek data:
 - Menetapkan misi koleksi pemain untuk evaluasi di akhir sesi.
+- Selama sesi aktif, respons event untuk role `PLAYER` hanya membuka payload misi miliknya sendiri; payload misi pemain lain menjadi `{ "status": "HIDDEN" }`. Instruktur selalu dapat membaca payload lengkap dan seluruh misi terbuka setelah sesi berakhir.
 
 ---
 

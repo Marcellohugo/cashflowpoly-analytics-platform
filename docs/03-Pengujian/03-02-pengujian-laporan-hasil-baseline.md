@@ -3,14 +3,14 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.9
+- Versi: 2.0
 - Tanggal: 12 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.6` tanggal 12 Juli 2026.
+Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.7` tanggal 12 Juli 2026.
 
 Cakupan laporan ini:
 - verifikasi teknis otomatis (build, test, docker compose, uji asap, uji beban dasar),
@@ -36,7 +36,7 @@ Cakupan laporan ini:
 | Jenis Uji | Cakupan | Status |
 |---|---|---|
 | Uji REST API (kotak-hitam) | Alur auth, ruleset, sessions, players, ingest event, analytics | PASS |
-| Uji Integrasi | Risiko pending, asuransi, opsi darurat, holding emas, pinjaman multi-instance, dan Seed 2 | PASS |
+| Uji Integrasi | Setup acak, privasi misi, refill atomik, risiko pending, asuransi, opsi darurat, holding emas, pinjaman multi-instance, dan Seed 2 | PASS |
 | Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
 | Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
 | Verifikasi observability + audit keamanan | Endpoint operasional metrics + security audit logs | PASS |
@@ -50,12 +50,12 @@ Kriteria fitur inti tercapai dan seluruh suite otomatis berstatus hijau.
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
 | Build solusi | `dotnet build Cashflowpoly.sln --no-restore --nologo` | PASS | 0 warning, 0 error |
-| Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-build --no-restore` | PASS | 286/286 test lulus |
+| Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-build --no-restore` | PASS | 290/290 test lulus |
 | Uji UI penuh | `dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj --no-build --no-restore` | PASS | 103/103 test lulus |
-| Uji solution penuh | `dotnet test Cashflowpoly.sln --no-build --no-restore --nologo` | PASS | total 389/389 test lulus |
+| Uji solution penuh | `dotnet test Cashflowpoly.sln --no-build --no-restore --nologo` | PASS | total 393/393 test lulus |
 | Uji Seed 2 | filter `ManualSimulationSeedIntegrationTests` | PASS | bootstrap dan replay dua mode lulus |
 | Menjalankan compose watch | `docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build` | PASS | service `db`, `api`, `ui` healthy; API/UI health `200` |
-| Uji asap API ujung-ke-ujung | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
+| Uji asap API ujung-ke-ujung | Newman menjalankan Postman collection (alur end-to-end API) | PASS | 44 request dan 45/45 assertion lulus; event kerja, kebutuhan, bahan, pesanan, donasi, dan akhir giliran tersimpan |
 | Uji asap RBAC | Postman collection (skenario RBAC) | PASS | 401/403/200/201 sesuai ekspektasi |
 | Uji asap rate-limit | Burst request pada endpoint terproteksi (HTTP client) | PASS | respons `429` terdeteksi |
 | Uji asap UI Web | Verifikasi browser (login + halaman utama + Swagger) | PASS | login + halaman utama + Swagger terverifikasi |

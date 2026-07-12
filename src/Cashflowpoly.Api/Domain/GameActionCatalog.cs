@@ -94,7 +94,8 @@ internal static class GameActionCatalog
 
     public static bool RequiresSystemActor(string? actionType, JsonElement payload)
     {
-        return ResolveGameActionId(actionType, payload) is SundayRest or GoldPriceOpened or AkhirGiliran;
+        return ResolveGameActionId(actionType, payload) is SundayRest or GoldPriceOpened or AkhirGiliran or
+            CardDrawn or CardDiscarded or MarketRefilled;
     }
 
     private static bool HasRiskReference(JsonElement payload)

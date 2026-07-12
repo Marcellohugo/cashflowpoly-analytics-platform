@@ -183,12 +183,38 @@ public sealed class EventAnalyticsIntegrationTests
             .First();
 
         var nextSequence = await GetNextSequenceNumberAsync(createdSession.SessionId, instructorToken);
+        using var setupEventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{createdSession.SessionId}/events?fromSeq=0&limit=100",
+            null,
+            instructorToken);
+        using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
+        var setupEvents = setupEventsBody.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Select(item => item.Clone())
+            .ToList();
+        var actingUserId = setupEvents
+            .Single(item =>
+                item.GetProperty("action_type").GetString() == "BagikanTieBreaker" &&
+                item.GetProperty("payload").GetProperty("number").GetInt32() == 1)
+            .GetProperty("user_id")
+            .GetGuid();
+        var setupIngredientEvents = setupEvents
+            .Where(item => item.GetProperty("action_type").GetString() == "SetupBahanAwal")
+            .ToList();
+        var setupIngredientCost = setupIngredientEvents.Sum(item =>
+            item.GetProperty("payload").GetProperty("amount").GetInt32());
+        var playerSetupIngredientCost = setupIngredientEvents
+            .Single(item => item.GetProperty("user_id").GetGuid() == actingUserId)
+            .GetProperty("payload")
+            .GetProperty("amount")
+            .GetInt32();
         var now = DateTimeOffset.UtcNow;
         var event1Payload = new
         {
             event_id = Guid.NewGuid(),
             session_id = createdSession.SessionId,
-            user_id = createdUserId,
+            user_id = actingUserId,
             actor_type = "PLAYER",
             turn_number = 1,
             timestamp = now.ToString("O"),
@@ -212,7 +238,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = createdSession.SessionId,
-            user_id = createdUserId,
+            user_id = actingUserId,
             actor_type = "PLAYER",
             turn_number = 1,
             timestamp = now.AddSeconds(1).ToString("O"),
@@ -245,16 +271,16 @@ public sealed class EventAnalyticsIntegrationTests
         using var analyticsBody = await ReadJsonAsync(analyticsResponse);
         var analyticsRoot = analyticsBody.RootElement;
         var summary = analyticsRoot.GetProperty("summary");
-        Assert.Equal(22, summary.GetProperty("event_count").GetInt32());
+        Assert.Equal((int)(nextSequence + 2), summary.GetProperty("event_count").GetInt32());
         Assert.Equal(1d, summary.GetProperty("cash_in_total").GetDouble(), 6);
-        Assert.Equal(9d, summary.GetProperty("cash_out_total").GetDouble(), 6);
-        Assert.Equal(-8d, summary.GetProperty("cashflow_net_total").GetDouble(), 6);
+        Assert.Equal(setupIngredientCost + 3d, summary.GetProperty("cash_out_total").GetDouble(), 6);
+        Assert.Equal(-(setupIngredientCost + 2d), summary.GetProperty("cashflow_net_total").GetDouble(), 6);
 
         var byPlayer = analyticsRoot.GetProperty("by_player")
             .EnumerateArray()
-            .Single(item => item.GetProperty("user_id").GetGuid() == createdUserId);
+            .Single(item => item.GetProperty("user_id").GetGuid() == actingUserId);
         Assert.Equal(1d, byPlayer.GetProperty("cash_in_total").GetDouble(), 6);
-        Assert.Equal(4d, byPlayer.GetProperty("cash_out_total").GetDouble(), 6);
+        Assert.Equal(playerSetupIngredientCost + 3d, byPlayer.GetProperty("cash_out_total").GetDouble(), 6);
         Assert.Equal(0, byPlayer.GetProperty("orders_completed_count").GetInt32());
         Assert.Equal(1, byPlayer.GetProperty("inventory_ingredient_total").GetInt32());
         Assert.Equal(0, byPlayer.GetProperty("actions_used_total").GetInt32());
@@ -263,7 +289,7 @@ public sealed class EventAnalyticsIntegrationTests
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/analytics/sessions/{createdSession.SessionId}/transactions?userId={createdUserId}",
+            $"/api/v1/analytics/sessions/{createdSession.SessionId}/transactions?userId={actingUserId}",
             body: null,
             instructorToken);
         Assert.Equal(HttpStatusCode.OK, transactionsResponse.StatusCode);
@@ -271,7 +297,7 @@ public sealed class EventAnalyticsIntegrationTests
         var transactions = await transactionsResponse.Content.ReadFromJsonAsync<TransactionHistoryResponse>();
         Assert.NotNull(transactions);
         Assert.Equal(3, transactions.Items.Count);
-        Assert.Equal(1d, transactions.Items[0].Amount, 6);
+        Assert.Equal(playerSetupIngredientCost, transactions.Items[0].Amount, 6);
         Assert.Equal(1d, transactions.Items[1].Amount, 6);
         Assert.Equal(3d, transactions.Items[2].Amount, 6);
 
@@ -285,10 +311,10 @@ public sealed class EventAnalyticsIntegrationTests
 
     [Fact]
     /// <summary>
-    /// Memvalidasi bahwa pemain yang ditambahkan tanpa player_order eksplisit
-    /// akan diurutkan berdasarkan PlayerId dan menerima join order 1, 2, 3.
+    /// Memvalidasi bahwa urutan aksi dan analitika sesi yang sudah dimulai
+    /// mengikuti hasil pembagian Tie Breaker, bukan urutan pendaftaran awal.
     /// </summary>
-    public async Task AddPlayersWithoutPlayerOrder_AssignsPlayerTurnOrderByPlayerId()
+    public async Task StartedSession_UsesShuffledTieBreakerAsPlayerTurnOrder()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var instructorUsername = $"it_evt_order_instructor_{suffix}";
@@ -389,12 +415,22 @@ public sealed class EventAnalyticsIntegrationTests
             .OrderByDescending(v => v.Version)
             .First();
 
-        var playerOrderByUserId = players
-            .Select((player, index) => new { player.UserId, Order = index + 1 })
-            .ToDictionary(item => item.UserId, item => item.Order);
+        using var setupEventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{createdSession.SessionId}/events?fromSeq=0&limit=100",
+            null,
+            instructorToken);
+        using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
+        var playerOrderByUserId = setupEventsBody.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
+            .ToDictionary(
+                item => item.GetProperty("user_id").GetGuid(),
+                item => item.GetProperty("payload").GetProperty("number").GetInt32());
+        var playersInTurnOrder = players.OrderBy(player => playerOrderByUserId[player.UserId]).ToList();
         var now = DateTimeOffset.UtcNow;
         long sequence = await GetNextSequenceNumberAsync(createdSession.SessionId, instructorToken);
-        foreach (var player in players)
+        foreach (var player in playersInTurnOrder)
         {
             for (var slot = 1; slot <= 2; slot++)
             {
@@ -437,7 +473,7 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.NotNull(analytics);
         Assert.Equal(3, analytics.ByPlayer.Count);
 
-        var expectedPlayerOrder = players.Select(item => item.UserId).ToList();
+        var expectedPlayerOrder = playersInTurnOrder.Select(item => item.UserId).ToList();
         var actualPlayerOrder = analytics.ByPlayer.Select(item => item.UserId).ToList();
         var actualPlayerOrders = analytics.ByPlayer.Select(item => item.PlayerOrder).ToList();
         Assert.Equal(expectedPlayerOrder, actualPlayerOrder);
@@ -738,7 +774,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
-            user_id = setup.UserId,
+            user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.ToString("O"),
             day_index = 0,
@@ -762,7 +798,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
-            user_id = setup.UserId,
+            user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(1).ToString("O"),
             day_index = -1,
@@ -817,9 +853,11 @@ public sealed class EventAnalyticsIntegrationTests
 
         var setupEvents = await GetEventsAsync();
         var players = setupEvents
-            .Where(item => item.GetProperty("action_type").GetString() == "SetupBahanAwal")
-            .OrderBy(item => item.GetProperty("sequence_number").GetInt64())
-            .Select((item, index) => (UserId: item.GetProperty("user_id").GetGuid(), Turn: index + 1))
+            .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
+            .OrderBy(item => item.GetProperty("payload").GetProperty("number").GetInt32())
+            .Select(item => (
+                UserId: item.GetProperty("user_id").GetGuid(),
+                Turn: item.GetProperty("payload").GetProperty("number").GetInt32()))
             .ToList();
         Assert.Equal(3, players.Count);
 
@@ -872,6 +910,116 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
+    public async Task MarketRefill_IsRejectedBeforeSecondAction_AndAppliedAtomicallyAfterIt()
+    {
+        var suffix = $"market_refill_{Guid.NewGuid():N}";
+        var instructorToken = (await RegisterAsync(
+            $"it_market_instructor_{Guid.NewGuid():N}",
+            "IntegrationMarketInstructorPass!123",
+            "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(instructorToken, suffix);
+        var now = DateTimeOffset.UtcNow;
+
+        using var setupEventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
+            null,
+            instructorToken);
+        using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
+        var marketCard = setupEventsBody.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .First(item =>
+                item.GetProperty("action_type").GetString() == "AmbilKartuDariDeck" &&
+                item.GetProperty("payload").GetProperty("slot_group").GetString() == "INGREDIENT_MARKET");
+        var marketPayload = marketCard.GetProperty("payload");
+        var cardId = marketPayload.GetProperty("asset_code").GetString()!;
+        var slotCode = marketPayload.GetProperty("slot_code").GetString()!;
+        var prices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nasi_putih"] = 1,
+            ["telur"] = 4,
+            ["sayur"] = 2
+        };
+        var purchaseEventId = Guid.NewGuid();
+
+        using var purchaseResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = purchaseEventId,
+            session_id = setup.SessionId,
+            user_id = setup.ActingUserId,
+            actor_type = "PLAYER",
+            timestamp = now,
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 1,
+            sequence_number = setup.NextSequenceNumber,
+            action_type = "BahanMasakan",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { card_id = cardId, amount = prices[cardId] }
+        }, instructorToken);
+        Assert.True(purchaseResponse.StatusCode == HttpStatusCode.Created, await purchaseResponse.Content.ReadAsStringAsync());
+
+        using var prematureRefillResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = (Guid?)null,
+            actor_type = "SYSTEM",
+            timestamp = now.AddSeconds(1),
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 0,
+            action_slot = 0,
+            sequence_number = setup.NextSequenceNumber + 1,
+            action_type = "IsiUlangPasar",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                slot_group = "INGREDIENT_MARKET",
+                slot_code = slotCode,
+                asset_type = "INGREDIENT",
+                asset_code = cardId
+            }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, prematureRefillResponse.StatusCode);
+
+        var secondActionEventId = Guid.NewGuid();
+        using var secondActionResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = secondActionEventId,
+            session_id = setup.SessionId,
+            user_id = setup.ActingUserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(2),
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 2,
+            sequence_number = setup.NextSequenceNumber + 1,
+            action_type = "KerjaLepas",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { amount = 1 }
+        }, instructorToken);
+        Assert.True(secondActionResponse.StatusCode == HttpStatusCode.Created, await secondActionResponse.Content.ReadAsStringAsync());
+
+        using var eventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq={setup.NextSequenceNumber}&limit=10",
+            null,
+            instructorToken);
+        using var eventsBody = await ReadJsonAsync(eventsResponse);
+        var secondAction = Assert.Single(
+            eventsBody.RootElement.GetProperty("events").EnumerateArray(),
+            item => item.GetProperty("event_id").GetGuid() == secondActionEventId);
+        var refills = secondAction.GetProperty("payload").GetProperty("market_refills").EnumerateArray().ToList();
+        var refill = Assert.Single(refills, item =>
+            item.GetProperty("slot_group").GetString() == "INGREDIENT_MARKET" &&
+            item.GetProperty("slot_code").GetString() == slotCode);
+        Assert.False(string.IsNullOrWhiteSpace(refill.GetProperty("asset_code").GetString()));
+    }
+
+    [Fact]
     public async Task MahirRisk_WithInsufficientCash_IsResolvedByCatalogEmergencyLoan()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -892,7 +1040,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = orderEventId,
             session_id = setup.SessionId,
-            user_id = setup.UserId,
+            user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now,
             day_index = 0,
@@ -910,7 +1058,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = riskEventId,
             session_id = setup.SessionId,
-            user_id = setup.UserId,
+            user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(1),
             day_index = 0,
@@ -950,7 +1098,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
-            user_id = setup.UserId,
+            user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(2),
             day_index = 0,
@@ -975,7 +1123,7 @@ public sealed class EventAnalyticsIntegrationTests
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
-            user_id = setup.UserId,
+            user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(3),
             day_index = 0,
@@ -1019,7 +1167,7 @@ public sealed class EventAnalyticsIntegrationTests
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.UserId}",
+            $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.ActingUserId}",
             null,
             instructorToken);
         var transactions = await transactionsResponse.Content.ReadFromJsonAsync<TransactionHistoryResponse>();
@@ -1056,7 +1204,7 @@ public sealed class EventAnalyticsIntegrationTests
             {
                 event_id = eventId ?? Guid.NewGuid(),
                 session_id = setup.SessionId,
-                user_id = setup.UserId,
+                user_id = setup.ActingUserId,
                 actor_type = "PLAYER",
                 timestamp = now.AddSeconds(sequence),
                 day_index = dayIndex,
@@ -1085,31 +1233,8 @@ public sealed class EventAnalyticsIntegrationTests
             0,
             0,
             new { risk_event_id = firstRiskId })).StatusCode);
-
-        sequence++;
-        var refillResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
-        {
-            event_id = Guid.NewGuid(),
-            session_id = setup.SessionId,
-            user_id = (Guid?)null,
-            actor_type = "SYSTEM",
-            timestamp = now.AddSeconds(sequence),
-            day_index = 1,
-            weekday = "MON",
-            turn_number = 0,
-            action_slot = 0,
-            sequence_number = sequence,
-            action_type = "IsiUlangPasar",
-            ruleset_version_id = setup.RulesetVersionId,
-            payload = new
-            {
-                slot_group = "ORDER_MARKET",
-                slot_code = "SLOT_1",
-                asset_type = "ORDER",
-                asset_code = "nasi_goreng"
-            }
-        }, instructorToken);
-        Assert.Equal(HttpStatusCode.Created, refillResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
+            "KerjaLepas", 0, 2, new { amount = 1 })).StatusCode);
 
         var secondOrderId = Guid.NewGuid();
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
@@ -1130,7 +1255,7 @@ public sealed class EventAnalyticsIntegrationTests
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.UserId}",
+            $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?userId={setup.ActingUserId}",
             null,
             instructorToken);
         var transactions = await transactionsResponse.Content.ReadFromJsonAsync<TransactionHistoryResponse>();
@@ -1182,12 +1307,71 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
             "BukaHargaEmas", "SYSTEM", null, nextSequence, new { gold_price = 6 })).StatusCode);
         var firstSell = await SendEventAsync(
-            "JualEmas", "PLAYER", setup.UserId, nextSequence + 1, new { trade_type = "SELL", qty = 1, unit_price = 6, amount = 6, asset_code = "gold_card" });
+            "JualEmas", "PLAYER", setup.ActingUserId, nextSequence + 1, new { trade_type = "SELL", qty = 1, unit_price = 6, amount = 6, asset_code = "gold_card" });
         Assert.True(firstSell.StatusCode == HttpStatusCode.Created, await firstSell.Content.ReadAsStringAsync());
 
         var secondSell = await SendEventAsync(
-            "JualEmas", "PLAYER", setup.UserId, nextSequence + 2, new { trade_type = "SELL", qty = 1, unit_price = 6, amount = 6, asset_code = "gold_card" });
+            "JualEmas", "PLAYER", setup.ActingUserId, nextSequence + 2, new { trade_type = "SELL", qty = 1, unit_price = 6, amount = 6, asset_code = "gold_card" });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, secondSell.StatusCode);
+    }
+
+    [Fact]
+    public async Task Player_SeesOnlyOwnMissionUntilSessionEnds()
+    {
+        var suffix = $"mission_{Guid.NewGuid():N}"[..17];
+        var instructorToken = (await RegisterAsync(
+            $"it_mission_instructor_{Guid.NewGuid():N}",
+            "IntegrationMissionInstructorPass!123",
+            "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(instructorToken, suffix);
+        var playerToken = (await LoginAsync(
+            $"it_evt_invalid_player_{suffix}",
+            "IntegrationInvalidPlayerPass!123")).AccessToken;
+
+        async Task<List<JsonElement>> ReadMissionsAsync(string token)
+        {
+            using var response = await SendJsonAsync(
+                HttpMethod.Get,
+                $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
+                null,
+                token);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using var body = await ReadJsonAsync(response);
+            return body.RootElement.GetProperty("events")
+                .EnumerateArray()
+                .Where(item => item.GetProperty("action_type").GetString() == "SetupMisiAwal")
+                .Select(item => item.Clone())
+                .ToList();
+        }
+
+        var playerMissions = await ReadMissionsAsync(playerToken);
+        Assert.Equal(3, playerMissions.Count);
+        var ownMission = Assert.Single(
+            playerMissions,
+            item => item.GetProperty("user_id").GetGuid() == setup.UserId);
+        Assert.True(ownMission.GetProperty("payload").TryGetProperty("mission_id", out _));
+        Assert.All(
+            playerMissions.Where(item => item.GetProperty("user_id").GetGuid() != setup.UserId),
+            item =>
+            {
+                var payload = item.GetProperty("payload");
+                Assert.Equal("HIDDEN", payload.GetProperty("status").GetString());
+                Assert.False(payload.TryGetProperty("mission_id", out _));
+            });
+
+        Assert.All(
+            await ReadMissionsAsync(instructorToken),
+            item => Assert.True(item.GetProperty("payload").TryGetProperty("mission_id", out _)));
+
+        using var endResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{setup.SessionId}/end",
+            null,
+            instructorToken);
+        Assert.Equal(HttpStatusCode.OK, endResponse.StatusCode);
+        Assert.All(
+            await ReadMissionsAsync(playerToken),
+            item => Assert.True(item.GetProperty("payload").TryGetProperty("mission_id", out _)));
     }
 
     [Fact]
@@ -1315,7 +1499,7 @@ public sealed class EventAnalyticsIntegrationTests
     /// Helper yang membuat ruleset, sesi, player, dan menjalankan sesi hingga siap
     /// untuk menerima event, lalu mengembalikan ID sesi, player, dan versi ruleset aktif.
     /// </summary>
-    private async Task<(Guid SessionId, Guid UserId, Guid RulesetVersionId, long NextSequenceNumber)> CreateReadySessionAsync(
+    private async Task<(Guid SessionId, Guid UserId, Guid ActingUserId, Guid RulesetVersionId, long NextSequenceNumber)> CreateReadySessionAsync(
         string instructorToken,
         string suffix,
         RulesetDefinitionDto? definition = null)
@@ -1435,8 +1619,21 @@ public sealed class EventAnalyticsIntegrationTests
             .OrderByDescending(v => v.Version)
             .First();
 
+        using var setupEventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{createdSession.SessionId}/events?fromSeq=0&limit=100",
+            null,
+            instructorToken);
+        using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
+        var actingUserId = setupEventsBody.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Single(item =>
+                item.GetProperty("action_type").GetString() == "BagikanTieBreaker" &&
+                item.GetProperty("payload").GetProperty("number").GetInt32() == 1)
+            .GetProperty("user_id")
+            .GetGuid();
         var nextSequenceNumber = await GetNextSequenceNumberAsync(createdSession.SessionId, instructorToken);
-        return (createdSession.SessionId, createdPlayer.UserId, activeVersion.RulesetVersionId, nextSequenceNumber);
+        return (createdSession.SessionId, createdPlayer.UserId, actingUserId, activeVersion.RulesetVersionId, nextSequenceNumber);
     }
 
     private async Task<long> GetNextSequenceNumberAsync(Guid sessionId, string accessToken)
@@ -1570,7 +1767,8 @@ public sealed class EventAnalyticsIntegrationTests
             Ingredients =
             [
                 new RulesetIngredientDto { Id = "nasi_putih", Nama = "Nasi Putih", HargaBeli = 1 },
-                new RulesetIngredientDto { Id = "telur", Nama = "Telur", HargaBeli = 4 }
+                new RulesetIngredientDto { Id = "telur", Nama = "Telur", HargaBeli = 4 },
+                new RulesetIngredientDto { Id = "sayur", Nama = "Sayur", HargaBeli = 2 }
             ],
             Orders =
             [
@@ -1580,13 +1778,21 @@ public sealed class EventAnalyticsIntegrationTests
                     Nama = "nasi goreng",
                     HargaJual = mode == "MAHIR" ? 1 : 15,
                     PoinKebahagiaan = 0,
-                    Bahan = mode == "MAHIR" ? [] : ["Nasi Putih", "Telur"]
+                    Bahan = mode == "MAHIR" ? [] : ["Nasi Putih", "Telur"],
+                    CardQty = 6
                 }
             ],
             Needs =
             [
                 new RulesetNeedDto { Id = "buku", Nama = "buku", Tipe = "primer", HargaBeli = 3, PoinKebahagiaan = 1 },
-                new RulesetNeedDto { Id = "boneka", Nama = "boneka", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3 }
+                new RulesetNeedDto { Id = "baju", Nama = "baju", Tipe = "primer", HargaBeli = 3, PoinKebahagiaan = 1 },
+                new RulesetNeedDto { Id = "sepatu", Nama = "sepatu", Tipe = "primer", HargaBeli = 3, PoinKebahagiaan = 1 },
+                new RulesetNeedDto { Id = "tempat_makan", Nama = "tempat makan", Tipe = "primer", HargaBeli = 3, PoinKebahagiaan = 1 },
+                new RulesetNeedDto { Id = "alat_tulis", Nama = "alat tulis", Tipe = "primer", HargaBeli = 3, PoinKebahagiaan = 1 },
+                new RulesetNeedDto { Id = "boneka", Nama = "boneka", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3 },
+                new RulesetNeedDto { Id = "gameboy", Nama = "gameboy", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3 },
+                new RulesetNeedDto { Id = "hiburan", Nama = "hiburan", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3 },
+                new RulesetNeedDto { Id = "jam", Nama = "jam", Tipe = "tersier", HargaBeli = 6, PoinKebahagiaan = 3 }
             ],
             CollectionMissions =
             [
@@ -1601,6 +1807,33 @@ public sealed class EventAnalyticsIntegrationTests
                     [
                         new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
                         new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "boneka" }
+                    ]
+                },
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_gameboy", Nama = "gameboy", PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
+                        new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "gameboy" }
+                    ]
+                },
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_hiburan", Nama = "hiburan", PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
+                        new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "hiburan" }
+                    ]
+                },
+                new RulesetCollectionMissionDto
+                {
+                    Id = "misi_jam", Nama = "jam", PenaltyPoints = 10,
+                    KebutuhanTarget =
+                    [
+                        new RulesetCollectionMissionRequirementDto { Order = 1, Type = "primer", Value = "buku" },
+                        new RulesetCollectionMissionRequirementDto { Order = 2, Type = "tersier", Value = "jam" }
                     ]
                 }
             ],

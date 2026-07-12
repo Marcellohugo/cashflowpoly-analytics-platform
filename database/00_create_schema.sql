@@ -757,6 +757,9 @@ create table if not exists ruleset_tie_breakers (
 
 create index if not exists ix_ruleset_tie_breakers_ruleset on ruleset_tie_breakers (ruleset_version_id, sort_order, tie_breaker_code);
 
+create unique index if not exists uq_ruleset_tie_breakers_ruleset_number
+on ruleset_tie_breakers (ruleset_version_id, tie_number);
+
 alter table
   ruleset_tie_breakers
 add
@@ -1167,6 +1170,9 @@ create table if not exists session_participant_collection_missions (
     ruleset_collection_mission_id
   ) on delete restrict
 );
+
+create unique index if not exists uq_session_collection_missions_session_card
+on session_participant_collection_missions (session_id, ruleset_collection_mission_id);
 
 create table if not exists session_participant_action_counters (
   session_id uuid not null,
@@ -4851,6 +4857,94 @@ end;
 $$;
 
 create
+or replace function project_market_refill(
+  p_session_id uuid,
+  p_ruleset_version_id uuid,
+  p_event_id uuid,
+  p_payload jsonb
+) returns void language plpgsql as $$ begin
+perform ensure_session_card_positions_initialized(p_session_id);
+
+update session_card_positions position
+set zone = 'MARKET',
+    slot_group = p_payload ->> 'slot_group',
+    slot_code = p_payload ->> 'slot_code',
+    position_order = coalesce(
+      nullif(regexp_replace(p_payload ->> 'slot_code', '\D', '', 'g'), '') :: int,
+      position.position_order
+    ),
+    last_event_id = p_event_id,
+    updated_at = now()
+where position.card_position_id = (
+  select candidate.card_position_id
+  from session_card_positions candidate
+  join ruleset_game_assets asset
+    on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+   and asset.ruleset_version_id = candidate.ruleset_version_id
+  where candidate.session_id = p_session_id
+    and candidate.zone in ('DECK', 'DISCARD')
+    and candidate.status = 'ACTIVE'
+    and asset.asset_type = upper(p_payload ->> 'asset_type')
+    and lower(asset.asset_code) = lower(p_payload ->> 'asset_code')
+  order by case candidate.zone when 'DECK' then 1 else 2 end,
+           candidate.copy_number
+  limit 1
+);
+
+if upper(p_payload ->> 'asset_type') = 'INGREDIENT'
+and not exists (
+  select 1
+  from session_card_positions position
+  where position.session_id = p_session_id
+    and position.zone = 'MARKET'
+    and position.status = 'ACTIVE'
+    and position.slot_group = p_payload ->> 'slot_group'
+    and position.slot_code = p_payload ->> 'slot_code'
+) then
+insert into session_card_positions (
+  card_instance_id,
+  session_id,
+  ruleset_version_id,
+  ruleset_game_asset_id,
+  copy_number,
+  zone,
+  position_order,
+  slot_code,
+  slot_group,
+  status,
+  last_event_id
+)
+select
+  gen_random_uuid(),
+  p_session_id,
+  asset.ruleset_version_id,
+  asset.ruleset_game_asset_id,
+  coalesce((
+    select max(existing.copy_number) + 1
+    from session_card_positions existing
+    where existing.session_id = p_session_id
+      and existing.ruleset_game_asset_id = asset.ruleset_game_asset_id
+  ), 1),
+  'MARKET',
+  nullif(regexp_replace(p_payload ->> 'slot_code', '\D', '', 'g'), '') :: int,
+  p_payload ->> 'slot_code',
+  p_payload ->> 'slot_group',
+  'ACTIVE',
+  p_event_id
+from ruleset_game_assets asset
+where asset.ruleset_version_id = p_ruleset_version_id
+  and asset.asset_type = 'INGREDIENT'
+  and lower(asset.asset_code) = lower(p_payload ->> 'asset_code')
+  and asset.is_active
+limit 1;
+
+end if;
+
+end;
+
+$$;
+
+create
 or replace function project_session_event(p_event_pk uuid) returns void language plpgsql as $$ declare v_event events % rowtype;
 
 v_last_sequence bigint;
@@ -6090,8 +6184,8 @@ end if;
 if v_participant_id is not null
 and v_event.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan') then
 update session_card_positions position
-set zone = case when v_event.action_type = 'JualMasakan' then 'DISCARD' else 'PLAYER' end,
-    owner_session_participant_id = case when v_event.action_type = 'JualMasakan' then null else v_participant_id end,
+set zone = 'PLAYER',
+    owner_session_participant_id = v_participant_id,
     slot_group = null,
     slot_code = null,
     last_event_id = v_event.event_id,
@@ -6228,53 +6322,14 @@ where position.card_position_id = (
   limit 1
 );
 
-end if;
-
-if v_event.action_type in ('AmbilKartuDariDeck', 'IsiUlangPasar') then
-update
-  session_card_positions scp
-set
-  zone = 'MARKET',
-  slot_group = v_event.payload ->> 'slot_group',
-  slot_code = v_event.payload ->> 'slot_code',
-  position_order = coalesce(
-    nullif(
-      regexp_replace(v_event.payload ->> 'slot_code', '\D', '', 'g'),
-      ''
-    ) :: int,
-    scp.position_order
-  ),
-  last_event_id = v_event.event_id,
-  updated_at = now()
-where
-  scp.card_position_id = (
-    select
-      candidate.card_position_id
-    from
-      session_card_positions candidate
-      join ruleset_game_assets rga on rga.ruleset_game_asset_id = candidate.ruleset_game_asset_id
-    where
-      candidate.session_id = v_event.session_id
-      and candidate.zone in ('DECK', 'DISCARD')
-      and candidate.status = 'ACTIVE'
-      and rga.asset_type = upper(v_event.payload ->> 'asset_type')
-      and lower(rga.asset_code) = lower(v_event.payload ->> 'asset_code')
-    order by
-      case candidate.zone when 'DECK' then 1 else 2 end,
-      candidate.copy_number
-    limit
-      1
-  );
-
-if upper(v_event.payload ->> 'asset_type') = 'INGREDIENT'
-and not exists (
+if not exists (
   select 1
   from session_card_positions position
   where position.session_id = v_event.session_id
-    and position.zone = 'MARKET'
+    and position.owner_session_participant_id = v_participant_id
+    and position.zone = 'PLAYER'
     and position.status = 'ACTIVE'
-    and position.slot_group = v_event.payload ->> 'slot_group'
-    and position.slot_code = v_event.payload ->> 'slot_code'
+    and position.last_event_id = v_event.event_id
 ) then
 insert into session_card_positions (
   card_instance_id,
@@ -6283,9 +6338,7 @@ insert into session_card_positions (
   ruleset_game_asset_id,
   copy_number,
   zone,
-  position_order,
-  slot_code,
-  slot_group,
+  owner_session_participant_id,
   status,
   last_event_id
 )
@@ -6300,20 +6353,46 @@ select
     where existing.session_id = v_event.session_id
       and existing.ruleset_game_asset_id = asset.ruleset_game_asset_id
   ), 1),
-  'MARKET',
-  nullif(regexp_replace(v_event.payload ->> 'slot_code', '\D', '', 'g'), '') :: int,
-  v_event.payload ->> 'slot_code',
-  v_event.payload ->> 'slot_group',
+  'PLAYER',
+  v_participant_id,
   'ACTIVE',
   v_event.event_id
 from ruleset_game_assets asset
 where asset.ruleset_version_id = v_event.ruleset_version_id
   and asset.asset_type = 'INGREDIENT'
-  and lower(asset.asset_code) = lower(v_event.payload ->> 'asset_code')
+  and lower(asset.asset_code) = lower(v_event.payload ->> 'card_id')
   and asset.is_active
 limit 1;
 
 end if;
+
+end if;
+
+if v_event.action_type in ('AmbilKartuDariDeck', 'IsiUlangPasar') then
+perform project_market_refill(
+  v_event.session_id,
+  v_event.ruleset_version_id,
+  v_event.event_id,
+  v_event.payload
+);
+
+end if;
+
+if jsonb_typeof(v_event.payload -> 'market_refills') = 'array' then declare v_market_refill jsonb;
+
+begin for v_market_refill in
+  select value
+  from jsonb_array_elements(v_event.payload -> 'market_refills') value
+loop
+  perform project_market_refill(
+    v_event.session_id,
+    v_event.ruleset_version_id,
+    v_event.event_id,
+    v_market_refill
+  );
+end loop;
+
+end;
 
 end if;
 
@@ -7420,6 +7499,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.6');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.7');
 
 commit;

@@ -23,7 +23,7 @@ Acuan utama:
 ## 2. Ringkasan Kesesuaian per Area
 | Area | Status | Catatan |
 |---|---|---|
-| Ingest event + validasi domain | Sesuai | Kebijakan slot terpusat, pasangan pesanan-risiko berbasis UUID, risiko pribadi `OUT` pending, penyelesaian tunai/asuransi/darurat atomik, donasi tunggal dan tersegel, holding emas, serta pinjaman per-instance dengan batas stok fisik dijaga API dan database. |
+| Ingest event + validasi domain | Sesuai | Kebijakan slot terpusat, setup acak tervalidasi, privasi misi, refill pasar atomik, pasangan pesanan-risiko berbasis UUID, risiko pribadi `OUT` pending, penyelesaian tunai/asuransi/darurat atomik, donasi tunggal dan tersegel, holding emas, serta pinjaman per-instance dengan batas stok fisik dijaga API dan database. |
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
 | API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
 | UI dashboard (home/sessions/players/rulesets/rulebook/analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route redirect. |
@@ -44,8 +44,8 @@ Verifikasi lokal pada 12 Juli 2026:
 |---|---|
 | `dotnet build Cashflowpoly.sln --no-restore --nologo` | Lulus, 0 warning, 0 error |
 | Test UI | 103/103 lulus |
-| Test API | 283/283 lulus |
-| Total test solution | 386/386 lulus |
+| Test API | 290/290 lulus |
+| Total test solution | 393/393 lulus |
 | Seed simulasi Pemula + Mahir | Lulus schema, login, analitika, proyeksi, snapshot, dan replay |
 
 Penilaian penutupan audit internal:

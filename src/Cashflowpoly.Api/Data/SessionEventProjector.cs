@@ -83,7 +83,6 @@ public sealed class SessionEventProjector
             case GameActionCatalog.JualMasakan:
                 await ProjectOrderClaimAsync(request, participantId, conn, tx, ct);
                 await TakeMarketCardAsync(request, participantId, "ORDER", "order_card_id", conn, tx, ct);
-                await DiscardOwnedCardAsync(request, participantId, "ORDER", "order_card_id", conn, tx, ct);
                 await DiscardOrderIngredientsAsync(request, participantId, conn, tx, ct);
                 break;
             case GameActionCatalog.Kebutuhan:
@@ -151,7 +150,7 @@ public sealed class SessionEventProjector
         await UpdateProjectionCheckpointAsync(request.SessionId, storedEvent.SequenceNumber, storedEvent.EventId, conn, tx, ct);
     }
 
-    private static async Task ProjectMarketRefillAsync(
+    private static Task ProjectMarketRefillAsync(
         EventRequest request,
         Guid eventId,
         NpgsqlConnection conn,
@@ -160,9 +159,34 @@ public sealed class SessionEventProjector
     {
         if (!TryReadMarketReference(request.Payload, out var slotGroup, out var slotCode, out var assetType, out var assetCode))
         {
-            return;
+            return Task.CompletedTask;
         }
 
+        return ProjectMarketRefillAsync(
+            request.SessionId,
+            request.RulesetVersionId,
+            eventId,
+            slotGroup,
+            slotCode,
+            assetType,
+            assetCode,
+            conn,
+            tx,
+            ct);
+    }
+
+    internal static async Task ProjectMarketRefillAsync(
+        Guid sessionId,
+        Guid rulesetVersionId,
+        Guid eventId,
+        string slotGroup,
+        string slotCode,
+        string assetType,
+        string assetCode,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
         const string sql = """
             select ensure_session_card_positions_initialized(@sessionId);
 
@@ -224,8 +248,8 @@ public sealed class SessionEventProjector
             sql,
             new
             {
-                sessionId = request.SessionId,
-                rulesetVersionId = request.RulesetVersionId,
+                sessionId,
+                rulesetVersionId,
                 slotGroup,
                 slotCode,
                 assetType,

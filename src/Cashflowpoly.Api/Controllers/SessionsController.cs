@@ -232,13 +232,23 @@ public sealed class SessionsController : ControllerBase
         }
 
         var startedAt = DateTimeOffset.UtcNow;
-        await _state.StartSessionWithSetupAsync(
-            sessionId,
-            session.Mode,
-            activeRuleset.Value.Version.RulesetVersionId,
-            activeRuleset.Value.Version.Definition!,
-            startedAt,
-            ct);
+        try
+        {
+            await _state.StartSessionWithSetupAsync(
+                sessionId,
+                session.Mode,
+                activeRuleset.Value.Version.RulesetVersionId,
+                activeRuleset.Value.Version.Definition!,
+                startedAt,
+                ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                ex.Message));
+        }
 
         return Ok(new SessionStatusResponse("STARTED"));
     }
@@ -382,14 +392,25 @@ public sealed class SessionsController : ControllerBase
                 new ErrorDetail("player_names", "MAX_LENGTH")));
         }
 
-        var created = await _state.CreateSessionAsync(
-            request.SessionName!.Trim(),
-            mode,
-            playerNames,
-            request.RulesetVersionId.Value,
-            instructorUserId,
-            GetActorName(),
-            ct);
+        CreateSessionWithStateResult? created;
+        try
+        {
+            created = await _state.CreateSessionAsync(
+                request.SessionName!.Trim(),
+                mode,
+                playerNames,
+                request.RulesetVersionId.Value,
+                instructorUserId,
+                GetActorName(),
+                ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                ex.Message));
+        }
         if (created is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));

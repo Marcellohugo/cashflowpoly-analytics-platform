@@ -1,10 +1,13 @@
 using System.Collections.Frozen;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Contracts;
+using Dapper;
 using Microsoft.AspNetCore.Http;
 using Npgsql;
 
@@ -20,6 +23,18 @@ internal sealed class EventIngestionService : IEventIngestionService
     /// Hasil validasi akses sesi: mencakup status, error, dan scoped player ID untuk role PLAYER.
     /// </summary>
     private sealed record SessionAccessOutcome(bool IsValid, int StatusCode, ErrorResponse? Error, Guid? ScopedPlayerId);
+    private sealed class MarketSlotRow
+    {
+        public string SlotGroup { get; init; } = string.Empty;
+        public string SlotCode { get; init; } = string.Empty;
+        public string AssetType { get; init; } = string.Empty;
+    }
+
+    private sealed record AutomaticMarketRefill(
+        string SlotGroup,
+        string SlotCode,
+        string AssetType,
+        string AssetCode);
 
     /// <summary>
     /// Singleton outcome validasi sukses untuk menghindari alokasi berulang.
@@ -251,9 +266,20 @@ internal sealed class EventIngestionService : IEventIngestionService
         var responseEvents = events.Select(item =>
         {
             var mapped = _recordMapper.ToEventRequest(item);
-            return IsEventAction(item, GameActionCatalog.JumatBerkah) && sealedDonationDays.Contains(item.DayIndex)
-                ? mapped with { Payload = JsonSerializer.SerializeToElement(new { status = "SEALED" }) }
-                : mapped;
+            if (IsEventAction(item, GameActionCatalog.JumatBerkah) && sealedDonationDays.Contains(item.DayIndex))
+            {
+                return mapped with { Payload = JsonSerializer.SerializeToElement(new { status = "SEALED" }) };
+            }
+
+            if (accessScopeCheck.ScopedPlayerId.HasValue &&
+                !string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase) &&
+                IsEventAction(item, GameActionCatalog.SetupMisiAwal) &&
+                item.UserId != accessScopeCheck.ScopedPlayerId.Value)
+            {
+                return mapped with { Payload = JsonSerializer.SerializeToElement(new { status = "HIDDEN" }) };
+            }
+
+            return mapped;
         }).ToList();
         return (new EventsBySessionResponse(sessionId, responseEvents), StatusCodes.Status200OK, null);
     }
@@ -296,6 +322,16 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (!shapeValidation.IsValid)
         {
             return BuildOutcome(shapeValidation);
+        }
+
+        if (request.Payload.ValueKind == JsonValueKind.Object &&
+            request.Payload.TryGetProperty("market_refills", out _))
+        {
+            return BuildOutcome(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "market_refills hanya boleh dihitung oleh server",
+                new ErrorDetail("payload.market_refills", "RESERVED"));
         }
 
         if (request.UserId is not null)
@@ -681,9 +717,218 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         await _projector.ProjectAsync(request, record, projections, conn, tx, ct);
 
+        if (config is not null && ShouldRefillMarket(request, config))
+        {
+            await ApplyAutomaticMarketRefillsAsync(request, record, conn, tx, ct);
+        }
+
         await tx.CommitAsync(ct);
 
         return eventPk;
+    }
+
+    private static bool ShouldRefillMarket(EventRequest request, RulesetConfig config)
+    {
+        return string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+               request.ActionSlot == config.ActionsPerTurn &&
+               GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload) == PlayerActionSlotPolicy.Consumes;
+    }
+
+    private async Task ApplyAutomaticMarketRefillsAsync(
+        EventRequest sourceRequest,
+        EventDb sourceRecord,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        var refills = new List<AutomaticMarketRefill>();
+        while (refills.Count < 15)
+        {
+            var emptySlots = (await conn.QueryAsync<MarketSlotRow>(new CommandDefinition(
+                """
+                with slots(slot_group, slot_code, asset_type, slot_order) as (
+                    values
+                        ('INGREDIENT_MARKET', 'SLOT_1', 'INGREDIENT', 1),
+                        ('INGREDIENT_MARKET', 'SLOT_2', 'INGREDIENT', 2),
+                        ('INGREDIENT_MARKET', 'SLOT_3', 'INGREDIENT', 3),
+                        ('INGREDIENT_MARKET', 'SLOT_4', 'INGREDIENT', 4),
+                        ('INGREDIENT_MARKET', 'SLOT_5', 'INGREDIENT', 5),
+                        ('ORDER_MARKET', 'SLOT_1', 'ORDER', 6),
+                        ('ORDER_MARKET', 'SLOT_2', 'ORDER', 7),
+                        ('ORDER_MARKET', 'SLOT_3', 'ORDER', 8),
+                        ('ORDER_MARKET', 'SLOT_4', 'ORDER', 9),
+                        ('ORDER_MARKET', 'SLOT_5', 'ORDER', 10),
+                        ('NEED_MARKET', 'SLOT_1', 'NEED', 11),
+                        ('NEED_MARKET', 'SLOT_2', 'NEED', 12),
+                        ('NEED_MARKET', 'SLOT_3', 'NEED', 13),
+                        ('NEED_MARKET', 'SLOT_4', 'NEED', 14),
+                        ('NEED_MARKET', 'SLOT_5', 'NEED', 15)
+                )
+                select
+                    slot.slot_group as "SlotGroup",
+                    slot.slot_code as "SlotCode",
+                    slot.asset_type as "AssetType"
+                from slots slot
+                where not exists (
+                    select 1
+                    from session_card_positions position
+                    where position.session_id = @sessionId
+                      and position.zone = 'MARKET'
+                      and position.status = 'ACTIVE'
+                      and position.slot_group = slot.slot_group
+                      and position.slot_code = slot.slot_code
+                )
+                order by slot.slot_order
+                """,
+                new { sessionId = sourceRequest.SessionId },
+                tx,
+                cancellationToken: ct))).ToList();
+
+            if (emptySlots.Count == 0)
+            {
+                break;
+            }
+
+            var filledSlot = false;
+            foreach (var slot in emptySlots)
+            {
+                var candidates = await GetMarketRefillCandidatesAsync(
+                    sourceRequest.SessionId,
+                    sourceRequest.RulesetVersionId,
+                    slot,
+                    conn,
+                    tx,
+                    ct);
+                if (candidates.Count == 0)
+                {
+                    continue;
+                }
+
+                var assetCode = candidates[RandomNumberGenerator.GetInt32(candidates.Count)];
+                await SessionEventProjector.ProjectMarketRefillAsync(
+                    sourceRequest.SessionId,
+                    sourceRequest.RulesetVersionId,
+                    sourceRecord.EventId,
+                    slot.SlotGroup,
+                    slot.SlotCode,
+                    slot.AssetType,
+                    assetCode,
+                    conn,
+                    tx,
+                    ct);
+                refills.Add(new AutomaticMarketRefill(
+                    slot.SlotGroup,
+                    slot.SlotCode,
+                    slot.AssetType,
+                    assetCode));
+                filledSlot = true;
+                break;
+            }
+
+            if (!filledSlot)
+            {
+                break;
+            }
+        }
+
+        if (refills.Count == 0)
+        {
+            return;
+        }
+
+        var payload = JsonNode.Parse(sourceRecord.Payload)?.AsObject() ?? new JsonObject();
+        var refillPayload = new JsonArray();
+        foreach (var refill in refills)
+        {
+            refillPayload.Add(new JsonObject
+            {
+                ["slot_group"] = refill.SlotGroup,
+                ["slot_code"] = refill.SlotCode,
+                ["asset_type"] = refill.AssetType,
+                ["asset_code"] = refill.AssetCode
+            });
+        }
+
+        payload["market_refills"] = refillPayload;
+        sourceRecord.Payload = payload.ToJsonString();
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update events
+            set payload = @payload::jsonb
+            where event_pk = @eventPk
+            """,
+            new { payload = sourceRecord.Payload, eventPk = sourceRecord.EventPk },
+            tx,
+            cancellationToken: ct));
+
+        var references = refills.Select((refill, index) => new EventAssetReferenceInput(
+            refill.AssetType,
+            refill.AssetCode,
+            "AUTO_REFILL",
+            $"payload.market_refills[{index}].asset_code")).ToList();
+        await _events.InsertEventAssetReferencesAsync(sourceRecord, references, conn, tx, ct);
+    }
+
+    private static async Task<List<string>> GetMarketRefillCandidatesAsync(
+        Guid sessionId,
+        Guid rulesetVersionId,
+        MarketSlotRow slot,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (string.Equals(slot.AssetType, "INGREDIENT", StringComparison.OrdinalIgnoreCase))
+        {
+            var ingredientCodes = await conn.QueryAsync<string>(new CommandDefinition(
+                """
+                select asset.asset_code
+                from ruleset_game_assets asset
+                where asset.ruleset_version_id = @rulesetVersionId
+                  and asset.asset_type = 'INGREDIENT'
+                  and asset.is_active
+                  and (
+                      select count(*)
+                      from session_card_positions position
+                      where position.session_id = @sessionId
+                        and position.ruleset_game_asset_id = asset.ruleset_game_asset_id
+                        and position.zone = 'MARKET'
+                        and position.status = 'ACTIVE'
+                        and position.slot_group = 'INGREDIENT_MARKET'
+                  ) < 2
+                order by asset.asset_code
+                """,
+                new { sessionId, rulesetVersionId },
+                tx,
+                cancellationToken: ct));
+            return ingredientCodes.ToList();
+        }
+
+        var cardCodes = await conn.QueryAsync<string>(new CommandDefinition(
+            """
+            with candidates as (
+                select asset.asset_code, position.zone
+                from session_card_positions position
+                join ruleset_game_assets asset
+                  on asset.ruleset_game_asset_id = position.ruleset_game_asset_id
+                 and asset.ruleset_version_id = position.ruleset_version_id
+                where position.session_id = @sessionId
+                  and position.status = 'ACTIVE'
+                  and position.zone in ('DECK', 'DISCARD')
+                  and asset.asset_type = @assetType
+                  and asset.is_active
+            )
+            select candidate.asset_code
+            from candidates candidate
+            where candidate.zone = case
+                when exists (select 1 from candidates deck where deck.zone = 'DECK') then 'DECK'
+                else 'DISCARD'
+            end
+            order by candidate.asset_code
+            """,
+            new { sessionId, assetType = slot.AssetType },
+            tx,
+            cancellationToken: ct));
+        return cardCodes.ToList();
     }
 
     private static IReadOnlyCollection<EventAssetReferenceInput> BuildAssetReferences(EventRequest request)
@@ -864,66 +1109,66 @@ internal sealed class EventIngestionService : IEventIngestionService
         switch (optionType.ToUpperInvariant())
         {
             case "SELL_NEED":
-            {
-                if (!_payloadReader.TryGetString(request.Payload, "need_card_id", out var cardId) &&
-                    !_payloadReader.TryGetString(request.Payload, "card_id", out cardId))
                 {
+                    if (!_payloadReader.TryGetString(request.Payload, "need_card_id", out var cardId) &&
+                        !_payloadReader.TryGetString(request.Payload, "card_id", out cardId))
+                    {
+                        break;
+                    }
+
+                    node["card_id"] = cardId;
+                    var amount = await _events.GetOwnedNeedSaleAmountAsync(request.SessionId, userId, cardId, ct);
+                    if (amount > 0)
+                    {
+                        node["amount"] = amount.Value;
+                    }
                     break;
                 }
-
-                node["card_id"] = cardId;
-                var amount = await _events.GetOwnedNeedSaleAmountAsync(request.SessionId, userId, cardId, ct);
-                if (amount > 0)
-                {
-                    node["amount"] = amount.Value;
-                }
-                break;
-            }
             case "SELL_GOLD":
-            {
-                if (!_payloadReader.TryGetInt32(request.Payload, "qty", out var qty) || qty <= 0 ||
-                    !_payloadReader.TryGetString(request.Payload, "gold_price_event_id", out var priceEventIdText) ||
-                    !Guid.TryParse(priceEventIdText, out var priceEventId))
                 {
+                    if (!_payloadReader.TryGetInt32(request.Payload, "qty", out var qty) || qty <= 0 ||
+                        !_payloadReader.TryGetString(request.Payload, "gold_price_event_id", out var priceEventIdText) ||
+                        !Guid.TryParse(priceEventIdText, out var priceEventId))
+                    {
+                        break;
+                    }
+
+                    var priceEvent = await _events.GetEventByIdAsync(request.SessionId, priceEventId, ct);
+                    var pricePayload = priceEvent is null ? default : _payloadReader.ReadPayload(priceEvent.Payload);
+                    if (priceEvent is not null &&
+                        string.Equals(priceEvent.ActionType, "BukaHargaEmas", StringComparison.OrdinalIgnoreCase) &&
+                        priceEvent.DayIndex == request.DayIndex &&
+                        _payloadReader.TryGetInt32(pricePayload, "gold_price", out var unitPrice) &&
+                        unitPrice > 0)
+                    {
+                        node["unit_price"] = unitPrice;
+                        node["amount"] = qty * unitPrice;
+                        node["asset_code"] = "gold_card";
+                    }
                     break;
                 }
-
-                var priceEvent = await _events.GetEventByIdAsync(request.SessionId, priceEventId, ct);
-                var pricePayload = priceEvent is null ? default : _payloadReader.ReadPayload(priceEvent.Payload);
-                if (priceEvent is not null &&
-                    string.Equals(priceEvent.ActionType, "BukaHargaEmas", StringComparison.OrdinalIgnoreCase) &&
-                    priceEvent.DayIndex == request.DayIndex &&
-                    _payloadReader.TryGetInt32(pricePayload, "gold_price", out var unitPrice) &&
-                    unitPrice > 0)
-                {
-                    node["unit_price"] = unitPrice;
-                    node["amount"] = qty * unitPrice;
-                    node["asset_code"] = "gold_card";
-                }
-                break;
-            }
             case "TAKE_SHARIA_LOAN":
-            {
-                if (!_payloadReader.TryGetString(request.Payload, "loan_code", out var loanCode))
                 {
+                    if (!_payloadReader.TryGetString(request.Payload, "loan_code", out var loanCode))
+                    {
+                        break;
+                    }
+
+                    var config = await GetRulesetConfigAsync(request.RulesetVersionId, ct);
+                    var loan = config?.ShariaLoans.FirstOrDefault(item =>
+                        string.Equals(item.LoanCode, loanCode, StringComparison.OrdinalIgnoreCase));
+                    if (loan is not null)
+                    {
+                        node["loan_code"] = loan.LoanCode;
+                        node["loan_id"] = request.EventId.ToString();
+                        node["principal"] = loan.Principal;
+                        node["amount"] = loan.Principal;
+                        node["repayment_amount"] = loan.RepaymentAmount;
+                        node["duration_days"] = loan.DurationDays;
+                        node["penalty_points"] = loan.PenaltyPoints;
+                    }
                     break;
                 }
-
-                var config = await GetRulesetConfigAsync(request.RulesetVersionId, ct);
-                var loan = config?.ShariaLoans.FirstOrDefault(item =>
-                    string.Equals(item.LoanCode, loanCode, StringComparison.OrdinalIgnoreCase));
-                if (loan is not null)
-                {
-                    node["loan_code"] = loan.LoanCode;
-                    node["loan_id"] = request.EventId.ToString();
-                    node["principal"] = loan.Principal;
-                    node["amount"] = loan.Principal;
-                    node["repayment_amount"] = loan.RepaymentAmount;
-                    node["duration_days"] = loan.DurationDays;
-                    node["penalty_points"] = loan.PenaltyPoints;
-                }
-                break;
-            }
         }
 
         return request with { Payload = JsonSerializer.Deserialize<JsonElement>(node.ToJsonString()) };
@@ -1070,6 +1315,15 @@ internal sealed class EventIngestionService : IEventIngestionService
     {
         var actionType = request.ActionType;
         var payload = request.Payload;
+
+        if (IsAction(request, GameActionCatalog.CardDrawn) ||
+            IsAction(request, GameActionCatalog.MarketRefilled))
+        {
+            return BuildOutcome(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "Refill pasar saat sesi berjalan dikelola otomatis setelah aksi terakhir pemain");
+        }
 
         if (_simpleActionValidator.TryValidate(request, config, out var simpleValidation))
         {

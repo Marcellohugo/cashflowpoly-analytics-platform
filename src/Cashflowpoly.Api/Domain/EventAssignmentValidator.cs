@@ -85,6 +85,23 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
                 "Misi sudah ditetapkan untuk pemain");
         }
 
+        var missionAlreadyAssigned = history.Any(e =>
+            e.UserId != request.UserId &&
+            string.Equals(e.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
+            _payloadReader.TryReadMissionAssigned(
+                _payloadReader.ReadPayload(e.Payload),
+                out var assignedMissionId,
+                out _,
+                out _) &&
+            string.Equals(assignedMissionId, missionId, StringComparison.OrdinalIgnoreCase));
+        if (missionAlreadyAssigned)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "Kartu Misi Koleksi sudah ditetapkan untuk pemain lain");
+        }
+
         return EventDomainValidationResult.Valid;
     }
 
@@ -126,6 +143,19 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
                 StatusCodes.Status422UnprocessableEntity,
                 "DOMAIN_RULE_VIOLATION",
                 "Tie breaker sudah ditetapkan untuk pemain");
+        }
+
+        var numberAlreadyAssigned = history.Any(e =>
+            e.UserId != request.UserId &&
+            string.Equals(e.ActionType, GameActionCatalog.TieBreakerAssigned, StringComparison.OrdinalIgnoreCase) &&
+            _payloadReader.TryReadTieBreaker(_payloadReader.ReadPayload(e.Payload), out var assignedNumber) &&
+            assignedNumber == number);
+        if (numberAlreadyAssigned)
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "Nomor tie breaker sudah ditetapkan untuk pemain lain");
         }
 
         return EventDomainValidationResult.Valid;

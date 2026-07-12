@@ -1,6 +1,6 @@
 # Indeks Dokumentasi Cashflowpoly Analytics Platform
 
-Status sinkronisasi terakhir: **12 Juli 2026**, baseline schema **3.0.6**. Kontrak payload/event aktif berada pada `02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`; skrip `database/00_create_schema.sql` tetap menjadi acuan teknis terakhir bila ada perbedaan.
+Status sinkronisasi terakhir: **12 Juli 2026**, baseline schema **3.0.7**. Kontrak payload/event aktif berada pada `02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`; skrip `database/00_create_schema.sql` tetap menjadi acuan teknis terakhir bila ada perbedaan.
 
 Selamat datang di direktori dokumentasi proyek. Seluruh dokumen disusun berdasarkan kategori numerik terurut untuk mempermudah pemahaman arsitektur sistem informasi dari aspek panduan, spesifikasi, rancangan, hingga pengujian.
 
