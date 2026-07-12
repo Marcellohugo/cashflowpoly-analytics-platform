@@ -26,8 +26,7 @@ internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
         var goldInvestmentEarned = 0;
 
         var initialGoldQty = playerEvents
-            .Where(e => e.ActionType == GameActionCatalog.GoldInitialGranted ||
-                        e.ActionType == GameActionCatalog.SetupEmasAwal)
+            .Where(e => e.ActionType == GameActionCatalog.SetupEmasAwal)
             .Sum(e => TryReadInt32(e.Payload, "qty", out var qty) ? qty : 1);
 
         foreach (var evt in playerEvents.Where(e =>

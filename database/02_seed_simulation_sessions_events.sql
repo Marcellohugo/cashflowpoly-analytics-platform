@@ -541,7 +541,11 @@ where
 
 do $$ declare v_event record;
 
-begin for v_event in with session_context as (
+begin
+perform ensure_session_card_positions_initialized(scope.session_id)
+from seed_session_scope scope;
+
+for v_event in with session_context as (
   select
     *
   from
@@ -630,7 +634,7 @@ player_context as (
       user_id
     )
 ),
-scenario_event_seed as (
+scenario_event_seed_raw as (
   select
     *
   from
@@ -936,30 +940,6 @@ scenario_event_seed as (
           'BahanMasakan',
           'BahanMasakan',
           '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
-        ),
-        (
-          'PEMULA',
-          null,
-          0,
-          14,
-          1,
-          1,
-          'SYSTEM',
-          'KartuDiambilDariPasar',
-          'KartuDiambilDariPasar',
-          '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}' :: jsonb
-        ),
-        (
-          'PEMULA',
-          null,
-          0,
-          16,
-          1,
-          null,
-          'SYSTEM',
-          'IsiUlangPasar',
-          'IsiUlangPasar',
-          '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"sayur"}' :: jsonb
         ),
         (
           'PEMULA',
@@ -3317,30 +3297,6 @@ scenario_event_seed as (
         (
           'MAHIR',
           null,
-          0,
-          22,
-          1,
-          1,
-          'SYSTEM',
-          'KartuDiambilDariPasar',
-          'KartuDiambilDariPasar',
-          '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"nasi_putih"}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
-          0,
-          24,
-          1,
-          null,
-          'SYSTEM',
-          'IsiUlangPasar',
-          'IsiUlangPasar',
-          '{"slot_group":"INGREDIENT_MARKET","slot_code":"SLOT_1","asset_type":"INGREDIENT","asset_code":"sayur"}' :: jsonb
-        ),
-        (
-          'MAHIR',
-          null,
           1,
           0,
           2,
@@ -3904,7 +3860,19 @@ scenario_event_seed as (
         ),
         (
           'MAHIR',
+          'mahir-risk-022',
+          7,
+          4,
+          8,
           null,
+          'SYSTEM',
+          'BukaHargaEmas',
+          'BukaHargaEmas',
+          '{"gold_price":5}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-022',
           7,
           4,
           8,
@@ -5554,9 +5522,9 @@ scenario_event_seed as (
           15,
           2,
           'PLAYER',
-          'GunakanOpsiDarurat',
-          'GunakanOpsiDarurat',
-          '{"option_type":"USE_INSURANCE","amount":6}' :: jsonb
+          'Asuransi',
+          'Asuransi',
+          '{}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5594,6 +5562,85 @@ scenario_event_seed as (
       action_type,
       payload
     )
+),
+scenario_event_seed as (
+  select
+    raw.session_key,
+    raw.ref_key,
+    raw.day_index,
+    raw.event_order * 10 as event_order,
+    raw.action_slot,
+    raw.player_no,
+    raw.actor_type,
+    raw.action_id,
+    raw.action_type,
+    raw.payload
+  from scenario_event_seed_raw raw
+
+  union all
+
+  select
+    raw.session_key,
+    null,
+    raw.day_index,
+    raw.event_order * 10 - 2,
+    0,
+    null,
+    'SYSTEM',
+    'KartuMasukDiscard',
+    'KartuMasukDiscard',
+    jsonb_build_object(
+      'slot_group',
+      case raw.action_type
+        when 'BahanMasakan' then 'INGREDIENT_MARKET'
+        when 'Kebutuhan' then 'NEED_MARKET'
+        else 'ORDER_MARKET'
+      end,
+      'slot_code',
+      'SLOT_1',
+      'reason',
+      'MARKET_ROTATION'
+    )
+  from scenario_event_seed_raw raw
+  where raw.actor_type = 'PLAYER'
+    and raw.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan')
+
+  union all
+
+  select
+    raw.session_key,
+    null,
+    raw.day_index,
+    raw.event_order * 10 - 1,
+    0,
+    null,
+    'SYSTEM',
+    'IsiUlangPasar',
+    'IsiUlangPasar',
+    jsonb_build_object(
+      'slot_group',
+      case raw.action_type
+        when 'BahanMasakan' then 'INGREDIENT_MARKET'
+        when 'Kebutuhan' then 'NEED_MARKET'
+        else 'ORDER_MARKET'
+      end,
+      'slot_code',
+      'SLOT_1',
+      'asset_type',
+      case raw.action_type
+        when 'BahanMasakan' then 'INGREDIENT'
+        when 'Kebutuhan' then 'NEED'
+        else 'ORDER'
+      end,
+      'asset_code',
+      case
+        when raw.action_type = 'JualMasakan' then raw.payload ->> 'order_card_id'
+        else raw.payload ->> 'card_id'
+      end
+    )
+  from scenario_event_seed_raw raw
+  where raw.actor_type = 'PLAYER'
+    and raw.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan')
 ),
 setup_market_seed as (
   select
@@ -5666,41 +5713,41 @@ setup_market_seed as (
           'ORDER_MARKET',
           'SLOT_1',
           'ORDER',
-          'lontong_balap'
+          'nasi_pecel'
         ),
         (
           7,
           'ORDER_MARKET',
           'SLOT_2',
           'ORDER',
-          'semanggi_surabaya'
+          'rujak_cingur'
         ),
         (
           8,
           'ORDER_MARKET',
           'SLOT_3',
           'ORDER',
-          'nasi_goreng'
+          'gado_gado'
         ),
         (
           9,
           'ORDER_MARKET',
           'SLOT_4',
           'ORDER',
-          'tahu_campur'
+          'nasi_campur'
         ),
         (
           10,
           'ORDER_MARKET',
           'SLOT_5',
           'ORDER',
-          'soto_daging'
+          'tahu_telur'
         ),
-        (11, 'NEED_MARKET', 'SLOT_1', 'NEED', 'buku_1'),
-        (12, 'NEED_MARKET', 'SLOT_2', 'NEED', 'buku_2'),
-        (13, 'NEED_MARKET', 'SLOT_3', 'NEED', 'baju_1'),
-        (14, 'NEED_MARKET', 'SLOT_4', 'NEED', 'sepatu_1'),
-        (15, 'NEED_MARKET', 'SLOT_5', 'NEED', 'sepatu_2')
+        (11, 'NEED_MARKET', 'SLOT_1', 'NEED', 'tempat_makan_1'),
+        (12, 'NEED_MARKET', 'SLOT_2', 'NEED', 'tempat_makan_2'),
+        (13, 'NEED_MARKET', 'SLOT_3', 'NEED', 'tas_1'),
+        (14, 'NEED_MARKET', 'SLOT_4', 'NEED', 'tas_2'),
+        (15, 'NEED_MARKET', 'SLOT_5', 'NEED', 'sepeda_1')
     ) slots(
       sort_order,
       slot_group,
@@ -5708,6 +5755,39 @@ setup_market_seed as (
       asset_type,
       asset_code
     )
+),
+final_market_seed as (
+  select
+    setup.session_key,
+    null :: text as ref_key,
+    24 as day_index,
+    78 as event_order,
+    0 as action_slot,
+    null :: int as player_no,
+    'SYSTEM' :: text as actor_type,
+    'KartuMasukDiscard' :: text as action_id,
+    'KartuMasukDiscard' :: text as action_type,
+    jsonb_build_object(
+      'slot_group', setup.payload ->> 'slot_group',
+      'slot_code', setup.payload ->> 'slot_code',
+      'reason', 'FINAL_MARKET_RESET'
+    ) as payload
+  from setup_market_seed setup
+
+  union all
+
+  select
+    setup.session_key,
+    null,
+    24,
+    79,
+    0,
+    null,
+    'SYSTEM',
+    'IsiUlangPasar',
+    'IsiUlangPasar',
+    setup.payload
+  from setup_market_seed setup
 ),
 transition_seed as (
   select
@@ -5772,6 +5852,12 @@ event_seed as (
     *
   from
     setup_market_seed
+  union
+  all
+  select
+    *
+  from
+    final_market_seed
   union
   all
   select
@@ -5916,7 +6002,14 @@ resolved_events as (
     e.action_type,
     e.ruleset_version_id,
     case
-      when e.action_type in ('Asuransi', 'GunakanOpsiDarurat', 'BayarRisiko')
+      when e.action_type in (
+        'Asuransi',
+        'GunakanOpsiDarurat',
+        'BayarRisiko',
+        'BukaHargaEmas',
+        'InvestasiEmas',
+        'JualEmas'
+      )
       and (
         e.ref_key is not null
         or (e.payload :: jsonb ? 'risk_event_id')
@@ -6603,7 +6696,7 @@ event_agg as (
     ) :: int as sharia_loan_repaid_total,
     count(*) filter (
       where
-        e.action_type = 'BagikanMisiKoleksi'
+        e.action_type = 'SetupMisiAwal'
     ) :: int as mission_assigned_count
   from
     player_base pb

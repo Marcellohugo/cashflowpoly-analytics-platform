@@ -12,10 +12,10 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
     public bool TryValidate(
         EventRequest request,
         IEnumerable<EventDb> history,
+        int participantCount,
         out EventDomainValidationResult result)
     {
-        if (string.Equals(request.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(request.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(request.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateMission(request, history);
             return true;
@@ -23,7 +23,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 
         if (string.Equals(request.ActionType, "BagikanTieBreaker", StringComparison.OrdinalIgnoreCase))
         {
-            result = ValidateTieBreaker(request, history);
+            result = ValidateTieBreaker(request, history, participantCount);
             return true;
         }
 
@@ -76,8 +76,7 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
 
         var alreadyAssigned = history.Any(e =>
             e.UserId == request.UserId &&
-            (string.Equals(e.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(e.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase)));
+            string.Equals(e.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase));
         if (alreadyAssigned)
         {
             return EventDomainValidationResult.Fail(
@@ -89,7 +88,10 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private EventDomainValidationResult ValidateTieBreaker(EventRequest request, IEnumerable<EventDb> history)
+    private EventDomainValidationResult ValidateTieBreaker(
+        EventRequest request,
+        IEnumerable<EventDb> history,
+        int participantCount)
     {
         var playerCheck = RequirePlayer(request);
         if (!playerCheck.IsValid)
@@ -106,12 +108,12 @@ internal sealed class EventAssignmentValidator : IEventAssignmentValidator
                 new ErrorDetail("payload.number", "REQUIRED"));
         }
 
-        if (number <= 0)
+        if (number < 1 || number > participantCount)
         {
             return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Nomor tie breaker tidak valid",
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                $"Nomor tie breaker harus berada pada rentang 1 sampai {participantCount}",
                 new ErrorDetail("payload.number", "OUT_OF_RANGE"));
         }
 

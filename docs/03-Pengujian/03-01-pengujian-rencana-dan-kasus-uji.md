@@ -556,7 +556,7 @@ Sistem lulus tahap pengujian dan validasi jika:
 
 ## 13. Tambahan TC Event Skor & Risiko
 Tambahan pengujian untuk event baru:
-1. TC-API-23 — `BagikanMisiKoleksi` valid (penetapan misi)
+1. TC-API-23 — `SetupMisiAwal` valid (penetapan misi)
 2. TC-API-24 — `PoinPeringkatDonasi` valid (award poin)
 3. TC-API-25 — `PoinEmas` valid (award poin emas)
 4. TC-API-26 — `PoinPeringkatPensiun` valid (award poin pensiun)
@@ -570,14 +570,14 @@ Tambahan pengujian untuk event baru:
 12. TC-API-34 — `RisikoKehidupan` wajib merujuk `JualMasakan` valid melalui `source_order_event_id`
 13. TC-API-35 — seluruh risiko `OUT` tetap pending sampai menerima event penyelesaian
 14. TC-API-36 — `BayarRisiko` hanya menerima risiko pending milik pemain dengan saldo cukup
-15. TC-API-37 — `USE_INSURANCE` memerlukan polis aktif dan hanya membuat satu offset
-16. TC-API-38 — `GunakanOpsiDarurat` menghitung nominal server-side dan mengubah kebutuhan/emas/pinjaman/polis secara atomik
+15. TC-API-37 — `Asuransi` dengan `risk_event_id` memerlukan polis aktif, mengurangi tepat satu penggunaan, dan hanya membuat satu offset
+16. TC-API-38 — `GunakanOpsiDarurat` menghitung nominal server-side dan mengubah kebutuhan, emas, atau pinjaman secara atomik
 17. TC-API-39 — donasi Jumat kedua pemain pada hari yang sama ditolak dengan `DONATION_ALREADY_SUBMITTED`
 18. TC-API-40 — `JualEmas` membaca holding relasional, termasuk emas setup dan penjualan darurat
 19. TC-API-41 — produk pinjaman yang masih aktif tidak dapat diambil kembali; setelah `PAID` dapat dipakai lagi
 
 Catatan tambahan:
-- `BagikanMisiKoleksi.penalty_points` harus 10 (rulebook).
+- `SetupMisiAwal.penalty_points` harus 10 (rulebook).
 - `PinjamanSyariah.principal` harus 10 dan `penalty_points` harus 15.
 - `Asuransi.premium` harus sesuai katalog; penggunaan polis harus merujuk risiko `OUT` pending milik pemain serta memeriksa `ACTIVE` dan `remaining_uses`.
 

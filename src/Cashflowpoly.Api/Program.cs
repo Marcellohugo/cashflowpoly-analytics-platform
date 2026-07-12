@@ -247,7 +247,6 @@ builder.Services.AddScoped<IEventEconomyActionValidator, EventEconomyActionValid
 builder.Services.AddScoped<IEventAssignmentValidator, EventAssignmentValidator>();
 builder.Services.AddScoped<IEventDerivedStateCalculator, EventDerivedStateCalculator>();
 builder.Services.AddScoped<IEventPlayerBalanceCalculator, EventPlayerBalanceCalculator>();
-builder.Services.AddScoped<IEventInsuranceOffsetBuilder, EventInsuranceOffsetBuilder>();
 builder.Services.AddScoped<ICashTimelineCalculator, CashTimelineCalculator>();
 builder.Services.AddScoped<IDonationGameplayCalculator, DonationGameplayCalculator>();
 builder.Services.AddScoped<ISavingGoalCalculator, SavingGoalCalculator>();

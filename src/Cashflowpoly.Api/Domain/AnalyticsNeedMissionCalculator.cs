@@ -47,8 +47,7 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
                 }
             }
 
-            if ((string.Equals(evt.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(evt.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase)) &&
+            if (string.Equals(evt.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
                 _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));

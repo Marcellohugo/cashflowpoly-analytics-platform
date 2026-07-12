@@ -139,7 +139,7 @@ internal sealed class EventCashflowProjectionBuilder : IEventCashflowProjectionB
         }
         else if (string.Equals(action, "GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase) &&
                  _payloadReader.TryReadEmergencyOption(request.Payload, out _, out var emergencyOption, out var emergencyDirection, out var emergencyAmount) &&
-                 !string.Equals(emergencyOption, "USE_INSURANCE", StringComparison.OrdinalIgnoreCase))
+                 emergencyOption.ToUpperInvariant() is "SELL_NEED" or "SELL_GOLD" or "TAKE_SHARIA_LOAN")
         {
             direction = emergencyDirection.ToUpperInvariant();
             amount = emergencyAmount;

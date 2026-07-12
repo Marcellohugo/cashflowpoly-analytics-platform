@@ -2,6 +2,35 @@ create extension if not exists pgcrypto;
 
 begin;
 
+create temporary table seed_legacy_action_ids (
+    action_id text primary key
+) on commit drop;
+
+insert into seed_legacy_action_ids (action_id)
+values
+    ('BagikanEmasAwal'),
+    ('BagikanMisiKoleksi'),
+    ('KartuDiambilDariPasar')
+;
+
+delete from ruleset_actions legacy
+using seed_legacy_action_ids legacy_id
+where legacy.action_id = legacy_id.action_id
+and not exists (
+    select 1
+    from events event_log
+    where event_log.ruleset_action_id = legacy.ruleset_action_id
+);
+
+delete from actions legacy
+using seed_legacy_action_ids legacy_id
+where legacy.action_id = legacy_id.action_id
+and not exists (
+    select 1
+    from ruleset_actions ruleset_action
+    where ruleset_action.action_id = legacy.action_id
+);
+
 -- ============================================================-- 1. MASTER Action, INGREDIENT, DAN KOMPONEN-- ============================================================
 insert into
     actions (
@@ -306,18 +335,6 @@ values
         true
     ),
     (
-        'BagikanEmasAwal',
-        'Sistem: Bagikan Emas Awal',
-        'BagikanEmasAwal',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
         'BagikanTieBreaker',
         'Sistem: Bagikan Tie Breaker',
         'BagikanTieBreaker',
@@ -330,33 +347,9 @@ values
         true
     ),
     (
-        'BagikanMisiKoleksi',
-        'Sistem: Bagikan Misi Koleksi',
-        'BagikanMisiKoleksi',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
         'AmbilKartuDariDeck',
         'Sistem: Ambil Kartu dari Deck',
         'AmbilKartuDariDeck',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
-        'KartuDiambilDariPasar',
-        'Sistem: Kartu Diambil dari Pasar',
-        'KartuDiambilDariPasar',
         'BOTH',
         null,
         false,

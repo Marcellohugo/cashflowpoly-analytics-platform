@@ -24,6 +24,16 @@ public sealed class SessionEventProjector
         CancellationToken ct)
     {
         await UpdateSessionStateAsync(request, storedEvent.SessionPlayerId, conn, tx, ct);
+        var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload) ?? request.ActionType.Trim();
+
+        if (canonicalAction is GameActionCatalog.CardDrawn or GameActionCatalog.MarketRefilled)
+        {
+            await ProjectMarketRefillAsync(request, storedEvent.EventId, conn, tx, ct);
+        }
+        else if (canonicalAction == GameActionCatalog.CardDiscarded)
+        {
+            await ProjectCardDiscardAsync(request, storedEvent.EventId, conn, tx, ct);
+        }
 
         if (!storedEvent.SessionPlayerId.HasValue)
         {
@@ -60,22 +70,27 @@ public sealed class SessionEventProjector
                 ct);
         }
 
-        var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload) ?? request.ActionType.Trim();
         switch (canonicalAction)
         {
             case GameActionCatalog.BahanMasakan:
                 await ProjectIngredientPurchaseAsync(request, participantId, conn, tx, ct);
+                await TakeMarketCardAsync(request, participantId, "INGREDIENT", "card_id", conn, tx, ct);
                 break;
             case GameActionCatalog.IngredientDiscarded:
                 await ProjectIngredientDiscardAsync(request, participantId, conn, tx, ct);
+                await DiscardOwnedCardAsync(request, participantId, "INGREDIENT", "card_id", conn, tx, ct);
                 break;
             case GameActionCatalog.JualMasakan:
                 await ProjectOrderClaimAsync(request, participantId, conn, tx, ct);
+                await TakeMarketCardAsync(request, participantId, "ORDER", "order_card_id", conn, tx, ct);
+                await DiscardOwnedCardAsync(request, participantId, "ORDER", "order_card_id", conn, tx, ct);
+                await DiscardOrderIngredientsAsync(request, participantId, conn, tx, ct);
                 break;
             case GameActionCatalog.Kebutuhan:
                 await ProjectNeedPurchaseAsync(request, participantId, conn, tx, ct);
+                await TakeMarketCardAsync(request, participantId, "NEED", "card_id", conn, tx, ct);
                 break;
-            case GameActionCatalog.MissionAssigned:
+            case GameActionCatalog.SetupMisiAwal:
                 await ProjectMissionAssignmentAsync(request, participantId, conn, tx, ct);
                 break;
             case GameActionCatalog.JumatBerkah:
@@ -88,7 +103,7 @@ public sealed class SessionEventProjector
             case GameActionCatalog.JualEmas:
                 await ProjectGoldTradeAsync(request, participantId, conn, tx, ct);
                 break;
-            case GameActionCatalog.GoldInitialGranted:
+            case GameActionCatalog.SetupEmasAwal:
                 await ProjectInitialGoldAsync(request, participantId, conn, tx, ct);
                 break;
             case GameActionCatalog.GoldPointsAwarded:
@@ -136,6 +151,307 @@ public sealed class SessionEventProjector
         await UpdateProjectionCheckpointAsync(request.SessionId, storedEvent.SequenceNumber, storedEvent.EventId, conn, tx, ct);
     }
 
+    private static async Task ProjectMarketRefillAsync(
+        EventRequest request,
+        Guid eventId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!TryReadMarketReference(request.Payload, out var slotGroup, out var slotCode, out var assetType, out var assetCode))
+        {
+            return;
+        }
+
+        const string sql = """
+            select ensure_session_card_positions_initialized(@sessionId);
+
+            update session_card_positions position
+            set zone = 'MARKET',
+                slot_group = @slotGroup,
+                slot_code = @slotCode,
+                position_order = nullif(regexp_replace(@slotCode, '\D', '', 'g'), '')::int,
+                last_event_id = @eventId,
+                updated_at = now()
+            where position.card_position_id = (
+                select candidate.card_position_id
+                from session_card_positions candidate
+                join ruleset_game_assets asset
+                  on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+                 and asset.ruleset_version_id = candidate.ruleset_version_id
+                where candidate.session_id = @sessionId
+                  and candidate.status = 'ACTIVE'
+                  and candidate.zone in ('DECK', 'DISCARD')
+                  and asset.asset_type = upper(@assetType)
+                  and lower(asset.asset_code) = lower(@assetCode)
+                order by case candidate.zone when 'DECK' then 1 else 2 end,
+                         candidate.copy_number
+                limit 1
+            );
+
+            insert into session_card_positions (
+                card_instance_id, session_id, ruleset_version_id, ruleset_game_asset_id,
+                copy_number, zone, position_order, slot_code, slot_group, status, last_event_id
+            )
+            select
+                gen_random_uuid(), @sessionId, asset.ruleset_version_id, asset.ruleset_game_asset_id,
+                coalesce((
+                    select max(existing.copy_number) + 1
+                    from session_card_positions existing
+                    where existing.session_id = @sessionId
+                      and existing.ruleset_game_asset_id = asset.ruleset_game_asset_id
+                ), 1),
+                'MARKET', nullif(regexp_replace(@slotCode, '\D', '', 'g'), '')::int,
+                @slotCode, @slotGroup, 'ACTIVE', @eventId
+            from ruleset_game_assets asset
+            where asset.ruleset_version_id = @rulesetVersionId
+              and asset.asset_type = 'INGREDIENT'
+              and lower(asset.asset_code) = lower(@assetCode)
+              and asset.is_active
+              and not exists (
+                  select 1
+                  from session_card_positions existing
+                  where existing.session_id = @sessionId
+                    and existing.zone = 'MARKET'
+                    and existing.status = 'ACTIVE'
+                    and existing.slot_group = @slotGroup
+                    and existing.slot_code = @slotCode
+              )
+            limit 1;
+            """;
+
+        await conn.ExecuteAsync(new CommandDefinition(
+            sql,
+            new
+            {
+                sessionId = request.SessionId,
+                rulesetVersionId = request.RulesetVersionId,
+                slotGroup,
+                slotCode,
+                assetType,
+                assetCode,
+                eventId
+            },
+            tx,
+            cancellationToken: ct));
+    }
+
+    private static async Task ProjectCardDiscardAsync(
+        EventRequest request,
+        Guid eventId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        var slotGroup = request.Payload.TryGetProperty("slot_group", out var groupValue) ? groupValue.GetString() : null;
+        var slotCode = request.Payload.TryGetProperty("slot_code", out var slotValue) ? slotValue.GetString() : null;
+        var assetType = request.Payload.TryGetProperty("asset_type", out var typeValue) ? typeValue.GetString() : null;
+        var assetCode = request.Payload.TryGetProperty("asset_code", out var codeValue) ? codeValue.GetString() : null;
+        var hasSlot = !string.IsNullOrWhiteSpace(slotGroup) && !string.IsNullOrWhiteSpace(slotCode);
+        var hasAsset = !string.IsNullOrWhiteSpace(assetType) && !string.IsNullOrWhiteSpace(assetCode);
+        if (!hasSlot && !hasAsset)
+        {
+            return;
+        }
+
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update session_card_positions position
+            set zone = 'DISCARD',
+                owner_session_participant_id = null,
+                slot_group = null,
+                slot_code = null,
+                last_event_id = @eventId,
+                updated_at = now()
+            where position.card_position_id = (
+                select candidate.card_position_id
+                from session_card_positions candidate
+                join ruleset_game_assets asset
+                  on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+                 and asset.ruleset_version_id = candidate.ruleset_version_id
+                where candidate.session_id = @sessionId
+                  and candidate.zone <> 'DISCARD'
+                  and candidate.status = 'ACTIVE'
+                  and (
+                    (@hasSlot and candidate.zone = 'MARKET' and candidate.slot_group = @slotGroup and candidate.slot_code = @slotCode)
+                    or (not @hasSlot and asset.asset_type = upper(@assetType) and lower(asset.asset_code) = lower(@assetCode))
+                  )
+                order by case candidate.zone when 'MARKET' then 1 when 'PLAYER' then 2 else 3 end,
+                         candidate.copy_number
+                limit 1
+            );
+            """,
+            new
+            {
+                sessionId = request.SessionId,
+                hasSlot,
+                slotGroup,
+                slotCode,
+                assetType,
+                assetCode,
+                eventId
+            },
+            tx,
+            cancellationToken: ct));
+    }
+
+    private static async Task TakeMarketCardAsync(
+        EventRequest request,
+        Guid participantId,
+        string assetType,
+        string payloadProperty,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!request.Payload.TryGetProperty(payloadProperty, out var codeValue) ||
+            string.IsNullOrWhiteSpace(codeValue.GetString()))
+        {
+            return;
+        }
+
+        var affected = await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update session_card_positions position
+            set zone = 'PLAYER',
+                owner_session_participant_id = @participantId,
+                slot_group = null,
+                slot_code = null,
+                last_event_id = @eventId,
+                updated_at = now()
+            where position.card_position_id = (
+                select candidate.card_position_id
+                from session_card_positions candidate
+                join ruleset_game_assets asset
+                  on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+                 and asset.ruleset_version_id = candidate.ruleset_version_id
+                where candidate.session_id = @sessionId
+                  and candidate.zone = 'MARKET'
+                  and candidate.status = 'ACTIVE'
+                  and asset.asset_type = @assetType
+                  and lower(asset.asset_code) = lower(@assetCode)
+                order by candidate.slot_code
+                limit 1
+            );
+            """,
+            new
+            {
+                sessionId = request.SessionId,
+                participantId,
+                assetType,
+                assetCode = codeValue.GetString(),
+                eventId = request.EventId
+            },
+            tx,
+            cancellationToken: ct));
+
+        if (affected != 1)
+        {
+            throw new InvalidOperationException($"Kartu {assetType}/{codeValue.GetString()} tidak tersedia di pasar.");
+        }
+    }
+
+    private static async Task DiscardOwnedCardAsync(
+        EventRequest request,
+        Guid participantId,
+        string assetType,
+        string payloadProperty,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!request.Payload.TryGetProperty(payloadProperty, out var codeValue) ||
+            string.IsNullOrWhiteSpace(codeValue.GetString()))
+        {
+            return;
+        }
+
+        var quantity = request.Payload.TryGetProperty("amount", out var amountValue) && amountValue.TryGetInt32(out var amount)
+            ? Math.Max(1, amount)
+            : 1;
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update session_card_positions position
+            set zone = 'DISCARD',
+                owner_session_participant_id = null,
+                last_event_id = @eventId,
+                updated_at = now()
+            where position.card_position_id in (
+                select candidate.card_position_id
+                from session_card_positions candidate
+                join ruleset_game_assets asset
+                  on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+                 and asset.ruleset_version_id = candidate.ruleset_version_id
+                where candidate.session_id = @sessionId
+                  and candidate.owner_session_participant_id = @participantId
+                  and candidate.zone = 'PLAYER'
+                  and candidate.status = 'ACTIVE'
+                  and asset.asset_type = @assetType
+                  and lower(asset.asset_code) = lower(@assetCode)
+                order by candidate.copy_number
+                limit @quantity
+            );
+            """,
+            new
+            {
+                sessionId = request.SessionId,
+                participantId,
+                assetType,
+                assetCode = codeValue.GetString(),
+                quantity,
+                eventId = request.EventId
+            },
+            tx,
+            cancellationToken: ct));
+    }
+
+    private async Task DiscardOrderIngredientsAsync(
+        EventRequest request,
+        Guid participantId,
+        NpgsqlConnection conn,
+        NpgsqlTransaction tx,
+        CancellationToken ct)
+    {
+        if (!_payloadReader.TryReadOrderClaim(request.Payload, out var requiredCards, out _))
+        {
+            return;
+        }
+
+        foreach (var cardId in requiredCards)
+        {
+            using var payload = System.Text.Json.JsonDocument.Parse($$"""{"card_id":"{{cardId}}","amount":1}""");
+            await DiscardOwnedCardAsync(
+                request with { Payload = payload.RootElement.Clone() },
+                participantId,
+                "INGREDIENT",
+                "card_id",
+                conn,
+                tx,
+                ct);
+        }
+    }
+
+    private static bool TryReadMarketReference(
+        System.Text.Json.JsonElement payload,
+        out string slotGroup,
+        out string slotCode,
+        out string assetType,
+        out string assetCode)
+    {
+        slotGroup = string.Empty;
+        slotCode = string.Empty;
+        assetType = string.Empty;
+        assetCode = string.Empty;
+        return payload.TryGetProperty("slot_group", out var group) &&
+               payload.TryGetProperty("slot_code", out var slot) &&
+               payload.TryGetProperty("asset_type", out var type) &&
+               payload.TryGetProperty("asset_code", out var code) &&
+               !string.IsNullOrWhiteSpace(slotGroup = group.GetString() ?? string.Empty) &&
+               !string.IsNullOrWhiteSpace(slotCode = slot.GetString() ?? string.Empty) &&
+               !string.IsNullOrWhiteSpace(assetType = type.GetString() ?? string.Empty) &&
+               !string.IsNullOrWhiteSpace(assetCode = code.GetString() ?? string.Empty);
+    }
+
     private async Task ProjectEmergencyOptionAsync(
         EventRequest request,
         Guid participantId,
@@ -152,15 +468,13 @@ public sealed class SessionEventProjector
         {
             case "SELL_NEED":
                 await ProjectEmergencyNeedSaleAsync(request, participantId, conn, tx, ct);
+                await DiscardOwnedCardAsync(request, participantId, "NEED", "card_id", conn, tx, ct);
                 break;
             case "SELL_GOLD":
                 await ProjectEmergencyGoldSaleAsync(request, participantId, conn, tx, ct);
                 break;
             case "TAKE_SHARIA_LOAN":
                 await ProjectLoanTakenAsync(request, participantId, conn, tx, ct);
-                break;
-            case "USE_INSURANCE":
-                await ProjectInsuranceUsedAsync(request, participantId, conn, tx, ct);
                 break;
         }
     }

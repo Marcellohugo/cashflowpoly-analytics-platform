@@ -258,14 +258,11 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - SetupMisiAwal
 - SetupPinjamanAwal
 - SetupAsuransiAwal
-- BagikanEmasAwal
 - AmbilKartuDariDeck
-- KartuDiambilDariPasar
 - KartuMasukDiscard
 - IsiUlangPasar
 
 ### 10.8 Event misi dan skor
-- BagikanMisiKoleksi
 - PoinPeringkatDonasi
 - PoinEmas
 - PoinPeringkatPensiun

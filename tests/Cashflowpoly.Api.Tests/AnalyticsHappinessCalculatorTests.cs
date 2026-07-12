@@ -128,7 +128,7 @@ public sealed class AnalyticsHappinessCalculatorTests
     }
 
     [Fact]
-    public void ComputeByPlayer_ScoresGoldInRepeatingBestSets()
+    public void ComputeByPlayer_CapsGoldScoreAtHighestRulebookTier()
     {
         var playerId = Guid.NewGuid();
         var events = new List<EventDb>
@@ -142,7 +142,7 @@ public sealed class AnalyticsHappinessCalculatorTests
 
         var byPlayer = new HappinessCalculator().ComputeByPlayer(events, [], config);
 
-        Assert.Equal(15, byPlayer[playerId].GoldPoints);
+        Assert.Equal(12, byPlayer[playerId].GoldPoints);
     }
 
     private static EventDb BuildEvent(string actionType, string payload)

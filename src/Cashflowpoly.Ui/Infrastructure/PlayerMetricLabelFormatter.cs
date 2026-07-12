@@ -156,7 +156,7 @@ public static class PlayerMetricLabelFormatter
             "LOAN_TAKEN" => translate("players.details.transaction.category.loan_taken"),
             "LOAN_REPAID" => translate("players.details.transaction.category.loan_repaid"),
             "INSURANCE_PREMIUM" => translate("players.details.transaction.category.insurance_premium"),
-            "INSURANCE_CLAIM" => translate("players.details.transaction.category.insurance_claim"),
+            "INSURANCE_OFFSET" => translate("players.details.transaction.category.insurance_claim"),
             "EMERGENCY_OPTION" => translate("players.details.transaction.category.emergency_option"),
             _ => string.Empty
         };

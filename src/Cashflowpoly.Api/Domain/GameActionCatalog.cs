@@ -43,11 +43,8 @@ internal static class GameActionCatalog
     public const string SetupMisiAwal = "SetupMisiAwal";
     public const string SetupPinjamanAwal = "SetupPinjamanAwal";
     public const string SetupAsuransiAwal = "SetupAsuransiAwal";
-    public const string GoldInitialGranted = "BagikanEmasAwal";
     public const string TieBreakerAssigned = "BagikanTieBreaker";
-    public const string MissionAssigned = "BagikanMisiKoleksi";
     public const string CardDrawn = "AmbilKartuDariDeck";
-    public const string CardTaken = "KartuDiambilDariPasar";
     public const string CardDiscarded = "KartuMasukDiscard";
     public const string MarketRefilled = "IsiUlangPasar";
     public const string SessionStarted = "MulaiSesi";
@@ -107,12 +104,9 @@ internal static class GameActionCatalog
             return false;
         }
 
-        return (payload.TryGetProperty("risk_event_id", out var id) &&
-                id.ValueKind == JsonValueKind.String &&
-                Guid.TryParse(id.GetString(), out _)) ||
-               (payload.TryGetProperty("risk_event_ref", out var reference) &&
-                reference.ValueKind == JsonValueKind.String &&
-                Guid.TryParse(reference.GetString(), out _));
+        return payload.TryGetProperty("risk_event_id", out var id) &&
+               id.ValueKind == JsonValueKind.String &&
+               Guid.TryParse(id.GetString(), out _);
     }
 
     private static string? ResolveCanonicalGameAction(string actionType)
@@ -148,14 +142,11 @@ internal static class GameActionCatalog
             "setupmodalawal" => SetupModalAwal,
             "setupbahanawal" => SetupBahanAwal,
             "setupemasawal" => SetupEmasAwal,
-            "bagikanemasawal" => GoldInitialGranted,
             "setupmisiawal" => SetupMisiAwal,
-            "bagikanmisikoleksi" => MissionAssigned,
             "setuppinjamanawal" => SetupPinjamanAwal,
             "setupasuransiawal" => SetupAsuransiAwal,
             "bagikantiebreaker" => TieBreakerAssigned,
             "ambilkartudarideck" => CardDrawn,
-            "kartudiambildaripasar" => CardTaken,
             "kartumasukdiscard" => CardDiscarded,
             "isiulangpasar" => MarketRefilled,
             "mulaisesi" => SessionStarted,

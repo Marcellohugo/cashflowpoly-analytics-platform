@@ -105,8 +105,8 @@ public static class SessionTimelineMapper
             return L(language, "Aktivitas", "Activity");
         }
 
-        if (actionType is "MulaiSesi" or "AkhiriSesi" or "BagikanEmasAwal" or "BagikanTieBreaker" or
-            "AmbilKartuDariDeck" or "KartuDiambilDariPasar" or "KartuMasukDiscard" or "IsiUlangPasar")
+        if (actionType is "MulaiSesi" or "AkhiriSesi" or "BagikanTieBreaker" or
+            "AmbilKartuDariDeck" or "KartuMasukDiscard" or "IsiUlangPasar")
         {
             return L(language, "Setup", "Setup");
         }
@@ -136,7 +136,7 @@ public static class SessionTimelineMapper
             return L(language, "Tabungan", "Saving");
         }
 
-        if (actionType is "BagikanMisiKoleksi")
+        if (actionType is "SetupMisiAwal")
         {
             return L(language, "Misi", "Mission");
         }
@@ -646,8 +646,7 @@ public static class SessionTimelineMapper
     /// <returns>Deskripsi penggunaan asuransi dalam bahasa yang sesuai.</returns>
     private static string DescribeInsuranceUse(JsonElement payload, string language)
     {
-        if (!TryGetString(payload, "risk_event_id", out var riskEventId) &&
-            !TryGetString(payload, "risk_event_ref", out riskEventId))
+        if (!TryGetString(payload, "risk_event_id", out var riskEventId))
         {
             return BuildGenericDescription("Asuransi", payload, language);
         }
@@ -660,8 +659,7 @@ public static class SessionTimelineMapper
 
     private static bool IsInsuranceUse(JsonElement payload)
     {
-        return TryGetString(payload, "risk_event_id", out _) ||
-               TryGetString(payload, "risk_event_ref", out _);
+        return TryGetString(payload, "risk_event_id", out _);
     }
 
     /// <summary>

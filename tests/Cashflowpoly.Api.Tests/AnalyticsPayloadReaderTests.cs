@@ -55,7 +55,7 @@ public sealed class AnalyticsPayloadReaderTests
     [InlineData("BahanMasakan", true)]
     [InlineData("turn.action.used", false)]
     [InlineData("rank.awarded", false)]
-    [InlineData("BagikanMisiKoleksi", false)]
+    [InlineData("SetupMisiAwal", false)]
     /// <summary>
     /// Memvalidasi klasifikasi event gameplay substantif.
     /// </summary>

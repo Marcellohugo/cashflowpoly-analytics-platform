@@ -68,5 +68,6 @@ public interface IEventAssignmentValidator
     bool TryValidate(
         EventRequest request,
         IEnumerable<EventDb> history,
+        int participantCount,
         out EventDomainValidationResult result);
 }

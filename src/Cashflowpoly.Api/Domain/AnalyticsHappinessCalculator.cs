@@ -120,8 +120,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 }
             }
 
-            if ((string.Equals(evt.ActionType, "BagikanMisiKoleksi", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(evt.ActionType, "SetupMisiAwal", StringComparison.OrdinalIgnoreCase)) &&
+            if (string.Equals(evt.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
                 _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
             {
                 missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
@@ -308,7 +307,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 (e.ActionType == GameActionCatalog.InvestasiEmas ||
                  e.ActionType == GameActionCatalog.JualEmas ||
                  e.ActionType == GameActionCatalog.SetupEmasAwal ||
-                 e.ActionType == GameActionCatalog.GoldInitialGranted ||
                  IsEmergencyOption(e.Payload, "SELL_GOLD")) &&
                 e.UserId.HasValue)
             .GroupBy(e => e.UserId!.Value)
@@ -316,8 +314,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 g => g.Key,
                 g => g.Sum(e =>
                 {
-                    if (e.ActionType == GameActionCatalog.SetupEmasAwal ||
-                        e.ActionType == GameActionCatalog.GoldInitialGranted)
+                    if (e.ActionType == GameActionCatalog.SetupEmasAwal)
                     {
                         return TryReadInt32(e.Payload, "qty", out var initialQty) ? initialQty : 1;
                     }
@@ -528,11 +525,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             }
             return bestPoints;
         }
-        else
-        {
-            var maxTablePoints = table.First(x => x.Qty == maxTableQty).Points;
-            return maxTablePoints + ResolvePointsByQty(qty - maxTableQty, table);
-        }
+        return table.First(x => x.Qty == maxTableQty).Points;
     }
 
     public double SumRankAwarded(IEnumerable<EventDb> events, string actionType)

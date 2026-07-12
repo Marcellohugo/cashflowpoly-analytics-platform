@@ -227,6 +227,21 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Amount tidak sesuai unit_price * qty");
         }
 
+        var activePriceEvent = history
+            .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.GoldPriceOpened) &&
+                        e.DayIndex == request.DayIndex)
+            .OrderByDescending(e => e.SequenceNumber)
+            .FirstOrDefault();
+        if (activePriceEvent is null ||
+            !_payloadReader.TryGetInt32(_payloadReader.ReadPayload(activePriceEvent.Payload), "gold_price", out var activePrice) ||
+            activePrice != unitPrice)
+        {
+            return Fail(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "Harga emas harus berasal dari BukaHargaEmas pada hari transaksi");
+        }
+
         var goldTradeOpened = false;
         foreach (var evt in history)
         {
@@ -280,8 +295,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         RulesetConfig config,
         IEnumerable<EventDb> history)
     {
-        if ((!_payloadReader.TryGetString(request.Payload, "risk_event_id", out var riskEventIdText) &&
-             !_payloadReader.TryGetString(request.Payload, "risk_event_ref", out riskEventIdText)) ||
+        if (!_payloadReader.TryGetString(request.Payload, "risk_event_id", out var riskEventIdText) ||
             !Guid.TryParse(riskEventIdText, out var riskEventId))
         {
             return false;

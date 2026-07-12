@@ -15,14 +15,14 @@ public sealed class EventAssignmentValidatorTests
         var playerId = Guid.NewGuid();
         var request = CreateRequest(
             playerId,
-            "BagikanMisiKoleksi",
+            "SetupMisiAwal",
             """{"mission_id":"m-1","target_tertiary_card_id":"bike","penalty_points":10}""");
         var history = new[]
         {
-            CreateEvent(playerId, "BagikanMisiKoleksi", """{"mission_id":"m-old","target_tertiary_card_id":"phone","penalty_points":10}""")
+            CreateEvent(playerId, "SetupMisiAwal", """{"mission_id":"m-old","target_tertiary_card_id":"phone","penalty_points":10}""")
         };
 
-        var handled = new EventAssignmentValidator().TryValidate(request, history, out var result);
+        var handled = new EventAssignmentValidator().TryValidate(request, history, 4, out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -35,10 +35,23 @@ public sealed class EventAssignmentValidatorTests
     {
         var request = CreateRequest(Guid.NewGuid(), "BagikanTieBreaker", """{"number":3}""");
 
-        var handled = new EventAssignmentValidator().TryValidate(request, Array.Empty<EventDb>(), out var result);
+        var handled = new EventAssignmentValidator().TryValidate(request, Array.Empty<EventDb>(), 4, out var result);
 
         Assert.True(handled);
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void TryValidate_TieBreakerRejectsNumberOutsideParticipantRange()
+    {
+        var request = CreateRequest(Guid.NewGuid(), "BagikanTieBreaker", """{"number":5}""");
+
+        var handled = new EventAssignmentValidator().TryValidate(request, Array.Empty<EventDb>(), 4, out var result);
+
+        Assert.True(handled);
+        Assert.False(result.IsValid);
+        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.StatusCode);
+        Assert.Equal("payload.number", Assert.Single(result.Details).Field);
     }
 
     private static EventRequest CreateRequest(Guid playerId, string actionType, string payloadJson)

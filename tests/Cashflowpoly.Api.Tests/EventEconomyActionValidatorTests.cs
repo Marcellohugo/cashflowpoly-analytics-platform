@@ -58,7 +58,7 @@ public sealed class EventEconomyActionValidatorTests
             weekday: "SAT");
         var history = new[]
         {
-            CreateEvent(playerId, "InvestasiEmas", """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5}""")
+            CreateEvent(playerId, "BukaHargaEmas", """{"gold_price":5}""", sessionId: request.SessionId)
         };
 
         var handled = new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
@@ -77,6 +77,7 @@ public sealed class EventEconomyActionValidatorTests
             weekday: "MON");
         var history = new[]
         {
+            CreateEvent(request.UserId!.Value, "BukaHargaEmas", """{"gold_price":5}""", sessionId: request.SessionId),
             CreateEvent(
                 request.UserId!.Value,
                 "RisikoKehidupan",
@@ -90,6 +91,27 @@ public sealed class EventEconomyActionValidatorTests
         Assert.True(handled);
         Assert.True(result.Validation.IsValid);
         Assert.Equal(5, result.OutgoingAmount);
+    }
+
+    [Fact]
+    public void TryValidate_GoldTradeRejectsPriceFromPreviousSaturday()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest(
+            "InvestasiEmas",
+            """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5}""",
+            playerId,
+            weekday: "SAT",
+            dayIndex: 13);
+        var history = new[]
+        {
+            CreateEvent(playerId, "BukaHargaEmas", """{"gold_price":5}""", sessionId: request.SessionId, dayIndex: 6)
+        };
+
+        new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Equal(StatusCodes.Status422UnprocessableEntity, result.Validation.StatusCode);
     }
 
     [Fact]
@@ -110,7 +132,8 @@ public sealed class EventEconomyActionValidatorTests
         string actionType,
         string payloadJson,
         Guid? playerId = null,
-        string weekday = "MON")
+        string weekday = "MON",
+        int dayIndex = 0)
     {
         using var document = JsonDocument.Parse(payloadJson);
         return new EventRequest(
@@ -119,7 +142,7 @@ public sealed class EventEconomyActionValidatorTests
             playerId ?? Guid.NewGuid(),
             "PLAYER",
             new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
-            0,
+            dayIndex,
             weekday,
             1,
             0,
@@ -134,7 +157,8 @@ public sealed class EventEconomyActionValidatorTests
         string actionType,
         string payload,
         Guid? eventId = null,
-        Guid? sessionId = null)
+        Guid? sessionId = null,
+        int dayIndex = 0)
     {
         return new EventDb
         {
@@ -143,7 +167,7 @@ public sealed class EventEconomyActionValidatorTests
             UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
-            DayIndex = 0,
+            DayIndex = dayIndex,
             Weekday = "SAT",
             ActionSlot = 1,
             SequenceNumber = 1,

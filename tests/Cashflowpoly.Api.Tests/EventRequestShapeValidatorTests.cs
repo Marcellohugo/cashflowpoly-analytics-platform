@@ -193,7 +193,7 @@ public sealed class EventRequestShapeValidatorTests
     [InlineData("PinjamanSyariah")]
     public void Validate_AcceptsPlayerActionSlotZeroForRiskResponses(string actionType)
     {
-        using var document = JsonDocument.Parse("""{"risk_event_ref":"95000000-0000-0000-0000-000000000123"}""");
+        using var document = JsonDocument.Parse("""{"risk_event_id":"95000000-0000-0000-0000-000000000123"}""");
         var request = CreateRequest() with
         {
             ActionType = actionType,

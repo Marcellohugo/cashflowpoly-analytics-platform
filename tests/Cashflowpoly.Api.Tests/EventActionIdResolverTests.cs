@@ -33,11 +33,8 @@ public sealed class EventActionIdResolverTests
     [InlineData("UmumkanJuaraDonasi")]
     [InlineData("PoinEmas")]
     [InlineData("PoinPeringkatPensiun")]
-    [InlineData("BagikanEmasAwal")]
     [InlineData("BagikanTieBreaker")]
-    [InlineData("BagikanMisiKoleksi")]
     [InlineData("AmbilKartuDariDeck")]
-    [InlineData("KartuDiambilDariPasar")]
     [InlineData("KartuMasukDiscard")]
     [InlineData("IsiUlangPasar")]
     [InlineData("MulaiSesi")]
@@ -68,6 +65,9 @@ public sealed class EventActionIdResolverTests
     [InlineData("day.saturday.gold_trade")]
     [InlineData("session.started")]
     [InlineData("turn.ended")]
+    [InlineData("BagikanEmasAwal")]
+    [InlineData("BagikanMisiKoleksi")]
+    [InlineData("KartuDiambilDariPasar")]
     public void Resolve_ReturnsNull_ForRemovedTechnicalActionTypes(string actionType)
     {
         var resolved = EventActionIdResolver.Resolve(actionType, Parse("""{"trade_type":"SELL"}"""));

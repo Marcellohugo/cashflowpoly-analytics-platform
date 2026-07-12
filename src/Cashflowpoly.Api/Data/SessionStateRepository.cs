@@ -255,10 +255,12 @@ public sealed class SessionStateRepository
         CancellationToken ct)
     {
         var ingredients = definition.Ingredients.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
+        var orders = definition.Orders.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
+        var needs = definition.Needs.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
         var missions = definition.CollectionMissions.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
-        if (ingredients.Count == 0 || missions.Count == 0)
+        if (ingredients.Count == 0 || orders.Count == 0 || needs.Count == 0 || missions.Count == 0)
         {
-            throw new InvalidOperationException("Ruleset wajib memiliki bahan dan misi untuk setup pemain.");
+            throw new InvalidOperationException("Ruleset wajib memiliki bahan, pesanan, kebutuhan, dan misi untuk setup sesi.");
         }
 
         var tieBreakers = definition.TieBreakers.OrderBy(item => item.TieNumber).ToList();
@@ -356,6 +358,40 @@ public sealed class SessionStateRepository
                     setup = "INITIAL"
                 },
                 timestamp, ct);
+        }
+
+        var marketGroups = new[]
+        {
+            (
+                SlotGroup: "INGREDIENT_MARKET",
+                AssetType: "INGREDIENT",
+                Codes: ingredients.SelectMany(item => Enumerable.Repeat(item.Id, 2)).Take(5).ToList()),
+            (
+                SlotGroup: "ORDER_MARKET",
+                AssetType: "ORDER",
+                Codes: orders.SelectMany(item => Enumerable.Repeat(item.Id, Math.Max(1, item.CardQty ?? 1))).Take(5).ToList()),
+            (
+                SlotGroup: "NEED_MARKET",
+                AssetType: "NEED",
+                Codes: needs.Select(item => item.Id).Take(5).ToList())
+        };
+        foreach (var market in marketGroups)
+        {
+            for (var index = 0; index < market.Codes.Count; index++)
+            {
+                await InsertAndProjectSetupEventAsync(
+                    conn, tx, sessionId, rulesetVersionId, null, null,
+                    sequence++, GameActionCatalog.CardDrawn,
+                    new
+                    {
+                        setup = "INITIAL_MARKET",
+                        slot_group = market.SlotGroup,
+                        slot_code = $"SLOT_{index + 1}",
+                        asset_type = market.AssetType,
+                        asset_code = market.Codes[index]
+                    },
+                    timestamp, ct);
+            }
         }
 
         return sequence;

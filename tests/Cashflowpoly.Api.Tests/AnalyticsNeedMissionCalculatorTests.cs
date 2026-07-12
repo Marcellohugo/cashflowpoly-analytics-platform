@@ -16,7 +16,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
             CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"rice","amount":3,"points":1}"""),
             CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"book","amount":4,"points":1}"""),
             CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"bike","amount":7,"points":2}"""),
-            CreateEvent(playerId, sessionId, "BagikanMisiKoleksi", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
+            CreateEvent(playerId, sessionId, "SetupMisiAwal", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -74,7 +74,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
             CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"book","amount":4,"points":1}"""),
             CreateEvent(playerId, sessionId, "Kebutuhan", """{"card_id":"bike","amount":7,"points":2}"""),
             CreateEvent(playerId, sessionId, "GunakanOpsiDarurat", """{"option_type":"SELL_NEED","direction":"IN","amount":3,"card_id":"bike"}"""),
-            CreateEvent(playerId, sessionId, "BagikanMisiKoleksi", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
+            CreateEvent(playerId, sessionId, "SetupMisiAwal", """{"mission_id":"mission-1","target_tertiary_card_id":"bike","penalty_points":10,"require_primary":true,"require_secondary":true}""")
         };
 
         var metrics = new NeedMissionCalculator().Compute(events, Array.Empty<CashflowProjectionDb>());

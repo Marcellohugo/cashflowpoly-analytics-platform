@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.5` tanggal 12 Juli 2026.
+Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.6` tanggal 12 Juli 2026.
 
 Cakupan laporan ini:
 - verifikasi teknis otomatis (build, test, docker compose, uji asap, uji beban dasar),
@@ -50,9 +50,9 @@ Kriteria fitur inti tercapai dan seluruh suite otomatis berstatus hijau.
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
 | Build solusi | `dotnet build Cashflowpoly.sln --no-restore --nologo` | PASS | 0 warning, 0 error |
-| Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-build --no-restore` | PASS | 283/283 test lulus |
+| Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-build --no-restore` | PASS | 286/286 test lulus |
 | Uji UI penuh | `dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj --no-build --no-restore` | PASS | 103/103 test lulus |
-| Uji solution penuh | `dotnet test Cashflowpoly.sln --no-build --no-restore --nologo` | PASS | total 386/386 test lulus |
+| Uji solution penuh | `dotnet test Cashflowpoly.sln --no-build --no-restore --nologo` | PASS | total 389/389 test lulus |
 | Uji Seed 2 | filter `ManualSimulationSeedIntegrationTests` | PASS | bootstrap dan replay dua mode lulus |
 | Menjalankan compose watch | `docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build` | PASS | service `db`, `api`, `ui` healthy; API/UI health `200` |
 | Uji asap API ujung-ke-ujung | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |

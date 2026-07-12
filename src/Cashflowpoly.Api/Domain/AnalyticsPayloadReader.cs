@@ -111,9 +111,7 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
                !actionType.Equals(GameActionCatalog.DonationWinnersAnnounced, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.GoldPointsAwarded, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.PensionRankAwarded, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.GoldInitialGranted, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.TieBreakerAssigned, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.MissionAssigned, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.SetupModalAwal, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.SetupBahanAwal, StringComparison.OrdinalIgnoreCase) &&
                !actionType.Equals(GameActionCatalog.SetupEmasAwal, StringComparison.OrdinalIgnoreCase) &&

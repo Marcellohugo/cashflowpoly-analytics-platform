@@ -352,9 +352,28 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("v_active_gold_price", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("BukaHargaEmas", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Kepemilikan emas tidak cukup", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Matches(@"upper\(v_event\.payload\s*->>\s*'option_type'\)\s*=\s*'USE_INSURANCE'", projectorBody);
+        Assert.DoesNotContain("USE_INSURANCE", projectorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Matches(@"upper\(v_event\.payload\s*->>\s*'option_type'\)\s*=\s*'SELL_GOLD'", projectorBody);
         Assert.DoesNotContain("when v_event.action_type = 'GunakanOpsiDarurat' then upper(nullif(v_event.payload->>'direction", projectorBody, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CanonicalSchema_ShouldUseLogicalIngredientDeckAndAtomicInsuranceClaims()
+    {
+        var schemaPath = Path.Combine(RepoRoot, "database", "00_create_schema.sql");
+        var schemaContent = File.ReadAllText(schemaPath);
+        var cardPositionValidator = ExtractFunction(schemaContent, "enforce_session_card_position_catalog");
+        var scopeValidator = ExtractFunction(schemaContent, "enforce_event_session_scope");
+        var projector = ExtractFunction(schemaContent, "project_session_event");
+
+        Assert.Contains("v_item_type <> 'INGREDIENT'", cardPositionValidator, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("new.copy_number > coalesce(v_card_qty, 0)", cardPositionValidator, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("and zone in ('DECK', 'DISCARD')", scopeValidator, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("and zone in ('DECK', 'DISCARD', 'MARKET')", scopeValidator, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("candidate.remaining_uses > 0", projector, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("v_updated_insurances <> 1", projector, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'INSURANCE_OFFSET'", projector, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("USE_INSURANCE", scopeValidator, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -566,9 +585,15 @@ public sealed class BootstrapAssetConsistencyTests
         AssertSqlContains("insert into ruleset_life_risks", seedContent);
         AssertSqlContains("insert into ruleset_narratives", seedContent);
         AssertSqlContains("insert into ruleset_narrative_scenes", seedContent);
+        Assert.Contains("delete from ruleset_actions legacy", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("delete from actions legacy", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("BagikanEmasAwal", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("BagikanMisiKoleksi", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(Regex.Matches(seedContent, "BagikanEmasAwal", RegexOptions.IgnoreCase));
+        Assert.Single(Regex.Matches(seedContent, "BagikanMisiKoleksi", RegexOptions.IgnoreCase));
         Assert.Contains("AmbilKartuDariDeck", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("KartuDiambilDariPasar", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(Regex.Matches(seedContent, "KartuDiambilDariPasar", RegexOptions.IgnoreCase));
         Assert.Contains("KartuMasukDiscard", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("IsiUlangPasar", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("gold.initial.granted", seedContent, StringComparison.OrdinalIgnoreCase);

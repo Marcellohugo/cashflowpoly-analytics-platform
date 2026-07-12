@@ -2,7 +2,7 @@
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan penguncian `ruleset_version_id` pada sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
 
-Baseline dokumentasi ini mengikuti implementasi aktual per 12 Juli 2026 dengan schema `3.0.5`.
+Baseline dokumentasi ini mengikuti implementasi aktual per 12 Juli 2026 dengan schema `3.0.6`.
 
 ## Tujuan
 Tujuan utama:
@@ -229,6 +229,10 @@ Catatan keamanan lokal:
 - Setiap kartu pinjaman memakai `loan_instance_id`; beberapa instance produk yang sama dapat aktif selama stok fisik `card_qty` sesi tersedia, dan pelunasan menutup satu instance penuh.
 - Aksi gratis dan event sistem memakai `action_slot=0`; aksi reguler pemain memakai `1..actions_per_turn` sesuai `GameActionCatalog`.
 - Risiko `OUT` Mode Mahir disimpan pending dan diselesaikan melalui `BayarRisiko`, asuransi aktif, atau `GunakanOpsiDarurat`. Nominal opsi darurat dihitung server.
+- Penggunaan asuransi hanya memakai event `Asuransi` dengan `risk_event_id`; satu klaim mengurangi tepat satu `remaining_uses` polis aktif dan membuat pasangan `INSURANCE_OFFSET IN` serta `RISK_LIFE OUT` secara atomik.
+- `GunakanOpsiDarurat` hanya menerima `SELL_NEED`, `SELL_GOLD`, atau `TAKE_SHARIA_LOAN`; `direction` dan `amount` tidak dipercaya dari klien.
+- Pembelian bahan/kebutuhan dan klaim pesanan harus merujuk kartu yang sedang berada di pasar. Refill memakai kartu `DECK`/`DISCARD`; khusus bahan masakan, jumlah kartu deck tidak dihitung dan posisi logis baru dapat dibuat saat deck/discard kosong.
+- Harga transaksi emas wajib berasal dari `BukaHargaEmas` pada hari yang sama. Syarat Primer bersifat historis, tie breaker dibatasi `1..jumlah pemain`, dan skor emas di atas empat kartu berhenti pada tier tertinggi ruleset.
 - Donasi Jumat dibatasi satu kali per pemain per hari serta tetap `SEALED` sampai semua pemain mengirim; validasi jual emas memakai `session_participant_gold_holdings`.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 Rute UI utama:

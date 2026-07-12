@@ -81,7 +81,7 @@ Catatan:
 - `action_slot` minimal `0`.
 - Event `SYSTEM` selalu memakai `turn_number=0` dan `action_slot=0`.
 - Aksi gratis pemain memakai `action_slot=0`: `JumatBerkah`, `RisikoKehidupan`, `BayarRisiko`, `GunakanOpsiDarurat`, `InvestasiEmas`, `JualEmas`, dan `LewatiTransaksiEmas`.
-- `Asuransi` dan `PinjamanSyariah` memakai `action_slot=0` hanya ketika payload membawa UUID `risk_event_id`/`risk_event_ref` yang valid; tanpa referensi risiko keduanya memakai token aksi reguler.
+- `Asuransi` dan `PinjamanSyariah` memakai `action_slot=0` hanya ketika payload membawa UUID `risk_event_id` yang valid; tanpa referensi risiko keduanya memakai token aksi reguler.
 - Aksi pemain reguler memakai slot `1..actions_per_turn`. Kebijakan slot bersumber dari katalog kanonik `GameActionCatalog` dan dijaga kembali oleh database.
 - `sequence_number` minimal `0`.
 
@@ -147,6 +147,25 @@ Validasi:
 
 Efek data:
 - Menandai akhir aksi/giliran pemain.
+
+---
+
+#### 4.2.2 `AmbilKartuDariDeck`, `KartuMasukDiscard`, dan `IsiUlangPasar`
+Payload draw/refill:
+```json
+{
+  "slot_group": "INGREDIENT_MARKET",
+  "slot_code": "SLOT_1",
+  "asset_type": "INGREDIENT",
+  "asset_code": "nasi_putih"
+}
+```
+
+Validasi dan efek data:
+- Ketiganya merupakan event `SYSTEM` dengan `turn_number=0` dan `action_slot=0`.
+- `KartuMasukDiscard` mengosongkan slot pasar atau memindahkan aset pemain ke `DISCARD`.
+- Draw/refill hanya mengisi slot kosong dan memilih kartu non-bahan dari `DECK` atau `DISCARD`, tidak memindahkan kartu yang masih terbuka di slot pasar lain.
+- Khusus `INGREDIENT`, sistem tidak menghitung batas `card_qty` deck. Jika tidak ada posisi di `DECK`/`DISCARD`, projector membuat posisi logis baru; batas lima slot, maksimal dua bahan sejenis di pasar, maksimal tiga bahan sejenis di tangan, dan maksimal enam bahan total tetap berlaku.
 
 ---
 
@@ -216,6 +235,7 @@ Validasi:
 - Jika `trade_type` dikirim, nilainya wajib `BUY`.
 - `qty > 0`.
 - `amount = unit_price * qty`.
+- `unit_price` wajib sama dengan event `BukaHargaEmas` terbaru pada `day_index` yang sama; harga Sabtu sebelumnya tidak berlaku.
 - Sistem menolak jika saldo tidak cukup.
 
 Efek data:
@@ -239,6 +259,7 @@ Validasi:
 - Jika `trade_type` dikirim, nilainya wajib `SELL`.
 - `qty > 0`.
 - `amount = unit_price * qty`.
+- `unit_price` wajib sama dengan event `BukaHargaEmas` terbaru pada `day_index` yang sama; harga Sabtu sebelumnya tidak berlaku.
 - Sistem menolak jika kepemilikan emas kurang.
 - Kepemilikan dibaca dari `session_participant_gold_holdings`, sehingga emas awal, pembelian, penjualan reguler, dan `SELL_GOLD` darurat dihitung dari state yang sama.
 
@@ -264,6 +285,7 @@ Validasi:
 - `amount > 0`.
 - `card_id` wajib diisi.
 - `points` wajib diisi (nilai poin pada kartu kebutuhan).
+- Kartu dengan `card_id` tersebut wajib sedang terbuka di `NEED_MARKET`.
 
 Efek data:
 - Mengurangi saldo.
@@ -288,6 +310,7 @@ Validasi:
 - Total kartu bahan tidak melebihi 6.
 - Kartu bahan yang sama tidak melebihi 3.
 - `amount > 0`.
+- Kartu dengan `card_id` tersebut wajib sedang terbuka di `INGREDIENT_MARKET`.
 
 Efek data:
 - Mengurangi saldo.
@@ -328,6 +351,7 @@ Payload:
 Validasi:
 - Pemain memiliki semua bahan pada daftar.
 - `income > 0`.
+- Pesanan dengan `order_card_id` tersebut wajib sedang terbuka di `ORDER_MARKET`.
 
 Efek data:
 - Mengurangi inventori bahan.
@@ -388,7 +412,7 @@ Payload:
 
 Validasi:
 - Detail principal, nilai pelunasan, durasi, dan penalti wajib sama dengan produk pada katalog ruleset aktif.
-- Pemain maksimal memiliki satu pinjaman `ACTIVE` untuk produk yang sama. Produk tersebut dapat diambil lagi setelah pinjaman sebelumnya `PAID`.
+- Setiap kartu memakai `loan_id`/`loan_instance_id` unik. Beberapa instance produk yang sama dapat `ACTIVE` selama total kartu aktif pada sesi tidak melewati `card_qty` katalog.
 - Jika memakai slot 0, payload wajib membawa `risk_event_id` yang menunjuk risiko `OUT` berstatus pending milik pemain dan saldo pemain memang tidak cukup.
 - Satu risiko tidak dapat dipakai untuk mengambil pinjaman berulang.
 
@@ -441,7 +465,7 @@ Efek data:
 ---
 
 ### 4.7 Event Misi dan Skor
-#### 4.7.1 `BagikanMisiKoleksi`
+#### 4.7.1 `SetupMisiAwal`
 Payload:
 ```json
 {
@@ -567,12 +591,12 @@ Efek data:
 Payload:
 ```json
 {
-  "number": 7
+  "number": 3
 }
 ```
 
 Validasi:
-- `number > 0`.
+- `number` wajib berada pada rentang `1..jumlah pemain` dan unik dalam sesi.
 
 Efek data:
 - Menyimpan nomor tie breaker untuk pemecah seri.
@@ -694,17 +718,17 @@ Payload dasar:
 
 Validasi:
 - `risk_event_id` wajib dan harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
-- `option_type` bernilai `SELL_NEED`, `SELL_GOLD`, `TAKE_SHARIA_LOAN`, atau `USE_INSURANCE`.
+- `option_type` hanya bernilai `SELL_NEED`, `SELL_GOLD`, atau `TAKE_SHARIA_LOAN`.
 - Klien tidak menentukan `direction` atau `amount`; server menghapus nilai tersebut dari request dan menghitung ulang berdasarkan katalog/state.
 - `SELL_NEED` membutuhkan `need_card_id`/`card_id` yang dimiliki pemain; nilai jual adalah pembulatan ke bawah dari setengah harga beli dan kartu ditandai terjual.
-- `SELL_GOLD` membutuhkan `qty` dan `gold_price_event_id`; server memeriksa holding dan memakai harga emas aktif, lalu mengurangi holding.
-- `TAKE_SHARIA_LOAN` membutuhkan `loan_code`; server memakai detail katalog dan menolak produk yang masih memiliki pinjaman aktif.
-- `USE_INSURANCE` membutuhkan polis aktif. Opsi ini tidak mensyaratkan saldo kurang dan tidak membuat proyeksi `EMERGENCY_OPTION` tambahan.
+- `SELL_GOLD` membutuhkan `qty` dan `gold_price_event_id`; server memeriksa holding serta event harga pada hari yang sama, lalu mengurangi holding.
+- `TAKE_SHARIA_LOAN` membutuhkan `loan_code`; server memakai detail katalog dan membuat satu instance pinjaman baru selama stok kartu tersedia.
+- Seluruh opsi darurat hanya tersedia ketika saldo sebelum penyelesaian tidak cukup untuk membayar risiko.
 
 Efek data:
 - `SELL_NEED`, `SELL_GOLD`, dan `TAKE_SHARIA_LOAN` membuat `EMERGENCY_OPTION IN` sesuai nilai hasil perhitungan server dan memperbarui aset/utang terkait.
-- `USE_INSURANCE` hanya membuat pasangan `INSURANCE_OFFSET IN` dan `RISK_LIFE OUT`.
-- Risiko ditandai selesai ketika asuransi digunakan atau saldo setelah dana masuk cukup untuk membayar nilai risiko.
+- Risiko ditandai selesai ketika saldo setelah dana masuk cukup untuk membayar nilai risiko.
+- Penggunaan polis tidak memakai `GunakanOpsiDarurat`; kontrak tunggalnya adalah event `Asuransi` pada bagian 4.8.5.
 
 ---
 

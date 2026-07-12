@@ -245,7 +245,7 @@ public sealed class EventAnalyticsIntegrationTests
         using var analyticsBody = await ReadJsonAsync(analyticsResponse);
         var analyticsRoot = analyticsBody.RootElement;
         var summary = analyticsRoot.GetProperty("summary");
-        Assert.Equal(15, summary.GetProperty("event_count").GetInt32());
+        Assert.Equal(22, summary.GetProperty("event_count").GetInt32());
         Assert.Equal(1d, summary.GetProperty("cash_in_total").GetDouble(), 6);
         Assert.Equal(9d, summary.GetProperty("cash_out_total").GetDouble(), 6);
         Assert.Equal(-8d, summary.GetProperty("cashflow_net_total").GetDouble(), 6);
@@ -1081,10 +1081,35 @@ public sealed class EventAnalyticsIntegrationTests
             new { risk_id = "risk_cost_4", source_order_event_id = firstOrderId },
             firstRiskId)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "GunakanOpsiDarurat",
+            "Asuransi",
             0,
             0,
-            new { risk_event_id = firstRiskId, option_type = "USE_INSURANCE", direction = "IN", amount = 100 })).StatusCode);
+            new { risk_event_id = firstRiskId })).StatusCode);
+
+        sequence++;
+        var refillResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = (Guid?)null,
+            actor_type = "SYSTEM",
+            timestamp = now.AddSeconds(sequence),
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 0,
+            action_slot = 0,
+            sequence_number = sequence,
+            action_type = "IsiUlangPasar",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new
+            {
+                slot_group = "ORDER_MARKET",
+                slot_code = "SLOT_1",
+                asset_type = "ORDER",
+                asset_code = "nasi_goreng"
+            }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.Created, refillResponse.StatusCode);
 
         var secondOrderId = Guid.NewGuid();
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
@@ -1538,7 +1563,6 @@ public sealed class EventAnalyticsIntegrationTests
                 new RulesetActionDto { ActionId = "BayarPinjaman" },
                 new RulesetActionDto { ActionId = "Asuransi" },
                 new RulesetActionDto { ActionId = "BayarRisiko" },
-                new RulesetActionDto { ActionId = "BagikanEmasAwal" },
                 new RulesetActionDto { ActionId = "BukaHargaEmas" },
                 new RulesetActionDto { ActionId = "InvestasiEmas" },
                 new RulesetActionDto { ActionId = "JualEmas" }

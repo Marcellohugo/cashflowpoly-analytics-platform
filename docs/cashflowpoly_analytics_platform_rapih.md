@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 12 Juli 2026. Baseline schema: 3.0.5.**
+**Tanggal ringkasan: 12 Juli 2026. Baseline schema: 3.0.6.**
 
 ## 1. Ringkasan Besar
 
@@ -252,7 +252,7 @@ rulesets
 | Pesanan Masakan | 5 slot |
 | Aneka Kebutuhan | 5 slot, awal berupa kebutuhan primer |
 
-**session_card_positions menyimpan posisi kartu fisik:**
+**session_card_positions menyimpan posisi kartu (fisik untuk non-bahan, logis untuk bahan):**
 
 ```
 DECK -> MARKET -> PLAYER -> DISCARD
@@ -305,11 +305,11 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 | Event | Actor | Fungsi |
 | --- | --- | --- |
 | BagikanTieBreaker | SYSTEM | Memberi kartu tie breaker/player order. |
-| BagikanMisiKoleksi | SYSTEM | Memberi misi koleksi unik. |
-| BahanMasakan dengan setup=INITIAL | SYSTEM | Memberi bahan awal dan mencatat biaya berdasarkan harga kartu. |
-| BagikanEmasAwal | SYSTEM | Memberi 1 emas awal. |
-| PinjamanSyariah dengan setup=INITIAL | SYSTEM | Mode Mahir: memberi pinjaman awal 10. |
-| Asuransi dengan setup=INITIAL | SYSTEM | Mode Mahir: memberi proteksi gratis. |
+| SetupMisiAwal | SYSTEM | Memberi misi koleksi unik. |
+| SetupBahanAwal | SYSTEM | Memberi bahan awal dan mencatat biaya berdasarkan harga kartu. |
+| SetupEmasAwal | SYSTEM | Memberi 1 emas awal. |
+| SetupPinjamanAwal | SYSTEM | Mode Mahir: memberi pinjaman awal 10. |
+| SetupAsuransiAwal | SYSTEM | Mode Mahir: memberi proteksi gratis. |
 | AmbilKartuDariDeck / IsiUlangPasar | SYSTEM | Mengisi market awal dan refill. |
 
 ## 9.5 Gameplay harian
@@ -329,7 +329,7 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 - Sistem bisa mencatat UmumkanJuaraDonasi.
 
 **Pada Sabtu:**
-- Sistem membuka harga emas aktif.
+- Sistem membuka harga emas aktif untuk hari tersebut.
 - Pemain boleh InvestasiEmas, JualEmas, atau LewatiTransaksiEmas.
 - Transaksi emas normal wajib hari Sabtu.
 - Risiko GOLD_TRADE bisa memicu transaksi emas di luar Sabtu.
@@ -376,9 +376,9 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 
 | Event | Fungsi |
 | --- | --- |
-| BagikanEmasAwal | Memberi emas awal. |
+| SetupEmasAwal | Memberi emas awal. |
 | BagikanTieBreaker | Memberi tie breaker. |
-| BagikanMisiKoleksi | Memberi misi koleksi. |
+| SetupMisiAwal | Memberi misi koleksi. |
 | PoinPeringkatDonasi | Memberi poin rank donasi. |
 | UmumkanJuaraDonasi | Log ringkasan pemenang donasi. |
 | PoinEmas | Memberi poin emas. |
@@ -478,17 +478,18 @@ Request Event
 
 **Contoh validasi domain:**
 - BahanMasakan: total bahan tidak melebihi 6 dan bahan sejenis tidak melebihi 3.
+- BahanMasakan/Kebutuhan/JualMasakan: kartu target wajib sedang terbuka pada market yang sesuai.
 - JualMasakan: pemain harus punya bahan yang cukup.
-- Kebutuhan: points wajib ada; urutan primer/sekuner/tersier divalidasi.
+- Kebutuhan: points wajib ada; prasyarat Primer dilihat dari riwayat pembelian sepanjang sesi walaupun kartu Primer kemudian dijual.
 - JumatBerkah: weekday harus FRI, nominal dalam batas.
 - JumatBerkah: maksimal satu donasi per pemain pada hari yang sama.
-- InvestasiEmas/JualEmas: weekday harus SAT kecuali dipicu risiko emas.
+- InvestasiEmas/JualEmas: weekday harus SAT kecuali dipicu risiko emas, dan harga harus berasal dari `BukaHargaEmas` pada hari yang sama.
 - JualEmas: kuantitas dibaca dari `session_participant_gold_holdings`.
 - RisikoKehidupan: merujuk `JualMasakan` melalui `source_order_event_id`; risiko `OUT` tetap pending sampai diselesaikan.
-- GunakanOpsiDarurat: nominal/direction dihitung server dan aset/utang/polis diperbarui atomik.
+- GunakanOpsiDarurat: hanya `SELL_NEED`, `SELL_GOLD`, atau `TAKE_SHARIA_LOAN`; nominal dihitung server dan aset/utang diperbarui atomik.
 - PinjamanSyariah: detail sesuai katalog, setiap kartu memakai `loan_instance_id`, dan total instance aktif dibatasi stok fisik `card_qty` per sesi.
 - BayarPinjaman: wajib melunasi seluruh outstanding.
-- Asuransi: premium sesuai katalog; penggunaan memerlukan polis `ACTIVE` dengan `remaining_uses > 0`.
+- Asuransi: premium sesuai katalog; penggunaan hanya melalui event `Asuransi` dengan `risk_event_id`, memerlukan polis `ACTIVE` dengan `remaining_uses > 0`, dan mengurangi tepat satu penggunaan secara atomik.
 - Menabung: amount > 0 dan maksimal 15.
 - TarikTabungan/TujuanFinansial: aksi reguler pemain dan memakai slot aksi.
 
@@ -521,7 +522,7 @@ Projection utama:
 
 ## 15. Alur Card Position
 
-session_card_positions menjadi snapshot fisik posisi kartu.
+session_card_positions menjadi snapshot posisi kartu. Posisi non-bahan mengikuti stok fisik katalog; posisi bahan bersifat logis agar refill tidak perlu menghitung sisa deck.
 
 **Zona umum:**
 
@@ -538,10 +539,12 @@ session_card_positions menjadi snapshot fisik posisi kartu.
 DECK -> MARKET -> PLAYER -> DISCARD
 ```
 
+Saat bahan tidak tersedia di `DECK`/`DISCARD`, refill boleh membuat posisi logis baru. Batas lima slot, maksimal dua bahan sejenis di market, maksimal tiga sejenis di tangan, dan maksimal enam bahan total tetap dijaga.
+
 **Alur kartu pesanan:**
 
 ```
-DECK -> MARKET -> PLAYER/CLAIMED
+DECK -> MARKET -> DISCARD
 ```
 
 **Alur kartu kebutuhan:**
@@ -655,6 +658,11 @@ Dashboard transaksi membaca projection ini, bukan menghitung ulang di browser.
 **Tie breaker:**
 - Total poin tertinggi menang.
 - Jika seri, angka kartu tie breaker terbesar menang.
+- Nomor tie breaker wajib berada pada rentang `1..jumlah pemain`.
+
+**Skor emas:**
+- Tabel rulebook berhenti pada 4 emas = 12 poin.
+- Kepemilikan di atas empat kartu tetap mendapat nilai tier tertinggi, bukan mengulang tabel dari awal.
 
 ## 19. Alur UI Web Analitik
 
@@ -926,7 +934,7 @@ dotnet test Cashflowpoly.sln --no-restore
 - TujuanFinansial bukan aksi player terpisah.
 - Jumat hanya domain donasi.
 - Sabtu hanya domain emas, kecuali risiko emas memicu trade.
-- Market fisik memakai 5 slot bahan, 5 slot pesanan, 5 slot kebutuhan.
+- Ruleset default mengisi 5 slot bahan, 5 slot pesanan, dan 5 slot kebutuhan; ruleset custom mengisi sampai lima berdasarkan kapasitas katalognya.
 - Mode Mahir memiliki risiko, pinjaman, asuransi, dan tujuan keuangan.
 
 ## 28. Peta Baca Cepat

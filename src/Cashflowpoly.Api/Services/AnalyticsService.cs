@@ -719,15 +719,13 @@ internal sealed class AnalyticsService : IAnalyticsService
 
     private int SumGoldQuantity(IEnumerable<EventDb> events)
         => events
-            .Where(e => e.ActionType == GameActionCatalog.GoldInitialGranted ||
-                        e.ActionType == GameActionCatalog.SetupEmasAwal ||
+            .Where(e => e.ActionType == GameActionCatalog.SetupEmasAwal ||
                         e.ActionType == GameActionCatalog.InvestasiEmas ||
                         e.ActionType == GameActionCatalog.JualEmas ||
                         IsEmergencyGoldSale(e))
             .Select(e =>
             {
-                if (e.ActionType == GameActionCatalog.GoldInitialGranted ||
-                    e.ActionType == GameActionCatalog.SetupEmasAwal)
+                if (e.ActionType == GameActionCatalog.SetupEmasAwal)
                 {
                     return TryReadPayloadInt(e.Payload, "qty", out var initialQty) ? initialQty : 1;
                 }

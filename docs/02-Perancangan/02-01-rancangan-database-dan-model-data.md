@@ -9,7 +9,7 @@
 
 > Baseline kanonis schema berada pada `database/00_create_schema.sql`.
 > Dokumen ini menjelaskan alur, relasi, dan fungsi tabel berdasarkan baseline
-> implementasi 12 Juli 2026 (baseline `3.0.5`). Jika ada perbedaan detail teknis, skrip SQL
+> implementasi 12 Juli 2026 (baseline `3.0.6`). Jika ada perbedaan detail teknis, skrip SQL
 > kanonis menjadi acuan terakhir.
 
 ---
@@ -284,7 +284,7 @@ Projection peserta menyimpan state turunan per peserta:
 | `session_participant_collection_missions` | Status misi koleksi. |
 | `session_participant_action_counters` | Penggunaan aksi per ruleset action. |
 | `session_participant_gold_holdings` | Kepemilikan emas hasil setup, beli/jual reguler, dan jual darurat; menjadi sumber validasi kuantitas. |
-| `session_participant_loans` | Pinjaman syariah aktif/lunas; unik per peserta dan produk. |
+| `session_participant_loans` | Pinjaman syariah aktif/lunas; setiap kartu memakai `loan_instance_id` unik. |
 | `session_participant_insurances` | Polis, status `ACTIVE/INACTIVE`, dan `remaining_uses`. |
 | `session_participant_tie_breakers` | Nilai tie breaker peserta. |
 
@@ -292,7 +292,7 @@ Aturan umum:
 - Semua tabel membawa `session_id` dan `session_participant_id`.
 - Perubahan projection harus berasal dari event valid.
 - Projection menyimpan provenance event jika kolom tersedia.
-- Satu peserta maksimal memiliki satu pinjaman `ACTIVE` per produk. Baris produk yang sama boleh diaktifkan kembali setelah status sebelumnya `PAID`.
+- Seorang peserta dapat memiliki beberapa instance produk pinjaman yang sama selama setiap `loan_instance_id` unik dan total instance `ACTIVE` pada sesi tidak melewati `card_qty` katalog.
 - Update penggunaan asuransi dan pembuatan offset dilakukan dalam transaksi event yang sama; penggunaan hanya valid saat polis aktif dan sisa penggunaan positif.
 
 ---
@@ -351,6 +351,17 @@ Manfaat:
 - Analitika tidak perlu menebak relasi dari string bebas pada JSON.
 - Replay dan audit dapat menelusuri asset yang dipakai event.
 
+### 9.3 `session_card_positions`
+Fungsi:
+- menyimpan zona `DECK`, `MARKET`, `PLAYER`, atau `DISCARD`, termasuk grup dan slot market,
+- memastikan pembelian bahan/kebutuhan serta klaim pesanan berasal dari kartu yang sedang terbuka,
+- menelusuri draw, discard, dan refill melalui `last_event_id`.
+
+Aturan:
+- Non-bahan mengikuti `card_qty` katalog dan refill hanya mengambil posisi dari `DECK`/`DISCARD`.
+- Bahan masakan tidak menjalankan pengecekan jumlah kartu deck atau batas `copy_number`; projector dapat membuat posisi logis baru ketika deck/discard kosong.
+- Pengecualian bahan tidak mengubah batas maksimal lima slot, dua bahan sejenis di market, tiga bahan sejenis di tangan, dan enam bahan total per pemain.
+
 ---
 
 ## 10. Analitika dan Snapshot
@@ -379,7 +390,8 @@ Aturan:
 - Query endpoint transaksi memakai `userId` sebagai filter opsional.
 - Risiko kehidupan pemain berarah `OUT` dianggap pending selama belum ada projection kategori `RISK_LIFE` yang merujuk `risk_event_id` tersebut.
 - `BayarRisiko` membuat `RISK_LIFE OUT`. Penyelesaian asuransi membuat pasangan `INSURANCE_OFFSET IN` dan `RISK_LIFE OUT` dengan nominal sama.
-- `GunakanOpsiDarurat` bertipe `USE_INSURANCE` tidak membuat baris `EMERGENCY_OPTION`, sehingga offset tidak terhitung ganda.
+- Penggunaan asuransi hanya direkam sebagai event `Asuransi` dengan `risk_event_id`; proyeksi mengunci dan mengurangi tepat satu polis `ACTIVE` dengan `remaining_uses > 0` pada transaksi yang sama.
+- `GunakanOpsiDarurat` hanya memproyeksikan `SELL_NEED`, `SELL_GOLD`, atau `TAKE_SHARIA_LOAN` berdasarkan nominal yang dihitung server.
 
 ### 10.2 `session_projection_checkpoints`
 Fungsi:

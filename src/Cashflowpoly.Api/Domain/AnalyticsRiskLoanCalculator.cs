@@ -54,8 +54,7 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         var riskCardsDrawn = riskEvents.Count;
         var riskMitigated = playerEvents.Count(e =>
             e.ActionType == GameActionCatalog.Asuransi &&
-            (e.Payload.Contains("\"risk_event_id\"", StringComparison.OrdinalIgnoreCase) ||
-             e.Payload.Contains("\"risk_event_ref\"", StringComparison.OrdinalIgnoreCase)));
+            e.Payload.Contains("\"risk_event_id\"", StringComparison.OrdinalIgnoreCase));
         var riskAccepted = Math.Max(0, riskCardsDrawn - riskMitigated);
         var insurancePayments = playerProjections
             .Where(p => p.Category == "INSURANCE_PREMIUM" && p.Direction == "OUT")

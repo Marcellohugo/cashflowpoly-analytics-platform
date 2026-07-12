@@ -1224,23 +1224,6 @@ create table if not exists session_participant_loans (
   constraint fk_session_participant_loans_ruleset_loan_id foreign key (ruleset_version_id, ruleset_sharia_loan_id) references ruleset_sharia_loans (ruleset_version_id, ruleset_sharia_loan_id) on delete restrict
 );
 
-alter table session_participant_loans
-  add column if not exists loan_instance_id varchar(120);
-
-update session_participant_loans
-set loan_instance_id = coalesce(
-  nullif(metadata_json ->> 'loan_id', ''),
-  source_event_id::text,
-  session_participant_loan_id::text
-)
-where loan_instance_id is null;
-
-alter table session_participant_loans
-  alter column loan_instance_id set not null;
-
-alter table session_participant_loans
-  drop constraint if exists uq_session_participant_loans_scope;
-
 create unique index if not exists ux_session_participant_loans_instance
   on session_participant_loans (session_participant_id, loan_instance_id);
 
@@ -1338,6 +1321,13 @@ create index if not exists ix_session_card_positions_session on session_card_pos
   owner_session_participant_id,
   ruleset_game_asset_id,
   position_order
+);
+
+create index if not exists ix_session_card_positions_lookup on session_card_positions (
+  session_id,
+  ruleset_game_asset_id,
+  zone,
+  status
 );
 
 create unique index if not exists uq_session_card_positions_slot on session_card_positions (session_id, zone, slot_group, slot_code)
@@ -2440,6 +2430,8 @@ from
 create
 or replace function enforce_session_card_position_catalog() returns trigger language plpgsql as $$ declare allowed_asset_type text := 'CARD_POSITION';
 
+v_item_type varchar(40);
+
 v_card_qty int;
 
 v_total_cards int;
@@ -2474,21 +2466,25 @@ new.ruleset_game_asset_id using errcode = '23503';
 end if;
 
 select
-  rci.card_qty into v_card_qty
+  rci.item_type,
+  rci.card_qty into v_item_type,
+  v_card_qty
 from
   ruleset_catalog_items rci
 where
   rci.ruleset_version_id = new.ruleset_version_id
   and rci.ruleset_catalog_item_id = new.ruleset_game_asset_id;
 
-if new.copy_number > coalesce(v_card_qty, 0) then raise exception 'Card copy_number % exceeds card_qty %',
+if v_item_type <> 'INGREDIENT'
+and new.copy_number > coalesce(v_card_qty, 0) then raise exception 'Card copy_number % exceeds card_qty %',
 new.copy_number,
 coalesce(v_card_qty, 0) using errcode = '23514';
 
 end if;
 
 -- 1. Ensure total active positions for this card in the session does not exceed catalog count
-if new.status = 'ACTIVE' then
+if new.status = 'ACTIVE'
+and v_item_type <> 'INGREDIENT' then
 select
   count(*) into v_total_cards
 from
@@ -2774,12 +2770,9 @@ if new.action_type in (
   'SetupMisiAwal',
   'SetupPinjamanAwal',
   'SetupAsuransiAwal',
-  'BagikanEmasAwal',
   'BagikanTieBreaker',
-  'BagikanMisiKoleksi',
   'IsiUlangPasar',
   'AmbilKartuDariDeck',
-  'KartuDiambilDariPasar',
   'KartuMasukDiscard',
   'MulaiSesi',
   'AkhiriSesi',
@@ -2865,10 +2858,7 @@ if (
   )
   or (
     new.action_type in ('Asuransi', 'PinjamanSyariah')
-    and (
-      new.payload ? 'risk_event_id'
-      or new.payload ? 'risk_event_ref'
-    )
+    and new.payload ? 'risk_event_id'
   )
 ) then if new.action_slot <> 0 then raise exception 'Free action % must have action_slot = 0',
 new.action_type using errcode = '23514';
@@ -3076,6 +3066,117 @@ end if;
 
 end if;
 
+if new.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan') then declare v_market_asset_type varchar(40);
+
+v_market_slot_group varchar(80);
+
+v_market_asset_code varchar(120);
+
+begin v_market_asset_type := case new.action_type
+  when 'BahanMasakan' then 'INGREDIENT'
+  when 'Kebutuhan' then 'NEED'
+  else 'ORDER'
+end;
+
+v_market_slot_group := v_market_asset_type || '_MARKET';
+v_market_asset_code := case
+  when new.action_type = 'JualMasakan' then new.payload ->> 'order_card_id'
+  else new.payload ->> 'card_id'
+end;
+
+if not exists (
+  select 1
+  from session_card_positions position
+  join ruleset_game_assets asset
+    on asset.ruleset_game_asset_id = position.ruleset_game_asset_id
+   and asset.ruleset_version_id = position.ruleset_version_id
+  where position.session_id = new.session_id
+    and position.zone = 'MARKET'
+    and position.status = 'ACTIVE'
+    and position.slot_group = v_market_slot_group
+    and asset.asset_type = v_market_asset_type
+    and lower(asset.asset_code) = lower(v_market_asset_code)
+) then raise exception 'Card % must be available in % before action %',
+v_market_asset_code,
+v_market_slot_group,
+new.action_type using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
+if new.action_type in ('AmbilKartuDariDeck', 'IsiUlangPasar') then declare v_market_asset_id uuid;
+
+begin if not (
+  new.payload ? 'slot_group'
+  and new.payload ? 'slot_code'
+  and new.payload ? 'asset_type'
+  and new.payload ? 'asset_code'
+) then raise exception 'Market draw/refill payload is incomplete' using errcode = '23514';
+
+end if;
+
+if new.payload ->> 'slot_code' not in ('SLOT_1', 'SLOT_2', 'SLOT_3', 'SLOT_4', 'SLOT_5')
+or new.payload ->> 'slot_group' <> upper(new.payload ->> 'asset_type') || '_MARKET' then raise exception 'Market slot group or code is invalid' using errcode = '23514';
+
+end if;
+
+if exists (
+  select 1
+  from session_card_positions
+  where session_id = new.session_id
+    and zone = 'MARKET'
+    and status = 'ACTIVE'
+    and slot_group = new.payload ->> 'slot_group'
+    and slot_code = new.payload ->> 'slot_code'
+) then raise exception 'Market slot %/% is already occupied',
+new.payload ->> 'slot_group',
+new.payload ->> 'slot_code' using errcode = '23514';
+
+end if;
+
+select asset.ruleset_game_asset_id into v_market_asset_id
+from ruleset_game_assets asset
+where asset.ruleset_version_id = new.ruleset_version_id
+  and asset.asset_type = upper(new.payload ->> 'asset_type')
+  and lower(asset.asset_code) = lower(new.payload ->> 'asset_code')
+  and asset.is_active
+limit 1;
+
+if v_market_asset_id is null then raise exception 'Market card %/% is not active in the ruleset',
+new.payload ->> 'asset_type',
+new.payload ->> 'asset_code' using errcode = '23514';
+
+end if;
+
+if upper(new.payload ->> 'asset_type') <> 'INGREDIENT'
+and not exists (
+  select 1
+  from session_card_positions
+  where session_id = new.session_id
+    and ruleset_game_asset_id = v_market_asset_id
+    and zone in ('DECK', 'DISCARD')
+    and status = 'ACTIVE'
+) then raise exception 'No deck card remains for %/% at day %, sequence %; positions=%',
+new.payload ->> 'asset_type',
+new.payload ->> 'asset_code',
+new.day_index,
+new.sequence_number,
+coalesce((
+  select string_agg(position.zone || ':' || position.copy_number, ', ' order by position.copy_number)
+  from session_card_positions position
+  where position.session_id = new.session_id
+    and position.ruleset_game_asset_id = v_market_asset_id
+), 'none') using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
 if new.action_type in ('InvestasiEmas', 'JualEmas') then if not (
   new.payload ? 'qty'
   and new.payload ? 'unit_price'
@@ -3163,14 +3264,16 @@ from
 where
   price_evt.session_id = new.session_id
   and price_evt.action_type = 'BukaHargaEmas'
-  and price_evt.day_index <= new.day_index
+  and price_evt.day_index = new.day_index
 order by
   price_evt.day_index desc,
   price_evt.sequence_number desc
 limit
   1;
 
-if v_active_gold_price is null then raise exception 'Gold trade requires an active BukaHargaEmas event' using errcode = '23514';
+if v_active_gold_price is null then raise exception 'Gold trade requires BukaHargaEmas on day %, sequence %',
+new.day_index,
+new.sequence_number using errcode = '23514';
 
 end if;
 
@@ -3347,7 +3450,6 @@ select
     where
       spnp.session_participant_id = new.session_player_id
       and rn.need_tier = 'primer'
-      and not spnp.is_sold
   ) into v_has_primary;
 
 if not v_has_primary then raise exception 'Must purchase a primary need (Primer) before secondary/tertiary needs' using errcode = '23514';
@@ -3481,8 +3583,6 @@ if new.action_type in (
   'SetupMisiAwal',
   'SetupPinjamanAwal',
   'SetupAsuransiAwal',
-  'BagikanEmasAwal',
-  'BagikanMisiKoleksi',
   'BagikanTieBreaker'
 ) then
   if new.day_index <> 0
@@ -3491,24 +3591,24 @@ if new.action_type in (
   end if;
 end if;
 
-if new.action_type in ('SetupEmasAwal', 'BagikanEmasAwal')
+if new.action_type = 'SetupEmasAwal'
 and exists (
   select 1
   from events
   where session_id = new.session_id
     and session_player_id = new.session_player_id
-    and action_type in ('SetupEmasAwal', 'BagikanEmasAwal')
+    and action_type = 'SetupEmasAwal'
 ) then raise exception 'Initial gold can only be granted once per player per session' using errcode = '23514';
 
 end if;
 
-if new.action_type in ('SetupMisiAwal', 'BagikanMisiKoleksi')
+if new.action_type = 'SetupMisiAwal'
 and exists (
   select 1
   from events
   where session_id = new.session_id
     and session_player_id = new.session_player_id
-    and action_type in ('SetupMisiAwal', 'BagikanMisiKoleksi')
+    and action_type = 'SetupMisiAwal'
 ) then raise exception 'Initial mission can only be assigned once per player per session' using errcode = '23514';
 
 end if;
@@ -3522,6 +3622,28 @@ and exists (
     and action_type = new.action_type
 ) then raise exception 'Initial setup action % can only be recorded once per player per session',
 new.action_type using errcode = '23514';
+
+end if;
+
+if new.action_type = 'BagikanTieBreaker' then declare v_participant_count int;
+
+v_tie_number int;
+
+begin v_tie_number := nullif(new.payload ->> 'number', '') :: int;
+
+select count(*) :: int into v_participant_count
+from session_participants
+where session_id = new.session_id;
+
+if v_tie_number is null
+or v_tie_number < 1
+or v_tie_number > v_participant_count then raise exception 'Tie breaker number % must be between 1 and participant count %',
+v_tie_number,
+v_participant_count using errcode = '23514';
+
+end if;
+
+end;
 
 end if;
 
@@ -3612,8 +3734,6 @@ v_risk_effect_type varchar(80);
 
 v_risk_target_scope varchar(40);
 
-v_risk_actor_type varchar(10);
-
 v_current_coins int;
 
 begin if not (new.payload ? 'option_type') then raise exception 'GunakanOpsiDarurat event payload must contain option_type' using errcode = '23514';
@@ -3626,17 +3746,13 @@ if v_option_type is null
 or v_option_type not in (
   'SELL_NEED',
   'SELL_GOLD',
-  'TAKE_SHARIA_LOAN',
-  'USE_INSURANCE'
+  'TAKE_SHARIA_LOAN'
 ) then raise exception 'Emergency option_type % is not supported',
 new.payload ->> 'option_type' using errcode = '23514';
 
 end if;
 
-v_risk_event_id := coalesce(
-  fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id'),
-  fn_safe_cast_to_uuid(new.payload ->> 'risk_event_ref')
-);
+v_risk_event_id := fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id');
 
 if v_risk_event_id is null then raise exception 'Emergency option must reference a risk event' using errcode = '23514';
 
@@ -3646,12 +3762,10 @@ select
   risk_catalog.amount,
   risk_catalog.direction,
   risk_catalog.effect_type,
-  risk_catalog.target_scope,
-  risk_evt.actor_type into v_risk_amount,
+  risk_catalog.target_scope into v_risk_amount,
   v_risk_direction,
   v_risk_effect_type,
-  v_risk_target_scope,
-  v_risk_actor_type
+  v_risk_target_scope
 from
   events risk_evt
   join ruleset_life_risks risk_catalog on risk_catalog.ruleset_version_id = risk_evt.ruleset_version_id
@@ -3676,8 +3790,7 @@ from
 where
   session_participant_id = new.session_player_id;
 
-if v_option_type <> 'USE_INSURANCE'
-and coalesce(v_current_coins, 0) >= v_risk_amount then raise exception 'Emergency option % requires insufficient cash: player cash %, risk amount %',
+if coalesce(v_current_coins, 0) >= v_risk_amount then raise exception 'Emergency option % requires insufficient cash: player cash %, risk amount %',
 v_option_type,
 coalesce(v_current_coins, 0),
 v_risk_amount using errcode = '23514';
@@ -3790,7 +3903,7 @@ from
 where
   price_evt.session_id = new.session_id
   and price_evt.action_type = 'BukaHargaEmas'
-  and price_evt.day_index <= new.day_index
+  and price_evt.day_index = new.day_index
 order by
   price_evt.day_index desc,
   price_evt.sequence_number desc
@@ -3889,25 +4002,6 @@ end;
 
 end if;
 
-if v_option_type = 'USE_INSURANCE' then if v_risk_actor_type = 'SYSTEM' then raise exception 'Insurance cannot be used to mitigate global (SYSTEM) risks' using errcode = '23514';
-
-end if;
-
-if not exists (
-  select
-    1
-  from
-    session_participant_insurances spi
-  where
-    spi.session_participant_id = new.session_player_id
-    and spi.status = 'ACTIVE'
-    and spi.remaining_uses > 0
-) then raise exception 'USE_INSURANCE emergency option requires active policy with remaining uses' using errcode = '23514';
-
-end if;
-
-end if;
-
 end;
 
 end if;
@@ -3965,10 +4059,7 @@ v_catalog_penalty using errcode = '23514';
 
 end if;
 
-if (
-  new.payload ? 'risk_event_ref'
-  or new.payload ? 'risk_event_id'
-) then declare v_risk_event_id uuid;
+if new.payload ? 'risk_event_id' then declare v_risk_event_id uuid;
 
 v_risk_amount int;
 
@@ -3980,10 +4071,7 @@ v_risk_target_scope varchar(40);
 
 v_current_coins int;
 
-begin v_risk_event_id := coalesce(
-  fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id'),
-  fn_safe_cast_to_uuid(new.payload ->> 'risk_event_ref')
-);
+begin v_risk_event_id := fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id');
 
 select
   risk_catalog.amount,
@@ -4055,10 +4143,7 @@ end if;
 
 -- 9. Insurance validation (premium catalog match + reject global/SYSTEM risks + ACTIVE status / uses remaining check)
 if new.action_type = 'Asuransi'
-and not (
-  new.payload ? 'risk_event_id'
-  or new.payload ? 'risk_event_ref'
-) then declare v_catalog_premium int;
+and not (new.payload ? 'risk_event_id') then declare v_catalog_premium int;
 
 begin if not (
   new.payload ? 'product_code'
@@ -4105,10 +4190,7 @@ end;
 end if;
 
 if new.action_type = 'Asuransi'
-and (
-  new.payload ? 'risk_event_id'
-  or new.payload ? 'risk_event_ref'
-) then declare v_risk_event_id uuid;
+and new.payload ? 'risk_event_id' then declare v_risk_event_id uuid;
 
 v_actor_type varchar(10);
 
@@ -4124,10 +4206,7 @@ v_ins_status varchar(20);
 
 v_ins_uses int;
 
-begin v_risk_event_id := coalesce(
-  fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id'),
-  fn_safe_cast_to_uuid(new.payload ->> 'risk_event_ref')
-);
+begin v_risk_event_id := fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id');
 
 select
   risk_evt.actor_type,
@@ -4156,6 +4235,20 @@ if v_risk_direction <> 'OUT'
 or v_risk_effect_type <> 'COIN_EFFECT'
 or v_risk_target_scope <> 'SELF'
 or coalesce(v_risk_amount, 0) <= 0 then raise exception 'Insurance can only mitigate cost-based risks' using errcode = '23514';
+
+end if;
+
+if exists (
+  select 1
+  from event_cashflow_projections projection
+  where projection.session_id = new.session_id
+    and projection.category = 'RISK_LIFE'
+    and projection.direction = 'OUT'
+    and (
+      projection.event_id = v_risk_event_id
+      or projection.reference = v_risk_event_id :: text
+    )
+) then raise exception 'Risk event is already resolved' using errcode = '23514';
 
 end if;
 
@@ -4526,10 +4619,7 @@ and (
   )
   or (
     v_action_type in ('Asuransi', 'PinjamanSyariah')
-    and (
-      v_payload ? 'risk_event_id'
-      or v_payload ? 'risk_event_ref'
-    )
+    and v_payload ? 'risk_event_id'
   )
 ) then return new;
 
@@ -4956,8 +5046,7 @@ with risk_catalog as (
       and upper(v_event.payload ->> 'option_type') in (
         'SELL_NEED',
         'SELL_GOLD',
-        'TAKE_SHARIA_LOAN',
-        'USE_INSURANCE'
+        'TAKE_SHARIA_LOAN'
       ) then 'IN'
     end as direction,
     case
@@ -4968,13 +5057,6 @@ with risk_catalog as (
       and upper(v_event.payload ->> 'option_type') = 'SELL_NEED' then (v_event.payload ->> 'amount') :: int
       when v_event.action_type = 'GunakanOpsiDarurat'
       and upper(v_event.payload ->> 'option_type') = 'SELL_GOLD' then (v_event.payload ->> 'amount') :: int
-      when v_event.action_type = 'GunakanOpsiDarurat'
-      and upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE' then (
-        select
-          amount
-        from
-          insurance_risk
-      )
       when v_event.action_type = 'JualMasakan' then (v_event.payload ->> 'income') :: int
       when v_event.action_type = 'Asuransi'
       and v_event.payload ? 'risk_event_id' then (
@@ -5011,12 +5093,10 @@ with risk_catalog as (
       when v_event.action_type in ('PinjamanSyariah', 'SetupPinjamanAwal') then 'LOAN_TAKEN'
       when v_event.action_type = 'BayarPinjaman' then 'LOAN_REPAID'
       when v_event.action_type = 'Asuransi'
-      and v_event.payload ? 'risk_event_id' then 'INSURANCE_CLAIM'
+      and v_event.payload ? 'risk_event_id' then 'INSURANCE_OFFSET'
       when v_event.action_type = 'Asuransi'
       and v_event.payload ? 'premium' then 'INSURANCE_PREMIUM'
       when v_event.action_type = 'BayarRisiko' then 'RISK_LIFE'
-      when v_event.action_type = 'GunakanOpsiDarurat'
-      and upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE' then 'INSURANCE_OFFSET'
       when v_event.action_type = 'GunakanOpsiDarurat' then 'EMERGENCY_OPTION'
     end as category,
     coalesce(
@@ -5119,7 +5199,6 @@ with risk_catalog as (
     and risk.direction = 'OUT'
     and (
       v_event.action_type = 'Asuransi'
-      or upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE'
       or coalesce(
         (
           select coins
@@ -5561,7 +5640,7 @@ where
 
 end if;
 
-if v_event.action_type in ('SetupMisiAwal', 'BagikanMisiKoleksi') then
+if v_event.action_type = 'SetupMisiAwal' then
 insert into
   session_participant_collection_missions (
     session_id,
@@ -5654,8 +5733,7 @@ end if;
 if v_event.action_type in (
   'InvestasiEmas',
   'JualEmas',
-  'SetupEmasAwal',
-  'BagikanEmasAwal'
+  'SetupEmasAwal'
 )
 or (
   v_event.action_type = 'GunakanOpsiDarurat'
@@ -5870,14 +5948,10 @@ set
 
 end if;
 
-if (
-  v_event.action_type = 'Asuransi'
-  and v_event.payload ? 'risk_event_id'
-)
-or (
-  v_event.action_type = 'GunakanOpsiDarurat'
-  and upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE'
-) then
+if v_event.action_type = 'Asuransi'
+and v_event.payload ? 'risk_event_id' then declare v_updated_insurances int;
+
+begin
 update
   session_participant_insurances asset
 set
@@ -5897,11 +5971,20 @@ where
     where
       candidate.session_participant_id = v_participant_id
       and candidate.status = 'ACTIVE'
+      and candidate.remaining_uses > 0
     order by
       candidate.created_at asc
     limit
       1
   );
+
+get diagnostics v_updated_insurances = row_count;
+
+if v_updated_insurances <> 1 then raise exception 'Insurance claim must consume exactly one active policy' using errcode = '23514';
+
+end if;
+
+end;
 
 end if;
 
@@ -5952,8 +6035,7 @@ end if;
 
 if v_event.action_type in (
   'Kebutuhan',
-  'SetupMisiAwal',
-  'BagikanMisiKoleksi'
+  'SetupMisiAwal'
 )
 or (
   v_event.action_type = 'GunakanOpsiDarurat'
@@ -6005,6 +6087,149 @@ end if;
 
 end if;
 
+if v_participant_id is not null
+and v_event.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan') then
+update session_card_positions position
+set zone = case when v_event.action_type = 'JualMasakan' then 'DISCARD' else 'PLAYER' end,
+    owner_session_participant_id = case when v_event.action_type = 'JualMasakan' then null else v_participant_id end,
+    slot_group = null,
+    slot_code = null,
+    last_event_id = v_event.event_id,
+    updated_at = now()
+where position.card_position_id = (
+  select candidate.card_position_id
+  from session_card_positions candidate
+  join ruleset_game_assets asset
+    on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+   and asset.ruleset_version_id = candidate.ruleset_version_id
+  where candidate.session_id = v_event.session_id
+    and candidate.zone = 'MARKET'
+    and candidate.status = 'ACTIVE'
+    and asset.asset_type = case v_event.action_type
+      when 'BahanMasakan' then 'INGREDIENT'
+      when 'Kebutuhan' then 'NEED'
+      else 'ORDER'
+    end
+    and lower(asset.asset_code) = lower(case
+      when v_event.action_type = 'JualMasakan' then v_event.payload ->> 'order_card_id'
+      else v_event.payload ->> 'card_id'
+    end)
+  order by candidate.slot_code
+  limit 1
+);
+
+end if;
+
+if v_participant_id is not null
+and v_event.action_type = 'BuangBahanMasakan' then
+update session_card_positions position
+set zone = 'DISCARD',
+    owner_session_participant_id = null,
+    last_event_id = v_event.event_id,
+    updated_at = now()
+where position.card_position_id in (
+  select candidate.card_position_id
+  from session_card_positions candidate
+  join ruleset_game_assets asset
+    on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+   and asset.ruleset_version_id = candidate.ruleset_version_id
+  where candidate.session_id = v_event.session_id
+    and candidate.owner_session_participant_id = v_participant_id
+    and candidate.zone = 'PLAYER'
+    and candidate.status = 'ACTIVE'
+    and asset.asset_type = 'INGREDIENT'
+    and lower(asset.asset_code) = lower(v_event.payload ->> 'card_id')
+  order by candidate.copy_number
+  limit greatest(1, coalesce((v_event.payload ->> 'amount') :: int, 1))
+);
+
+end if;
+
+if v_participant_id is not null
+and v_event.action_type = 'GunakanOpsiDarurat'
+and upper(v_event.payload ->> 'option_type') = 'SELL_NEED' then
+update session_card_positions position
+set zone = 'DISCARD',
+    owner_session_participant_id = null,
+    last_event_id = v_event.event_id,
+    updated_at = now()
+where position.card_position_id = (
+  select candidate.card_position_id
+  from session_card_positions candidate
+  join ruleset_game_assets asset
+    on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+   and asset.ruleset_version_id = candidate.ruleset_version_id
+  where candidate.session_id = v_event.session_id
+    and candidate.owner_session_participant_id = v_participant_id
+    and candidate.zone = 'PLAYER'
+    and candidate.status = 'ACTIVE'
+    and asset.asset_type = 'NEED'
+    and lower(asset.asset_code) = lower(v_event.payload ->> 'card_id')
+  order by candidate.copy_number
+  limit 1
+);
+
+end if;
+
+if v_participant_id is not null
+and v_event.action_type = 'JualMasakan' then declare v_required_ingredient text;
+
+begin for v_required_ingredient in
+  select value
+  from jsonb_array_elements_text(v_event.payload -> 'required_ingredient_card_ids') value
+loop
+  update session_card_positions position
+  set zone = 'DISCARD',
+      owner_session_participant_id = null,
+      last_event_id = v_event.event_id,
+      updated_at = now()
+  where position.card_position_id = (
+    select candidate.card_position_id
+    from session_card_positions candidate
+    join ruleset_game_assets asset
+      on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+     and asset.ruleset_version_id = candidate.ruleset_version_id
+    where candidate.session_id = v_event.session_id
+      and candidate.owner_session_participant_id = v_participant_id
+      and candidate.zone = 'PLAYER'
+      and candidate.status = 'ACTIVE'
+      and asset.asset_type = 'INGREDIENT'
+      and lower(asset.asset_code) = lower(v_required_ingredient)
+    order by candidate.copy_number
+    limit 1
+  );
+end loop;
+
+end;
+
+end if;
+
+if v_participant_id is not null
+and v_event.action_type = 'SetupBahanAwal' then
+update session_card_positions position
+set zone = 'PLAYER',
+    owner_session_participant_id = v_participant_id,
+    slot_group = null,
+    slot_code = null,
+    last_event_id = v_event.event_id,
+    updated_at = now()
+where position.card_position_id = (
+  select candidate.card_position_id
+  from session_card_positions candidate
+  join ruleset_game_assets asset
+    on asset.ruleset_game_asset_id = candidate.ruleset_game_asset_id
+   and asset.ruleset_version_id = candidate.ruleset_version_id
+  where candidate.session_id = v_event.session_id
+    and candidate.zone = 'DECK'
+    and candidate.status = 'ACTIVE'
+    and asset.asset_type = 'INGREDIENT'
+    and lower(asset.asset_code) = lower(v_event.payload ->> 'card_id')
+  order by candidate.copy_number
+  limit 1
+);
+
+end if;
+
 if v_event.action_type in ('AmbilKartuDariDeck', 'IsiUlangPasar') then
 update
   session_card_positions scp
@@ -6030,44 +6255,65 @@ where
       join ruleset_game_assets rga on rga.ruleset_game_asset_id = candidate.ruleset_game_asset_id
     where
       candidate.session_id = v_event.session_id
-      and candidate.zone = 'DECK'
+      and candidate.zone in ('DECK', 'DISCARD')
       and candidate.status = 'ACTIVE'
-      and rga.asset_type = v_event.payload ->> 'asset_type'
+      and rga.asset_type = upper(v_event.payload ->> 'asset_type')
       and lower(rga.asset_code) = lower(v_event.payload ->> 'asset_code')
     order by
+      case candidate.zone when 'DECK' then 1 else 2 end,
       candidate.copy_number
     limit
       1
   );
 
-end if;
+if upper(v_event.payload ->> 'asset_type') = 'INGREDIENT'
+and not exists (
+  select 1
+  from session_card_positions position
+  where position.session_id = v_event.session_id
+    and position.zone = 'MARKET'
+    and position.status = 'ACTIVE'
+    and position.slot_group = v_event.payload ->> 'slot_group'
+    and position.slot_code = v_event.payload ->> 'slot_code'
+) then
+insert into session_card_positions (
+  card_instance_id,
+  session_id,
+  ruleset_version_id,
+  ruleset_game_asset_id,
+  copy_number,
+  zone,
+  position_order,
+  slot_code,
+  slot_group,
+  status,
+  last_event_id
+)
+select
+  gen_random_uuid(),
+  v_event.session_id,
+  asset.ruleset_version_id,
+  asset.ruleset_game_asset_id,
+  coalesce((
+    select max(existing.copy_number) + 1
+    from session_card_positions existing
+    where existing.session_id = v_event.session_id
+      and existing.ruleset_game_asset_id = asset.ruleset_game_asset_id
+  ), 1),
+  'MARKET',
+  nullif(regexp_replace(v_event.payload ->> 'slot_code', '\D', '', 'g'), '') :: int,
+  v_event.payload ->> 'slot_code',
+  v_event.payload ->> 'slot_group',
+  'ACTIVE',
+  v_event.event_id
+from ruleset_game_assets asset
+where asset.ruleset_version_id = v_event.ruleset_version_id
+  and asset.asset_type = 'INGREDIENT'
+  and lower(asset.asset_code) = lower(v_event.payload ->> 'asset_code')
+  and asset.is_active
+limit 1;
 
-if v_event.action_type = 'KartuDiambilDariPasar'
-and v_participant_id is not null then
-update
-  session_card_positions
-set
-  zone = 'PLAYER',
-  owner_session_participant_id = v_participant_id,
-  slot_group = null,
-  slot_code = null,
-  last_event_id = v_event.event_id,
-  updated_at = now()
-where
-  card_position_id = (
-    select
-      card_position_id
-    from
-      session_card_positions
-    where
-      session_id = v_event.session_id
-      and zone = 'MARKET'
-      and slot_group = v_event.payload ->> 'slot_group'
-      and slot_code = v_event.payload ->> 'slot_code'
-      and status = 'ACTIVE'
-    limit
-      1
-  );
+end if;
 
 end if;
 
@@ -6092,8 +6338,20 @@ where
       candidate.session_id = v_event.session_id
       and candidate.zone <> 'DISCARD'
       and candidate.status = 'ACTIVE'
-      and rga.asset_type = v_event.payload ->> 'asset_type'
-      and lower(rga.asset_code) = lower(v_event.payload ->> 'asset_code')
+      and (
+        (
+          v_event.payload ? 'slot_group'
+          and v_event.payload ? 'slot_code'
+          and candidate.zone = 'MARKET'
+          and candidate.slot_group = v_event.payload ->> 'slot_group'
+          and candidate.slot_code = v_event.payload ->> 'slot_code'
+        )
+        or (
+          not (v_event.payload ? 'slot_group')
+          and rga.asset_type = upper(v_event.payload ->> 'asset_type')
+          and lower(rga.asset_code) = lower(v_event.payload ->> 'asset_code')
+        )
+      )
     order by
       case
         candidate.zone
@@ -7143,11 +7401,9 @@ where
   ruleset_version_id = p_ruleset_version_id
   and quantity = v_max_qty;
 
-while v_rem > v_max_qty loop v_points := v_points + v_max_points;
+if v_rem > v_max_qty then v_rem := v_max_qty;
 
-v_rem := v_rem - v_max_qty;
-
-end loop;
+end if;
 
 select
   coalesce(max(points), 0) into v_max_points
@@ -7164,6 +7420,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.5');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.6');
 
 commit;

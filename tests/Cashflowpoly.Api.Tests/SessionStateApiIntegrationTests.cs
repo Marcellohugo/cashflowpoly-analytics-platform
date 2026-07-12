@@ -136,8 +136,18 @@ public sealed class SessionStateApiIntegrationTests
         Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
         using var eventsBody = await ReadJsonAsync(eventsResponse);
         var setupEvents = eventsBody.RootElement.GetProperty("events").EnumerateArray().ToList();
-        Assert.Equal(1 + (playerCount * 6), setupEvents.Count);
+        Assert.Equal(1 + (playerCount * 6) + 15, setupEvents.Count);
         Assert.Single(setupEvents, item => item.GetProperty("action_type").GetString() == "MulaiSesi");
+        var initialMarketEvents = setupEvents
+            .Where(item => item.GetProperty("action_type").GetString() == "AmbilKartuDariDeck")
+            .ToList();
+        Assert.Equal(15, initialMarketEvents.Count);
+        Assert.All(
+            new[] { "INGREDIENT_MARKET", "ORDER_MARKET", "NEED_MARKET" },
+            group => Assert.Equal(
+                5,
+                initialMarketEvents.Count(item =>
+                    item.GetProperty("payload").GetProperty("slot_group").GetString() == group)));
 
         using var getResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -381,7 +391,7 @@ public sealed class SessionStateApiIntegrationTests
     private static void AssertInitialState(JsonElement state, int playerCount, string[] names)
     {
         Assert.Equal(1, state.GetProperty("state_version").GetInt64());
-        Assert.Equal(1 + (playerCount * 6), state.GetProperty("next_sequence_number").GetInt64());
+        Assert.Equal(1 + (playerCount * 6) + 15, state.GetProperty("next_sequence_number").GetInt64());
         Assert.Equal(1, state.GetProperty("day").GetInt32());
         Assert.Equal(1, state.GetProperty("turn").GetInt32());
         Assert.Equal(2, state.GetProperty("action_slots_left").GetInt32());

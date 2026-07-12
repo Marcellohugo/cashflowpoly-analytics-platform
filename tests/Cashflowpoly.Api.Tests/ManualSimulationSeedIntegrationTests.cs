@@ -467,7 +467,8 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Contains("Asuransi", mahirActions);
         Assert.Contains("GunakanOpsiDarurat", mahirActions);
         Assert.Contains("AmbilKartuDariDeck", mahirActions);
-        Assert.Contains("KartuDiambilDariPasar", mahirActions);
+        Assert.DoesNotContain("KartuDiambilDariPasar", mahirActions);
+        Assert.Contains("KartuMasukDiscard", mahirActions);
         Assert.Contains("IsiUlangPasar", mahirActions);
 
         var emergencyOptions = (await connection.QueryAsync<string>(
@@ -485,7 +486,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         Assert.Equal(
-            new[] { "SELL_NEED", "TAKE_SHARIA_LOAN", "USE_INSURANCE" },
+            new[] { "SELL_NEED", "TAKE_SHARIA_LOAN" },
             emergencyOptions.OrderBy(option => option));
 
         var relationalReadModelCounts = await connection.QuerySingleAsync<RelationalReadModelCountRow>(
@@ -547,6 +548,18 @@ public sealed class ManualSimulationSeedIntegrationTests
             """,
             new { mahirSessionName = SeedMahirSessionName });
         Assert.Equal(0, riskPayloadWithHardcodedValueCount);
+
+        var insuranceUseCount = await connection.ExecuteScalarAsync<int>(
+            """
+            select count(*)::int
+            from sessions s
+            join events e on e.session_id = s.session_id
+            where s.session_name = @mahirSessionName
+              and e.action_type = 'Asuransi'
+              and e.payload ? 'risk_event_id'
+            """,
+            new { mahirSessionName = SeedMahirSessionName });
+        Assert.True(insuranceUseCount > 0, "Seed MAHIR wajib memuat penggunaan kartu asuransi.");
 
         var unmatchedInsuranceUseCount = await connection.ExecuteScalarAsync<int>(
             """
@@ -657,7 +670,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             """
             select
                 s.session_name,
-                count(*) filter (where e.action_type in ('BagikanMisiKoleksi', 'SetupMisiAwal'))::int as mission_assigned_count,
+                count(*) filter (where e.action_type = 'SetupMisiAwal')::int as mission_assigned_count,
                 count(*) filter (where e.action_type = 'PoinPeringkatDonasi')::int as donation_rank_awarded_count,
                 count(*) filter (where e.action_type = 'UmumkanJuaraDonasi')::int as donation_winners_announced_count,
                 count(*) filter (where e.action_type = 'BagikanTieBreaker')::int as tie_breaker_assigned_count
@@ -839,17 +852,10 @@ public sealed class ManualSimulationSeedIntegrationTests
         var eventById = events.ToDictionary(evt => evt.EventId);
         var insuredRiskEventIds = new HashSet<Guid>();
         foreach (var insuranceEvent in events.Where(evt =>
-            evt.ActionType.Equals("Asuransi", StringComparison.OrdinalIgnoreCase) ||
-            evt.ActionType.Equals("GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase)))
+            evt.ActionType.Equals("Asuransi", StringComparison.OrdinalIgnoreCase)))
         {
             using var document = JsonDocument.Parse(insuranceEvent.Payload);
-            var isInsuranceOffset =
-                insuranceEvent.ActionType.Equals("Asuransi", StringComparison.OrdinalIgnoreCase) ||
-                (document.RootElement.TryGetProperty("option_type", out var optionTypeElement) &&
-                 optionTypeElement.GetString()?.Equals("USE_INSURANCE", StringComparison.OrdinalIgnoreCase) == true);
-
-            if (isInsuranceOffset &&
-                document.RootElement.TryGetProperty("risk_event_id", out var riskEventIdElement) &&
+            if (document.RootElement.TryGetProperty("risk_event_id", out var riskEventIdElement) &&
                 riskEventIdElement.ValueKind == JsonValueKind.String &&
                 Guid.TryParse(riskEventIdElement.GetString(), out var riskEventId))
             {
@@ -989,12 +995,6 @@ public sealed class ManualSimulationSeedIntegrationTests
 
             case "GunakanOpsiDarurat":
                 var optionType = ReadString(payload, "option_type");
-                if (optionType.Equals("USE_INSURANCE", StringComparison.OrdinalIgnoreCase))
-                {
-                    ApplyInsuranceUsage(player, evt, payload, eventById);
-                    break;
-                }
-
                 if (optionType.Equals("SELL_NEED", StringComparison.OrdinalIgnoreCase))
                 {
                     var cardId = ReadString(payload, "card_id");
@@ -1047,7 +1047,7 @@ public sealed class ManualSimulationSeedIntegrationTests
                 break;
 
             case "Asuransi":
-                if (payload.TryGetProperty("risk_event_id", out _) || payload.TryGetProperty("risk_event_ref", out _))
+                if (payload.TryGetProperty("risk_event_id", out _))
                 {
                     ApplyInsuranceUsage(player, evt, payload, eventById);
                     break;
@@ -1234,21 +1234,6 @@ public sealed class ManualSimulationSeedIntegrationTests
                 Assert.Equal(0, evt.DayIndex);
                 break;
 
-            case "BagikanMisiKoleksi":
-                _ = ReadString(payload, "mission_id");
-                _ = ReadString(payload, "target_tertiary_card_id");
-                _ = ReadInt(payload, "penalty_points");
-                break;
-
-            case "BagikanEmasAwal":
-                if (!evt.UserId.HasValue)
-                {
-                    throw new InvalidOperationException("Emas awal wajib memiliki user_id pemain.");
-                }
-
-                session.GetPlayer(evt.UserId, evt.PlayerName).GoldQty += ReadInt(payload, "qty");
-                break;
-
             case "Asuransi":
                 if (!evt.UserId.HasValue)
                 {
@@ -1285,11 +1270,14 @@ public sealed class ManualSimulationSeedIntegrationTests
                 break;
 
             case "AmbilKartuDariDeck":
-            case "KartuDiambilDariPasar":
-            case "KartuMasukDiscard":
             case "IsiUlangPasar":
                 _ = ReadString(payload, "asset_type");
                 _ = ReadString(payload, "asset_code");
+                break;
+
+            case "KartuMasukDiscard":
+                _ = ReadString(payload, "slot_group");
+                _ = ReadString(payload, "slot_code");
                 break;
 
             case "PoinPeringkatDonasi":
@@ -1659,7 +1647,7 @@ public sealed class ManualSimulationSeedIntegrationTests
 
         if ((actionType.Equals("Asuransi", StringComparison.OrdinalIgnoreCase) ||
              actionType.Equals("PinjamanSyariah", StringComparison.OrdinalIgnoreCase)) &&
-            (payload.TryGetProperty("risk_event_id", out _) || payload.TryGetProperty("risk_event_ref", out _)))
+            payload.TryGetProperty("risk_event_id", out _))
         {
             return false;
         }

@@ -26,7 +26,7 @@ Sistem menjaga aturan inti berikut tetap stabil:
    - `Menabung.amount` maksimal 15 koin per aksi.
    - `PinjamanSyariah.principal` = 10 koin dan `penalty_points` = 15 poin.
    - `Asuransi.premium` = 1 koin.
-   - `BagikanMisiKoleksi.penalty_points` = 10 poin.
+   - `SetupMisiAwal.penalty_points` = 10 poin.
    - `Kebutuhan.points` wajib diisi.
 
 ### 2.2 Parameter variabel
@@ -234,8 +234,13 @@ Sistem memeriksa:
 5. Satu pemain hanya boleh mengirim satu `JumatBerkah` pada hari Jumat yang sama.
 6. Setiap `JualMasakan` mode MAHIR hanya boleh menjadi sumber satu `RisikoKehidupan` melalui `source_order_event_id`.
 7. Risiko katalog berarah `OUT` tetap pending sampai diselesaikan; saldo cukup tidak otomatis memilih pembayaran tunai.
-8. Satu pemain hanya boleh memiliki satu pinjaman `ACTIVE` untuk produk yang sama dan `BayarPinjaman` wajib melunasi seluruh outstanding.
+8. Setiap kartu pinjaman memakai `loan_instance_id` unik; beberapa instance produk yang sama dapat `ACTIVE` selama stok `card_qty` sesi tersedia, dan `BayarPinjaman` wajib melunasi seluruh outstanding satu instance.
 9. Validasi jual emas membaca `session_participant_gold_holdings`, bukan menghitung ulang sebagian event.
+10. Pembelian bahan/kebutuhan dan klaim pesanan hanya menerima aset yang sedang berada di market yang sesuai.
+11. Harga emas transaksi wajib berasal dari event `BukaHargaEmas` pada `day_index` yang sama.
+12. Syarat Primer menggunakan riwayat pembelian sepanjang sesi, walaupun kartu Primer kemudian dijual.
+13. Jumlah kartu deck bahan masakan tidak divalidasi; refill dapat membuat posisi logis baru tanpa menghapus batas market dan batas kartu di tangan.
+14. Nomor tie breaker wajib berada pada rentang `1..jumlah pemain`; skor emas di atas tier terbesar memakai nilai tier terbesar tersebut.
 
 ### 6.4 Validasi kompatibilitas versi
 Sistem menetapkan nomor versi secara otomatis. Sistem melarang instruktur mengubah nomor versi manual.
