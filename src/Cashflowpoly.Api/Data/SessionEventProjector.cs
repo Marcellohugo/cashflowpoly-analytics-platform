@@ -39,23 +39,26 @@ public sealed class SessionEventProjector
         var participantId = storedEvent.SessionPlayerId.Value;
         await EnsureParticipantBalanceAsync(request, participantId, conn, tx, ct);
         await ApplyCashflowAsync(participantId, storedEvent.EventId, cashflowProjections, conn, tx, ct);
-        await IncrementActionCounterAsync(
-            request.SessionId,
-            participantId,
-            request.RulesetVersionId,
-            storedEvent.RulesetActionId,
-            storedEvent.EventId,
-            conn,
-            tx,
-            ct);
-        await ProjectNarrativeTriggersAsync(
-            request,
-            participantId,
-            storedEvent.RulesetActionId,
-            storedEvent.EventId,
-            conn,
-            tx,
-            ct);
+        if (string.Equals(storedEvent.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            await IncrementActionCounterAsync(
+                request.SessionId,
+                participantId,
+                request.RulesetVersionId,
+                storedEvent.RulesetActionId,
+                storedEvent.EventId,
+                conn,
+                tx,
+                ct);
+            await ProjectNarrativeTriggersAsync(
+                request,
+                participantId,
+                storedEvent.RulesetActionId,
+                storedEvent.EventId,
+                conn,
+                tx,
+                ct);
+        }
 
         var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload) ?? request.ActionType.Trim();
         switch (canonicalAction)
@@ -1262,12 +1265,16 @@ public sealed class SessionEventProjector
 
         var metadataJson = JsonSerializer.Serialize(new
         {
+            loan_id = loanId,
             principal,
             repayment_amount = repaymentAmount,
             duration_days = duration,
             penalty_points = penaltyPoints,
             repaid_amount = 0
         });
+        var loanCode = _payloadReader.TryGetString(request.Payload, "loan_code", out var requestedLoanCode)
+            ? requestedLoanCode
+            : loanId;
 
         await conn.ExecuteAsync(new CommandDefinition(
             """
@@ -1277,6 +1284,7 @@ public sealed class SessionEventProjector
                 session_participant_id,
                 ruleset_version_id,
                 ruleset_sharia_loan_id,
+                loan_instance_id,
                 principal_amount,
                 outstanding_amount,
                 repayment_amount,
@@ -1293,6 +1301,7 @@ public sealed class SessionEventProjector
                 @participantId,
                 rsl.ruleset_version_id,
                 rsl.ruleset_sharia_loan_id,
+                @loanId,
                 @principal,
                 @principal,
                 @repaymentAmount,
@@ -1304,9 +1313,9 @@ public sealed class SessionEventProjector
                 now()
             from ruleset_sharia_loans rsl
             where rsl.ruleset_version_id = @rulesetVersionId
-              and lower(rsl.loan_code) = lower(@loanId)
+              and lower(rsl.loan_code) = lower(@loanCode)
             limit 1
-            on conflict (session_participant_id, ruleset_sharia_loan_id) do update
+            on conflict (session_participant_id, loan_instance_id) do update
             set principal_amount = excluded.principal_amount,
                 outstanding_amount = excluded.outstanding_amount,
                 repayment_amount = excluded.repayment_amount,
@@ -1322,6 +1331,7 @@ public sealed class SessionEventProjector
                 participantId,
                 rulesetVersionId = request.RulesetVersionId,
                 loanId,
+                loanCode,
                 principal,
                 repaymentAmount,
                 metadataJson,
@@ -1355,13 +1365,7 @@ public sealed class SessionEventProjector
                 ),
                 updated_at = now()
             where session_participant_id = @participantId
-              and ruleset_sharia_loan_id = (
-                select ruleset_sharia_loan_id
-                from ruleset_sharia_loans
-                where ruleset_version_id = @rulesetVersionId
-                  and lower(loan_code) = lower(@loanId)
-                limit 1
-              )
+              and lower(loan_instance_id) = lower(@loanId)
             """,
             new
             {

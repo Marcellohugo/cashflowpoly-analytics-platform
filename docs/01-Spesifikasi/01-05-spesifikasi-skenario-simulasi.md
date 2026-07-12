@@ -40,12 +40,12 @@ Dokumen ini menyatukan skenario permainan untuk Mode Pemula dan Mode Mahir. Tim 
 2. Setiap baris aksi pemain menghasilkan satu event dengan `actor_type=PLAYER`, kecuali bagian yang secara eksplisit menyebut sistem.
 3. Setiap perpindahan hari menghasilkan event sistem dengan `actor_type=SYSTEM` dan `action_type=AkhirGiliran`.
 4. Setiap hari Minggu menghasilkan event sistem dengan `actor_type=SYSTEM` dan `action_type=HariMingguLibur`.
-5. Seed simulasi mencatat event setup pada `day_index=0` (kotak GO) sebelum aksi utama, seperti pembagian Tie Breaker, penugasan Misi Koleksi, dan pengisian awal deck/market. Event setup ini membantu audit posisi kartu dan tidak mengurangi jatah aksi harian pemain.
+5. Seed simulasi mencatat event setup pada `day_index=0` (kotak GO) sebelum aksi utama: `MulaiSesi`, `BagikanTieBreaker`, `SetupBahanAwal`, `SetupEmasAwal`, `SetupMisiAwal`, serta pengisian awal deck/market. Event setup tidak muncul sebagai aksi tanggal 1 dan tidak mengurangi jatah aksi harian pemain.
 6. Seed memberi satu emas awal per pemain melalui `SetupEmasAwal`; holding tersebut dapat dipakai oleh penjualan reguler maupun opsi darurat.
 7. Setup Mode Mahir memberi satu `SetupPinjamanAwal` dan satu `SetupAsuransiAwal` per pemain untuk merepresentasikan kondisi awal skenario uji. Keduanya tidak mengurangi slot aksi.
 8. Sistem hanya membuat event `BayarPinjaman` bila pemain memiliki pinjaman aktif. Jika pemain tidak memiliki pinjaman aktif, sistem mencatat aksi alternatif sesuai skenario, misalnya `KerjaLepas` atau catatan audit tanpa transaksi.
 9. Risiko `OUT` disimpan pending. Pemain menyelesaikannya dengan `BayarRisiko`, polis aktif, atau `GunakanOpsiDarurat`; saldo cukup tidak otomatis memilih pembayaran tunai.
-10. Satu pemain hanya boleh memiliki satu pinjaman aktif per produk. Seed melunasi pinjaman setup Hugo sebelum memakai `TAKE_SHARIA_LOAN` untuk produk yang sama.
+10. Setiap kartu pinjaman memiliki instance sendiri. Beberapa pinjaman produk yang sama dapat aktif bersamaan selama stok fisik katalog tersedia; pelunasan selalu menutup seluruh outstanding satu instance.
 
 ### 1.5 Pemetaan Istilah Papan ke Kode Katalog
 Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan katalog DDL/DML.
@@ -84,7 +84,7 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Marcello Hari 1 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Telur
 - Hugo Hari 1 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Daging
 - Hugo Hari 1 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Bumbu
-- Manalu Hari 1 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Beras
+- Manalu Hari 1 Aksi 1 -> Kerja Lepas: terima 1 koin
 - Manalu Hari 1 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Sayur
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 2
 
@@ -335,7 +335,7 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Marcello Hari 1 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Bumbu
 - Hugo Hari 1 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Beras
 - Hugo Hari 1 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Telur
-- Manalu Hari 1 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Sayur
+- Manalu Hari 1 Aksi 1 -> Kerja Lepas: terima 1 koin
 - Manalu Hari 1 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Bumbu
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 2
 
@@ -365,7 +365,7 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Marco Hari 4 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Daging
 - Marco Hari 4 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Bumbu
 - Marcello Hari 4 Aksi 1 -> Jual 1 Kartu Pesanan Masakan: nasi goreng (`nasi_goreng`) memakai Beras + Telur + ambil 1 Kartu Risiko Kehidupan; bayar biaya risiko dengan koin jika muncul risiko negatif; catat risiko sebagai `RisikoKehidupan`
-- Marcello Hari 4 Aksi 2 -> Menabung untuk Tujuan Keuangan: 5 koin
+- Marcello Hari 4 Aksi 2 -> Kerja Lepas: terima 1 koin
 - Hugo Hari 4 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Bumbu
 - Hugo Hari 4 Aksi 2 -> Jual 1 Kartu Pesanan Masakan: tahu campur (`tahu_campur`) memakai Daging + Bumbu + ambil 1 Kartu Risiko Kehidupan; gunakan Asuransi aktif jika sudah tersedia; jika belum tersedia, bayar biaya risiko dengan koin
 - Manalu Hari 4 Aksi 1 -> Beli 1 Kartu Bahan Masakan: Beras
@@ -410,8 +410,8 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Marcello Hari 9 Aksi 2 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
 - Hugo Hari 9 Aksi 1 -> Lunasi pinjaman setup melalui `BayarPinjaman`; setelah itu gunakan `GunakanOpsiDarurat` bertipe `TAKE_SHARIA_LOAN` untuk menyelesaikan risiko pending dengan produk yang sama
 - Hugo Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Beras
-- Manalu Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 4 koin
-- Manalu Hari 9 Aksi 2 -> Beli 1 Kartu Bahan Masakan: Daging
+- Manalu Hari 9 Aksi 1 -> Menabung untuk Tujuan Keuangan: 1 koin; selesaikan risiko pending dengan `BayarRisiko` sebagai aksi bebas
+- Manalu Hari 9 Aksi 2 -> Kerja Lepas: terima 1 koin
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 10
 
 ### Mode Mahir - Hari 10 - Rabu
@@ -479,8 +479,9 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 17
 
 ### Mode Mahir - Hari 17 - Rabu
-- Marco Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
-- Marco Hari 17 Aksi 2 -> Jika tabungan cukup, ambil 1 Kartu Tujuan Keuangan (`TujuanFinansial`)
+- Marco Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 15 koin
+- Sistem mencatat pencapaian `TujuanFinansial` jika saldo tabungan mencukupi
+- Marco Hari 17 Aksi 2 -> Menabung untuk Tujuan Keuangan: 8 koin
 - Marcello Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
 - Marcello Hari 17 Aksi 2 -> Jika tabungan cukup, ambil 1 Kartu Tujuan Keuangan (`TujuanFinansial`)
 - Hugo Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
@@ -490,13 +491,13 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 18
 
 ### Mode Mahir - Hari 18 - Kamis
-- Marco Hari 18 Aksi 1 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
+- Marco Hari 18 Aksi 1 -> Gunakan polis setup aktif untuk menyelesaikan risiko pribadi pending; polis kembali `INACTIVE`
 - Marco Hari 18 Aksi 2 -> Kerja Lepas: terima 1 koin
-- Marcello Hari 18 Aksi 1 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
+- Marcello Hari 18 Aksi 1 -> Gunakan polis aktif untuk menyelesaikan risiko pribadi pending; polis kembali `INACTIVE`
 - Marcello Hari 18 Aksi 2 -> Kerja Lepas: terima 1 koin
-- Hugo Hari 18 Aksi 1 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
+- Hugo Hari 18 Aksi 1 -> Gunakan polis setup aktif untuk menyelesaikan risiko pribadi pending; polis kembali `INACTIVE`
 - Hugo Hari 18 Aksi 2 -> Kerja Lepas: terima 1 koin
-- Manalu Hari 18 Aksi 1 -> Aktifkan 1 Asuransi Multi Risiko; bayar 1 koin ke bank
+- Manalu Hari 18 Aksi 1 -> Gunakan polis setup aktif untuk menyelesaikan risiko pribadi pending; polis kembali `INACTIVE`
 - Manalu Hari 18 Aksi 2 -> Kerja Lepas: terima 1 koin
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 19
 

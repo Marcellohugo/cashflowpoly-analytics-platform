@@ -108,7 +108,9 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         var loanStates = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         foreach (var evt in playerEvents)
         {
-            if (evt.ActionType == "PinjamanSyariah" &&
+            if ((evt.ActionType == GameActionCatalog.PinjamanSyariah ||
+                 evt.ActionType == GameActionCatalog.SetupPinjamanAwal ||
+                 IsEmergencyLoan(evt.Payload)) &&
                 _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPoints))
             {
                 loanStates[loanId] = new LoanState(loanId, principal, penaltyPoints, 0);
@@ -123,6 +125,20 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         }
 
         return loanStates;
+    }
+
+    private static bool IsEmergencyLoan(string payload)
+    {
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(payload);
+            return document.RootElement.TryGetProperty("option_type", out var optionType) &&
+                   string.Equals(optionType.GetString(), "TAKE_SHARIA_LOAN", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 
     private sealed record LoanState(

@@ -488,6 +488,35 @@ public sealed class EventRepository
             new CommandDefinition(sql, new { sessionId, riskEventId }, cancellationToken: ct));
     }
 
+    internal async Task<bool> HasPendingLifeRiskAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select exists (
+                select 1
+                from events risk_event
+                join ruleset_life_risks risk
+                  on risk.ruleset_version_id = risk_event.ruleset_version_id
+                 and lower(risk.risk_code) = lower(risk_event.payload ->> 'risk_id')
+                where risk_event.session_id = @sessionId
+                  and risk_event.action_type = 'RisikoKehidupan'
+                  and risk.effect_type = 'COIN_EFFECT'
+                  and risk.direction = 'OUT'
+                  and not exists (
+                      select 1
+                      from event_cashflow_projections projection
+                      where projection.session_id = risk_event.session_id
+                        and projection.category = 'RISK_LIFE'
+                        and projection.direction = 'OUT'
+                        and projection.reference = risk_event.event_id::text
+                  )
+            )
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<bool>(
+            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
     internal async Task<int?> GetOwnedNeedSaleAmountAsync(
         Guid sessionId,
         Guid userId,
@@ -549,24 +578,23 @@ public sealed class EventRepository
     internal async Task<int?> GetActiveLoanOutstandingAsync(
         Guid sessionId,
         Guid userId,
-        string loanCode,
+        string loanInstanceId,
         CancellationToken ct)
     {
         const string sql = """
             select spl.outstanding_amount
             from session_participant_loans spl
             join session_participants sp on sp.session_participant_id = spl.session_participant_id
-            join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
             where sp.session_id = @sessionId
               and sp.user_id = @userId
-              and lower(rsl.loan_code) = lower(@loanCode)
+              and lower(spl.loan_instance_id) = lower(@loanInstanceId)
               and spl.status = 'ACTIVE'
             limit 1
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.ExecuteScalarAsync<int?>(
-            new CommandDefinition(sql, new { sessionId, userId, loanCode }, cancellationToken: ct));
+            new CommandDefinition(sql, new { sessionId, userId, loanInstanceId }, cancellationToken: ct));
     }
 
     private static object BuildEventParameters(EventDb record)

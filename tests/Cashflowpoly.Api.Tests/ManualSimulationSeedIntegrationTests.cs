@@ -288,7 +288,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Equal(8, setupRows.Count);
         foreach (var row in setupRows)
         {
-            Assert.Equal(0, row.SetupIngredientCount);
+            Assert.Equal(1, row.SetupIngredientCount);
             Assert.Equal(2, row.DayOnePlayerActionCount);
             Assert.Equal(1, row.SetupGoldCount);
             Assert.Equal(1, row.SetupMissionCount);
@@ -382,13 +382,15 @@ public sealed class ManualSimulationSeedIntegrationTests
         {
             ("Marco", "nasi_putih", "telur"),
             ("Marcello", "nasi_putih", "telur"),
-            ("Hugo", "daging", "tahu_tempe"),
-            ("Manalu", "nasi_putih", "sayur")
+            ("Hugo", "daging", "tahu_tempe")
         })
         {
             AssertScenarioEvent(scenarioAlignmentRows, "PEMULA", player, 1, 1, "BahanMasakan", firstIngredient);
             AssertScenarioEvent(scenarioAlignmentRows, "PEMULA", player, 1, 2, "BahanMasakan", secondIngredient);
         }
+
+        AssertScenarioEvent(scenarioAlignmentRows, "PEMULA", "Manalu", 1, 1, "KerjaLepas", "");
+        AssertScenarioEvent(scenarioAlignmentRows, "PEMULA", "Manalu", 1, 2, "BahanMasakan", "sayur");
 
         AssertScenarioEvent(
             scenarioAlignmentRows,
@@ -419,13 +421,15 @@ public sealed class ManualSimulationSeedIntegrationTests
         {
             ("Marco", "nasi_putih", "telur"),
             ("Marcello", "daging", "tahu_tempe"),
-            ("Hugo", "nasi_putih", "telur"),
-            ("Manalu", "sayur", "tahu_tempe")
+            ("Hugo", "nasi_putih", "telur")
         })
         {
             AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", player, 1, 1, "BahanMasakan", firstIngredient);
             AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", player, 1, 2, "BahanMasakan", secondIngredient);
         }
+
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 1, 1, "KerjaLepas", "");
+        AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Manalu", 1, 2, "BahanMasakan", "tahu_tempe");
 
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Marcello", 13, 0, "InvestasiEmas", "BUY");
         AssertScenarioEvent(scenarioAlignmentRows, "MAHIR", "Hugo", 13, 0, "InvestasiEmas", "BUY");
@@ -459,6 +463,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Contains("Menabung", mahirActions);
         Assert.Contains("JualMasakan", mahirActions);
         Assert.Contains("RisikoKehidupan", mahirActions);
+        Assert.Contains("BayarRisiko", mahirActions);
         Assert.Contains("Asuransi", mahirActions);
         Assert.Contains("GunakanOpsiDarurat", mahirActions);
         Assert.Contains("AmbilKartuDariDeck", mahirActions);
@@ -480,7 +485,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         Assert.Equal(
-            new[] { "SELL_GOLD", "SELL_NEED", "TAKE_SHARIA_LOAN", "USE_INSURANCE" },
+            new[] { "SELL_NEED", "TAKE_SHARIA_LOAN", "USE_INSURANCE" },
             emergencyOptions.OrderBy(option => option));
 
         var relationalReadModelCounts = await connection.QuerySingleAsync<RelationalReadModelCountRow>(
@@ -601,11 +606,16 @@ public sealed class ManualSimulationSeedIntegrationTests
               select
                 ir.risk_event_pk,
                 ir.user_id,
-                coalesce(sum(case when ecp.event_pk = ir.risk_event_pk and ecp.direction = 'OUT' then ecp.amount else 0 end), 0)
-                - coalesce(sum(case when ecp.event_pk = ir.insurance_event_pk and ecp.direction = 'IN' then ecp.amount else 0 end), 0) as net_amount
+                coalesce(sum(
+                  case
+                    when ecp.direction = 'IN' then ecp.amount
+                    when ecp.direction = 'OUT' then -ecp.amount
+                    else 0
+                  end
+                ), 0) as net_amount
               from insured_risks ir
               left join event_cashflow_projections ecp
-                on ecp.event_pk in (ir.risk_event_pk, ir.insurance_event_pk)
+                on ecp.event_pk = ir.insurance_event_pk
                and ecp.user_id = ir.user_id
               group by ir.risk_event_pk, ir.user_id
             )
@@ -1031,6 +1041,9 @@ public sealed class ManualSimulationSeedIntegrationTests
                 }
 
                 ApplyRiskLife(player, evt, payload, insuredRiskEventIds, lifeRiskCatalog);
+                break;
+
+            case "BayarRisiko":
                 break;
 
             case "Asuransi":
@@ -1633,6 +1646,7 @@ public sealed class ManualSimulationSeedIntegrationTests
     private static bool CountsAsActionToken(string actionType, JsonElement payload)
     {
         if (actionType.Equals("RisikoKehidupan", StringComparison.OrdinalIgnoreCase) ||
+            actionType.Equals("BayarRisiko", StringComparison.OrdinalIgnoreCase) ||
             actionType.Equals("GunakanOpsiDarurat", StringComparison.OrdinalIgnoreCase) ||
             actionType.Equals("JumatBerkah", StringComparison.OrdinalIgnoreCase) ||
             actionType.Equals("InvestasiEmas", StringComparison.OrdinalIgnoreCase) ||

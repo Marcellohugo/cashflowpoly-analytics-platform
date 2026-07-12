@@ -1202,6 +1202,7 @@ create table if not exists session_participant_loans (
   session_participant_id uuid not null,
   ruleset_version_id uuid not null,
   ruleset_sharia_loan_id uuid not null,
+  loan_instance_id varchar(120) not null,
   principal_amount int not null,
   outstanding_amount int not null,
   repayment_amount int null,
@@ -1212,7 +1213,6 @@ create table if not exists session_participant_loans (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint pk_session_participant_loans primary key (session_participant_loan_id),
-  constraint uq_session_participant_loans_scope unique (session_participant_id, ruleset_sharia_loan_id),
   constraint ck_session_participant_loans_principal_amount check (principal_amount >= 0),
   constraint ck_session_participant_loans_outstanding_amount check (outstanding_amount >= 0),
   constraint ck_session_participant_loans_repayment_amount check (
@@ -1223,6 +1223,26 @@ create table if not exists session_participant_loans (
   constraint fk_session_participant_loans_participant_id foreign key (session_id, session_participant_id) references session_participants (session_id, session_participant_id) on delete cascade,
   constraint fk_session_participant_loans_ruleset_loan_id foreign key (ruleset_version_id, ruleset_sharia_loan_id) references ruleset_sharia_loans (ruleset_version_id, ruleset_sharia_loan_id) on delete restrict
 );
+
+alter table session_participant_loans
+  add column if not exists loan_instance_id varchar(120);
+
+update session_participant_loans
+set loan_instance_id = coalesce(
+  nullif(metadata_json ->> 'loan_id', ''),
+  source_event_id::text,
+  session_participant_loan_id::text
+)
+where loan_instance_id is null;
+
+alter table session_participant_loans
+  alter column loan_instance_id set not null;
+
+alter table session_participant_loans
+  drop constraint if exists uq_session_participant_loans_scope;
+
+create unique index if not exists ux_session_participant_loans_instance
+  on session_participant_loans (session_participant_id, loan_instance_id);
 
 create table if not exists session_participant_insurances (
   session_participant_insurance_id uuid not null default gen_random_uuid(),
@@ -2614,7 +2634,16 @@ where
   and spi.ruleset_game_asset_id <> new.ruleset_game_asset_id
   and rga.asset_type = 'INGREDIENT';
 
-if v_total_ingredients + new.qty > 6 then raise exception 'Total ingredient limit exceeded: max 6 total cards' using errcode = '23514';
+if v_total_ingredients + new.qty > 6 then raise exception 'Total ingredient limit exceeded: session_id=%, participant_id=%, event_id=%, event=%, max 6 total cards',
+new.session_id,
+new.session_participant_id,
+new.last_event_id,
+(
+  select concat(e.action_type, ' ', e.payload::text)
+  from events e
+  where e.session_id = new.session_id
+    and e.event_id = new.last_event_id
+) using errcode = '23514';
 
 end if;
 
@@ -3327,19 +3356,21 @@ end if;
 
 end if;
 
-select
-  count(*) :: int into v_need_purchase_count
-from
-  events
-where
-  session_id = new.session_id
-  and action_type = 'Kebutuhan'
-  and payload ->> 'card_id' = new.payload ->> 'card_id';
+if v_need_card_qty is not null then
+  select
+    count(*) :: int into v_need_purchase_count
+  from
+    events
+  where
+    session_id = new.session_id
+    and action_type = 'Kebutuhan'
+    and payload ->> 'card_id' = new.payload ->> 'card_id';
 
-if v_need_purchase_count >= coalesce(v_need_card_qty, 0) then raise exception 'Need card % has reached its physical quantity limit of % in this session',
-new.payload ->> 'card_id',
-coalesce(v_need_card_qty, 0) using errcode = '23514';
+  if v_need_purchase_count >= v_need_card_qty then raise exception 'Need card % has reached its physical quantity limit of % in this session',
+  new.payload ->> 'card_id',
+  v_need_card_qty using errcode = '23514';
 
+  end if;
 end if;
 
 end if;
@@ -3444,11 +3475,65 @@ and exists (
 
 end if;
 
+if new.action_type in (
+  'SetupBahanAwal',
+  'SetupEmasAwal',
+  'SetupMisiAwal',
+  'SetupPinjamanAwal',
+  'SetupAsuransiAwal',
+  'BagikanEmasAwal',
+  'BagikanMisiKoleksi',
+  'BagikanTieBreaker'
+) then
+  if new.day_index <> 0
+  or coalesce(new.payload ->> 'setup', 'INITIAL') <> 'INITIAL' then
+    raise exception 'Initial setup events must use day_index 0 and setup INITIAL' using errcode = '23514';
+  end if;
+end if;
+
+if new.action_type in ('SetupEmasAwal', 'BagikanEmasAwal')
+and exists (
+  select 1
+  from events
+  where session_id = new.session_id
+    and session_player_id = new.session_player_id
+    and action_type in ('SetupEmasAwal', 'BagikanEmasAwal')
+) then raise exception 'Initial gold can only be granted once per player per session' using errcode = '23514';
+
+end if;
+
+if new.action_type in ('SetupMisiAwal', 'BagikanMisiKoleksi')
+and exists (
+  select 1
+  from events
+  where session_id = new.session_id
+    and session_player_id = new.session_player_id
+    and action_type in ('SetupMisiAwal', 'BagikanMisiKoleksi')
+) then raise exception 'Initial mission can only be assigned once per player per session' using errcode = '23514';
+
+end if;
+
+if new.action_type in ('SetupPinjamanAwal', 'SetupAsuransiAwal', 'BagikanTieBreaker')
+and exists (
+  select 1
+  from events
+  where session_id = new.session_id
+    and session_player_id = new.session_player_id
+    and action_type = new.action_type
+) then raise exception 'Initial setup action % can only be recorded once per player per session',
+new.action_type using errcode = '23514';
+
+end if;
+
 if new.action_type = 'BayarRisiko' then declare v_risk_event_id uuid;
 
 v_risk_amount int;
 
 v_risk_direction varchar(10);
+
+v_risk_effect_type varchar(80);
+
+v_risk_target_scope varchar(40);
 
 v_current_coins int;
 
@@ -3456,8 +3541,12 @@ begin v_risk_event_id := fn_safe_cast_to_uuid(new.payload ->> 'risk_event_id');
 
 select
   risk_catalog.amount,
-  risk_catalog.direction into v_risk_amount,
-  v_risk_direction
+  risk_catalog.direction,
+  risk_catalog.effect_type,
+  risk_catalog.target_scope into v_risk_amount,
+  v_risk_direction,
+  v_risk_effect_type,
+  v_risk_target_scope
 from
   events risk_evt
   join ruleset_life_risks risk_catalog on risk_catalog.ruleset_version_id = risk_evt.ruleset_version_id
@@ -3471,6 +3560,8 @@ limit
   1 for update of risk_evt;
 
 if v_risk_direction <> 'OUT'
+or v_risk_effect_type <> 'COIN_EFFECT'
+or v_risk_target_scope <> 'SELF'
 or coalesce(v_risk_amount, 0) <= 0 then raise exception 'BayarRisiko requires a valid player OUT risk' using errcode = '23514';
 
 end if;
@@ -3517,6 +3608,10 @@ v_risk_amount int;
 
 v_risk_direction varchar(10);
 
+v_risk_effect_type varchar(80);
+
+v_risk_target_scope varchar(40);
+
 v_risk_actor_type varchar(10);
 
 v_current_coins int;
@@ -3550,8 +3645,12 @@ end if;
 select
   risk_catalog.amount,
   risk_catalog.direction,
+  risk_catalog.effect_type,
+  risk_catalog.target_scope,
   risk_evt.actor_type into v_risk_amount,
   v_risk_direction,
+  v_risk_effect_type,
+  v_risk_target_scope,
   v_risk_actor_type
 from
   events risk_evt
@@ -3564,6 +3663,8 @@ where
 
 if v_risk_direction is null
 or v_risk_direction <> 'OUT'
+or v_risk_effect_type <> 'COIN_EFFECT'
+or v_risk_target_scope <> 'SELF'
 or coalesce(v_risk_amount, 0) <= 0 then raise exception 'Emergency options can only be used for cost-based risks' using errcode = '23514';
 
 end if;
@@ -3729,6 +3830,10 @@ end if;
 
 if v_option_type = 'TAKE_SHARIA_LOAN' then declare v_catalog_principal int;
 
+v_loan_card_qty int;
+
+v_active_loans_count int;
+
 begin if not (
   new.payload ? 'loan_code'
   and new.payload ? 'principal'
@@ -3755,18 +3860,28 @@ v_catalog_principal using errcode = '23514';
 
 end if;
 
-if exists (
-  select
-    1
-  from
-    session_participant_loans spl
-    join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
-  where
-    spl.session_participant_id = new.session_player_id
-    and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
-    and spl.status = 'ACTIVE'
-) then raise exception 'Player already has an active loan for product %',
-new.payload ->> 'loan_code' using errcode = '23514';
+select
+  rsl.card_qty into v_loan_card_qty
+from
+  ruleset_sharia_loans rsl
+where
+  rsl.ruleset_version_id = new.ruleset_version_id
+  and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code');
+
+select
+  count(*) into v_active_loans_count
+from
+  session_participant_loans spl
+  join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
+where
+  spl.session_id = new.session_id
+  and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
+  and spl.status = 'ACTIVE';
+
+if v_loan_card_qty is not null
+and (v_active_loans_count + 1) > v_loan_card_qty then raise exception 'Active loan count for % exceeds catalog limit %',
+new.payload ->> 'loan_code',
+v_loan_card_qty using errcode = '23514';
 
 end if;
 
@@ -3797,7 +3912,7 @@ end;
 
 end if;
 
--- 8. PinjamanSyariah validation (cash insufficient + active loan limit)
+-- 8. PinjamanSyariah validation (cash insufficient + physical card limit)
 if new.action_type = 'PinjamanSyariah' then declare v_loan_card_qty int;
 
 v_active_loans_count int;
@@ -3850,21 +3965,6 @@ v_catalog_penalty using errcode = '23514';
 
 end if;
 
-if exists (
-  select
-    1
-  from
-    session_participant_loans spl
-    join ruleset_sharia_loans rsl on rsl.ruleset_sharia_loan_id = spl.ruleset_sharia_loan_id
-  where
-    spl.session_participant_id = new.session_player_id
-    and lower(rsl.loan_code) = lower(new.payload ->> 'loan_code')
-    and spl.status = 'ACTIVE'
-) then raise exception 'Player already has an active loan for product %',
-new.payload ->> 'loan_code' using errcode = '23514';
-
-end if;
-
 if (
   new.payload ? 'risk_event_ref'
   or new.payload ? 'risk_event_id'
@@ -3873,6 +3973,10 @@ if (
 v_risk_amount int;
 
 v_risk_direction varchar(10);
+
+v_risk_effect_type varchar(80);
+
+v_risk_target_scope varchar(40);
 
 v_current_coins int;
 
@@ -3883,8 +3987,12 @@ begin v_risk_event_id := coalesce(
 
 select
   risk_catalog.amount,
-  risk_catalog.direction into v_risk_amount,
-  v_risk_direction
+  risk_catalog.direction,
+  risk_catalog.effect_type,
+  risk_catalog.target_scope into v_risk_amount,
+  v_risk_direction,
+  v_risk_effect_type,
+  v_risk_target_scope
 from
   events risk_evt
   join ruleset_life_risks risk_catalog on risk_catalog.ruleset_version_id = risk_evt.ruleset_version_id
@@ -3895,6 +4003,8 @@ where
   and risk_evt.user_id = new.user_id;
 
 if v_risk_direction <> 'OUT'
+or v_risk_effect_type <> 'COIN_EFFECT'
+or v_risk_target_scope <> 'SELF'
 or v_risk_amount <= 0 then raise exception 'Sharia loans can only be taken for cost-based risks' using errcode = '23514';
 
 end if;
@@ -3917,11 +4027,10 @@ end if;
 select
   card_qty into v_loan_card_qty
 from
-  ruleset_catalog_items
+  ruleset_sharia_loans
 where
   ruleset_version_id = new.ruleset_version_id
-  and item_type = 'SHARIA_LOAN'
-  and item_code = new.payload ->> 'loan_code';
+  and lower(loan_code) = lower(new.payload ->> 'loan_code');
 
 select
   count(*) into v_active_loans_count
@@ -3933,9 +4042,10 @@ where
   and rsl.loan_code = new.payload ->> 'loan_code'
   and spl.status = 'ACTIVE';
 
-if (v_active_loans_count + 1) > coalesce(v_loan_card_qty, 0) then raise exception 'Active loan count for % exceeds catalog limit %',
+if v_loan_card_qty is not null
+and (v_active_loans_count + 1) > v_loan_card_qty then raise exception 'Active loan count for % exceeds catalog limit %',
 new.payload ->> 'loan_code',
-coalesce(v_loan_card_qty, 0) using errcode = '23514';
+v_loan_card_qty using errcode = '23514';
 
 end if;
 
@@ -3976,6 +4086,20 @@ v_catalog_premium using errcode = '23514';
 
 end if;
 
+if exists (
+  select 1
+  from session_participant_insurances insurance
+  where insurance.session_participant_id = new.session_player_id
+    and insurance.status = 'ACTIVE'
+    and insurance.remaining_uses > 0
+) then raise exception 'Insurance policy is already active: session_id=%, user_id=%, seq=%, payload=%',
+new.session_id,
+new.user_id,
+new.sequence_number,
+new.payload using errcode = '23514';
+
+end if;
+
 end;
 
 end if;
@@ -3989,6 +4113,10 @@ and (
 v_actor_type varchar(10);
 
 v_risk_direction varchar(10);
+
+v_risk_effect_type varchar(80);
+
+v_risk_target_scope varchar(40);
 
 v_risk_amount int;
 
@@ -4004,9 +4132,13 @@ begin v_risk_event_id := coalesce(
 select
   risk_evt.actor_type,
   risk_catalog.direction,
-  risk_catalog.amount into v_actor_type,
+  risk_catalog.amount,
+  risk_catalog.effect_type,
+  risk_catalog.target_scope into v_actor_type,
   v_risk_direction,
-  v_risk_amount
+  v_risk_amount,
+  v_risk_effect_type,
+  v_risk_target_scope
 from
   events risk_evt
   join ruleset_life_risks risk_catalog on risk_catalog.ruleset_version_id = risk_evt.ruleset_version_id
@@ -4021,6 +4153,8 @@ if v_actor_type = 'SYSTEM' then raise exception 'Insurance cannot be used to mit
 end if;
 
 if v_risk_direction <> 'OUT'
+or v_risk_effect_type <> 'COIN_EFFECT'
+or v_risk_target_scope <> 'SELF'
 or coalesce(v_risk_amount, 0) <= 0 then raise exception 'Insurance can only mitigate cost-based risks' using errcode = '23514';
 
 end if;
@@ -4495,6 +4629,9 @@ select
   ecp.direction,
   ecp.amount,
   e.sequence_number,
+  e.event_id,
+  e.action_type,
+  e.payload,
   ecp.projection_order
 from
   event_cashflow_projections ecp
@@ -4510,9 +4647,13 @@ elsif v_rec.direction = 'OUT' then v_running_balance := v_running_balance - v_re
 
 end if;
 
-if v_running_balance < 0 then raise exception 'Insufficent cash balance: user_id=%, seq=%, running balance would drop to % coins',
+if v_running_balance < 0 then raise exception 'Insufficient cash balance: session_id=%, user_id=%, seq=%, event_id=%, action=% %, running balance would drop to % coins',
+new.session_id,
 new.user_id,
 v_rec.sequence_number,
+v_rec.event_id,
+v_rec.action_type,
+v_rec.payload,
 v_running_balance using errcode = '23514';
 
 end if;
@@ -4904,6 +5045,7 @@ with risk_catalog as (
   where
     v_event.action_type = 'RisikoKehidupan'
     and risk.effect_type = 'COIN_EFFECT'
+    and risk.direction <> 'OUT'
   union
   all
   select
@@ -4956,13 +5098,56 @@ with risk_catalog as (
   where
     v_event.action_type = 'RisikoKehidupan'
     and risk.effect_type = 'PLAYER_TO_PLAYER_TRANSFER'
+  union
+  all
+  select
+    v_event.user_id,
+    'OUT',
+    risk.amount,
+    'RISK_LIFE',
+    risk_evt.event_id::text
+  from
+    events risk_evt
+    join ruleset_life_risks risk on risk.ruleset_version_id = risk_evt.ruleset_version_id
+    and lower(risk.risk_code) = lower(risk_evt.payload ->> 'risk_id')
+  where
+    v_event.action_type in ('Asuransi', 'GunakanOpsiDarurat')
+    and risk_evt.session_id = v_event.session_id
+    and risk_evt.event_id = fn_safe_cast_to_uuid(v_event.payload ->> 'risk_event_id')
+    and risk_evt.user_id = v_event.user_id
+    and risk.effect_type = 'COIN_EFFECT'
+    and risk.direction = 'OUT'
+    and (
+      v_event.action_type = 'Asuransi'
+      or upper(v_event.payload ->> 'option_type') = 'USE_INSURANCE'
+      or coalesce(
+        (
+          select coins
+          from session_participant_balances
+          where session_participant_id = v_event.session_player_id
+        ),
+        0
+      ) + case
+        when upper(v_event.payload ->> 'option_type') = 'TAKE_SHARIA_LOAN'
+          then coalesce((v_event.payload ->> 'principal')::int, 0)
+        else coalesce((v_event.payload ->> 'amount')::int, 0)
+      end >= risk.amount
+    )
+    and not exists (
+      select 1
+      from event_cashflow_projections resolved
+      where resolved.session_id = v_event.session_id
+        and resolved.category = 'RISK_LIFE'
+        and resolved.direction = 'OUT'
+        and resolved.reference = risk_evt.event_id::text
+    )
 ),
 numbered_rows as (
   select
     row_number() over (
       order by
         user_id,
-        direction desc,
+        case when direction = 'IN' then 0 else 1 end,
         reference
     ) as projection_order,
     *
@@ -5037,6 +5222,7 @@ where
 v_participant_id := v_event.session_player_id;
 
 if v_participant_id is not null then
+if v_event.actor_type = 'PLAYER' then
 insert into
   session_participant_action_counters (
     session_id,
@@ -5059,6 +5245,8 @@ update
 set
   count = session_participant_action_counters.count + 1,
   last_event_id = excluded.last_event_id;
+
+end if;
 
 if v_event.action_type in ('BahanMasakan', 'SetupBahanAwal') then
 insert into
@@ -5541,6 +5729,7 @@ insert into
     session_participant_id,
     ruleset_version_id,
     ruleset_sharia_loan_id,
+    loan_instance_id,
     principal_amount,
     outstanding_amount,
     repayment_amount,
@@ -5557,6 +5746,10 @@ select
   v_participant_id,
   rsl.ruleset_version_id,
   rsl.ruleset_sharia_loan_id,
+  coalesce(
+    nullif(v_event.payload ->> 'loan_id', ''),
+    v_event.event_id::text
+  ),
   (v_event.payload ->> 'principal') :: int,
   (v_event.payload ->> 'principal') :: int,
   coalesce(
@@ -5585,7 +5778,7 @@ where
     )
   )
 limit
-  1 on conflict (session_participant_id, ruleset_sharia_loan_id) do
+  1 on conflict (session_participant_id, loan_instance_id) do
 update
 set
   principal_amount = excluded.principal_amount,
@@ -5612,17 +5805,9 @@ set
   end,
   last_event_id = v_event.event_id,
   updated_at = now()
-from
-  ruleset_sharia_loans rsl
 where
   loan.session_participant_id = v_participant_id
-  and loan.ruleset_sharia_loan_id = rsl.ruleset_sharia_loan_id
-  and lower(rsl.loan_code) = lower(
-    coalesce(
-      v_event.payload ->> 'loan_code',
-      v_event.payload ->> 'loan_id'
-    )
-  );
+  and lower(loan.loan_instance_id) = lower(v_event.payload ->> 'loan_id');
 
 end if;
 
@@ -6979,6 +7164,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.4');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.5');
 
 commit;

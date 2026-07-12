@@ -720,15 +720,21 @@ internal sealed class AnalyticsService : IAnalyticsService
     private int SumGoldQuantity(IEnumerable<EventDb> events)
         => events
             .Where(e => e.ActionType == GameActionCatalog.GoldInitialGranted ||
+                        e.ActionType == GameActionCatalog.SetupEmasAwal ||
                         e.ActionType == GameActionCatalog.InvestasiEmas ||
-                        e.ActionType == GameActionCatalog.JualEmas)
+                        e.ActionType == GameActionCatalog.JualEmas ||
+                        IsEmergencyGoldSale(e))
             .Select(e =>
             {
-                if (e.ActionType == GameActionCatalog.GoldInitialGranted)
+                if (e.ActionType == GameActionCatalog.GoldInitialGranted ||
+                    e.ActionType == GameActionCatalog.SetupEmasAwal)
                 {
-                    return _payloadReader.TryReadGoldTradeDetailed(e.Payload, out _, out var initialQty, out _, out _)
-                        ? initialQty
-                        : 1;
+                    return TryReadPayloadInt(e.Payload, "qty", out var initialQty) ? initialQty : 1;
+                }
+
+                if (e.ActionType == GameActionCatalog.RiskEmergencyUsed)
+                {
+                    return TryReadPayloadInt(e.Payload, "qty", out var emergencyQty) ? -emergencyQty : 0;
                 }
 
                 if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
@@ -742,6 +748,45 @@ internal sealed class AnalyticsService : IAnalyticsService
                     : qty;
             })
             .Sum();
+
+    private bool IsEmergencyGoldSale(EventDb evt) =>
+        evt.ActionType == GameActionCatalog.RiskEmergencyUsed &&
+        TryReadPayloadString(evt.Payload, "option_type", out var optionType) &&
+        string.Equals(optionType, "SELL_GOLD", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryReadPayloadString(string payload, string propertyName, out string value)
+    {
+        value = string.Empty;
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (!document.RootElement.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            value = property.GetString() ?? string.Empty;
+            return value.Length > 0;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadPayloadInt(string payload, string propertyName, out int value)
+    {
+        value = 0;
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            return document.RootElement.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out value);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
 
     private int SumActionsUsed(IEnumerable<EventDb> events)
         => events

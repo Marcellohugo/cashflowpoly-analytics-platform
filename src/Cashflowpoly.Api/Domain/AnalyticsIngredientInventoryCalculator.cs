@@ -21,8 +21,8 @@ internal sealed class IngredientInventoryCalculator : IIngredientInventoryCalcul
                  string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase)) &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out var amount))
             {
-                inventory.Total += amount;
-                inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + amount : amount;
+                inventory.Total += 1;
+                inventory.ByCardId[cardId] = inventory.ByCardId.TryGetValue(cardId, out var qty) ? qty + 1 : 1;
             }
 
             if (evt.ActionType == "JualMasakan" &&

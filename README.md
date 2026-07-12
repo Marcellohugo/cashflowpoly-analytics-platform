@@ -2,7 +2,7 @@
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan penguncian `ruleset_version_id` pada sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
 
-Baseline dokumentasi ini mengikuti implementasi aktual per 11 Juli 2026 dengan schema `3.0.4`.
+Baseline dokumentasi ini mengikuti implementasi aktual per 12 Juli 2026 dengan schema `3.0.5`.
 
 ## Tujuan
 Tujuan utama:
@@ -226,10 +226,10 @@ Catatan keamanan lokal:
   - `JWT_SIGNING_KEYS_JSON` (array JSON key + `kid` + window aktivasi), atau
   - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
 - Registrasi publik untuk semua role (`INSTRUCTOR` dan `PLAYER`) tersedia melalui endpoint `POST /api/v1/auth/register`.
-- Model pinjaman digital membatasi satu pinjaman aktif per produk untuk setiap pemain; produk yang sama dapat diambil lagi setelah pinjaman sebelumnya lunas.
+- Setiap kartu pinjaman memakai `loan_instance_id`; beberapa instance produk yang sama dapat aktif selama stok fisik `card_qty` sesi tersedia, dan pelunasan menutup satu instance penuh.
 - Aksi gratis dan event sistem memakai `action_slot=0`; aksi reguler pemain memakai `1..actions_per_turn` sesuai `GameActionCatalog`.
 - Risiko `OUT` Mode Mahir disimpan pending dan diselesaikan melalui `BayarRisiko`, asuransi aktif, atau `GunakanOpsiDarurat`. Nominal opsi darurat dihitung server.
-- Donasi Jumat dibatasi satu kali per pemain per hari dan validasi jual emas memakai `session_participant_gold_holdings`.
+- Donasi Jumat dibatasi satu kali per pemain per hari serta tetap `SEALED` sampai semua pemain mengirim; validasi jual emas memakai `session_participant_gold_holdings`.
 - Untuk bootstrap user awal via environment, aktifkan `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=true` dan isi username/password bootstrap.
 Rute UI utama:
 - Home: `/`

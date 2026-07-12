@@ -7,6 +7,34 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class AnalyticsHappinessCalculatorTests
 {
     [Fact]
+    public void ComputeByPlayer_IncludesSetupGoldLoanAndMissionFamily()
+    {
+        var playerId = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            BuildEvent(playerId, "SetupEmasAwal", """{"qty":1,"setup":"INITIAL"}""", 0, 1),
+            BuildEvent(playerId, "SetupPinjamanAwal", """{"loan_id":"setup-loan","principal":10,"penalty_points":15}""", 0, 2),
+            BuildEvent(playerId, "SetupMisiAwal", """{"mission_id":"misi-boneka","target_tertiary_card_id":"boneka","penalty_points":10,"require_primary":true,"require_secondary":true}""", 0, 3),
+            BuildEvent(playerId, "Kebutuhan", """{"amount":2,"card_id":"primary-food","need_tier":"primer","points":1}""", 1, 4),
+            BuildEvent(playerId, "Kebutuhan", """{"amount":3,"card_id":"secondary-school","need_tier":"sekunder","points":2}""", 1, 5),
+            BuildEvent(playerId, "Kebutuhan", """{"amount":6,"card_id":"boneka_1","need_tier":"tersier","points":5}""", 1, 6),
+            BuildEvent(playerId, "TujuanFinansial", """{"goal_id":"home","points":8,"cost":5}""", 1, 7)
+        };
+        var config = BuildConfig(new RulesetScoringConfig(
+            [],
+            [new QtyPoint(1, 3), new QtyPoint(2, 5), new QtyPoint(3, 8), new QtyPoint(4, 12)],
+            []));
+
+        var breakdown = new HappinessCalculator().ComputeByPlayer(events, [], config)[playerId];
+
+        Assert.Equal(3, breakdown.GoldPoints);
+        Assert.Equal(0, breakdown.MissionPenaltyPoints);
+        Assert.Equal(15, breakdown.LoanPenaltyPoints);
+        Assert.Equal(0, breakdown.SavingGoalPointsEffective);
+        Assert.True(breakdown.HasUnpaidLoan);
+    }
+
+    [Fact]
     public void ComputeBreakdown_AwardsMixedNeedSetBonus()
     {
         var playerEvents = new List<EventDb>

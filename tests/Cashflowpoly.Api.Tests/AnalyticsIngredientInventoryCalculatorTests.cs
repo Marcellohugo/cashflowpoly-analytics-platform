@@ -7,6 +7,18 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class AnalyticsIngredientInventoryCalculatorTests
 {
     [Fact]
+    public void BuildIngredientInventory_CountsSetupPriceAsOneCard()
+    {
+        var inventory = new IngredientInventoryCalculator().BuildIngredientInventory(
+        [
+            BuildEvent("SetupBahanAwal", """{"card_id":"meat","amount":5,"setup":"INITIAL"}""")
+        ]);
+
+        Assert.Equal(1, inventory.Total);
+        Assert.Equal(1, inventory.ByCardId["meat"]);
+    }
+
+    [Fact]
     public void BuildIngredientInventory_AppliesPurchaseOrderClaimAndDiscard()
     {
         var events = new List<EventDb>
@@ -36,8 +48,8 @@ public sealed class AnalyticsIngredientInventoryCalculatorTests
 
         var inventory = new IngredientInventoryCalculator().BuildIngredientInventory(events);
 
-        Assert.Equal(2, inventory.Total);
-        Assert.Equal(2, inventory.ByCardId["flour"]);
+        Assert.Equal(1, inventory.Total);
+        Assert.Equal(1, inventory.ByCardId["flour"]);
         Assert.False(inventory.ByCardId.ContainsKey("unknown"));
     }
 

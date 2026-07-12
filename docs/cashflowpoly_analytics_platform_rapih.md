@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 11 Juli 2026. Baseline schema: 3.0.4.**
+**Tanggal ringkasan: 12 Juli 2026. Baseline schema: 3.0.5.**
 
 ## 1. Ringkasan Besar
 
@@ -486,7 +486,7 @@ Request Event
 - JualEmas: kuantitas dibaca dari `session_participant_gold_holdings`.
 - RisikoKehidupan: merujuk `JualMasakan` melalui `source_order_event_id`; risiko `OUT` tetap pending sampai diselesaikan.
 - GunakanOpsiDarurat: nominal/direction dihitung server dan aset/utang/polis diperbarui atomik.
-- PinjamanSyariah: detail sesuai katalog dan maksimal satu pinjaman aktif per produk/pemain.
+- PinjamanSyariah: detail sesuai katalog, setiap kartu memakai `loan_instance_id`, dan total instance aktif dibatasi stok fisik `card_qty` per sesi.
 - BayarPinjaman: wajib melunasi seluruh outstanding.
 - Asuransi: premium sesuai katalog; penggunaan memerlukan polis `ACTIVE` dengan `remaining_uses > 0`.
 - Menabung: amount > 0 dan maksimal 15.

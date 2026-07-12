@@ -412,6 +412,9 @@ public sealed class SessionStateResponse
     [JsonPropertyName("state_version")]
     public long StateVersion { get; init; }
 
+    [JsonPropertyName("next_sequence_number")]
+    public long NextSequenceNumber { get; set; }
+
     [JsonPropertyName("day")]
     public int Day { get; init; }
 

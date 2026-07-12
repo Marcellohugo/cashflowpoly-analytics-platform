@@ -7,6 +7,26 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class AnalyticsRiskLoanCalculatorTests
 {
     [Fact]
+    public void Compute_IncludesSetupAndEmergencyLoanInstances()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "SetupPinjamanAwal", """{"loan_id":"setup-loan","principal":10,"penalty_points":15}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "GunakanOpsiDarurat", """{"option_type":"TAKE_SHARIA_LOAN","loan_id":"emergency-loan","principal":10,"penalty_points":15}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BayarPinjaman", """{"loan_id":"setup-loan","amount":10}""")
+        };
+
+        var metrics = new RiskLoanCalculator().Compute(events, [], 10, 10, 20);
+
+        Assert.Equal(2, metrics.LoansTaken);
+        Assert.Equal(1, metrics.LoansRepaid);
+        Assert.Equal(1, metrics.LoansUnpaid);
+        Assert.Equal(10, metrics.LoansOutstandingAmount);
+    }
+
+    [Fact]
     public void Compute_SummarizesRiskAndLoanMetrics()
     {
         var playerId = Guid.NewGuid();

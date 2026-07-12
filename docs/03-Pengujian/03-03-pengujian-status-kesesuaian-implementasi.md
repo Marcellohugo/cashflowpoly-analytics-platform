@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 2.1
-- Tanggal: 11 Juli 2026
+- Versi: 2.2
+- Tanggal: 12 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -23,7 +23,7 @@ Acuan utama:
 ## 2. Ringkasan Kesesuaian per Area
 | Area | Status | Catatan |
 |---|---|---|
-| Ingest event + validasi domain | Sesuai | Kebijakan slot terpusat, pasangan pesanan-risiko berbasis UUID, risiko pending, penyelesaian tunai/asuransi/darurat, donasi tunggal, holding emas, dan batas pinjaman aktif sudah dijaga API serta database. |
+| Ingest event + validasi domain | Sesuai | Kebijakan slot terpusat, pasangan pesanan-risiko berbasis UUID, risiko pribadi `OUT` pending, penyelesaian tunai/asuransi/darurat atomik, donasi tunggal dan tersegel, holding emas, serta pinjaman per-instance dengan batas stok fisik dijaga API dan database. |
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
 | API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
 | UI dashboard (home/sessions/players/rulesets/rulebook/analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route redirect. |
@@ -37,18 +37,41 @@ Acuan utama:
 
 ---
 
-## 3. Daftar Gap Prioritas
-Gap prioritas Mode Mahir sebelumnya telah ditutup pada baseline schema `3.0.4`.
+## 3. Bukti Verifikasi Terakhir
+Verifikasi lokal pada 12 Juli 2026:
 
-Pekerjaan lanjutan yang masih direkomendasikan (non-blocker):
-1. Selaraskan fixture integrasi `buku.cardQty=0` agar suite API penuh 279/279 hijau.
-2. Integrasikan exporter tracing/metrics ke platform observability eksternal (Grafana/OTel collector) untuk environment produksi.
-3. Aktifkan rotasi secret terjadwal melalui secret manager yang dipakai environment deploy (misalnya KV/Secrets Manager) dengan SOP operasional.
-4. Tambahkan uji performa skenario beban paralel jangka panjang (durasi > 30 menit) untuk uji stabilitas.
+| Pemeriksaan | Hasil |
+|---|---|
+| `dotnet build Cashflowpoly.sln --no-restore --nologo` | Lulus, 0 warning, 0 error |
+| Test UI | 103/103 lulus |
+| Test API | 283/283 lulus |
+| Total test solution | 386/386 lulus |
+| Seed simulasi Pemula + Mahir | Lulus schema, login, analitika, proyeksi, snapshot, dan replay |
+
+Penilaian penutupan audit internal:
+
+| Area | Nilai |
+|---|---:|
+| Sistem action slot | 10/10 |
+| Mode Pemula | 10/10 |
+| Mode Mahir | 10/10 |
+| Integritas cashflow | 10/10 |
+| Kesesuaian rulebook digital | 10/10 |
+| Kesiapan produksi baseline aplikasi | 10/10 |
 
 ---
 
-## 4. Kriteria Siap Sidang
+## 4. Daftar Gap Prioritas
+Gap prioritas Mode Mahir sebelumnya telah ditutup pada schema kanonis saat ini.
+
+Pekerjaan lanjutan yang masih direkomendasikan (non-blocker):
+1. Integrasikan exporter tracing/metrics ke platform observability eksternal (Grafana/OTel collector) untuk environment produksi.
+2. Aktifkan rotasi secret terjadwal melalui secret manager yang dipakai environment deploy (misalnya KV/Secrets Manager) dengan SOP operasional.
+3. Tambahkan uji performa skenario beban paralel jangka panjang (durasi > 30 menit) untuk uji stabilitas.
+
+---
+
+## 5. Kriteria Siap Sidang
 Implementasi dianggap siap ketika:
 1. semua endpoint terproteksi sudah Bearer-only,
 2. role check instruktur/player tervalidasi API (bukan UI saja),

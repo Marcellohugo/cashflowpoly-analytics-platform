@@ -3,14 +3,14 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 1.8
-- Tanggal: 11 Juli 2026
+- Versi: 1.9
+- Tanggal: 12 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.4` tanggal 11 Juli 2026.
+Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.5` tanggal 12 Juli 2026.
 
 Cakupan laporan ini:
 - verifikasi teknis otomatis (build, test, docker compose, uji asap, uji beban dasar),
@@ -23,7 +23,7 @@ Cakupan laporan ini:
 
 ## 2. Identitas Pengujian
 - Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
-- Tanggal pengujian: 11 Juli 2026
+- Tanggal pengujian: 12 Juli 2026
 - Versi aplikasi (git commit): area kerja Git lokal (terdapat perubahan belum di-commit)
 - Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
@@ -36,23 +36,23 @@ Cakupan laporan ini:
 | Jenis Uji | Cakupan | Status |
 |---|---|---|
 | Uji REST API (kotak-hitam) | Alur auth, ruleset, sessions, players, ingest event, analytics | PASS |
-| Uji Integrasi | Risiko pending, asuransi, opsi darurat, holding emas, pinjaman aktif, dan Seed 2 | PASS |
+| Uji Integrasi | Risiko pending, asuransi, opsi darurat, holding emas, pinjaman multi-instance, dan Seed 2 | PASS |
 | Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
 | Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
 | Verifikasi observability + audit keamanan | Endpoint operasional metrics + security audit logs | PASS |
 | Uji performa dasar | Skrip load test ingest + analytics sesuai target P95 | PASS |
 
-Kriteria fitur inti tercapai. Satu fixture integrasi lama masih perlu dikoreksi karena mencoba membeli kartu `buku` dengan `cardQty=0`; kegagalan ini tidak berasal dari alur Mode Mahir yang diperbarui.
+Kriteria fitur inti tercapai dan seluruh suite otomatis berstatus hijau.
 
 ---
 
 ## 4. Detail Verifikasi Otomatis
 | Pemeriksaan | Perintah | Status | Ringkasan Hasil |
 |---|---|---|---|
-| Build solusi | `dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj` + `dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj` + `dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj` | PASS | Build proyek API/UI/Test berhasil |
-| Uji API inti | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --filter "FullyQualifiedName!~IngestEvents_Then_AnalyticsAndTransactions_ReturnExpectedData" --no-restore` | PASS | 278 test lulus |
-| Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-restore` | PARTIAL | 278/279 lulus; satu fixture `buku.cardQty=0` gagal |
-| Uji UI | `dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj --no-restore` | PASS | 101 test lulus |
+| Build solusi | `dotnet build Cashflowpoly.sln --no-restore --nologo` | PASS | 0 warning, 0 error |
+| Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-build --no-restore` | PASS | 283/283 test lulus |
+| Uji UI penuh | `dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj --no-build --no-restore` | PASS | 103/103 test lulus |
+| Uji solution penuh | `dotnet test Cashflowpoly.sln --no-build --no-restore --nologo` | PASS | total 386/386 test lulus |
 | Uji Seed 2 | filter `ManualSimulationSeedIntegrationTests` | PASS | bootstrap dan replay dua mode lulus |
 | Menjalankan compose watch | `docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build` | PASS | service `db`, `api`, `ui` healthy; API/UI health `200` |
 | Uji asap API ujung-ke-ujung | Postman collection (alur end-to-end API) | PASS | ruleset/session/player/event/analytics sukses |
@@ -98,21 +98,19 @@ Tambahan cek endpoint observability & security:
 Temuan blocker: **tidak ada**.
 
 Catatan residual:
-1. Fixture `IngestEvents_Then_AnalyticsAndTransactions_ReturnExpectedData` memakai kebutuhan `buku` dengan `cardQty=0`; data fixture perlu diselaraskan sebelum suite penuh berstatus hijau.
-2. Uji beban jangka panjang (durasi > 30 menit, concurrency tinggi) belum dieksekusi pada sesi ini.
-3. Evidence screenshot UI khusus sidang belum ditambahkan; artefak teknis masih perlu diarsipkan bersama laporan pengujian.
+1. Uji beban jangka panjang (durasi > 30 menit, concurrency tinggi) belum dieksekusi pada sesi ini.
+2. Evidence screenshot UI khusus sidang belum ditambahkan; artefak teknis masih perlu diarsipkan bersama laporan pengujian.
 
 ---
 
 ## 7. Kesimpulan
-- Status akhir: **VALID untuk fitur inti; satu fixture lama masih terbuka**
+- Status akhir: **VALID; build, suite otomatis, Seed 2, dan Compose Watch lulus**
 - Ringkasan:
   - build lulus,
   - verifikasi API/UI/RBAC/rate-limit lulus,
-  - risiko pending, penyelesaian tunai/asuransi/darurat, holding emas, batas pinjaman, dan Seed 2 lulus,
+  - risiko pending, penyelesaian tunai/asuransi/darurat, holding emas, pinjaman multi-instance, dan Seed 2 lulus,
   - tidak ditemukan bug blocker pada jalur fitur inti.
 
 Tindak lanjut yang direkomendasikan:
-1. Koreksi fixture `buku.cardQty=0` dan jalankan suite API penuh.
-2. Tambahkan skenario stress test paralel berdurasi panjang untuk validasi stabilitas.
-3. Lengkapi screenshot UI terkurasi bila dibutuhkan untuk lampiran sidang.
+1. Tambahkan skenario stress test paralel berdurasi panjang untuk validasi stabilitas.
+2. Lengkapi screenshot UI terkurasi bila dibutuhkan untuk lampiran sidang.

@@ -132,7 +132,10 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 savingGoalPoints += savingPoints;
             }
 
-            if (evt.ActionType == "PinjamanSyariah" && _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
+            if ((evt.ActionType == GameActionCatalog.PinjamanSyariah ||
+                 evt.ActionType == GameActionCatalog.SetupPinjamanAwal ||
+                 IsEmergencyOption(evt.Payload, "TAKE_SHARIA_LOAN")) &&
+                _payloadReader.TryReadLoanTaken(evt.Payload, out var loanId, out var principal, out var penaltyPointsValue))
             {
                 loans[loanId] = new LoanState(loanId, principal, penaltyPointsValue, 0);
             }
@@ -152,7 +155,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         var tertiaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Tertiary);
         var tertiaryCardIds = activeNeeds
             .Where(need => need.Tier == NeedTier.Tertiary)
-            .Select(need => need.CardId)
+            .Select(need => System.Text.RegularExpressions.Regex.Replace(need.CardId, "_[0-9]+$", ""))
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -302,13 +305,28 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             .ToList();
 
         var goldQtyByPlayer = events.Where(e =>
-                (e.ActionType == GameActionCatalog.InvestasiEmas || e.ActionType == GameActionCatalog.JualEmas) &&
+                (e.ActionType == GameActionCatalog.InvestasiEmas ||
+                 e.ActionType == GameActionCatalog.JualEmas ||
+                 e.ActionType == GameActionCatalog.SetupEmasAwal ||
+                 e.ActionType == GameActionCatalog.GoldInitialGranted ||
+                 IsEmergencyOption(e.Payload, "SELL_GOLD")) &&
                 e.UserId.HasValue)
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(
                 g => g.Key,
                 g => g.Sum(e =>
                 {
+                    if (e.ActionType == GameActionCatalog.SetupEmasAwal ||
+                        e.ActionType == GameActionCatalog.GoldInitialGranted)
+                    {
+                        return TryReadInt32(e.Payload, "qty", out var initialQty) ? initialQty : 1;
+                    }
+
+                    if (IsEmergencyOption(e.Payload, "SELL_GOLD"))
+                    {
+                        return TryReadInt32(e.Payload, "qty", out var emergencyQty) ? -emergencyQty : 0;
+                    }
+
                     if (!_payloadReader.TryReadGoldTrade(e.Payload, out var tradeType, out var qty))
                     {
                         return 0;
@@ -426,8 +444,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             if ((evt.ActionType == "BahanMasakan" || evt.ActionType == "SetupBahanAwal") &&
                 _payloadReader.TryReadIngredientPurchase(evt.Payload, out var cardId, out var setupAmount))
             {
-                var added = evt.ActionType == "SetupBahanAwal" ? setupAmount : 1;
-                inventory[cardId] = inventory.TryGetValue(cardId, out var current) ? current + added : added;
+                inventory[cardId] = inventory.TryGetValue(cardId, out var current) ? current + 1 : 1;
             }
             else if (evt.ActionType == "BuangBahanMasakan" &&
                      TryReadString(evt.Payload, "card_id", out var discardedCardId))
@@ -470,6 +487,10 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             return false;
         }
     }
+
+    private static bool IsEmergencyOption(string payloadJson, string optionType)
+        => TryReadString(payloadJson, "option_type", out var value) &&
+           value.Equals(optionType, StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadInt32(string payloadJson, string propertyName, out int value)
     {

@@ -9,7 +9,7 @@
 
 > Baseline kanonis schema berada pada `database/00_create_schema.sql`.
 > Dokumen ini menjelaskan alur, relasi, dan fungsi tabel berdasarkan baseline
-> implementasi 11 Juli 2026 (baseline `3.0.4`). Jika ada perbedaan detail teknis, skrip SQL
+> implementasi 12 Juli 2026 (baseline `3.0.5`). Jika ada perbedaan detail teknis, skrip SQL
 > kanonis menjadi acuan terakhir.
 
 ---

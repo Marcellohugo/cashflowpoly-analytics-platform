@@ -243,7 +243,21 @@ internal sealed class EventIngestionService : IEventIngestionService
         }
 
         var events = await _events.GetEventsBySessionAsync(sessionId, fromSeq, limit, ct);
-        var responseEvents = events.Select(_recordMapper.ToEventRequest).ToList();
+        var allEvents = await _events.GetAllEventsBySessionAsync(sessionId, ct);
+        var participantCount = await _players.CountPlayersInSessionAsync(sessionId, ct);
+        var sealedDonationDays = allEvents
+            .Where(item => IsEventAction(item, GameActionCatalog.JumatBerkah) && item.UserId.HasValue)
+            .GroupBy(item => item.DayIndex)
+            .Where(group => group.Select(item => item.UserId!.Value).Distinct().Count() < participantCount)
+            .Select(group => group.Key)
+            .ToHashSet();
+        var responseEvents = events.Select(item =>
+        {
+            var mapped = _recordMapper.ToEventRequest(item);
+            return IsEventAction(item, GameActionCatalog.JumatBerkah) && sealedDonationDays.Contains(item.DayIndex)
+                ? mapped with { Payload = JsonSerializer.SerializeToElement(new { status = "SEALED" }) }
+                : mapped;
+        }).ToList();
         return (new EventsBySessionResponse(sessionId, responseEvents), StatusCodes.Status200OK, null);
     }
 
@@ -339,6 +353,15 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (!domainValidation.IsValid)
         {
             return domainValidation;
+        }
+
+        if (IsAction(request, GameActionCatalog.AkhirGiliran) &&
+            await _events.HasPendingLifeRiskAsync(request.SessionId, ct))
+        {
+            return BuildOutcome(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "Seluruh risiko pengeluaran harus diselesaikan sebelum giliran berakhir");
         }
 
         return Valid;
@@ -914,7 +937,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 if (loan is not null)
                 {
                     node["loan_code"] = loan.LoanCode;
-                    node["loan_id"] = loan.LoanCode;
+                    node["loan_id"] = request.EventId.ToString();
                     node["principal"] = loan.Principal;
                     node["amount"] = loan.Principal;
                     node["repayment_amount"] = loan.RepaymentAmount;
@@ -1044,6 +1067,12 @@ internal sealed class EventIngestionService : IEventIngestionService
         risk = matched;
         return true;
     }
+
+    private static bool IsPersonalCoinOutRisk(RulesetLifeRiskDto risk) =>
+        string.Equals(risk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(risk.TargetScope, "SELF", StringComparison.OrdinalIgnoreCase) &&
+        risk.Amount > 0;
 
     private async Task<double> GetCurrentCashBalanceAsync(
         EventRequest request,
@@ -1308,8 +1337,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 riskEvent.UserId != request.UserId ||
                 !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan) ||
                 !TryResolveLifeRisk(config, _payloadReader.ReadPayload(riskEvent.Payload), out var risk) ||
-                !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
-                risk.Amount <= 0)
+                !IsPersonalCoinOutRisk(risk))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                     "BayarRisiko hanya dapat menyelesaikan risiko OUT milik pemain");
@@ -1370,8 +1398,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
             if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
-                !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
-                risk.Amount <= 0)
+                !IsPersonalCoinOutRisk(risk))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Asuransi hanya berlaku untuk risiko OUT");
             }
@@ -1446,8 +1473,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
             if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
-                !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
-                risk.Amount <= 0)
+                !IsPersonalCoinOutRisk(risk))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Emergency option hanya berlaku untuk risiko OUT");
             }
@@ -1514,16 +1540,6 @@ internal sealed class EventIngestionService : IEventIngestionService
                     {
                         return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                             "Pinjaman darurat tidak sesuai katalog ruleset");
-                    }
-
-                    if (await _events.GetActiveLoanOutstandingAsync(
-                            request.SessionId,
-                            request.UserId.Value,
-                            loanCode,
-                            ct) is not null)
-                    {
-                        return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
-                            "Pemain sudah memiliki pinjaman aktif untuk produk ini");
                     }
 
                     if (events.Any(e =>
@@ -1597,16 +1613,6 @@ internal sealed class EventIngestionService : IEventIngestionService
                     "Detail pinjaman tidak tersedia pada katalog ruleset aktif");
             }
 
-            if (await _events.GetActiveLoanOutstandingAsync(
-                    request.SessionId,
-                    request.UserId.Value,
-                    loanCode,
-                    ct) is not null)
-            {
-                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
-                    "Pemain sudah memiliki pinjaman aktif untuk produk ini");
-            }
-
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             if (_payloadReader.TryGetString(payload, "risk_event_id", out var loanRiskEventIdText) ||
                 _payloadReader.TryGetString(payload, "risk_event_ref", out loanRiskEventIdText))
@@ -1622,7 +1628,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                     loanRiskEvent.UserId != request.UserId ||
                     !IsEventAction(loanRiskEvent, GameActionCatalog.RisikoKehidupan) ||
                     !TryResolveLifeRisk(config, _payloadReader.ReadPayload(loanRiskEvent.Payload), out var loanRisk) ||
-                    !string.Equals(loanRisk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
+                    !IsPersonalCoinOutRisk(loanRisk) ||
                     await _events.IsRiskResolvedAsync(request.SessionId, loanRiskEventId, ct))
                 {
                     return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
@@ -1745,6 +1751,14 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             if (!isInitialSetup && request.UserId is not null)
             {
+                if (await _events.HasActiveInsuranceAsync(request.SessionId, request.UserId.Value, ct))
+                {
+                    return BuildOutcome(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "DOMAIN_RULE_VIOLATION",
+                        "Polis asuransi masih aktif dan tidak dapat diaktifkan ulang");
+                }
+
                 var balanceCheck = await EnsureSufficientBalanceAsync(request, config, premium, ct);
                 if (!balanceCheck.IsValid)
                 {

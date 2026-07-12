@@ -128,6 +128,17 @@ public sealed class SessionStateApiIntegrationTests
         AssertInitialState(createdState, playerCount, names);
 
         var sessionId = createBody.RootElement.GetProperty("session_id").GetGuid();
+        using var eventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{sessionId}/events?fromSeq=0&limit=100",
+            null,
+            token);
+        Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
+        using var eventsBody = await ReadJsonAsync(eventsResponse);
+        var setupEvents = eventsBody.RootElement.GetProperty("events").EnumerateArray().ToList();
+        Assert.Equal(1 + (playerCount * 6), setupEvents.Count);
+        Assert.Single(setupEvents, item => item.GetProperty("action_type").GetString() == "MulaiSesi");
+
         using var getResponse = await SendJsonAsync(
             HttpMethod.Get,
             $"/api/v1/sessions/{sessionId}/state",
@@ -370,6 +381,7 @@ public sealed class SessionStateApiIntegrationTests
     private static void AssertInitialState(JsonElement state, int playerCount, string[] names)
     {
         Assert.Equal(1, state.GetProperty("state_version").GetInt64());
+        Assert.Equal(1 + (playerCount * 6), state.GetProperty("next_sequence_number").GetInt64());
         Assert.Equal(1, state.GetProperty("day").GetInt32());
         Assert.Equal(1, state.GetProperty("turn").GetInt32());
         Assert.Equal(2, state.GetProperty("action_slots_left").GetInt32());
@@ -385,16 +397,27 @@ public sealed class SessionStateApiIntegrationTests
             "misi_hiburan",
             "misi_jam"
         };
+        var ingredientPrices = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["Nasi Putih"] = 1,
+            ["Sayur"] = 2,
+            ["Tahu Tempe"] = 3,
+            ["Telur"] = 4,
+            ["Daging"] = 5
+        };
         for (var i = 0; i < playerCount; i++)
         {
             Assert.NotEqual(Guid.Empty, players[i].GetProperty("session_player_id").GetGuid());
             Assert.NotEqual(Guid.Empty, players[i].GetProperty("user_id").GetGuid());
             Assert.Equal(i + 1, players[i].GetProperty("player_order_no").GetInt32());
             Assert.Equal(names[i], players[i].GetProperty("name").GetString());
-            Assert.Equal(10, players[i].GetProperty("coins").GetInt32());
+            var initialIngredient = Assert.Single(players[i].GetProperty("bahan").EnumerateArray());
+            var ingredientName = initialIngredient.GetProperty("nama").GetString()!;
+            Assert.Equal(1, initialIngredient.GetProperty("jumlah").GetInt32());
+            Assert.Equal(20 - ingredientPrices[ingredientName], players[i].GetProperty("coins").GetInt32());
             Assert.Equal(0, players[i].GetProperty("happiness").GetInt32());
             Assert.Equal(0, players[i].GetProperty("saving").GetInt32());
-            Assert.Equal(0, players[i].GetProperty("bahan").GetArrayLength());
+            Assert.Equal(0, players[i].GetProperty("actionCounters").GetArrayLength());
             var targetKebutuhan = players[i].GetProperty("targetKebutuhan").EnumerateArray().ToList();
             var mission = Assert.Single(targetKebutuhan);
             Assert.Contains(mission.GetProperty("id").GetString()!, expectedMissionIds);

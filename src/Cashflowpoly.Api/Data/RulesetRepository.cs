@@ -978,9 +978,18 @@ public sealed class RulesetRepository
             .Select(item => item.ActionId)
             .Where(item => !string.IsNullOrWhiteSpace(item))
             .Append("CatatTransaksi")
+            .Append("JumatBerkah")
             .Append("LewatiTransaksiEmas")
             .Append("HariMingguLibur")
             .Append("MulaiSesi")
+            .Append("SetupBahanAwal")
+            .Append("SetupEmasAwal")
+            .Append("SetupMisiAwal")
+            .Append("SetupPinjamanAwal")
+            .Append("SetupAsuransiAwal")
+            .Append("BagikanTieBreaker")
+            .Append("AkhirGiliran")
+            .Append("AkhiriSesi")
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -1652,19 +1661,23 @@ public sealed class RulesetRepository
             )
             """;
 
-        for (var index = 0; index < definition.GoldPointsByQty.Count; index++)
+        Guid? goldAssetId = null;
+        if (definition.GoldPointsByQty.Count > 0)
         {
-            var point = definition.GoldPointsByQty[index];
-            var assetCode = $"gold_card_{point.Qty}";
-            var assetId = await InsertGameAssetAsync(
+            goldAssetId = await InsertGameAssetAsync(
                 conn,
                 tx,
                 rulesetVersionId,
                 "GOLD",
-                assetCode,
-                $"Emas {point.Qty}",
-                index + 1,
+                "gold_card",
+                "Emas",
+                1,
                 ct);
+        }
+
+        for (var index = 0; index < definition.GoldPointsByQty.Count; index++)
+        {
+            var point = definition.GoldPointsByQty[index];
             await conn.ExecuteAsync(
                 new CommandDefinition(
                     insertGoldPointSql,
@@ -1672,8 +1685,8 @@ public sealed class RulesetRepository
                     {
                         RulesetGoldAssetId = Guid.NewGuid(),
                         RulesetVersionId = rulesetVersionId,
-                        RulesetGameAssetId = assetId,
-                        AssetCode = assetCode,
+                        RulesetGameAssetId = goldAssetId!.Value,
+                        AssetCode = "gold_card",
                         Quantity = point.Qty,
                         point.Points,
                         SortOrder = index + 1

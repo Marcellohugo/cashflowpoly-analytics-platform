@@ -31,11 +31,11 @@ public sealed class AnalyticsIngredientMealCalculatorTests
 
         var metrics = new IngredientMealCalculator().Compute(events, projections);
 
-        Assert.Equal(4, metrics.IngredientsCollected);
-        Assert.Equal(1, metrics.Inventory.Total);
-        Assert.Equal(1, metrics.Inventory.ByCardId["flour"]);
+        Assert.Equal(2, metrics.IngredientsCollected);
+        Assert.Equal(0, metrics.Inventory.Total);
+        Assert.Equal(0, metrics.Inventory.ByCardId["flour"]);
         Assert.Equal(0, metrics.Inventory.ByCardId["egg"]);
-        Assert.Equal(1, metrics.IngredientTypesHeld["Flour"]);
+        Assert.False(metrics.IngredientTypesHeld.ContainsKey("Flour"));
         Assert.False(metrics.IngredientTypesHeld.ContainsKey("Egg"));
         Assert.Equal(2, metrics.IngredientsUsedTotal);
         Assert.Equal(1, metrics.IngredientsWasted);

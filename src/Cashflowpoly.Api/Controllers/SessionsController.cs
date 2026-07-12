@@ -232,7 +232,13 @@ public sealed class SessionsController : ControllerBase
         }
 
         var startedAt = DateTimeOffset.UtcNow;
-        await _sessions.UpdateStatusAsync(sessionId, "STARTED", startedAt, session.EndedAt, ct);
+        await _state.StartSessionWithSetupAsync(
+            sessionId,
+            session.Mode,
+            activeRuleset.Value.Version.RulesetVersionId,
+            activeRuleset.Value.Version.Definition!,
+            startedAt,
+            ct);
 
         return Ok(new SessionStatusResponse("STARTED"));
     }

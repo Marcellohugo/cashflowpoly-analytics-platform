@@ -158,6 +158,7 @@ Pemetaan digital:
 - `RisikoKehidupan` berarah `OUT` dicatat pending.
 - Pilihan bayar ke bank dicatat sebagai `BayarRisiko`; asuransi dan opsi darurat merujuk `risk_event_id` yang sama.
 - Nominal risiko dan hasil penjualan darurat dihitung server dari katalog/state.
+- Beberapa opsi darurat dapat dikombinasikan; risiko baru berstatus selesai setelah dana atau perlindungan mencukupi.
 
 ### 2) Aktifkan 1x kartu asuransi multi risiko
 - Letakkan 1 token aksi di papan asuransi dan bank syariah.
@@ -176,7 +177,7 @@ Pemetaan digital:
   - kartu tujuan keuangan hangus,
   - pemain terkena minus poin pinjaman.
 
-Pemetaan digital: satu pemain maksimal memiliki satu pinjaman aktif untuk produk yang sama. `BayarPinjaman` melunasi seluruh outstanding; produk dapat diambil kembali setelah status `PAID`.
+Pemetaan digital: setiap kartu pinjaman memiliki `loan_instance_id`. Pemain dapat memiliki beberapa kartu pinjaman aktif selama jumlah kartu fisik katalog (`card_qty`) masih tersedia. `BayarPinjaman` melunasi seluruh outstanding satu kartu dalam satu aksi; cicilan parsial tidak didukung.
 
 ## I. Aksi bebas (tanpa token aksi)
 
@@ -184,6 +185,7 @@ Pemetaan digital: satu pemain maksimal memiliki satu pinjaman aktif untuk produk
 - Semua pemain memberikan donasi secara tertutup (minimal 1 koin).
 - Setiap pemain hanya mengirim satu donasi pada hari Jumat yang sama.
 - Donasi dibuka bersamaan.
+- API mengembalikan payload `SEALED` sampai seluruh pemain pada sesi tersebut selesai mengirim donasi.
 - Tentukan peringkat donasi.
 - Poin juara donasi:
   - Juara 1: 7 poin.

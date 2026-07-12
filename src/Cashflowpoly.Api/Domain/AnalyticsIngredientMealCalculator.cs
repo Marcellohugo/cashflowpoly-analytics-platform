@@ -32,7 +32,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         {
             if (_payloadReader.TryReadIngredientPurchaseDetailed(evt.Payload, out var cardId, out var ingredientName, out var amount))
             {
-                ingredientsCollected += amount;
+                ingredientsCollected += 1;
                 if (!string.IsNullOrWhiteSpace(cardId) && !string.IsNullOrWhiteSpace(ingredientName))
                 {
                     ingredientPurchaseMap[cardId] = ingredientName;
@@ -40,7 +40,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             }
             else if (_payloadReader.TryReadIngredientPurchase(evt.Payload, out var fallbackCardId, out var fallbackAmount))
             {
-                ingredientsCollected += fallbackAmount;
+                ingredientsCollected += 1;
                 if (!string.IsNullOrWhiteSpace(fallbackCardId) && !ingredientPurchaseMap.ContainsKey(fallbackCardId))
                 {
                     ingredientPurchaseMap[fallbackCardId] = fallbackCardId;
@@ -125,12 +125,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
                     purchaseCostByCardId[purchasedCardId] = queue;
                 }
 
-                var cost = string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase) ? 0d : Math.Max(0, purchaseAmount);
-                var times = string.Equals(evt.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase) ? purchaseAmount : 1;
-                for (int i = 0; i < times; i++)
-                {
-                    queue.Enqueue(cost);
-                }
+                queue.Enqueue(Math.Max(0, purchaseAmount));
             }
 
             if (evt.ActionType == "JualMasakan" &&
