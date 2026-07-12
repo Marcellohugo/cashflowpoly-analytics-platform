@@ -574,11 +574,12 @@ Tambahan pengujian untuk event baru:
 16. TC-API-38 — `GunakanOpsiDarurat` menghitung nominal server-side dan mengubah kebutuhan, emas, atau pinjaman secara atomik
 17. TC-API-39 — donasi Jumat kedua pemain pada hari yang sama ditolak dengan `DONATION_ALREADY_SUBMITTED`
 18. TC-API-40 — `JualEmas` membaca holding relasional, termasuk emas setup dan penjualan darurat
-19. TC-API-41 — produk pinjaman yang masih aktif tidak dapat diambil kembali; setelah `PAID` dapat dipakai lagi
+19. TC-API-41 — beberapa `loan_instance_id` dari produk yang sama dapat aktif sampai batas `card_qty`; ID instance duplikat dan pengambilan melebihi stok ditolak
 
 Catatan tambahan:
 - `SetupMisiAwal.penalty_points` harus 10 (rulebook).
 - `PinjamanSyariah.principal` harus 10 dan `penalty_points` harus 15.
+- `loan_id`/`loan_instance_id` mengidentifikasi satu kartu pinjaman, bukan produk. Pelunasan menutup seluruh outstanding satu instance.
 - `Asuransi.premium` harus sesuai katalog; penggunaan polis harus merujuk risiko `OUT` pending milik pemain serta memeriksa `ACTIVE` dan `remaining_uses`.
 
 Catatan:

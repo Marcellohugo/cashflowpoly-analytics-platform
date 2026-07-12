@@ -193,6 +193,14 @@ Pemetaan digital: setiap kartu pinjaman memiliki `loan_instance_id`. Pemain dapa
   - Juara 3: 2 poin.
 - Jika donasi sama, gunakan angka terbesar kartu tie breaker.
 
+### 2) Investasi emas (hari Sabtu)
+- Saat token kalender berhenti pada hari Sabtu, sistem membuka satu kartu harga emas melalui event `BukaHargaEmas`.
+- Mulai dari pemain pertama lalu mengikuti urutan pemain, setiap pemain memilih membeli (`InvestasiEmas`), menjual (`JualEmas`), atau tidak bertransaksi (`LewatiTransaksiEmas`).
+- Ketiga pilihan tersebut merupakan aksi bebas dan memakai `action_slot=0`.
+- Harga beli atau jual harus sama dengan harga yang dibuka pada `day_index` tersebut; harga dari hari sebelumnya tidak berlaku.
+- Pembelian mengurangi koin dan menambah holding emas. Penjualan hanya diterima jika holding mencukupi, lalu mengurangi emas dan menambah koin.
+- Di luar hari Sabtu, transaksi hanya diperbolehkan jika `risk_event_id` menunjuk risiko `GOLD_TRADE` yang valid dan masih aktif.
+
 ## J. Catatan arus kas (opsional)
 
 Langkah pencatatan:
@@ -223,6 +231,8 @@ Langkah pencatatan:
   - 2 emas: 5 poin.
   - 3 emas: 8 poin.
   - 4 emas: 12 poin.
+
+Keputusan adaptasi digital: rulebook fisik hanya menetapkan tabel sampai 4 emas. Jika holding melebihi 4, sistem menggunakan poin pada tier tertinggi ruleset (12 poin pada ruleset bawaan), tanpa mengulang atau melipatgandakan tabel.
 - Total poin juara dana pensiun (berdasarkan sisa koin akhir):
   - Juara 1: +5.
   - Juara 2: +3.

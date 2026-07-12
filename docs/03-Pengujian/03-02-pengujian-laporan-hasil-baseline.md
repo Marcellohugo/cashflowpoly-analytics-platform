@@ -3,14 +3,14 @@
 
 ### Dokumen
 - Nama dokumen: Laporan Hasil Pengujian
-- Versi: 2.0
-- Tanggal: 12 Juli 2026
+- Versi: 2.1
+- Tanggal: 13 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
 ## 1. Tujuan dan Cakupan
-Dokumen ini merekap hasil pengujian implementasi terbaru pada baseline schema `3.0.7` tanggal 12 Juli 2026.
+Dokumen ini merekap pengujian lengkap baseline schema `3.0.7` tanggal 12 Juli 2026 dan verifikasi ulang suite otomatis pada clean HEAD tanggal 13 Juli 2026.
 
 Cakupan laporan ini:
 - verifikasi teknis otomatis (build, test, docker compose, uji asap, uji beban dasar),
@@ -23,8 +23,11 @@ Cakupan laporan ini:
 
 ## 2. Identitas Pengujian
 - Lingkungan: Windows 11 Home, VS Code, .NET 10, Docker Desktop, PostgreSQL 16
-- Tanggal pengujian: 12 Juli 2026
-- Versi aplikasi (git commit): area kerja Git lokal (terdapat perubahan belum di-commit)
+- Tanggal pengujian lengkap: 12 Juli 2026
+- Tanggal verifikasi ulang suite otomatis: 13 Juli 2026
+- Branch: `dev`
+- Commit aplikasi yang diuji: `7b2c296b0b5c710298bf05ae81e226d1b326527c`
+- Status Git saat verifikasi ulang: clean, `HEAD` sama dengan `origin/dev`
 - Penguji: Marco (eksekusi teknis melalui sesi Codex)
 - DB: `cashflowpoly`
 - URL API: `http://localhost:5041`
@@ -52,7 +55,7 @@ Kriteria fitur inti tercapai dan seluruh suite otomatis berstatus hijau.
 | Build solusi | `dotnet build Cashflowpoly.sln --no-restore --nologo` | PASS | 0 warning, 0 error |
 | Uji API penuh | `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj --no-build --no-restore` | PASS | 290/290 test lulus |
 | Uji UI penuh | `dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj --no-build --no-restore` | PASS | 103/103 test lulus |
-| Uji solution penuh | `dotnet test Cashflowpoly.sln --no-build --no-restore --nologo` | PASS | total 393/393 test lulus |
+| Uji solution penuh | `dotnet test Cashflowpoly.sln -c Release --nologo` | PASS | total 393/393 test lulus pada clean commit `7b2c296` |
 | Uji Seed 2 | filter `ManualSimulationSeedIntegrationTests` | PASS | bootstrap dan replay dua mode lulus |
 | Menjalankan compose watch | `docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build` | PASS | service `db`, `api`, `ui` healthy; API/UI health `200` |
 | Uji asap API ujung-ke-ujung | Newman menjalankan Postman collection (alur end-to-end API) | PASS | 44 request dan 45/45 assertion lulus; event kerja, kebutuhan, bahan, pesanan, donasi, dan akhir giliran tersimpan |
@@ -64,6 +67,7 @@ Kriteria fitur inti tercapai dan seluruh suite otomatis berstatus hijau.
 | Security audit API | `GET /api/v1/security/audit-logs` | PASS | respons `200`, jejak event keamanan tersedia |
 
 Catatan:
+- Suite otomatis 393/393 diverifikasi ulang pada clean commit `7b2c296` tanggal 13 Juli 2026. Hasil compose, Postman, RBAC, rate limit, observability, dan performa merupakan bagian pengujian lengkap tanggal 12 Juli 2026.
 - Verifikasi pada tabel di atas dijalankan secara lokal berbasis CLI, koleksi Postman, dan browser.
 - Verifikasi build/test/compose dapat dijalankan ulang secara lokal melalui rangkaian perintah `dotnet restore`, `dotnet build`, `dotnet test`, dan `docker compose ... config`.
 

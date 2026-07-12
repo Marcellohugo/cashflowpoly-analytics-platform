@@ -237,7 +237,7 @@ Payload:
 ```
 
 Validasi:
-- `weekday` harus `SAT`.
+- `weekday` harus `SAT`, kecuali payload membawa `risk_event_id` yang menunjuk risiko `GOLD_TRADE` valid dan masih aktif.
 - Jika `trade_type` dikirim, nilainya wajib `BUY`.
 - `qty > 0`.
 - `amount = unit_price * qty`.
@@ -261,7 +261,7 @@ Payload:
 ```
 
 Validasi:
-- `weekday` harus `SAT`.
+- `weekday` harus `SAT`, kecuali payload membawa `risk_event_id` yang menunjuk risiko `GOLD_TRADE` valid dan masih aktif.
 - Jika `trade_type` dikirim, nilainya wajib `SELL`.
 - `qty > 0`.
 - `amount = unit_price * qty`.
