@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui SessionJourneyPlayerFeedTests.
 using Xunit;
 
 namespace Cashflowpoly.Ui.Tests;
@@ -16,6 +16,7 @@ public sealed class SessionJourneyPlayerFeedTests
         Assert.Contains("session-journey-feed", viewContent);
         Assert.Contains("sessions.timeline_mixed_subtitle", viewContent);
         Assert.Contains("sessions.timeline_filter_label", viewContent);
+        Assert.DoesNotContain("<span class=\"hint-chip\">@Context.T(\"sessions.timeline_filter_label\")</span>", viewContent, StringComparison.Ordinal);
         Assert.Contains("sessions.timeline_filter_all", viewContent);
         Assert.Contains("sessions.timeline_filter_players", viewContent);
         Assert.Contains("sessions.timeline_filter_system", viewContent);
@@ -43,17 +44,16 @@ public sealed class SessionJourneyPlayerFeedTests
     }
 
     [Fact]
-    public void SessionJourneyScript_ShouldRenderVisibleOrdinalInsteadOfRawSessionSequence()
+    public void SessionJourneyScript_ShouldNotRenderSequenceOrdinal()
     {
         var repoRoot = ResolveRepositoryRoot();
         var scriptPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneyScript.cshtml");
         var scriptContent = File.ReadAllText(scriptPath);
 
-        Assert.Contains("displaySequenceNumber", scriptContent);
-        Assert.Matches(
-            new Regex(@"feedTimeline\.map\(\(item,\s*index\)\s*=>", RegexOptions.Singleline),
-            scriptContent);
-        Assert.Contains("${displaySequenceNumber}", scriptContent);
+        Assert.Contains("feedTimeline.map((item) =>", scriptContent);
+        Assert.DoesNotContain("displaySequenceNumber", scriptContent);
+        Assert.DoesNotContain("seqLabel", scriptContent);
+        Assert.DoesNotContain("session-journey-feed-seq", scriptContent);
     }
 
     [Fact]

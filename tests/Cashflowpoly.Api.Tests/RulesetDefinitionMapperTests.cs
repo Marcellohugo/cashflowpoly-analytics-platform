@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui RulesetDefinitionMapperTests.
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Domain;

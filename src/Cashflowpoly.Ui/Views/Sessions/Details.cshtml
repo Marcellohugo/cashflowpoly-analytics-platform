@@ -49,7 +49,7 @@
 
     string ResolvePlayerAvatarPath(int turnOrder) => $"/images/players/{ResolvePlayerAvatarIndex(turnOrder)}.png";
 
-    string F(double value) => value.ToString("0.##");
+    string F(double value) => value == 0d ? "0" : value.ToString("0.##");
 }
 
 @section Head {
@@ -95,6 +95,25 @@
             line-height: 1.25;
         }
 
+        .session-ruleset-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .session-ruleset-content {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .session-ruleset-action {
+            margin-top: 0 !important;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+        }
+
         @@media (max-width: 640px) {
             .session-journey-title {
                 max-width: none;
@@ -107,6 +126,22 @@
             .session-journey-insight-card:last-child {
                 grid-column: 1 / -1;
             }
+
+            .session-ruleset-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .session-ruleset-action {
+                width: 100%;
+            }
+
+            .session-ruleset-action .btn-ghost {
+                width: 100%;
+                text-align: center;
+                justify-content: center;
+            }
         }
     </style>
 }
@@ -116,7 +151,6 @@
         <div>
             <p class="eyebrow text-emerald-700">@Context.T("sessions.analytics_title")</p>
             <h1 class="headline">@Context.T("sessions.detail_title")</h1>
-            <p class="mt-2 text-xs text-slate-500 font-mono">@Model.SessionId</p>
         </div>
         <div class="ruleset-hero-meta">
             @if (!string.IsNullOrWhiteSpace(Model.SessionStatus))
@@ -134,7 +168,7 @@
     <div class="action-toolbar mt-4">
         <a class="btn-ghost"
            asp-controller="Sessions"
-           asp-action="Index">@Context.T("sessions.back_to_list")</a>
+           asp-action="Index">@("<- " + Context.T("sessions.back_to_list"))</a>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -145,11 +179,7 @@
     }
 
     <section class="session-detail-section mt-5">
-        <div class="ruleset-section-head">
-            <p class="ruleset-section-title">@(isInstructor ? Context.T("analytics.tips.instructor") : Context.T("analytics.tips.player"))</p>
-            <p class="ruleset-section-subtitle">@Context.T("analytics.tips.subtitle")</p>
-        </div>
-        <details class="mt-3 data-toggle" open>
+        <details class="mt-3 data-toggle">
             <summary>@(isInstructor ? Context.T("analytics.tips.instructor") : Context.T("analytics.tips.player"))</summary>
             <div class="mt-3 metric-panel">
                 <div class="metric-list">
@@ -175,19 +205,21 @@
             <p class="ruleset-section-title">@Context.T("sessions.active_ruleset.title")</p>
             <p class="ruleset-section-subtitle">@Context.T("sessions.detail.ruleset_subtitle")</p>
         </div>
-        <div class="mt-3 metric-panel">
-            @if (Model.Analytics?.RulesetId is Guid activeRulesetId)
+        <div class="mt-3 metric-panel session-ruleset-card">
+            @if (Model.Analytics?.RulesetId.HasValue == true)
             {
-                <h2 class="text-xl font-semibold text-slate-900">
-                    @(string.IsNullOrWhiteSpace(Model.Analytics.RulesetName) ? Context.T("common.ruleset") : Model.Analytics.RulesetName)
-                </h2>
-                <p class="mt-1 text-xs font-mono text-slate-500">@activeRulesetId</p>
-                <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.subtitle")</p>
-                <div class="mt-3 action-toolbar">
-                    <a class="btn-ghost"
-                       asp-controller="Rulesets"
-                       asp-action="Details"
-                       asp-route-rulesetId="@activeRulesetId">@Context.T("common.view")</a>
+                <div class="session-ruleset-content">
+                    <h2 class="text-xl font-semibold text-slate-900">
+                        @(string.IsNullOrWhiteSpace(Model.Analytics.RulesetName) ? Context.T("common.ruleset") : Model.Analytics.RulesetName)
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-600">@Context.T("sessions.active_ruleset.subtitle")</p>
+                </div>
+                <div class="session-ruleset-action action-toolbar">
+                    <button type="button"
+                            class="btn-ghost"
+                            id="openRulesetModalBtn"
+                            aria-haspopup="dialog"
+                            aria-controls="rulesetModal">@Context.T("sessions.view_analytics")</button>
                 </div>
             }
             else
@@ -196,6 +228,51 @@
             }
         </div>
     </section>
+
+    @if (Model.Analytics?.RulesetId.HasValue == true)
+    {
+        var rulesetDetailModel = Model.ActiveRulesetDetail ?? new Cashflowpoly.Ui.Models.RulesetDetailViewModel();
+        var rulesetDetail = rulesetDetailModel.Ruleset;
+        var isAdvancedModal = string.Equals(rulesetDetail?.Mode ?? rulesetDetail?.Definition?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase);
+        var modalModeCss = isAdvancedModal ? "advanced" : "beginner";
+
+        <div id="rulesetModal"
+             class="ruleset-modal-backdrop ruleset-modal--@modalModeCss"
+             data-ruleset-mode="@modalModeCss"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="rulesetModalTitle"
+             aria-hidden="true"
+             style="display: none;">
+            <div class="ruleset-modal-overlay" id="rulesetModalOverlay"></div>
+            <div class="ruleset-modal-container" role="document">
+                <div class="ruleset-modal-header">
+                    <div>
+                        <p class="eyebrow">@Context.T("sessions.active_ruleset.title")</p>
+                        <h2 id="rulesetModalTitle" class="text-xl font-bold text-slate-900 mt-1">@Context.T("rulesets.detail_title")</h2>
+                    </div>
+                    <button type="button"
+                            class="ruleset-modal-close"
+                            id="closeRulesetModalBtn"
+                            aria-label="@Context.T("common.close")">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="ruleset-modal-body" id="rulesetModalBody">
+                    @await Html.PartialAsync(
+                        "_RulesetDetailContent",
+                        rulesetDetailModel,
+                        new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData)
+                        {
+                            ["RulesetDetailEmbedded"] = true
+                        })
+                </div>
+            </div>
+        </div>
+    }
 
     @if (Model.Analytics is not null)
     {
@@ -212,12 +289,26 @@
         var playerRankLookup = rankedPlayers
             .Select((item, index) => new { item.UserId, Rank = index + 1 })
             .ToDictionary(item => item.UserId, item => item.Rank);
+        var currentPlayerSummary = isInstructor ? null : orderedPlayers.FirstOrDefault();
+        var happinessScoreRows = new[]
+        {
+            new { Number = 1, Label = Context.T("sessions.score.need_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.NeedPointsTotal).ToList() },
+            new { Number = 2, Label = Context.T("sessions.score.need_bonus"), IsDeduction = false, Values = orderedPlayers.Select(item => item.NeedSetBonusPoints).ToList() },
+            new { Number = 3, Label = Context.T("sessions.score.mission_penalty"), IsDeduction = true, Values = orderedPlayers.Select(item => -item.MissionPenaltyTotal).ToList() },
+            new { Number = 4, Label = Context.T("sessions.score.donation_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.DonationPointsTotal).ToList() },
+            new { Number = 5, Label = Context.T("sessions.score.pension_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.PensionPointsTotal).ToList() },
+            new { Number = 6, Label = Context.T("sessions.score.financial_goal"), IsDeduction = false, Values = orderedPlayers.Select(item => item.SavingGoalPointsTotal).ToList() },
+            new { Number = 7, Label = Context.T("sessions.score.loan_penalty"), IsDeduction = true, Values = orderedPlayers.Select(item => -item.LoanPenaltyTotal).ToList() },
+            new { Number = 8, Label = Context.T("sessions.score.gold_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.GoldPointsTotal).ToList() }
+        };
         <section class="session-detail-section mt-5">
             <div class="ruleset-section-head">
-                <p class="ruleset-section-title">@Context.T("sessions.detail.summary_title")</p>
-                <p class="ruleset-section-subtitle">@Context.T("sessions.detail.summary_subtitle")</p>
+                <p class="ruleset-section-title">@Context.T(isInstructor ? "sessions.detail.summary_title" : "sessions.detail.player_summary_title")</p>
+                <p class="ruleset-section-subtitle">@Context.T(isInstructor ? "sessions.detail.summary_subtitle" : "sessions.detail.player_summary_subtitle")</p>
             </div>
-            <div class="mt-3 grid gap-4 md:grid-cols-5">
+            @if (isInstructor)
+            {
+            <div class="mt-3 ruleset-stats">
                 <div class="stat-card">
                     <p class="text-xs uppercase text-slate-500">@Context.T("metric.total_event")</p>
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.EventCount</p>
@@ -239,77 +330,107 @@
                     <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Analytics.Summary.RulesViolationsCount</p>
                 </div>
             </div>
+            }
+            else if (currentPlayerSummary is not null)
+            {
+            <div class="mt-3 session-stats-grid">
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_in")</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700">@F(currentPlayerSummary.CashInTotal)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.cash_out")</p>
+                    <p class="mt-2 text-2xl font-semibold text-rose-700">@F(currentPlayerSummary.CashOutTotal)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.net_cashflow")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@F(currentPlayerSummary.CashInTotal - currentPlayerSummary.CashOutTotal)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.happiness")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@F(currentPlayerSummary.HappinessPointsTotal)</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.primary_need_compliance")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@($"{Math.Round(currentPlayerSummary.CompliancePrimaryNeedRate * 100)}%")</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs uppercase text-slate-500">@Context.T("metric.violations")</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900">@currentPlayerSummary.RulesViolationsCount</p>
+                </div>
+            </div>
+            }
 
         <div class="ruleset-section-head mt-6">
-            <p class="ruleset-section-title">@Context.T("sessions.detail.players_title")</p>
-            <p class="ruleset-section-subtitle">@Context.T("sessions.detail.players_subtitle")</p>
+            <p class="ruleset-section-title">@Context.T(isInstructor ? "sessions.detail.players_title" : "sessions.detail.player_scores_title")</p>
+            <p class="ruleset-section-subtitle">@Context.T(isInstructor ? "sessions.detail.players_subtitle" : "sessions.detail.player_scores_subtitle")</p>
         </div>
 
-        <div class="mt-3 table-wrap">
-            <table class="w-full text-left text-sm mobile-card-table">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3 text-right">@Context.T("common.turn_order")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.rank")</th>
-                        <th class="px-4 py-3">@Context.T("common.name")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_in")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.cash_out")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.donation")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.donation_points")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.pension_points")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.gold_qty")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("metric.happiness")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (orderedPlayers.Count == 0)
-                {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="11">@Context.T("state.no_player_data")</td>
-                    </tr>
-                }
-                else
-                {
-                    for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
-                    {
-                        var item = orderedPlayers[playerIndex];
-                        var turnOrder = item.PlayerOrder > 0 ? item.PlayerOrder : playerIndex + 1;
-                        var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
-                            ? resolvedRank
-                            : 0;
-                        var winnerRowClass = rank == 1
-                            ? "winner-row"
-                            : string.Empty;
-                        <tr class="border-t border-slate-200 @winnerRowClass">
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.turn_order")">@turnOrder</td>
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.rank")">@(rank > 0 ? rank : "-")</td>
-                            <td class="px-4 py-3 text-slate-700" data-label="@Context.T("common.name")">
-                                <div class="flex items-center gap-3">
-                                    <img class="h-7 w-7 rounded-full border border-slate-200 object-cover"
-                                         src="@ResolvePlayerAvatarPath(turnOrder)"
-                                         alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
-                                    <span>@ResolvePlayerName(item.UserId)</span>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_in")">@item.CashInTotal</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.cash_out")">@item.CashOutTotal</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.donation")">@item.DonationTotal</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.donation_points")">@F(item.DonationPointsTotal)</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.pension_points")">@F(item.PensionPointsTotal)</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.gold_qty")">@item.GoldQty</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("metric.happiness")">@item.HappinessPointsTotal</td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
-                                <a class="table-link"
-                                   asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
-                                   asp-route-playerId="@item.UserId">@Context.T("common.view")</a>
-                            </td>
+        @if (orderedPlayers.Count == 0)
+        {
+            <div class="mt-3 alert alert-info">@Context.T("state.no_player_data")</div>
+        }
+        else
+        {
+            <div class="mt-3 table-wrap happiness-score-sheet">
+                <table class="happiness-score-table text-sm">
+                    <thead>
+                        <tr>
+                            <th class="happiness-score-label happiness-score-title" scope="col">
+                                @Context.T("sessions.score.elements_title")
+                            </th>
+                            @for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
+                            {
+                                var item = orderedPlayers[playerIndex];
+                                var turnOrder = item.PlayerOrder > 0 ? item.PlayerOrder : playerIndex + 1;
+                                var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
+                                    ? resolvedRank
+                                    : 0;
+                                <th class="happiness-score-player happiness-score-player--turn-@turnOrder @(rank == 1 ? "happiness-score-player--winner" : string.Empty)" scope="col">
+                                    <span class="happiness-score-player-card">
+                                        <img src="@ResolvePlayerAvatarPath(turnOrder)"
+                                             alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
+                                        <span class="happiness-score-player-name">@ResolvePlayerName(item.UserId)</span>
+                                        <span class="happiness-score-player-meta">
+                                            @Context.T("common.turn_order") @turnOrder · @Context.T("common.rank") @(rank > 0 ? rank : "-")
+                                        </span>
+                                        <a class="table-link"
+                                           asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
+                                           asp-route-playerId="@item.UserId">@Context.T("sessions.view_analytics")</a>
+                                    </span>
+                                </th>
+                            }
                         </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        @foreach (var scoreRow in happinessScoreRows)
+                        {
+                            <tr class="@(scoreRow.IsDeduction ? "happiness-score-deduction" : string.Empty)">
+                                <th class="happiness-score-label" scope="row">
+                                    <span class="happiness-score-number">@scoreRow.Number</span>
+                                    <span>@scoreRow.Label</span>
+                                </th>
+                                @foreach (var value in scoreRow.Values)
+                                {
+                                    <td>
+                                        <span class="happiness-score-value @(scoreRow.IsDeduction ? "happiness-score-value--deduction" : string.Empty)">@F(value)</span>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th class="happiness-score-label" scope="row">@Context.T("sessions.score.total")</th>
+                            @foreach (var item in orderedPlayers)
+                            {
+                                <td><strong>@F(item.HappinessPointsTotal)</strong></td>
+                            }
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
         </section>
 
     }
@@ -329,4 +450,70 @@
 
 @section Scripts {
     @await Html.PartialAsync("_SessionJourneyScript", Model)
+    <script>
+        (() => {
+            const openBtn = document.getElementById('openRulesetModalBtn');
+            const closeBtn = document.getElementById('closeRulesetModalBtn');
+            const modal = document.getElementById('rulesetModal');
+            const overlay = document.getElementById('rulesetModalOverlay');
+            const focusableSelector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+            const previousBodyOverflow = document.body.style.overflow;
+
+            if (!openBtn || !modal) return;
+            document.body.appendChild(modal);
+
+            function openModal() {
+                modal.classList.add('is-open');
+                modal.style.display = 'flex';
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+                if (closeBtn) closeBtn.focus();
+            }
+
+            function closeModal() {
+                modal.classList.remove('is-open');
+                modal.style.display = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = previousBodyOverflow;
+                openBtn.focus();
+            }
+
+            openBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal();
+            });
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeModal);
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', closeModal);
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (!modal.classList.contains('is-open')) return;
+
+                if (e.key === 'Escape') {
+                    closeModal();
+                    return;
+                }
+
+                if (e.key === 'Tab') {
+                    const focusable = Array.from(modal.querySelectorAll(focusableSelector));
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (!first || !last) return;
+
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            });
+        })();
+    </script>
 }

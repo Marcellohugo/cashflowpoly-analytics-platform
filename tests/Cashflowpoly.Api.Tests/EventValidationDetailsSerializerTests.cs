@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui EventValidationDetailsSerializerTests.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Contracts;

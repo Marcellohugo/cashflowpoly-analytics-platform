@@ -6,29 +6,11 @@
 
 @{
     ViewData["Title"] = Context.T("players.detail_title");
+    var isInstructor = Context.Session.IsInstructor();
 
     string LocalizeTransactionDetail(string rawDetail)
     {
         return PlayerMetricLabelFormatter.LocalizeTransactionDetail(rawDetail, Context.T);
-    }
-
-    static List<(string Path, string Value)> MergeUniqueRows(params IEnumerable<(string Path, string Value)>[] rowSets)
-    {
-        return PlayerMetricCollectionHelper.MergeUniqueRows(rowSets);
-    }
-
-    static List<(string Path, string Value)> GetGroupRows(
-        Dictionary<string, List<(string Path, string Value)>> source,
-        params string[] keys)
-    {
-        return PlayerMetricCollectionHelper.GetGroupRows(source, keys);
-    }
-
-    static List<(string Path, string Value)> FilterRowsByKeywords(
-        IEnumerable<(string Path, string Value)> rows,
-        params string[] keywords)
-    {
-        return PlayerMetricCollectionHelper.FilterRowsByKeywords(rows, keywords);
     }
 
     static int ResolvePlayerAvatarIndex(int turnOrder)
@@ -41,356 +23,217 @@
         return ((turnOrder - 1) % 4) + 1;
     }
 
-    var trueText = Context.T("state.true");
-    var falseText = Context.T("state.false");
-    var nullText = Context.T("state.null");
-    var rawGroups = PlayerMetricJsonMapper.BuildMetricGroups(Model.GameplayRaw, trueText, falseText, nullText);
-    var derivedGroups = PlayerMetricJsonMapper.BuildMetricGroups(Model.GameplayDerived, trueText, falseText, nullText);
-    var rawGroupMap = rawGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
-    var derivedGroupMap = derivedGroups.ToDictionary(item => item.GroupKey, item => item.Rows, StringComparer.OrdinalIgnoreCase);
-    var mappedRawKeys = new HashSet<string>(
-        new[] { "coins", "ingredients", "meal_orders", "needs", "donations", "gold", "pension", "life_risk", "financial_goals", "actions", "turns" },
-        StringComparer.OrdinalIgnoreCase);
-    var rawFallbackKeys = rawGroupMap.Keys.Where(key => !mappedRawKeys.Contains(key)).ToArray();
-
-    var part11Rows = MergeUniqueRows(
-        GetGroupRows(rawGroupMap, "turns"),
-        GetGroupRows(rawGroupMap, rawFallbackKeys));
-
-    var rawSections = new List<(string Title, string Description, List<(string Path, string Value)> Rows)>
-    {
-        (
-            Context.T("players.details.raw.coin_finance.title"),
-            Context.T("players.details.raw.coin_finance.desc"),
-            GetGroupRows(rawGroupMap, "coins")),
-        (
-            Context.T("players.details.raw.ingredients.title"),
-            Context.T("players.details.raw.ingredients.desc"),
-            GetGroupRows(rawGroupMap, "ingredients")),
-        (
-            Context.T("players.details.raw.meal_orders.title"),
-            Context.T("players.details.raw.meal_orders.desc"),
-            GetGroupRows(rawGroupMap, "meal_orders")),
-        (
-            Context.T("players.details.raw.needs.title"),
-            Context.T("players.details.raw.needs.desc"),
-            GetGroupRows(rawGroupMap, "needs")),
-        (
-            Context.T("players.details.raw.donations.title"),
-            Context.T("players.details.raw.donations.desc"),
-            GetGroupRows(rawGroupMap, "donations")),
-        (
-            Context.T("players.details.raw.gold.title"),
-            Context.T("players.details.raw.gold.desc"),
-            GetGroupRows(rawGroupMap, "gold")),
-        (
-            Context.T("players.details.raw.pension.title"),
-            Context.T("players.details.raw.pension.desc"),
-            GetGroupRows(rawGroupMap, "pension")),
-        (
-            Context.T("players.details.raw.life_risk.title"),
-            Context.T("players.details.raw.life_risk.desc"),
-            GetGroupRows(rawGroupMap, "life_risk")),
-        (
-            Context.T("players.details.raw.financial_goals.title"),
-            Context.T("players.details.raw.financial_goals.desc"),
-            GetGroupRows(rawGroupMap, "financial_goals")),
-        (
-            Context.T("players.details.raw.actions.title"),
-            Context.T("players.details.raw.actions.desc"),
-            GetGroupRows(rawGroupMap, "actions")),
-        (
-            Context.T("players.details.raw.turns.title"),
-            Context.T("players.details.raw.turns.desc"),
-            part11Rows)
-    };
-
-    var derivedSummaryRows = GetGroupRows(derivedGroupMap, "summary");
-
-    var financialDerivedRows = MergeUniqueRows(
-        FilterRowsByKeywords(
-            derivedSummaryRows,
-            "net_worth",
-            "income_diversification",
-            "expense_management",
-            "business_profit",
-            "business_efficiency",
-            "gold_roi",
-            "growth_pattern"),
-        GetGroupRows(derivedGroupMap, "income_diversification_components"),
-        GetGroupRows(derivedGroupMap, "expense_management_components"));
-
-    var strategicDerivedRows = MergeUniqueRows(
-        FilterRowsByKeywords(
-            derivedSummaryRows,
-            "risk_appetite",
-            "debt_leverage",
-            "debt_ratio",
-            "loan_repayment",
-            "goal_setting_ambition",
-            "risk_exposure",
-            "risk_mitigation"),
-        GetGroupRows(derivedGroupMap, "risk_appetite_components"),
-        GetGroupRows(derivedGroupMap, "goal_setting_components"));
-
-    var behaviorDerivedRows = FilterRowsByKeywords(
-        derivedSummaryRows,
-        "action_efficiency",
-        "meal_order_success",
-        "planning_horizon",
-        "donation_aggressiveness",
-        "donation_stability");
-
-    var flourishingDerivedRows = MergeUniqueRows(
-        FilterRowsByKeywords(
-            derivedSummaryRows,
-            "fulfillment_diversity",
-            "donation_commitment",
-            "mission_achievement"),
-        GetGroupRows(derivedGroupMap, "fulfillment_diversity_components"),
-        GetGroupRows(derivedGroupMap, "donation_commitment_components"),
-        GetGroupRows(derivedGroupMap, "happiness_portfolio"));
-
-    var mappedDerivedPaths = new HashSet<string>(
-        financialDerivedRows
-            .Concat(strategicDerivedRows)
-            .Concat(behaviorDerivedRows)
-            .Concat(flourishingDerivedRows)
-            .Select(row => row.Path),
-        StringComparer.OrdinalIgnoreCase);
-    var fallbackDerivedRows = derivedSummaryRows.Where(row => !mappedDerivedPaths.Contains(row.Path)).ToList();
-    if (fallbackDerivedRows.Count > 0)
-    {
-        behaviorDerivedRows = MergeUniqueRows(behaviorDerivedRows, fallbackDerivedRows);
-    }
-
-    var derivedSections = new List<(string Title, string Description, List<(string Path, string Value)> Rows)>
-    {
-        (
-            Context.T("players.details.derived.financial.title"),
-            Context.T("players.details.derived.financial.desc"),
-            financialDerivedRows),
-        (
-            Context.T("players.details.derived.strategy.title"),
-            Context.T("players.details.derived.strategy.desc"),
-            strategicDerivedRows),
-        (
-            Context.T("players.details.derived.behavior.title"),
-            Context.T("players.details.derived.behavior.desc"),
-            behaviorDerivedRows),
-        (
-            Context.T("players.details.derived.flourishing.title"),
-            Context.T("players.details.derived.flourishing.desc"),
-            flourishingDerivedRows)
-    };
+    string FormatNumber(double value) => value.ToString("N0", CultureInfo.CurrentCulture);
+    string FormatSignedNumber(double value) => value > 0 ? $"+{FormatNumber(value)}" : FormatNumber(value);
 
     var cashflowJourney = Model.CashflowJourney;
-    var hasCashflowJourney = cashflowJourney is not null && cashflowJourney.TransactionCount > 0;
-    var localizedTimelineLabels = hasCashflowJourney
-        ? cashflowJourney!.TimelineLabels
-            .Select(label => string.Equals(label, "START", StringComparison.OrdinalIgnoreCase)
-                ? Context.T("common.start")
-                : label)
-            .ToList()
-        : new List<string>();
-    var localizedTransactionDetails = hasCashflowJourney
-        ? cashflowJourney!.TransactionDetails.Select(LocalizeTransactionDetail).ToList()
-        : new List<string>();
-    var cashflowJourneyChartPayload = hasCashflowJourney
-        ? JsonSerializer.Serialize(new
-        {
-            chartType = "line",
-            labels = localizedTimelineLabels,
-            keys = new[] { "cashflow_running_net" },
-            formulas = localizedTransactionDetails,
-            detailLabel = Context.T("players.details.transaction_label"),
-            series = new[]
-            {
-                new
-                {
-                    name = Context.T("players.cashflow_journey.series_name"),
-                    values = cashflowJourney!.RunningNetSeries
-                }
-            }
-        })
-        : "{}";
-
     var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
-    var cashflowSummaryValues = new double?[]
-    {
-        cashflowJourney?.TotalCashIn ?? Model.Summary?.CashInTotal ?? 0d,
-        cashflowJourney?.TotalCashOut ?? Model.Summary?.CashOutTotal ?? 0d,
-        cashflowJourney?.NetCashflow ?? ((Model.Summary?.CashInTotal ?? 0d) - (Model.Summary?.CashOutTotal ?? 0d)),
-        cashflowJourney?.EndingCash ?? 0d
-    };
-    var cashflowSummaryChartPayload = JsonSerializer.Serialize(new
-    {
-        chartType = "bar",
-        labels = new[]
-        {
-            Context.T("metric.cash_in"),
-            Context.T("metric.cash_out"),
-            Context.T("metric.net_cashflow"),
-            Context.T("players.cashflow_journey.ending_cash")
-        },
-        keys = new[] { "cash_in_total", "cash_out_total", "net_cashflow", "ending_cash" },
-        formulas = new[]
-        {
-            Context.T("players.details.formula.raw.cash_in_sum"),
-            Context.T("players.details.formula.raw.cash_out_sum"),
-            Context.T("players.details.formula.derived.net_cashflow"),
-            Context.T("players.cashflow_journey.quick_check")
-        },
-        detailLabel = Context.T("players.details.source_calc_label"),
-        series = new[]
-        {
-            new
-            {
-                name = Context.T("common.value"),
-                values = cashflowSummaryValues
-            }
-        }
-    });
-    var happinessCompositionChartPayload = Model.Summary is null
-        ? "{}"
-        : JsonSerializer.Serialize(new
-        {
-            chartType = "bar",
-            labels = new[]
-            {
-                Context.T("metric.need_points"),
-                Context.T("metric.need_bonus"),
-                Context.T("metric.donation_points"),
-                Context.T("metric.gold_points"),
-                Context.T("metric.pension_points"),
-                Context.T("metric.saving_goal"),
-                Context.T("metric.mission_penalty"),
-                Context.T("metric.loan_penalty")
-            },
-            keys = new[]
-            {
-                "need_points_total",
-                "need_set_bonus_points",
-                "donation_points_total",
-                "gold_points_total",
-                "pension_points_total",
-                "saving_goal_points_total",
-                "mission_penalty_total",
-                "loan_penalty_total"
-            },
-            formulas = new[]
-            {
-                Context.T("players.details.formula.derived.need_points"),
-                Context.T("players.details.formula.derived.points_weight"),
-                Context.T("players.details.formula.derived.donation_points"),
-                Context.T("players.details.formula.derived.points_weight"),
-                Context.T("players.details.formula.derived.pension_points"),
-                Context.T("players.details.formula.derived.saving_goal_points"),
-                Context.T("players.details.formula.derived.penalty"),
-                Context.T("players.details.formula.derived.penalty")
-            },
-            detailLabel = Context.T("players.details.source_calc_label"),
-            series = new[]
-            {
-                new
-                {
-                    name = Context.T("common.value"),
-                    values = new double?[]
-                    {
-                        Model.Summary.NeedPointsTotal,
-                        Model.Summary.NeedSetBonusPoints,
-                        Model.Summary.DonationPointsTotal,
-                        Model.Summary.GoldPointsTotal,
-                        Model.Summary.PensionPointsTotal,
-                        Model.Summary.SavingGoalPointsTotal,
-                        -Model.Summary.MissionPenaltyTotal,
-                        -Model.Summary.LoanPenaltyTotal
-                    }
-                }
-            }
-        });
-    var behaviorSnapshotChartPayload = Model.Summary is null
-        ? "{}"
-        : JsonSerializer.Serialize(new
-        {
-            chartType = "bar",
-            labels = new[]
-            {
-                Context.T("metric.orders_completed"),
-                Context.T("metric.inventory_ingredient"),
-                Context.T("metric.actions_used"),
-                Context.T("metric.primary_need_compliance"),
-                Context.T("metric.violations")
-            },
-            keys = new[]
-            {
-                "orders_completed_count",
-                "inventory_ingredient_total",
-                "actions_used_total",
-                "compliance_primary_need_rate",
-                "rules_violations_count"
-            },
-            formulas = new[]
-            {
-                Context.T("players.details.formula.raw.per_turn_aggregate"),
-                Context.T("players.details.source_raw_summary"),
-                Context.T("players.details.formula.raw.per_turn_aggregate"),
-                Context.T("players.details.formula.derived.default"),
-                Context.T("players.details.formula.derived.penalty")
-            },
-            detailLabel = Context.T("players.details.source_calc_label"),
-            series = new[]
-            {
-                new
-                {
-                    name = Context.T("common.value"),
-                    values = new double?[]
-                    {
-                        Model.Summary.OrdersCompletedCount,
-                        Model.Summary.InventoryIngredientTotal,
-                        Model.Summary.ActionsUsedTotal,
-                        Model.Summary.CompliancePrimaryNeedRate * 100,
-                        Model.Summary.RulesViolationsCount
-                    }
-                }
-            }
-        });
+    var totalCashIn = Model.Summary?.CashInTotal ?? cashflowJourney?.TotalCashIn ?? 0d;
+    var totalCashOut = Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut ?? 0d;
+    var netCashflow = totalCashIn - totalCashOut;
+    var endingCash = (cashflowJourney?.StartingCash ?? 0d) + netCashflow;
+    var primaryNeedRate = Model.Summary?.CompliancePrimaryNeedRate ?? 0d;
+    var ruleViolations = Model.Summary?.RulesViolationsCount ?? 0;
+    var happinessPointsAdded = Model.Summary is null
+        ? 0d
+        : Model.Summary.NeedPointsTotal
+          + Model.Summary.NeedSetBonusPoints
+          + Model.Summary.DonationPointsTotal
+          + Model.Summary.GoldPointsTotal
+          + Model.Summary.PensionPointsTotal
+          + Model.Summary.SavingGoalPointsTotal;
+    var happinessPointsDeducted = Model.Summary is null
+        ? 0d
+        : Model.Summary.MissionPenaltyTotal + Model.Summary.LoanPenaltyTotal;
+    var financeMeaningKey = netCashflow > 0
+        ? "players.stats.focus.money.positive"
+        : netCashflow < 0
+            ? "players.stats.focus.money.negative"
+            : "players.stats.focus.money.balanced";
+    var behaviorMeaningKey = primaryNeedRate < 0.75 || ruleViolations > 0
+        ? "players.stats.focus.behavior.review"
+        : "players.stats.focus.behavior.good";
+    var happinessMeaningKey = happinessPointsDeducted > 0
+        ? "players.stats.focus.happiness.with_deduction"
+        : "players.stats.focus.happiness.no_deduction";
+    var financeRecommendationKey = $"{financeMeaningKey}.recommendation";
+    var behaviorRecommendationKey = $"{behaviorMeaningKey}.recommendation";
+    var happinessRecommendationKey = $"{happinessMeaningKey}.recommendation";
+    var happinessPoints = Model.Summary?.HappinessPointsTotal ?? 0d;
+    var hasUnpaidLoan = Model.Summary?.HasUnpaidLoan ?? false;
+    var financeTone = netCashflow < 0 ? "warning" : netCashflow > 0 ? "positive" : "neutral";
+    var behaviorTone = primaryNeedRate < 0.75 || ruleViolations > 0 ? "warning" : "positive";
+    var happinessTone = happinessPoints >= 60 ? "positive" : happinessPoints < 20 ? "warning" : "neutral";
+    var overallTone = hasUnpaidLoan
+        ? "danger"
+        : netCashflow < 0 || primaryNeedRate < 0.75 || ruleViolations > 0 || happinessPoints < 20
+            ? "warning"
+            : netCashflow > 0 && primaryNeedRate >= 0.9 && happinessPoints >= 60
+                ? "positive"
+                : "neutral";
+    var overallStatusKey = $"players.stats.status.{overallTone}";
+    var overallDescriptionKey = $"players.stats.status.{overallTone}.desc";
 
-    var hasGameplayData = Model.GameplayDerived.HasValue || Model.GameplayRaw.HasValue;
+    var trueText = Context.T("players.support.value.yes");
+    var falseText = Context.T("players.support.value.no");
+    var nullText = Context.T("players.support.value.unavailable");
+    var rawGroupMap = PlayerMetricJsonMapper
+        .BuildMetricGroups(Model.GameplayRaw, trueText, falseText, nullText)
+        .ToDictionary(group => group.GroupKey, group => group.Rows, StringComparer.OrdinalIgnoreCase);
+    var derivedGroupMap = PlayerMetricJsonMapper
+        .BuildMetricGroups(Model.GameplayDerived, trueText, falseText, nullText)
+        .ToDictionary(group => group.GroupKey, group => group.Rows, StringComparer.OrdinalIgnoreCase);
+    // Curate this section explicitly so new backend fields do not automatically
+    // turn the player page into a duplicate data dump.
+    var rawMetricKeysToShow = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "starting_coins",
+        "ingredients_collected",
+        "ingredients_held_current",
+        "ingredients_used_total",
+        "ingredients_wasted",
+        "ingredient_investment_coins_total",
+        "meal_orders_available_passed",
+        "meal_order_income_total",
+        "need_cards_purchased",
+        "primary_needs_owned",
+        "secondary_needs_owned",
+        "tertiary_needs_owned",
+        "collection_mission_complete",
+        "need_cards_coins_spent",
+        "donation_total_coins",
+        "donation_champion_cards_earned",
+        "gold_cards_purchased",
+        "gold_cards_sold",
+        "gold_cards_held_end",
+        "gold_investment_coins_spent",
+        "gold_investment_coins_earned",
+        "pension_fund_total",
+        "life_risks_accepted",
+        "life_risk_costs_total",
+        "life_risk_mitigated_with_insurance",
+        "insurance_payments_made",
+        "emergency_options_used",
+        "financial_goals_available_total",
+        "financial_goals_attempted",
+        "financial_goals_completed",
+        "financial_goals_coins_total_invested",
+        "financial_goals_incomplete_coins_wasted",
+        "sharia_loans_taken",
+        "sharia_loans_repaid",
+        "sharia_loans_unpaid_end"
+    };
+    foreach (var rows in rawGroupMap.Values)
+    {
+        rows.RemoveAll(row =>
+        {
+            var separatorIndex = row.Path.IndexOfAny(['.', '[']);
+            var rootKey = separatorIndex < 0 ? row.Path : row.Path[..separatorIndex];
+            return !rawMetricKeysToShow.Contains(rootKey);
+        });
+    }
+    var derivedSummaryRows = PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "summary");
+    var redundantDerivedMetricKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "income_diversification_ratio",
+        "goal_ambition",
+        "action_efficiency",
+        "planning_horizon",
+        "risk_appetite_score_normalized",
+        "donation_ratio",
+        "donation_stability",
+        "mission_achievement",
+        "p_primary",
+        "p_secondary",
+        "p_tertiary",
+        "total_income",
+        "total_expenses",
+        "transaction_count",
+        "insurance_activation_rate",
+        "growth_pattern_ratio",
+        "debt_ratio",
+        "sharia_loans_outstanding_coins"
+    };
+    foreach (var rows in derivedGroupMap.Values)
+    {
+        rows.RemoveAll(row => redundantDerivedMetricKeys.Contains(row.Path));
+    }
+    derivedSummaryRows.RemoveAll(row => redundantDerivedMetricKeys.Contains(row.Path));
+
+    var rawSections = new[]
+    {
+        new { Key = "coin-finance", TitleKey = "players.details.raw.coin_finance.title", DescriptionKey = "players.details.raw.coin_finance.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "coins") },
+        new { Key = "ingredients", TitleKey = "players.details.raw.ingredients.title", DescriptionKey = "players.details.raw.ingredients.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "ingredients") },
+        new { Key = "meal-orders", TitleKey = "players.details.raw.meal_orders.title", DescriptionKey = "players.details.raw.meal_orders.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "meal_orders") },
+        new { Key = "needs", TitleKey = "players.details.raw.needs.title", DescriptionKey = "players.details.raw.needs.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "needs") },
+        new { Key = "donations", TitleKey = "players.details.raw.donations.title", DescriptionKey = "players.details.raw.donations.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "donations") },
+        new { Key = "gold", TitleKey = "players.details.raw.gold.title", DescriptionKey = "players.details.raw.gold.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "gold") },
+        new { Key = "pension", TitleKey = "players.details.raw.pension.title", DescriptionKey = "players.details.raw.pension.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "pension") },
+        new { Key = "life-risk", TitleKey = "players.details.raw.life_risk.title", DescriptionKey = "players.details.raw.life_risk.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "life_risk") },
+        new { Key = "financial-goals", TitleKey = "players.details.raw.financial_goals.title", DescriptionKey = "players.details.raw.financial_goals.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals") }
+    }.Where(section => section.Rows.Count > 0).ToList();
+
+    var derivedSections = new[]
+    {
+        new { Key = "financial", TitleKey = "players.details.derived.financial.title", DescriptionKey = "players.details.derived.financial.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "net_worth", "income_diversification", "expense_management", "business_profit", "business_efficiency", "gold_roi") },
+        new { Key = "strategy", TitleKey = "players.details.derived.strategy.title", DescriptionKey = "players.details.derived.strategy.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "risk_", "debt_", "loan_", "goal_", "sharia_") },
+        new { Key = "behavior", TitleKey = "players.details.derived.behavior.title", DescriptionKey = "players.details.derived.behavior.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "action_", "meal_order_", "planning_") },
+        new { Key = "flourishing", TitleKey = "players.details.derived.flourishing.title", DescriptionKey = "players.details.derived.flourishing.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "fulfillment_", "mission_", "donation_", "friday_", "happiness_") }
+    }.Where(section => section.Rows.Count > 0).ToList();
+
+    var rawMetricCount = rawSections.Sum(section => section.Rows.Count);
+    var derivedMetricCount = derivedSections.Sum(section => section.Rows.Count);
+    var isAdvancedMode = Model.GameplayRaw.HasValue
+        && Model.GameplayRaw.Value.ValueKind == JsonValueKind.Object
+        && Model.GameplayRaw.Value.TryGetProperty("metadata", out var gameplayMetadata)
+        && gameplayMetadata.ValueKind == JsonValueKind.Object
+        && gameplayMetadata.TryGetProperty("game_mode", out var gameplayMode)
+        && string.Equals(gameplayMode.GetString(), "advanced", StringComparison.OrdinalIgnoreCase);
+    var metricCollections = new[]
+    {
+        new { Key = "derived", TitleKey = "players.details.derived_title", DescriptionKey = "players.metrics_derived_desc", Count = derivedMetricCount, IsDerived = true, Sections = derivedSections },
+        new { Key = "raw", TitleKey = "players.details.raw_title", DescriptionKey = "players.metrics_raw_desc", Count = rawMetricCount, IsDerived = false, Sections = rawSections }
+    };
+
     var playerTurnOrder = Model.Summary?.PlayerOrder ?? 1;
     var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
 }
 
 <section class="section-shell player-detail-overhaul">
     <div class="player-detail-hero">
-        <p class="eyebrow text-emerald-700">@Context.T("players.analytics_title")</p>
-        <h1 class="headline">@Context.T("players.detail_title")</h1>
-        @if (!string.IsNullOrWhiteSpace(Model.PlayerDisplayName))
-        {
-            <div class="mt-2 flex items-center gap-3">
-                <img class="h-8 w-8 rounded-full border border-slate-200 object-cover"
+        <div class="player-detail-hero-copy">
+            <p class="eyebrow">@Context.T("players.analytics_title")</p>
+            <h1 class="headline">@Context.T("players.detail_title")</h1>
+            <p class="player-detail-hero-subtitle">@Context.T("players.detail.subtitle")</p>
+        </div>
+        <div class="player-profile-identity">
+            <span class="player-profile-avatar-shell">
+                <img class="player-profile-avatar"
                      src="@playerAvatarPath"
                      alt="@($"{Context.T("common.turn_order")} {playerTurnOrder}")" />
-                <p class="player-detail-name" style="margin-top: 0;">@Model.PlayerDisplayName</p>
+            </span>
+            <div class="player-profile-copy">
+                <span class="player-profile-turn">@Context.T("common.turn_order") @playerTurnOrder</span>
+                <p class="player-detail-name">@(string.IsNullOrWhiteSpace(Model.PlayerDisplayName) ? Context.T("common.player") : Model.PlayerDisplayName)</p>
+                @if (Model.GameplayComputedAt.HasValue)
+                {
+                    <span class="player-detail-meta__item">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                }
             </div>
-        }
-        <div class="player-detail-meta">
-            <span class="player-detail-meta__item player-detail-meta__item--mono">@Model.PlayerId</span>
-            @if (Model.GameplayComputedAt.HasValue)
-            {
-                <span class="player-detail-meta__item">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
-            }
         </div>
     </div>
 
     <div class="action-toolbar mt-4 player-detail-toolbar">
-        <a class="btn-ghost"
-           asp-controller="PlayerDirectory"
-           asp-action="Index">@Context.T("players.detail.nav_back_players")</a>
+        @if (isInstructor)
+        {
+            <a class="btn-ghost"
+               asp-controller="PlayerDirectory"
+               asp-action="Index">@("<- " + Context.T("players.detail.nav_back_players"))</a>
+        }
         <a class="btn-ghost"
            asp-controller="Sessions"
            asp-action="Details"
-           asp-route-sessionId="@Model.SessionId">@Context.T("players.detail.nav_back_session")</a>
+           asp-route-sessionId="@Model.SessionId">@("<- " + Context.T("players.detail.nav_back_session"))</a>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
@@ -407,7 +250,7 @@
         </div>
     }
 
-    <details id="player-transaction-history" class="players-fusion-metrics player-detail-section mt-6 player-transactions-section data-toggle" open>
+    <details id="player-transaction-history" class="players-fusion-metrics player-detail-section mt-6 player-transactions-section data-toggle">
         <summary class="players-fusion-head ruleset-section-head">
             <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
             <h2 class="ruleset-section-title">@Context.T("players.transaction_history")</h2>
@@ -475,418 +318,211 @@
     </details>
 
     <div id="player-statistics-dashboard" class="players-fusion-metrics player-detail-section player-stats-dashboard">
-        <div class="players-fusion-head ruleset-section-head">
-            <p class="eyebrow">@Context.T("players.stats.badge")</p>
-            <h2 class="ruleset-section-title">@Context.T("players.stats.title")</h2>
-            <p class="ruleset-section-subtitle">@Context.T("players.stats.subtitle")</p>
+        <div class="players-fusion-head ruleset-section-head player-stats-hero">
+            <div>
+                <p class="eyebrow">@Context.T("players.stats.badge")</p>
+                <h2 class="ruleset-section-title">@Context.T("players.stats.title")</h2>
+                <p class="ruleset-section-subtitle">@Context.T("players.stats.subtitle")</p>
+            </div>
+            <span class="player-stats-read-pill">@Context.T("players.stats.read_time")</span>
         </div>
 
-        <div class="player-stats-key-grid mt-6">
-            @foreach (var metric in statSummary.KeyMetrics)
-            {
-                <article class="player-stat-kpi player-stat-tone-@metric.Tone">
-                    <p class="player-stat-kpi__label">@metric.Label</p>
-                    <p class="player-stat-kpi__value">@metric.Value</p>
+        <section class="player-stats-verdict player-stat-tone-@overallTone" aria-labelledby="player-stats-verdict-title">
+            <div>
+                <p class="player-stats-verdict__eyebrow">@Context.T("players.stats.verdict.title")</p>
+                <h3 id="player-stats-verdict-title">@Context.T(overallStatusKey)</h3>
+                <p>@Context.T(overallDescriptionKey)</p>
+            </div>
+            <div class="player-stats-verdict__signals" aria-label="@Context.T("players.stats.verdict.title")">
+                <div><span>@Context.T("players.cashflow_journey.ending_cash")</span><strong>@FormatNumber(endingCash)</strong></div>
+                <div><span>@Context.T("metric.happiness")</span><strong>@FormatNumber(happinessPoints)</strong></div>
+                <div><span>@Context.T("metric.primary_need_compliance")</span><strong>@primaryNeedRate.ToString("P0", CultureInfo.CurrentCulture)</strong></div>
+            </div>
+        </section>
+
+        <section class="player-stats-pillars" aria-labelledby="player-stats-pillars-title">
+            <div class="player-stats-section-heading ruleset-section-head">
+                <h3 id="player-stats-pillars-title" class="ruleset-section-title">@Context.T("players.stats.pillars.title")</h3>
+                <p class="ruleset-section-subtitle">@Context.T("players.stats.pillars.desc")</p>
+            </div>
+
+            <div class="player-stats-pillar-grid">
+                <article class="player-stat-pillar player-stat-pillar--money player-stat-pillar--@financeTone">
+                    <div class="player-stat-pillar__heading">
+                        <h4>@Context.T("players.stats.focus.money.title")</h4>
+                        <p>@Context.T("players.stats.focus.money.question")</p>
+                    </div>
+                    <div class="player-stat-pillar__score">
+                        <span>@Context.T("players.stats.pillar.main_result")</span>
+                        <strong>@FormatSignedNumber(netCashflow)</strong>
+                    </div>
+                    <p class="player-stat-pillar__summary">@Context.T(financeMeaningKey)</p>
+                    <p class="player-stat-pillar__recommendation"><strong>@Context.T("players.stats.pillar.recommendation")</strong> @Context.T(financeRecommendationKey)</p>
+                    <dl class="player-stat-pillar__metrics">
+                        <div><dt>@Context.T("metric.cash_in")</dt><dd>@FormatNumber(totalCashIn)</dd></div>
+                        <div><dt>@Context.T("metric.cash_out")</dt><dd>@FormatNumber(totalCashOut)</dd></div>
+                        <div><dt>@Context.T("players.cashflow_journey.ending_cash")</dt><dd>@FormatNumber(endingCash)</dd></div>
+                    </dl>
                 </article>
-            }
-        </div>
 
-        <div class="player-stats-insights mt-4" aria-label="@Context.T("players.stats.insights_title")">
-            @foreach (var insight in statSummary.Insights)
-            {
-                <article class="player-stat-insight player-stat-tone-@insight.Tone">
-                    <p class="player-stat-insight__title">@insight.Title</p>
-                    <p class="player-stat-insight__body">@insight.Description</p>
+                <article class="player-stat-pillar player-stat-pillar--behavior player-stat-pillar--@behaviorTone">
+                    <div class="player-stat-pillar__heading">
+                        <h4>@Context.T("players.stats.focus.behavior.title")</h4>
+                        <p>@Context.T("players.stats.focus.behavior.question")</p>
+                    </div>
+                    <div class="player-stat-pillar__score">
+                        <span>@Context.T("players.stats.pillar.main_result")</span>
+                        <strong>@primaryNeedRate.ToString("P0", CultureInfo.CurrentCulture)</strong>
+                    </div>
+                    <p class="player-stat-pillar__summary">@Context.T(behaviorMeaningKey)</p>
+                    <p class="player-stat-pillar__recommendation"><strong>@Context.T("players.stats.pillar.recommendation")</strong> @Context.T(behaviorRecommendationKey)</p>
+                    <dl class="player-stat-pillar__metrics">
+                        <div><dt>@Context.T("metric.violations")</dt><dd>@ruleViolations</dd></div>
+                        <div><dt>@Context.T("metric.orders_completed")</dt><dd>@(Model.Summary?.OrdersCompletedCount ?? 0)</dd></div>
+                    </dl>
                 </article>
-            }
-        </div>
 
-        <div id="player-stats-tablist"
-             class="player-stats-tablist mt-5"
-             role="tablist"
-             aria-label="@Context.T("players.stats.tabs.label")">
-            <button type="button"
-                    class="player-stats-tab is-active"
-                    id="player-stats-tab-summary"
-                    role="tab"
-                    aria-selected="true"
-                    aria-controls="player-stats-panel-summary"
-                    data-player-stat-tab="summary">@Context.T("players.stats.tab.summary")</button>
-            <button type="button"
-                    class="player-stats-tab"
-                    id="player-stats-tab-finance"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="player-stats-panel-finance"
-                    data-player-stat-tab="finance">@Context.T("players.stats.tab.finance")</button>
-            <button type="button"
-                    class="player-stats-tab"
-                    id="player-stats-tab-behavior"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="player-stats-panel-behavior"
-                    data-player-stat-tab="behavior">@Context.T("players.stats.tab.behavior")</button>
-            <button type="button"
-                    class="player-stats-tab"
-                    id="player-stats-tab-happiness"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="player-stats-panel-happiness"
-                    data-player-stat-tab="happiness">@Context.T("players.stats.tab.happiness")</button>
-            <button type="button"
-                    class="player-stats-tab"
-                    id="player-stats-tab-technical"
-                    role="tab"
-                    aria-selected="false"
-                    aria-controls="player-stats-panel-technical"
-                    data-player-stat-tab="technical">@Context.T("players.stats.tab.technical")</button>
-        </div>
+                <article class="player-stat-pillar player-stat-pillar--happiness player-stat-pillar--@happinessTone">
+                    <div class="player-stat-pillar__heading">
+                        <h4>@Context.T("players.stats.focus.happiness.title")</h4>
+                        <p>@Context.T("players.stats.focus.happiness.question")</p>
+                    </div>
+                    <div class="player-stat-pillar__score">
+                        <span>@Context.T("players.stats.pillar.main_result")</span>
+                        <strong>@FormatNumber(happinessPoints)</strong>
+                    </div>
+                    <p class="player-stat-pillar__summary">@Context.T(happinessMeaningKey)</p>
+                    <p class="player-stat-pillar__recommendation"><strong>@Context.T("players.stats.pillar.recommendation")</strong> @Context.T(happinessRecommendationKey)</p>
+                    <dl class="player-stat-pillar__metrics">
+                        <div><dt>@Context.T("players.stats.points_added")</dt><dd>@FormatNumber(happinessPointsAdded)</dd></div>
+                        <div class="player-stat-pillar__metric--deduction"><dt>@Context.T("players.stats.points_deducted")</dt><dd>@FormatNumber(-happinessPointsDeducted)</dd></div>
+                    </dl>
+                </article>
+            </div>
+        </section>
 
-        <div class="player-stats-panels mt-5">
-            <section id="player-stats-panel-summary"
-                     class="player-stats-tab-panel is-active"
-                     role="tabpanel"
-                     aria-labelledby="player-stats-tab-summary">
-                <p class="tab-panel-intro">@Context.T("players.stats.tab.summary.desc")</p>
-                <div class="chart-grid chart-grid-feature">
-                    <article class="chart-card chart-card-feature">
-                        <h3 class="chart-title">@Context.T("players.stats.chart.cashflow_snapshot")</h3>
-                        <svg class="metric-line-chart js-metric-line-chart"
-                             viewBox="0 0 840 360"
-                             data-chart="@cashflowSummaryChartPayload"
-                             role="img"
-                             aria-label="@Context.T("players.stats.chart.cashflow_snapshot")"></svg>
-                    </article>
+        <section class="player-stats-actions-section" aria-labelledby="player-stats-insights-title">
+            <div class="player-stats-section-heading ruleset-section-head">
+                <h3 id="player-stats-insights-title" class="ruleset-section-title">@Context.T("players.stats.insights_title")</h3>
+                <p class="ruleset-section-subtitle">@Context.T("players.stats.insights_desc")</p>
+            </div>
+            <ol class="player-stats-actions">
+                @for (var insightIndex = 0; insightIndex < Math.Min(3, statSummary.Insights.Count); insightIndex++)
+                {
+                    var insight = statSummary.Insights[insightIndex];
+                    <li class="player-stat-action player-stat-tone-@insight.Tone">
+                        <span class="player-stat-action__number">@(insightIndex + 1)</span>
+                        <div>
+                            <h4>@insight.Title</h4>
+                            <p>@insight.Description</p>
+                        </div>
+                    </li>
+                }
+            </ol>
+        </section>
+
+        <section class="player-metric-library" aria-labelledby="player-metric-library-title">
+            <div class="player-metric-library__hero">
+                <div>
+                    <p class="eyebrow">@Context.T("players.stats.library.badge")</p>
+                    <h3 id="player-metric-library-title">@Context.T("players.stats.library.title")</h3>
+                    <p>@Context.T("players.stats.library.desc")</p>
                 </div>
-            </section>
+                <div class="player-metric-library__totals" aria-label="@Context.T("players.stats.library.title")">
+                    <div><strong>@rawMetricCount</strong><span>@Context.T("players.stats.library.raw_count")</span></div>
+                    <div><strong>@derivedMetricCount</strong><span>@Context.T("players.stats.library.derived_count")</span></div>
+                    <div><strong>@Context.T(isAdvancedMode ? "rulesets.form.mode_advanced" : "rulesets.form.mode_beginner")</strong><span>@Context.T("players.stats.library.session_mode")</span></div>
+                </div>
+            </div>
 
-            <section id="player-stats-panel-finance"
-                     class="player-stats-tab-panel"
-                     role="tabpanel"
-                     aria-labelledby="player-stats-tab-finance"
-                     hidden>
-                <p class="tab-panel-intro">@Context.T("players.stats.tab.finance.desc")</p>
-                @if (!hasCashflowJourney)
-                {
-                    <div class="alert alert-info">
-                        @Context.T("players.cashflow_journey.empty")
-                    </div>
-                }
-                else
-                {
-                    <div class="player-stats-mini-grid">
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.starting_cash")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney!.StartingCash.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.total_transactions")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.TransactionCount</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.total_in")</p>
-                            <p class="mt-2 text-2xl font-semibold text-emerald-700">@cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.total_out")</p>
-                            <p class="mt-2 text-2xl font-semibold text-rose-700">@cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.running_peak")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.PeakRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("players.cashflow_journey.running_lowest")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@cashflowJourney.LowestRunningNet.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                    </div>
-
-                    <div class="mt-3 alert alert-info text-sm">
-                        @(string.Format(
-                            CultureInfo.CurrentCulture,
-                            Context.T("players.cashflow_journey.quick_check"),
-                            cashflowJourney.StartingCash.ToString("N0", CultureInfo.CurrentCulture),
-                            cashflowJourney.TotalCashIn.ToString("N0", CultureInfo.CurrentCulture),
-                            cashflowJourney.TotalCashOut.ToString("N0", CultureInfo.CurrentCulture),
-                            cashflowJourney.EndingCash.ToString("N0", CultureInfo.CurrentCulture)))
-                    </div>
-
-                    <div class="chart-grid chart-grid-feature mt-4">
-                        <article class="chart-card chart-card-feature">
-                            <h3 class="chart-title">@Context.T("players.cashflow_journey.chart_title")</h3>
-                            <svg class="metric-line-chart js-metric-line-chart"
-                                 viewBox="0 0 840 360"
-                                 data-chart="@cashflowJourneyChartPayload"
-                                 role="img"
-                                 aria-label="@Context.T("players.cashflow_journey.chart_title")"></svg>
-                        </article>
-                    </div>
-
-                    <div class="mt-4 metric-panel">
-                        <div class="metric-list">
-                            <div class="metric-row">
-                                <span class="metric-key">@Context.T("players.cashflow_journey.period_start")</span>
-                                <span class="metric-value">@(cashflowJourney.FirstTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+            @if (rawMetricCount + derivedMetricCount == 0)
+            {
+                <div class="alert alert-info" aria-live="polite">@Context.T("players.detail.empty_analytics")</div>
+            }
+            else
+            {
+                <div class="player-metric-library__collections">
+                    @foreach (var collection in metricCollections)
+                    {
+                        <section class="player-metric-collection player-metric-collection--@collection.Key" aria-labelledby="player-metric-collection-@collection.Key">
+                            <div class="player-metric-collection__heading">
+                                <div>
+                                    <span>@collection.Count @Context.T("players.metric_items_suffix")</span>
+                                    <h4 id="player-metric-collection-@collection.Key">@Context.T(collection.TitleKey)</h4>
+                                    <p>@Context.T(collection.DescriptionKey)</p>
+                                </div>
                             </div>
-                            <div class="metric-row">
-                                <span class="metric-key">@Context.T("players.cashflow_journey.period_end")</span>
-                                <span class="metric-value">@(cashflowJourney.LastTransactionAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-key">@Context.T("players.cashflow_journey.in_count")</span>
-                                <span class="metric-value">@cashflowJourney.CashInCount</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-key">@Context.T("players.cashflow_journey.out_count")</span>
-                                <span class="metric-value">@cashflowJourney.CashOutCount</span>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </section>
 
-            <section id="player-stats-panel-behavior"
-                     class="player-stats-tab-panel"
-                     role="tabpanel"
-                     aria-labelledby="player-stats-tab-behavior"
-                     hidden>
-                <p class="tab-panel-intro">@Context.T("players.stats.tab.behavior.desc")</p>
-                @if (Model.Summary is null)
-                {
-                    <div class="alert alert-info">@Context.T("players.detail.empty_analytics")</div>
-                }
-                else
-                {
-                    <div class="player-stats-mini-grid">
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.orders_completed")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.OrdersCompletedCount</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.actions_used")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.ActionsUsedTotal</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.primary_need_compliance")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.CompliancePrimaryNeedRate.ToString("P0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.violations")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.RulesViolationsCount</p>
-                        </article>
-                    </div>
-                    <div class="chart-grid chart-grid-feature mt-4">
-                        <article class="chart-card chart-card-feature">
-                            <h3 class="chart-title">@Context.T("players.stats.chart.behavior_snapshot")</h3>
-                            <svg class="metric-line-chart js-metric-line-chart"
-                                 viewBox="0 0 840 360"
-                                 data-chart="@behaviorSnapshotChartPayload"
-                                 role="img"
-                                 aria-label="@Context.T("players.stats.chart.behavior_snapshot")"></svg>
-                        </article>
-                    </div>
-                }
-            </section>
-
-            <section id="player-stats-panel-happiness"
-                     class="player-stats-tab-panel"
-                     role="tabpanel"
-                     aria-labelledby="player-stats-tab-happiness"
-                     hidden>
-                <p class="tab-panel-intro">@Context.T("players.stats.tab.happiness.desc")</p>
-                @if (Model.Summary is null)
-                {
-                    <div class="alert alert-info">@Context.T("players.detail.empty_analytics")</div>
-                }
-                else
-                {
-                    <div class="player-stats-mini-grid">
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.happiness")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.HappinessPointsTotal.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.need_points")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.NeedPointsTotal.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.donation_points")</p>
-                            <p class="mt-2 text-2xl font-semibold text-slate-900">@Model.Summary.DonationPointsTotal.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                        <article class="stat-card">
-                            <p class="text-sm font-medium text-slate-600">@Context.T("metric.loan_penalty")</p>
-                            <p class="mt-2 text-2xl font-semibold text-rose-700">@Model.Summary.LoanPenaltyTotal.ToString("N0", CultureInfo.CurrentCulture)</p>
-                        </article>
-                    </div>
-                    <div class="chart-grid chart-grid-feature mt-4">
-                        <article class="chart-card chart-card-feature">
-                            <h3 class="chart-title">@Context.T("players.stats.chart.happiness_composition")</h3>
-                            <svg class="metric-line-chart js-metric-line-chart"
-                                 viewBox="0 0 840 360"
-                                 data-chart="@happinessCompositionChartPayload"
-                                 role="img"
-                                 aria-label="@Context.T("players.stats.chart.happiness_composition")"></svg>
-                        </article>
-                    </div>
-                }
-            </section>
-
-            <section id="player-stats-panel-technical"
-                     class="player-stats-tab-panel"
-                     role="tabpanel"
-                     aria-labelledby="player-stats-tab-technical"
-                     hidden>
-                <p class="tab-panel-intro">@Context.T("players.stats.tab.technical.desc")</p>
-                @if (!hasGameplayData)
-                {
-                    <div class="alert alert-info" aria-live="polite">
-                        @Context.T("players.detail.empty_analytics")
-                    </div>
-                }
-                else
-                {
-                    <div id="technical-drilldown" class="technical-drilldown">
-                        <div id="player-stat-technical-raw" class="technical-drilldown-section">
-                            <div class="players-fusion-head ruleset-section-head">
-                                <p class="eyebrow">@Context.T("gameplay.raw")</p>
-                                <h3 class="ruleset-section-title">@Context.T("players.details.raw_title")</h3>
-                                <p class="ruleset-section-subtitle">@Context.T("players.details.raw_subtitle")</p>
-                            </div>
-                            <div class="metric-domain-layout mt-6">
-                                @foreach (var domain in rawSections)
+                            <div class="player-metric-domain-list">
+                                @for (var domainIndex = 0; domainIndex < collection.Sections.Count; domainIndex++)
                                 {
-                                    <article class="metric-domain-card metric-domain-card-flat">
-                                        <div class="metric-domain-heading">
-                                            <h3>@domain.Title</h3>
-                                            <span class="metric-domain-count">@domain.Rows.Count @Context.T("players.metric_items_suffix")</span>
-                                        </div>
-                                        <p class="metric-domain-intro">@domain.Description</p>
-                                        @if (domain.Rows.Count == 0)
-                                        {
-                                            <p class="metric-domain-empty">@Context.T("players.details.chart_domain_empty")</p>
-                                        }
-                                        else
-                                        {
-                                            <div class="mt-3 metric-panel">
-                                                <div class="metric-list">
-                                                    @foreach (var row in domain.Rows)
+                                    var domain = collection.Sections[domainIndex];
+                                    <details class="player-metric-domain" @(domainIndex == 0 ? "open" : null)>
+                                        <summary>
+                                            <span>
+                                                <strong>@Context.T(domain.TitleKey)</strong>
+                                                <small>@Context.T(domain.DescriptionKey)</small>
+                                            </span>
+                                            <em>@domain.Rows.Count @Context.T("players.metric_items_suffix")</em>
+                                        </summary>
+                                        <div class="player-metric-card-grid">
+                                            @foreach (var row in domain.Rows)
+                                            {
+                                                var metric = PlayerMetricLabelFormatter.DescribeMetric(
+                                                    row.Path,
+                                                    row.Value,
+                                                    collection.IsDerived,
+                                                    isAdvancedMode,
+                                                    nullText,
+                                                    Context.T);
+                                                <article class="player-metric-card player-metric-card--@metric.State">
+                                                    <div class="player-metric-card__heading">
+                                                        <h5>@metric.Label</h5>
+                                                        <span>@Context.T($"players.support.state.{metric.State}")</span>
+                                                    </div>
+                                                    <p class="player-metric-card__value">
+                                                        <strong>@metric.DisplayValue</strong>
+                                                        @if (!string.IsNullOrWhiteSpace(metric.Unit))
+                                                        {
+                                                            <small>@metric.Unit</small>
+                                                        }
+                                                    </p>
+                                                    @if (metric.IsAdvancedOnly)
                                                     {
-                                                        <div class="metric-row">
-                                                            <span class="metric-key">@PlayerMetricLabelFormatter.FormatMetricPathLabel(row.Path, Context.T)</span>
-                                                            <span class="metric-value font-mono">@row.Value</span>
-                                                        </div>
+                                                        <span class="player-metric-card__advanced">@Context.T("players.support.mode.advanced")</span>
                                                     }
-                                                </div>
-                                            </div>
-                                        }
-                                    </article>
+                                                    <p class="player-metric-card__explanation">@metric.Explanation</p>
+                                                    <details class="player-metric-card__guide">
+                                                        <summary>@Context.T("players.stats.library.read_metric")</summary>
+                                                        <dl>
+                                                            <div>
+                                                                <dt>@Context.T("players.support.field.guide")</dt>
+                                                                <dd>@metric.Guidance</dd>
+                                                            </div>
+                                                            <div class="player-metric-card__recommendation">
+                                                                <dt>@Context.T("players.support.field.recommendation")</dt>
+                                                                <dd>@metric.Recommendation</dd>
+                                                            </div>
+                                                            @if (!string.IsNullOrWhiteSpace(metric.Formula))
+                                                            {
+                                                                <div>
+                                                                    <dt>@Context.T("players.support.field.formula")</dt>
+                                                                    <dd>@metric.Formula</dd>
+                                                                </div>
+                                                            }
+                                                        </dl>
+                                                    </details>
+                                                </article>
+                                            }
+                                        </div>
+                                    </details>
                                 }
                             </div>
-                        </div>
-
-                        <div id="player-stat-technical-derived" class="technical-drilldown-section">
-                            <div class="players-fusion-head ruleset-section-head">
-                                <p class="eyebrow">@Context.T("gameplay.derived")</p>
-                                <h3 class="ruleset-section-title">@Context.T("players.details.derived_title")</h3>
-                                <p class="ruleset-section-subtitle">@Context.T("players.details.derived_subtitle")</p>
-                            </div>
-                            <div class="metric-domain-layout mt-6">
-                                @foreach (var domain in derivedSections)
-                                {
-                                    <article class="metric-domain-card metric-domain-card-flat">
-                                        <div class="metric-domain-heading">
-                                            <h3>@domain.Title</h3>
-                                            <span class="metric-domain-count">@domain.Rows.Count @Context.T("players.metric_items_suffix")</span>
-                                        </div>
-                                        <p class="metric-domain-intro">@domain.Description</p>
-                                        @if (domain.Rows.Count == 0)
-                                        {
-                                            <p class="metric-domain-empty">@Context.T("players.details.chart_domain_empty")</p>
-                                        }
-                                        else
-                                        {
-                                            <div class="mt-3 metric-panel">
-                                                <div class="metric-list">
-                                                    @foreach (var row in domain.Rows)
-                                                    {
-                                                        <div class="metric-row">
-                                                            <span class="metric-key">@PlayerMetricLabelFormatter.FormatMetricPathLabel(row.Path, Context.T)</span>
-                                                            <span class="metric-value font-mono">@row.Value</span>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-                                    </article>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-            </section>
-        </div>
+                        </section>
+                    }
+                </div>
+            }
+        </section>
     </div>
 </section>
-
-@section Scripts {
-    <script>
-        window.cashflowpolyPlayerDetailCharts = {
-            tooltipText: {
-                metric: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.metric"))),
-                series: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.series"))),
-                points: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.points_value"))),
-                formula: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.source_calc_label"))),
-                defaultFormula: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.source_calc_default"))),
-                selectedDetail: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.selected_detail"))),
-                tapHint: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.tap_hint"))),
-                itemPrefix: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.item")))
-            },
-            chartStatusText: {
-                noSeries: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.no_series"))),
-                noPoints: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.no_points"))),
-                invalidPayload: @Html.Raw(JsonSerializer.Serialize(Context.T("players.details.invalid_payload")))
-            }
-        };
-    </script>
-    <script>
-        (() => {
-            const tabs = Array.from(document.querySelectorAll("[data-player-stat-tab]"));
-            if (!tabs.length) {
-                return;
-            }
-
-            const panels = Array.from(document.querySelectorAll(".player-stats-tab-panel"));
-            const activateTab = (tab) => {
-                tabs.forEach((item) => {
-                    const isActive = item === tab;
-                    item.classList.toggle("is-active", isActive);
-                    item.setAttribute("aria-selected", isActive ? "true" : "false");
-                });
-
-                panels.forEach((panel) => {
-                    const isActive = panel.id === tab.getAttribute("aria-controls");
-                    panel.classList.toggle("is-active", isActive);
-                    panel.hidden = !isActive;
-                });
-            };
-
-            tabs.forEach((tab) => {
-                tab.addEventListener("click", () => activateTab(tab));
-                tab.addEventListener("keydown", (event) => {
-                    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
-                        return;
-                    }
-
-                    event.preventDefault();
-                    const direction = event.key === "ArrowRight" ? 1 : -1;
-                    const currentIndex = tabs.indexOf(tab);
-                    const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
-                    tabs[nextIndex].focus();
-                    activateTab(tabs[nextIndex]);
-                });
-            });
-        })();
-    </script>
-    <script src="~/js/player-detail-charts.js" asp-append-version="true"></script>
-}
 

@@ -145,6 +145,7 @@ dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
 dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release /warnaserror
 dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release /warnaserror
 dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
+./scripts/Test-ProductionReadiness.ps1
 ```
 
 ### 6.3 Menjalankan Deploy Produksi
@@ -154,11 +155,7 @@ Jalankan perintah berikut untuk mengompilasi image lokal dan memulai seluruh ser
 docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
 ```
 
-Jika tidak menggunakan fitur Cloudflare Tunnel, hilangkan profil `tunnel` dan service `cloudflared`:
-
-```powershell
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
-```
+Template production ini menggunakan Cloudflare Tunnel sebagai terminasi HTTPS. Deployment dihentikan oleh skrip kesiapan apabila token tunnel atau rahasia production belum valid.
 
 ### 6.4 Verifikasi Status Setelah Deploy
 Pastikan semua kontainer berjalan dengan normal dan sehat:

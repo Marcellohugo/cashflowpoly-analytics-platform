@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui EventCashflowProjectionBuilder.
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Cashflowpoly.Api.Data;

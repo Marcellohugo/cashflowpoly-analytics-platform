@@ -1,3 +1,4 @@
+// Fungsi file: Mendefinisikan model tampilan dan state UI untuk RulebookViewModels.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>

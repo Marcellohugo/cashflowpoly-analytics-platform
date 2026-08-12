@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui UiLocalizationGuardTests.
 using System.Text.RegularExpressions;
 using Xunit;
 

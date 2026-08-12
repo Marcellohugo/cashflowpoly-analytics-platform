@@ -1,3 +1,4 @@
+// Fungsi file: Mendefinisikan model tampilan dan state UI untuk AuthViewModels.
 namespace Cashflowpoly.Ui.Models;
 
 /// <summary>

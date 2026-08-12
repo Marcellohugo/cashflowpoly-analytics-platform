@@ -1,3 +1,4 @@
+// Fungsi file: Menangani endpoint, validasi akses, dan response HTTP untuk AnalyticsController.
 using Cashflowpoly.Api.Services;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;

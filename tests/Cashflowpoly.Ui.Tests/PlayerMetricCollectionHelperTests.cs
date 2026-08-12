@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui PlayerMetricCollectionHelperTests.
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;
 

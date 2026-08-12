@@ -1,5 +1,5 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk PlayersController.
 using System.Net.Http.Json;
-using System.Text.Json;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -20,6 +20,15 @@ public sealed class PlayersController : Controller
     [HttpGet("{playerId:guid}")]
     public async Task<IActionResult> Details(Guid sessionId, Guid playerId, CancellationToken ct)
     {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            var currentUserIdRaw = HttpContext.Session.GetString(AuthConstants.SessionUserIdKey);
+            if (!Guid.TryParse(currentUserIdRaw, out var currentUserId) || currentUserId != playerId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden);
+            }
+        }
+
         var client = _clientFactory.CreateClient("Api");
         var playerDisplayName = await ResolvePlayerDisplayNameAsync(client, playerId, ct);
         var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
@@ -94,7 +103,7 @@ public sealed class PlayersController : Controller
         var fallbackStartingCash = InferDefaultStartingCash(analytics?.RulesetName);
         var startingCash = gameplay?.Economy.StartingCash ?? fallbackStartingCash;
         var cashflowJourney = BuildCashflowJourneyStats(transactions, startingCash);
-        var statSummary = PlayerStatSummaryBuilder.Build(gameplay, cashflowJourney, HttpContext.T);
+        var statSummary = PlayerStatSummaryBuilder.Build(gameplay, summary, cashflowJourney, HttpContext.T);
 
         return View(new PlayerDetailViewModel
         {
@@ -105,8 +114,8 @@ public sealed class PlayersController : Controller
             StatSummary = statSummary,
             Transactions = transactions,
             CashflowJourney = cashflowJourney,
-            GameplayRaw = BuildGameplayRaw(gameplay),
-            GameplayDerived = BuildGameplayDerived(gameplay),
+            GameplayRaw = gameplay?.RawJson,
+            GameplayDerived = gameplay?.DerivedJson,
             GameplayComputedAt = gameplay?.ComputedAt,
             GameplayErrorMessage = gameplayError
         });
@@ -185,90 +194,6 @@ public sealed class PlayersController : Controller
             RunningNetSeries = runningBalanceSeries,
             TransactionDetails = transactionDetails
         };
-    }
-
-    private static JsonElement? BuildGameplayRaw(GameplayMetricsResponse? gameplay)
-    {
-        if (gameplay is null)
-        {
-            return null;
-        }
-
-        if (gameplay.RawJson.HasValue)
-        {
-            return gameplay.RawJson.Value;
-        }
-
-        using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
-        {
-            coins = new
-            {
-                starting_coins = gameplay.Economy.StartingCash
-            },
-            donation = new
-            {
-                total = gameplay.Economy.DonationTotal
-            },
-            gold = new
-            {
-                qty_current = gameplay.Progress.GoldQty
-            },
-            inventory = new
-            {
-                ingredient_total = gameplay.Progress.InventoryIngredientTotal
-            },
-            actions = new
-            {
-                used_total = gameplay.Progress.ActionsUsedTotal
-            }
-        }));
-        return document.RootElement.Clone();
-    }
-
-    private static JsonElement? BuildGameplayDerived(GameplayMetricsResponse? gameplay)
-    {
-        if (gameplay is null)
-        {
-            return null;
-        }
-
-        if (gameplay.DerivedJson.HasValue)
-        {
-            return gameplay.DerivedJson.Value;
-        }
-
-        using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
-        {
-            cashflow = new
-            {
-                in_total = gameplay.Economy.CashInTotal,
-                out_total = gameplay.Economy.CashOutTotal,
-                net_total = gameplay.Economy.CashflowNetTotal
-            },
-            orders = new
-            {
-                completed_count = gameplay.Progress.OrdersCompletedCount
-            },
-            happiness = new
-            {
-                total = gameplay.Score.HappinessPointsTotal,
-                need_points = gameplay.Score.NeedPointsTotal,
-                need_bonus = gameplay.Score.NeedSetBonusPoints,
-                donation_points = gameplay.Score.DonationPointsTotal,
-                gold_points = gameplay.Score.GoldPointsTotal,
-                pension_points = gameplay.Score.PensionPointsTotal,
-                saving_goal_points = gameplay.Score.SavingGoalPointsTotal,
-                mission_penalty = gameplay.Score.MissionPenaltyTotal,
-                loan_penalty = gameplay.Score.LoanPenaltyTotal,
-                has_unpaid_loan = gameplay.Score.HasUnpaidLoan
-            },
-            compliance = new
-            {
-                primary_need_rate = gameplay.Compliance.PrimaryNeedRate,
-                rules_violations_count = gameplay.Compliance.RulesViolationsCount
-            }
-        }));
-        return document.RootElement.Clone();
     }
 
     private static double InferDefaultStartingCash(string? rulesetName)

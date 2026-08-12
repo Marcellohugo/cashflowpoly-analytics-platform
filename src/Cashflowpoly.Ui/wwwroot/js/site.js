@@ -160,8 +160,6 @@
     return;
   }
 
-  const role = quickstart.getAttribute("data-quickstart-role") || "default";
-  const storageKey = `cfp_quickstart_collapsed_${role}`;
   const expandedLabel = toggle.getAttribute("data-expanded-label") || "";
   const collapsedLabel = toggle.getAttribute("data-collapsed-label") || "";
 
@@ -172,18 +170,11 @@
     toggle.textContent = collapsed ? collapsedLabel : expandedLabel;
   };
 
-  let initiallyCollapsed = false;
-  try {
-    initiallyCollapsed = window.localStorage.getItem(storageKey) === "1";
-  } catch {}
-  applyState(initiallyCollapsed);
+  applyState(true);
 
   toggle.addEventListener("click", () => {
     const nextCollapsed = !quickstart.classList.contains("is-collapsed");
     applyState(nextCollapsed);
-    try {
-      window.localStorage.setItem(storageKey, nextCollapsed ? "1" : "0");
-    } catch {}
   });
 })();
 
@@ -303,6 +294,25 @@
 
       event.preventDefault();
       nextField.focus();
+    });
+  });
+})();
+
+(() => {
+  document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    const inputId = button.getAttribute("aria-controls");
+    const input = inputId ? document.getElementById(inputId) : null;
+    if (!(button instanceof HTMLButtonElement) || !(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    button.addEventListener("click", () => {
+      const isVisible = input.type === "text";
+      input.type = isVisible ? "password" : "text";
+      const label = isVisible ? button.dataset.showLabel ?? "Show" : button.dataset.hideLabel ?? "Hide";
+      button.setAttribute("aria-label", label);
+      button.title = label;
+      button.setAttribute("aria-pressed", isVisible ? "false" : "true");
     });
   });
 })();

@@ -1,3 +1,4 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk RulesetsController.
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -6,6 +7,7 @@ using Cashflowpoly.Ui.Domain;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Cashflowpoly.Ui.Controllers;
 
@@ -20,6 +22,17 @@ public sealed class RulesetsController : Controller
     public RulesetsController(IHttpClientFactory clientFactory)
     {
         _clientFactory = clientFactory;
+    }
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        if (!HttpContext.Session.IsInstructor())
+        {
+            context.Result = RedirectToAction("Index", "Sessions");
+            return;
+        }
+
+        base.OnActionExecuting(context);
     }
 
     [HttpGet("")]
@@ -68,11 +81,6 @@ public sealed class RulesetsController : Controller
     [HttpGet("create")]
     public IActionResult Create()
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Index));
-        }
-
         return View(RulesetFormHelper.BuildDefaultCreateViewModel());
     }
 
@@ -80,11 +88,6 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Index));
-        }
-
         if (string.IsNullOrWhiteSpace(model.Name))
         {
             model.IsEditMode = false;
@@ -137,11 +140,6 @@ public sealed class RulesetsController : Controller
     [HttpGet("{rulesetId:guid}/edit")]
     public async Task<IActionResult> Edit(Guid rulesetId, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Index));
-        }
-
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -194,11 +192,6 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid rulesetId, CreateRulesetViewModel model, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Index));
-        }
-
         model.RulesetId = rulesetId;
         model.IsEditMode = true;
 
@@ -437,11 +430,6 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ActivateVersion(Guid rulesetId, int version, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { rulesetId });
-        }
-
         var client = _clientFactory.CreateClient("Api");
         var response = await client.PostAsync($"api/v1/rulesets/{rulesetId}/versions/{version}/activate", null, ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -465,11 +453,6 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteVersion(Guid rulesetId, int version, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { rulesetId });
-        }
-
         var client = _clientFactory.CreateClient("Api");
         var response = await client.DeleteAsync($"api/v1/rulesets/{rulesetId}/versions/{version}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -499,11 +482,6 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid rulesetId, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Details), new { rulesetId });
-        }
-
         var client = _clientFactory.CreateClient("Api");
         var response = await client.DeleteAsync($"api/v1/rulesets/{rulesetId}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -528,11 +506,6 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> BulkDelete([FromForm(Name = "rulesetIds")] List<Guid>? rulesetIds, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction(nameof(Index));
-        }
-
         var selectedRulesetIds = (rulesetIds ?? []).Distinct().ToList();
         if (selectedRulesetIds.Count == 0)
         {
@@ -654,22 +627,7 @@ public sealed class RulesetsController : Controller
     }
 
     private static JsonElement? BuildCompatibilityConfigElement(RulesetDefinitionDto? definition)
-    {
-        if (definition is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(RulesetDefinitionMapper.ToConfigJson(definition));
-            return document.RootElement.Clone();
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
+        => RulesetDefinitionMapper.ToConfigElement(definition);
 
     private static JsonElement? BuildCompatibilityComponentCatalog(RulesetDefinitionDto? definition)
     {

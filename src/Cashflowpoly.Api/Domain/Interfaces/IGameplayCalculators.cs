@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui IGameplayCalculators.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
@@ -20,7 +21,7 @@ public interface IDonationGameplayCalculator
 
 public interface ISavingGoalCalculator
 {
-    AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents);
+    AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents, int? availableGoalCount = null);
 }
 
 public interface IIngredientMealCalculator
@@ -57,7 +58,7 @@ public interface IActionUsageCalculator
     AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
-        int maxActionSlot,
+        int latestDayIndex,
         int actionsPerTurn);
 }
 

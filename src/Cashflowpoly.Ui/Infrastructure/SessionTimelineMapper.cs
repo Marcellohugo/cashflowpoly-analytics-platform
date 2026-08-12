@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui SessionTimelineMapper.
 using System.Text.Json;
 using System.Globalization;
 using Cashflowpoly.Ui.Contracts;

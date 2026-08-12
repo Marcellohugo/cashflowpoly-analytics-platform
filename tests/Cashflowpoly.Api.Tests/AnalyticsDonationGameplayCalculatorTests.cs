@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AnalyticsDonationGameplayCalculatorTests.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;
@@ -50,11 +51,11 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
                 Assert.Equal(2, item.Rank);
             });
         Assert.Equal(12.5, metrics.DonationStabilityStdDeviation);
-        Assert.Equal(87.5, metrics.DonationStability);
+        Assert.Equal(28.57142857142857, metrics.DonationStability!.Value, precision: 12);
         Assert.Equal(0.35, metrics.DonationRatio);
         Assert.Equal(35, metrics.DonationAggressivenessPercent);
         Assert.Equal(2d / 3d, metrics.FridayParticipationRate);
-        Assert.Equal(20.416666666666664, metrics.DonationCommitmentScore);
+        Assert.Equal(6.666666666666666, metrics.DonationCommitmentScore!.Value, precision: 12);
     }
 
     [Fact]

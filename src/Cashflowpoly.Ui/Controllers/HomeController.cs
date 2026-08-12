@@ -1,3 +1,4 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk HomeController.
 using System.Diagnostics;
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Contracts;
@@ -143,7 +144,7 @@ public class HomeController : Controller
         var model = new HomeIndexViewModel
         {
             TotalSessions = sessions.Count,
-            ActiveSessions = sessions.Count(s => string.Equals(s.Status, "STARTED", StringComparison.OrdinalIgnoreCase)),
+            ActiveSessions = sessions.Count(s => string.Equals(s.Status, "ENDED", StringComparison.OrdinalIgnoreCase)),
             TotalPlayers = players.Count,
             TotalRulesets = rulesets.Count,
             LastSyncedAt = DateTimeOffset.UtcNow,

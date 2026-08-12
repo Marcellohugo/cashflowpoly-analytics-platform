@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan dukungan infrastruktur API melalui DatabaseHealthCheck.
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 

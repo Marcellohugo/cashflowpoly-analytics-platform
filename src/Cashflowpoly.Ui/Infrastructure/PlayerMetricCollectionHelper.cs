@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui PlayerMetricCollectionHelper.
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>

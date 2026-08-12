@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk SessionStateRepository.
 using System.Security.Cryptography;
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;

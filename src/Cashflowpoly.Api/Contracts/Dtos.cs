@@ -1,3 +1,4 @@
+// Fungsi file: Mendefinisikan kontrak data Dtos untuk request dan response API.
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -84,6 +85,14 @@ public sealed record PlayerResponse(
 
 public sealed record PlayerListResponse([property: JsonPropertyName("items")] List<PlayerResponse> Items);
 
+public sealed record SessionPlayerResponse(
+    [property: JsonPropertyName("user_id")] Guid UserId,
+    [property: JsonPropertyName("display_name")] string DisplayName,
+    [property: JsonPropertyName("player_order_no")] int PlayerOrder);
+
+public sealed record SessionPlayerListResponse(
+    [property: JsonPropertyName("items")] List<SessionPlayerResponse> Items);
+
 public sealed record AddSessionPlayerRequest(
     [property: JsonPropertyName("user_id")] Guid? UserId,
     [property: JsonPropertyName("username")] string? Username,
@@ -125,7 +134,8 @@ public sealed record RulesetListItem(
     [property: JsonPropertyName("latest_version")] int LatestVersion,
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("is_default")] bool IsDefault = false,
-    [property: JsonPropertyName("is_locked_by_session")] bool IsLockedBySession = false);
+    [property: JsonPropertyName("is_locked_by_session")] bool IsLockedBySession = false,
+    [property: JsonPropertyName("mode")] string? Mode = null);
 
 public sealed record RulesetListResponse([property: JsonPropertyName("items")] List<RulesetListItem> Items);
 
@@ -230,12 +240,19 @@ public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
     [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
 
+public sealed record AnalyticsLeaderboardItem(
+    [property: JsonPropertyName("user_id")] Guid UserId,
+    [property: JsonPropertyName("player_order_no")] int PlayerOrder,
+    [property: JsonPropertyName("rank")] int Rank,
+    [property: JsonPropertyName("happiness_points_total")] double HappinessPointsTotal);
+
 public sealed record AnalyticsSessionResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
     [property: JsonPropertyName("summary")] AnalyticsSessionSummary Summary,
     [property: JsonPropertyName("by_player")] List<AnalyticsByPlayerItem> ByPlayer,
     [property: JsonPropertyName("ruleset_id")] Guid? RulesetId,
-    [property: JsonPropertyName("ruleset_name")] string? RulesetName);
+    [property: JsonPropertyName("ruleset_name")] string? RulesetName,
+    [property: JsonPropertyName("leaderboard")] List<AnalyticsLeaderboardItem>? Leaderboard = null);
 
 public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,

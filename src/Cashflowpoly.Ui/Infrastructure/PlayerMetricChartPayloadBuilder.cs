@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui PlayerMetricChartPayloadBuilder.
 using System.Globalization;
 using System.Text.Json;
 

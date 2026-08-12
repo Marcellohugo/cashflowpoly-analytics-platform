@@ -1,3 +1,4 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk PlayerDirectoryController.
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
@@ -19,11 +20,6 @@ public sealed class PlayerDirectoryController : Controller
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
-        {
-            return RedirectToAction("Index", "Sessions");
-        }
-
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync("api/v1/players", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
@@ -59,23 +55,33 @@ public sealed class PlayerDirectoryController : Controller
         {
             var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
             var sessions = sessionsData?.Items ?? new List<SessionListItem>();
-            var playerMap = players.ToDictionary(x => x.UserId, x => x.DisplayName);
-
-            var analyticsTasks = sessions.Select(async session =>
+            var sessionTasks = sessions.Select(async session =>
             {
+                var participantsResponse = await client.GetAsync($"api/v1/sessions/{session.SessionId}/players", ct);
+                if (!participantsResponse.IsSuccessStatusCode)
+                {
+                    return (session, participants: (SessionPlayerListResponse?)null, analytics: (AnalyticsSessionResponse?)null);
+                }
+
+                var participants = await participantsResponse.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
+                if (!string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (session, participants, analytics: (AnalyticsSessionResponse?)null);
+                }
+
                 var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
                 if (!analyticsResponse.IsSuccessStatusCode)
                 {
-                    return (session, analytics: (AnalyticsSessionResponse?)null);
+                    return (session, participants, analytics: (AnalyticsSessionResponse?)null);
                 }
 
                 var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
-                return (session, analytics);
+                return (session, participants, analytics);
             });
 
-            var analyticsResults = await Task.WhenAll(analyticsTasks);
-            groups = analyticsResults
-                .Where(x => x.analytics is not null && x.analytics.ByPlayer.Count > 0)
+            var sessionResults = await Task.WhenAll(sessionTasks);
+            groups = sessionResults
+                .Where(x => x.participants is not null && x.participants.Items.Count > 0)
                 .Select(x => new PlayerSessionGroupViewModel
                 {
                     SessionId = x.session.SessionId,
@@ -83,21 +89,29 @@ public sealed class PlayerDirectoryController : Controller
                     Status = x.session.Status,
                     StartedAt = x.session.StartedAt,
                     EndedAt = x.session.EndedAt,
-                    Players = x.analytics!.ByPlayer
+                    Players = x.participants!.Items
                         .OrderBy(p => p.PlayerOrder > 0 ? p.PlayerOrder : int.MaxValue)
                         .ThenBy(p => p.UserId)
-                        .Select((p, index) => new PlayerSessionEntryViewModel
+                        .Select((p, index) =>
                         {
-                            PlayerId = p.UserId,
-                            PlayerOrder = p.PlayerOrder > 0 ? p.PlayerOrder : index + 1,
-                            DisplayName = playerMap.TryGetValue(p.UserId, out var displayName) ? displayName : p.UserId.ToString(),
-                            CashInTotal = p.CashInTotal,
-                            CashOutTotal = p.CashOutTotal,
-                            DonationTotal = p.DonationTotal,
-                            DonationPointsTotal = p.DonationPointsTotal,
-                            PensionPointsTotal = p.PensionPointsTotal,
-                            GoldQty = p.GoldQty,
-                            HappinessPointsTotal = p.HappinessPointsTotal
+                            var analytics = x.analytics?.ByPlayer.FirstOrDefault(item => item.UserId == p.UserId);
+                            var leaderboard = x.analytics?.Leaderboard?.FirstOrDefault(item => item.UserId == p.UserId);
+                            return new PlayerSessionEntryViewModel
+                            {
+                                PlayerId = p.UserId,
+                                PlayerOrder = p.PlayerOrder > 0 ? p.PlayerOrder : index + 1,
+                                FinalRank = leaderboard?.Rank ?? 0,
+                                DisplayName = string.IsNullOrWhiteSpace(p.DisplayName)
+                                    ? $"{HttpContext.T("common.player")} {(p.PlayerOrder > 0 ? p.PlayerOrder : index + 1)}"
+                                    : p.DisplayName,
+                                CashInTotal = analytics?.CashInTotal ?? 0,
+                                CashOutTotal = analytics?.CashOutTotal ?? 0,
+                                DonationTotal = analytics?.DonationTotal ?? 0,
+                                DonationPointsTotal = analytics?.DonationPointsTotal ?? 0,
+                                PensionPointsTotal = analytics?.PensionPointsTotal ?? 0,
+                                GoldQty = analytics?.GoldQty ?? 0,
+                                HappinessPointsTotal = leaderboard?.HappinessPointsTotal ?? analytics?.HappinessPointsTotal ?? 0
+                            };
                         })
                         .ToList()
                 })

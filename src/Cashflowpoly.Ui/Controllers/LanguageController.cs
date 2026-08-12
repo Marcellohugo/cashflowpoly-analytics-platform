@@ -1,3 +1,4 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk LanguageController.
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;

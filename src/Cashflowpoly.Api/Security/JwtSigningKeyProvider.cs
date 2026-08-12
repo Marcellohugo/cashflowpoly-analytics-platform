@@ -1,3 +1,4 @@
+// Fungsi file: Menerapkan kontrol keamanan aplikasi melalui JwtSigningKeyProvider.
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;

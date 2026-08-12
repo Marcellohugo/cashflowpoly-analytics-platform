@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui EventValidationDetailsSerializer.
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 

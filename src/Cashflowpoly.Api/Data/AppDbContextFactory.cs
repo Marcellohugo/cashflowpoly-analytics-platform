@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk AppDbContextFactory.
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 

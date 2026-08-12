@@ -1,3 +1,4 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk AuthController.
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;

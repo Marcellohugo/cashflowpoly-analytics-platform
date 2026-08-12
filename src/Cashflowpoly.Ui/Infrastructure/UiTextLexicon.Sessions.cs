@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui UiTextLexicon.Sessions.
 namespace Cashflowpoly.Ui.Infrastructure;
 
 internal static partial class UiTextLexicon
@@ -9,7 +10,7 @@ internal static partial class UiTextLexicon
         terms["sessions.subtitle"] = ("Pantau status sesi dan buka rincian analitika tiap sesi.", "Monitor session status and open analytics details for each session.");
         terms["sessions.player_management"] = ("Sesi Pemain", "Player Sessions");
         terms["sessions.player_title"] = ("Daftar sesi saya", "My session list");
-        terms["sessions.player_subtitle"] = ("Lihat sesi yang Anda ikuti dan buka Rincian progres permainan Anda.", "View sessions you joined and open your gameplay progress details.");
+        terms["sessions.player_subtitle"] = ("Lihat sesi yang Anda ikuti dan buka analitika progres permainan Anda.", "View sessions you joined and open your gameplay progress analytics.");
         terms["sessions.readonly"] = ("Hanya Baca", "Read-only");
         terms["sessions.total_sessions"] = ("Total Sesi", "Total Sessions");
         terms["sessions.my_sessions"] = ("Sesi saya", "My sessions");
@@ -18,7 +19,6 @@ internal static partial class UiTextLexicon
         terms["sessions.ended"] = ("Sesi Selesai", "Completed Sessions");
         terms["sessions.index.summary_title"] = ("Ringkasan status sesi", "Session status summary");
         terms["sessions.index.summary_subtitle"] = ("Pantau distribusi status untuk melihat sesi yang sedang berjalan dan sesi yang sudah selesai.", "Monitor status distribution to see which sessions are in progress and which have finished.");
-        terms["sessions.index.status_help"] = ("Gunakan tips dan legenda berikut untuk membaca status sesi dengan cepat.", "Use the tips and legend below to read session statuses quickly.");
         terms["sessions.index.list_title.instructor"] = ("Daftar sesi yang Anda kelola", "Sessions you manage");
         terms["sessions.index.list_subtitle.instructor"] = ("Pilih sesi untuk membuka rincian analitika, performa pemain, dan linimasa event.", "Select a session to open analytics details, player performance, and the event timeline.");
         terms["sessions.index.list_title.player"] = ("Daftar sesi yang Anda ikuti", "Sessions you joined");
@@ -27,25 +27,36 @@ internal static partial class UiTextLexicon
         terms["sessions.tips.player.title"] = ("Tips membaca sesi untuk pemain", "Player session tips");
         terms["sessions.step"] = ("Langkah", "Step");
         terms["sessions.note"] = ("Catatan", "Note");
-        terms["sessions.tips.instructor.step1"] = ("Tinjau daftar sesi, pastikan mode sesuai kebutuhan kelas, lalu klik Lihat Rincian Sesi.", "Review the session list, ensure the mode matches class needs, then click View Session Details.");
-        terms["sessions.tips.instructor.step2"] = ("Pastikan setup sesi dan Set Aturan sudah dilakukan melalui Klien Game/IDN sebelum membaca analitika.", "Ensure session setup and ruleset selection were completed through the Game/IDN Client before reading analytics.");
-        terms["sessions.tips.instructor.step3"] = ("Pantau sesi STARTED, lalu masuk ke Rincian Pemain untuk evaluasi metrik individual saat event sudah terkirim.", "Monitor STARTED sessions, then open Player Details to evaluate individual metrics once events have been submitted.");
-        terms["sessions.tips.player.step1"] = ("Pilih sesi yang ingin ditinjau dan periksa apakah statusnya masih berjalan atau sudah selesai.", "Choose the session you want to review and check whether it is still running or finished.");
-        terms["sessions.tips.player.step2"] = ("Buka Rincian Sesi untuk melihat ringkasan performa, arus kas, dan linimasa Anda.", "Open Session Details to view your performance summary, cashflow, and timeline.");
-        terms["sessions.tips.player.step3"] = ("Cek linimasa aktivitas dan bandingkan hasil antar sesi untuk evaluasi strategi berikutnya.", "Check the activity timeline and compare outcomes across sessions to refine your next strategy.");
-        terms["sessions.legend.title"] = ("Arti status sesi", "Session status legend");
-        terms["sessions.legend.started_hint"] = ("Sesi sedang berjalan.", "Session is currently running.");
-        terms["sessions.legend.created_hint"] = ("Sesi sudah dibuat, belum dimulai.", "Session has been created but not started.");
-        terms["sessions.legend.ended_hint"] = ("Sesi sudah selesai.", "Session has finished.");
+        terms["sessions.tips.instructor.step1"] = ("Gunakan status sesi untuk membedakan sesi yang siap dimulai, sedang berjalan, dan sudah selesai.", "Use session status to distinguish sessions that are ready, in progress, or completed.");
+        terms["sessions.tips.instructor.step2"] = ("Buka Analitika Sesi untuk memeriksa Set Aturan aktif, hasil umum, dan urutan aktivitas pada sesi tersebut.", "Open Session Analytics to review the active ruleset, overall results, and activity order for that session.");
+        terms["sessions.tips.instructor.step3"] = ("Pilih Lihat Analitika pada tabel pemain saat suatu hasil perlu ditelusuri sampai ke keputusan individunya.", "Select View Analytics in the player table when a result needs to be traced to individual decisions.");
+        terms["sessions.tips.player.step1"] = ("Pilih sesi berdasarkan nama dan status agar hasil yang dibandingkan berasal dari permainan yang tepat.", "Choose a session by name and status so the compared results come from the correct game.");
+        terms["sessions.tips.player.step2"] = ("Buka Analitika Sesi untuk melihat poin, arus kas, posisi permainan, dan aktivitas Anda.", "Open Session Analytics to review your scores, cashflow, game position, and activity.");
+        terms["sessions.tips.player.step3"] = ("Bandingkan sesi yang sudah selesai untuk melihat keputusan mana yang memperkuat atau melemahkan hasil akhir.", "Compare completed sessions to see which decisions strengthened or weakened the final result.");
         terms["sessions.view_progress"] = ("Lihat Rincian Sesi", "View Session Details");
+        terms["sessions.view_analytics"] = ("Lihat Analitika", "View Analytics");
         terms["sessions.back_to_list"] = ("Kembali ke daftar sesi", "Back to session list");
         terms["sessions.live_log"] = ("Log Sesi Real-time", "Real-time Session Log");
         terms["sessions.detail_title"] = ("Rincian dan Analitika Sesi", "Session Details and Analytics");
         terms["sessions.detail.ruleset_subtitle"] = ("Bagian ini menunjukkan aturan yang sedang dipakai sebagai dasar validasi dan skor sesi.", "This section shows the ruleset currently used as the basis for session validation and scoring.");
         terms["sessions.detail.summary_title"] = ("Ringkasan Kinerja Sesi", "Session Performance Summary");
         terms["sessions.detail.summary_subtitle"] = ("Ringkasan ini membantu Anda membaca kondisi sesi sebelum masuk ke level pemain.", "This summary helps you understand session conditions before moving to player-level analysis.");
+        terms["sessions.detail.player_summary_title"] = ("Ringkasan Hasil Saya", "My Results Summary");
+        terms["sessions.detail.player_summary_subtitle"] = ("Seluruh angka di bawah berasal dari hasil Anda sendiri, bukan gabungan seluruh pemain.", "Every number below comes from your own results, not the combined session totals.");
         terms["sessions.detail.players_title"] = ("Daftar Pemain pada Sesi", "Players in This Session");
-        terms["sessions.detail.players_subtitle"] = ("Lihat urutan, peringkat, dan metrik utama tiap pemain untuk menentukan fokus evaluasi.", "Review turn order, rank, and key metrics per player to decide evaluation priorities.");
+        terms["sessions.detail.players_subtitle"] = ("Bandingkan delapan komponen dan total Poin Kebahagiaan setiap pemain dalam satu tabel.", "Compare all eight components and each player's total Happiness Score in one table.");
+        terms["sessions.detail.player_scores_title"] = ("Pembentuk Poin Kebahagiaan Saya", "My Happiness Score Components");
+        terms["sessions.detail.player_scores_subtitle"] = ("Lihat komponen yang menambah atau mengurangi Poin Kebahagiaan Anda pada sesi ini.", "See which components added to or reduced your Happiness Score in this session.");
+        terms["sessions.score.elements_title"] = ("8 Elemen Poin Kebahagiaan", "8 Happiness Score Components");
+        terms["sessions.score.need_points"] = ("Total Poin Kartu Aneka Kebutuhan", "Total Needs Card Points");
+        terms["sessions.score.need_bonus"] = ("Bonus Set Kartu Aneka Kebutuhan", "Needs Card Set Bonus");
+        terms["sessions.score.mission_penalty"] = ("Pengurang karena Misi Koleksi Gagal", "Deduction for Failed Collection Mission");
+        terms["sessions.score.donation_points"] = ("Poin Kartu Juara Peduli Donasi", "Donation Champion Card Points");
+        terms["sessions.score.pension_points"] = ("Poin Kartu Juara Dana Pensiun", "Pension Champion Card Points");
+        terms["sessions.score.financial_goal"] = ("Poin Kartu Tujuan Finansial", "Financial Goal Card Points");
+        terms["sessions.score.loan_penalty"] = ("Pengurang karena Pinjaman Syariah Belum Lunas", "Deduction for Unpaid Sharia Loan");
+        terms["sessions.score.gold_points"] = ("Poin Investasi Emas", "Gold Investment Points");
+        terms["sessions.score.total"] = ("Total Poin Kebahagiaan", "Total Happiness Score");
         terms["sessions.detail.empty_analytics"] = ("Analitika sesi belum tersedia. Pastikan aktivitas permainan sudah terkirim, lalu muat ulang halaman ini.", "Session analytics are not available yet. Ensure gameplay events have been submitted, then refresh this page.");
         terms["sessions.analytics_title"] = ("Analitika Sesi", "Session Analytics");
         terms["sessions.winner.title"] = ("Pemenang Sesi", "Session Winner");
@@ -56,6 +67,7 @@ internal static partial class UiTextLexicon
         terms["sessions.active_ruleset.title"] = ("Set Aturan Aktif Sesi", "Session Active Ruleset");
         terms["sessions.active_ruleset.subtitle"] = ("Set Aturan ini menjadi acuan validasi aturan dan penilaian pada sesi ini.", "This ruleset is the source of rule validation and scoring in this session.");
         terms["sessions.active_ruleset.empty"] = ("Belum ada Set Aturan aktif pada sesi ini. Instruktur dapat memilih ruleset aktif dari halaman ini.", "No active ruleset for this session yet. Instructors can choose the active ruleset from this page.");
+        terms["sessions.ruleset_modal.title"] = ("Rincian Set Aturan", "Ruleset Details");
         terms["sessions.activate_ruleset"] = ("Ganti/Atur Set Aturan Aktif", "Set or Change Active Ruleset");
         terms["sessions.ruleset_title"] = ("Pilih Set Aturan untuk Sesi Ini", "Select Ruleset for This Session");
         terms["sessions.ruleset_hint"] = ("Masukkan versi aturan (contoh: 1 atau versi terbaru).", "Enter ruleset version (for example: 1 or latest).");
@@ -71,7 +83,7 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_subtitle"] = ("Urutan aktivitas berdasarkan waktu dan nomor urut aktivitas.", "Activity order based on timestamp and event sequence.");
         terms["sessions.timeline_player_subtitle"] = ("Tampilan ini hanya menyorot aktivitas yang dipicu pemain agar evaluasi strategi lebih fokus.", "This view highlights only player-triggered activity so strategy review stays focused.");
         terms["sessions.timeline_mixed_subtitle"] = ("Tampilan ini menggabungkan aksi pemain dan event sistem penting agar alur permainan lebih mudah diikuti.", "This view combines player actions and key system events so the game flow is easier to follow.");
-        terms["sessions.timeline_filter_label"] = ("Filter aktivitas", "Activity filter");
+        terms["sessions.timeline_filter_label"] = ("Pilih jenis aktivitas", "Choose activity type");
         terms["sessions.timeline_filter_all"] = ("Semua aktivitas", "All activity");
         terms["sessions.timeline_filter_players"] = ("Pemain", "Players");
         terms["sessions.timeline_filter_system"] = ("Sistem", "System");
@@ -81,7 +93,6 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_filtered_empty"] = ("Belum ada aktivitas untuk pemain yang dipilih.", "No activity is available for the selected player.");
         terms["sessions.timeline_chart_progress"] = ("Diagram Aktivitas dari Awal hingga Selesai", "Event Timeline from Start to Finish");
         terms["sessions.timeline_chart_actor"] = ("Sebaran Aktivitas per Aktor terhadap Waktu", "Event Distribution by Actor Over Time");
-        terms["sessions.timeline_seq"] = ("Urut", "Seq");
         terms["sessions.timeline_day_turn"] = ("Hari dan Aktivitas Terakhir", "Latest Day and Activity");
         terms["sessions.day_label"] = ("Hari", "Day");
         terms["sessions.turn_label"] = ("Aksi", "Action");
@@ -101,7 +112,7 @@ internal static partial class UiTextLexicon
         terms["sessions.timeline_tooltip_actor"] = ("{actor} | hari {day} ({weekday}) | slot aksi {turn} | urut {seq} | {action}", "{actor} | day {day} ({weekday}) | action slot {turn} | seq {seq} | {action}");
         terms["sessions.timeline_actor_help"] = ("Kategori aktor di grafik: siapa yang memicu aktivitas selama sesi.", "Actor categories in the chart: who triggered events during the session.");
         terms["sessions.journey.board_title"] = ("Jejak perjalanan permainan", "Board-style game journey");
-        terms["sessions.journey.board_subtitle"] = ("Visual papan ini otomatis mengikuti urutan aktivitas terbaru yang masuk dari IDN/API.", "This board visual automatically follows the latest event order from IDN/API.");
+        terms["sessions.journey.board_subtitle"] = ("Visual papan mengikuti urutan aktivitas permainan terbaru secara otomatis.", "The board automatically follows the latest gameplay activity order.");
         terms["sessions.journey.day.sun"] = ("Min", "Sun");
         terms["sessions.journey.day.mon"] = ("Sen", "Mon");
         terms["sessions.journey.day.tue"] = ("Sel", "Tue");
@@ -111,7 +122,7 @@ internal static partial class UiTextLexicon
         terms["sessions.journey.day.sat"] = ("Sab", "Sat");
         terms["sessions.journey.last_sync"] = ("Sinkron Data Terakhir", "Last Data Sync");
         terms["sessions.journey.latest_activity"] = ("Aksi Terakhir", "Latest Action");
-        terms["sessions.journey.graph_title"] = ("Grafik Interaktif Pergerakan IDN", "Interactive IDN Movement Graph");
+        terms["sessions.journey.graph_title"] = ("Grafik Interaktif Pergerakan Permainan", "Interactive Gameplay Movement Chart");
         terms["sessions.journey.graph_subtitle"] = ("Klik titik grafik untuk menyorot pergerakan pemain pada papan jejak dan daftar aktivitas.", "Click chart points to highlight player movements on the journey board and activity feed.");
         terms["sessions.journey.graph_unavailable"] = ("Grafik interaktif belum tersedia.", "Interactive graph is not available yet.");
         terms["sessions.journey.graph_empty"] = ("Belum ada pergerakan untuk divisualkan pada grafik.", "No movements are available to visualize on the chart.");
@@ -120,7 +131,7 @@ internal static partial class UiTextLexicon
         terms["sessions.journey.no_events"] = ("Belum ada aktivitas untuk divisualkan.", "No events available to visualize yet.");
         terms["sessions.journey.realtime_status"] = ("Gagal sinkron alur permainan (status {status}).", "Failed to sync gameplay journey (status {status}).");
         terms["sessions.journey.realtime_network"] = ("Koneksi ke server terputus saat sinkron alur permainan.", "Connection to server was lost while syncing gameplay journey.");
-        terms["sessions.error.too_many_requests"] = ("Terlalu banyak permintaan ke API. Tunggu sebentar lalu coba lagi.", "Too many requests to the API. Please wait and try again.");
+        terms["sessions.error.too_many_requests"] = ("Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.", "Too many requests. Please wait and try again.");
         terms["sessions.error.load_sessions_failed"] = ("Gagal mengambil daftar sesi. Status: {status}", "Failed to fetch session list. Status: {status}");
         terms["sessions.error.load_timeline_failed"] = ("Gagal memuat alur aktivitas sesi. Status: {status}", "Failed to load session activity timeline. Status: {status}");
         terms["sessions.error.load_detail_failed"] = ("Gagal memuat rincian sesi. Status: {status}", "Failed to load session details. Status: {status}");

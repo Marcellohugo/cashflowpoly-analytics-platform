@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsDerivedRatioCalculator.
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 
@@ -41,19 +42,20 @@ internal sealed class DerivedRatioCalculator : IDerivedRatioCalculator
                               savingGoalMetrics.FinancialGoalsAvailableTotal.Value > 0
             ? SafeRatio(savingGoalMetrics.FinancialGoalsAttempted, savingGoalMetrics.FinancialGoalsAvailableTotal.Value)
             : (double?)null;
-        var goalInvestmentRate = SafeRatio(savingGoalMetrics.FinancialGoalsCoinsTotalInvested, coinsNetEndGame);
+        var goalInvestmentRate = SafeRatio(
+            savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
+            coinsNetEndGame + savingGoalMetrics.CoinsSaved);
         var goalSettingAmbition = goalAttemptRate.HasValue && goalInvestmentRate.HasValue
-            ? ((goalAttemptRate.Value * 0.4) + (goalInvestmentRate.Value * 0.6)) * 100
+            ? Clamp(((goalAttemptRate.Value * 0.4) + (goalInvestmentRate.Value * 0.6)) * 100, 0, 100)
             : (double?)null;
 
         var mealOrdersAttempted = mealOrdersClaimed + mealOrdersPassed;
         var mealOrderSuccessRate = SafeRatio(mealOrdersClaimed, mealOrdersAttempted, true);
-        var planningHorizon = SafeRatio(
-            savingGoalMetrics.FinancialGoalsCoinsTotalInvested +
-            savingGoalMetrics.FinancialGoalsAttempted +
-            playerEvents.Count(e => e.ActionType == GameActionCatalog.Asuransi &&
-                                    e.Payload.Contains("\"premium\"", StringComparison.OrdinalIgnoreCase)),
-            actionEventCount);
+        var longTermActionCount = playerEvents.Count(e =>
+            e.ActionType == GameActionCatalog.Menabung ||
+            e.ActionType == GameActionCatalog.Asuransi &&
+            e.Payload.Contains("\"premium\"", StringComparison.OrdinalIgnoreCase));
+        var planningHorizon = SafeRatio(longTermActionCount, actionEventCount);
         var planningHorizonPercent = planningHorizon.HasValue ? planningHorizon.Value * 100 : (double?)null;
 
         var totalNeeds = needMissionMetrics.NeedCardsPurchased;

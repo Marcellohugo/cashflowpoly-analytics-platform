@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui RulebookContent.
 using Cashflowpoly.Ui.Models;
 
 namespace Cashflowpoly.Ui.Infrastructure;

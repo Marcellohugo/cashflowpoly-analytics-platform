@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui RulesetDetailsControllerTests.
 using Xunit;
 
 namespace Cashflowpoly.Ui.Tests;

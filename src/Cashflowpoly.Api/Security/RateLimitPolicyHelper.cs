@@ -1,3 +1,4 @@
+// Fungsi file: Menerapkan kontrol keamanan aplikasi melalui RateLimitPolicyHelper.
 using System.Security.Claims;
 
 namespace Cashflowpoly.Api.Security;
@@ -7,23 +8,32 @@ namespace Cashflowpoly.Api.Security;
 /// </summary>
 internal static class RateLimitPolicyHelper
 {
-    private const int IngestPermitLimit = 120;
-    private const int DefaultPermitLimit = 60;
+    private const int AuthPermitLimit = 10;
+    private const int IngestPermitLimit = 240;
+    private const int DefaultPermitLimit = 300;
 
     /// <summary>
-    /// Mengembalikan batas permit: 120 untuk path ingest event, 60 untuk path lainnya.
+    /// Mengembalikan batas permit per kelompok endpoint agar autentikasi tetap ketat tanpa
+    /// memutus halaman analitika yang secara wajar memuat beberapa sumber data sekaligus.
     /// </summary>
     internal static int ResolvePermitLimit(PathString path)
     {
+        if (IsAuthPath(path))
+        {
+            return AuthPermitLimit;
+        }
+
         return IsIngestPath(path) ? IngestPermitLimit : DefaultPermitLimit;
     }
 
     /// <summary>
-    /// Membangun partition key format "scope:client" untuk sliding-window rate limiter.
+    /// Membangun partition key format "scope:client" untuk fixed-window rate limiter.
     /// </summary>
     internal static string BuildPartitionKey(HttpContext context)
     {
-        var scope = IsIngestPath(context.Request.Path) ? "ingest" : "default";
+        var scope = IsAuthPath(context.Request.Path)
+            ? "auth"
+            : IsIngestPath(context.Request.Path) ? "ingest" : "default";
         var client = ResolveClientKey(context);
         return $"{scope}:{client}";
     }
@@ -34,6 +44,15 @@ internal static class RateLimitPolicyHelper
     private static bool IsIngestPath(PathString path)
     {
         return path.StartsWithSegments("/api/v1/events", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Memisahkan endpoint login dan registrasi agar percobaan autentikasi tidak berbagi
+    /// kuota longgar milik pembacaan analitika.
+    /// </summary>
+    private static bool IsAuthPath(PathString path)
+    {
+        return path.StartsWithSegments("/api/v1/auth", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

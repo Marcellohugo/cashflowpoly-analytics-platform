@@ -1,3 +1,4 @@
+# Fungsi file: Membangun dan menjalankan image production API .NET secara multi-stage.
 # build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src

@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 12 Juli 2026. Baseline schema: 3.0.7.**
+**Tanggal ringkasan: 12 Agustus 2026. Baseline schema: 3.0.8.**
 
 ## 1. Ringkasan Besar
 

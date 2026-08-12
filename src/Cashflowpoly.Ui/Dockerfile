@@ -1,3 +1,4 @@
+# Fungsi file: Membangun aset frontend dan image production UI MVC secara multi-stage.
 # assets
 FROM node:20-alpine AS assets
 WORKDIR /src/src/Cashflowpoly.Ui

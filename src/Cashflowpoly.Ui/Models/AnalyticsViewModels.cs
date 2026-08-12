@@ -1,3 +1,4 @@
+// Fungsi file: Mendefinisikan model tampilan dan state UI untuk AnalyticsViewModels.
 using System.Text.Json;
 using Cashflowpoly.Ui.Contracts;
 
@@ -32,6 +33,7 @@ public sealed class SessionDetailViewModel
     public List<SessionTimelineEventViewModel> Timeline { get; init; } = new();
     public string? TimelineErrorMessage { get; init; }
     public string? SessionStatus { get; init; }
+    public RulesetDetailViewModel? ActiveRulesetDetail { get; init; }
     public string? ErrorMessage { get; init; }
 }
 
@@ -56,7 +58,7 @@ public sealed class SessionTimelineEventViewModel
 }
 
 /// <summary>
-/// ViewModel halaman detail pemain yang memuat ringkasan analitik, riwayat transaksi, metrik gameplay mentah/turunan, dan statistik perjalanan arus kas.
+/// ViewModel halaman detail pemain yang memuat ringkasan analitik, riwayat transaksi, metrik gameplay, dan statistik perjalanan arus kas.
 /// </summary>
 public sealed class PlayerDetailViewModel
 {
@@ -82,19 +84,7 @@ public sealed class PlayerDetailViewModel
 /// </summary>
 public sealed class PlayerStatSummaryViewModel
 {
-    public List<PlayerStatKeyMetricViewModel> KeyMetrics { get; init; } = new();
     public List<PlayerInstructorInsightViewModel> Insights { get; init; } = new();
-}
-
-/// <summary>
-/// ViewModel satu metrik prioritas pada ringkasan pemain.
-/// </summary>
-public sealed class PlayerStatKeyMetricViewModel
-{
-    public string Key { get; init; } = string.Empty;
-    public string Label { get; init; } = string.Empty;
-    public string Value { get; init; } = string.Empty;
-    public string Tone { get; init; } = "neutral";
 }
 
 /// <summary>
@@ -179,6 +169,7 @@ public sealed class PlayerSessionEntryViewModel
 {
     public Guid PlayerId { get; init; }
     public int PlayerOrder { get; init; }
+    public int FinalRank { get; init; }
     public string DisplayName { get; init; } = string.Empty;
     public double CashInTotal { get; init; }
     public double CashOutTotal { get; init; }

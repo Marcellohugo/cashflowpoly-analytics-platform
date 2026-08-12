@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsScoreCalculator.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
 

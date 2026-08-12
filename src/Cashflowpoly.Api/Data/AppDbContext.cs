@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk AppDbContext.
 using Microsoft.EntityFrameworkCore;
 
 namespace Cashflowpoly.Api.Data;

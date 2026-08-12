@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui NeedTierClassifier.
 using System.Text.Json;
 
 namespace Cashflowpoly.Api.Domain;

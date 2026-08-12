@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsCashTimelineCalculator.
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 

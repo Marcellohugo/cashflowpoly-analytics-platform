@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui BootstrapAssetConsistencyTests.
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -411,7 +412,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("checksum varchar", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("compute_schema_fingerprint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("assert_schema_baseline", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.7')", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.8')", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("information_schema.columns", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_constraint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_indexes", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -552,7 +553,9 @@ public sealed class BootstrapAssetConsistencyTests
             "ix_session_participants_session",
             "ix_session_donation_events_session",
             "ix_session_donation_event_rankings_event",
-            "ix_events_session_seq"
+            "ix_events_session_seq",
+            "create index if not exists ix_ruleset_collection_mission_requirements_mission",
+            "create index if not exists ix_ruleset_narrative_scenes_narrative"
         };
 
         foreach (var indexName in duplicateIndexes)
@@ -674,6 +677,15 @@ public sealed class BootstrapAssetConsistencyTests
     }
 
     [Fact]
+    public void RulesetRepository_ShouldPreserveAnUnlimitedPrimaryNeedSettingAsNull()
+    {
+        var repositoryPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Data", "RulesetRepository.cs");
+        var repository = File.ReadAllText(repositoryPath);
+
+        Assert.Contains("public int? PrimaryNeedMaxPerDay", repository, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DefaultRulesetSeed_ShouldIncludePemulaTieBreakerAssets()
     {
         var seedPath = Path.Combine(RepoRoot, "database", "01_seed_default_rulesets_components.sql");
@@ -743,7 +755,8 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.True(File.Exists(seedPath), $"Seed simulasi manual harus tersedia pada path '{seedPath}'.");
 
         var seedContent = File.ReadAllText(seedPath);
-        Assert.StartsWith("begin;", seedContent.TrimStart(), StringComparison.OrdinalIgnoreCase);
+        var executableSeedContent = Regex.Replace(seedContent.TrimStart(), @"^(?:--[^\r\n]*(?:\r?\n|$)\s*)+", string.Empty);
+        Assert.StartsWith("begin;", executableSeedContent, StringComparison.OrdinalIgnoreCase);
         Assert.EndsWith("commit;", seedContent.TrimEnd(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Simulasi Cashflowpoly Kelas XI IPS 2 - Mode Pemula - Kelompok A", seedContent, StringComparison.Ordinal);
         Assert.Contains("Simulasi Cashflowpoly Kelas XI IPS 2 - Mode Mahir - Kelompok B", seedContent, StringComparison.Ordinal);

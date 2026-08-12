@@ -1,6 +1,8 @@
+// Fungsi file: Mengonfigurasi dependency, middleware, route, dan startup UI MVC.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 var useHttpsRedirection = Cashflowpoly.Ui.Infrastructure.HttpsRedirectionPolicy.ShouldUseHttpsRedirection(builder.Configuration);
@@ -8,8 +10,25 @@ var useHttpsRedirection = Cashflowpoly.Ui.Infrastructure.HttpsRedirectionPolicy.
 builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
     options.KnownProxies.Clear();
     options.KnownIPNetworks.Clear();
+
+    foreach (var proxy in builder.Configuration.GetSection("Networking:TrustedProxies").Get<string[]>() ?? [])
+    {
+        if (IPAddress.TryParse(proxy, out var parsedProxy))
+        {
+            options.KnownProxies.Add(parsedProxy);
+        }
+    }
+
+    foreach (var network in builder.Configuration.GetSection("Networking:TrustedNetworks").Get<string[]>() ?? [])
+    {
+        if (System.Net.IPNetwork.TryParse(network, out var parsedNetwork))
+        {
+            options.KnownIPNetworks.Add(parsedNetwork);
+        }
+    }
 });
 
 builder.Services.AddControllersWithViews(options =>

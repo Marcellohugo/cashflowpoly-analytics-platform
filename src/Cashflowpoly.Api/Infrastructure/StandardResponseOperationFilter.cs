@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan dukungan infrastruktur API melalui StandardResponseOperationFilter.
 using System.Reflection;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;

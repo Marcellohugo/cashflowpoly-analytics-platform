@@ -1,3 +1,4 @@
+-- Fungsi file: Membentuk schema PostgreSQL kanonik, constraint, trigger, view, dan proyeksi permainan secara idempoten.
 create extension if not exists citext;
 
 create extension if not exists pgcrypto;
@@ -532,7 +533,8 @@ create table if not exists ruleset_collection_mission_requirements (
   constraint fk_ruleset_collection_mission_requirements_required_asset_id foreign key (ruleset_version_id, required_asset_id) references ruleset_game_assets (ruleset_version_id, ruleset_game_asset_id) on delete restrict
 );
 
-create index if not exists ix_ruleset_collection_mission_requirements_mission on ruleset_collection_mission_requirements (ruleset_collection_mission_id, requirement_order);
+-- Indeks unik uq_ruleset_collection_mission_requirements_scope sudah mencakup urutan kolom yang sama.
+drop index if exists ix_ruleset_collection_mission_requirements_mission;
 
 create table if not exists ruleset_financial_goals (
   ruleset_financial_goal_id uuid not null default gen_random_uuid(),
@@ -602,7 +604,8 @@ create table if not exists ruleset_narrative_scenes (
   constraint fk_ruleset_narrative_scenes_narrative_id foreign key (ruleset_version_id, ruleset_narrative_id) references ruleset_narratives (ruleset_version_id, ruleset_narrative_id) on delete cascade
 );
 
-create index if not exists ix_ruleset_narrative_scenes_narrative on ruleset_narrative_scenes (ruleset_narrative_id, scene_order);
+-- Indeks unik uq_ruleset_narrative_scenes_order sudah mencakup urutan kolom yang sama.
+drop index if exists ix_ruleset_narrative_scenes_narrative;
 
 create table if not exists ruleset_trigger_conditions (
   ruleset_trigger_condition_id uuid not null default gen_random_uuid(),
@@ -7499,6 +7502,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.7');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.8');
 
 commit;

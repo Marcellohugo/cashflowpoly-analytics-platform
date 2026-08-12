@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui UiText.
 using Cashflowpoly.Ui.Models;
 using System.Collections.Frozen;
 

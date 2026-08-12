@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan dukungan infrastruktur API melalui DatabaseInitialization.
 using Dapper;
 using Cashflowpoly.Api.Data;
 using Npgsql;

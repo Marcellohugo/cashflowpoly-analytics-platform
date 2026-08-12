@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui PlayerDetailChartAssetTests.
 using Xunit;
 
 namespace Cashflowpoly.Ui.Tests;
@@ -7,22 +8,16 @@ public sealed class PlayerDetailChartAssetTests
     private static readonly string RepoRoot = ResolveRepositoryRoot();
 
     [Fact]
-    public void DetailsView_UsesExternalChartScriptWithLocalizedConfig()
+    public void DetailsView_ShouldPreferExplainedValuesOverCharts()
     {
         var viewPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Views", "Players", "Details.cshtml");
-        var scriptPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "wwwroot", "js", "player-detail-charts.js");
-
         var view = File.ReadAllText(viewPath);
 
-        Assert.Contains("window.cashflowpolyPlayerDetailCharts", view);
-        Assert.Contains("~/js/player-detail-charts.js", view);
-        Assert.DoesNotContain("const drawChart = (svg, payload)", view);
-        Assert.True(File.Exists(scriptPath), "Asset player-detail-charts.js harus tersedia di wwwroot/js.");
-
-        var script = File.ReadAllText(scriptPath);
-        Assert.Contains("const drawChart = (svg, payload)", script);
-        Assert.Contains("window.cashflowpolyPlayerDetailCharts", script);
-        Assert.DoesNotContain("Context.T(", script);
+        Assert.Contains("player-stats-verdict", view);
+        Assert.Contains("player-stat-pillar__summary", view);
+        Assert.DoesNotContain("js-metric-line-chart", view);
+        Assert.DoesNotContain("window.cashflowpolyPlayerDetailCharts", view);
+        Assert.DoesNotContain("~/js/player-detail-charts.js", view);
     }
 
     private static string ResolveRepositoryRoot()

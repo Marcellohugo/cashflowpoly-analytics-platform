@@ -1,3 +1,4 @@
+// Fungsi file: Mengorkestrasi alur aplikasi dan domain melalui EventIngestionService.
 using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Security.Claims;
@@ -73,6 +74,7 @@ internal sealed class EventIngestionService : IEventIngestionService
     private readonly IEventAssignmentValidator _assignmentValidator;
     private readonly IEventPlayerBalanceCalculator _playerBalanceCalc;
     private readonly SessionEventProjector _projector;
+    private readonly ILogger<EventIngestionService> _logger;
 
     public EventIngestionService(
         SessionRepository sessions,
@@ -94,7 +96,8 @@ internal sealed class EventIngestionService : IEventIngestionService
         IEventEconomyActionValidator economyActionValidator,
         IEventAssignmentValidator assignmentValidator,
         IEventPlayerBalanceCalculator playerBalanceCalc,
-        SessionEventProjector projector)
+        SessionEventProjector projector,
+        ILogger<EventIngestionService> logger)
     {
         _sessions = sessions;
         _rulesets = rulesets;
@@ -116,6 +119,7 @@ internal sealed class EventIngestionService : IEventIngestionService
         _assignmentValidator = assignmentValidator;
         _playerBalanceCalc = playerBalanceCalc;
         _projector = projector;
+        _logger = logger;
     }
 
     /// <summary>
@@ -155,7 +159,8 @@ internal sealed class EventIngestionService : IEventIngestionService
         }
         catch (PostgresException ex) when (ex.SqlState == "23514")
         {
-            var error = BuildError("DOMAIN_RULE_VIOLATION", ex.MessageText);
+            _logger.LogWarning(ex, "Database rejected gameplay event {EventId} for session {SessionId}", enrichedRequest.EventId, enrichedRequest.SessionId);
+            var error = BuildError("DOMAIN_RULE_VIOLATION", "Aktivitas ditolak karena melanggar aturan permainan");
             return (null, StatusCodes.Status422UnprocessableEntity, error);
         }
     }
@@ -217,6 +222,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
             catch (PostgresException ex) when (ex.SqlState == "23514")
             {
+                _logger.LogWarning(ex, "Database rejected gameplay event {EventId} from batch for session {SessionId}", enrichedRequest.EventId, enrichedRequest.SessionId);
                 failed.Add(new EventBatchFailed(enrichedRequest.EventId, "DOMAIN_RULE_VIOLATION"));
             }
         }

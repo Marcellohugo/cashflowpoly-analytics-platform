@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui ApiIntegrationTestFixture.
 using Microsoft.AspNetCore.Mvc.Testing;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -43,7 +44,7 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     /// Menjalankan container PostgreSQL kosong, mengatur environment variable,
     /// dan membuat HttpClient melalui WebApplicationFactory.
     /// </summary>
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await _dbContainer.StartAsync();
 
@@ -65,7 +66,7 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     /// Membersihkan resource: menutup HttpClient, factory, mengembalikan
     /// environment variable, dan menghentikan container PostgreSQL.
     /// </summary>
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client?.Dispose();
         _factory?.Dispose();

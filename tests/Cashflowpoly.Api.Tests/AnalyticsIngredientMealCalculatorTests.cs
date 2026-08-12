@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AnalyticsIngredientMealCalculatorTests.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;
@@ -44,7 +45,7 @@ public sealed class AnalyticsIngredientMealCalculatorTests
         Assert.Equal(1, metrics.MealOrdersClaimed);
         Assert.Equal(1, metrics.MealOrdersPassed);
         Assert.Equal(12, metrics.MealOrderIncomeTotal);
-        Assert.Equal(4, metrics.MaxActionSlot);
+        Assert.Equal(3, metrics.LatestDayIndex);
         Assert.Equal(0.25, metrics.MealOrdersPerTurnAverage);
         Assert.Equal(4, metrics.EssentialIngredientExpenses);
     }
@@ -65,9 +66,9 @@ public sealed class AnalyticsIngredientMealCalculatorTests
             UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
-            DayIndex = 0,
+            DayIndex = turn - 1,
             Weekday = "MON",
-            ActionSlot = turn,
+            ActionSlot = ((turn - 1) % 2) + 1,
             SequenceNumber = sequence,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

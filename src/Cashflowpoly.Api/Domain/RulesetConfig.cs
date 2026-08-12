@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui RulesetConfig.
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 
@@ -42,6 +43,8 @@ public sealed record RulesetConfig(
     public IReadOnlyList<RulesetOrderDto> Orders { get; init; } = [];
 
     public IReadOnlyList<RulesetIngredientDto> Ingredients { get; init; } = [];
+
+    public IReadOnlyList<RulesetFinancialGoalDto> FinancialGoals { get; init; } = [];
 }
 
 /// <summary>
@@ -193,7 +196,8 @@ internal static class RulesetRuntimeMapper
             InsuranceProducts = definition.InsuranceProducts.ToList(),
             LifeRisks = definition.LifeRisks.ToList(),
             Orders = definition.Orders.ToList(),
-            Ingredients = definition.Ingredients.ToList()
+            Ingredients = definition.Ingredients.ToList(),
+            FinancialGoals = definition.FinancialGoals.ToList()
         };
         return true;
     }

@@ -1,3 +1,4 @@
+// Fungsi file: Menjelaskan implementasi RulesetDefinitionMapper pada platform analitika Cashflowpoly.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cashflowpoly.Ui.Contracts;
@@ -276,6 +277,24 @@ internal static class RulesetDefinitionMapper
         {
             WriteIndented = false
         });
+    }
+
+    internal static JsonElement? ToConfigElement(RulesetDefinitionDto? definition)
+    {
+        if (definition is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(ToConfigJson(definition));
+            return document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static List<RulesetIngredientDto> ReadIngredients(JsonElement componentCatalog)

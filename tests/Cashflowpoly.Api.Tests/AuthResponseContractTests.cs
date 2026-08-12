@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AuthResponseContractTests.
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 using Xunit;

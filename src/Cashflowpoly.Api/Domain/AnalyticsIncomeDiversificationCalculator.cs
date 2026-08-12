@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsIncomeDiversificationCalculator.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
@@ -7,6 +8,7 @@ public sealed record AnalyticsIncomeDiversificationMetrics(
     double MealIncome,
     double GoldIncome,
     double DonationIncome,
+    double OtherIncome,
     int ActiveIncomeSourceCount,
     IReadOnlyDictionary<string, double> IncomeShares,
     double? IncomeDiversification,
@@ -33,13 +35,15 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
         var mealIncome = (double)mealOrderIncomeTotal;
         var goldIncome = (double)goldInvestmentEarned;
         var donationIncome = donationsReceived;
+        var otherIncome = Math.Max(0, totalIncome - freelanceIncome - mealIncome - goldIncome - donationIncome);
 
         var incomeSourceTotals = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
         {
             ["freelance_income"] = freelanceIncome,
             ["meal_income"] = mealIncome,
             ["gold_income"] = goldIncome,
-            ["donations_received"] = donationIncome
+            ["donations_received"] = donationIncome,
+            ["other_income"] = otherIncome
         };
 
         var incomeShares = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
@@ -79,6 +83,7 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
             mealIncome,
             goldIncome,
             donationIncome,
+            otherIncome,
             activeIncomeSourceCount,
             incomeShares,
             incomeDiversification,

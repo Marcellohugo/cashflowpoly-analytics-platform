@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui HttpsRedirectionPolicy.
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 
@@ -14,6 +15,11 @@ public static class HttpsRedirectionPolicy
 
     public static bool ShouldUseHttpsRedirection(IConfiguration configuration)
     {
+        if (configuration.GetValue<bool>("Security:RequireHttps"))
+        {
+            return true;
+        }
+
         if (!string.IsNullOrWhiteSpace(configuration["ASPNETCORE_HTTPS_PORT"]) ||
             !string.IsNullOrWhiteSpace(configuration["HTTPS_PORT"]))
         {

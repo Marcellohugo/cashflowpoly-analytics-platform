@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui EventPayloadReaderTests.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 using Xunit;

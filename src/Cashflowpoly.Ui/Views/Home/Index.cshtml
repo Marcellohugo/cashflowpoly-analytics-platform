@@ -15,37 +15,55 @@
         : Context.T("home.player_subtitle");
     var primaryCtaController = "Sessions";
     var primaryCtaText = isInstructor ? Context.T("home.cta.sessions") : Context.T("home.cta.my_progress");
-    var secondaryCtaController = "Rulesets";
-    var secondaryCtaText = Context.T("home.cta.open_ruleset");
+    var secondaryCtaController = isInstructor ? "Rulesets" : "Sessions";
+    var secondaryCtaText = isInstructor
+        ? Context.T("home.cta.open_ruleset")
+        : Context.T("home.cta.session_ruleset");
     var totalSessionsLabel = isInstructor ? Context.T("home.total_sessions") : Context.T("home.my_sessions");
-    var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : Context.T("home.peers_in_session");
-    var totalRulesetsLabel = isInstructor ? Context.T("home.ruleset_active") : Context.T("home.available_rulesets");
-    var hasWorkspaceData = Model.TotalSessions > 0 || Model.TotalPlayers > 0 || Model.TotalRulesets > 0;
+    var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : Context.T("home.players_in_my_sessions");
+    var hasWorkspaceData = Model.TotalSessions > 0 || Model.TotalPlayers > 0 || (isInstructor && Model.TotalRulesets > 0);
+    var activeSessionPercent = Model.TotalSessions > 0
+        ? Math.Clamp((int)Math.Round(Model.ActiveSessions * 100d / Model.TotalSessions), 0, 100)
+        : 0;
 }
 
-<section class="section-shell home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
-    <div class="home-console-layout">
-        <div class="home-console-intro">
-            <div class="home-console-header">
-                <span class="badge @(isInstructor ? "badge-emerald" : "badge-amber")">@heroBadge</span>
+<section class="home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
+    <div class="home-command">
+        <div class="home-command-main">
+            <div class="home-command-intro">
+                <span class="home-command-badge">@heroBadge</span>
+                <div class="home-command-copy">
+                    <h1 class="headline home-command-title">@heroTitle</h1>
+                    <p class="subhead home-command-subhead">@heroSubtitle</p>
+                </div>
+                <div class="home-command-actions">
+                    <a class="btn-primary" asp-controller="@primaryCtaController" asp-action="Index">@primaryCtaText</a>
+                    <a class="btn-ghost" asp-controller="@secondaryCtaController" asp-action="Index">@secondaryCtaText</a>
+                </div>
             </div>
-            <div class="home-console-copy">
-                <h1 class="headline text-4xl md:text-5xl">@heroTitle</h1>
-                <p class="subhead home-console-subhead">
-                    @heroSubtitle
-                </p>
-            </div>
-            <div class="home-console-actions">
-                <a class="btn-primary" asp-controller="@primaryCtaController" asp-action="Index">@primaryCtaText</a>
-                <a class="btn-ghost" asp-controller="@secondaryCtaController" asp-action="Index">@secondaryCtaText</a>
-            </div>
+
+            <aside class="home-live-card" aria-label="@Context.T("home.active_sessions")">
+                <div class="home-live-header">
+                    <span class="home-live-indicator" aria-hidden="true"></span>
+                    <span>@Context.T("home.active_sessions")</span>
+                </div>
+                <div id="home-session-ring"
+                     class="home-session-ring"
+                     style="--home-active-progress: @(activeSessionPercent)%"
+                     role="img"
+                     aria-label="@Model.ActiveSessions / @Model.TotalSessions @Context.T("home.active_sessions")">
+                    <div class="home-session-ring-core">
+                        <strong id="home-active-sessions">@Model.ActiveSessions</strong>
+                        <span id="home-active-total-sessions">/ @Model.TotalSessions</span>
+                    </div>
+                </div>
+                <div class="home-live-summary">
+                    <strong id="home-active-percentage">@activeSessionPercent%</strong>
+                    <span>@totalSessionsLabel</span>
+                </div>
+            </aside>
         </div>
-        <div class="home-console-progress-shell">
-            <div class="home-console-progress-meta">
-                <span>@Context.T("home.active_sessions")</span>
-                <span><strong>@Model.ActiveSessions</strong> / <strong>@Model.TotalSessions</strong></span>
-            </div>
-        </div>
+
         @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
             <div id="home-realtime-error" class="alert alert-warning text-xs" aria-live="polite">
@@ -56,24 +74,31 @@
         {
             <div id="home-realtime-error" class="hidden alert alert-warning text-xs" aria-live="polite"></div>
         }
-        <div class="home-console-metrics">
-            <div class="home-console-metric">
-                <p class="home-console-metric-label">@totalSessionsLabel</p>
-                <p id="home-total-sessions" class="home-console-metric-value">@Model.TotalSessions</p>
-            </div>
-            <div class="home-console-metric">
-                <p class="home-console-metric-label">@Context.T("home.active_sessions")</p>
-                <p id="home-active-sessions" class="home-console-metric-value">@Model.ActiveSessions</p>
-            </div>
-            <div class="home-console-metric">
-                <p class="home-console-metric-label">@totalPlayersLabel</p>
-                <p id="home-total-players" class="home-console-metric-value">@Model.TotalPlayers</p>
-            </div>
-            <div class="home-console-metric">
-                <p class="home-console-metric-label">@totalRulesetsLabel</p>
-                <p id="home-total-rulesets" class="home-console-metric-value">@Model.TotalRulesets</p>
-            </div>
+
+        <div class="home-stat-grid @(isInstructor ? null : "home-stat-grid-player")">
+            <article class="home-stat-card home-stat-card-sessions">
+                <span class="home-stat-label">@totalSessionsLabel</span>
+                <strong id="home-total-sessions">@Model.TotalSessions</strong>
+                <span class="home-stat-accent" aria-hidden="true"></span>
+                <span class="home-stat-mark" aria-hidden="true">01</span>
+            </article>
+            <article class="home-stat-card home-stat-card-players">
+                <span class="home-stat-label">@totalPlayersLabel</span>
+                <strong id="home-total-players">@Model.TotalPlayers</strong>
+                <span class="home-stat-accent" aria-hidden="true"></span>
+                <span class="home-stat-mark" aria-hidden="true">02</span>
+            </article>
+            @if (isInstructor)
+            {
+                <article class="home-stat-card home-stat-card-rulesets">
+                    <span class="home-stat-label">@Context.T("home.ruleset_active")</span>
+                    <strong id="home-total-rulesets">@Model.TotalRulesets</strong>
+                    <span class="home-stat-accent" aria-hidden="true"></span>
+                    <span class="home-stat-mark" aria-hidden="true">03</span>
+                </article>
+            }
         </div>
+
         @if (!hasWorkspaceData)
         {
             <div class="home-empty-state" aria-live="polite">
@@ -83,18 +108,22 @@
                     : Context.T("home.empty_workspace.player"))</p>
             </div>
         }
-        <p class="home-console-note">@Context.T("home.auto_refresh_note")</p>
+
     </div>
 </section>
 
 @if (isInstructor)
 {
-    <section class="section-shell mt-6">
-        <div class="ruleset-section-head">
-            <p class="eyebrow">@Context.T("home.guide.menu")</p>
-            <h2 class="ruleset-section-title">@Context.T("home.guide.title")</h2>
-            <p class="ruleset-section-subtitle">@Context.T("home.guide.subtitle")</p>
-        </div>
+    <details class="home-guide-shell mt-6 data-toggle">
+        <summary class="ruleset-section-head">
+            <span class="home-guide-summary-copy">
+                <span class="ruleset-section-title">@Context.T("home.guide.title")</span>
+                <span class="home-guide-summary-subtitle">
+                    <span class="ruleset-section-subtitle">@Context.T("home.guide.subtitle")</span>
+                    <span class="home-guide-toggle-marker" aria-hidden="true"></span>
+                </span>
+            </span>
+        </summary>
 
         <div class="mt-6 tips-grid">
             <article class="tip-card">
@@ -114,11 +143,7 @@
             </article>
         </div>
 
-        <div class="ruleset-section-head mt-6">
-            <p class="ruleset-section-title">@Context.T("home.quick_flow.title")</p>
-            <p class="ruleset-section-subtitle">@Context.T("home.quick_flow.subtitle")</p>
-        </div>
-        <details class="mt-3 data-toggle" open>
+        <details class="mt-3 data-toggle">
             <summary>@Context.T("home.quick_flow.title")</summary>
             <div class="mt-3 metric-panel">
                 <div class="metric-list">
@@ -130,23 +155,22 @@
                 </div>
             </div>
         </details>
-    </section>
+    </details>
 }
 else
 {
-    <section class="section-shell mt-6 player-guide">
-        <div class="ruleset-section-head">
-            <p class="eyebrow">@Context.T("home.player_guide.menu")</p>
-            <h2 class="ruleset-section-title">@Context.T("home.player_guide.title")</h2>
-            <p class="ruleset-section-subtitle">@Context.T("home.player_guide.subtitle")</p>
-        </div>
+    <details class="home-guide-shell mt-6 player-guide data-toggle">
+        <summary class="ruleset-section-head">
+            <span class="home-guide-summary-copy">
+                <span class="ruleset-section-title">@Context.T("home.player_guide.title")</span>
+                <span class="home-guide-summary-subtitle">
+                    <span class="ruleset-section-subtitle">@Context.T("home.player_guide.subtitle")</span>
+                    <span class="home-guide-toggle-marker" aria-hidden="true"></span>
+                </span>
+            </span>
+        </summary>
 
         <div class="mt-6 tips-grid">
-            <article class="tip-card">
-                <h3>@Context.T("nav.sessions")</h3>
-                <p>@Context.T("sessions.player_subtitle")</p>
-                <a asp-controller="Sessions" asp-action="Index">@Context.T("sessions.view_progress")</a>
-            </article>
             <article class="tip-card">
                 <h3>@Context.T("home.player_guide.analytics.title")</h3>
                 <p>@Context.T("home.player_guide.analytics.desc")</p>
@@ -155,7 +179,7 @@ else
             <article class="tip-card">
                 <h3>@Context.T("home.player_guide.ruleset.title")</h3>
                 <p>@Context.T("home.player_guide.ruleset.desc")</p>
-                <a asp-controller="Rulesets" asp-action="Index">@Context.T("home.player_guide.ruleset.link")</a>
+                <a asp-controller="Sessions" asp-action="Index">@Context.T("home.player_guide.ruleset.link")</a>
             </article>
             <article class="tip-card">
                 <h3>@Context.T("home.player_guide.rulebook.title")</h3>
@@ -163,20 +187,7 @@ else
                 <a href="/rulebook">@Context.T("home.player_guide.rulebook.link")</a>
             </article>
         </div>
-
-        <div class="mt-6 metric-panel">
-            <div class="ruleset-section-head">
-                <h3 class="ruleset-section-title">@Context.T("home.player_flow.title")</h3>
-                <p class="ruleset-section-subtitle">@Context.T("home.player_flow.subtitle")</p>
-            </div>
-            <div class="metric-list">
-                <div class="metric-row"><span class="metric-key">1</span><span class="metric-value">@Context.T("home.player_flow.step1")</span></div>
-                <div class="metric-row"><span class="metric-key">2</span><span class="metric-value">@Context.T("home.player_flow.step2")</span></div>
-                <div class="metric-row"><span class="metric-key">3</span><span class="metric-value">@Context.T("home.player_flow.step3")</span></div>
-                <div class="metric-row"><span class="metric-key">4</span><span class="metric-value">@Context.T("home.player_flow.step4")</span></div>
-            </div>
-        </div>
-    </section>
+    </details>
 }
 
 @section Scripts {
@@ -184,9 +195,13 @@ else
         (() => {
             const totalSessionsEl = document.getElementById("home-total-sessions");
             const activeSessionsEl = document.getElementById("home-active-sessions");
+            const activeTotalSessionsEl = document.getElementById("home-active-total-sessions");
+            const activePercentageEl = document.getElementById("home-active-percentage");
+            const sessionRingEl = document.getElementById("home-session-ring");
             const totalPlayersEl = document.getElementById("home-total-players");
             const totalRulesetsEl = document.getElementById("home-total-rulesets");
             const realtimeErrorEl = document.getElementById("home-realtime-error");
+            const activeSessionsLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("home.active_sessions")));
             const realtimeStatusTemplate = @Html.Raw(JsonSerializer.Serialize(Context.T("home.error.realtime_status")));
             const realtimeNetworkMessage = @Html.Raw(JsonSerializer.Serialize(Context.T("home.error.realtime_network")));
             const realtimePollIntervalMs = 30000;
@@ -223,9 +238,18 @@ else
                     const activeSessions = Number(data.activeSessions ?? 0);
                     const totalPlayers = Number(data.totalPlayers ?? 0);
                     const totalRulesets = Number(data.totalRulesets ?? 0);
+                    const activePercentage = totalSessions > 0
+                        ? Math.min(100, Math.max(0, Math.round(activeSessions * 100 / totalSessions)))
+                        : 0;
 
                     if (totalSessionsEl) totalSessionsEl.textContent = `${totalSessions}`;
                     if (activeSessionsEl) activeSessionsEl.textContent = `${activeSessions}`;
+                    if (activeTotalSessionsEl) activeTotalSessionsEl.textContent = `/ ${totalSessions}`;
+                    if (activePercentageEl) activePercentageEl.textContent = `${activePercentage}%`;
+                    if (sessionRingEl) {
+                        sessionRingEl.style.setProperty("--home-active-progress", `${activePercentage}%`);
+                        sessionRingEl.setAttribute("aria-label", `${activeSessions} / ${totalSessions} ${activeSessionsLabel}`);
+                    }
                     if (totalPlayersEl) totalPlayersEl.textContent = `${totalPlayers}`;
                     if (totalRulesetsEl) totalRulesetsEl.textContent = `${totalRulesets}`;
 

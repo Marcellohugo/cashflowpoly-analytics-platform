@@ -1,6 +1,8 @@
+// Fungsi file: Menangani request MVC dan penyusunan tampilan untuk SessionsController.
 using System.Net;
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Contracts;
+using Cashflowpoly.Ui.Domain;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -146,17 +148,73 @@ public sealed class SessionsController : Controller
         var playerDisplayNames = await playerDisplayNamesTask;
         var (timeline, timelineError) = await timelineTask;
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
+        var activeRulesetDetail = analytics?.RulesetId is Guid rulesetId
+            ? await LoadActiveRulesetDetailAsync(client, rulesetId, ct)
+            : null;
+        var activeRulesetViewModel = activeRulesetDetail is null
+            ? null
+            : new RulesetDetailViewModel
+            {
+                Ruleset = activeRulesetDetail,
+                CompatibilityDefinitionJson = RulesetDefinitionMapper.ToConfigElement(activeRulesetDetail.Definition),
+                IsReadOnly = true,
+                IsDefaultCatalogSource = activeRulesetDetail.IsDefault
+            };
 
         return (new SessionDetailViewModel
         {
             SessionId = sessionId,
             SessionStatus = sessionStatus,
             Analytics = analytics,
+            ActiveRulesetDetail = activeRulesetViewModel,
             Timeline = timeline,
             TimelineErrorMessage = timelineError,
             PlayerDisplayNames = playerDisplayNames,
             ErrorMessage = null
         }, null);
+    }
+
+    private static async Task<RulesetDetailResponse?> LoadActiveRulesetDetailAsync(
+        HttpClient client,
+        Guid rulesetId,
+        CancellationToken ct)
+    {
+        var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
+        if (response.IsSuccessStatusCode)
+        {
+            var detail = await response.Content.TryReadFromJsonAsync<RulesetDetailResponse>(cancellationToken: ct);
+            if (detail is not null)
+            {
+                return detail;
+            }
+        }
+
+        var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
+        if (defaultsResponse.IsSuccessStatusCode)
+        {
+            var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(cancellationToken: ct);
+            var fallbackItem = defaultsData?.Items?.FirstOrDefault(item => item.RulesetId == rulesetId);
+            if (fallbackItem is not null)
+            {
+                return new RulesetDetailResponse(
+                    fallbackItem.RulesetId,
+                    fallbackItem.Name,
+                    fallbackItem.Description,
+                    new List<RulesetVersionItem>
+                    {
+                        new(fallbackItem.RulesetVersionId, fallbackItem.Version, "ACTIVE", DateTimeOffset.UtcNow)
+                    },
+                    fallbackItem.RulesetVersionId,
+                    fallbackItem.Version,
+                    fallbackItem.Mode,
+                    fallbackItem.Definition,
+                    IsDefault: true,
+                    IsLockedBySession: true
+                );
+            }
+        }
+
+        return null;
     }
 
     private static async Task<string?> GetSessionStatusAsync(HttpClient client, Guid sessionId, CancellationToken ct)

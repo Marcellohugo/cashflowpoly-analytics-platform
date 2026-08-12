@@ -1,4 +1,6 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui RulesetManagementActionTests.
 using Xunit;
+using System.Text.RegularExpressions;
 
 namespace Cashflowpoly.Ui.Tests;
 
@@ -11,7 +13,7 @@ public sealed class RulesetManagementActionTests
     public void RulesetViews_ShouldRenderInstructorMutationActions()
     {
         var indexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Rulesets", "Index.cshtml"));
-        var detailView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Rulesets", "Details.cshtml"));
+        var detailView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Shared", "_RulesetDetailContent.cshtml"));
         var sessionDetailView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Details.cshtml"));
 
         Assert.Contains("asp-action=\"Create\"", indexView, StringComparison.Ordinal);
@@ -35,6 +37,21 @@ public sealed class RulesetManagementActionTests
         Assert.Contains("DeleteAsync($\"api/v1/rulesets/{rulesetId}/versions/{version}\"", rulesetsController, StringComparison.Ordinal);
         Assert.Contains("DeleteAsync($\"api/v1/rulesets/{rulesetId}\"", rulesetsController, StringComparison.Ordinal);
         Assert.DoesNotContain("ruleset/activate", sessionsController, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlayerRulesetAccess_ShouldBeRestrictedToSessionDetails()
+    {
+        var rulesetsController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "RulesetsController.cs"));
+        var layout = File.ReadAllText(Path.Combine(UiRoot, "Views", "Shared", "_Layout.cshtml"));
+        var home = File.ReadAllText(Path.Combine(UiRoot, "Views", "Home", "Index.cshtml"));
+
+        Assert.Contains("public override void OnActionExecuting(ActionExecutingContext context)", rulesetsController, StringComparison.Ordinal);
+        Assert.Contains("context.Result = RedirectToAction(\"Index\", \"Sessions\")", rulesetsController, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(layout, "Controller = \\\"Rulesets\\\""));
+        Assert.Contains("secondaryCtaController = isInstructor ? \"Rulesets\" : \"Sessions\"", home, StringComparison.Ordinal);
+        Assert.Contains("<a asp-controller=\"Sessions\" asp-action=\"Index\">@Context.T(\"home.player_guide.ruleset.link\")</a>", home, StringComparison.Ordinal);
+        Assert.Contains("home-stat-grid-player", home, StringComparison.Ordinal);
     }
 
     private static string ResolveRepositoryRoot()

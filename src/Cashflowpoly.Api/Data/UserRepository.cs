@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk UserRepository.
 using Dapper;
 using Npgsql;
 

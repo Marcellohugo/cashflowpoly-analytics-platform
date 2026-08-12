@@ -1,3 +1,4 @@
+// Fungsi file: Menangani endpoint, validasi akses, dan response HTTP untuk PlayersController.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Contracts;
@@ -129,6 +130,44 @@ public sealed class PlayersController : ControllerBase
 
         var items = players.Select(p => new PlayerResponse(p.UserId, p.DisplayName)).ToList();
         return Ok(new PlayerListResponse(items));
+    }
+
+    [HttpGet("/api/v1/sessions/{sessionId:guid}/players")]
+    [ProducesResponseType(typeof(SessionPlayerListResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListSessionPlayers(Guid sessionId, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+        if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            if (await _sessions.GetSessionForInstructorAsync(sessionId, userId, ct) is null)
+            {
+                return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            }
+        }
+        else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
+        {
+            var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
+            if (!playerUserId.HasValue || !await _players.IsPlayerInSessionAsync(sessionId, playerUserId.Value, ct))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Pemain tidak terdaftar pada sesi ini"));
+            }
+        }
+        else
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Role tidak diizinkan"));
+        }
+
+        var items = (await _players.ListSessionPlayersAsync(sessionId, ct))
+            .Select(player => new SessionPlayerResponse(player.UserId, player.DisplayName, player.PlayerOrder))
+            .ToList();
+        return Ok(new SessionPlayerListResponse(items));
     }
 
     [HttpPost("/api/v1/sessions/{sessionId:guid}/players")]

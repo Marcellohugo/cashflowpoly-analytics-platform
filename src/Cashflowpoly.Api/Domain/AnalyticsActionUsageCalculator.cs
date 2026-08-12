@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsActionUsageCalculator.
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
@@ -9,6 +10,7 @@ public sealed record AnalyticsActionUsageMetrics(
     IReadOnlyList<AnalyticsActionRepetition> ActionRepetitions,
     IReadOnlyList<AnalyticsActionSlot> ActionSlotTimeline,
     int ActionsSkipped,
+    int? LatestDayIndex,
     int? LatestActionSlot,
     int ActionEventCount,
     int IncomeActions,
@@ -17,17 +19,18 @@ public sealed record AnalyticsActionUsageMetrics(
     double ActionDiversityAverage);
 
 public sealed record AnalyticsActionSequence(
-    [property: JsonPropertyName("action_slot")] int ActionSlot,
+    [property: JsonPropertyName("day_index")] int DayIndex,
     [property: JsonPropertyName("actions")] IReadOnlyList<string> Actions);
 
 public sealed record AnalyticsActionRepetition(
-    [property: JsonPropertyName("action_slot")] int ActionSlot,
+    [property: JsonPropertyName("day_index")] int DayIndex,
     [property: JsonPropertyName("total_actions")] int TotalActions,
     [property: JsonPropertyName("distinct_actions")] int DistinctActions,
     [property: JsonPropertyName("repeated_actions")] int RepeatedActions,
     [property: JsonPropertyName("diversity_score")] double DiversityScore);
 
 public sealed record AnalyticsActionSlot(
+    [property: JsonPropertyName("day_index")] int DayIndex,
     [property: JsonPropertyName("action_slot")] int ActionSlot,
     [property: JsonPropertyName("action_index")] int ActionIndex,
     [property: JsonPropertyName("action_type")] string ActionType,
@@ -40,7 +43,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
     public AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
-        int maxActionSlot,
+        int latestDayIndex,
         int actionsPerTurn)
     {
         var actionEvents = playerEvents
@@ -49,15 +52,15 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             .ToList();
 
         var actionSequences = actionEvents
-            .GroupBy(e => e.ActionSlot)
+            .GroupBy(e => e.DayIndex)
             .OrderBy(g => g.Key)
             .Select(g => new AnalyticsActionSequence(
                 g.Key,
-                g.Select(e => e.ActionType).ToList()))
+                g.OrderBy(e => e.ActionSlot).ThenBy(e => e.SequenceNumber).Select(e => e.ActionType).ToList()))
             .ToList();
 
         var actionRepetitions = actionEvents
-            .GroupBy(e => e.ActionSlot)
+            .GroupBy(e => e.DayIndex)
             .OrderBy(g => g.Key)
             .Select(g =>
             {
@@ -74,15 +77,18 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             })
             .ToList();
 
-        var actionTurns = actionRepetitions.Select(item => item.ActionSlot).ToHashSet();
-        var actionsSkipped = maxActionSlot > 0 ? Math.Max(0, maxActionSlot - actionTurns.Count) : 0;
+        var actionDays = actionRepetitions.Select(item => item.DayIndex).ToHashSet();
+        var actionsSkipped = actionDays.Count > 0
+            ? Math.Max(0, actionDays.Max() - actionDays.Min() + 1 - actionDays.Count)
+            : 0;
         var actionSlotTimeline = actionEvents
-            .GroupBy(e => e.ActionSlot)
+            .GroupBy(e => e.DayIndex)
             .OrderBy(g => g.Key)
             .SelectMany(g => g
-                .OrderBy(e => e.SequenceNumber)
+                .OrderBy(e => e.ActionSlot).ThenBy(e => e.SequenceNumber)
                 .Select((e, index) => new AnalyticsActionSlot(
-                    g.Key,
+                    e.DayIndex,
+                    e.ActionSlot,
                     index + 1,
                     e.ActionType,
                     e.SequenceNumber)))
@@ -107,6 +113,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             actionRepetitions,
             actionSlotTimeline,
             actionsSkipped,
+            actionEvents.Count == 0 ? null : actionEvents.Max(e => e.DayIndex),
             latestActionSlot,
             actionEvents.Count,
             incomeActions,

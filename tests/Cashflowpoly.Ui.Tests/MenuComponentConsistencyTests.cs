@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui MenuComponentConsistencyTests.
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -6,17 +7,21 @@ namespace Cashflowpoly.Ui.Tests;
 public sealed class MenuComponentConsistencyTests
 {
     [Theory]
-    [InlineData("Home", "Index.cshtml", 4)]
-    [InlineData("Sessions", "Index.cshtml", 3)]
-    [InlineData("Sessions", "Details.cshtml", 4)]
+    [InlineData("Home", "Index.cshtml", 2)]
+    [InlineData("Sessions", "Index.cshtml", 2)]
+    [InlineData("Sessions", "Details.cshtml", 3)]
     [InlineData("Players", "Index.cshtml", 3)]
     [InlineData("Players", "Details.cshtml", 3)]
-    [InlineData("Rulesets", "Index.cshtml", 4)]
+    [InlineData("Rulesets", "Index.cshtml", 3)]
     [InlineData("Rulesets", "Create.cshtml", 5)]
     [InlineData("Rulesets", "Details.cshtml", 6)]
     public void PrimaryMenuViews_ShouldUseSharedSectionHeaders(string folder, string fileName, int minimumSectionTitles)
     {
         var viewContent = File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Views", folder, fileName));
+        if (folder == "Rulesets" && fileName == "Details.cshtml")
+        {
+            viewContent += File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Views", "Shared", "_RulesetDetailContent.cshtml"));
+        }
 
         var sectionHeadCount = Count(viewContent, "ruleset-section-head");
         var sectionTitleCount = Count(viewContent, "ruleset-section-title");

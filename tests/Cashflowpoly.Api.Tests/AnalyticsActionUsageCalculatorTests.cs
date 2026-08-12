@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AnalyticsActionUsageCalculatorTests.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;
@@ -15,12 +16,12 @@ public sealed class AnalyticsActionUsageCalculatorTests
         var orderEventId = Guid.NewGuid();
         var events = new List<EventDb>
         {
-            CreateEvent(freelanceEventId, sessionId, playerId, "KerjaLepas", turn: 1, sequence: 1),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", turn: 1, sequence: 2),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", turn: 1, sequence: 3),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "AkhirGiliran", turn: 1, sequence: 4),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "LewatiOrder", turn: 2, sequence: 5),
-            CreateEvent(orderEventId, sessionId, playerId, "JualMasakan", turn: 2, sequence: 6)
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", dayIndex: 0, actionSlot: 1, sequence: 1),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", dayIndex: 0, actionSlot: 2, sequence: 2),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "AkhirGiliran", dayIndex: 0, actionSlot: 2, sequence: 3),
+            CreateEvent(freelanceEventId, sessionId, playerId, "KerjaLepas", dayIndex: 1, actionSlot: 1, sequence: 4),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "LewatiOrder", dayIndex: 1, actionSlot: 1, sequence: 5),
+            CreateEvent(orderEventId, sessionId, playerId, "JualMasakan", dayIndex: 1, actionSlot: 2, sequence: 6)
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -28,26 +29,27 @@ public sealed class AnalyticsActionUsageCalculatorTests
             CreateProjection(orderEventId, sessionId, playerId, "IN", 12, "ORDER_INCOME")
         };
 
-        var metrics = new ActionUsageCalculator().Compute(events, projections, maxActionSlot: 2, actionsPerTurn: 2);
+        var metrics = new ActionUsageCalculator().Compute(events, projections, latestDayIndex: 1, actionsPerTurn: 2);
 
         Assert.Equal(2, metrics.ActionSequences.Count);
-        Assert.Equal(1, metrics.ActionSequences[0].ActionSlot);
-        Assert.Equal(new[] { "KerjaLepas", "BahanMasakan", "BahanMasakan" }, metrics.ActionSequences[0].Actions);
-        Assert.Equal(2, metrics.ActionSequences[1].ActionSlot);
-        Assert.Equal(new[] { "JualMasakan" }, metrics.ActionSequences[1].Actions);
+        Assert.Equal(0, metrics.ActionSequences[0].DayIndex);
+        Assert.Equal(new[] { "BahanMasakan", "BahanMasakan" }, metrics.ActionSequences[0].Actions);
+        Assert.Equal(1, metrics.ActionSequences[1].DayIndex);
+        Assert.Equal(new[] { "KerjaLepas", "JualMasakan" }, metrics.ActionSequences[1].Actions);
 
         Assert.Equal(2, metrics.ActionRepetitions.Count);
-        Assert.Equal(1, metrics.ActionRepetitions[0].ActionSlot);
-        Assert.Equal(3, metrics.ActionRepetitions[0].TotalActions);
-        Assert.Equal(2, metrics.ActionRepetitions[0].DistinctActions);
+        Assert.Equal(0, metrics.ActionRepetitions[0].DayIndex);
+        Assert.Equal(2, metrics.ActionRepetitions[0].TotalActions);
+        Assert.Equal(1, metrics.ActionRepetitions[0].DistinctActions);
         Assert.Equal(1, metrics.ActionRepetitions[0].RepeatedActions);
-        Assert.Equal(1, metrics.ActionRepetitions[0].DiversityScore);
-        Assert.Equal(0.5, metrics.ActionRepetitions[1].DiversityScore);
+        Assert.Equal(0.5, metrics.ActionRepetitions[0].DiversityScore);
+        Assert.Equal(1, metrics.ActionRepetitions[1].DiversityScore);
 
         Assert.Equal(4, metrics.ActionSlotTimeline.Count);
         Assert.Equal(2, metrics.ActionSlotTimeline[3].ActionSlot);
         Assert.Equal("JualMasakan", metrics.ActionSlotTimeline[3].ActionType);
         Assert.Equal(2, metrics.LatestActionSlot);
+        Assert.Equal(1, metrics.LatestDayIndex);
         Assert.Equal(0, metrics.ActionsSkipped);
         Assert.Equal(4, metrics.ActionEventCount);
         Assert.Equal(2, metrics.IncomeActions);
@@ -61,7 +63,8 @@ public sealed class AnalyticsActionUsageCalculatorTests
         Guid sessionId,
         Guid playerId,
         string actionType,
-        int turn,
+        int dayIndex,
+        int actionSlot,
         long sequence)
     {
         return new EventDb
@@ -71,9 +74,9 @@ public sealed class AnalyticsActionUsageCalculatorTests
             UserId = playerId,
             ActorType = "PLAYER",
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
-            DayIndex = turn - 1,
+            DayIndex = dayIndex,
             Weekday = "MON",
-            ActionSlot = turn,
+            ActionSlot = actionSlot,
             SequenceNumber = sequence,
             ActionType = actionType,
             RulesetVersionId = Guid.NewGuid(),

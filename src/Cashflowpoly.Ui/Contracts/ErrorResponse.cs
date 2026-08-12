@@ -1,3 +1,4 @@
+// Fungsi file: Mendefinisikan kontrak pertukaran data UI dengan API untuk ErrorResponse.
 using System.Text.Json.Serialization;
 
 namespace Cashflowpoly.Ui.Contracts;

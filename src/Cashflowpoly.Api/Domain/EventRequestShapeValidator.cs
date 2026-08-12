@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui EventRequestShapeValidator.
 using System.Collections.Frozen;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;

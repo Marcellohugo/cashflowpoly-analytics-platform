@@ -39,7 +39,6 @@
             ? Context.T("auth.role_player")
             : activeRole;
     var showQuickStartGuide = isLoggedIn && !isAuthPage;
-    var quickStartRole = isInstructor ? "instructor" : "player";
     var quickStartTitle = isInstructor
         ? Context.T("layout.quickstart.instructor.title")
         : Context.T("layout.quickstart.player.title");
@@ -111,9 +110,9 @@
                 Number = 3,
                 Title = Context.T("layout.quickstart.player.step3.title"),
                 Description = Context.T("layout.quickstart.player.step3.desc"),
-                Controller = "Rulesets",
+                Controller = "Sessions",
                 Action = "Index",
-                IsCurrent = isRulesetsSection
+                IsCurrent = isSessionDetailPage
             },
             new
             {
@@ -200,11 +199,11 @@
                     <div id="primary-nav-links" class="nav-pill nav-center">
                         <a class="@navClass(isHomeSection)" aria-current="@(isHomeSection ? "page" : null)" data-nav="home" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
                         <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
+                        <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
                         @if (isInstructor)
                         {
-                            <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
+                            <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
                         }
-                        <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>
                         <a class="@navClass(isRulebookSection)" aria-current="@(isRulebookSection ? "page" : null)" data-nav="rulebook" href="/rulebook">@Context.T("nav.privacy")</a>
                     </div>
 
@@ -283,9 +282,8 @@
     <div class="page-shell">
         @if (showQuickStartGuide)
         {
-            <aside class="section-shell quickstart-shell"
+            <aside class="section-shell quickstart-shell is-collapsed"
                    data-quickstart
-                   data-quickstart-role="@quickStartRole"
                    aria-label="@Context.T("layout.quickstart.aria")">
                 <div class="quickstart-head">
                     <div>
@@ -296,12 +294,13 @@
                     <button class="btn-ghost btn-compact quickstart-toggle"
                             type="button"
                             data-quickstart-toggle
+                            aria-expanded="false"
                             data-expanded-label="@Context.T("layout.quickstart.hide")"
                             data-collapsed-label="@Context.T("layout.quickstart.show")">
-                        @Context.T("layout.quickstart.hide")
+                        @Context.T("layout.quickstart.show")
                     </button>
                 </div>
-                <div class="quickstart-body" data-quickstart-body>
+                <div class="quickstart-body" data-quickstart-body hidden>
                     <ol class="quickstart-steps">
                         @foreach (var step in quickStartSteps)
                         {

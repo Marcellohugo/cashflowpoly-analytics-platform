@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui PlayerIdentityPolicy.
 namespace Cashflowpoly.Api.Domain;
 
 /// <summary>

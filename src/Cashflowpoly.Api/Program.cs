@@ -1,3 +1,4 @@
+// Fungsi file: Mengonfigurasi dependency, middleware, endpoint, dan startup API.
 using System.Security.Claims;
 using System.Diagnostics;
 using System.Net;
@@ -21,6 +22,7 @@ using OpenTelemetry.Metrics;
 using Cashflowpoly.Api.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
+var bypassOperationalRateLimit = builder.Environment.IsEnvironment("Testing");
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 Activity.DefaultIdFormat = ActivityIdFormat.W3C;
@@ -43,16 +45,20 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 
     var trustedProxies = builder.Configuration.GetSection("Networking:TrustedProxies").Get<string[]>();
-    if (trustedProxies is null || trustedProxies.Length == 0)
-    {
-        return;
-    }
-
-    foreach (var proxy in trustedProxies)
+    foreach (var proxy in trustedProxies ?? [])
     {
         if (IPAddress.TryParse(proxy, out var ip))
         {
             options.KnownProxies.Add(ip);
+        }
+    }
+
+    var trustedNetworks = builder.Configuration.GetSection("Networking:TrustedNetworks").Get<string[]>();
+    foreach (var network in trustedNetworks ?? [])
+    {
+        if (System.Net.IPNetwork.TryParse(network, out var parsedNetwork))
+        {
+            options.KnownIPNetworks.Add(parsedNetwork);
         }
     }
 });
@@ -192,7 +198,10 @@ builder.Services.AddRateLimiter(options =>
     };
     options.AddPolicy("api", httpContext =>
     {
-        var permitLimit = RateLimitPolicyHelper.ResolvePermitLimit(httpContext.Request.Path);
+        // Pengujian integrasi memvalidasi kontrak endpoint secara paralel dari satu alamat proses.
+        var permitLimit = bypassOperationalRateLimit
+            ? 10_000
+            : RateLimitPolicyHelper.ResolvePermitLimit(httpContext.Request.Path);
         var partitionKey = RateLimitPolicyHelper.BuildPartitionKey(httpContext);
 
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
@@ -210,9 +219,10 @@ builder.Services.AddOpenTelemetry()
         .AddAspNetCoreInstrumentation()
         .AddMeter(AppMetrics.MeterName)
         .AddPrometheusExporter());
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
-builder.Services.AddSingleton(Npgsql.NpgsqlDataSource.Create(connectionString));
+var postgresDataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
+builder.Services.AddSingleton(postgresDataSource);
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+    options.UseNpgsql(serviceProvider.GetRequiredService<Npgsql.NpgsqlDataSource>()));
 builder.Services.AddScoped<RulesetRepository>();
 builder.Services.AddScoped<SessionRepository>();
 builder.Services.AddScoped<EventRepository>();

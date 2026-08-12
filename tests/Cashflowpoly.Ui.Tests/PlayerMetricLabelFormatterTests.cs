@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui PlayerMetricLabelFormatterTests.
 using System.Globalization;
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;
@@ -70,11 +71,119 @@ public sealed class PlayerMetricLabelFormatterTests
         Assert.Equal(expectedFallback, PlayerMetricLabelFormatter.IsFallbackCombinedSummaryPath(path));
     }
 
+    [Theory]
+    [InlineData("coins_saved", false, "savings")]
+    [InlineData("cash_in_total", false, "income")]
+    [InlineData("coins_donated", false, "donation")]
+    [InlineData("ingredients_wasted", false, "inventory")]
+    [InlineData("meal_orders_per_turn_average", false, "business_activity")]
+    [InlineData("donation_events", false, "donation")]
+    [InlineData("action_sequence[0].action_type", false, "timeline")]
+    [InlineData("sharia_loans_unpaid_end", false, "debt")]
+    [InlineData("average_risk_cost", true, "risk")]
+    public void DescribeMetric_UsesTheDataFunctionInsteadOfAGenericUnitDescription(
+        string path,
+        bool isDerived,
+        string expectedCategory)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            "5",
+            isDerived,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal($"players.support.meaning.{expectedCategory}", result.Explanation);
+        Assert.Equal($"players.support.guide.{expectedCategory}", result.Guidance);
+        Assert.Equal($"players.support.recommendation.{expectedCategory}", result.Recommendation);
+    }
+
+    [Theory]
+    [InlineData("net_worth_index", "players.support.recommendation.wealth")]
+    [InlineData("income_diversification_ratio", "players.support.recommendation.income_mix")]
+    [InlineData("insurance_coverage_rate", "players.support.recommendation.protection")]
+    [InlineData("friday_participation_rate", "players.support.recommendation.donation")]
+    [InlineData("planning_horizon", "players.support.recommendation.planning")]
+    [InlineData("unknown_result", "players.support.recommendation.balance")]
+    public void DescribeMetric_AddsARelevantFinancialLiteracyConsideration(
+        string path,
+        string expectedRecommendation)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            "5",
+            true,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal(expectedRecommendation, result.Recommendation);
+    }
+
+    [Theory]
+    [InlineData("expense_management_efficiency", "50", "players.support.guide.expense_efficiency")]
+    [InlineData("income_diversification_ratio", "50", "players.support.guide.income_mixed")]
+    [InlineData("planning_horizon", "0.5", "players.support.guide.planning_long")]
+    public void DescribeMetric_UsesFunctionalGuidanceForDerivedMetrics(
+        string path,
+        string value,
+        string expectedGuidance)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            value,
+            true,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal(expectedGuidance, result.Guidance);
+    }
+
+    [Theory]
+    [InlineData("action_efficiency", "0.45", "45", "players.support.unit.percent")]
+    [InlineData("growth_pattern_ratio", "1.5", "1.50", "players.support.unit.multiplier")]
+    [InlineData("meal_orders_per_turn_average", "0.25", "0.25", "players.support.unit.orders_per_turn")]
+    [InlineData("ingredients_used_per_meal_average", "2", "2", "players.support.unit.ingredients_per_order")]
+    [InlineData("donation_stability_std_deviation", "1.2", "1.20", "players.support.unit.coins")]
+    [InlineData("action_repetitions_per_turn[0].diversity_score", "0.5", "50", "players.support.unit.percent")]
+    [InlineData("coins_spent_per_turn[0].action_slot", "2", "2", "players.support.unit.action_slot")]
+    [InlineData("coins_spent_per_turn[0].amount", "12", "12", "players.support.unit.coins")]
+    [InlineData("N_active_income_sources", "3", "3", "players.support.unit.sources")]
+    public void DescribeMetric_UsesDimensionallyCorrectDisplayValuesAndUnits(
+        string path,
+        string value,
+        string expectedDisplay,
+        string expectedUnit)
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            var result = PlayerMetricLabelFormatter.DescribeMetric(
+                path,
+                value,
+                true,
+                true,
+                "Unavailable",
+                key => key);
+
+            Assert.Equal(expectedDisplay, result.DisplayValue);
+            Assert.Equal(expectedUnit, result.Unit);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+    }
+
     private static string Translate(string key)
     {
         return key switch
         {
-            "players.details.metric_fallback" => "Metric",
+            "players.details.metric_fallback" => "Data",
             "players.details.item" => "Item",
             "players.details.series" => "Series",
             "common.value" => "Value",

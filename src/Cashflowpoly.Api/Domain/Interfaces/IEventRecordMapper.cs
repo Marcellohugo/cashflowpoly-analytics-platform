@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui IEventRecordMapper.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
 

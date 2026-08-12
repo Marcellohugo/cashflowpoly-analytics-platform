@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsSavingGoalCalculator.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
@@ -19,7 +20,7 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
 {
     private static readonly AnalyticsPayloadReader _payloadReader = new();
 
-    public AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents)
+    public AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents, int? availableGoalCount = null)
     {
         var savingDepositsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var savingWithdrawalsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -70,7 +71,11 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
         goalIds.UnionWith(savingGoalsAchieved);
 
         var financialGoalsAttempted = goalIds.Count;
-        var financialGoalsAvailableTotal = goalIds.Count > 0 ? goalIds.Count : (int?)null;
+        var financialGoalsAvailableTotal = availableGoalCount is > 0
+            ? availableGoalCount
+            : goalIds.Count > 0
+                ? goalIds.Count
+                : (int?)null;
         var financialGoalsIncompleteCoinsWasted = savingBalancesByGoal
             .Where(kvp => !savingGoalsAchieved.Contains(kvp.Key))
             .Sum(kvp => kvp.Value);

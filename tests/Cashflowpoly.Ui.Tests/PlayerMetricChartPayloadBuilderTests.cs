@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui PlayerMetricChartPayloadBuilderTests.
 using System.Text.Json;
 using Cashflowpoly.Ui.Infrastructure;
 using Xunit;

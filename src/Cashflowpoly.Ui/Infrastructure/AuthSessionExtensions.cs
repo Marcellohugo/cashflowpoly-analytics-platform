@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui AuthSessionExtensions.
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
 

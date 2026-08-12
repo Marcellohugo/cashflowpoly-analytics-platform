@@ -43,14 +43,27 @@
 
                 <div class="form-field">
                     <label class="auth-label" for="login-password">@Context.T(key: "auth.password")</label>
-                    <input class="auth-input"
-                           id="login-password"
-                           asp-for="Password"
-                           type="password"
-                           autocomplete="current-password"
-                           enterkeyhint="go"
-                           required
-                           placeholder="********" />
+                    <div class="auth-password-control">
+                        <input class="auth-input"
+                               id="login-password"
+                               asp-for="Password"
+                               type="password"
+                               autocomplete="current-password"
+                               enterkeyhint="go"
+                               required
+                               placeholder="********" />
+                        <button class="auth-password-toggle"
+                                type="button"
+                                aria-controls="login-password"
+                                aria-pressed="false"
+                                aria-label="@Context.T("auth.show_password")"
+                                title="@Context.T("auth.show_password")"
+                                data-password-toggle
+                                data-show-label="@Context.T("auth.show_password")"
+                                data-hide-label="@Context.T("auth.hide_password")">
+                            <span class="auth-password-eye" aria-hidden="true"></span>
+                        </button>
+                    </div>
                 </div>
 
                 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))

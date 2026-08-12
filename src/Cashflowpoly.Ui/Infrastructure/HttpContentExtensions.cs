@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui HttpContentExtensions.
 using System.Net.Http.Json;
 using System.Text.Json;
 

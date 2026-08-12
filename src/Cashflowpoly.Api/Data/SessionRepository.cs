@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk SessionRepository.
 using Dapper;
 using Npgsql;
 
@@ -180,6 +181,49 @@ public sealed class SessionRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
+    /// <summary>
+    /// Mengambil skor dan delapan komponen final yang telah dibekukan ketika sesi berakhir.
+    /// </summary>
+    public async Task<List<SessionFinalScoreDb>> GetFinalScoresAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select
+                sp.user_id as UserId,
+                sp.player_order_no as PlayerOrder,
+                fs.rank_no as Rank,
+                fs.total_points as TotalPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'NEED_POINTS'), 0) as NeedPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'NEED_SET_BONUS'), 0) as NeedSetBonusPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'DONATION'), 0) as DonationPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'GOLD'), 0) as GoldPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'PENSION'), 0) as PensionPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'SAVING_GOAL'), 0) as SavingGoalPoints,
+                greatest(0, -coalesce(sum(fsc.points) filter (where fsc.component_code = 'MISSION_PENALTY'), 0)) as MissionPenaltyPoints,
+                greatest(0, -coalesce(sum(fsc.points) filter (where fsc.component_code = 'LOAN_PENALTY'), 0)) as LoanPenaltyPoints,
+                fs.has_unpaid_loan as HasUnpaidLoan
+            from session_final_scores fs
+            join session_participants sp
+              on sp.session_id = fs.session_id
+             and sp.session_participant_id = fs.session_participant_id
+            left join session_final_score_components fsc
+              on fsc.session_id = fs.session_id
+             and fsc.session_final_score_id = fs.session_final_score_id
+            where fs.session_id = @sessionId
+            group by
+                sp.user_id,
+                sp.player_order_no,
+                fs.rank_no,
+                fs.total_points,
+                fs.has_unpaid_loan
+            order by fs.rank_no, sp.player_order_no
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var scores = await conn.QueryAsync<SessionFinalScoreDb>(
+            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+        return scores.ToList();
     }
 
     /// <summary>

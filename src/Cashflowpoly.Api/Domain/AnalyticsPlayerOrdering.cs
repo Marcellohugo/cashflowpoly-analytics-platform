@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsPlayerOrdering.
 using System.Globalization;
 using Cashflowpoly.Api.Contracts;
 

@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui EventIngredientOrderValidator.
 using System.Linq;
 using System.Text.Json;
 using Cashflowpoly.Api.Data;

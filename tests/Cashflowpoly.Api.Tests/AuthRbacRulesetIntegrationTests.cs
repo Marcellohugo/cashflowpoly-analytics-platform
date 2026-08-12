@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AuthRbacRulesetIntegrationTests.
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -36,17 +37,21 @@ public sealed class AuthRbacRulesetIntegrationTests
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var instructorUsername = $"it_instructor_{suffix}";
         var playerUsername = $"it_player_{suffix}";
+        var unrelatedPlayerUsername = $"it_player_unrelated_{suffix}";
         const string instructorPassword = "IntegrationInstructorPass!123";
         const string playerPassword = "IntegrationPlayerPass!123";
 
         var instructorRegister = await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR");
         var playerRegister = await RegisterAsync(playerUsername, playerPassword, "PLAYER");
+        var unrelatedPlayerRegister = await RegisterAsync(unrelatedPlayerUsername, playerPassword, "PLAYER");
 
         Assert.Equal("INSTRUCTOR", instructorRegister.Role);
         Assert.Equal("PLAYER", playerRegister.Role);
+        Assert.Equal("PLAYER", unrelatedPlayerRegister.Role);
 
         var instructorLogin = await LoginAsync(instructorUsername, instructorPassword);
         var playerLogin = await LoginAsync(playerUsername, playerPassword);
+        var unrelatedPlayerLogin = await LoginAsync(unrelatedPlayerUsername, playerPassword);
 
         Assert.False(string.IsNullOrWhiteSpace(instructorLogin.AccessToken));
         Assert.False(string.IsNullOrWhiteSpace(playerLogin.AccessToken));
@@ -312,6 +317,26 @@ public sealed class AuthRbacRulesetIntegrationTests
                 instructorLogin.AccessToken);
             Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
         }
+
+        var sessionPlayersResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            body: null,
+            playerLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, sessionPlayersResponse.StatusCode);
+
+        var sessionPlayers = await sessionPlayersResponse.Content.ReadFromJsonAsync<SessionPlayerListResponse>();
+        Assert.NotNull(sessionPlayers);
+        Assert.Equal(3, sessionPlayers.Items.Count);
+        Assert.Equal(new[] { 1, 2, 3 }, sessionPlayers.Items.Select(item => item.PlayerOrder));
+        Assert.Contains(sessionPlayers.Items, item => item.DisplayName.Contains(suffix, StringComparison.Ordinal));
+
+        var unrelatedSessionPlayersResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{createdSession.SessionId}/players",
+            body: null,
+            unrelatedPlayerLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.Forbidden, unrelatedSessionPlayersResponse.StatusCode);
 
         var playerStartSession = await SendJsonAsync(
             HttpMethod.Post,
@@ -729,6 +754,8 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.Equal(2, defaultItems.Count);
         Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("name").GetString(), "Cashflowpoly Default - Mode Pemula", StringComparison.Ordinal));
         Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("name").GetString(), "Cashflowpoly Default - Mode Mahir", StringComparison.Ordinal));
+        Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("mode").GetString(), "PEMULA", StringComparison.Ordinal));
+        Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("mode").GetString(), "MAHIR", StringComparison.Ordinal));
         Assert.All(defaultItems, item => Assert.Equal("ACTIVE", item.GetProperty("status").GetString()));
         Assert.All(defaultItems, item => Assert.False(item.GetProperty("is_locked_by_session").GetBoolean()));
     }

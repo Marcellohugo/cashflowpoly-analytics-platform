@@ -1,3 +1,4 @@
+// Fungsi file: Menerapkan kontrol keamanan aplikasi melalui AuthOptions.
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>

@@ -1,3 +1,4 @@
+// Fungsi file: Menangani endpoint, validasi akses, dan response HTTP untuk ObservabilityController.
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

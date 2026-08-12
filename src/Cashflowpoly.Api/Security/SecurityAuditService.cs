@@ -1,3 +1,4 @@
+// Fungsi file: Menerapkan kontrol keamanan aplikasi melalui SecurityAuditService.
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;

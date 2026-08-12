@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui RulesetFormHelper.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cashflowpoly.Ui.Contracts;

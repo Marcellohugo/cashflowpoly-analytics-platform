@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk RulesetRepository.
 using System.Security.Cryptography;
 using System.Data.Common;
 using System.Text;
@@ -423,6 +424,7 @@ public sealed class RulesetRepository
                 select
                     rv.ruleset_id,
                     rv.version as latest_version,
+                    rv.mode,
                     row_number() over (
                         partition by rv.ruleset_id
                         order by rv.version desc
@@ -446,7 +448,8 @@ public sealed class RulesetRepository
                     join sessions s_lock on s_lock.ruleset_version_id = rv_lock.ruleset_version_id
                     where rv_lock.ruleset_id = r.ruleset_id
                       and s_lock.status in ('STARTED', 'ENDED')
-                ) as is_locked_by_session
+                ) as is_locked_by_session,
+                v.mode
             from rulesets r
             left join latest_versions v
                 on v.ruleset_id = r.ruleset_id and v.rn = 1
@@ -471,6 +474,7 @@ public sealed class RulesetRepository
                 select
                     rv.ruleset_id,
                     rv.version as latest_version,
+                    rv.mode,
                     row_number() over (
                         partition by rv.ruleset_id
                         order by rv.version desc
@@ -489,7 +493,8 @@ public sealed class RulesetRepository
                     join sessions s_lock on s_lock.ruleset_version_id = rv_lock.ruleset_version_id
                     where rv_lock.ruleset_id = r.ruleset_id
                       and s_lock.status in ('STARTED', 'ENDED')
-                ) as is_locked_by_session
+                ) as is_locked_by_session,
+                v.mode
             from rulesets r
             left join latest_versions v
                 on v.ruleset_id = r.ruleset_id and v.rn = 1
@@ -543,7 +548,8 @@ public sealed class RulesetRepository
                     join sessions s_lock on s_lock.ruleset_version_id = rv_lock.ruleset_version_id
                     where rv_lock.ruleset_id = r.ruleset_id
                       and s_lock.status in ('STARTED', 'ENDED')
-                ) as is_locked_by_session
+                ) as is_locked_by_session,
+                v.mode
             from rulesets r
             left join latest_versions v
                 on v.ruleset_id = r.ruleset_id and v.rn = 1
@@ -2604,7 +2610,7 @@ public sealed class RulesetRepository
         public int CashMin { get; init; }
         public int MaxIngredientTotal { get; init; }
         public int MaxSameIngredient { get; init; }
-        public int PrimaryNeedMaxPerDay { get; init; }
+        public int? PrimaryNeedMaxPerDay { get; init; }
         public bool RequirePrimaryBeforeOthers { get; init; }
         public int DonationMinAmount { get; init; }
         public int DonationMaxAmount { get; init; }

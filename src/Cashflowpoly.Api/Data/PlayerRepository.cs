@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk PlayerRepository.
 using Dapper;
 using Npgsql;
 
@@ -111,6 +112,25 @@ public sealed class PlayerRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         var items = await conn.QueryAsync<PlayerDb>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task<List<SessionPlayerDb>> ListSessionPlayersAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select
+                sp.user_id,
+                coalesce(nullif(sp.player_name, ''), u.display_name) as display_name,
+                sp.player_order_no as player_order
+            from session_participants sp
+            join app_users u on u.user_id = sp.user_id
+            where sp.session_id = @sessionId
+            order by sp.player_order_no asc, sp.joined_at asc, sp.user_id asc
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<SessionPlayerDb>(
+            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
         return items.ToList();
     }
 

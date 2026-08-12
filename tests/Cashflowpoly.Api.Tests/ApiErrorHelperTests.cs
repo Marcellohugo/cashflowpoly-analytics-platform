@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui ApiErrorHelperTests.
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
@@ -51,5 +52,19 @@ public sealed class ApiErrorHelperTests
         Assert.Equal("NOT_FOUND", error.ErrorCode);
         Assert.Equal("trace-002", error.TraceId);
         Assert.Empty(error.Details);
+    }
+
+    [Fact]
+    public void BuildError_TranslatesCoveredMessage_WhenEnglishIsPreferred()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers.AcceptLanguage = "en-US,en;q=0.9";
+
+        var error = ApiErrorHelper.BuildError(
+            context,
+            "NOT_FOUND",
+            "Ruleset tidak memiliki definisi relasional yang lengkap");
+
+        Assert.Equal("Ruleset does not have a complete relational definition", error.Message);
     }
 }

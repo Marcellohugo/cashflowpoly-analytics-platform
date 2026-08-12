@@ -1,3 +1,4 @@
+// Fungsi file: Menangani endpoint, validasi akses, dan response HTTP untuk AuthController.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Contracts;

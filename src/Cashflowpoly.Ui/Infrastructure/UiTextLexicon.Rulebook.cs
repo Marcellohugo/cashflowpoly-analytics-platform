@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui UiTextLexicon.Rulebook.
 namespace Cashflowpoly.Ui.Infrastructure;
 
 internal static partial class UiTextLexicon

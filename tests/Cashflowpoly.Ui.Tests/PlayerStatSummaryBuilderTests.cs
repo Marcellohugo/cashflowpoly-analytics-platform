@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui PlayerStatSummaryBuilderTests.
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -8,36 +9,11 @@ namespace Cashflowpoly.Ui.Tests;
 public sealed class PlayerStatSummaryBuilderTests
 {
     [Fact]
-    public void Build_CreatesPriorityKeyMetricsForInstructorReview()
-    {
-        var gameplay = BuildGameplay(
-            cashflowNetTotal: 18,
-            happinessPointsTotal: 42,
-            primaryNeedRate: 0.82,
-            hasUnpaidLoan: false);
-        var journey = new PlayerCashflowJourneyStatsViewModel
-        {
-            EndingCash = 38,
-            TotalCashIn = 60,
-            TotalCashOut = 42,
-            NetCashflow = 18,
-            TransactionCount = 7
-        };
-
-        var summary = PlayerStatSummaryBuilder.Build(gameplay, journey, Translate);
-
-        Assert.True(summary.KeyMetrics.Count >= 8);
-        Assert.Contains(summary.KeyMetrics, item => item.Key == "ending_cash" && item.Value == "38");
-        Assert.Contains(summary.KeyMetrics, item => item.Key == "net_cashflow" && item.Value == "18");
-        Assert.Contains(summary.KeyMetrics, item => item.Key == "happiness_points" && item.Value == "42");
-        Assert.Contains(summary.KeyMetrics, item => item.Key == "loan_status" && item.Value == "Clear");
-    }
-
-    [Fact]
     public void Build_AddsRiskInsightWhenCashflowIsNegative()
     {
         var summary = PlayerStatSummaryBuilder.Build(
             BuildGameplay(cashflowNetTotal: -12, happinessPointsTotal: 30, primaryNeedRate: 0.9, hasUnpaidLoan: false),
+            null,
             null,
             Translate);
 
@@ -50,20 +26,23 @@ public sealed class PlayerStatSummaryBuilderTests
         var summary = PlayerStatSummaryBuilder.Build(
             BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, primaryNeedRate: 0.9, hasUnpaidLoan: true),
             null,
+            null,
             Translate);
 
         Assert.Contains(summary.Insights, item => item.Key == "loan_unpaid" && item.Tone == "danger");
     }
 
     [Fact]
-    public void Build_AddsPositiveInsightWhenHappinessIsStrong()
+    public void Build_DoesNotRepeatPositivePillarsAsDiscussionPriorities()
     {
         var summary = PlayerStatSummaryBuilder.Build(
             BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 72, primaryNeedRate: 0.9, hasUnpaidLoan: false),
             null,
+            null,
             Translate);
 
-        Assert.Contains(summary.Insights, item => item.Key == "happiness_strong" && item.Tone == "positive");
+        Assert.Single(summary.Insights);
+        Assert.Equal("stable_profile", summary.Insights[0].Key);
     }
 
     [Fact]
@@ -72,9 +51,52 @@ public sealed class PlayerStatSummaryBuilderTests
         var summary = PlayerStatSummaryBuilder.Build(
             BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, primaryNeedRate: 0.55, hasUnpaidLoan: false),
             null,
+            null,
             Translate);
 
         Assert.Contains(summary.Insights, item => item.Key == "primary_need_low" && item.Tone == "warning");
+    }
+
+    [Fact]
+    public void Build_PrioritizesRisksWithoutPositiveDuplicates()
+    {
+        var summary = PlayerStatSummaryBuilder.Build(
+            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 72, primaryNeedRate: 0.55, hasUnpaidLoan: true),
+            null,
+            null,
+            Translate);
+
+        Assert.Equal(2, summary.Insights.Count);
+        Assert.Equal("loan_unpaid", summary.Insights[0].Key);
+        Assert.Contains(summary.Insights, item => item.Key == "primary_need_low");
+        Assert.DoesNotContain(summary.Insights, item => item.Tone == "positive");
+    }
+
+    [Fact]
+    public void Build_PrefersTheAuthoritativePlayerAnalyticsSummary()
+    {
+        var summary = PlayerStatSummaryBuilder.Build(
+            BuildGameplay(cashflowNetTotal: 0, happinessPointsTotal: 0, primaryNeedRate: 0, hasUnpaidLoan: false),
+            BuildAnalyticsSummary(cashIn: 50, cashOut: 20, happiness: 72, primaryNeedRate: 0.9, hasUnpaidLoan: false),
+            null,
+            Translate);
+
+        Assert.Contains(summary.Insights, item => item.Key == "stable_profile");
+        Assert.DoesNotContain(summary.Insights, item => item.Key == "happiness_low");
+        Assert.DoesNotContain(summary.Insights, item => item.Key == "primary_need_low");
+    }
+
+    private static AnalyticsByPlayerItem BuildAnalyticsSummary(
+        double cashIn,
+        double cashOut,
+        double happiness,
+        double primaryNeedRate,
+        bool hasUnpaidLoan)
+    {
+        return new AnalyticsByPlayerItem(
+            Guid.NewGuid(), 1, cashIn, cashOut, 0, 0, 0, 0, 0,
+            primaryNeedRate, 0, happiness, 0, 0, 0, 0, 0, 0, 0,
+            hasUnpaidLoan ? 4 : 0, hasUnpaidLoan);
     }
 
     private static GameplayMetricsResponse BuildGameplay(

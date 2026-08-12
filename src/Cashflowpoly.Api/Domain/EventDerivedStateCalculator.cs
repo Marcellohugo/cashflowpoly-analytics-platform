@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui EventDerivedStateCalculator.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

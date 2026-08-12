@@ -1,3 +1,4 @@
+-- Fungsi file: Menyediakan data simulasi sesi dan event yang konsisten untuk demonstrasi serta pengujian analitika lokal.
 begin;
 
 -- Seed simulasi baseline dengan trigger dan validasi aktif.

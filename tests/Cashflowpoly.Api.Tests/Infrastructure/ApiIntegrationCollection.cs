@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui ApiIntegrationCollection.
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests.Infrastructure;

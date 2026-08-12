@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk EventActionIdResolver.
 using System.Text.Json;
 using Cashflowpoly.Api.Domain;
 

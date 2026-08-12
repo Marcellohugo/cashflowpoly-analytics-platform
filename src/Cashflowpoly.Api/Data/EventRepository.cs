@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk EventRepository.
 using Dapper;
 using Npgsql;
 

@@ -59,11 +59,7 @@
         }
 
         <section class="sessions-index-section mt-4">
-            <div class="ruleset-section-head">
-                <p class="ruleset-section-title">@(isInstructor ? Context.T("sessions.tips.instructor.title") : Context.T("sessions.tips.player.title"))</p>
-                <p class="ruleset-section-subtitle">@Context.T("sessions.index.status_help")</p>
-            </div>
-            <details class="mt-3 data-toggle" open>
+            <details class="mt-3 data-toggle">
                 <summary>@(isInstructor ? Context.T("sessions.tips.instructor.title") : Context.T("sessions.tips.player.title"))</summary>
                 <div class="mt-3 metric-panel">
                     <div class="metric-list">
@@ -83,19 +79,6 @@
                 </div>
             </details>
 
-            <div class="mt-4 ux-legend" aria-label="@Context.T("sessions.legend.title")">
-                <p class="ux-legend-title">@Context.T("sessions.legend.title")</p>
-                <div class="ux-legend-items">
-                    <span class="ux-legend-item">
-                        <span class="status-pill status-active">@Context.TSessionStatus("STARTED")</span>
-                        <span class="ux-legend-note">@Context.T("sessions.legend.started_hint")</span>
-                    </span>
-                    <span class="ux-legend-item">
-                        <span class="status-pill status-retired">@Context.TSessionStatus("ENDED")</span>
-                        <span class="ux-legend-note">@Context.T("sessions.legend.ended_hint")</span>
-                    </span>
-                </div>
-            </div>
         </section>
 
         <section class="sessions-index-section mt-5">

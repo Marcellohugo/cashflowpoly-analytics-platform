@@ -1,3 +1,4 @@
+-- Fungsi file: Mengisi dua set aturan bawaan beserta seluruh komponen relasional mode Pemula dan Mahir secara idempoten.
 create extension if not exists pgcrypto;
 
 begin;

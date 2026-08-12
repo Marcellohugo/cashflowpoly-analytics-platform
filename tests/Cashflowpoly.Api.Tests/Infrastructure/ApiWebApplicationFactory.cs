@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui ApiWebApplicationFactory.
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -24,12 +25,12 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Mengonfigurasi web host dengan environment Development dan menyuntikkan
+    /// Mengonfigurasi web host dengan environment Testing dan menyuntikkan
     /// connection string serta signing key JWT melalui in-memory configuration.
     /// </summary>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment("Testing");
         builder.ConfigureAppConfiguration((_, configBuilder) =>
         {
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>

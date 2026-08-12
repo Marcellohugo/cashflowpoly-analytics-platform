@@ -1,3 +1,4 @@
+// Fungsi file: Menerapkan kontrol keamanan aplikasi melalui JwtTokenService.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Cashflowpoly.Api.Data;

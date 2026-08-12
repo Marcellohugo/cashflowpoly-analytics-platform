@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk DbRecords.
 using Cashflowpoly.Api.Contracts;
 
 namespace Cashflowpoly.Api.Data;
@@ -77,6 +78,33 @@ public sealed class PlayerDb
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Nilai final pemain yang dibekukan saat sesi selesai; menjadi sumber resmi peringkat dan Poin Kebahagiaan.
+/// </summary>
+public sealed class SessionFinalScoreDb
+{
+    public Guid UserId { get; set; }
+    public int PlayerOrder { get; set; }
+    public int Rank { get; set; }
+    public double TotalPoints { get; set; }
+    public double NeedPoints { get; set; }
+    public double NeedSetBonusPoints { get; set; }
+    public double DonationPoints { get; set; }
+    public double GoldPoints { get; set; }
+    public double PensionPoints { get; set; }
+    public double SavingGoalPoints { get; set; }
+    public double MissionPenaltyPoints { get; set; }
+    public double LoanPenaltyPoints { get; set; }
+    public bool HasUnpaidLoan { get; set; }
+}
+
+public sealed class SessionPlayerDb
+{
+    public Guid UserId { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public int PlayerOrder { get; set; }
 }
 
 /// <summary>

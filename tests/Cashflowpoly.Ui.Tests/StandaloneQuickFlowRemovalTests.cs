@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui StandaloneQuickFlowRemovalTests.
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -65,14 +66,14 @@ public sealed class StandaloneQuickFlowRemovalTests
     }
 
     [Fact]
-    public void PlayersIndexView_ShouldFoldQuickFlowContentIntoOpenTipsPanel()
+    public void PlayersIndexView_ShouldFoldQuickFlowContentIntoCollapsedTipsPanel()
     {
         var viewPath = Path.Combine(UiRoot, "Views", "Players", "Index.cshtml");
         var viewContent = File.ReadAllText(viewPath);
 
         Assert.DoesNotContain("players.index.guide", viewContent);
         Assert.Matches(
-            new Regex(@"<details\s+class=""mt-3 data-toggle""\s+open>", RegexOptions.CultureInvariant),
+            new Regex(@"<details\s+class=""mt-3 data-toggle""\s*>", RegexOptions.CultureInvariant),
             viewContent);
         Assert.Contains("players.tip.validate", viewContent);
         Assert.Contains("players.tip.tracking", viewContent);
@@ -80,17 +81,48 @@ public sealed class StandaloneQuickFlowRemovalTests
     }
 
     [Fact]
-    public void HomeIndexView_ShouldRenderUsageGuideLikeOpenTipsPanel()
+    public void HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel()
     {
         var viewPath = Path.Combine(UiRoot, "Views", "Home", "Index.cshtml");
         var viewContent = File.ReadAllText(viewPath);
 
         Assert.Matches(
             new Regex(
-                @"<details\s+class=""mt-3 data-toggle""\s+open>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>",
+                @"<details\s+class=""mt-3 data-toggle""\s*>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>",
                 RegexOptions.CultureInvariant),
             viewContent);
-        Assert.Contains("home.quick_flow.subtitle", viewContent);
+        Assert.DoesNotContain("home.quick_flow.subtitle", viewContent);
+    }
+
+    [Fact]
+    public void UsageTips_ShouldAlwaysStartCollapsed()
+    {
+        var viewPaths = new[]
+        {
+            Path.Combine(UiRoot, "Views", "Home", "Index.cshtml"),
+            Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"),
+            Path.Combine(UiRoot, "Views", "Sessions", "Details.cshtml"),
+            Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"),
+            Path.Combine(UiRoot, "Views", "Rulesets", "Index.cshtml"),
+            Path.Combine(UiRoot, "Views", "Rulesets", "Create.cshtml")
+        };
+
+        foreach (var viewPath in viewPaths)
+        {
+            var viewContent = File.ReadAllText(viewPath);
+            Assert.Contains("<details class=\"mt-3 data-toggle\">", viewContent, StringComparison.Ordinal);
+            Assert.DoesNotContain("<details class=\"mt-3 data-toggle\" open>", viewContent, StringComparison.Ordinal);
+        }
+
+        var layout = File.ReadAllText(Path.Combine(UiRoot, "Views", "Shared", "_Layout.cshtml"));
+        var siteScript = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "js", "site.js"));
+        var siteCss = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+        Assert.Contains("quickstart-shell is-collapsed", layout, StringComparison.Ordinal);
+        Assert.Contains("data-quickstart-body hidden", layout, StringComparison.Ordinal);
+        Assert.Contains("applyState(true);", siteScript, StringComparison.Ordinal);
+        Assert.DoesNotContain("cfp_quickstart_collapsed_", siteScript, StringComparison.Ordinal);
+        Assert.Contains(".quickstart-shell.is-collapsed .quickstart-head .subhead", siteCss, StringComparison.Ordinal);
+        Assert.Contains(".quickstart-shell.is-collapsed .quickstart-title", siteCss, StringComparison.Ordinal);
     }
 
     private static string ResolveRepositoryRoot()

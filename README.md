@@ -2,7 +2,7 @@
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan penguncian `ruleset_version_id` pada sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
 
-Baseline dokumentasi ini mengikuti implementasi aktual per 12 Juli 2026 dengan schema `3.0.7`.
+Baseline dokumentasi ini mengikuti implementasi aktual per 12 Agustus 2026 dengan schema `3.0.8`.
 
 ## Tujuan
 Tujuan utama:
@@ -204,7 +204,7 @@ dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release --no-restor
 dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --no-restore /warnaserror
 dotnet build tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release --no-restore /warnaserror
-docker compose --env-file config/env/.env.prod.example -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml config
+./scripts/Test-ProductionReadiness.ps1
 dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release
 dotnet test tests/Cashflowpoly.Ui.Tests/Cashflowpoly.Ui.Tests.csproj -c Release
 ```
@@ -218,7 +218,7 @@ docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.ym
 curl http://localhost/health/ready
 docker logs cashflowpoly-tunnel --tail 20
 ```
-Jika `CLOUDFLARE_TUNNEL_TOKEN` kosong, skrip deploy otomatis menjalankan production tanpa `cloudflared`.
+Template production ini mewajibkan Cloudflare Tunnel sebagai terminasi HTTPS. Skrip kesiapan akan menolak token kosong, password contoh, signing key contoh, atau domain lokal.
 
 Catatan keamanan lokal:
 - Set `JWT_SIGNING_KEY` di `config/env/.env.dev` (dev) dan `config/env/.env.prod` (production), minimal 32 karakter.

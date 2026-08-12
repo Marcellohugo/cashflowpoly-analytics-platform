@@ -1,3 +1,4 @@
+// Fungsi file: Mengorkestrasi alur aplikasi dan domain melalui IAnalyticsService.
 using System.Security.Claims;
 using Cashflowpoly.Api.Contracts;
 

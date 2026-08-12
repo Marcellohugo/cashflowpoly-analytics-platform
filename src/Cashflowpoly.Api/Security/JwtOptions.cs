@@ -1,3 +1,4 @@
+// Fungsi file: Menerapkan kontrol keamanan aplikasi melalui JwtOptions.
 namespace Cashflowpoly.Api.Security;
 
 /// <summary>

@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui RulesetDefinitionMapper.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cashflowpoly.Api.Contracts;

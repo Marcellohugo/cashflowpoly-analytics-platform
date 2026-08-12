@@ -4,7 +4,6 @@
 #
 # Penggunaan:
 #   docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
-#   docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
 #
 # File ini meng-override docker-compose.yml untuk production:
 # - Memakai build lokal dari source untuk API dan UI
@@ -16,15 +15,24 @@ services:
   api:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi untuk production}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY wajib diisi untuk production}
+      AllowedHosts: api;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}
+      Networking__TrustedNetworks__0: 172.16.0.0/12
     ports: !override []
     # Hapus port mapping langsung, semua traffic lewat Nginx
 
   ui:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      AllowedHosts: ui;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}
+      Networking__TrustedNetworks__0: 172.16.0.0/12
+      Security__RequireHttps: "true"
     ports: !override []
 
   db:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi untuk production}
     ports: !override []
     # Database tidak di-expose ke luar di production
 
@@ -51,8 +59,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Cloudflare Named Tunnel - domain permanen: narafin.org
-  # Aktifkan dengan: docker compose --profile tunnel up -d
+  # Cloudflare Named Tunnel menyediakan terminasi HTTPS untuk template production ini.
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cashflowpoly-tunnel

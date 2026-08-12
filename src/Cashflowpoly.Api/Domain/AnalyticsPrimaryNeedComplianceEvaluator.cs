@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsPrimaryNeedComplianceEvaluator.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;

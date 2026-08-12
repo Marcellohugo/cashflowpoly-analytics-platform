@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan dukungan infrastruktur API melalui AppMetrics.
 using System.Diagnostics.Metrics;
 
 namespace Cashflowpoly.Api.Infrastructure.Telemetry;

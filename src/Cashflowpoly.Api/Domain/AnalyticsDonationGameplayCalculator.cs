@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsDonationGameplayCalculator.
 using System.Text.Json.Serialization;
 using Cashflowpoly.Api.Data;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
@@ -66,7 +67,10 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
 
         var donationAmounts = donationByDay.Select(d => d.Amount).ToList();
         var donationStabilityStdDeviation = donationAmounts.Count > 0 ? StdDev(donationAmounts) : (double?)null;
-        var donationStability = donationAmounts.Count > 0 ? 100 - StdDev(donationAmounts) : (double?)null;
+        var averageDonation = donationAmounts.Count > 0 ? donationAmounts.Average() : 0;
+        var donationStability = averageDonation > 0
+            ? Clamp((1 - (StdDev(donationAmounts) / averageDonation)) * 100, 0, 100)
+            : (double?)null;
         var donationRatio = SafeRatio(donationTotal, coinsNetEndGame);
         var donationAggressivenessPercent = SafeRatio(donationTotal, coinsNetEndGame, true);
         var totalFridays = allEvents
@@ -79,7 +83,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
             donationStability.HasValue &&
             donationRatio.HasValue &&
             fridayParticipationRate.HasValue
-                ? donationStability.Value * donationRatio.Value * fridayParticipationRate.Value
+                ? Clamp(donationStability.Value * donationRatio.Value * fridayParticipationRate.Value, 0, 100)
                 : (double?)null;
 
         return new AnalyticsDonationGameplayMetrics(

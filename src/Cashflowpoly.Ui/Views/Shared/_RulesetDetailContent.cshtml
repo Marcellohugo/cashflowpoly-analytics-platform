@@ -1,0 +1,312 @@
+@* Fungsi file: Menjadi satu-satunya sumber markup rincian set aturan untuk halaman rincian dan popup sesi. *@
+@model Cashflowpoly.Ui.Models.RulesetDetailViewModel
+@using System.Text.Json
+
+@functions {
+    private static JsonElement? GetPath(JsonElement root, params string[] path)
+    {
+        var cursor = root;
+        foreach (var segment in path)
+        {
+            if (cursor.ValueKind != JsonValueKind.Object || !cursor.TryGetProperty(segment, out var next))
+            {
+                return null;
+            }
+
+            cursor = next;
+        }
+
+        return cursor;
+    }
+
+    private static string AsText(JsonElement? value, string fallback = "-")
+    {
+        if (!value.HasValue)
+        {
+            return fallback;
+        }
+
+        var v = value.Value;
+        return v.ValueKind switch
+        {
+            JsonValueKind.String => v.GetString() ?? fallback,
+            JsonValueKind.Number => v.ToString(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            _ => v.ToString()
+        };
+    }
+
+    private static int AsInt(JsonElement? value, int fallback = 0)
+    {
+        if (!value.HasValue || value.Value.ValueKind != JsonValueKind.Number)
+        {
+            return fallback;
+        }
+
+        return value.Value.TryGetInt32(out var number) ? number : fallback;
+    }
+
+    private static bool AsBool(JsonElement? value, bool fallback = false)
+    {
+        if (!value.HasValue)
+        {
+            return fallback;
+        }
+
+        return value.Value.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => fallback
+        };
+    }
+}
+
+@{
+    var isEmbedded = ViewData["RulesetDetailEmbedded"] as bool? ?? false;
+    var isInstructor = Context.Session.IsInstructor();
+    var showVersionActions = isInstructor && !Model.IsReadOnly && !isEmbedded;
+    var idPrefix = isEmbedded ? "session-ruleset-detail" : "ruleset-detail";
+}
+
+@if (Model.Ruleset is null)
+{
+    <div class="ruleset-unified">
+        <div class="metric-panel">
+            <p class="text-sm font-semibold text-slate-800">@Context.T("rulesets.detail.empty_title")</p>
+            <p class="mt-2 text-sm text-slate-600">@Context.T("rulesets.detail.empty_body")</p>
+            @if (!isEmbedded)
+            {
+                <div class="mt-4">
+                    <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@("<- " + Context.T("rulesets.back_to_list"))</a>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    var hasConfig = Model.CompatibilityDefinitionJson.HasValue
+        && Model.CompatibilityDefinitionJson.Value.ValueKind == JsonValueKind.Object;
+    var cfg = hasConfig ? Model.CompatibilityDefinitionJson!.Value : default;
+    var modeRaw = Model.Ruleset.Mode ?? (hasConfig ? AsText(GetPath(cfg, "mode"), "PEMULA") : "PEMULA");
+    var isAdvancedMode = string.Equals(modeRaw, "MAHIR", StringComparison.OrdinalIgnoreCase);
+    var modeCode = isAdvancedMode ? "MAHIR" : "PEMULA";
+    var modeCss = isAdvancedMode ? "advanced" : "beginner";
+    var modeDescriptionKey = isAdvancedMode ? "rulesets.quick_guide_advanced" : "rulesets.quick_guide_beginner";
+    var displayDescription = Model.Ruleset.IsDefault || Model.IsDefaultCatalogSource
+        ? Context.T(isAdvancedMode ? "rulesets.default_description_advanced" : "rulesets.default_description_beginner")
+        : Model.Ruleset.Description;
+
+    <div class="ruleset-unified ruleset-detail-shell">
+        <div class="ruleset-detail-hero ruleset-mode-surface ruleset-mode-surface--@modeCss">
+            <div class="ruleset-title-block">
+                <div class="ruleset-mode-callout">
+                    <span class="ruleset-mode-badge ruleset-mode-badge--@modeCss">@Context.TRulesetMode(modeCode)</span>
+                    <p>@Context.T(modeDescriptionKey)</p>
+                </div>
+                <p class="text-sm text-slate-600">@Context.T("common.name")</p>
+                <p class="text-lg font-semibold text-slate-900">@Model.Ruleset.Name</p>
+                <p class="mt-2 text-sm text-slate-600">@Context.T("common.description")</p>
+                <p class="text-sm text-slate-700">@(string.IsNullOrWhiteSpace(displayDescription) ? "-" : displayDescription)</p>
+            </div>
+            <div class="ruleset-detail-meta">
+                <span class="status-pill status-active">@Context.T("rulesets.status.available")</span>
+                @if (Model.IsDefaultCatalogSource)
+                {
+                    <span class="hint-chip">@Context.T("rulesets.detail.source_default_catalog")</span>
+                }
+            </div>
+        </div>
+
+        @if (!isEmbedded)
+        {
+            <div class="action-toolbar mt-4 ruleset-detail-toolbar">
+                <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@("<- " + Context.T("rulesets.back_to_list"))</a>
+                @if (isInstructor && !Model.IsReadOnly)
+                {
+                    <a class="btn-ghost"
+                       asp-controller="Rulesets"
+                       asp-action="Edit"
+                       asp-route-rulesetId="@Model.Ruleset.RulesetId">@Context.T("rulesets.edit")</a>
+                    <form method="post"
+                          asp-controller="Rulesets"
+                          asp-action="Delete"
+                          asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                          onsubmit="return confirm('@Context.T("rulesets.delete_confirm")');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
+                    </form>
+                }
+                else
+                {
+                    <span class="hint-chip">@Context.T("rulesets.readonly_hint")</span>
+                }
+            </div>
+        }
+
+        <section class="ruleset-detail-section mt-5">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("rulesets.version_history")</p>
+                <p class="ruleset-section-subtitle">@Context.T("rulesets.version_history_subtitle")</p>
+            </div>
+            <div class="mt-3 table-wrap">
+                <table class="w-full text-left text-sm">
+                    <thead class="table-head">
+                        <tr>
+                            <th class="px-4 py-3">@Context.T("common.version")</th>
+                            <th class="px-4 py-3">@Context.T("common.status")</th>
+                            <th class="px-4 py-3">@Context.T("common.created")</th>
+                            @if (showVersionActions)
+                            {
+                                <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Ruleset.Versions.Count == 0)
+                    {
+                        <tr>
+                            <td class="px-4 py-4 text-slate-500" colspan="@(showVersionActions ? 4 : 3)">@Context.T("state.no_versions")</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var version in Model.Ruleset.Versions.OrderByDescending(v => v.Version))
+                        {
+                            var statusClass = string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+                                ? "status-active"
+                                : string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase)
+                                    ? "status-draft"
+                                    : "status-retired";
+                            <tr class="border-t border-slate-200">
+                                <td class="px-4 py-3 font-medium text-slate-900">@($"v{version.Version}")</td>
+                                <td class="px-4 py-3 text-slate-600"><span class="status-pill @statusClass">@Context.TRulesetStatus(version.Status)</span></td>
+                                <td class="px-4 py-3 text-slate-600">@version.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                @if (showVersionActions)
+                                {
+                                    <td class="px-4 py-3 text-right">
+                                        <div class="inline-flex items-center gap-2">
+                                            <form method="post"
+                                                  asp-controller="Rulesets"
+                                                  asp-action="ActivateVersion"
+                                                  asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                  asp-route-version="@version.Version">
+                                                @Html.AntiForgeryToken()
+                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
+                                            </form>
+                                            <form method="post"
+                                                  asp-controller="Rulesets"
+                                                  asp-action="DeleteVersion"
+                                                  asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                  asp-route-version="@version.Version"
+                                                  onsubmit="return confirm('@Context.T("rulesets.delete_version_confirm")');">
+                                                @Html.AntiForgeryToken()
+                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.delete_version")</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="ruleset-detail-section mt-5">
+            <div class="ruleset-section-head">
+                <p class="ruleset-section-title">@Context.T("rulesets.config_summary")</p>
+                <p class="ruleset-section-subtitle">@Context.T("rulesets.config_summary_subtitle")</p>
+            </div>
+            @if (!hasConfig)
+            {
+                <div class="mt-2 alert alert-info">@Context.T("rulesets.config_unavailable")</div>
+            }
+            else
+            {
+                var modeLabel = Context.TRulesetMode(modeRaw);
+                var playerOrderingRaw = AsText(GetPath(cfg, "player_ordering"), "PLAYER_ORDER");
+                var playerOrderingLabel = playerOrderingRaw.ToUpperInvariant() switch
+                {
+                    "EVENT_SEQUENCE" => Context.T("rulesets.form.player_ordering_event_sequence"),
+                    "PLAYER_ID" => Context.T("rulesets.form.player_ordering_player_id"),
+                    "USERNAME" => Context.T("rulesets.form.player_ordering_username"),
+                    _ => Context.T("rulesets.form.player_ordering_player_order")
+                };
+                <div class="mt-3 space-y-4">
+                    <div class="alert alert-info text-sm text-slate-700">@Context.T("rulesets.config_read_guide")</div>
+
+                    <div class="ruleset-form-section">
+                        <div class="ruleset-section-head">
+                            <p class="ruleset-section-title">@Context.T("rulesets.form.core_setup")</p>
+                            <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.core_setup")</p>
+                        </div>
+                        <div class="grid gap-3 md:grid-cols-2 mt-3">
+                            <div><label class="form-label" for="@(idPrefix + "-mode")">@Context.T("rulesets.form.mode")</label><input id="@(idPrefix + "-mode")" type="text" readonly value="@modeLabel" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-actions")">@Context.T("rulesets.form.actions_per_turn")</label><input id="@(idPrefix + "-actions")" type="number" readonly value="@AsInt(GetPath(cfg, "actions_per_turn"), 2)" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-starting-cash")">@Context.T("rulesets.form.starting_cash")</label><input id="@(idPrefix + "-starting-cash")" type="number" readonly value="@AsInt(GetPath(cfg, "starting_cash"), 20)" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-player-ordering")">@Context.T("rulesets.form.player_ordering")</label><input id="@(idPrefix + "-player-ordering")" type="text" readonly value="@($"{playerOrderingLabel} ({playerOrderingRaw})")" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-freelance-income")">@Context.T("rulesets.form.freelance_income")</label><input id="@(idPrefix + "-freelance-income")" type="number" readonly value="@AsInt(GetPath(cfg, "freelance", "income"), 1)" class="form-input" /></div>
+                        </div>
+                    </div>
+
+                    <div class="ruleset-form-section">
+                        <div class="ruleset-section-head">
+                            <p class="ruleset-section-title">@Context.T("rulesets.form.weekday_features")</p>
+                            <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.weekday_features")</p>
+                        </div>
+                        <div class="grid gap-3 md:grid-cols-3 mt-3">
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "friday", "enabled"), true) ? "checked" : null) /></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "saturday", "enabled"), true) ? "checked" : null) /></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.sunday_rest")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "weekday_rules", "sunday", "enabled"), true) ? "checked" : null) /></label>
+                        </div>
+                    </div>
+
+                    <div class="ruleset-form-section">
+                        <div class="ruleset-section-head">
+                            <p class="ruleset-section-title">@Context.T("rulesets.form.constraints")</p>
+                            <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.constraints")</p>
+                        </div>
+                        <div class="grid gap-3 md:grid-cols-2 mt-3">
+                            <div><label class="form-label" for="@(idPrefix + "-cash-min")">@Context.T("rulesets.form.cash_min")</label><input id="@(idPrefix + "-cash-min")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "cash_min"), 0)" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-max-ingredient-total")">@Context.T("rulesets.form.max_ingredient_total")</label><input id="@(idPrefix + "-max-ingredient-total")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "max_ingredient_total"), 6)" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-max-same-ingredient")">@Context.T("rulesets.form.max_same_ingredient")</label><input id="@(idPrefix + "-max-same-ingredient")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "max_same_ingredient"), 3)" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-primary-need-max")">@Context.T("rulesets.form.primary_need_max_day")</label><input id="@(idPrefix + "-primary-need-max")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "primary_need_max_per_day"), 1)" class="form-input" /></div>
+                            <label class="metric-row md:col-span-2"><span class="metric-key">@Context.T("rulesets.form.require_primary_first")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "constraints", "require_primary_before_others"), true) ? "checked" : null) /></label>
+                        </div>
+                    </div>
+
+                    <div class="ruleset-form-section">
+                        <div class="ruleset-section-head">
+                            <p class="ruleset-section-title">@Context.T("rulesets.form.economy_and_donation")</p>
+                            <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.economy_and_donation")</p>
+                        </div>
+                        <div class="grid gap-3 md:grid-cols-2 mt-3">
+                            <div><label class="form-label" for="@(idPrefix + "-donation-min")">@Context.T("rulesets.form.donation_min")</label><input id="@(idPrefix + "-donation-min")" type="number" readonly value="@AsInt(GetPath(cfg, "donation", "min_amount"), 1)" class="form-input" /></div>
+                            <div><label class="form-label" for="@(idPrefix + "-donation-max")">@Context.T("rulesets.form.donation_max")</label><input id="@(idPrefix + "-donation-max")" type="number" readonly value="@AsInt(GetPath(cfg, "donation", "max_amount"), 999999)" class="form-input" /></div>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_buy"), true) ? "checked" : null) /></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "gold_trade", "allow_sell"), true) ? "checked" : null) /></label>
+                            @if (isAdvancedMode)
+                            {
+                                <div class="ruleset-advanced-feature-grid ruleset-advanced-feature-grid--active md:col-span-2">
+                                    <div class="ruleset-advanced-feature-head">
+                                        <span class="ruleset-mode-badge ruleset-mode-badge--advanced">@Context.T("rulesets.form.mode_advanced")</span>
+                                        <p>@Context.T("rulesets.form.advanced_features_hint")</p>
+                                    </div>
+                                    <div class="grid gap-3 md:grid-cols-3 mt-3">
+                                        <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "loan", "enabled"), false) ? "checked" : null) /></label>
+                                        <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "insurance", "enabled"), false) ? "checked" : null) /></label>
+                                        <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "advanced", "saving_goal", "enabled"), false) ? "checked" : null) /></label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </section>
+    </div>
+}

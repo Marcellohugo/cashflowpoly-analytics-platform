@@ -1,3 +1,4 @@
+// Fungsi file: Mengorkestrasi alur aplikasi dan domain melalui AnalyticsService.
 using System.Security.Claims;
 using System.Text.Json;
 using Cashflowpoly.Api.Infrastructure;
@@ -79,16 +80,21 @@ internal sealed class AnalyticsService : IAnalyticsService
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
         var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
+        var finalScores = await ResolveFinalScoresAsync(sessionId, access.Session?.Status, ct);
+        happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
         var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerPlayerOrders, ct);
+        var leaderboard = string.Equals(access.Session?.Status, "ENDED", StringComparison.OrdinalIgnoreCase)
+            ? BuildFinalLeaderboard(byPlayer, finalScores)
+            : [];
 
         if (activeRuleset.VersionId.HasValue)
         {
             await WriteSnapshotsAsync(sessionId, activeRuleset.VersionId.Value, events, projections, activeRuleset.Config, happinessByPlayer, ct);
         }
 
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard), 200, null);
     }
 
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetSessionAnalyticsAsync(
@@ -111,15 +117,20 @@ internal sealed class AnalyticsService : IAnalyticsService
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, null, ct);
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
         var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
+        var finalScores = await ResolveFinalScoresAsync(sessionId, access.Session?.Status, ct);
+        happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
         var summary = _scoreCalc.BuildSummary(events, projections, violations);
         var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
         var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerPlayerOrders, ct);
+        var leaderboard = string.Equals(access.Session?.Status, "ENDED", StringComparison.OrdinalIgnoreCase)
+            ? BuildFinalLeaderboard(byPlayer, finalScores)
+            : [];
         if (scope.UserId.HasValue)
         {
             byPlayer = byPlayer.Where(item => item.UserId == scope.UserId.Value).ToList();
         }
 
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard), 200, null);
     }
 
     public async Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
@@ -169,38 +180,61 @@ internal sealed class AnalyticsService : IAnalyticsService
             return (null, 403, BuildError("FORBIDDEN", "Player hanya dapat melihat metrik miliknya"));
         }
 
-        var metricNames = new[]
-        {
-            "cashflow.in.total",
-            "cashflow.out.total",
-            "cashflow.net.total",
-            "donation.total",
-            "gold.qty.current",
-            "orders.completed.count",
-            "inventory.ingredient.total",
-            "actions.used.total",
-            "happiness.points.total",
-            "happiness.need.points",
-            "happiness.need.bonus",
-            "happiness.donation.points",
-            "happiness.gold.points",
-            "happiness.pension.points",
-            "happiness.saving_goal.points",
-            "happiness.mission.penalty",
-            "happiness.loan.penalty",
-            "loan.unpaid.flag",
-            "compliance.primary_need.rate",
-            "rules.violations.count"
-        };
-        var snapshots = await _metrics.GetLatestMetricValuesAsync(sessionId, userId, metricNames, ct);
-        var values = snapshots.ToDictionary(item => item.MetricName, item => item.MetricValueNumeric ?? 0d, StringComparer.Ordinal);
-        var computedAt = snapshots.Count == 0 ? (DateTimeOffset?)null : snapshots.Max(item => item.ComputedAt);
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
         var startingCash = activeRuleset.Config?.StartingCash ?? 0;
+        Dictionary<string, double> values;
+        DateTimeOffset? computedAt;
+        string? rawJsonText;
+        string? derivedJsonText;
 
-        var snapshotsJson = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, userId, ct);
-        var rawJsonText = snapshotsJson.FirstOrDefault(s => s.MetricName == "gameplay.raw.variables")?.MetricValueJson;
-        var derivedJsonText = snapshotsJson.FirstOrDefault(s => s.MetricName == "gameplay.derived.metrics")?.MetricValueJson;
+        if (activeRuleset.VersionId.HasValue)
+        {
+            var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
+            var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+            var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
+            var finalScores = await ResolveFinalScoresAsync(sessionId, access.Session?.Status, ct);
+            happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
+            var liveMetrics = await ComputePlayerMetricsAsync(
+                sessionId,
+                userId,
+                activeRuleset.VersionId.Value,
+                events,
+                projections,
+                happinessByPlayer.GetValueOrDefault(userId),
+                activeRuleset.Config,
+                ct);
+            values = liveMetrics.ToDictionary(
+                item => item.Key,
+                item => item.Value.Numeric ?? 0d,
+                StringComparer.Ordinal);
+            computedAt = events
+                .Where(item => item.UserId == userId)
+                .Select(item => (DateTimeOffset?)item.Timestamp)
+                .Max();
+            rawJsonText = liveMetrics.GetValueOrDefault("gameplay.raw.variables").Json;
+            derivedJsonText = liveMetrics.GetValueOrDefault("gameplay.derived.metrics").Json;
+        }
+        else
+        {
+            var metricNames = new[]
+            {
+                "cashflow.in.total", "cashflow.out.total", "cashflow.net.total", "donation.total",
+                "gold.qty.current", "orders.completed.count", "inventory.ingredient.total", "actions.used.total",
+                "happiness.points.total", "happiness.need.points", "happiness.need.bonus", "happiness.donation.points",
+                "happiness.gold.points", "happiness.pension.points", "happiness.saving_goal.points",
+                "happiness.mission.penalty", "happiness.loan.penalty", "loan.unpaid.flag",
+                "compliance.primary_need.rate", "rules.violations.count"
+            };
+            var snapshots = await _metrics.GetLatestMetricValuesAsync(sessionId, userId, metricNames, ct);
+            values = snapshots.ToDictionary(
+                item => item.MetricName,
+                item => item.MetricValueNumeric ?? 0d,
+                StringComparer.Ordinal);
+            computedAt = snapshots.Count == 0 ? null : snapshots.Max(item => item.ComputedAt);
+            var snapshotsJson = await _metrics.GetLatestGameplaySnapshotsAsync(sessionId, userId, ct);
+            rawJsonText = snapshotsJson.FirstOrDefault(s => s.MetricName == "gameplay.raw.variables")?.MetricValueJson;
+            derivedJsonText = snapshotsJson.FirstOrDefault(s => s.MetricName == "gameplay.derived.metrics")?.MetricValueJson;
+        }
 
         JsonElement? rawJson = null;
         JsonElement? derivedJson = null;
@@ -319,6 +353,8 @@ internal sealed class AnalyticsService : IAnalyticsService
             TryBuildRuntimeConfig(activeVersion, out config);
 
             var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
+            var finalScores = await ResolveFinalScoresAsync(session.SessionId, session.Status, ct);
+            happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
             var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(session.SessionId, ct);
             var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerPlayerOrders, ct);
             var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
@@ -596,6 +632,77 @@ internal sealed class AnalyticsService : IAnalyticsService
             playerPlayerOrders,
             firstEventSequenceByPlayer,
             usernamesByPlayer);
+    }
+
+    internal static List<AnalyticsLeaderboardItem> BuildFinalLeaderboard(
+        IEnumerable<AnalyticsByPlayerItem> players,
+        IReadOnlyCollection<SessionFinalScoreDb>? finalScores = null)
+    {
+        if (finalScores is { Count: > 0 })
+        {
+            return finalScores
+                .OrderBy(score => score.Rank)
+                .ThenBy(score => score.PlayerOrder)
+                .Select(score => new AnalyticsLeaderboardItem(
+                    score.UserId,
+                    score.PlayerOrder,
+                    score.Rank,
+                    score.TotalPoints))
+                .ToList();
+        }
+
+        return players
+            .OrderByDescending(player => player.HappinessPointsTotal)
+            .ThenByDescending(player => player.CashInTotal - player.CashOutTotal)
+            .ThenBy(player => player.PlayerOrder > 0 ? player.PlayerOrder : int.MaxValue)
+            .ThenBy(player => player.UserId)
+            .Select((player, index) => new AnalyticsLeaderboardItem(
+                player.UserId,
+                player.PlayerOrder,
+                index + 1,
+                player.HappinessPointsTotal))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Mengganti hasil hitung sementara dengan skor final database setelah sesi berstatus ENDED.
+    /// </summary>
+    internal static Dictionary<Guid, AnalyticsHappinessBreakdown> ApplyFinalScores(
+        Dictionary<Guid, AnalyticsHappinessBreakdown> computed,
+        IReadOnlyCollection<SessionFinalScoreDb> finalScores)
+    {
+        if (finalScores.Count == 0)
+        {
+            return computed;
+        }
+
+        var authoritative = new Dictionary<Guid, AnalyticsHappinessBreakdown>(computed);
+        foreach (var score in finalScores)
+        {
+            authoritative[score.UserId] = new AnalyticsHappinessBreakdown(
+                score.TotalPoints,
+                score.NeedPoints,
+                score.NeedSetBonusPoints,
+                score.DonationPoints,
+                score.GoldPoints,
+                score.PensionPoints,
+                score.SavingGoalPoints,
+                score.MissionPenaltyPoints,
+                score.LoanPenaltyPoints,
+                score.HasUnpaidLoan);
+        }
+
+        return authoritative;
+    }
+
+    private async Task<List<SessionFinalScoreDb>> ResolveFinalScoresAsync(
+        Guid sessionId,
+        string? status,
+        CancellationToken ct)
+    {
+        return string.Equals(status, "ENDED", StringComparison.OrdinalIgnoreCase)
+            ? await _sessions.GetFinalScoresAsync(sessionId, ct)
+            : [];
     }
 
     private async Task WriteSnapshotsAsync(

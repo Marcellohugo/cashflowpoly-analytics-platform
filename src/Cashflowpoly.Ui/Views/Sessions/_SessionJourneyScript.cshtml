@@ -33,7 +33,6 @@
         const otherFallbackLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.actor.other")));
         const dayLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.day_label")));
         const actionSlotLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.turn_label")));
-        const seqLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.timeline_seq")));
         const playerLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames));
         const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
         const pollIntervalMs = 10000;
@@ -385,8 +384,7 @@
                 return;
             }
 
-            feedEl.innerHTML = feedTimeline.map((item, index) => {
-                const displaySequenceNumber = index + 1;
+            feedEl.innerHTML = feedTimeline.map((item) => {
                 const actorType = actorBucket(item.actorType);
                 const dayTurnLabel = dayActivityLabel(item);
                 const detailLabel = item.flowDescription || activityFallbackLabel;
@@ -398,10 +396,7 @@
                         <div class="session-journey-feed-head">
                             <div class="session-journey-feed-player">
                                 <p class="session-journey-feed-player-name">${escapeHtml(actorLabel(item))}</p>
-                                <div class="session-journey-feed-meta">
-                                    <span class="session-journey-feed-seq">${escapeHtml(seqLabel)} ${displaySequenceNumber}</span>
-                                    <span class="session-journey-feed-dayturn">${escapeHtml(dayTurnLabel)}</span>
-                                </div>
+                                <span class="session-journey-feed-dayturn">${escapeHtml(dayTurnLabel)}</span>
                             </div>
                             <span class="session-journey-feed-time">${escapeHtml(formatDateTime(item.timestamp))}</span>
                         </div>

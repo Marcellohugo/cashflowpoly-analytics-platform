@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsHappinessCalculator.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 

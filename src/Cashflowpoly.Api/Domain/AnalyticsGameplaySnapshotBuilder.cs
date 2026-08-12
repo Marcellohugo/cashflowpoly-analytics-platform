@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsGameplaySnapshotBuilder.
 using System.Text.Json;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
@@ -44,7 +45,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var donationMetrics = _donationCalc.Compute(playerEvents, allEvents, coinsNetEndGame);
         var donationTotal = donationMetrics.DonationTotalCoins;
 
-        var savingGoalMetrics = _savingGoalCalc.Compute(playerEvents);
+        var savingGoalMetrics = _savingGoalCalc.Compute(playerEvents, config?.FinancialGoals.Count);
         var coinsSaved = savingGoalMetrics.CoinsSaved;
 
         var ingredientMealMetrics = _ingredientMealCalc.Compute(playerEvents, playerProjections);
@@ -60,7 +61,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var mealOrderIncomeTotal = ingredientMealMetrics.MealOrderIncomeTotal;
         var mealOrdersPerTurnAverage = ingredientMealMetrics.MealOrdersPerTurnAverage;
         var essentialIngredientExpenses = ingredientMealMetrics.EssentialIngredientExpenses;
-        var maxActionSlot = ingredientMealMetrics.MaxActionSlot;
+        var latestDayIndex = ingredientMealMetrics.LatestDayIndex;
 
         var needMissionMetrics = _needMissionCalc.Compute(playerEvents, playerProjections);
 
@@ -84,7 +85,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var actionMetrics = _actionUsageCalc.Compute(
             playerEvents,
             playerProjections,
-            maxActionSlot,
+            latestDayIndex,
             config?.ActionsPerTurn ?? 2);
         var latestEvent = playerEvents
             .OrderByDescending(e => e.SequenceNumber)
@@ -134,7 +135,10 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 ingredients_collected = ingredientsCollected,
                 ingredients_held_current = inventory.Total,
                 ingredient_types_held = ingredientTypesHeld,
-                ingredients_used_per_meal = ingredientsUsedTotal,
+                ingredients_used_total = ingredientsUsedTotal,
+                ingredients_used_per_meal_average = mealOrdersClaimed > 0
+                    ? (double)ingredientsUsedTotal / mealOrdersClaimed
+                    : (double?)null,
                 ingredients_wasted = ingredientsWasted,
                 ingredient_investment_coins_total = ingredientInvestmentTotal
             },
@@ -227,17 +231,17 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             {
                 coins_per_turn_progression = cashTimeline.CoinsProgression,
                 net_income_per_turn = cashTimeline.NetIncomePerTurn,
-                action_slot_when_debt_introduced = playerEvents
+                day_when_debt_introduced = playerEvents
                     .Where(e => e.ActionType == "PinjamanSyariah")
-                    .Select(e => (int?)e.ActionSlot)
+                    .Select(e => (int?)e.DayIndex)
                     .OrderBy(t => t)
                     .FirstOrDefault(),
-                action_slot_when_first_risk_hit = playerEvents
+                day_when_first_risk_hit = playerEvents
                     .Where(e => e.ActionType == "RisikoKehidupan")
-                    .Select(e => (int?)e.ActionSlot)
+                    .Select(e => (int?)e.DayIndex)
                     .OrderBy(t => t)
                     .FirstOrDefault(),
-                action_slot_game_completion = maxActionSlot == 0 ? (int?)null : maxActionSlot
+                day_game_completion = latestDayIndex < 0 ? (int?)null : latestDayIndex
             },
             outcomes = new
             {
@@ -313,6 +317,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 meal_income = incomeDiversificationMetrics.MealIncome,
                 gold_income = incomeDiversificationMetrics.GoldIncome,
                 donations_received = incomeDiversificationMetrics.DonationIncome,
+                other_income = incomeDiversificationMetrics.OtherIncome,
                 total_income = totalIncome,
                 N_active_income_sources = incomeDiversificationMetrics.ActiveIncomeSourceCount,
                 Income_Share_i = incomeDiversificationMetrics.IncomeShares

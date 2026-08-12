@@ -1,3 +1,4 @@
+// Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk SessionEventProjector.
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Domain;

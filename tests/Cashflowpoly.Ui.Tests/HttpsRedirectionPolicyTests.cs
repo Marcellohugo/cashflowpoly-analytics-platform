@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui HttpsRedirectionPolicyTests.
 using Cashflowpoly.Ui.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -82,5 +83,20 @@ public sealed class HttpsRedirectionPolicyTests
         var result = HttpsRedirectionPolicy.ResolveCookieSecurePolicy(configuration);
 
         Assert.Equal(CookieSecurePolicy.Always, result);
+    }
+
+    [Fact]
+    public void RequireHttpsConfiguration_EnablesRedirectionAndSecureCookiesBehindTlsProxy()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPNETCORE_URLS"] = "http://+:5203",
+                ["Security:RequireHttps"] = "true"
+            })
+            .Build();
+
+        Assert.True(HttpsRedirectionPolicy.ShouldUseHttpsRedirection(configuration));
+        Assert.Equal(CookieSecurePolicy.Always, HttpsRedirectionPolicy.ResolveCookieSecurePolicy(configuration));
     }
 }

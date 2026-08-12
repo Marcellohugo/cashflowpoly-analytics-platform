@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AnalyticsDerivedRatioCalculatorTests.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Xunit;
@@ -60,8 +61,8 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
         Assert.Equal(0.5, metrics.GoalInvestmentRate);
         Assert.Equal(50, metrics.GoalSettingAmbition);
         Assert.Equal(75, metrics.MealOrderSuccessRate);
-        Assert.Equal(4.6, metrics.PlanningHorizon!.Value, precision: 6);
-        Assert.Equal(460, metrics.PlanningHorizonPercent!.Value, precision: 6);
+        Assert.Equal(0.2, metrics.PlanningHorizon!.Value, precision: 6);
+        Assert.Equal(20, metrics.PlanningHorizonPercent!.Value, precision: 6);
         Assert.Equal(0.25, metrics.PrimaryNeedShare);
         Assert.Equal(0.25, metrics.SecondaryNeedShare);
         Assert.Equal(0.5, metrics.TertiaryNeedShare);

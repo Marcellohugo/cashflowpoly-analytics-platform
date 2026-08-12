@@ -1,3 +1,4 @@
+// Fungsi file: Mengorkestrasi alur aplikasi dan domain melalui IEventIngestionService.
 using System.Security.Claims;
 using Cashflowpoly.Api.Contracts;
 

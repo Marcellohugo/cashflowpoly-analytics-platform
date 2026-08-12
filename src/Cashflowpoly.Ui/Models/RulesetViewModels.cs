@@ -1,3 +1,4 @@
+// Fungsi file: Mendefinisikan model tampilan dan state UI untuk RulesetViewModels.
 using Cashflowpoly.Ui.Contracts;
 using System.Text.Json;
 

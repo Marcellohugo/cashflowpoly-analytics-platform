@@ -1,3 +1,4 @@
+// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui PlayerMetricJsonMapper.
 using System.Text.Json;
 
 namespace Cashflowpoly.Ui.Infrastructure;

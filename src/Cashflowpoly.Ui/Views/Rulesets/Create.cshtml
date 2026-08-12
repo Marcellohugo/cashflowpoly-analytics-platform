@@ -22,11 +22,11 @@
                 <a class="btn-ghost"
                    asp-controller="Rulesets"
                    asp-action="Details"
-                   asp-route-rulesetId="@Model.RulesetId">@Context.T("rulesets.back_to_list")</a>
+                   asp-route-rulesetId="@Model.RulesetId">@("<- " + Context.T("rulesets.back_to_list"))</a>
             }
             else
             {
-                <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@Context.T("rulesets.back_to_list")</a>
+                <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@("<- " + Context.T("rulesets.back_to_list"))</a>
             }
         </div>
     </div>
@@ -40,10 +40,6 @@
 
     <div class="mt-6 ruleset-unified">
         <section class="ruleset-form-section">
-            <div class="ruleset-section-head">
-                <p class="ruleset-section-title">@Context.T("rulesets.tips.form_title")</p>
-                <p class="ruleset-section-subtitle">@Context.T("rulesets.form.tips_subtitle")</p>
-            </div>
             <details class="mt-3 data-toggle">
                 <summary>@Context.T("rulesets.tips.form_title")</summary>
                 <div class="mt-3 metric-panel">
@@ -56,21 +52,7 @@
             </details>
         </section>
 
-        <section class="ruleset-form-section mt-4">
-            <div class="ruleset-section-head">
-                <p class="ruleset-section-title">@Context.T("rulesets.quick_guide_title")</p>
-                <p class="ruleset-section-subtitle">@Context.T("rulesets.quick_guide_subtitle")</p>
-            </div>
-            <div class="mt-3 alert alert-info">
-                <ul class="list-disc space-y-1 pl-5 text-sm text-slate-700">
-                    <li>@Context.T("rulesets.quick_guide_beginner")</li>
-                    <li>@Context.T("rulesets.quick_guide_advanced")</li>
-                    <li>@Context.T("rulesets.quick_guide_activation")</li>
-                </ul>
-            </div>
-        </section>
-
-        <form class="mt-4 form-grid" method="post" action="@formActionUrl">
+        <form class="mt-4 form-grid ruleset-create-form" method="post" action="@formActionUrl" data-ruleset-create-form data-ruleset-mode="pemula">
             @Html.AntiForgeryToken()
             <div class="form-field">
                 <label class="form-label" for="ruleset-name">@Context.T("common.name")</label>
@@ -94,13 +76,29 @@
                     <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.core_setup")</p>
                 </div>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
-                    <div>
-                        <label class="form-label" for="cfg-mode">@Context.T("rulesets.form.mode")</label>
-                        <select id="cfg-mode" class="form-input">
-                            <option value="PEMULA">@Context.T("rulesets.form.mode_beginner")</option>
-                            <option value="MAHIR">@Context.T("rulesets.form.mode_advanced")</option>
-                        </select>
-                    </div>
+                    <fieldset class="md:col-span-2">
+                        <legend class="sr-only">@Context.T("rulesets.form.mode")</legend>
+                        <div class="ruleset-section-head">
+                            <p class="ruleset-section-title">@Context.T("rulesets.form.mode")</p>
+                            <p class="ruleset-section-subtitle ruleset-mode-picker-hint">@Context.T("rulesets.form.mode_choice_hint")</p>
+                        </div>
+                        <div class="ruleset-mode-picker mt-2">
+                            <label class="ruleset-mode-option ruleset-mode-option--beginner">
+                                <input class="ruleset-mode-radio" type="radio" name="cfg-mode" value="PEMULA" checked />
+                                <span class="ruleset-mode-option-content">
+                                    <span class="ruleset-mode-badge ruleset-mode-badge--beginner">@Context.T("rulesets.form.mode_beginner")</span>
+                                    <span class="ruleset-mode-option-copy">@Context.T("rulesets.quick_guide_beginner")</span>
+                                </span>
+                            </label>
+                            <label class="ruleset-mode-option ruleset-mode-option--advanced">
+                                <input class="ruleset-mode-radio" type="radio" name="cfg-mode" value="MAHIR" />
+                                <span class="ruleset-mode-option-content">
+                                    <span class="ruleset-mode-badge ruleset-mode-badge--advanced">@Context.T("rulesets.form.mode_advanced")</span>
+                                    <span class="ruleset-mode-option-copy">@Context.T("rulesets.quick_guide_advanced")</span>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <div>
                         <label class="form-label" for="cfg-actions">@Context.T("rulesets.form.actions_per_turn")</label>
                         <input id="cfg-actions" type="number" min="1" class="form-input" value="2" />
@@ -110,8 +108,9 @@
                         <input id="cfg-cash" type="number" min="0" class="form-input" value="20" />
                     </div>
                     <div class="md:col-span-2">
-                        <label class="form-label">@Context.T("rulesets.form.player_ordering")</label>
-                        <input type="text"
+                        <label class="form-label" for="cfg-player-ordering-display">@Context.T("rulesets.form.player_ordering")</label>
+                        <input id="cfg-player-ordering-display"
+                               type="text"
                                readonly
                                class="form-input"
                                value="@Context.T("rulesets.form.player_ordering_player_order")" />
@@ -165,8 +164,8 @@
 
             <div class="ruleset-form-section">
                 <div class="ruleset-section-head">
-                    <p class="ruleset-section-title">@Context.T("rulesets.form.economy_advanced")</p>
-                    <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.economy_advanced")</p>
+                    <p class="ruleset-section-title">@Context.T("rulesets.form.economy_and_donation")</p>
+                    <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.economy_and_donation")</p>
                 </div>
                 <div class="grid gap-3 md:grid-cols-2 mt-3">
                     <div>
@@ -179,9 +178,17 @@
                     </div>
                     <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input id="cfg-gold-buy" type="checkbox" checked /></label>
                     <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input id="cfg-gold-sell" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input id="cfg-adv-loan" type="checkbox" /></label>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input id="cfg-adv-insurance" type="checkbox" /></label>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input id="cfg-adv-saving-goal" type="checkbox" /></label>
+                    <div class="ruleset-advanced-feature-grid md:col-span-2" data-ruleset-advanced-features hidden>
+                        <div class="ruleset-advanced-feature-head">
+                            <span class="ruleset-mode-badge ruleset-mode-badge--advanced">@Context.T("rulesets.form.mode_advanced")</span>
+                            <p>@Context.T("rulesets.form.advanced_features_hint")</p>
+                        </div>
+                        <div class="grid gap-3 md:grid-cols-3 mt-3">
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input id="cfg-adv-loan" type="checkbox" disabled /></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input id="cfg-adv-insurance" type="checkbox" disabled /></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input id="cfg-adv-saving-goal" type="checkbox" disabled /></label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -215,6 +222,11 @@
             };
             const toBool = (id) => !!getEl(id)?.checked;
             const configTextArea = getEl("DefinitionJson");
+            const formEl = document.querySelector("[data-ruleset-create-form]");
+            const modeInputs = Array.from(document.querySelectorAll('input[name="cfg-mode"]'));
+            const getMode = () => modeInputs.find((input) => input.checked)?.value ?? "PEMULA";
+            const advancedFeaturePanel = document.querySelector("[data-ruleset-advanced-features]");
+            const advancedFeatureInputs = [getEl("cfg-adv-loan"), getEl("cfg-adv-insurance"), getEl("cfg-adv-saving-goal")];
             const modePresets = {
                 PEMULA: {
                     starting_cash: 20,
@@ -237,7 +249,7 @@
             };
 
             const readForm = () => ({
-                mode: getEl("cfg-mode")?.value ?? "PEMULA",
+                mode: getMode(),
                 actions_per_turn: toInt("cfg-actions", 2),
                 starting_cash: toInt("cfg-cash", 20),
                 player_ordering: "PLAYER_ORDER",
@@ -262,9 +274,9 @@
                     allow_sell: toBool("cfg-gold-sell")
                 },
                 advanced: {
-                    loan: { enabled: toBool("cfg-adv-loan") },
-                    insurance: { enabled: toBool("cfg-adv-insurance") },
-                    saving_goal: { enabled: toBool("cfg-adv-saving-goal") }
+                    loan: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-loan") },
+                    insurance: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-insurance") },
+                    saving_goal: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-saving-goal") }
                 },
                 freelance: { income: toInt("cfg-freelance-income", 1) },
                 scoring: scoreDefaults
@@ -272,7 +284,10 @@
 
             const writeFormFromConfig = (cfg) => {
                 if (!cfg || typeof cfg !== "object") return;
-                getEl("cfg-mode").value = cfg.mode ?? "PEMULA";
+                const resolvedMode = `${cfg.mode ?? "PEMULA"}`.toUpperCase();
+                modeInputs.forEach((input) => {
+                    input.checked = input.value === resolvedMode;
+                });
                 getEl("cfg-actions").value = cfg.actions_per_turn ?? 2;
                 getEl("cfg-cash").value = cfg.starting_cash ?? 20;
                 getEl("cfg-freelance-income").value = cfg.freelance?.income ?? 1;
@@ -291,6 +306,20 @@
                 getEl("cfg-adv-loan").checked = !!cfg.advanced?.loan?.enabled;
                 getEl("cfg-adv-insurance").checked = !!cfg.advanced?.insurance?.enabled;
                 getEl("cfg-adv-saving-goal").checked = !!cfg.advanced?.saving_goal?.enabled;
+                setAdvancedFeatureAvailability(resolvedMode);
+            };
+
+            const setAdvancedFeatureAvailability = (mode) => {
+                const isAdvanced = `${mode ?? ""}`.toUpperCase() === "MAHIR";
+                if (advancedFeaturePanel) {
+                    advancedFeaturePanel.hidden = !isAdvanced;
+                    advancedFeaturePanel.setAttribute("aria-hidden", `${!isAdvanced}`);
+                }
+                advancedFeatureInputs.forEach((input) => {
+                    if (!input) return;
+                    input.disabled = !isAdvanced;
+                    if (!isAdvanced) input.checked = false;
+                });
             };
 
             const applyModePreset = (mode) => {
@@ -300,10 +329,12 @@
                 getEl("cfg-adv-loan").checked = preset.loan_enabled;
                 getEl("cfg-adv-insurance").checked = preset.insurance_enabled;
                 getEl("cfg-adv-saving-goal").checked = preset.saving_goal_enabled;
+                setAdvancedFeatureAvailability(mode);
             };
 
             const refreshConfig = () => {
                 const cfg = readForm();
+                if (formEl) formEl.dataset.rulesetMode = cfg.mode.toLowerCase();
                 const json = JSON.stringify(cfg, null, 2);
                 configTextArea.value = json;
             };
@@ -314,15 +345,19 @@
                 }
             } catch (_) {}
 
+            setAdvancedFeatureAvailability(getMode());
+
             document.querySelectorAll("input, select").forEach((el) => {
                 el.addEventListener("input", refreshConfig);
                 el.addEventListener("change", refreshConfig);
             });
 
-            getEl("cfg-mode")?.addEventListener("change", (event) => {
-                const modeValue = event.target?.value ?? "PEMULA";
-                applyModePreset(modeValue);
-                refreshConfig();
+            modeInputs.forEach((input) => {
+                input.addEventListener("change", () => {
+                    if (!input.checked) return;
+                    applyModePreset(input.value);
+                    refreshConfig();
+                });
             });
 
             refreshConfig();

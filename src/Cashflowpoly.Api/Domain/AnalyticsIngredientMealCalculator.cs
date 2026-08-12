@@ -1,3 +1,4 @@
+// Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsIngredientMealCalculator.
 using Cashflowpoly.Api.Data;
 
 namespace Cashflowpoly.Api.Domain;
@@ -13,7 +14,7 @@ public sealed record AnalyticsIngredientMealMetrics(
     int MealOrdersClaimed,
     int MealOrdersPassed,
     int MealOrderIncomeTotal,
-    int MaxActionSlot,
+    int LatestDayIndex,
     double MealOrdersPerTurnAverage,
     double EssentialIngredientExpenses);
 
@@ -87,8 +88,12 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         var mealOrdersClaimed = mealOrderIncomeValues.Count;
         var mealOrdersPassed = playerEvents.Count(e => e.ActionType == "LewatiOrder");
         var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
-        var maxActionSlot = playerEvents.Count == 0 ? 0 : playerEvents.Max(e => e.ActionSlot);
-        var mealOrdersPerTurnAverage = maxActionSlot > 0 ? (double)mealOrdersClaimed / maxActionSlot : 0;
+        var latestDayIndex = playerEvents.Count == 0 ? -1 : playerEvents.Max(e => e.DayIndex);
+        var playedTurnCount = playerEvents
+            .Select(e => e.DayIndex)
+            .Distinct()
+            .Count();
+        var mealOrdersPerTurnAverage = playedTurnCount > 0 ? (double)mealOrdersClaimed / playedTurnCount : 0;
         var essentialIngredientExpenses = ComputeEssentialIngredientExpenses(playerEvents);
 
         return new AnalyticsIngredientMealMetrics(
@@ -102,7 +107,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             mealOrdersClaimed,
             mealOrdersPassed,
             mealOrderIncomeTotal,
-            maxActionSlot,
+            latestDayIndex,
             mealOrdersPerTurnAverage,
             essentialIngredientExpenses);
     }

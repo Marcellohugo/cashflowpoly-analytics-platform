@@ -1,3 +1,4 @@
+// Fungsi file: Memverifikasi perilaku API, database, atau domain melalui RateLimitPolicyHelperTests.
 using System.Net;
 using System.Security.Claims;
 using Cashflowpoly.Api.Security;
@@ -13,10 +14,10 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class RateLimitPolicyHelperTests
 {
     [Theory]
-    [InlineData("/api/v1/events", 120)]
-    [InlineData("/api/v1/sessions", 60)]
-    [InlineData("/api/events", 60)]
-    [InlineData("/api/v1/auth/login", 60)]
+    [InlineData("/api/v1/events", 240)]
+    [InlineData("/api/v1/sessions", 300)]
+    [InlineData("/api/events", 300)]
+    [InlineData("/api/v1/auth/login", 10)]
     /// <summary>
     /// Memvalidasi bahwa ResolvePermitLimit mengembalikan batas request yang sesuai
     /// untuk setiap path endpoint API (events, sessions, auth, dll).
@@ -92,5 +93,17 @@ public sealed class RateLimitPolicyHelperTests
         var key = RateLimitPolicyHelper.BuildPartitionKey(context);
 
         Assert.Equal("default:ip:unknown", key);
+    }
+
+    [Fact]
+    public void BuildPartitionKey_UsesDedicatedAuthScope()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/api/v1/auth/login";
+        context.Connection.RemoteIpAddress = IPAddress.Parse("10.10.10.2");
+
+        var key = RateLimitPolicyHelper.BuildPartitionKey(context);
+
+        Assert.Equal("auth:ip:10.10.10.2", key);
     }
 }
