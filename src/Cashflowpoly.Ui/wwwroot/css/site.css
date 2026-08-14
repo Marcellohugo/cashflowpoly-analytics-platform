@@ -5785,6 +5785,32 @@ body:has(.players-index-shell)::before {
         display: none;
     }
 
+    .nav-shell-auth .nav-brand {
+        max-width: 100%;
+    }
+
+    .nav-shell-auth .brand-mark {
+        width: 2.85rem;
+        min-width: 2.85rem;
+    }
+
+    .nav-pill.nav-right {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    .nav-right .nav-dropdown-profile .profile-menu {
+        position: fixed;
+        top: 4.75rem;
+        right: 1rem;
+        left: auto;
+        width: auto;
+        min-width: min(17rem, calc(100vw - 3rem));
+        box-sizing: border-box;
+        max-height: calc(100dvh - 6rem);
+        overflow: auto;
+    }
+
     .nav-shell.is-open .nav-center .nav-link {
         grid-column: 1 / -1;
     }
@@ -5814,8 +5840,16 @@ body:has(.players-index-shell)::before {
         border-radius: 1.1rem;
     }
 
+    .auth-heading,
+    .auth-split-right h2,
+    .auth-panel-brand-text {
+        overflow-wrap: normal !important;
+        word-break: normal;
+        hyphens: none;
+    }
+
     .auth-heading {
-        font-size: clamp(1.65rem, 10vw, 2.2rem);
+        font-size: clamp(1.65rem, 9vw, 2rem);
     }
 
     .auth-login-btn {
@@ -5843,6 +5877,26 @@ body:has(.players-index-shell)::before {
 
     .rulebook-heading {
         font-size: 1rem;
+    }
+
+    .btn-compact,
+    .session-journey-filter-btn,
+    .nav-menu-item {
+        min-height: 2.75rem !important;
+    }
+
+    .ruleset-modal-close {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .auth-password-toggle {
+        width: 2.5rem;
+        min-height: 2.5rem;
+    }
+
+    .auth-panel-lang-btn {
+        min-height: 2.25rem;
     }
 }
 
@@ -6257,6 +6311,19 @@ body:has(.players-index-shell)::before {
 
 /* Responsive adjustments for mobile calendar */
 @media (max-width: 600px) {
+    .work-calendar-shell {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: thin;
+    }
+
+    .work-calendar-title-bar,
+    .work-calendar-headers,
+    .work-calendar-grid {
+        min-width: 24rem;
+    }
+
     .work-calendar-headers {
         gap: 0.25rem;
     }

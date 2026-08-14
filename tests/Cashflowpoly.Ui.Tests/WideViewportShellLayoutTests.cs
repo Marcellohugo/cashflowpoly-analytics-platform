@@ -21,6 +21,24 @@ public sealed class WideViewportShellLayoutTests
         Assert.DoesNotContain("width: min(1280px, calc(100% - 2rem));", cssContent);
     }
 
+    [Fact]
+    public void SiteCss_ShouldKeepCompactNavigationAndCalendarUsableOnMobile()
+    {
+        var repoRoot = ResolveRepositoryRoot();
+        var cssPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "wwwroot", "css", "site.css");
+        var cssContent = File.ReadAllText(cssPath);
+
+        Assert.Contains(".nav-shell-auth .nav-brand {", cssContent);
+        Assert.Contains("min-width: min(17rem, calc(100vw - 3rem));", cssContent);
+        Assert.Contains("box-sizing: border-box;", cssContent);
+        Assert.Contains(".auth-panel-brand-text {", cssContent);
+        Assert.Contains("overflow-wrap: normal !important;", cssContent);
+        Assert.Contains(".work-calendar-title-bar,", cssContent);
+        Assert.Contains("min-width: 24rem;", cssContent);
+        Assert.Contains("overflow-x: auto;", cssContent);
+        Assert.Contains("min-height: 2.75rem !important;", cssContent);
+    }
+
     private static string ResolveRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
