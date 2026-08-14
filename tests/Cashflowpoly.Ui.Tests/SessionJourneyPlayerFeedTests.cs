@@ -26,6 +26,18 @@ public sealed class SessionJourneyPlayerFeedTests
     }
 
     [Fact]
+    public void SessionDetails_ShouldStackJourneyInsightsOnMobile()
+    {
+        var repoRoot = ResolveRepositoryRoot();
+        var viewPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "Details.cshtml");
+        var viewContent = File.ReadAllText(viewPath);
+
+        Assert.Contains("grid-template-columns: minmax(0, 1fr);", viewContent);
+        Assert.DoesNotContain("grid-template-columns: repeat(2, minmax(0, 1fr));", viewContent);
+        Assert.DoesNotContain(".session-journey-insight-card:last-child", viewContent);
+    }
+
+    [Fact]
     public void SessionJourneyScript_ShouldRenderPlayerAndImportantSystemEvents()
     {
         var repoRoot = ResolveRepositoryRoot();
