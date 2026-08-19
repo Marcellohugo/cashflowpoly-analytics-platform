@@ -12,6 +12,7 @@ namespace Cashflowpoly.Api.Services;
 internal sealed class AnalyticsService : IAnalyticsService
 {
     private sealed record ActiveRulesetContext(Guid? VersionId, Guid? RulesetId, string? Name, RulesetConfig? Config);
+    private static readonly EventPayloadReader _eventPayloadReader = new();
 
     private readonly SessionRepository _sessions;
     private readonly EventRepository _events;
@@ -22,7 +23,7 @@ internal sealed class AnalyticsService : IAnalyticsService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IHappinessCalculator _happinessCalc;
     private readonly IIngredientInventoryCalculator _inventoryCalc;
-    private readonly IPrimaryNeedComplianceEvaluator _complianceEvaluator;
+    private readonly INeedMissionCalculator _needMissionCalculator;
     private readonly IPlayerOrdering _playerOrdering;
     private readonly ISessionMetricCalculator _sessionMetricCalc;
     private readonly IMetricSnapshotBuilder _metricSnapshotBuilder;
@@ -40,7 +41,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         IHttpContextAccessor httpContextAccessor,
         IHappinessCalculator happinessCalc,
         IIngredientInventoryCalculator inventoryCalc,
-        IPrimaryNeedComplianceEvaluator complianceEvaluator,
+        INeedMissionCalculator needMissionCalculator,
         IPlayerOrdering playerOrdering,
         ISessionMetricCalculator sessionMetricCalc,
         IMetricSnapshotBuilder metricSnapshotBuilder,
@@ -57,7 +58,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         _httpContextAccessor = httpContextAccessor;
         _happinessCalc = happinessCalc;
         _inventoryCalc = inventoryCalc;
-        _complianceEvaluator = complianceEvaluator;
+        _needMissionCalculator = needMissionCalculator;
         _playerOrdering = playerOrdering;
         _sessionMetricCalc = sessionMetricCalc;
         _metricSnapshotBuilder = metricSnapshotBuilder;
@@ -91,7 +92,16 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         if (activeRuleset.VersionId.HasValue)
         {
-            await WriteSnapshotsAsync(sessionId, activeRuleset.VersionId.Value, events, projections, activeRuleset.Config, happinessByPlayer, ct);
+            await WriteSnapshotsAsync(
+                sessionId,
+                activeRuleset.VersionId.Value,
+                events,
+                projections,
+                activeRuleset.Config,
+                happinessByPlayer,
+                finalScores,
+                string.Equals(access.Session?.Status, "ENDED", StringComparison.OrdinalIgnoreCase),
+                ct);
         }
 
         return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard), 200, null);
@@ -194,14 +204,18 @@ internal sealed class AnalyticsService : IAnalyticsService
             var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
             var finalScores = await ResolveFinalScoresAsync(sessionId, access.Session?.Status, ct);
             happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
+            var playerAlias = (await _players.ListSessionPlayersAsync(sessionId, ct))
+                .FirstOrDefault(player => player.UserId == userId)?.DisplayName;
             var liveMetrics = await ComputePlayerMetricsAsync(
                 sessionId,
                 userId,
-                activeRuleset.VersionId.Value,
                 events,
                 projections,
                 happinessByPlayer.GetValueOrDefault(userId),
                 activeRuleset.Config,
+                finalScores.FirstOrDefault(score => score.UserId == userId),
+                playerAlias,
+                string.Equals(access.Session?.Status, "ENDED", StringComparison.OrdinalIgnoreCase),
                 ct);
             values = liveMetrics.ToDictionary(
                 item => item.Key,
@@ -223,7 +237,7 @@ internal sealed class AnalyticsService : IAnalyticsService
                 "happiness.points.total", "happiness.need.points", "happiness.need.bonus", "happiness.donation.points",
                 "happiness.gold.points", "happiness.pension.points", "happiness.saving_goal.points",
                 "happiness.mission.penalty", "happiness.loan.penalty", "loan.unpaid.flag",
-                "compliance.primary_need.rate", "rules.violations.count"
+                "needs.fulfillment_diversity", "rules.violations.count"
             };
             var snapshots = await _metrics.GetLatestMetricValuesAsync(sessionId, userId, metricNames, ct);
             values = snapshots.ToDictionary(
@@ -241,11 +255,23 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         if (!string.IsNullOrWhiteSpace(rawJsonText))
         {
-            try { rawJson = JsonDocument.Parse(rawJsonText).RootElement.Clone(); } catch {}
+            try
+            {
+                rawJson = JsonDocument.Parse(rawJsonText).RootElement.Clone();
+            }
+            catch (JsonException)
+            {
+            }
         }
         if (!string.IsNullOrWhiteSpace(derivedJsonText))
         {
-            try { derivedJson = JsonDocument.Parse(derivedJsonText).RootElement.Clone(); } catch {}
+            try
+            {
+                derivedJson = JsonDocument.Parse(derivedJsonText).RootElement.Clone();
+            }
+            catch (JsonException)
+            {
+            }
         }
 
         return (new GameplayMetricsResponse(
@@ -274,9 +300,9 @@ internal sealed class AnalyticsService : IAnalyticsService
                 ReadMetric(values, "happiness.mission.penalty"),
                 ReadMetric(values, "happiness.loan.penalty"),
                 ReadMetric(values, "loan.unpaid.flag") > 0.5d),
-            new GameplayComplianceMetrics(
-                ReadMetric(values, "compliance.primary_need.rate"),
-                (int)ReadMetric(values, "rules.violations.count")),
+            new GameplayNeedMetrics(
+                ReadMetric(values, "needs.fulfillment_diversity")),
+            (int)ReadMetric(values, "rules.violations.count"),
             rawJson,
             derivedJson), 200, null);
     }
@@ -361,17 +387,11 @@ internal sealed class AnalyticsService : IAnalyticsService
 
             foreach (var player in byPlayer)
             {
-                var complianceRate = await _metrics.GetLatestMetricNumericAsync(
-                    session.SessionId,
-                    player.UserId,
-                    "compliance.primary_need.rate",
-                    ct);
-
                 var learningScore = _scoreCalc.ComputeLearningPerformanceScore(
                     player.CashInTotal,
                     player.CashOutTotal,
                     player.HappinessPointsTotal,
-                    complianceRate);
+                    player.FulfillmentDiversity);
 
                 var missionScore = _scoreCalc.ComputeMissionPerformanceScore(
                     player.MissionPenaltyTotal,
@@ -595,7 +615,8 @@ internal sealed class AnalyticsService : IAnalyticsService
             var ordersCompletedCount = playerEvents.Count(e => e.ActionType == "JualMasakan");
             var inventoryIngredientTotal = _inventoryCalc.BuildIngredientInventory(playerEvents).Total;
             var actionsUsedTotal = SumActionsUsed(playerEvents);
-            var compliancePrimaryNeedRate = _complianceEvaluator.Evaluate(playerEvents, config).Rate;
+            var playerProjections = projections.Where(p => p.UserId == playerId).ToList();
+            var fulfillmentDiversity = _needMissionCalculator.Compute(playerEvents, playerProjections).FulfillmentDiversity ?? 0d;
             var rulesViolationsCount = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
 
             var happiness = happinessByPlayer.TryGetValue(playerId, out var breakdown)
@@ -612,7 +633,7 @@ internal sealed class AnalyticsService : IAnalyticsService
                 ordersCompletedCount,
                 inventoryIngredientTotal,
                 actionsUsedTotal,
-                compliancePrimaryNeedRate,
+                fulfillmentDiversity,
                 rulesViolationsCount,
                 happiness.Total,
                 happiness.NeedPoints,
@@ -712,6 +733,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         List<CashflowProjectionDb> projections,
         RulesetConfig? config,
         Dictionary<Guid, AnalyticsHappinessBreakdown> happinessByPlayer,
+        IReadOnlyCollection<SessionFinalScoreDb> finalScores,
+        bool sessionEnded,
         CancellationToken ct)
     {
         var computedAt = DateTimeOffset.UtcNow;
@@ -730,11 +753,18 @@ internal sealed class AnalyticsService : IAnalyticsService
         }
 
         var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
+        var aliasesByPlayer = (await _players.ListSessionPlayersAsync(sessionId, ct))
+            .ToDictionary(player => player.UserId, player => player.DisplayName);
         foreach (var playerId in players)
         {
             var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
-            var playerMetrics = await ComputePlayerMetricsAsync(sessionId, playerId, rulesetVersionId, events, projections,
-                hasHappiness ? breakdown : null, playerConfig, ct);
+            var playerMetrics = await ComputePlayerMetricsAsync(sessionId, playerId, events, projections,
+                hasHappiness ? breakdown : null,
+                playerConfig,
+                finalScores.FirstOrDefault(score => score.UserId == playerId),
+                aliasesByPlayer.GetValueOrDefault(playerId),
+                sessionEnded,
+                ct);
             snapshots.AddRange(_metricSnapshotBuilder.BuildMetricSnapshots(sessionId, playerId, rulesetVersionId, computedAt, playerMetrics));
         }
 
@@ -756,11 +786,13 @@ internal sealed class AnalyticsService : IAnalyticsService
     private async Task<Dictionary<string, (double? Numeric, string? Json)>> ComputePlayerMetricsAsync(
         Guid sessionId,
         Guid playerId,
-        Guid rulesetVersionId,
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
         AnalyticsHappinessBreakdown? happiness,
         RulesetConfig? config,
+        SessionFinalScoreDb? finalScore,
+        string? playerAlias,
+        bool sessionEnded,
         CancellationToken ct)
     {
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
@@ -788,8 +820,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         var actionsUsed = SumActionsUsed(playerEvents);
         metrics["actions.used.total"] = (actionsUsed, null);
 
-        var compliance = await ComputePrimaryNeedComplianceAsync(rulesetVersionId, playerEvents, ct);
-        metrics["compliance.primary_need.rate"] = (compliance.Rate, compliance.JsonDetail);
+        var fulfillmentDiversity = _needMissionCalculator.Compute(playerEvents, playerProjections).FulfillmentDiversity;
+        metrics["needs.fulfillment_diversity"] = (fulfillmentDiversity, null);
 
         var violations = await _metrics.CountValidationViolationsAsync(sessionId, playerId, ct);
         metrics["rules.violations.count"] = (violations, null);
@@ -811,7 +843,15 @@ internal sealed class AnalyticsService : IAnalyticsService
         metrics["happiness.loan.penalty"] = (resolvedHappiness.LoanPenaltyPoints, null);
         metrics["loan.unpaid.flag"] = (resolvedHappiness.HasUnpaidLoan ? 1 : 0, null);
 
-        var gameplaySnapshots = _gameplaySnapshotBuilder.Build(playerEvents, playerProjections, events, config, resolvedHappiness);
+        var gameplaySnapshots = _gameplaySnapshotBuilder.Build(
+            playerEvents,
+            playerProjections,
+            events,
+            config,
+            resolvedHappiness,
+            finalScore,
+            playerAlias,
+            sessionEnded);
         metrics["gameplay.raw.variables"] = (null, gameplaySnapshots.RawJson);
         metrics["gameplay.derived.metrics"] = (null, gameplaySnapshots.DerivedJson);
 
@@ -895,36 +935,10 @@ internal sealed class AnalyticsService : IAnalyticsService
 
     private int SumActionsUsed(IEnumerable<EventDb> events)
         => events
-            .Where(e => e.ActionType == "AkhirGiliran")
-            .Select(e => _payloadReader.TryReadActionUsed(e.Payload, out var used, out _) ? used : 0)
-            .Sum();
-
-    private async Task<(double Rate, string? JsonDetail)> ComputePrimaryNeedComplianceAsync(
-        Guid rulesetVersionId,
-        List<EventDb> playerEvents,
-        CancellationToken ct)
-    {
-        var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(rulesetVersionId, ct);
-        if (!TryBuildRuntimeConfig(rulesetVersion, out var config))
-        {
-            return (0, null);
-        }
-
-        var evaluation = _complianceEvaluator.Evaluate(playerEvents, config);
-        if (evaluation.EvaluatedDays == 0)
-        {
-            return (0, null);
-        }
-
-        var json = JsonSerializer.Serialize(new
-        {
-            days = evaluation.Details,
-            evaluated_days = evaluation.EvaluatedDays,
-            compliant_days = evaluation.CompliantDays
-        });
-
-        return (evaluation.Rate, json);
-    }
+            .Count(e => string.Equals(e.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+                        GameActionCatalog.GetPlayerActionSlotPolicy(
+                            e.ActionType,
+                            _eventPayloadReader.ReadPayload(string.IsNullOrWhiteSpace(e.Payload) ? "{}" : e.Payload)) == PlayerActionSlotPolicy.Consumes);
 
     private static bool TryBuildRuntimeConfig(RulesetVersionDb? rulesetVersion, out RulesetConfig? config)
     {

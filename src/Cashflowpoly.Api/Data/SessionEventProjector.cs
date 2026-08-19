@@ -607,17 +607,13 @@ public sealed class SessionEventProjector
         NpgsqlTransaction tx,
         CancellationToken ct)
     {
-        int? actionSlotsLeft = null;
-        int? currentActionSlot = null;
-        if (_payloadReader.TryReadActionUsed(request.Payload, out var used, out var remaining))
-        {
-            actionSlotsLeft = remaining;
-            currentActionSlot = Math.Max(1, used + 1);
-        }
-
-        var day = Math.Max(1, request.DayIndex + 1);
+        var resetsActionSlots = GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran);
+        var consumesAction = string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+                             GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload) == PlayerActionSlotPolicy.Consumes;
+        var day = Math.Max(1, resetsActionSlots ? request.DayIndex + 1 : request.DayIndex);
+        var weekday = ResolveWeekday(day);
         var isGameOver = GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.SessionEnded);
-        var phase = ResolvePhase(request.Weekday, isGameOver);
+        var phase = ResolvePhase(weekday, isGameOver);
 
         const string sql = """
             insert into session_states (
@@ -645,8 +641,8 @@ public sealed class SessionEventProjector
                 @turnNumber,
                 @actionSlot,
                 @participantId,
-                coalesce(@currentActionSlot, 1),
-                coalesce(@actionSlotsLeft, rgs.actions_per_turn),
+                case when @resetsActionSlots then 1 when @consumesAction then least(@actionSlot + 1, rgs.actions_per_turn) else 1 end,
+                case when @resetsActionSlots then rgs.actions_per_turn when @consumesAction then greatest(rgs.actions_per_turn - @actionSlot, 0) else rgs.actions_per_turn end,
                 rgs.finish_day,
                 @phase,
                 @isGameOver,
@@ -663,8 +659,8 @@ public sealed class SessionEventProjector
                 turn_number = excluded.turn_number,
                 action_slot = excluded.action_slot,
                 current_session_player_id = coalesce(excluded.current_session_player_id, session_states.current_session_player_id),
-                current_action_slot = coalesce(@currentActionSlot, session_states.current_action_slot),
-                action_slots_left = coalesce(@actionSlotsLeft, session_states.action_slots_left),
+                current_action_slot = case when @resetsActionSlots or @consumesAction then excluded.current_action_slot else session_states.current_action_slot end,
+                action_slots_left = case when @resetsActionSlots or @consumesAction then excluded.action_slots_left else session_states.action_slots_left end,
                 finish_day = excluded.finish_day,
                 phase = excluded.phase,
                 is_game_over = excluded.is_game_over,
@@ -679,12 +675,12 @@ public sealed class SessionEventProjector
             {
                 sessionId = request.SessionId,
                 day,
-                weekday = request.Weekday.ToUpperInvariant(),
+                weekday,
                 turnNumber = request.ActorType.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase) ? 0 : request.TurnNumber,
                 actionSlot = Math.Max(1, request.ActionSlot),
                 participantId,
-                currentActionSlot,
-                actionSlotsLeft,
+                resetsActionSlots,
+                consumesAction,
                 rulesetVersionId = request.RulesetVersionId,
                 phase,
                 isGameOver,
@@ -693,6 +689,18 @@ public sealed class SessionEventProjector
             tx,
             cancellationToken: ct));
     }
+
+    private static string ResolveWeekday(int day)
+        => (((day - 1) % 7 + 7) % 7) switch
+        {
+            0 => "MON",
+            1 => "TUE",
+            2 => "WED",
+            3 => "THU",
+            4 => "FRI",
+            5 => "SAT",
+            _ => "SUN"
+        };
 
     private static async Task EnsureParticipantBalanceAsync(
         EventRequest request,

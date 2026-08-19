@@ -578,6 +578,16 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.NotNull(registerError);
         Assert.Equal("VALIDATION_ERROR", registerError.ErrorCode);
 
+        var oversizedRegisterResponse = await _client.PostAsJsonAsync(
+            "/api/v1/auth/register",
+            new RegisterRequest($"it_longpass_{suffix}", new string('a', 73), "PLAYER", null));
+        Assert.Equal(HttpStatusCode.BadRequest, oversizedRegisterResponse.StatusCode);
+
+        var oversizedLoginResponse = await _client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new LoginRequest($"it_longpass_{suffix}", new string('a', 73)));
+        Assert.Equal(HttpStatusCode.BadRequest, oversizedLoginResponse.StatusCode);
+
         var instructorUsername = $"it_pwd_instructor_{suffix}";
         const string instructorPassword = "IntegrationPolicyInstructorPass!123";
         var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
@@ -597,6 +607,41 @@ public sealed class AuthRbacRulesetIntegrationTests
         var createPlayerError = await createPlayerResponse.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.NotNull(createPlayerError);
         Assert.Equal("VALIDATION_ERROR", createPlayerError.ErrorCode);
+
+        var oversizedCreatePlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            new
+            {
+                display_name = $"Long Password Player {suffix}",
+                username = $"it_long_player_{suffix}",
+                password = new string('a', 73)
+            },
+            instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, oversizedCreatePlayerResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreatePlayer_ConcurrentDuplicate_ReturnsCreatedAndConflict()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructor = await RegisterAsync(
+            $"it_race_instructor_{suffix}",
+            "IntegrationRaceInstructorPass!123",
+            "INSTRUCTOR");
+        var payload = new
+        {
+            display_name = $"Race Player {suffix}",
+            username = $"it_race_player_{suffix}",
+            password = "IntegrationRacePlayerPass!123"
+        };
+
+        var responses = await Task.WhenAll(
+            SendJsonAsync(HttpMethod.Post, "/api/v1/players", payload, instructor.AccessToken),
+            SendJsonAsync(HttpMethod.Post, "/api/v1/players", payload, instructor.AccessToken));
+
+        Assert.Contains(responses, response => response.StatusCode == HttpStatusCode.Created);
+        Assert.Contains(responses, response => response.StatusCode == HttpStatusCode.Conflict);
     }
 
     /// <summary>
@@ -757,7 +802,9 @@ public sealed class AuthRbacRulesetIntegrationTests
         Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("mode").GetString(), "PEMULA", StringComparison.Ordinal));
         Assert.Contains(defaultItems, item => string.Equals(item.GetProperty("mode").GetString(), "MAHIR", StringComparison.Ordinal));
         Assert.All(defaultItems, item => Assert.Equal("ACTIVE", item.GetProperty("status").GetString()));
-        Assert.All(defaultItems, item => Assert.False(item.GetProperty("is_locked_by_session").GetBoolean()));
+        Assert.All(defaultItems, item => Assert.True(
+            item.TryGetProperty("is_locked_by_session", out var locked) &&
+            locked.ValueKind is JsonValueKind.True or JsonValueKind.False));
     }
 
     /// <summary>

@@ -11,20 +11,19 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 
     public bool RequiresHistory(EventRequest request, RulesetConfig config)
     {
-        return GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran) &&
-               string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase);
+        return GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran);
     }
 
     public bool TryValidate(
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
+        int participantCount,
         out EventDomainValidationResult result)
     {
-        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran) &&
-            string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.AkhirGiliran))
         {
-            result = ValidateTurnEndedMahir(request, history);
+            result = ValidateTurnEnded(request, config, history, participantCount);
             return true;
         }
 
@@ -32,13 +31,95 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
         return false;
     }
 
-    private EventDomainValidationResult ValidateTurnEndedMahir(EventRequest request, IEnumerable<EventDb> history)
+    private EventDomainValidationResult ValidateTurnEnded(
+        EventRequest request,
+        RulesetConfig config,
+        IEnumerable<EventDb> history,
+        int participantCount)
     {
-        var turnEvents = history
+        var sessionEvents = history
+            .Where(e => e.SessionId == request.SessionId)
+            .ToList();
+        var turnEvents = sessionEvents
             .Where(e => e.SessionId == request.SessionId &&
                         e.DayIndex == request.DayIndex &&
                         e.UserId.HasValue)
             .ToList();
+        var consumingActions = turnEvents
+            .Where(e => string.Equals(e.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+                        GameActionCatalog.GetPlayerActionSlotPolicy(
+                            e.ActionType,
+                            _payloadReader.ReadPayload(string.IsNullOrWhiteSpace(e.Payload) ? "{}" : e.Payload)) == PlayerActionSlotPolicy.Consumes)
+            .ToList();
+
+        if (IsRegularActionWeekday(request.Weekday))
+        {
+            var participantIds = consumingActions
+                .Where(e => e.UserId.HasValue)
+                .Select(e => e.UserId!.Value)
+                .Distinct()
+                .ToList();
+            if (participantIds.Count != participantCount || participantIds.Any(playerId => consumingActions
+                    .Where(e => e.UserId == playerId)
+                    .Select(e => e.ActionSlot)
+                    .Distinct()
+                    .Count() != config.ActionsPerTurn))
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Setiap pemain harus menyelesaikan seluruh jatah aksi sebelum giliran berakhir");
+            }
+        }
+
+        var hasUsed = request.Payload.TryGetProperty("used", out _);
+        var hasRemaining = request.Payload.TryGetProperty("remaining", out _);
+        if (hasUsed || hasRemaining)
+        {
+            if (!hasUsed || !hasRemaining ||
+                !_payloadReader.TryReadActionUsed(request.Payload, out var used, out var remaining) ||
+                used != consumingActions.Count ||
+                remaining != 0)
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Nilai used/remaining tidak sesuai dengan riwayat aksi");
+            }
+        }
+
+        var hasFromDay = request.Payload.TryGetProperty("from_day", out _);
+        var hasToDay = request.Payload.TryGetProperty("to_day", out _);
+        if (hasFromDay || hasToDay)
+        {
+            if (!_payloadReader.TryGetInt32(request.Payload, "from_day", out var fromDay) ||
+                !_payloadReader.TryGetInt32(request.Payload, "to_day", out var toDay) ||
+                fromDay != request.DayIndex ||
+                toDay != request.DayIndex + 1)
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Transisi hari pada AkhirGiliran tidak sesuai");
+            }
+        }
+
+        if (request.Payload.TryGetProperty("completed_players", out _))
+        {
+            if (!_payloadReader.TryGetInt32(request.Payload, "completed_players", out var completedPlayers) ||
+                completedPlayers != participantCount)
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Jumlah completed_players tidak sesuai peserta sesi");
+            }
+        }
+
+        if (!string.Equals(config.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+        {
+            return EventDomainValidationResult.Valid;
+        }
 
         var orderCounts = turnEvents
             .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.JualMasakan))
@@ -65,5 +146,11 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
 
         return EventDomainValidationResult.Valid;
     }
+
+    private static bool IsRegularActionWeekday(string weekday)
+        => weekday.Equals("MON", StringComparison.OrdinalIgnoreCase) ||
+           weekday.Equals("TUE", StringComparison.OrdinalIgnoreCase) ||
+           weekday.Equals("WED", StringComparison.OrdinalIgnoreCase) ||
+           weekday.Equals("THU", StringComparison.OrdinalIgnoreCase);
 
 }

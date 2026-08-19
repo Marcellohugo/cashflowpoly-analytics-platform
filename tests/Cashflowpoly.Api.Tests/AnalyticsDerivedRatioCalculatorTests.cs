@@ -24,6 +24,7 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
             FinancialGoalsIncompleteCoinsWasted: 5);
         var needMissionMetrics = new AnalyticsNeedMissionMetrics(
             NeedCardsPurchased: 4,
+            NeedCardsOwnedCurrent: 4,
             PrimaryNeeds: 1,
             SecondaryNeeds: 1,
             TertiaryNeeds: 2,
@@ -34,6 +35,7 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
             CollectionMissionComplete: null,
             NeedCoinsSpent: 0,
             FulfillmentDiversity: 80,
+            FulfillmentDiversityDocumentFormula: 0.6,
             MissionAchievement: 1);
         var playerEvents = new List<EventDb>
         {
@@ -59,10 +61,14 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
         Assert.Equal(66.666667, metrics.BusinessProfitMargin!.Value, precision: 6);
         Assert.Equal(0.5, metrics.GoalAttemptRate);
         Assert.Equal(0.5, metrics.GoalInvestmentRate);
-        Assert.Equal(50, metrics.GoalSettingAmbition);
+        Assert.Equal(50, metrics.GoalAmbitionIndex);
+        Assert.Equal(52, metrics.GoalSettingAmbition);
         Assert.Equal(75, metrics.MealOrderSuccessRate);
         Assert.Equal(0.2, metrics.PlanningHorizon!.Value, precision: 6);
         Assert.Equal(20, metrics.PlanningHorizonPercent!.Value, precision: 6);
+        Assert.Equal(0, metrics.SavingsActionCount);
+        Assert.Equal(0, metrics.FinancialGoalActionCount);
+        Assert.Equal(1, metrics.InsurancePremiumActionCount);
         Assert.Equal(0.25, metrics.PrimaryNeedShare);
         Assert.Equal(0.25, metrics.SecondaryNeedShare);
         Assert.Equal(0.5, metrics.TertiaryNeedShare);

@@ -382,6 +382,12 @@ internal sealed class EventIngestionService : IEventIngestionService
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Definition ruleset tidak valid");
         }
 
+        var dayValidation = await ValidateActiveDayAsync(request, ct);
+        if (!dayValidation.IsValid)
+        {
+            return dayValidation;
+        }
+
         var actionOrderValidation = await ValidateDailyActionOrderAsync(request, config!, ct);
         if (!actionOrderValidation.IsValid)
         {
@@ -405,6 +411,62 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         return Valid;
     }
+
+    private async Task<ValidationOutcome> ValidateActiveDayAsync(
+        EventRequest request,
+        CancellationToken ct)
+    {
+        var progress = await _sessions.GetProgressAsync(request.SessionId, ct);
+        if (progress is null)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "State sesi tidak ditemukan");
+        }
+
+        if (request.DayIndex != progress.Day)
+        {
+            return BuildOutcome(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                $"Event harus dicatat pada hari aktif {progress.Day}",
+                new ErrorDetail("day_index", "MISMATCH"));
+        }
+
+        var expectedWeekday = ResolveWeekday(progress.Day);
+        if (!string.Equals(request.Weekday, expectedWeekday, StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildOutcome(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                $"Hari {progress.Day} harus memakai weekday {expectedWeekday}",
+                new ErrorDetail("weekday", "MISMATCH"));
+        }
+
+        if (IsAction(request, GameActionCatalog.AkhirGiliran) && progress.Day >= progress.FinishDay)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Hari terakhir harus ditutup dengan AkhiriSesi, bukan AkhirGiliran");
+        }
+
+        if (IsAction(request, GameActionCatalog.SessionEnded) && progress.Day != progress.FinishDay)
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                $"Sesi hanya dapat diakhiri pada hari {progress.FinishDay}");
+        }
+
+        return Valid;
+    }
+
+    private static string ResolveWeekday(int day)
+        => (((day - 1) % 7 + 7) % 7) switch
+        {
+            0 => "MON",
+            1 => "TUE",
+            2 => "WED",
+            3 => "THU",
+            4 => "FRI",
+            5 => "SAT",
+            _ => "SUN"
+        };
 
     private async Task<ValidationOutcome> ValidateDailyActionOrderAsync(EventRequest request, RulesetConfig config, CancellationToken ct)
     {
@@ -1339,7 +1401,8 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (_turnProgressValidator.RequiresHistory(request, config))
         {
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
-            if (_turnProgressValidator.TryValidate(request, config, events, out var turnValidation))
+            var participantCount = await _players.CountPlayersInSessionAsync(request.SessionId, ct);
+            if (_turnProgressValidator.TryValidate(request, config, events, participantCount, out var turnValidation))
             {
                 return BuildOutcome(turnValidation);
             }

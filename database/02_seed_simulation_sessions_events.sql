@@ -2,6 +2,9 @@
 begin;
 
 -- Seed simulasi baseline dengan trigger dan validasi aktif.
+-- Empat pemain memakai persona deterministik agar hasil analitika beragam tetapi
+-- tetap dapat diulang: Marco (perencana usaha), Marcello (kolektor oportunis),
+-- Hugo (penjaga risiko), dan Manalu (eksploratif serta sosial).
 do $$ begin if not exists (
   select
     1
@@ -641,7 +644,7 @@ scenario_event_seed_raw as (
   from
     (
       values
-        -- PEMULA: sesuai dokumen skenario 4 pemain selama 25 hari.
+        -- PEMULA: keputusan bertahap dari modal, usaha, kebutuhan, donasi, dan emas.
         (
           'PEMULA',
           null,
@@ -1406,9 +1409,9 @@ scenario_event_seed_raw as (
           8,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1418,9 +1421,9 @@ scenario_event_seed_raw as (
           8,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1430,9 +1433,9 @@ scenario_event_seed_raw as (
           8,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"gado_gado","required_ingredient_card_ids":["nasi_putih","sayur","tahu_tempe","telur"],"income":26}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1442,9 +1445,9 @@ scenario_event_seed_raw as (
           8,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'Kebutuhan',
+          'Kebutuhan',
+          '{"card_id":"gadget_2","amount":5,"points":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1454,9 +1457,9 @@ scenario_event_seed_raw as (
           8,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1466,9 +1469,9 @@ scenario_event_seed_raw as (
           8,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1478,9 +1481,9 @@ scenario_event_seed_raw as (
           8,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"sego_penyet","required_ingredient_card_ids":["nasi_putih","tahu_tempe","telur"],"income":22}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1490,9 +1493,9 @@ scenario_event_seed_raw as (
           8,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'Kebutuhan',
+          'Kebutuhan',
+          '{"card_id":"sepeda_2","amount":5,"points":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1598,9 +1601,9 @@ scenario_event_seed_raw as (
           10,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1610,9 +1613,9 @@ scenario_event_seed_raw as (
           10,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"nasi_pecel","required_ingredient_card_ids":["nasi_putih","sayur","tahu_tempe"],"income":20}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1622,9 +1625,9 @@ scenario_event_seed_raw as (
           10,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1634,9 +1637,9 @@ scenario_event_seed_raw as (
           10,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1646,9 +1649,9 @@ scenario_event_seed_raw as (
           10,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"sego_penyet","required_ingredient_card_ids":["nasi_putih","tahu_tempe","telur"],"income":22}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1658,9 +1661,9 @@ scenario_event_seed_raw as (
           10,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'Kebutuhan',
+          'Kebutuhan',
+          '{"card_id":"buku_1","amount":2,"points":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1670,9 +1673,9 @@ scenario_event_seed_raw as (
           10,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1694,9 +1697,9 @@ scenario_event_seed_raw as (
           11,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1706,9 +1709,9 @@ scenario_event_seed_raw as (
           11,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1718,9 +1721,9 @@ scenario_event_seed_raw as (
           11,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"soto_daging","required_ingredient_card_ids":["daging","telur"],"income":17}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1742,9 +1745,9 @@ scenario_event_seed_raw as (
           11,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1754,9 +1757,9 @@ scenario_event_seed_raw as (
           11,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1766,9 +1769,9 @@ scenario_event_seed_raw as (
           11,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Menunda pesanan agar kas cukup untuk pembelian bahan berikutnya"}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1958,9 +1961,9 @@ scenario_event_seed_raw as (
           15,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"lontong_balap","required_ingredient_card_ids":["nasi_putih","sayur"],"income":13}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1970,9 +1973,9 @@ scenario_event_seed_raw as (
           15,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'Kebutuhan',
+          'Kebutuhan',
+          '{"card_id":"gadget_1","amount":4,"points":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1982,9 +1985,9 @@ scenario_event_seed_raw as (
           15,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -1994,9 +1997,9 @@ scenario_event_seed_raw as (
           15,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2006,9 +2009,9 @@ scenario_event_seed_raw as (
           15,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"soto_daging","required_ingredient_card_ids":["daging","telur"],"income":17}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2018,9 +2021,9 @@ scenario_event_seed_raw as (
           15,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'Kebutuhan',
+          'Kebutuhan',
+          '{"card_id":"tempat_pensil_1","amount":4,"points":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2030,9 +2033,9 @@ scenario_event_seed_raw as (
           15,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2042,9 +2045,9 @@ scenario_event_seed_raw as (
           15,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2054,9 +2057,9 @@ scenario_event_seed_raw as (
           16,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2066,9 +2069,9 @@ scenario_event_seed_raw as (
           16,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2078,9 +2081,9 @@ scenario_event_seed_raw as (
           16,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"lontong_balap","required_ingredient_card_ids":["nasi_putih","sayur"],"income":13}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2102,9 +2105,9 @@ scenario_event_seed_raw as (
           16,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2114,9 +2117,9 @@ scenario_event_seed_raw as (
           16,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2126,9 +2129,9 @@ scenario_event_seed_raw as (
           16,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2138,9 +2141,9 @@ scenario_event_seed_raw as (
           16,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"nasi_campur","required_ingredient_card_ids":["daging","nasi_putih","sayur","telur"],"income":27}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2150,9 +2153,9 @@ scenario_event_seed_raw as (
           17,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2162,9 +2165,9 @@ scenario_event_seed_raw as (
           17,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"semanggi_surabaya","required_ingredient_card_ids":["sayur","sayur"],"income":14}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2174,9 +2177,9 @@ scenario_event_seed_raw as (
           17,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2186,9 +2189,9 @@ scenario_event_seed_raw as (
           17,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2198,9 +2201,9 @@ scenario_event_seed_raw as (
           17,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"tahu_telur","required_ingredient_card_ids":["tahu_tempe","telur","telur"],"income":25}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2246,9 +2249,9 @@ scenario_event_seed_raw as (
           18,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2258,9 +2261,9 @@ scenario_event_seed_raw as (
           18,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2270,9 +2273,9 @@ scenario_event_seed_raw as (
           18,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"rawon","required_ingredient_card_ids":["daging","tahu_tempe","telur"],"income":24}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2318,9 +2321,9 @@ scenario_event_seed_raw as (
           18,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2330,9 +2333,9 @@ scenario_event_seed_raw as (
           18,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Bahan belum cukup untuk pesanan yang tersedia"}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2510,9 +2513,9 @@ scenario_event_seed_raw as (
           22,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"rawon","required_ingredient_card_ids":["daging","tahu_tempe","telur"],"income":24}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2534,9 +2537,9 @@ scenario_event_seed_raw as (
           22,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2546,9 +2549,9 @@ scenario_event_seed_raw as (
           22,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"sayur","ingredient_name":"Sayur","amount":2}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2582,9 +2585,9 @@ scenario_event_seed_raw as (
           22,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2594,9 +2597,9 @@ scenario_event_seed_raw as (
           22,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2606,9 +2609,9 @@ scenario_event_seed_raw as (
           23,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2618,9 +2621,9 @@ scenario_event_seed_raw as (
           23,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2630,9 +2633,9 @@ scenario_event_seed_raw as (
           23,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2642,9 +2645,9 @@ scenario_event_seed_raw as (
           23,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"semanggi_surabaya","required_ingredient_card_ids":["sayur","sayur"],"income":14}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2654,9 +2657,9 @@ scenario_event_seed_raw as (
           23,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2666,9 +2669,9 @@ scenario_event_seed_raw as (
           23,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2678,9 +2681,9 @@ scenario_event_seed_raw as (
           23,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"rujak_cingur","required_ingredient_card_ids":["daging","nasi_putih","sayur","tahu_tempe"],"income":28}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2714,9 +2717,9 @@ scenario_event_seed_raw as (
           24,
           1,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"sate_klopo","required_ingredient_card_ids":["daging","daging","nasi_putih"],"income":26}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2750,9 +2753,9 @@ scenario_event_seed_raw as (
           24,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'JualMasakan',
+          'JualMasakan',
+          '{"order_card_id":"sate_klopo","required_ingredient_card_ids":["daging","daging","nasi_putih"],"income":26}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2774,9 +2777,9 @@ scenario_event_seed_raw as (
           24,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2822,9 +2825,9 @@ scenario_event_seed_raw as (
           25,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2834,9 +2837,9 @@ scenario_event_seed_raw as (
           25,
           2,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"telur","ingredient_name":"Telur","amount":4}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2846,9 +2849,9 @@ scenario_event_seed_raw as (
           25,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2858,9 +2861,9 @@ scenario_event_seed_raw as (
           25,
           3,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2870,9 +2873,9 @@ scenario_event_seed_raw as (
           25,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BahanMasakan',
+          'BahanMasakan',
+          '{"card_id":"daging","ingredient_name":"Daging","amount":5}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2882,9 +2885,9 @@ scenario_event_seed_raw as (
           25,
           4,
           'PLAYER',
-          'KerjaLepas',
-          'KerjaLepas',
-          '{"amount":1}' :: jsonb
+          'BuangBahanMasakan',
+          'BuangBahanMasakan',
+          '{"card_id":"daging","amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -4173,6 +4176,18 @@ scenario_event_seed_raw as (
         ),
         (
           'MAHIR',
+          'mahir-risk-011',
+          9,
+          9,
+          10,
+          3,
+          'PLAYER',
+          'BayarRisiko',
+          'BayarRisiko',
+          '{}' :: jsonb
+        ),
+        (
+          'MAHIR',
           null,
           9,
           10,
@@ -4182,6 +4197,18 @@ scenario_event_seed_raw as (
           'BahanMasakan',
           'BahanMasakan',
           '{"card_id":"tahu_tempe","ingredient_name":"Tahu Tempe","amount":3}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          9,
+          11,
+          10,
+          4,
+          'PLAYER',
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4821,6 +4848,18 @@ scenario_event_seed_raw as (
         ),
         (
           'MAHIR',
+          null,
+          17,
+          1,
+          18,
+          1,
+          'PLAYER',
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+        ),
+        (
+          'MAHIR',
           'mahir-risk-014',
           17,
           2,
@@ -4842,6 +4881,18 @@ scenario_event_seed_raw as (
           'KerjaLepas',
           'KerjaLepas',
           '{"amount":1}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          17,
+          3,
+          18,
+          2,
+          'PLAYER',
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4869,6 +4920,18 @@ scenario_event_seed_raw as (
         ),
         (
           'MAHIR',
+          null,
+          17,
+          5,
+          18,
+          3,
+          'PLAYER',
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+        ),
+        (
+          'MAHIR',
           'mahir-risk-016',
           17,
           6,
@@ -4890,6 +4953,18 @@ scenario_event_seed_raw as (
           'KerjaLepas',
           'KerjaLepas',
           '{"amount":1}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          null,
+          17,
+          7,
+          18,
+          4,
+          'PLAYER',
+          'LewatiOrder',
+          'LewatiOrder',
+          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5193,6 +5268,18 @@ scenario_event_seed_raw as (
         ),
         (
           'MAHIR',
+          'mahir-risk-017',
+          22,
+          3,
+          23,
+          1,
+          'PLAYER',
+          'Asuransi',
+          'Asuransi',
+          '{}' :: jsonb
+        ),
+        (
+          'MAHIR',
           null,
           22,
           4,
@@ -5226,6 +5313,18 @@ scenario_event_seed_raw as (
           'Asuransi',
           'Asuransi',
           '{"policy_id":"INS-SEED-015","policy_instance_id":"INS-SEED-015","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-018',
+          22,
+          7,
+          23,
+          2,
+          'PLAYER',
+          'Asuransi',
+          'Asuransi',
+          '{}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5265,6 +5364,18 @@ scenario_event_seed_raw as (
         ),
         (
           'MAHIR',
+          'mahir-risk-019',
+          22,
+          11,
+          23,
+          3,
+          'PLAYER',
+          'Asuransi',
+          'Asuransi',
+          '{}' :: jsonb
+        ),
+        (
+          'MAHIR',
           null,
           22,
           12,
@@ -5298,6 +5409,18 @@ scenario_event_seed_raw as (
           'Asuransi',
           'Asuransi',
           '{"policy_id":"INS-SEED-017","policy_instance_id":"INS-SEED-017","product_code":"multirisk_basic","premium":1,"coverage_type":"MULTIRISK"}' :: jsonb
+        ),
+        (
+          'MAHIR',
+          'mahir-risk-020',
+          22,
+          15,
+          23,
+          4,
+          'PLAYER',
+          'Asuransi',
+          'Asuransi',
+          '{}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5787,7 +5910,7 @@ final_market_seed as (
     'SYSTEM',
     'IsiUlangPasar',
     'IsiUlangPasar',
-    setup.payload
+    (setup.payload - 'setup') || jsonb_build_object('reason', 'FINAL_MARKET_RESET')
   from setup_market_seed setup
 ),
 transition_seed as (
@@ -5812,21 +5935,24 @@ transition_seed as (
       count(*) filter (
         where
           actor_type = 'PLAYER'
-          and action_type not in (
-            'JumatBerkah',
-            'RisikoKehidupan',
-            'BayarRisiko',
-            'GunakanOpsiDarurat',
-            'InvestasiEmas',
-            'JualEmas',
-            'LewatiTransaksiEmas',
-            'HariMingguLibur'
-          )
-          and not (
+          and (
+            action_type in (
+              'BahanMasakan',
+              'BuangBahanMasakan',
+              'JualMasakan',
+              'LewatiOrder',
+              'Kebutuhan',
+              'KerjaLepas',
+              'Menabung',
+              'TarikTabungan',
+              'TujuanFinansial',
+              'BayarPinjaman'
+            )
+            or (
             action_type in ('Asuransi', 'PinjamanSyariah')
-            and (
-              ref_key is not null
-              or payload ? 'risk_event_id'
+              and ref_key is null
+              and not (payload ? 'risk_event_id')
+              and not coalesce(payload ->> 'setup' = 'INITIAL', false)
             )
           )
       ),
@@ -5881,46 +6007,44 @@ ordered_events as (
       and es.player_no is not null
       and (
         es.action_type in (
-          'JumatBerkah',
-          'RisikoKehidupan',
-          'BayarRisiko',
-          'GunakanOpsiDarurat',
-          'InvestasiEmas',
-          'JualEmas',
-          'LewatiTransaksiEmas',
-          'HariMingguLibur'
+          'BahanMasakan',
+          'BuangBahanMasakan',
+          'JualMasakan',
+          'LewatiOrder',
+          'Kebutuhan',
+          'KerjaLepas',
+          'Menabung',
+          'TarikTabungan',
+          'TujuanFinansial',
+          'BayarPinjaman'
         )
         or (
           es.action_type in ('Asuransi', 'PinjamanSyariah')
-          and (
-            es.ref_key is not null
-            or es.payload ? 'risk_event_id'
-            or coalesce(es.payload ->> 'setup' = 'INITIAL', false)
-          )
+          and es.ref_key is null
+          and not (es.payload ? 'risk_event_id')
+          and not coalesce(es.payload ->> 'setup' = 'INITIAL', false)
         )
-      ) then 0
-      when es.actor_type = 'PLAYER'
-      and es.player_no is not null then least(
-        2,
-        count(*) filter (
+      ) then count(*) filter (
           where
             es.actor_type = 'PLAYER'
-            and es.action_type not in (
-              'JumatBerkah',
-              'RisikoKehidupan',
-              'BayarRisiko',
-              'GunakanOpsiDarurat',
-              'InvestasiEmas',
-              'JualEmas',
-              'LewatiTransaksiEmas',
-              'HariMingguLibur'
-            )
-            and not (
+            and (
+              es.action_type in (
+                'BahanMasakan',
+                'BuangBahanMasakan',
+                'JualMasakan',
+                'LewatiOrder',
+                'Kebutuhan',
+                'KerjaLepas',
+                'Menabung',
+                'TarikTabungan',
+                'TujuanFinansial',
+                'BayarPinjaman'
+              )
+              or (
               es.action_type in ('Asuransi', 'PinjamanSyariah')
-              and (
-                es.ref_key is not null
-                or es.payload ? 'risk_event_id'
-                or coalesce(es.payload ->> 'setup' = 'INITIAL', false)
+                and es.ref_key is null
+                and not (es.payload ? 'risk_event_id')
+                and not coalesce(es.payload ->> 'setup' = 'INITIAL', false)
               )
             )
         ) over (
@@ -5928,9 +6052,12 @@ ordered_events as (
           es.day_index,
           es.player_no
           order by
-            es.event_order
+            es.event_order,
+            es.action_type,
+            coalesce(es.ref_key, '')
+          rows between unbounded preceding and current row
         )
-      ) :: int
+      :: int
       else 0
     end as action_slot,
     es.actor_type,
@@ -7254,15 +7381,27 @@ snapshot_rows as (
       'planning_horizon_percent',
       round((latest_day_index :: numeric / 25) * 100, 2),
       'fulfillment_diversity',
-      primary_needs_owned + secondary_needs_owned + tertiary_needs_owned,
+      case
+        when primary_needs_owned + secondary_needs_owned + tertiary_needs_owned = 0 then null
+        else round(
+          (
+            1 - (
+              power(primary_needs_owned::numeric / (primary_needs_owned + secondary_needs_owned + tertiary_needs_owned), 2) +
+              power(secondary_needs_owned::numeric / (primary_needs_owned + secondary_needs_owned + tertiary_needs_owned), 2) +
+              power(tertiary_needs_owned::numeric / (primary_needs_owned + secondary_needs_owned + tertiary_needs_owned), 2)
+            )
+          ) / (1 - (1::numeric / 3)),
+          4
+        )
+      end,
       'fulfillment_diversity_components',
       jsonb_build_object(
         'p_primary',
-        primary_needs_owned,
+        primary_needs_owned::numeric / greatest(primary_needs_owned + secondary_needs_owned + tertiary_needs_owned, 1),
         'p_secondary',
-        secondary_needs_owned,
+        secondary_needs_owned::numeric / greatest(primary_needs_owned + secondary_needs_owned + tertiary_needs_owned, 1),
         'p_tertiary',
-        tertiary_needs_owned
+        tertiary_needs_owned::numeric / greatest(primary_needs_owned + secondary_needs_owned + tertiary_needs_owned, 1)
       ),
       'mission_achievement',
       case
@@ -7461,4 +7600,3 @@ end;
 $$;
 
 commit;
-

@@ -99,26 +99,7 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
             return false;
         }
 
-        if (actionType.Contains('.', StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        return !actionType.Equals(GameActionCatalog.AkhirGiliran, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.OrderPassed, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.IngredientDiscarded, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.RiskEmergencyUsed, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.DonationRankAwarded, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.DonationWinnersAnnounced, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.GoldPointsAwarded, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.PensionRankAwarded, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.TieBreakerAssigned, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.SetupModalAwal, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.SetupBahanAwal, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.SetupEmasAwal, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.SetupPinjamanAwal, StringComparison.OrdinalIgnoreCase) &&
-               !actionType.Equals(GameActionCatalog.SetupAsuransiAwal, StringComparison.OrdinalIgnoreCase);
+        return GameActionCatalog.GetPlayerActionSlotPolicy(actionType, default) == PlayerActionSlotPolicy.Consumes;
     }
 
     /// <summary>

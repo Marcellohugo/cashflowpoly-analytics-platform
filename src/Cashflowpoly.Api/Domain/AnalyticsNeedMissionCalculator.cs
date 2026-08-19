@@ -6,6 +6,7 @@ namespace Cashflowpoly.Api.Domain;
 
 public sealed record AnalyticsNeedMissionMetrics(
     int NeedCardsPurchased,
+    int NeedCardsOwnedCurrent,
     int PrimaryNeeds,
     int SecondaryNeeds,
     int TertiaryNeeds,
@@ -16,6 +17,7 @@ public sealed record AnalyticsNeedMissionMetrics(
     bool? CollectionMissionComplete,
     int NeedCoinsSpent,
     double? FulfillmentDiversity,
+    double? FulfillmentDiversityDocumentFormula,
     int? MissionAchievement);
 
 internal sealed class NeedMissionCalculator : INeedMissionCalculator
@@ -28,6 +30,7 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
     {
         var activeNeeds = new List<NeedCard>();
         var missions = new List<MissionAssignment>();
+        var needCardsPurchased = 0;
 
         foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
         {
@@ -35,6 +38,7 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
             {
                 activeNeeds.Add(new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload)));
+                needCardsPurchased++;
             }
 
             if (evt.ActionType == "GunakanOpsiDarurat" &&
@@ -68,11 +72,11 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var needCardsPurchased = primaryNeeds + secondaryNeeds + tertiaryNeeds;
+        var needCardsOwnedCurrent = primaryNeeds + secondaryNeeds + tertiaryNeeds;
         var hasBasicNeedProfile = primaryNeeds > 0 && secondaryNeeds > 0 && tertiaryNeeds > 0;
         var isCollectorNeedProfile = distinctNeedCardIds.Count >= 4;
         var dominantNeedCount = Math.Max(primaryNeeds, Math.Max(secondaryNeeds, tertiaryNeeds));
-        var isSpecialistNeedProfile = needCardsPurchased > 0 && ((double)dominantNeedCount / needCardsPurchased) >= 0.7;
+        var isSpecialistNeedProfile = needCardsOwnedCurrent > 0 && ((double)dominantNeedCount / needCardsOwnedCurrent) >= 0.7;
         var needCoinsSpent = playerProjections
             .Where(p => p.Direction == "OUT" &&
                         (p.Category == "NEED_PRIMARY" || p.Category == "NEED_SECONDARY" || p.Category == "NEED_TERTIARY"))
@@ -97,20 +101,27 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             });
         }
 
-        var pPrimary = SafeRatio(primaryNeeds, needCardsPurchased);
-        var pSecondary = SafeRatio(secondaryNeeds, needCardsPurchased);
-        var pTertiary = SafeRatio(tertiaryNeeds, needCardsPurchased);
+        var pPrimary = SafeRatio(primaryNeeds, needCardsOwnedCurrent);
+        var pSecondary = SafeRatio(secondaryNeeds, needCardsOwnedCurrent);
+        var pTertiary = SafeRatio(tertiaryNeeds, needCardsOwnedCurrent);
         var fulfillmentDiversity =
             pPrimary.HasValue && pSecondary.HasValue && pTertiary.HasValue
                 ? (1 - (Math.Pow(pPrimary.Value, 2) + Math.Pow(pSecondary.Value, 2) + Math.Pow(pTertiary.Value, 2)))
                     / (1 - (1d / 3))
-                : (double?)null;
+                : 0;
+        var fulfillmentDiversityDocumentFormula = needCardsOwnedCurrent > 0
+            ? Math.Sqrt(
+                Math.Pow(primaryNeeds, 2) +
+                Math.Pow(secondaryNeeds, 2) +
+                Math.Pow(tertiaryNeeds, 2)) / needCardsOwnedCurrent
+            : (double?)null;
         var missionAchievement = collectionMissionComplete.HasValue
             ? (collectionMissionComplete.Value ? 1 : 0)
             : (int?)null;
 
         return new AnalyticsNeedMissionMetrics(
             needCardsPurchased,
+            needCardsOwnedCurrent,
             primaryNeeds,
             secondaryNeeds,
             tertiaryNeeds,
@@ -121,6 +132,7 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             collectionMissionComplete,
             needCoinsSpent,
             fulfillmentDiversity,
+            fulfillmentDiversityDocumentFormula,
             missionAchievement);
     }
 

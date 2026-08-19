@@ -25,6 +25,7 @@ public interface IEventTurnProgressValidator
         EventRequest request,
         RulesetConfig config,
         IEnumerable<EventDb> history,
+        int participantCount,
         out EventDomainValidationResult result);
 }
 

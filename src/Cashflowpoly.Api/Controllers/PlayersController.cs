@@ -5,6 +5,7 @@ using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 using System.Security.Claims;
 
 namespace Cashflowpoly.Api.Controllers;
@@ -40,7 +41,7 @@ public sealed class PlayersController : ControllerBase
     [ProducesResponseType(typeof(PlayerResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreatePlayer([FromBody] CreatePlayerRequest request, CancellationToken ct)
     {
-        if (!TryGetCurrentUserId(out var instructorUserId))
+        if (!TryGetCurrentUserId(out _))
         {
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
         }
@@ -79,18 +80,28 @@ public sealed class PlayersController : ControllerBase
                 new ErrorDetail("password", "OUT_OF_RANGE")));
         }
 
-        var exists = await _users.UsernameExistsAsync(username, ct);
-        if (exists)
+        if (!PasswordPolicy.IsWithinBcryptLimit(request.Password))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Password maksimal {PasswordPolicy.MaxPasswordUtf8Bytes} byte UTF-8",
+                new ErrorDetail("password", "OUT_OF_RANGE")));
+        }
+
+        AuthenticatedUserDb createdUser;
+        try
+        {
+            createdUser = await _users.CreatePlayerUserAsync(
+                username,
+                request.Password,
+                request.DisplayName.Trim(),
+                ct);
+        }
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             return Conflict(ApiErrorHelper.BuildError(HttpContext, "DUPLICATE", "Username sudah digunakan"));
         }
-
-        var createdUser = await _users.CreatePlayerUserAsync(
-            username,
-            request.Password,
-            request.DisplayName.Trim(),
-            instructorUserId,
-            ct);
 
         return Created($"/api/v1/players/{createdUser.UserId}", new PlayerResponse(createdUser.UserId, createdUser.DisplayName));
     }
@@ -109,7 +120,7 @@ public sealed class PlayersController : ControllerBase
 
         if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
         {
-            players = await _players.ListPlayersAsync(userId, ct);
+            players = await _players.ListPlayersAsync(ct);
         }
         else if (string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
@@ -237,11 +248,11 @@ public sealed class PlayersController : ControllerBase
         PlayerDb? player = null;
         if (request.UserId.HasValue)
         {
-            player = await _players.GetPlayerForInstructorAsync(request.UserId.Value, instructorUserId, ct);
+            player = await _players.GetPlayerAsync(request.UserId.Value, ct);
         }
         else if (!string.IsNullOrWhiteSpace(request.Username))
         {
-            player = await _players.GetPlayerForInstructorByUsernameAsync(request.Username.Trim(), instructorUserId, ct);
+            player = await _players.GetPlayerByUsernameAsync(request.Username.Trim(), ct);
         }
 
         if (player is null)

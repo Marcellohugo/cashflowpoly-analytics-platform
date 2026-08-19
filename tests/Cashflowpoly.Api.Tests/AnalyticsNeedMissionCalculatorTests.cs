@@ -29,6 +29,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
         var metrics = new NeedMissionCalculator().Compute(events, projections);
 
         Assert.Equal(3, metrics.NeedCardsPurchased);
+        Assert.Equal(3, metrics.NeedCardsOwnedCurrent);
         Assert.Equal(1, metrics.PrimaryNeeds);
         Assert.Equal(1, metrics.SecondaryNeeds);
         Assert.Equal(1, metrics.TertiaryNeeds);
@@ -39,6 +40,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
         Assert.True(metrics.CollectionMissionComplete);
         Assert.Equal(14, metrics.NeedCoinsSpent);
         Assert.Equal(1, metrics.FulfillmentDiversity);
+        Assert.Equal(Math.Sqrt(3) / 3, metrics.FulfillmentDiversityDocumentFormula!.Value, precision: 12);
         Assert.Equal(1, metrics.MissionAchievement);
     }
 
@@ -59,9 +61,21 @@ public sealed class AnalyticsNeedMissionCalculatorTests
 
         Assert.True(metrics.IsCollectorNeedProfile);
         Assert.True(metrics.IsSpecialistNeedProfile);
+        Assert.Equal(4, metrics.NeedCardsOwnedCurrent);
         Assert.Null(metrics.SpecificTertiaryAcquired);
         Assert.Null(metrics.CollectionMissionComplete);
         Assert.Null(metrics.MissionAchievement);
+    }
+
+    [Fact]
+    public void Compute_NoOwnedNeeds_HasZeroFulfillmentDiversity()
+    {
+        var metrics = new NeedMissionCalculator().Compute(
+            Array.Empty<EventDb>(),
+            Array.Empty<CashflowProjectionDb>());
+
+        Assert.Equal(0, metrics.FulfillmentDiversity);
+        Assert.Null(metrics.FulfillmentDiversityDocumentFormula);
     }
 
     [Fact]
@@ -80,7 +94,8 @@ public sealed class AnalyticsNeedMissionCalculatorTests
 
         var metrics = new NeedMissionCalculator().Compute(events, Array.Empty<CashflowProjectionDb>());
 
-        Assert.Equal(2, metrics.NeedCardsPurchased);
+        Assert.Equal(3, metrics.NeedCardsPurchased);
+        Assert.Equal(2, metrics.NeedCardsOwnedCurrent);
         Assert.Equal(1, metrics.PrimaryNeeds);
         Assert.Equal(1, metrics.SecondaryNeeds);
         Assert.Equal(0, metrics.TertiaryNeeds);

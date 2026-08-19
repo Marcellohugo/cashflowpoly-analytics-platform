@@ -9,10 +9,14 @@ public sealed record AnalyticsDerivedRatioMetrics(
     double? BusinessProfitMargin,
     double? GoalAttemptRate,
     double? GoalInvestmentRate,
+    double? GoalAmbitionIndex,
     double? GoalSettingAmbition,
     double? MealOrderSuccessRate,
     double? PlanningHorizon,
     double? PlanningHorizonPercent,
+    int SavingsActionCount,
+    int FinancialGoalActionCount,
+    int InsurancePremiumActionCount,
     double? PrimaryNeedShare,
     double? SecondaryNeedShare,
     double? TertiaryNeedShare,
@@ -45,20 +49,28 @@ internal sealed class DerivedRatioCalculator : IDerivedRatioCalculator
         var goalInvestmentRate = SafeRatio(
             savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
             coinsNetEndGame + savingGoalMetrics.CoinsSaved);
-        var goalSettingAmbition = goalAttemptRate.HasValue && goalInvestmentRate.HasValue
-            ? Clamp(((goalAttemptRate.Value * 0.4) + (goalInvestmentRate.Value * 0.6)) * 100, 0, 100)
+        var goalAmbitionIndex = goalAttemptRate.HasValue && goalInvestmentRate.HasValue
+            ? Clamp(((goalAttemptRate.Value + goalInvestmentRate.Value) / 2) * 100, 0, 100)
+            : (double?)null;
+        var goalInvestmentToNetWorth = SafeRatio(
+            savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
+            coinsNetEndGame);
+        var goalSettingAmbition = goalInvestmentToNetWorth.HasValue
+            ? savingGoalMetrics.FinancialGoalsAttempted + goalInvestmentToNetWorth.Value * 100
             : (double?)null;
 
         var mealOrdersAttempted = mealOrdersClaimed + mealOrdersPassed;
         var mealOrderSuccessRate = SafeRatio(mealOrdersClaimed, mealOrdersAttempted, true);
-        var longTermActionCount = playerEvents.Count(e =>
-            e.ActionType == GameActionCatalog.Menabung ||
+        var savingsActionCount = playerEvents.Count(e => e.ActionType == GameActionCatalog.Menabung);
+        var financialGoalActionCount = playerEvents.Count(e => e.ActionType == GameActionCatalog.TujuanFinansial);
+        var insurancePremiumActionCount = playerEvents.Count(e =>
             e.ActionType == GameActionCatalog.Asuransi &&
             e.Payload.Contains("\"premium\"", StringComparison.OrdinalIgnoreCase));
+        var longTermActionCount = savingsActionCount + financialGoalActionCount + insurancePremiumActionCount;
         var planningHorizon = SafeRatio(longTermActionCount, actionEventCount);
         var planningHorizonPercent = planningHorizon.HasValue ? planningHorizon.Value * 100 : (double?)null;
 
-        var totalNeeds = needMissionMetrics.NeedCardsPurchased;
+        var totalNeeds = needMissionMetrics.NeedCardsOwnedCurrent;
         var primaryNeedShare = SafeRatio(needMissionMetrics.PrimaryNeeds, totalNeeds);
         var secondaryNeedShare = SafeRatio(needMissionMetrics.SecondaryNeeds, totalNeeds);
         var tertiaryNeedShare = SafeRatio(needMissionMetrics.TertiaryNeeds, totalNeeds);
@@ -73,10 +85,14 @@ internal sealed class DerivedRatioCalculator : IDerivedRatioCalculator
             businessProfitMargin,
             goalAttemptRate,
             goalInvestmentRate,
+            goalAmbitionIndex,
             goalSettingAmbition,
             mealOrderSuccessRate,
             planningHorizon,
             planningHorizonPercent,
+            savingsActionCount,
+            financialGoalActionCount,
+            insurancePremiumActionCount,
             primaryNeedShare,
             secondaryNeedShare,
             tertiaryNeedShare,

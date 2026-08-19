@@ -24,22 +24,22 @@ internal sealed class ScoreCalculator : IScoreCalculator
     }
 
     /// <summary>
-    /// Menghitung skor performa pembelajaran berdasarkan cashflow, compliance, dan happiness dengan bobot tertimbang.
+    /// Menghitung skor performa pembelajaran berdasarkan cashflow, keberagaman kebutuhan, dan happiness dengan bobot tertimbang.
     /// </summary>
     public double? ComputeLearningPerformanceScore(
         double cashInTotal,
         double cashOutTotal,
         double happinessPointsTotal,
-        double? complianceRate)
+        double? fulfillmentDiversity)
     {
         var cashflowComponent = AnalyticsMath.Clamp(50 + 5 * (cashInTotal - cashOutTotal), 0, 100);
-        var complianceComponent = complianceRate.HasValue ? AnalyticsMath.Clamp(complianceRate.Value * 100, 0, 100) : (double?)null;
+        var fulfillmentComponent = fulfillmentDiversity.HasValue ? AnalyticsMath.Clamp(fulfillmentDiversity.Value * 100, 0, 100) : (double?)null;
         var happinessComponent = AnalyticsMath.Clamp(5 * happinessPointsTotal, 0, 100);
 
         return WeightedAverage(new (double? value, double weight)[]
         {
             (cashflowComponent, 0.40),
-            (complianceComponent, 0.35),
+            (fulfillmentComponent, 0.35),
             (happinessComponent, 0.25)
         });
     }

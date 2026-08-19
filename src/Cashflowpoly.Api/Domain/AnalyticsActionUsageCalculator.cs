@@ -10,6 +10,7 @@ public sealed record AnalyticsActionUsageMetrics(
     IReadOnlyList<AnalyticsActionRepetition> ActionRepetitions,
     IReadOnlyList<AnalyticsActionSlot> ActionSlotTimeline,
     int ActionsSkipped,
+    int ActionSlotsUnused,
     int? LatestDayIndex,
     int? LatestActionSlot,
     int ActionEventCount,
@@ -38,7 +39,7 @@ public sealed record AnalyticsActionSlot(
 
 internal sealed class ActionUsageCalculator : IActionUsageCalculator
 {
-    private static readonly AnalyticsPayloadReader _payloadReader = new();
+    private static readonly EventPayloadReader _payloadReader = new();
 
     public AnalyticsActionUsageMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
@@ -47,7 +48,10 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
         int actionsPerTurn)
     {
         var actionEvents = playerEvents
-            .Where(e => _payloadReader.IsActionEvent(e.ActionType))
+            .Where(e => string.Equals(e.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+                        GameActionCatalog.GetPlayerActionSlotPolicy(
+                            e.ActionType,
+                            _payloadReader.ReadPayload(string.IsNullOrWhiteSpace(e.Payload) ? "{}" : e.Payload)) == PlayerActionSlotPolicy.Consumes)
             .OrderBy(e => e.SequenceNumber)
             .ToList();
 
@@ -56,7 +60,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             .OrderBy(g => g.Key)
             .Select(g => new AnalyticsActionSequence(
                 g.Key,
-                g.OrderBy(e => e.ActionSlot).ThenBy(e => e.SequenceNumber).Select(e => e.ActionType).ToList()))
+                g.OrderBy(e => e.SequenceNumber).Select(e => e.ActionType).ToList()))
             .ToList();
 
         var actionRepetitions = actionEvents
@@ -67,7 +71,9 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
                 var distinctActions = g.Select(e => e.ActionType).Distinct(StringComparer.OrdinalIgnoreCase).Count();
                 var totalActions = g.Count();
                 var repeatedActions = Math.Max(0, totalActions - distinctActions);
-                var diversityScore = actionsPerTurn > 0 ? (double)distinctActions / actionsPerTurn : 0;
+                var diversityScore = actionsPerTurn > 0
+                    ? Math.Min(1, (double)distinctActions / actionsPerTurn)
+                    : 0;
                 return new AnalyticsActionRepetition(
                     g.Key,
                     totalActions,
@@ -77,15 +83,24 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             })
             .ToList();
 
-        var actionDays = actionRepetitions.Select(item => item.DayIndex).ToHashSet();
-        var actionsSkipped = actionDays.Count > 0
-            ? Math.Max(0, actionDays.Max() - actionDays.Min() + 1 - actionDays.Count)
+        var usedSlotsByDay = actionEvents
+            .Where(e => e.DayIndex > 0 && e.ActionSlot > 0)
+            .GroupBy(e => e.DayIndex)
+            .ToDictionary(group => group.Key, group => group.Select(e => e.ActionSlot).Distinct().Count());
+        var regularDays = Enumerable.Range(1, Math.Max(0, latestDayIndex))
+            .Where(IsRegularActionDay)
+            .ToList();
+        var actionsSkipped = actionsPerTurn > 0
+            ? regularDays.Count(dayIndex => usedSlotsByDay.GetValueOrDefault(dayIndex) == 0)
+            : 0;
+        var actionSlotsUnused = actionsPerTurn > 0
+            ? regularDays.Sum(dayIndex => Math.Max(0, actionsPerTurn - usedSlotsByDay.GetValueOrDefault(dayIndex)))
             : 0;
         var actionSlotTimeline = actionEvents
             .GroupBy(e => e.DayIndex)
             .OrderBy(g => g.Key)
             .SelectMany(g => g
-                .OrderBy(e => e.ActionSlot).ThenBy(e => e.SequenceNumber)
+                .OrderBy(e => e.SequenceNumber)
                 .Select((e, index) => new AnalyticsActionSlot(
                     e.DayIndex,
                     e.ActionSlot,
@@ -113,6 +128,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             actionRepetitions,
             actionSlotTimeline,
             actionsSkipped,
+            actionSlotsUnused,
             actionEvents.Count == 0 ? null : actionEvents.Max(e => e.DayIndex),
             latestActionSlot,
             actionEvents.Count,
@@ -121,4 +137,7 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             actionEfficiency.HasValue ? actionEfficiency.Value * 100 : null,
             actionDiversityAverage);
     }
+
+    private static bool IsRegularActionDay(int dayIndex)
+        => ((dayIndex - 1) % 7 + 7) % 7 is <= 3;
 }

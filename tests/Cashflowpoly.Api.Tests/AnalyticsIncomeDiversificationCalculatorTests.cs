@@ -19,13 +19,14 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
         };
         var projections = new List<CashflowProjectionDb>
         {
-            CreateProjection(sessionId, playerId, "IN", 10, "DONATION_RECEIVED")
+            CreateProjection(sessionId, playerId, "IN", 10, "DONATION_RECEIVED"),
+            CreateProjection(sessionId, playerId, "IN", 60, "LOAN_TAKEN")
         };
 
         var metrics = new IncomeDiversificationCalculator().Compute(
             events,
             projections,
-            totalIncome: 40,
+            totalIncome: 100,
             mealOrderIncomeTotal: 20,
             goldInvestmentEarned: 0);
 
@@ -37,7 +38,8 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
         Assert.Equal(0.25, metrics.IncomeShares["freelance_income"]);
         Assert.Equal(0.5, metrics.IncomeShares["meal_income"]);
         Assert.Equal(0.25, metrics.IncomeShares["donations_received"]);
-        Assert.Equal(93.75, metrics.IncomeDiversification!.Value, precision: 6);
+        Assert.Equal(93.75, metrics.IncomeDiversificationIndex!.Value, precision: 6);
+        Assert.Equal(40, metrics.IncomeDiversificationRatio!.Value, precision: 6);
         Assert.False(metrics.RequiresIncomeNote);
     }
 
@@ -52,7 +54,8 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
             goldInvestmentEarned: 0);
 
         Assert.Empty(metrics.IncomeShares);
-        Assert.Null(metrics.IncomeDiversification);
+        Assert.Null(metrics.IncomeDiversificationIndex);
+        Assert.Null(metrics.IncomeDiversificationRatio);
         Assert.True(metrics.RequiresIncomeNote);
     }
 

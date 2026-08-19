@@ -36,12 +36,7 @@ public sealed class PlayerRepository
         return await conn.QuerySingleOrDefaultAsync<PlayerDb>(new CommandDefinition(sql, new { userId }, cancellationToken: ct));
     }
 
-    public Task<PlayerDb?> GetPlayerForInstructorAsync(Guid userId, Guid instructorUserId, CancellationToken ct)
-    {
-        return GetPlayerAsync(userId, ct);
-    }
-
-    public async Task<PlayerDb?> GetPlayerForInstructorByUsernameAsync(string username, Guid instructorUserId, CancellationToken ct)
+    public async Task<PlayerDb?> GetPlayerByUsernameAsync(string username, CancellationToken ct)
     {
         const string sql = """
             select
@@ -63,7 +58,7 @@ public sealed class PlayerRepository
             new CommandDefinition(sql, new { username }, cancellationToken: ct));
     }
 
-    public async Task<List<PlayerDb>> ListPlayersAsync(Guid instructorUserId, CancellationToken ct)
+    public async Task<List<PlayerDb>> ListPlayersAsync(CancellationToken ct)
     {
         const string sql = """
             select

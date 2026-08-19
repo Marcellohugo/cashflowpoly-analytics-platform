@@ -5,6 +5,7 @@ using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace Cashflowpoly.Api.Controllers;
@@ -22,15 +23,18 @@ public sealed class AuthController : ControllerBase
     private readonly JwtTokenService _tokens;
     private readonly UserRepository _users;
     private readonly SecurityAuditService _securityAudit;
+    private readonly AuthRegistrationOptions _registrationOptions;
 
     public AuthController(
         UserRepository users,
         JwtTokenService tokens,
-        SecurityAuditService securityAudit)
+        SecurityAuditService securityAudit,
+        IOptions<AuthRegistrationOptions> registrationOptions)
     {
         _users = users;
         _tokens = tokens;
         _securityAudit = securityAudit;
+        _registrationOptions = registrationOptions.Value;
     }
 
     [HttpPost("login")]
@@ -54,6 +58,21 @@ public sealed class AuthController : ControllerBase
         }
 
         var username = request.Username.Trim();
+        if (!PasswordPolicy.IsWithinBcryptLimit(request.Password))
+        {
+            await _securityAudit.LogAsync(
+                HttpContext,
+                SecurityAuditEventTypes.LoginFailed,
+                SecurityAuditOutcomes.Failure,
+                StatusCodes.Status400BadRequest,
+                new { reason = "PASSWORD_TOO_LONG", username },
+                ct);
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Password maksimal {PasswordPolicy.MaxPasswordUtf8Bytes} byte UTF-8"));
+        }
+
         var user = await _users.AuthenticateAsync(username, request.Password, ct);
         if (user is null)
         {
@@ -122,6 +141,21 @@ public sealed class AuthController : ControllerBase
                 $"Password minimal {PasswordPolicy.MinPasswordLength} karakter"));
         }
 
+        if (!PasswordPolicy.IsWithinBcryptLimit(request.Password))
+        {
+            await _securityAudit.LogAsync(
+                HttpContext,
+                SecurityAuditEventTypes.RegisterDenied,
+                SecurityAuditOutcomes.Denied,
+                StatusCodes.Status400BadRequest,
+                new { reason = "PASSWORD_TOO_LONG", username },
+                ct);
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Password maksimal {PasswordPolicy.MaxPasswordUtf8Bytes} byte UTF-8"));
+        }
+
         if (string.IsNullOrWhiteSpace(request.Role))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Role wajib diisi"));
@@ -132,6 +166,20 @@ public sealed class AuthController : ControllerBase
             !string.Equals(normalizedRole, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Role tidak valid"));
+        }
+
+        if (!_registrationOptions.CanRegisterPublicly(normalizedRole))
+        {
+            await _securityAudit.LogAsync(
+                HttpContext,
+                SecurityAuditEventTypes.RegisterDenied,
+                SecurityAuditOutcomes.Denied,
+                StatusCodes.Status403Forbidden,
+                new { reason = "PUBLIC_INSTRUCTOR_REGISTRATION_DISABLED", username },
+                ct);
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiErrorHelper.BuildError(HttpContext, "FORBIDDEN", "Akun instruktur hanya dapat dibuat oleh administrator"));
         }
 
         var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? username : request.DisplayName.Trim();

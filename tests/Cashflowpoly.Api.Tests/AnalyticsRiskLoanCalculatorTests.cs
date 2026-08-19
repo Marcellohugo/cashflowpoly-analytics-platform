@@ -46,7 +46,7 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         var projections = new List<CashflowProjectionDb>
         {
             CreateProjection(riskOne, sessionId, playerId, "OUT", 6, "RISK_LIFE"),
-            CreateProjection(riskTwo, sessionId, playerId, "OUT", 4, "RISK_LIFE"),
+            CreateProjection(Guid.NewGuid(), sessionId, playerId, "OUT", 4, "RISK_LIFE", riskTwo.ToString()),
             CreateProjection(Guid.NewGuid(), sessionId, playerId, "OUT", 1, "INSURANCE_PREMIUM")
         };
 
@@ -69,10 +69,32 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         Assert.Equal(0.5, metrics.RiskAcceptanceRate);
         Assert.Equal(0.5, metrics.InsuranceCoverageRate);
         Assert.Equal(0.25, metrics.RiskCostIntensity);
-        Assert.Equal(6.25, metrics.RiskAppetiteScore);
+        Assert.Equal(12.5, metrics.RiskAppetiteScore);
         Assert.Equal(20, metrics.DebtLeverageRatio);
         Assert.Equal(0, metrics.LoanRepaymentDiscipline);
         Assert.Equal(1, metrics.DebtRatio);
+    }
+
+    [Fact]
+    public void Compute_RiskAppetiteIncreasesWhenUnprotectedRisksAreAccepted()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var risk = Guid.NewGuid();
+        var events = new[]
+        {
+            CreateEvent(risk, sessionId, playerId, "RisikoKehidupan", """{"risk_id":"risk-1","direction":"OUT","amount":10}""")
+        };
+        var projections = new[]
+        {
+            CreateProjection(risk, sessionId, playerId, "OUT", 10, "RISK_LIFE")
+        };
+
+        var metrics = new RiskLoanCalculator().Compute(events, projections, startingCoins: 20, coinsNetEndGame: 10, totalIncome: 20);
+
+        Assert.Equal(1, metrics.RiskAcceptanceRate);
+        Assert.Equal(0, metrics.InsuranceCoverageRate);
+        Assert.Equal(50, metrics.RiskAppetiteScore);
     }
 
     private static EventDb CreateEvent(Guid eventId, Guid sessionId, Guid playerId, string actionType, string payload)
@@ -100,7 +122,8 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         Guid playerId,
         string direction,
         int amount,
-        string category)
+        string category,
+        string? reference = null)
     {
         return new CashflowProjectionDb
         {
@@ -112,7 +135,8 @@ public sealed class AnalyticsRiskLoanCalculatorTests
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             Direction = direction,
             Amount = amount,
-            Category = category
+            Category = category,
+            Reference = reference
         };
     }
 }

@@ -38,10 +38,11 @@ public sealed class EventTurnProgressValidatorTests
         var request = CreateRequest("AkhirGiliran", "{}", sessionId, playerId);
         var history = new[]
         {
-            CreateEvent("JualMasakan", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, actionSlot: 1)
+            CreateEvent("JualMasakan", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, actionSlot: 1),
+            CreateEvent("BahanMasakan", """{"card_id":"A","amount":1}""", sessionId, playerId, actionSlot: 2)
         };
 
-        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, out var result);
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, 1, out var result);
 
         Assert.True(handled);
         Assert.False(result.IsValid);
@@ -58,13 +59,33 @@ public sealed class EventTurnProgressValidatorTests
         var history = new[]
         {
             CreateEvent("JualMasakan", """{"required_ingredient_card_ids":["A"],"income":5}""", sessionId, playerId, actionSlot: 1),
+            CreateEvent("BahanMasakan", """{"card_id":"A","amount":1}""", sessionId, playerId, actionSlot: 2),
             CreateEvent("RisikoKehidupan", """{"risk_id":"risk-a"}""", sessionId, playerId, actionSlot: 0)
         };
 
-        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, out var result);
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(mode: "MAHIR"), history, 1, out var result);
 
         Assert.True(handled);
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void TryValidateTurnEnded_RejectsParticipantWithoutActions()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var request = CreateRequest("AkhirGiliran", "{}", sessionId, playerId);
+        var history = new[]
+        {
+            CreateEvent("KerjaLepas", "{}", sessionId, playerId, actionSlot: 1),
+            CreateEvent("Menabung", "{}", sessionId, playerId, actionSlot: 2)
+        };
+
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(), history, 2, out var result);
+
+        Assert.True(handled);
+        Assert.False(result.IsValid);
+        Assert.Equal("Setiap pemain harus menyelesaikan seluruh jatah aksi sebelum giliran berakhir", result.Message);
     }
 
     private static EventRequest CreateRequest(
@@ -114,7 +135,7 @@ public sealed class EventTurnProgressValidatorTests
         };
     }
 
-    private static RulesetConfig CreateConfig(string mode = "PEMULA", int actionsPerTurn = 3)
+    private static RulesetConfig CreateConfig(string mode = "PEMULA", int actionsPerTurn = 2)
     {
         return new RulesetConfig(
             mode,

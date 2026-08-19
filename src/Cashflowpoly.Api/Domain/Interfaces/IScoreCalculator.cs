@@ -15,7 +15,7 @@ public interface IScoreCalculator
         double cashInTotal,
         double cashOutTotal,
         double happinessPointsTotal,
-        double? complianceRate);
+        double? fulfillmentDiversity);
 
     double ComputeMissionPerformanceScore(double missionPenaltyTotal, double loanPenaltyTotal);
 

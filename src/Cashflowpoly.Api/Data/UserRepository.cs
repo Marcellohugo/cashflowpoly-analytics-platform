@@ -37,26 +37,10 @@ public sealed class UserRepository
             new CommandDefinition(sql, new { username, password }, cancellationToken: ct));
     }
 
-    public async Task<bool> UsernameExistsAsync(string username, CancellationToken ct)
-    {
-        const string sql = """
-            select 1
-            from app_users
-            where username = @username
-            limit 1
-            """;
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var result = await conn.ExecuteScalarAsync<int?>(
-            new CommandDefinition(sql, new { username }, cancellationToken: ct));
-        return result.HasValue;
-    }
-
     public Task<AuthenticatedUserDb> CreatePlayerUserAsync(
         string username,
         string password,
         string displayName,
-        Guid instructorUserId,
         CancellationToken ct)
     {
         return CreateUserAsync(username, password, "PLAYER", displayName, ct);
@@ -103,29 +87,6 @@ public sealed class UserRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.QuerySingleOrDefaultAsync<Guid?>(
             new CommandDefinition(sql, new { userId }, cancellationToken: ct));
-    }
-
-    public async Task<string> GetDisplayNameAsync(Guid userId, string username, string role, CancellationToken ct)
-    {
-        const string sql = """
-            select display_name
-            from app_users
-            where user_id = @userId
-            limit 1
-            """;
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var displayName = await conn.QuerySingleOrDefaultAsync<string?>(
-            new CommandDefinition(sql, new { userId }, cancellationToken: ct));
-
-        if (!string.IsNullOrWhiteSpace(displayName))
-        {
-            return displayName;
-        }
-
-        return string.Equals(role, "PLAYER", StringComparison.OrdinalIgnoreCase)
-            ? username
-            : username;
     }
 
     public async Task<Dictionary<Guid, string>> GetUsernamesByUserIdsAsync(IReadOnlyCollection<Guid> userIds, CancellationToken ct)

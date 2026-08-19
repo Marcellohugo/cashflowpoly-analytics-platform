@@ -182,6 +182,12 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("v_projected := project_session_events", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("enforce_event_session_scope", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("trg_events_session_scope", schemaContent, StringComparison.OrdinalIgnoreCase);
+        AssertSqlContains("new.day_index is distinct from v_current_day", schemaContent);
+        AssertSqlContains("new.action_type = 'AkhiriSesi' and v_current_day is distinct from v_finish_day", schemaContent);
+        AssertSqlContains("when v_event.action_type = 'AkhirGiliran' then v_event.day_index + 1", schemaContent);
+        Assert.Matches(
+            "(?is)new\\.action_type\\s+in\\s*\\([^)]*'CatatTransaksi'[^)]*'AkhirGiliran'",
+            schemaContent);
         Assert.DoesNotContain(
             string.Concat("create table if not exists ruleset", "_player", "_ordering", "_instructor", "_users"),
             schemaContent,
@@ -412,7 +418,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("checksum varchar", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("compute_schema_fingerprint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("assert_schema_baseline", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.8')", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.11')", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("information_schema.columns", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_constraint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_indexes", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -803,11 +809,11 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("delete from session_participant_balances", postApplyRuntimeBlock, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("insert into session_participant_financial_goals", postApplyRuntimeBlock, StringComparison.OrdinalIgnoreCase);
 
-        var freeActionListPattern =
-            @"'JumatBerkah'[\s\S]{0,160}'RisikoKehidupan'[\s\S]{0,160}'BayarRisiko'[\s\S]{0,160}'GunakanOpsiDarurat'[\s\S]{0,160}'InvestasiEmas'[\s\S]{0,160}'JualEmas'[\s\S]{0,160}'LewatiTransaksiEmas'[\s\S]{0,160}'HariMingguLibur'";
+        var consumingActionListPattern =
+            @"'BahanMasakan'[\s\S]{0,160}'BuangBahanMasakan'[\s\S]{0,160}'JualMasakan'[\s\S]{0,160}'LewatiOrder'[\s\S]{0,160}'Kebutuhan'[\s\S]{0,160}'KerjaLepas'[\s\S]{0,160}'Menabung'[\s\S]{0,160}'TarikTabungan'[\s\S]{0,160}'TujuanFinansial'[\s\S]{0,160}'BayarPinjaman'";
         Assert.True(
-            Regex.Matches(seedContent, freeActionListPattern, RegexOptions.IgnoreCase).Count >= 3,
-            "Manual simulation seed must use the canonical free-action list in all action_slot calculations.");
+            Regex.Matches(seedContent, consumingActionListPattern, RegexOptions.IgnoreCase).Count >= 3,
+            "Manual simulation seed must use the canonical consuming-action list in all action_slot calculations.");
 
         var forbidden = new[]
         {
@@ -863,6 +869,43 @@ public sealed class BootstrapAssetConsistencyTests
             .Select(pair => $"{pair.Event.RefKey ?? "<null>"} day={pair.Event.DayIndex} player={pair.Event.PlayerNo}")
             .ToList();
         Assert.Empty(invalidRisks);
+    }
+
+    [Fact]
+    public void ManualSimulationSeed_ShouldProvideDistinctHumanDecisionProfiles()
+    {
+        var seedContent = File.ReadAllText(Path.Combine(RepoRoot, "database", "02_seed_simulation_sessions_events.sql"));
+        var consumingActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "BahanMasakan",
+            "BuangBahanMasakan",
+            "JualMasakan",
+            "LewatiOrder",
+            "Kebutuhan",
+            "KerjaLepas",
+            "Menabung",
+            "TarikTabungan",
+            "TujuanFinansial",
+            "BayarPinjaman"
+        };
+        var beginnerActions = ParseSimulationSeedEvents(seedContent)
+            .Where(evt => evt.Mode == "PEMULA"
+                && evt.ActorType == "PLAYER"
+                && evt.PlayerNo.HasValue
+                && consumingActions.Contains(evt.ActionType))
+            .ToList();
+
+        foreach (var playerNo in Enumerable.Range(1, 4))
+        {
+            var playerActions = beginnerActions.Where(evt => evt.PlayerNo == playerNo).ToList();
+            Assert.Equal(32, playerActions.Count);
+            Assert.True(playerActions.Count(evt => evt.ActionType == "JualMasakan") >= 3);
+            Assert.True(playerActions.Count(evt => evt.ActionType == "KerjaLepas") < playerActions.Count / 2);
+            Assert.True(playerActions.Select(evt => evt.ActionType).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 4);
+        }
+
+        Assert.Contains(beginnerActions, evt => evt.ActionType == "BuangBahanMasakan");
+        Assert.Contains(beginnerActions, evt => evt.ActionType == "LewatiOrder");
     }
 
     private static string ResolveRepositoryRoot()

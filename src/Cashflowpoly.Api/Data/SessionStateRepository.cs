@@ -174,7 +174,7 @@ public sealed class SessionStateRepository
             var playerName = playerNames[index].Trim();
             var playerOrder = index + 1;
             var username = BuildSyntheticPlayerUsername(sessionId, playerOrder);
-            var password = $"dev-only-{sessionId:N}-{playerOrder}";
+            var password = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
             await conn.ExecuteAsync(new CommandDefinition(
                 insertPlayerSql,

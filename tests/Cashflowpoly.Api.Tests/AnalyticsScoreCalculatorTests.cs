@@ -39,7 +39,7 @@ public sealed class AnalyticsScoreCalculatorTests
 
     [Fact]
     /// <summary>
-    /// Memvalidasi skor pembelajaran memakai bobot cashflow, compliance, dan happiness.
+    /// Memvalidasi skor pembelajaran memakai bobot cashflow, keberagaman kebutuhan, dan happiness.
     /// </summary>
     public void ComputeLearningPerformanceScore_UsesWeightedComponents()
     {
@@ -47,7 +47,7 @@ public sealed class AnalyticsScoreCalculatorTests
             cashInTotal: 8,
             cashOutTotal: 3,
             happinessPointsTotal: 10,
-            complianceRate: 0.8);
+            fulfillmentDiversity: 0.8);
 
         Assert.Equal(70.5, score);
     }

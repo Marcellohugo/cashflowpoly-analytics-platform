@@ -43,12 +43,11 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         foreach (var riskEvent in riskEvents)
         {
             var cost = playerProjections
-                .Where(p => p.EventId == riskEvent.EventId && p.Category == "RISK_LIFE" && p.Direction == "OUT")
+                .Where(p => p.Category == "RISK_LIFE" &&
+                            p.Direction == "OUT" &&
+                            (p.EventId == riskEvent.EventId || ReferencesRiskEvent(p.Reference, riskEvent.EventId)))
                 .Sum(p => p.Amount);
-            if (cost > 0)
-            {
-                riskCostsPerCard.Add(cost);
-            }
+            riskCostsPerCard.Add(cost);
         }
 
         var riskCostsTotal = riskCostsPerCard.Sum();
@@ -74,9 +73,8 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         var riskCostIntensity = SafeRatio(averageRiskCost, startingCoins);
         var riskAppetiteScore =
             riskAcceptanceRate.HasValue &&
-            insuranceCoverageRate.HasValue &&
             riskCostIntensity.HasValue
-                ? riskAcceptanceRate.Value * (1 - insuranceCoverageRate.Value) * riskCostIntensity.Value * 100
+                ? Clamp(riskAcceptanceRate.Value * riskCostIntensity.Value * 100, 0, 100)
                 : (double?)null;
 
         return new AnalyticsRiskLoanMetrics(
@@ -102,6 +100,9 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
             SafeRatio(loansRepaid, loansTaken, true),
             SafeRatio(loansUnpaid, loansTaken));
     }
+
+    private static bool ReferencesRiskEvent(string? reference, Guid riskEventId)
+        => Guid.TryParse(reference, out var referencedEventId) && referencedEventId == riskEventId;
 
     private Dictionary<string, LoanState> BuildLoanStates(IEnumerable<EventDb> playerEvents)
     {

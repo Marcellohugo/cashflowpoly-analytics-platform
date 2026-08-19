@@ -51,7 +51,8 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
                 Assert.Equal(2, item.Rank);
             });
         Assert.Equal(12.5, metrics.DonationStabilityStdDeviation);
-        Assert.Equal(28.57142857142857, metrics.DonationStability!.Value, precision: 12);
+        Assert.Equal(87.5, metrics.DonationStability!.Value, precision: 12);
+        Assert.Equal(28.57142857142857, metrics.DonationStabilityIndex!.Value, precision: 12);
         Assert.Equal(0.35, metrics.DonationRatio);
         Assert.Equal(35, metrics.DonationAggressivenessPercent);
         Assert.Equal(2d / 3d, metrics.FridayParticipationRate);

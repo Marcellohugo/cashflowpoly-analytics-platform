@@ -27,7 +27,10 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         List<CashflowProjectionDb> playerProjections,
         List<EventDb> allEvents,
         RulesetConfig? config,
-        AnalyticsHappinessBreakdown happiness)
+        AnalyticsHappinessBreakdown happiness,
+        SessionFinalScoreDb? finalScore = null,
+        string? playerAlias = null,
+        bool sessionEnded = false)
     {
         var notesRaw = new List<string>();
         var notesDerived = new List<string>();
@@ -52,6 +55,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var inventory = ingredientMealMetrics.Inventory;
         var ingredientsCollected = ingredientMealMetrics.IngredientsCollected;
         var ingredientTypesHeld = ingredientMealMetrics.IngredientTypesHeld;
+        var ingredientsUsedPerMeal = ingredientMealMetrics.IngredientsUsedPerMeal;
         var ingredientsUsedTotal = ingredientMealMetrics.IngredientsUsedTotal;
         var ingredientsWasted = ingredientMealMetrics.IngredientsWasted;
         var ingredientInvestmentTotal = ingredientMealMetrics.IngredientInvestmentTotal;
@@ -70,10 +74,16 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var goldInvestmentSpent = goldMetrics.GoldInvestmentSpent;
         var goldInvestmentNet = goldMetrics.GoldInvestmentNet;
 
-        var pensionRank = playerEvents
+        var pensionRankFromEvent = playerEvents
             .Where(e => e.ActionType == "PoinPeringkatPensiun")
             .Select(e => _payloadReader.TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0)
             .FirstOrDefault(rank => rank > 0);
+        int? pensionRank = pensionRankFromEvent > 0
+            ? pensionRankFromEvent
+            : config?.Scoring?.PensionRankPoints
+                .Where(item => Math.Abs(item.Points - happiness.PensionPoints) < 0.000001)
+                .Select(item => (int?)item.Rank)
+                .FirstOrDefault();
 
         var riskLoanMetrics = _riskLoanCalc.Compute(
             playerEvents,
@@ -100,10 +110,12 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var gameMode = string.Equals(config?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase)
             ? "advanced"
             : "beginner";
-        var finishLineReached = allEvents.Any(e => e.ActionType == "AkhiriSesi");
-        int? finalRank = null;
+        var hasSessionEndEvent = allEvents.Any(e => e.ActionType == "AkhiriSesi");
+        var sessionCompleted = sessionEnded || hasSessionEndEvent;
+        var finishLineReached = latestDayIndex >= (config?.FinishDay ?? 25);
+        int? finalRank = finalScore?.Rank;
         bool? winnerFlag = finalRank.HasValue ? finalRank.Value == 1 : null;
-        bool? dnfFlag = finishLineReached ? false : null;
+        bool? dnfFlag = sessionCompleted ? !finishLineReached : null;
 
         var raw = new
         {
@@ -112,7 +124,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 game_id = sessionId,
                 session_id = sessionId,
                 user_id = resolvedUserId,
-                player_alias = (string?)null,
+                player_alias = playerAlias,
                 game_mode = gameMode,
                 latest_event_action_slot = latestEvent?.ActionSlot,
                 day_label = latestEvent?.Weekday,
@@ -135,6 +147,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 ingredients_collected = ingredientsCollected,
                 ingredients_held_current = inventory.Total,
                 ingredient_types_held = ingredientTypesHeld,
+                ingredients_used_per_meal = ingredientsUsedPerMeal,
                 ingredients_used_total = ingredientsUsedTotal,
                 ingredients_used_per_meal_average = mealOrdersClaimed > 0
                     ? (double)ingredientsUsedTotal / mealOrdersClaimed
@@ -153,6 +166,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             needs = new
             {
                 need_cards_purchased = needMissionMetrics.NeedCardsPurchased,
+                need_cards_owned_current = needMissionMetrics.NeedCardsOwnedCurrent,
                 primary_needs_owned = needMissionMetrics.PrimaryNeeds,
                 secondary_needs_owned = needMissionMetrics.SecondaryNeeds,
                 tertiary_needs_owned = needMissionMetrics.TertiaryNeeds,
@@ -191,7 +205,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 ingredient_cards_value_end = inventory.Total,
                 coins_in_savings_goal = coinsSaved,
                 pension_fund_total = coinsHeldCurrent + inventory.Total + coinsSaved,
-                pension_fund_rank_per_game = pensionRank == 0 ? (int?)null : pensionRank,
+                pension_fund_rank_per_game = pensionRank is null or 0 ? (int?)null : pensionRank,
                 pension_fund_happiness_points = happiness.PensionPoints
             },
             life_risk = new
@@ -210,7 +224,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 financial_goals_available_total = savingGoalMetrics.FinancialGoalsAvailableTotal,
                 financial_goals_attempted = savingGoalMetrics.FinancialGoalsAttempted,
                 financial_goals_completed = savingGoalMetrics.FinancialGoalsCompleted,
-                financial_goals_coins_per_goal = savingGoalMetrics.SavingBalancesByGoal,
+                financial_goals_coins_per_goal = savingGoalMetrics.SavingGoalCostsByGoal,
+                financial_goals_balance_per_goal = savingGoalMetrics.SavingBalancesByGoal,
                 financial_goals_coins_total_invested = savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
                 financial_goals_incomplete_coins_wasted = savingGoalMetrics.FinancialGoalsIncompleteCoinsWasted,
                 sharia_loans_taken = riskLoanMetrics.LoansTaken,
@@ -225,12 +240,24 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 actions_per_turn = config?.ActionsPerTurn ?? 2,
                 action_repetitions_per_turn = actionMetrics.ActionRepetitions,
                 action_sequence = actionMetrics.ActionSequences,
-                actions_skipped = actionMetrics.ActionsSkipped
+                actions_skipped = actionMetrics.ActionsSkipped,
+                action_slots_unused = actionMetrics.ActionSlotsUnused
             },
             turns = new
             {
                 coins_per_turn_progression = cashTimeline.CoinsProgression,
                 net_income_per_turn = cashTimeline.NetIncomePerTurn,
+                turn_number_when_debt_introduced = playerEvents
+                    .Where(e => e.ActionType == "PinjamanSyariah")
+                    .Select(e => (int?)e.DayIndex)
+                    .OrderBy(t => t)
+                    .FirstOrDefault(),
+                turn_number_when_first_risk_hit = playerEvents
+                    .Where(e => e.ActionType == "RisikoKehidupan")
+                    .Select(e => (int?)e.DayIndex)
+                    .OrderBy(t => t)
+                    .FirstOrDefault(),
+                turn_number_game_completion = latestDayIndex < 0 ? (int?)null : latestDayIndex,
                 day_when_debt_introduced = playerEvents
                     .Where(e => e.ActionType == "PinjamanSyariah")
                     .Select(e => (int?)e.DayIndex)
@@ -272,7 +299,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         {
             notesDerived.Add("income_diversification_requires_income");
         }
-        var incomeDiversification = incomeDiversificationMetrics.IncomeDiversification;
+        var incomeDiversificationIndex = incomeDiversificationMetrics.IncomeDiversificationIndex;
+        var incomeDiversificationRatio = incomeDiversificationMetrics.IncomeDiversificationRatio;
 
         var Risk_Acceptance_Rate = riskLoanMetrics.RiskAcceptanceRate;
         var Insurance_Coverage_Rate = riskLoanMetrics.InsuranceCoverageRate;
@@ -309,8 +337,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var derived = new
         {
             net_worth_index = netWorthIndex,
-            income_diversification_index = incomeDiversification,
-            income_diversification_ratio = incomeDiversification,
+            income_diversification_index = incomeDiversificationIndex,
+            income_diversification_ratio = incomeDiversificationRatio,
             income_diversification_components = new
             {
                 freelance_income = incomeDiversificationMetrics.FreelanceIncome,
@@ -347,7 +375,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             debt_leverage_ratio = debtLeverageRatio,
             loan_repayment_discipline = loanRepaymentDiscipline,
             debt_ratio = debtRatio,
-            goal_ambition = derivedRatioMetrics.GoalSettingAmbition,
+            goal_ambition = derivedRatioMetrics.GoalAmbitionIndex,
+            goal_ambition_index = derivedRatioMetrics.GoalAmbitionIndex,
             goal_setting_ambition = derivedRatioMetrics.GoalSettingAmbition,
             goal_setting_components = new
             {
@@ -357,10 +386,23 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             action_efficiency = actionEfficiency,
             action_efficiency_percent = actionEfficiencyPercent,
             action_diversity_score_avg = actionDiversityAverage,
+            action_efficiency_components = new
+            {
+                income_producing_actions = actionMetrics.IncomeActions,
+                all_player_actions = actionMetrics.ActionEventCount
+            },
             meal_order_success_rate = derivedRatioMetrics.MealOrderSuccessRate,
             planning_horizon = derivedRatioMetrics.PlanningHorizon,
             planning_horizon_percent = derivedRatioMetrics.PlanningHorizonPercent,
+            planning_horizon_components = new
+            {
+                savings_actions = derivedRatioMetrics.SavingsActionCount,
+                financial_goal_actions = derivedRatioMetrics.FinancialGoalActionCount,
+                insurance_premium_actions = derivedRatioMetrics.InsurancePremiumActionCount,
+                all_player_actions = actionMetrics.ActionEventCount
+            },
             fulfillment_diversity = needMissionMetrics.FulfillmentDiversity,
+            fulfillment_diversity_document_formula = needMissionMetrics.FulfillmentDiversityDocumentFormula,
             fulfillment_diversity_components = new
             {
                 p_primary = derivedRatioMetrics.PrimaryNeedShare,
@@ -371,12 +413,14 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             growth_pattern_ratio = derivedRatioMetrics.GrowthPatternRatio,
             donation_aggressiveness_percent = donationMetrics.DonationAggressivenessPercent,
             donation_stability_std_deviation = donationMetrics.DonationStabilityStdDeviation,
+            donation_stability = donationMetrics.DonationStability,
+            donation_stability_index = donationMetrics.DonationStabilityIndex,
             donation_ratio = donationMetrics.DonationRatio,
             friday_participation_rate = donationMetrics.FridayParticipationRate,
             donation_commitment_score = donationMetrics.DonationCommitmentScore,
             donation_commitment_components = new
             {
-                donation_stability = donationMetrics.DonationStability,
+                donation_stability_index = donationMetrics.DonationStabilityIndex,
                 donation_ratio = donationMetrics.DonationRatio,
                 friday_participation_rate = donationMetrics.FridayParticipationRate
             },
@@ -384,12 +428,15 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             sharia_loans_outstanding_coins = riskLoanMetrics.LoansOutstandingAmount,
             happiness_portfolio = new
             {
+                total_happiness_pts = happiness.Total,
                 need_cards_pts = happiness.NeedPoints,
+                need_set_bonus_pts = happiness.NeedSetBonusPoints,
                 donations_pts = happiness.DonationPoints,
                 gold_pts = happiness.GoldPoints,
                 pension_pts = happiness.PensionPoints,
                 financial_goals_pts = happiness.SavingGoalPointsEffective,
-                mission_bonus_pts = 0 - happiness.MissionPenaltyPoints
+                mission_bonus_pts = 0 - happiness.MissionPenaltyPoints,
+                loan_penalty_pts = 0 - happiness.LoanPenaltyPoints
             },
             notes = notesDerived
         };

@@ -140,6 +140,14 @@ public sealed class SessionStateApiIntegrationTests
         AssertInitialState(createdState, playerCount, names);
 
         var sessionId = createBody.RootElement.GetProperty("session_id").GetGuid();
+        using var predictablePasswordLogin = await _client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new LoginRequest(
+                $"dev-player-{sessionId:N}-1",
+                $"dev-only-{sessionId:N}-1"),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, predictablePasswordLogin.StatusCode);
+
         using var eventsResponse = await SendJsonAsync(
             HttpMethod.Get,
             $"/api/v1/sessions/{sessionId}/events?fromSeq=0&limit=100",

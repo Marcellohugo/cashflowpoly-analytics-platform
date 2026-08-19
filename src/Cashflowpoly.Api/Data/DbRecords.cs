@@ -67,6 +67,15 @@ public sealed class SessionDb
 }
 
 /// <summary>
+/// Posisi hari aktif sesi yang menjadi acuan validasi event gameplay.
+/// </summary>
+public sealed class SessionProgressDb
+{
+    public int Day { get; set; }
+    public int FinishDay { get; set; }
+}
+
+/// <summary>
 /// Representasi player berbasis tabel app_users — akun role PLAYER.
 /// </summary>
 public sealed class PlayerDb

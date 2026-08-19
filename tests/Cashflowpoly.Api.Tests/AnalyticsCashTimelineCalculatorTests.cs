@@ -79,6 +79,40 @@ public sealed class AnalyticsCashTimelineCalculatorTests
             });
     }
 
+    [Fact]
+    public void Compute_KeepsRepeatedActionSlotsOnDifferentDaysSeparate()
+    {
+        var sessionId = Guid.NewGuid();
+        var playerId = Guid.NewGuid();
+        var firstEventId = Guid.NewGuid();
+        var secondEventId = Guid.NewGuid();
+        var first = CreateEvent(firstEventId, sessionId, playerId, actionSlot: 1);
+        var second = CreateEvent(secondEventId, sessionId, playerId, actionSlot: 1);
+        second.DayIndex = 1;
+        second.SequenceNumber = 2;
+
+        var timeline = new CashTimelineCalculator().Compute(
+            [first, second],
+            [
+                CreateProjection(firstEventId, sessionId, playerId, "IN", 3),
+                CreateProjection(secondEventId, sessionId, playerId, "IN", 4)
+            ],
+            startingCoins: 10);
+
+        Assert.Collection(
+            timeline.CoinsEarnedPerTurn,
+            item =>
+            {
+                Assert.Equal(0, item.DayIndex);
+                Assert.Equal(3, item.Amount);
+            },
+            item =>
+            {
+                Assert.Equal(1, item.DayIndex);
+                Assert.Equal(4, item.Amount);
+            });
+    }
+
     private static EventDb CreateEvent(Guid eventId, Guid sessionId, Guid playerId, int actionSlot)
     {
         return new EventDb

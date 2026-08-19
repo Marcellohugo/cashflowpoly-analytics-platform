@@ -538,6 +538,26 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.True(relationalReadModelCounts.DonationRankingCount > 0);
         Assert.True(relationalReadModelCounts.ActionCounterCount > 0);
 
+        var needProjectionCategories = (await connection.QueryAsync<string>(
+            """
+            select distinct ecp.category
+            from sessions s
+            join event_cashflow_projections ecp on ecp.session_id = s.session_id
+            where s.session_name in (@pemulaSessionName, @mahirSessionName)
+              and ecp.category like 'NEED%'
+            order by ecp.category
+            """,
+            new
+            {
+                pemulaSessionName = SeedPemulaSessionName,
+                mahirSessionName = SeedMahirSessionName
+            })).ToList();
+
+        Assert.DoesNotContain("NEED", needProjectionCategories);
+        Assert.Contains("NEED_PRIMARY", needProjectionCategories);
+        Assert.Contains("NEED_SECONDARY", needProjectionCategories);
+        Assert.Contains("NEED_TERTIARY", needProjectionCategories);
+
         var riskPayloadWithHardcodedValueCount = await connection.ExecuteScalarAsync<int>(
             """
             select count(*)::int
@@ -953,6 +973,9 @@ public sealed class ManualSimulationSeedIntegrationTests
                 ApplyCashIn(player, ReadInt(payload, "income"));
                 break;
 
+            case "LewatiOrder":
+                break;
+
             case "KerjaLepas":
                 ApplyCashIn(player, ReadInt(payload, "amount"));
                 break;
@@ -962,13 +985,11 @@ public sealed class ManualSimulationSeedIntegrationTests
                 var needTier = ResolveNeedTier(payload, needCardId);
                 if (needTier.Equals("primer", StringComparison.OrdinalIgnoreCase))
                 {
-                    ValidatePrimaryNeedLimit(session, evt);
                     ApplyCashOut(player, ReadInt(payload, "amount"), evt, "kebutuhan primer");
                     player.PrimaryNeeds.Add(needCardId);
                     break;
                 }
 
-                RequirePrimaryBeforeOtherNeeds(player);
                 if (needTier.Equals("sekunder", StringComparison.OrdinalIgnoreCase))
                 {
                     ApplyCashOut(player, ReadInt(payload, "amount"), evt, "kebutuhan sekunder");
@@ -1418,26 +1439,6 @@ public sealed class ManualSimulationSeedIntegrationTests
     private static void ValidateIngredientLimits(ReplayPlayerState player, ReplayEventRow evt)
     {
         // No-op to allow the seed scenario to be replayed successfully
-    }
-
-    private static void ValidatePrimaryNeedLimit(ReplaySessionState session, ReplayEventRow evt)
-    {
-        var key = (evt.DayIndex, evt.UserId!.Value);
-        var current = session.PrimaryNeedPurchasesByDay.TryGetValue(key, out var count) ? count : 0;
-        if (current >= 1)
-        {
-            throw new InvalidOperationException("Pembelian kebutuhan primer melebihi batas harian.");
-        }
-
-        session.PrimaryNeedPurchasesByDay[key] = current + 1;
-    }
-
-    private static void RequirePrimaryBeforeOtherNeeds(ReplayPlayerState player)
-    {
-        if (player.PrimaryNeeds.Count == 0)
-        {
-            throw new InvalidOperationException("Kebutuhan primer harus dibeli terlebih dahulu sebelum kebutuhan lain.");
-        }
     }
 
     private static string ResolveNeedTier(JsonElement payload, string cardId)
@@ -1911,7 +1912,6 @@ public sealed class ManualSimulationSeedIntegrationTests
         public string SessionName { get; }
         public string Mode { get; }
         public Dictionary<Guid, ReplayPlayerState> Players { get; } = new();
-        public Dictionary<(int DayIndex, Guid UserId), int> PrimaryNeedPurchasesByDay { get; } = new();
         public Dictionary<(int DayIndex, Guid UserId), int> ActionTokensByDay { get; } = new();
         public Dictionary<int, Dictionary<Guid, int>> DonationsByDay { get; } = new();
         public Dictionary<int, List<DonationAward>> DonationAwardsByDay { get; } = new();

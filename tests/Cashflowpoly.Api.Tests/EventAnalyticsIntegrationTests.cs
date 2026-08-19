@@ -219,7 +219,7 @@ public sealed class EventAnalyticsIntegrationTests
             actor_type = "PLAYER",
             turn_number = 1,
             timestamp = now.ToString("O"),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             action_slot = 1,
             sequence_number = nextSequence,
@@ -243,7 +243,7 @@ public sealed class EventAnalyticsIntegrationTests
             actor_type = "PLAYER",
             turn_number = 1,
             timestamp = now.AddSeconds(1).ToString("O"),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             action_slot = 2,
             sequence_number = nextSequence + 1,
@@ -284,8 +284,8 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(playerSetupIngredientCost + 3d, byPlayer.GetProperty("cash_out_total").GetDouble(), 6);
         Assert.Equal(0, byPlayer.GetProperty("orders_completed_count").GetInt32());
         Assert.Equal(1, byPlayer.GetProperty("inventory_ingredient_total").GetInt32());
-        Assert.Equal(0, byPlayer.GetProperty("actions_used_total").GetInt32());
-        Assert.Equal(1d, byPlayer.GetProperty("compliance_primary_need_rate").GetDouble(), 6);
+        Assert.Equal(2, byPlayer.GetProperty("actions_used_total").GetInt32());
+        Assert.Equal(0d, byPlayer.GetProperty("fulfillment_diversity").GetDouble(), 6);
         Assert.Equal(0, byPlayer.GetProperty("rules_violations_count").GetInt32());
 
         var transactionsResponse = await SendJsonAsync(
@@ -443,7 +443,7 @@ public sealed class EventAnalyticsIntegrationTests
                     actor_type = "PLAYER",
                     turn_number = playerOrderByUserId[player.UserId],
                     timestamp = now.AddSeconds(sequence).ToString("O"),
-                    day_index = 0,
+                    day_index = 1,
                     weekday = "MON",
                     action_slot = slot,
                     sequence_number = sequence,
@@ -776,12 +776,13 @@ public sealed class EventAnalyticsIntegrationTests
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
             user_id = setup.ActingUserId,
-            actor_type = "PLAYER",
+            actor_type = "SYSTEM",
             timestamp = now.ToString("O"),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
-            action_slot = 1,
-            sequence_number = 1,
+            action_slot = 0,
+            turn_number = 0,
+            sequence_number = setup.NextSequenceNumber,
             action_type = "CatatTransaksi",
             ruleset_version_id = setup.RulesetVersionId,
             payload = new
@@ -800,12 +801,13 @@ public sealed class EventAnalyticsIntegrationTests
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
             user_id = setup.ActingUserId,
-            actor_type = "PLAYER",
+            actor_type = "SYSTEM",
             timestamp = now.AddSeconds(1).ToString("O"),
             day_index = -1,
             weekday = "MON",
-            action_slot = 1,
-            sequence_number = 1,
+            action_slot = 0,
+            turn_number = 0,
+            sequence_number = setup.NextSequenceNumber,
             action_type = "CatatTransaksi",
             ruleset_version_id = setup.RulesetVersionId,
             payload = new
@@ -818,6 +820,42 @@ public sealed class EventAnalyticsIntegrationTests
 
         var invalidDayResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", invalidDayIndexPayload, instructorToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidDayResponse.StatusCode);
+
+        using var futureDayResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = setup.ActingUserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(2),
+            day_index = 2,
+            weekday = "TUE",
+            turn_number = 1,
+            action_slot = 1,
+            sequence_number = setup.NextSequenceNumber,
+            action_type = "KerjaLepas",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { amount = 1 }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, futureDayResponse.StatusCode);
+
+        using var arbitraryTransactionResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = setup.ActingUserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(3),
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 1,
+            sequence_number = setup.NextSequenceNumber,
+            action_type = "CatatTransaksi",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { direction = "IN", amount = 999, category = "CUSTOM" }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.BadRequest, arbitraryTransactionResponse.StatusCode);
 
         var invalidQueryResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -836,6 +874,7 @@ public sealed class EventAnalyticsIntegrationTests
             "IntegrationDonationInstructorPass!123",
             "INSTRUCTOR")).AccessToken;
         var setup = await CreateReadySessionAsync(instructorToken, $"donation_{suffix}");
+        var donationSequence = await AdvanceSessionToDayAsync(setup, instructorToken, targetDay: 5);
 
         async Task<List<JsonElement>> GetEventsAsync()
         {
@@ -876,7 +915,7 @@ public sealed class EventAnalyticsIntegrationTests
                 weekday = "FRI",
                 turn_number = player.Turn,
                 action_slot = 0,
-                sequence_number = setup.NextSequenceNumber + index,
+                sequence_number = donationSequence + index,
                 action_type = "JumatBerkah",
                 ruleset_version_id = setup.RulesetVersionId,
                 payload = new { amount = index + 1 }
@@ -1044,7 +1083,7 @@ public sealed class EventAnalyticsIntegrationTests
             user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now,
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             turn_number = 1,
             action_slot = 1,
@@ -1062,7 +1101,7 @@ public sealed class EventAnalyticsIntegrationTests
             user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(1),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             turn_number = 1,
             action_slot = 0,
@@ -1084,7 +1123,7 @@ public sealed class EventAnalyticsIntegrationTests
             user_id = (Guid?)null,
             actor_type = "SYSTEM",
             timestamp = now.AddSeconds(2),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             turn_number = 0,
             action_slot = 0,
@@ -1102,7 +1141,7 @@ public sealed class EventAnalyticsIntegrationTests
             user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(2),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             turn_number = 1,
             action_slot = 0,
@@ -1127,7 +1166,7 @@ public sealed class EventAnalyticsIntegrationTests
             user_id = setup.ActingUserId,
             actor_type = "PLAYER",
             timestamp = now.AddSeconds(3),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             turn_number = 1,
             action_slot = 2,
@@ -1155,7 +1194,7 @@ public sealed class EventAnalyticsIntegrationTests
             user_id = (Guid?)null,
             actor_type = "SYSTEM",
             timestamp = now.AddSeconds(4),
-            day_index = 0,
+            day_index = 1,
             weekday = "MON",
             turn_number = 0,
             action_slot = 0,
@@ -1164,7 +1203,7 @@ public sealed class EventAnalyticsIntegrationTests
             ruleset_version_id = setup.RulesetVersionId,
             payload = new { }
         }, instructorToken);
-        Assert.Equal(HttpStatusCode.Created, resolvedTurnEnd.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, resolvedTurnEnd.StatusCode);
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -1221,38 +1260,24 @@ public sealed class EventAnalyticsIntegrationTests
 
         var firstOrderId = Guid.NewGuid();
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "JualMasakan", 0, 1, new { order_card_id = "nasi_goreng" }, firstOrderId)).StatusCode);
+            "JualMasakan", 1, 1, new { order_card_id = "nasi_goreng" }, firstOrderId)).StatusCode);
         var firstRiskId = Guid.NewGuid();
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
             "RisikoKehidupan",
-            0,
+            1,
             0,
             new { risk_id = "risk_cost_4", source_order_event_id = firstOrderId },
             firstRiskId)).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
             "Asuransi",
-            0,
+            1,
             0,
             new { risk_event_id = firstRiskId })).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "KerjaLepas", 0, 2, new { amount = 1 })).StatusCode);
+            "KerjaLepas", 1, 2, new { amount = 1 })).StatusCode);
 
-        var secondOrderId = Guid.NewGuid();
-        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "JualMasakan", 1, 1, new { order_card_id = "nasi_goreng" }, secondOrderId)).StatusCode);
-        var secondRiskId = Guid.NewGuid();
-        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "RisikoKehidupan",
-            1,
-            0,
-            new { risk_id = "risk_cost_4", source_order_event_id = secondOrderId },
-            secondRiskId)).StatusCode);
-
-        var secondUse = await SendEventAsync("Asuransi", 1, 0, new { risk_event_id = secondRiskId });
+        var secondUse = await SendEventAsync("Asuransi", 1, 0, new { risk_event_id = firstRiskId });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, secondUse.StatusCode);
-        sequence--;
-        Assert.Equal(HttpStatusCode.Created, (await SendEventAsync(
-            "BayarRisiko", 1, 0, new { risk_event_id = secondRiskId })).StatusCode);
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -1278,7 +1303,7 @@ public sealed class EventAnalyticsIntegrationTests
             $"gold_{suffix}",
             BuildRulesetDefinition(startingCash: 10, mode: "MAHIR"));
         var now = DateTimeOffset.UtcNow;
-        var nextSequence = setup.NextSequenceNumber;
+        var nextSequence = await AdvanceSessionToDayAsync(setup, instructorToken, targetDay: 6);
 
         async Task<HttpResponseMessage> SendEventAsync(
             string actionType,
@@ -1648,6 +1673,94 @@ public sealed class EventAnalyticsIntegrationTests
         using var body = await ReadJsonAsync(response);
         return body.RootElement.GetProperty("next_sequence_number").GetInt64();
     }
+
+    private async Task<long> AdvanceSessionToDayAsync(
+        (Guid SessionId, Guid UserId, Guid ActingUserId, Guid RulesetVersionId, long NextSequenceNumber) setup,
+        string instructorToken,
+        int targetDay)
+    {
+        using var eventsResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
+            null,
+            instructorToken);
+        using var eventsBody = await ReadJsonAsync(eventsResponse);
+        var players = eventsBody.RootElement.GetProperty("events")
+            .EnumerateArray()
+            .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
+            .Select(item => new
+            {
+                UserId = item.GetProperty("user_id").GetGuid(),
+                TurnNumber = item.GetProperty("payload").GetProperty("number").GetInt32()
+            })
+            .OrderBy(item => item.TurnNumber)
+            .ToList();
+
+        var sequence = setup.NextSequenceNumber;
+        var now = DateTimeOffset.UtcNow;
+        for (var day = 1; day < targetDay; day++)
+        {
+            var weekday = ResolveWeekday(day);
+            if (weekday is "MON" or "TUE" or "WED" or "THU")
+            {
+                foreach (var player in players)
+                {
+                    for (var slot = 1; slot <= 2; slot++)
+                    {
+                        using var actionResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+                        {
+                            event_id = Guid.NewGuid(),
+                            session_id = setup.SessionId,
+                            user_id = player.UserId,
+                            actor_type = "PLAYER",
+                            timestamp = now.AddSeconds(sequence),
+                            day_index = day,
+                            weekday,
+                            turn_number = player.TurnNumber,
+                            action_slot = slot,
+                            sequence_number = sequence++,
+                            action_type = "KerjaLepas",
+                            ruleset_version_id = setup.RulesetVersionId,
+                            payload = new { amount = 1 }
+                        }, instructorToken);
+                        Assert.True(actionResponse.StatusCode == HttpStatusCode.Created, await actionResponse.Content.ReadAsStringAsync());
+                    }
+                }
+            }
+
+            using var endTurnResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+            {
+                event_id = Guid.NewGuid(),
+                session_id = setup.SessionId,
+                user_id = (Guid?)null,
+                actor_type = "SYSTEM",
+                timestamp = now.AddSeconds(sequence),
+                day_index = day,
+                weekday,
+                turn_number = 0,
+                action_slot = 0,
+                sequence_number = sequence++,
+                action_type = "AkhirGiliran",
+                ruleset_version_id = setup.RulesetVersionId,
+                payload = new { }
+            }, instructorToken);
+            Assert.True(endTurnResponse.StatusCode == HttpStatusCode.Created, await endTurnResponse.Content.ReadAsStringAsync());
+        }
+
+        return sequence;
+    }
+
+    private static string ResolveWeekday(int day)
+        => (((day - 1) % 7 + 7) % 7) switch
+        {
+            0 => "MON",
+            1 => "TUE",
+            2 => "WED",
+            3 => "THU",
+            4 => "FRI",
+            5 => "SAT",
+            _ => "SUN"
+        };
 
     /// <summary>
     /// Helper untuk mendaftarkan pengguna baru dan mengembalikan data registrasi.

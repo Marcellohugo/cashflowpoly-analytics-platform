@@ -20,8 +20,7 @@ public sealed class AnalyticsActionUsageCalculatorTests
             CreateEvent(Guid.NewGuid(), sessionId, playerId, "BahanMasakan", dayIndex: 0, actionSlot: 2, sequence: 2),
             CreateEvent(Guid.NewGuid(), sessionId, playerId, "AkhirGiliran", dayIndex: 0, actionSlot: 2, sequence: 3),
             CreateEvent(freelanceEventId, sessionId, playerId, "KerjaLepas", dayIndex: 1, actionSlot: 1, sequence: 4),
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "LewatiOrder", dayIndex: 1, actionSlot: 1, sequence: 5),
-            CreateEvent(orderEventId, sessionId, playerId, "JualMasakan", dayIndex: 1, actionSlot: 2, sequence: 6)
+            CreateEvent(orderEventId, sessionId, playerId, "JualMasakan", dayIndex: 1, actionSlot: 2, sequence: 5)
         };
         var projections = new List<CashflowProjectionDb>
         {
@@ -51,11 +50,47 @@ public sealed class AnalyticsActionUsageCalculatorTests
         Assert.Equal(2, metrics.LatestActionSlot);
         Assert.Equal(1, metrics.LatestDayIndex);
         Assert.Equal(0, metrics.ActionsSkipped);
+        Assert.Equal(0, metrics.ActionSlotsUnused);
         Assert.Equal(4, metrics.ActionEventCount);
         Assert.Equal(2, metrics.IncomeActions);
         Assert.Equal(0.5, metrics.ActionEfficiency);
         Assert.Equal(50, metrics.ActionEfficiencyPercent);
         Assert.Equal(0.75, metrics.ActionDiversityAverage);
+    }
+
+    [Fact]
+    public void Compute_CountsSkippedOrderAndDiscardButExcludesFreeActions()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "LewatiOrder", dayIndex: 0, actionSlot: 1, sequence: 1),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "BuangBahanMasakan", dayIndex: 0, actionSlot: 2, sequence: 2),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "RisikoKehidupan", dayIndex: 0, actionSlot: 0, sequence: 3)
+        };
+
+        var metrics = new ActionUsageCalculator().Compute(events, [], latestDayIndex: 0, actionsPerTurn: 2);
+
+        Assert.Equal(new[] { "LewatiOrder", "BuangBahanMasakan" }, metrics.ActionSequences.Single().Actions);
+        Assert.Equal(2, metrics.ActionEventCount);
+        Assert.Equal(0, metrics.ActionsSkipped);
+    }
+
+    [Fact]
+    public void Compute_DistinguishesFullTurnsSkippedFromUnusedSlots()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var events = new[]
+        {
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "KerjaLepas", dayIndex: 1, actionSlot: 1, sequence: 1)
+        };
+
+        var metrics = new ActionUsageCalculator().Compute(events, [], latestDayIndex: 3, actionsPerTurn: 2);
+
+        Assert.Equal(2, metrics.ActionsSkipped);
+        Assert.Equal(5, metrics.ActionSlotsUnused);
     }
 
     private static EventDb CreateEvent(

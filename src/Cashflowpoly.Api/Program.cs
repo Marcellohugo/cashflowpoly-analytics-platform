@@ -35,6 +35,11 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
+builder.Services.Configure<AuthRegistrationOptions>(options =>
+{
+    options.AllowPublicInstructorRegistration =
+        builder.Configuration.GetValue<bool>("Auth:AllowPublicInstructorRegistration");
+});
 builder.Services.AddSingleton<JwtSigningKeyProvider>();
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -236,7 +241,6 @@ builder.Services.AddScoped<SecurityAuditService>();
 // Domain calculators
 builder.Services.AddScoped<IHappinessCalculator, HappinessCalculator>();
 builder.Services.AddScoped<IIngredientInventoryCalculator, IngredientInventoryCalculator>();
-builder.Services.AddScoped<IPrimaryNeedComplianceEvaluator, PrimaryNeedComplianceEvaluator>();
 builder.Services.AddScoped<ISessionMetricCalculator, SessionMetricCalculator>();
 builder.Services.AddScoped<IMetricSnapshotBuilder, MetricSnapshotBuilder>();
 builder.Services.AddScoped<IPlayerOrdering, PlayerOrderingService>();
@@ -338,33 +342,46 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Trace-Id"] = traceId;
 
     var start = Stopwatch.GetTimestamp();
-    await next();
-    var durationMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
-
-    AppMetrics.RequestsTotal.Add(1);
-    AppMetrics.RequestDurationMs.Record(durationMs);
-    if (context.Response.StatusCode >= 400)
+    var failed = false;
+    try
     {
-        AppMetrics.RequestErrorsTotal.Add(1);
+        await next();
     }
+    catch
+    {
+        failed = true;
+        throw;
+    }
+    finally
+    {
+        var durationMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+        var statusCode = failed ? StatusCodes.Status500InternalServerError : context.Response.StatusCode;
 
-    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
-    var role = context.User.FindFirstValue(ClaimTypes.Role) ?? "anonymous";
-    var clientRequestId = context.Request.Headers["X-Client-Request-Id"].ToString();
-    var endpoint = context.GetEndpoint()?.DisplayName ?? context.Request.Path.Value;
+        AppMetrics.RequestsTotal.Add(1);
+        AppMetrics.RequestDurationMs.Record(durationMs);
+        if (statusCode >= 400)
+        {
+            AppMetrics.RequestErrorsTotal.Add(1);
+        }
 
-    requestLogger.LogInformation(
-        "request_completed trace_id={TraceId} span_id={SpanId} user_id={UserId} role={Role} method={Method} path={Path} endpoint={Endpoint} status_code={StatusCode} duration_ms={DurationMs} client_request_id={ClientRequestId}",
-        traceId,
-        Activity.Current?.SpanId.ToString(),
-        userId,
-        role,
-        context.Request.Method,
-        context.Request.Path.Value,
-        endpoint,
-        context.Response.StatusCode,
-        Math.Round(durationMs, 2),
-        string.IsNullOrWhiteSpace(clientRequestId) ? "-" : clientRequestId);
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+        var role = context.User.FindFirstValue(ClaimTypes.Role) ?? "anonymous";
+        var clientRequestId = context.Request.Headers["X-Client-Request-Id"].ToString();
+        var endpoint = context.GetEndpoint()?.DisplayName ?? context.Request.Path.Value;
+
+        requestLogger.LogInformation(
+            "request_completed trace_id={TraceId} span_id={SpanId} user_id={UserId} role={Role} method={Method} path={Path} endpoint={Endpoint} status_code={StatusCode} duration_ms={DurationMs} client_request_id={ClientRequestId}",
+            traceId,
+            Activity.Current?.SpanId.ToString(),
+            userId,
+            role,
+            context.Request.Method,
+            context.Request.Path.Value,
+            endpoint,
+            statusCode,
+            Math.Round(durationMs, 2),
+            string.IsNullOrWhiteSpace(clientRequestId) ? "-" : clientRequestId);
+    }
 });
 app.UseAuthentication();
 app.UseRateLimiter();
@@ -404,6 +421,12 @@ static async Task SeedBootstrapUserAsync(
     {
         throw new InvalidOperationException(
             $"AuthBootstrap password role {role} minimal {Cashflowpoly.Api.Security.PasswordPolicy.MinPasswordLength} karakter.");
+    }
+
+    if (!Cashflowpoly.Api.Security.PasswordPolicy.IsWithinBcryptLimit(password))
+    {
+        throw new InvalidOperationException(
+            $"AuthBootstrap password role {role} maksimal {Cashflowpoly.Api.Security.PasswordPolicy.MaxPasswordUtf8Bytes} byte UTF-8.");
     }
 
     const string insertSql = """

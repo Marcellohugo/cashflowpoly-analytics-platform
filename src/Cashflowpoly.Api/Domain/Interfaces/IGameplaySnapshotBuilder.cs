@@ -10,5 +10,8 @@ public interface IGameplaySnapshotBuilder
         List<CashflowProjectionDb> playerProjections,
         List<EventDb> allEvents,
         RulesetConfig? config,
-        AnalyticsHappinessBreakdown happiness);
+        AnalyticsHappinessBreakdown happiness,
+        SessionFinalScoreDb? finalScore = null,
+        string? playerAlias = null,
+        bool sessionEnded = false);
 }

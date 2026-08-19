@@ -11,7 +11,8 @@ public sealed record AnalyticsIncomeDiversificationMetrics(
     double OtherIncome,
     int ActiveIncomeSourceCount,
     IReadOnlyDictionary<string, double> IncomeShares,
-    double? IncomeDiversification,
+    double? IncomeDiversificationIndex,
+    double? IncomeDiversificationRatio,
     bool RequiresIncomeNote);
 
 internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCalculator
@@ -35,7 +36,10 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
         var mealIncome = (double)mealOrderIncomeTotal;
         var goldIncome = (double)goldInvestmentEarned;
         var donationIncome = donationsReceived;
-        var otherIncome = Math.Max(0, totalIncome - freelanceIncome - mealIncome - goldIncome - donationIncome);
+        var operatingCashIn = playerProjections
+            .Where(p => p.Direction == "IN" && !IsFinancingReceipt(p.Category))
+            .Sum(p => (double)p.Amount);
+        var otherIncome = Math.Max(0, operatingCashIn - freelanceIncome - mealIncome - goldIncome - donationIncome);
 
         var incomeSourceTotals = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
         {
@@ -47,7 +51,8 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
         };
 
         var incomeShares = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-        if (totalIncome > 0)
+        var diversifiableIncome = incomeSourceTotals.Values.Sum();
+        if (diversifiableIncome > 0)
         {
             foreach (var (source, value) in incomeSourceTotals)
             {
@@ -56,27 +61,31 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
                     continue;
                 }
 
-                incomeShares[source] = value / totalIncome;
+                incomeShares[source] = value / diversifiableIncome;
             }
         }
 
         var activeIncomeSourceCount = incomeShares.Count;
-        double? incomeDiversification = null;
-        if (totalIncome > 0)
+        double? incomeDiversificationIndex = null;
+        if (diversifiableIncome > 0)
         {
             if (activeIncomeSourceCount <= 1)
             {
-                incomeDiversification = 0;
+                incomeDiversificationIndex = 0;
             }
             else
             {
                 var concentration = incomeShares.Values.Sum(share => share * share);
                 var normalizationDenominator = 1 - (1d / activeIncomeSourceCount);
-                incomeDiversification = normalizationDenominator <= 0
+                incomeDiversificationIndex = normalizationDenominator <= 0
                     ? 0
                     : ((1 - concentration) / normalizationDenominator) * 100;
             }
         }
+        var documentedIncome = freelanceIncome + mealIncome + goldIncome + donationIncome;
+        var incomeDiversificationRatio = totalIncome > 0
+            ? documentedIncome / totalIncome * 100
+            : (double?)null;
 
         return new AnalyticsIncomeDiversificationMetrics(
             freelanceIncome,
@@ -86,7 +95,14 @@ internal sealed class IncomeDiversificationCalculator : IIncomeDiversificationCa
             otherIncome,
             activeIncomeSourceCount,
             incomeShares,
-            incomeDiversification,
+            incomeDiversificationIndex,
+            incomeDiversificationRatio,
             totalIncome <= 0);
     }
+
+    private static bool IsFinancingReceipt(string category)
+        => category.Equals("LOAN_TAKEN", StringComparison.OrdinalIgnoreCase) ||
+           category.Equals("SAVING_WITHDRAW", StringComparison.OrdinalIgnoreCase) ||
+           category.Equals("EMERGENCY_OPTION", StringComparison.OrdinalIgnoreCase) ||
+           category.Equals("RISK_LIFE", StringComparison.OrdinalIgnoreCase);
 }

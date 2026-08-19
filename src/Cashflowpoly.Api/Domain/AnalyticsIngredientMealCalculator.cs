@@ -7,6 +7,7 @@ public sealed record AnalyticsIngredientMealMetrics(
     AnalyticsIngredientInventory Inventory,
     IReadOnlyDictionary<string, int> IngredientTypesHeld,
     int IngredientsCollected,
+    IReadOnlyList<int> IngredientsUsedPerMeal,
     int IngredientsUsedTotal,
     int IngredientsWasted,
     int IngredientInvestmentTotal,
@@ -62,10 +63,11 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             ingredientTypesHeld[name] = ingredientTypesHeld.TryGetValue(name, out var existing) ? existing + qty : qty;
         }
 
-        var ingredientsUsedTotal = playerEvents
+        var ingredientsUsedPerMeal = playerEvents
             .Where(e => e.ActionType == "JualMasakan")
             .Select(e => _payloadReader.TryReadOrderClaim(e.Payload, out var cards, out _) ? cards.Count : 0)
-            .Sum();
+            .ToList();
+        var ingredientsUsedTotal = ingredientsUsedPerMeal.Sum();
 
         var ingredientsWasted = playerEvents
             .Where(e => e.ActionType == "BuangBahanMasakan")
@@ -89,7 +91,12 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         var mealOrdersPassed = playerEvents.Count(e => e.ActionType == "LewatiOrder");
         var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
         var latestDayIndex = playerEvents.Count == 0 ? -1 : playerEvents.Max(e => e.DayIndex);
+        var eventPayloadReader = new EventPayloadReader();
         var playedTurnCount = playerEvents
+            .Where(e => string.Equals(e.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
+                        GameActionCatalog.GetPlayerActionSlotPolicy(
+                            e.ActionType,
+                            eventPayloadReader.ReadPayload(string.IsNullOrWhiteSpace(e.Payload) ? "{}" : e.Payload)) == PlayerActionSlotPolicy.Consumes)
             .Select(e => e.DayIndex)
             .Distinct()
             .Count();
@@ -100,6 +107,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             inventory,
             ingredientTypesHeld,
             ingredientsCollected,
+            ingredientsUsedPerMeal,
             ingredientsUsedTotal,
             ingredientsWasted,
             ingredientInvestmentTotal,

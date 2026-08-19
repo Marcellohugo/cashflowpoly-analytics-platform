@@ -158,6 +158,7 @@ public sealed class EventRequestShapeValidatorTests
     }
 
     [Theory]
+    [InlineData("CatatTransaksi")]
     [InlineData("HariMingguLibur")]
     [InlineData("AkhirGiliran")]
     public void Validate_RejectsSystemOnlyActionsFromPlayer(string actionType)
@@ -171,6 +172,7 @@ public sealed class EventRequestShapeValidatorTests
     }
 
     [Theory]
+    [InlineData("CatatTransaksi")]
     [InlineData("HariMingguLibur")]
     [InlineData("AkhirGiliran")]
     public void Validate_AcceptsSystemOnlyActionsWithZeroTurnAndSlot(string actionType)
@@ -246,7 +248,7 @@ public sealed class EventRequestShapeValidatorTests
             "MON",
             1,
             0,
-            "CatatTransaksi",
+            "KerjaLepas",
             Guid.NewGuid(),
             document.RootElement.Clone(),
             "client-123",

@@ -159,7 +159,7 @@ create table if not exists ruleset_game_settings (
   cash_min int not null default 0,
   max_ingredient_total int not null default 0,
   max_same_ingredient int not null default 0,
-  primary_need_max_per_day int null default 1,
+  primary_need_max_per_day int null default null,
   require_primary_before_others boolean not null default true,
   donation_min_amount int not null default 1,
   donation_max_amount int not null default 1,
@@ -1422,6 +1422,16 @@ create table if not exists events (
 );
 
 create index if not exists ix_events_session_player_seq on events (session_id, session_player_id, sequence_number);
+
+create unique index if not exists uq_events_player_day_action_slot on events (
+  session_id,
+  session_player_id,
+  day_index,
+  action_slot
+)
+where
+  actor_type = 'PLAYER'
+  and action_slot > 0;
 
 create index if not exists ix_events_session_time on events (session_id, "timestamp");
 
@@ -2732,11 +2742,17 @@ v_participant_user_id uuid;
 
 v_player_order_no int;
 
+v_require_primary_before_others boolean;
+
 v_action_mode varchar(10);
 
 v_behavior_id varchar(80);
 
 v_expected_weekday varchar(3);
+
+v_current_day int;
+
+v_finish_day int;
 
 begin if exists (
   select
@@ -2789,6 +2805,7 @@ if new.action_type in (
   'PoinPeringkatDonasi',
   'PoinEmas',
   'PoinPeringkatPensiun',
+  'CatatTransaksi',
   'AkhirGiliran'
 ) then if new.actor_type <> 'SYSTEM' then raise exception 'Action % must be executed by SYSTEM',
 new.action_type using errcode = '23514';
@@ -2935,6 +2952,37 @@ from
   v_expected_weekday using errcode = '23514';
 
 end if;
+
+end if;
+
+perform pg_advisory_xact_lock(hashtextextended(new.session_id :: text, 0));
+
+select
+  ss.day,
+  ss.finish_day into v_current_day,
+  v_finish_day
+from
+  session_states ss
+where
+  ss.session_id = new.session_id;
+
+if new.day_index > 0
+and new.day_index is distinct from v_current_day then raise exception 'Event % sequence % day_index % must match active session day %',
+new.action_type,
+new.sequence_number,
+new.day_index,
+v_current_day using errcode = '23514';
+
+end if;
+
+if new.action_type = 'AkhirGiliran'
+and v_current_day >= v_finish_day then raise exception 'Final day must use AkhiriSesi instead of AkhirGiliran' using errcode = '23514';
+
+end if;
+
+if new.action_type = 'AkhiriSesi'
+and v_current_day is distinct from v_finish_day then raise exception 'Session can only end on finish_day %',
+v_finish_day using errcode = '23514';
 
 end if;
 
@@ -3448,7 +3496,17 @@ v_happiness_points using errcode = '23514';
 
 end if;
 
-if v_need_tier in ('sekunder', 'tersier') then
+select
+  coalesce(
+    (
+      select rgs.require_primary_before_others
+      from ruleset_game_settings rgs
+      where rgs.ruleset_version_id = new.ruleset_version_id
+    ),
+    true
+  ) into v_require_primary_before_others;
+
+if v_require_primary_before_others and v_need_tier in ('sekunder', 'tersier') then
 select
   exists (
     select
@@ -4958,6 +5016,10 @@ v_is_game_over boolean;
 
 v_phase varchar(20);
 
+v_state_day int;
+
+v_state_weekday varchar(3);
+
 begin
 select
   * into v_event
@@ -5018,11 +5080,30 @@ where
 
 v_is_game_over := v_event.action_type = 'AkhiriSesi';
 
+v_state_day := greatest(
+  case
+    when v_event.action_type = 'AkhirGiliran' then v_event.day_index + 1
+    else v_event.day_index
+  end,
+  1
+);
+
+v_state_weekday := case
+  (((v_state_day - 1) % 7 + 7) % 7)
+  when 0 then 'MON'
+  when 1 then 'TUE'
+  when 2 then 'WED'
+  when 3 then 'THU'
+  when 4 then 'FRI'
+  when 5 then 'SAT'
+  else 'SUN'
+end;
+
 v_phase := case
   when v_is_game_over then 'GAME_END'
-  when v_event.weekday = 'FRI' then 'DONATION_DAY'
-  when v_event.weekday = 'SAT' then 'GOLD_INVESTMENT_DAY'
-  when v_event.weekday = 'SUN' then 'DAY_END'
+  when v_state_weekday = 'FRI' then 'DONATION_DAY'
+  when v_state_weekday = 'SAT' then 'GOLD_INVESTMENT_DAY'
+  when v_state_weekday = 'SUN' then 'DAY_END'
   else 'PLAYER_TURN'
 end;
 
@@ -5047,19 +5128,24 @@ insert into
   )
 select
   v_event.session_id,
-  greatest(v_event.day_index, 1),
-  v_event.weekday,
+  v_state_day,
+  v_state_weekday,
   case
     when v_event.actor_type = 'SYSTEM' then 0
     else v_event.turn_number
   end,
   v_event.action_slot,
   v_event.session_player_id,
-  coalesce((v_event.payload ->> 'used') :: int + 1, 1),
-  coalesce(
-    (v_event.payload ->> 'remaining') :: int,
-    rgs.actions_per_turn
-  ),
+  case
+    when v_event.action_type = 'AkhirGiliran' then 1
+    when v_event.actor_type = 'PLAYER' and v_event.action_slot > 0 then least(v_event.action_slot + 1, rgs.actions_per_turn)
+    else 1
+  end,
+  case
+    when v_event.action_type = 'AkhirGiliran' then rgs.actions_per_turn
+    when v_event.actor_type = 'PLAYER' and v_event.action_slot > 0 then greatest(rgs.actions_per_turn - v_event.action_slot, 0)
+    else rgs.actions_per_turn
+  end,
   rgs.finish_day,
   v_phase,
   v_is_game_over,
@@ -5079,8 +5165,18 @@ set
   turn_number = excluded.turn_number,
   action_slot = excluded.action_slot,
   current_session_player_id = excluded.current_session_player_id,
-  current_action_slot = excluded.current_action_slot,
-  action_slots_left = excluded.action_slots_left,
+  current_action_slot = case
+    when v_event.action_type = 'AkhirGiliran'
+      or (v_event.actor_type = 'PLAYER' and v_event.action_slot > 0)
+      then excluded.current_action_slot
+    else session_states.current_action_slot
+  end,
+  action_slots_left = case
+    when v_event.action_type = 'AkhirGiliran'
+      or (v_event.actor_type = 'PLAYER' and v_event.action_slot > 0)
+      then excluded.action_slots_left
+    else session_states.action_slots_left
+  end,
   finish_day = excluded.finish_day,
   phase = excluded.phase,
   is_game_over = excluded.is_game_over,
@@ -5184,7 +5280,20 @@ with risk_catalog as (
       when v_event.action_type in ('BahanMasakan', 'SetupBahanAwal') then 'INGREDIENT'
       when v_event.action_type = 'JualMasakan' then 'ORDER'
       when v_event.action_type = 'KerjaLepas' then 'FREELANCE'
-      when v_event.action_type = 'Kebutuhan' then 'NEED'
+      when v_event.action_type = 'Kebutuhan' then coalesce(
+        (
+          select case lower(need.need_tier)
+            when 'primer' then 'NEED_PRIMARY'
+            when 'sekunder' then 'NEED_SECONDARY'
+            when 'tersier' then 'NEED_TERTIARY'
+          end
+          from ruleset_needs need
+          where need.ruleset_version_id = v_event.ruleset_version_id
+            and lower(need.need_code) = lower(v_event.payload ->> 'card_id')
+          limit 1
+        ),
+        'NEED'
+      )
       when v_event.action_type = 'Menabung' then 'SAVING_DEPOSIT'
       when v_event.action_type = 'TarikTabungan' then 'SAVING_WITHDRAW'
       when v_event.action_type in ('PinjamanSyariah', 'SetupPinjamanAwal') then 'LOAN_TAKEN'
@@ -7502,6 +7611,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.8');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.11');
 
 commit;

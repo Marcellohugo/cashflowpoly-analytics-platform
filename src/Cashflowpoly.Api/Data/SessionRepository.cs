@@ -184,6 +184,22 @@ public sealed class SessionRepository
     }
 
     /// <summary>
+    /// Mengambil hari yang sedang aktif dan batas akhir sesi.
+    /// </summary>
+    public async Task<SessionProgressDb?> GetProgressAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select day, finish_day as FinishDay
+            from session_states
+            where session_id = @sessionId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<SessionProgressDb>(
+            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
+    /// <summary>
     /// Mengambil skor dan delapan komponen final yang telah dibekukan ketika sesi berakhir.
     /// </summary>
     public async Task<List<SessionFinalScoreDb>> GetFinalScoresAsync(Guid sessionId, CancellationToken ct)

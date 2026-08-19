@@ -20,6 +20,7 @@ public sealed record AnalyticsDonationGameplayMetrics(
     int DonationChampionCardsEarned,
     double? DonationStabilityStdDeviation,
     double? DonationStability,
+    double? DonationStabilityIndex,
     double? DonationRatio,
     double? DonationAggressivenessPercent,
     double? FridayParticipationRate,
@@ -68,7 +69,10 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
         var donationAmounts = donationByDay.Select(d => d.Amount).ToList();
         var donationStabilityStdDeviation = donationAmounts.Count > 0 ? StdDev(donationAmounts) : (double?)null;
         var averageDonation = donationAmounts.Count > 0 ? donationAmounts.Average() : 0;
-        var donationStability = averageDonation > 0
+        var donationStability = donationStabilityStdDeviation.HasValue
+            ? Clamp(100 - donationStabilityStdDeviation.Value, 0, 100)
+            : (double?)null;
+        var donationStabilityIndex = averageDonation > 0
             ? Clamp((1 - (StdDev(donationAmounts) / averageDonation)) * 100, 0, 100)
             : (double?)null;
         var donationRatio = SafeRatio(donationTotal, coinsNetEndGame);
@@ -80,10 +84,10 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
             .Count();
         var fridayParticipationRate = totalFridays > 0 ? (double)donationByDay.Count / totalFridays : (double?)null;
         var donationCommitmentScore =
-            donationStability.HasValue &&
+            donationStabilityIndex.HasValue &&
             donationRatio.HasValue &&
             fridayParticipationRate.HasValue
-                ? Clamp(donationStability.Value * donationRatio.Value * fridayParticipationRate.Value, 0, 100)
+                ? Clamp(donationStabilityIndex.Value * donationRatio.Value * fridayParticipationRate.Value, 0, 100)
                 : (double?)null;
 
         return new AnalyticsDonationGameplayMetrics(
@@ -93,6 +97,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
             playerEventsList.Count(e => e.ActionType == "PoinPeringkatDonasi"),
             donationStabilityStdDeviation,
             donationStability,
+            donationStabilityIndex,
             donationRatio,
             donationAggressivenessPercent,
             fridayParticipationRate,

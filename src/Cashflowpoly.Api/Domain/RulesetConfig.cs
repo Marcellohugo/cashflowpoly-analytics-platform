@@ -30,6 +30,8 @@ public sealed record RulesetConfig(
     int FreelanceIncome,
     RulesetScoringConfig? Scoring)
 {
+    public int FinishDay { get; init; } = 25;
+
     public IReadOnlyList<RulesetNeedSetBonusDto> NeedSetBonuses { get; init; } = [];
 
     public IReadOnlyList<RulesetGoldPriceDto> GoldPrices { get; init; } = [];
@@ -190,6 +192,7 @@ internal static class RulesetRuntimeMapper
                 definition.GoldPointsByQty.Select(item => new QtyPoint(item.Qty, item.Points)).ToList(),
                 definition.PensionRankPoints.Select(item => new RankPoint(item.Rank, item.Points)).ToList()))
         {
+            FinishDay = settings.FinishDay,
             NeedSetBonuses = definition.NeedSetBonuses.ToList(),
             GoldPrices = definition.GoldPrices.ToList(),
             ShariaLoans = definition.ShariaLoans.ToList(),
