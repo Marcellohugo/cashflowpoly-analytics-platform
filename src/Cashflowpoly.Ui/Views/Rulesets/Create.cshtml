@@ -154,11 +154,6 @@
                         <label class="form-label" for="cfg-max-same-ing">@Context.T("rulesets.form.max_same_ingredient")</label>
                         <input id="cfg-max-same-ing" type="number" min="1" class="form-input" value="3" />
                     </div>
-                    <div>
-                        <label class="form-label" for="cfg-primary-max-day">@Context.T("rulesets.form.primary_need_max_day")</label>
-                        <input id="cfg-primary-max-day" type="number" min="1" class="form-input" value="1" />
-                    </div>
-                    <label class="metric-row md:col-span-2"><span class="metric-key">@Context.T("rulesets.form.require_primary_first")</span><input id="cfg-require-primary" type="checkbox" checked /></label>
                 </div>
             </div>
 
@@ -262,8 +257,8 @@
                     cash_min: toInt("cfg-cash-min", 0),
                     max_ingredient_total: toInt("cfg-max-ing-total", 6),
                     max_same_ingredient: toInt("cfg-max-same-ing", 3),
-                    primary_need_max_per_day: toInt("cfg-primary-max-day", 1),
-                    require_primary_before_others: toBool("cfg-require-primary")
+                    primary_need_max_per_day: null,
+                    require_primary_before_others: true
                 },
                 donation: {
                     min_amount: toInt("cfg-donation-min", 1),
@@ -297,8 +292,6 @@
                 getEl("cfg-cash-min").value = cfg.constraints?.cash_min ?? 0;
                 getEl("cfg-max-ing-total").value = cfg.constraints?.max_ingredient_total ?? 6;
                 getEl("cfg-max-same-ing").value = cfg.constraints?.max_same_ingredient ?? 3;
-                getEl("cfg-primary-max-day").value = cfg.constraints?.primary_need_max_per_day ?? 1;
-                getEl("cfg-require-primary").checked = cfg.constraints?.require_primary_before_others ?? true;
                 getEl("cfg-donation-min").value = cfg.donation?.min_amount ?? 1;
                 getEl("cfg-donation-max").value = cfg.donation?.max_amount ?? 999999;
                 getEl("cfg-gold-buy").checked = cfg.gold_trade?.allow_buy ?? true;

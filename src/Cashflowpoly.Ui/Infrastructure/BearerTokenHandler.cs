@@ -39,7 +39,7 @@ public sealed class BearerTokenHandler : DelegatingHandler
 
         if (request.Headers.Authorization is null)
         {
-            var token = httpContext.Session.GetString(AuthConstants.SessionAccessTokenKey);
+            var token = httpContext.User.FindFirst(AuthConstants.AccessTokenClaim)?.Value;
             if (!string.IsNullOrWhiteSpace(token))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

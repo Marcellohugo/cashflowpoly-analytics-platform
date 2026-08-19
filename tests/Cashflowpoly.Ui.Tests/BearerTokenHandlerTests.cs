@@ -1,5 +1,6 @@
 // Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui BearerTokenHandlerTests.
 using System.Net;
+using System.Security.Claims;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
@@ -14,12 +15,14 @@ public sealed class BearerTokenHandlerTests
     public async Task SendAsync_ForwardsIdentityLanguageClientIpAndTraceId()
     {
         var session = new TestSession();
-        session.SetString(AuthConstants.SessionAccessTokenKey, "token-123");
         session.SetString(AuthConstants.SessionLanguageKey, AuthConstants.LanguageEn);
         var context = new DefaultHttpContext
         {
             TraceIdentifier = "trace-123"
         };
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(AuthConstants.AccessTokenClaim, "token-123")],
+            "test"));
         context.Connection.RemoteIpAddress = IPAddress.Parse("203.0.113.8");
         context.Features.Set<ISessionFeature>(new TestSessionFeature(session));
 

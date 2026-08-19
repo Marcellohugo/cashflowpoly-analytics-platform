@@ -35,7 +35,18 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.Contains("item.HappinessPointsTotal", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("@Context.T(\"sessions.view_analytics\")", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("value == 0d ? \"0\"", sessionDetailView, StringComparison.Ordinal);
-        Assert.Contains("position: sticky;", css, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-label-column", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-player-column", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-label-column {", css, StringComparison.Ordinal);
+        Assert.Contains("width: 12rem;", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".happiness-score-label {" + Environment.NewLine + "    position: sticky;", css, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-desktop", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-mobile-card", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("scoreRow.Values[playerIndex]", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-desktop {", css, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-mobile-row", css, StringComparison.Ordinal);
+        Assert.Contains("@media (max-width: 900px)", css, StringComparison.Ordinal);
+        Assert.Contains("grid-template-columns: repeat(2, minmax(0, 1fr));", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -148,7 +159,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.Contains("sessions.detail.player_scores_title", view, StringComparison.Ordinal);
         Assert.Contains("currentPlayerSummary.CashInTotal", view, StringComparison.Ordinal);
         Assert.Contains("currentPlayerSummary.HappinessPointsTotal", view, StringComparison.Ordinal);
-        Assert.Contains("currentPlayerSummary.CompliancePrimaryNeedRate", view, StringComparison.Ordinal);
+        Assert.Contains("currentPlayerSummary.FulfillmentDiversity", view, StringComparison.Ordinal);
         Assert.DoesNotContain("font-mono\">@Model.SessionId", view, StringComparison.Ordinal);
 
         var lexicon = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "UiTextLexicon.Players.cs"));
@@ -162,6 +173,8 @@ public sealed class SessionAndPlayerSummaryLayoutTests
 
         Assert.Contains("class=\"mt-3 ruleset-stats\"", view, StringComparison.Ordinal);
         Assert.Contains("class=\"mt-3 session-stats-grid\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("@Context.T(\"metric.violations\")", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("RulesViolationsCount", view, StringComparison.Ordinal);
         Assert.DoesNotContain("md:grid-cols-5", view, StringComparison.Ordinal);
         Assert.DoesNotContain("sm:grid-cols-2 xl:grid-cols-3", view, StringComparison.Ordinal);
     }

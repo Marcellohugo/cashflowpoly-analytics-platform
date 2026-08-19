@@ -39,8 +39,7 @@ public sealed class AuthControllerResilienceTests
             DisplayName = "Instructor",
             Username = "instructor",
             Password = "password123",
-            ConfirmPassword = "password123",
-            Role = "INSTRUCTOR"
+            ConfirmPassword = "password123"
         });
 
         var view = Assert.IsType<ViewResult>(result);

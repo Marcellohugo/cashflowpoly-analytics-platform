@@ -59,6 +59,43 @@
 })();
 
 (() => {
+  const dashboard = document.querySelector(".player-stats-dashboard");
+  if (!dashboard) {
+    return;
+  }
+
+  const targets = Array.from(dashboard.querySelectorAll("[data-player-stats-reveal]"));
+  const revealAll = () => targets.forEach((target) => target.classList.add("is-visible"));
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    revealAll();
+    return;
+  }
+
+  dashboard.classList.add("player-stats-motion-ready");
+  targets.forEach((target, index) => {
+    target.style.setProperty("--player-stats-delay", `${Math.min(index * 60, 240)}ms`);
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    },
+    { rootMargin: "0px 0px -8%", threshold: 0.08 }
+  );
+
+  targets.forEach((target) => observer.observe(target));
+})();
+
+(() => {
   const toggles = Array.from(document.querySelectorAll(".js-nav-toggle"));
   if (!toggles.length) {
     return;

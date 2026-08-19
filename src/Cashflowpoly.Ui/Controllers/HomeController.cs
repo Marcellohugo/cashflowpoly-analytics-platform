@@ -1,6 +1,7 @@
 // Fungsi file: Menangani request MVC dan penyusunan tampilan untuk HomeController.
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -144,9 +145,9 @@ public class HomeController : Controller
         var model = new HomeIndexViewModel
         {
             TotalSessions = sessions.Count,
-            ActiveSessions = sessions.Count(s => string.Equals(s.Status, "ENDED", StringComparison.OrdinalIgnoreCase)),
+            ActiveSessions = sessions.Count(s => string.Equals(s.Status, "STARTED", StringComparison.OrdinalIgnoreCase)),
             TotalPlayers = players.Count,
-            TotalRulesets = rulesets.Count,
+            TotalRulesets = rulesets.Count(r => string.Equals(r.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)),
             LastSyncedAt = DateTimeOffset.UtcNow,
             ErrorMessage = errorMessages.Count == 0
                 ? null
@@ -165,8 +166,8 @@ public class HomeController : Controller
     private string BuildRealtimeStatsCacheKey()
     {
         var sessionId = HttpContext.Session.Id;
-        var userId = HttpContext.Session.GetString(AuthConstants.SessionUserIdKey);
-        var role = HttpContext.Session.GetString(AuthConstants.SessionRoleKey);
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
         var sessionScope = string.IsNullOrWhiteSpace(sessionId) ? "anonymous-session" : sessionId;
         var userScope = string.IsNullOrWhiteSpace(userId) ? "anonymous-user" : userId.Trim();
         var roleScope = string.IsNullOrWhiteSpace(role) ? "unknown-role" : role.Trim().ToUpperInvariant();

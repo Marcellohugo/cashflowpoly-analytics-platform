@@ -1,4 +1,6 @@
 // Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui PlayerMetricCollectionHelper.
+using System.Globalization;
+
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>
@@ -127,5 +129,127 @@ public static class PlayerMetricCollectionHelper
         }
 
         return charts;
+    }
+
+    /// <summary>
+    /// Mengganti variabel rumus analitik dengan angka pemain yang benar-benar digunakan.
+    /// </summary>
+    public static string BuildActualCalculation(
+        string analysisKey,
+        IEnumerable<(string Path, string Value)> rows,
+        string resultValue,
+        string resultUnit,
+        string unavailableText,
+        CultureInfo culture)
+    {
+        var values = rows
+            .Where(row => !string.IsNullOrWhiteSpace(row.Path))
+            .GroupBy(row => row.Path, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Value, StringComparer.OrdinalIgnoreCase);
+
+        string Value(string path, double scale = 1)
+        {
+            if (!values.TryGetValue(path, out var rawValue) ||
+                !double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericValue))
+            {
+                return unavailableText;
+            }
+
+            return FormatCalculationNumber(numericValue * scale, culture);
+        }
+
+        var result = string.IsNullOrWhiteSpace(resultUnit) ||
+                     string.Equals(resultValue, unavailableText, StringComparison.OrdinalIgnoreCase)
+            ? resultValue
+            : resultUnit == "%"
+                ? $"{resultValue}{resultUnit}"
+                : $"{resultValue} {resultUnit}";
+        var incomeShares = values
+            .Where(item => item.Key.StartsWith("Income_Share_i.", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(item => double.TryParse(item.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var share)
+                ? $"({FormatCalculationNumber(share * 100, culture)} ÷ 100)²"
+                : $"({unavailableText} ÷ 100)²")
+            .ToList();
+
+        var expression = analysisKey switch
+        {
+            "net-worth" => $"{Value("coins_held_current")} ÷ {Value("starting_coins")} × 100%",
+            "income-diversification" =>
+                $"[1 − ({(incomeShares.Count > 0 ? string.Join(" + ", incomeShares) : unavailableText)})] ÷ [1 − (1 ÷ {Value("N_active_income_sources")})] × 100%",
+            "expense-efficiency" => $"{Value("essential_expenses")} ÷ {Value("total_expenses")} × 100%",
+            "business-margin" =>
+                $"({Value("meal_order_income_total")} − {Value("ingredient_investment_coins_total")}) ÷ {Value("meal_order_income_total")} × 100%",
+            "risk-appetite" =>
+                $"min(100, max(0, ({Value("risk_acceptance_rate", 100)} ÷ 100) × ({Value("Risk_Cost_Intensity", 100)} ÷ 100) × 100))",
+            "debt-discipline" =>
+                $"{Value("sharia_loans_outstanding_coins")} ÷ {Value("coins_held_current")} × 100%",
+            "goal-ambition" =>
+                $"min(100, max(0, ({Value("Goal_Attempt_Rate", 100)} + {Value("Goal_Investment_Rate", 100)}) ÷ 2))",
+            "action-efficiency" =>
+                $"{Value("income_producing_actions")} ÷ {Value("all_player_actions")} × 100%",
+            "meal-success" =>
+                $"{Value("meal_orders_claimed")} ÷ ({Value("meal_orders_claimed")} + {Value("meal_orders_available_passed")}) × 100%",
+            "planning-horizon" =>
+                $"({Value("savings_actions")} + {Value("financial_goal_actions")} + {Value("insurance_premium_actions")}) ÷ {Value("all_player_actions")} × 100%",
+            "fulfillment-diversity" =>
+                $"[1 − (({Value("p_primary", 100)} ÷ 100)² + ({Value("p_secondary", 100)} ÷ 100)² + ({Value("p_tertiary", 100)} ÷ 100)²)] ÷ (1 − ⅓) × 100%",
+            "donation-commitment" =>
+                $"min(100, max(0, {Value("donation_stability_index")} × ({Value("donation_ratio", 100)} ÷ 100) × ({Value("friday_participation_rate", 100)} ÷ 100)))",
+            "happiness-portfolio" => BuildSignedSum(
+                values,
+                [
+                    "need_cards_pts",
+                    "need_set_bonus_pts",
+                    "donations_pts",
+                    "gold_pts",
+                    "pension_pts",
+                    "financial_goals_pts",
+                    "mission_bonus_pts",
+                    "loan_penalty_pts"
+                ],
+                unavailableText,
+                culture),
+            _ => unavailableText
+        };
+
+        return $"{expression} = {result}";
+    }
+
+    private static string BuildSignedSum(
+        IReadOnlyDictionary<string, string> values,
+        IReadOnlyList<string> paths,
+        string unavailableText,
+        CultureInfo culture)
+    {
+        var terms = new List<string>();
+        foreach (var path in paths)
+        {
+            if (!values.TryGetValue(path, out var rawValue) ||
+                !double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericValue))
+            {
+                terms.Add(terms.Count == 0 ? unavailableText : $"+ {unavailableText}");
+                continue;
+            }
+
+            var formattedValue = FormatCalculationNumber(Math.Abs(numericValue), culture);
+            if (terms.Count == 0)
+            {
+                terms.Add(numericValue < 0 ? $"−{formattedValue}" : formattedValue);
+            }
+            else
+            {
+                terms.Add(numericValue < 0 ? $"− {formattedValue}" : $"+ {formattedValue}");
+            }
+        }
+
+        return string.Join(" ", terms);
+    }
+
+    private static string FormatCalculationNumber(double value, CultureInfo culture)
+    {
+        return Math.Abs(value - Math.Round(value)) < 0.0000001
+            ? value.ToString("N0", culture)
+            : value.ToString("N2", culture);
     }
 }

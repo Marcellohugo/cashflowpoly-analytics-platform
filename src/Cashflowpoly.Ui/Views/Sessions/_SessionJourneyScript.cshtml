@@ -642,10 +642,16 @@
         };
         const syncTimeline = async () => {
             try {
-                const response = await fetch(`${timelineUrl}?fromSeq=${encodeURIComponent(lastSequence)}&limit=200`, {
+                const fromSequence = timeline.length > 0 ? lastSequence + 1 : 0;
+                const response = await fetch(`${timelineUrl}?fromSeq=${encodeURIComponent(fromSequence)}&limit=200`, {
                     method: "GET",
                     headers: { "Accept": "application/json" }
                 });
+
+                if (response.redirected && response.url.includes("/auth/login")) {
+                    window.location.assign(response.url);
+                    return;
+                }
 
                 if (!response.ok) {
                     setError(realtimeStatusTemplate.replace("{status}", `${response.status}`));

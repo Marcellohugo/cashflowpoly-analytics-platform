@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = Context.T("nav.sessions");
-    var isInstructor = Context.Session.IsInstructor();
+    var isInstructor = Context.IsInstructor();
     var totalSessions = Model.Items.Count;
     var startedCount = Model.Items.Count(x => string.Equals(x.Status, "STARTED", StringComparison.OrdinalIgnoreCase));
     var endedCount = Model.Items.Count(x => string.Equals(x.Status, "ENDED", StringComparison.OrdinalIgnoreCase));

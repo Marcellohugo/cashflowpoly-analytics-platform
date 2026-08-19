@@ -58,6 +58,47 @@ public sealed class PlayerMetricJsonMapperTests
     }
 
     [Fact]
+    public void BuildMetricVariableGroups_KeepsEachSeriesAsOneVariable()
+    {
+        using var doc = JsonDocument.Parse("""
+            {
+              "turns": { "coins_per_turn_progression": [10,12,9] },
+              "needs": { "need_profile": { "basic_profile": true, "collector_profile": false } }
+            }
+            """);
+
+        var groups = PlayerMetricJsonMapper.BuildMetricVariableGroups(
+            doc.RootElement,
+            trueText: "Ya",
+            falseText: "Tidak",
+            nullText: "—");
+
+        var turns = Assert.Single(groups, group => group.GroupKey == "turns");
+        var series = Assert.Single(turns.Rows);
+        Assert.Equal("coins_per_turn_progression", series.Path);
+        Assert.Equal("[10,12,9]", series.Value);
+
+        var needs = Assert.Single(groups, group => group.GroupKey == "needs");
+        Assert.Contains(needs.Rows, row => row.Path == "need_profile.basic_profile" && row.Value == "Ya");
+        Assert.Contains(needs.Rows, row => row.Path == "need_profile.collector_profile" && row.Value == "Tidak");
+    }
+
+    [Fact]
+    public void BuildCollectionTable_ConvertsObjectSeriesIntoReadableRows()
+    {
+        var table = PlayerMetricJsonMapper.BuildCollectionTable(
+            """[{"action_slot":0,"amount":25},{"action_slot":1,"amount":56}]""",
+            trueText: "Ya",
+            falseText: "Tidak",
+            nullText: "—");
+
+        Assert.NotNull(table);
+        Assert.Equal(new[] { "action_slot", "amount" }, table.Columns);
+        Assert.Equal(new[] { "0", "25" }, table.Rows[0]);
+        Assert.Equal(new[] { "1", "56" }, table.Rows[1]);
+    }
+
+    [Fact]
     /// <summary>
     /// Memvalidasi map elemen grup meng-clone JsonElement agar tetap valid setelah JsonDocument asal dispose.
     /// </summary>

@@ -36,12 +36,14 @@ public static class PlayerMetricLabelFormatter
         "risk_mitigation_effectiveness",
         "debt_leverage_ratio",
         "loan_repayment_discipline",
-        "goal_setting_ambition",
         "goal_ambition",
+        "goal_ambition_index",
         "action_efficiency_percent",
         "meal_order_success_rate",
         "planning_horizon_percent",
         "donation_aggressiveness_percent",
+        "donation_stability",
+        "donation_stability_index",
         "risk_appetite_score_normalized"
     };
 
@@ -59,6 +61,7 @@ public static class PlayerMetricLabelFormatter
         "action_diversity_score_avg",
         "planning_horizon",
         "fulfillment_diversity",
+        "fulfillment_diversity_document_formula",
         "p_primary",
         "p_secondary",
         "p_tertiary",
@@ -268,7 +271,7 @@ public static class PlayerMetricLabelFormatter
         {
             "not_applicable" => "players.support.recommendation.not_applicable",
             "unavailable" => "players.support.recommendation.unavailable",
-            _ => ResolveRecommendationKey(metricKey)
+            _ => ResolveRecommendationKey(metricKey, numericValue, hasNumericValue)
         };
         var formulaKey = isDerived ? ResolveFormulaKey(metricKey) : string.Empty;
 
@@ -517,6 +520,11 @@ public static class PlayerMetricLabelFormatter
             return "players.support.unit.day";
         }
 
+        if (metricKey.StartsWith("turn_number_", StringComparison.OrdinalIgnoreCase))
+        {
+            return "players.support.unit.turn";
+        }
+
         if (metricKey.Contains("action_slot", StringComparison.OrdinalIgnoreCase))
         {
             return "players.support.unit.action_slot";
@@ -545,6 +553,11 @@ public static class PlayerMetricLabelFormatter
         if (metricKey is "actions_skipped")
         {
             return "players.support.unit.day";
+        }
+
+        if (metricKey is "action_slots_unused")
+        {
+            return "players.support.unit.action_slot";
         }
 
         if (metricKey is "n_active_income_sources")
@@ -609,13 +622,14 @@ public static class PlayerMetricLabelFormatter
                 "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "players.support.meaning.risk_protection",
                 "risk_appetite_score" or "risk_appetite_score_normalized" or "risk_acceptance_rate" => "players.support.meaning.risk_appetite",
                 "debt_leverage_ratio" or "debt_ratio" or "loan_repayment_discipline" => "players.support.meaning.debt",
-                "goal_ambition" or "goal_setting_ambition" or "goal_attempt_rate" or "goal_investment_rate" => "players.support.meaning.goals",
+                "goal_ambition" or "goal_ambition_index" or "goal_setting_ambition" or "goal_attempt_rate" or "goal_investment_rate" => "players.support.meaning.goals",
                 "action_efficiency" or "action_efficiency_percent" or "action_diversity_score_avg" => "players.support.meaning.actions",
                 "meal_order_success_rate" => "players.support.meaning.orders",
                 "planning_horizon" or "planning_horizon_percent" => "players.support.meaning.planning",
-                "fulfillment_diversity" or "p_primary" or "p_secondary" or "p_tertiary" or "mission_achievement" => "players.support.meaning.needs",
+                "fulfillment_diversity" or "fulfillment_diversity_document_formula" or "p_primary" or "p_secondary" or "p_tertiary" => "players.support.meaning.need_balance",
+                "mission_achievement" => "players.support.meaning.needs",
                 "donation_aggressiveness_percent" or "donation_stability_std_deviation" or "donation_ratio" or
-                    "friday_participation_rate" or "donation_commitment_score" or "donation_stability" => "players.support.meaning.donation",
+                    "friday_participation_rate" or "donation_commitment_score" or "donation_stability" or "donation_stability_index" => "players.support.meaning.donation",
                 _ => string.Empty
             };
 
@@ -641,7 +655,7 @@ public static class PlayerMetricLabelFormatter
             "players.support.unit.coins" => "players.support.meaning.raw_coins",
             "players.support.unit.points" => "players.support.meaning.raw_points",
             "players.support.unit.rank" => "players.support.meaning.raw_rank",
-            "players.support.unit.day" or "players.support.unit.action_slot" => "players.support.meaning.raw_timeline",
+            "players.support.unit.day" or "players.support.unit.turn" or "players.support.unit.action_slot" => "players.support.meaning.raw_timeline",
             _ when unitKey.StartsWith("players.support.unit.", StringComparison.Ordinal) &&
                    unitKey != "players.support.unit.coins" &&
                    unitKey != "players.support.unit.points" &&
@@ -687,6 +701,9 @@ public static class PlayerMetricLabelFormatter
                 "debt_leverage_ratio" when numericValue > 75 => "players.support.guide.debt_high",
                 "debt_leverage_ratio" when numericValue <= 25 => "players.support.guide.debt_low",
                 "debt_leverage_ratio" => "players.support.guide.debt_moderate",
+                "goal_ambition" or "goal_ambition_index" when numericValue >= 67 => "players.support.guide.goals_strong",
+                "goal_ambition" or "goal_ambition_index" when numericValue < 34 => "players.support.guide.goals_limited",
+                "goal_ambition" or "goal_ambition_index" => "players.support.guide.goals_moderate",
                 "loan_repayment_discipline" when numericValue >= 99.5 => "players.support.guide.loan_repaid",
                 "loan_repayment_discipline" => "players.support.guide.loan_remaining",
                 "action_efficiency_percent" when numericValue > 60 => "players.support.guide.action_income",
@@ -701,6 +718,9 @@ public static class PlayerMetricLabelFormatter
                 "planning_horizon" when normalizedRatio > 0.4 => "players.support.guide.planning_long",
                 "planning_horizon" when normalizedRatio < 0.2 => "players.support.guide.planning_short",
                 "planning_horizon" => "players.support.guide.planning_balanced",
+                "fulfillment_diversity" when numericValue >= 0.67 => "players.support.guide.need_balance_high",
+                "fulfillment_diversity" when numericValue < 0.34 => "players.support.guide.need_balance_low",
+                "fulfillment_diversity" => "players.support.guide.need_balance_moderate",
                 "growth_pattern_ratio" when numericValue > 3 => "players.support.guide.growth_strong",
                 "growth_pattern_ratio" when numericValue < 1 => "players.support.guide.growth_declining",
                 "growth_pattern_ratio" => "players.support.guide.growth_steady",
@@ -709,6 +729,9 @@ public static class PlayerMetricLabelFormatter
                 "donation_aggressiveness_percent" => "players.support.guide.donation_moderate",
                 "donation_stability_std_deviation" when numericValue <= 1 => "players.support.guide.donation_stable",
                 "donation_stability_std_deviation" => "players.support.guide.donation_variable",
+                "donation_commitment_score" when numericValue >= 67 => "players.support.guide.donation_commitment_strong",
+                "donation_commitment_score" when numericValue < 34 => "players.support.guide.donation_commitment_weak",
+                "donation_commitment_score" => "players.support.guide.donation_commitment_moderate",
                 "mission_achievement" when numericValue >= 1 => "players.support.guide.mission_complete",
                 "mission_achievement" => "players.support.guide.mission_incomplete",
                 "friday_participation_rate" when normalizedRatio >= 0.8 => "players.support.guide.participation_high",
@@ -745,7 +768,7 @@ public static class PlayerMetricLabelFormatter
             "players.support.unit.coins" => "players.support.guide.coins",
             "players.support.unit.points" => "players.support.guide.points",
             "players.support.unit.rank" => "players.support.guide.rank",
-            "players.support.unit.day" or "players.support.unit.action_slot" => "players.support.guide.turn",
+            "players.support.unit.day" or "players.support.unit.turn" or "players.support.unit.action_slot" => "players.support.guide.turn",
             _ when unitKey.StartsWith("players.support.unit.", StringComparison.Ordinal) => "players.support.guide.count",
             _ => "players.support.guide.raw"
         };
@@ -798,15 +821,42 @@ public static class PlayerMetricLabelFormatter
         };
     }
 
-    private static string ResolveRecommendationKey(string metricKey)
+    private static string ResolveRecommendationKey(string metricKey, double numericValue, bool hasNumericValue)
     {
+        if (hasNumericValue)
+        {
+            var resultSpecificKey = metricKey switch
+            {
+                "net_worth_index" when numericValue < 100 => "players.support.recommendation.cash_recover",
+                "income_diversification_index" or "income_diversification_ratio" when numericValue < 34 => "players.support.recommendation.income_mix_recover",
+                "business_profit_margin" when numericValue <= 0 => "players.support.recommendation.business_recover",
+                "risk_appetite_score" or "risk_appetite_score_normalized" when numericValue > 75 => "players.support.recommendation.risk_reduce",
+                "debt_leverage_ratio" when numericValue > 75 => "players.support.recommendation.debt_reduce",
+                "goal_ambition" or "goal_ambition_index" when numericValue < 50 => "players.support.recommendation.goals_focus",
+                "action_efficiency_percent" when numericValue < 40 => "players.support.recommendation.action_income",
+                "meal_order_success_rate" when numericValue < 60 => "players.support.recommendation.orders_improve",
+                "planning_horizon_percent" when numericValue < 20 => "players.support.recommendation.planning_build",
+                "planning_horizon" when numericValue < 0.2 => "players.support.recommendation.planning_build",
+                "fulfillment_diversity" when numericValue < 0.67 => "players.support.recommendation.needs_balance",
+                "donation_commitment_score" when numericValue < 34 => "players.support.recommendation.donation_stabilize",
+                "total_happiness_pts" when numericValue < 0 => "players.support.recommendation.outcome_recover",
+                _ => string.Empty
+            };
+
+            if (!string.IsNullOrWhiteSpace(resultSpecificKey))
+            {
+                return resultSpecificKey;
+            }
+        }
+
         var recommendationCategory = metricKey switch
         {
             "net_worth_index" or "growth_pattern_ratio" => "wealth",
             "income_diversification_index" or "income_diversification_ratio" or "income_share_i" or
                 "n_active_income_sources" => "income_mix",
-            "expense_management_efficiency" => "spending",
+            "expense_management_efficiency" => "productive_spending",
             "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "protection",
+            "action_efficiency" or "action_efficiency_percent" => "action_balance",
             "planning_horizon" or "planning_horizon_percent" => "planning",
             _ => ResolveFunctionCategory(metricKey)
         };
@@ -821,7 +871,8 @@ public static class PlayerMetricLabelFormatter
         return metricKey switch
         {
             "net_worth_index" => "players.support.formula.net_worth",
-            "income_diversification_index" or "income_diversification_ratio" => "players.support.formula.income_diversification",
+            "income_diversification_index" => "players.support.formula.income_diversification_index",
+            "income_diversification_ratio" => "players.support.formula.income_diversification",
             "expense_management_efficiency" => "players.support.formula.expense_efficiency",
             "business_profit_margin" => "players.support.formula.business_margin",
             "business_efficiency_ratio" => "players.support.formula.business_efficiency",
@@ -832,14 +883,17 @@ public static class PlayerMetricLabelFormatter
             "debt_leverage_ratio" => "players.support.formula.debt_leverage",
             "loan_repayment_discipline" => "players.support.formula.loan_discipline",
             "debt_ratio" => "players.support.formula.debt_ratio",
-            "goal_ambition" or "goal_setting_ambition" => "players.support.formula.goal_ambition",
+            "goal_ambition" or "goal_ambition_index" => "players.support.formula.goal_ambition_index",
+            "goal_setting_ambition" => "players.support.formula.goal_ambition",
             "action_efficiency" or "action_efficiency_percent" => "players.support.formula.action_efficiency",
             "meal_order_success_rate" => "players.support.formula.order_success",
             "planning_horizon" or "planning_horizon_percent" => "players.support.formula.planning",
             "fulfillment_diversity" => "players.support.formula.fulfillment",
+            "fulfillment_diversity_document_formula" => "players.support.formula.fulfillment_document",
             "growth_pattern_ratio" => "players.support.formula.growth",
             "donation_aggressiveness_percent" => "players.support.formula.donation_aggressiveness",
-            "donation_stability_std_deviation" => "players.support.formula.donation_stability",
+            "donation_stability" or "donation_stability_std_deviation" => "players.support.formula.donation_stability",
+            "donation_stability_index" => "players.support.formula.donation_stability_index",
             "donation_commitment_score" => "players.support.formula.donation_commitment",
             _ => string.Empty
         };

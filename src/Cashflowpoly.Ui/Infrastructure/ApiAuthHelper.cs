@@ -13,7 +13,7 @@ public static class ApiAuthHelper
 {
     /// <summary>
     /// Memeriksa apakah respons API berstatus 401 Unauthorized. Jika ya, menghapus
-    /// seluruh data autentikasi dari sesi dan mengembalikan redirect ke halaman login
+    /// cookie autentikasi dan mengembalikan redirect ke halaman login
     /// dengan menyertakan URL halaman asal sebagai parameter returnUrl.
     /// </summary>
     /// <param name="controller">Instance controller MVC yang memanggil API.</param>
@@ -26,12 +26,7 @@ public static class ApiAuthHelper
             return null;
         }
 
-        controller.HttpContext.Session.Remove(AuthConstants.SessionUserIdKey);
-        controller.HttpContext.Session.Remove(AuthConstants.SessionDisplayNameKey);
-        controller.HttpContext.Session.Remove(AuthConstants.SessionRoleKey);
-        controller.HttpContext.Session.Remove(AuthConstants.SessionUsernameKey);
-        controller.HttpContext.Session.Remove(AuthConstants.SessionAccessTokenKey);
-        controller.HttpContext.Session.Remove(AuthConstants.SessionTokenExpiresAtKey);
+        controller.Response.Cookies.Delete(AuthConstants.AuthenticationCookieName);
 
         var returnUrl = $"{controller.HttpContext.Request.Path}{controller.HttpContext.Request.QueryString}";
         return controller.Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");

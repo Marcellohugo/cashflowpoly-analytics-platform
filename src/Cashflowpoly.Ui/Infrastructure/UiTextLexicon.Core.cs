@@ -104,7 +104,7 @@ internal static partial class UiTextLexicon
         terms["home.my_sessions"] = ("Sesi saya", "My sessions");
         terms["home.players_in_my_sessions"] = ("Pemain dalam sesi saya", "Players in my sessions");
         terms["home.available_rulesets"] = ("Set Aturan tersedia", "Available rulesets");
-        terms["home.active_sessions"] = ("Sesi Selesai", "Completed Sessions");
+        terms["home.active_sessions"] = ("Sesi Berjalan", "Active Sessions");
         terms["home.auto_refresh_note"] = ("Data diperbarui otomatis setiap 30 detik.", "Data refreshes automatically every 30 seconds.");
         terms["home.empty_workspace.title"] = ("Workspace masih kosong", "Workspace is still empty");
         terms["home.empty_workspace.instructor"] = ("Data belum tersedia. Buat dan jalankan sesi permainan agar dasbor analitika mulai terisi.", "No data is available yet. Create and run a gameplay session to populate the analytics dashboard.");
@@ -112,7 +112,7 @@ internal static partial class UiTextLexicon
         terms["home.error.realtime_status"] = ("Gagal sinkron waktu nyata ({status}).", "Realtime sync failed ({status}).");
         terms["home.error.realtime_network"] = ("Gagal sinkron waktu nyata (kesalahan jaringan).", "Realtime sync failed (network error).");
         terms["home.error.partial_realtime_failed"] = ("Sebagian data waktu nyata gagal dimuat ({details}).", "Some realtime data failed to load ({details}).");
-        terms["home.ruleset_active"] = ("Set Aturan Aktif", "Active Ruleset");
+        terms["home.ruleset_active"] = ("Set Aturan Aktif", "Active Rulesets");
         terms["home.players_monitored"] = ("Pemain Dipantau", "Players Monitored");
         terms["home.guide.menu"] = ("Panduan Menu", "Menu Guide");
         terms["home.guide.title"] = ("Kumpulan cara penggunaan", "Usage playbook");

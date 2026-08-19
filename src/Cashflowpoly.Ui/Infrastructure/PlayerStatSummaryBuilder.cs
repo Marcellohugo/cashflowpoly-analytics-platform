@@ -21,7 +21,7 @@ public static class PlayerStatSummaryBuilder
             ? analyticsSummary.CashInTotal - analyticsSummary.CashOutTotal
             : cashflowJourney?.NetCashflow ?? gameplay?.Economy.CashflowNetTotal ?? 0d;
         var happiness = analyticsSummary?.HappinessPointsTotal ?? gameplay?.Score.HappinessPointsTotal ?? 0d;
-        var primaryNeedRate = analyticsSummary?.CompliancePrimaryNeedRate ?? gameplay?.Compliance.PrimaryNeedRate ?? 0d;
+        var fulfillmentDiversity = analyticsSummary?.FulfillmentDiversity ?? gameplay?.Needs.FulfillmentDiversity ?? 0d;
         var hasUnpaidLoan = analyticsSummary?.HasUnpaidLoan ?? gameplay?.Score.HasUnpaidLoan ?? false;
 
         if (netCashflow < 0)
@@ -51,12 +51,12 @@ public static class PlayerStatSummaryBuilder
                 "warning"));
         }
 
-        if (primaryNeedRate < 0.75)
+        if (fulfillmentDiversity < 0.4)
         {
             insights.Add(Insight(
-                "primary_need_low",
-                translate("players.stats.insight.primary_need_low.title"),
-                translate("players.stats.insight.primary_need_low.desc"),
+                "need_diversity_low",
+                translate("players.stats.insight.need_diversity_low.title"),
+                translate("players.stats.insight.need_diversity_low.desc"),
                 "warning"));
         }
 

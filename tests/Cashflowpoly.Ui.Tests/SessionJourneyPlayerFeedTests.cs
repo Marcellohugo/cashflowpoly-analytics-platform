@@ -96,6 +96,19 @@ public sealed class SessionJourneyPlayerFeedTests
     }
 
     [Fact]
+    public void SessionJourneyScript_ShouldRequestOnlyEventsAfterTheLastSequence()
+    {
+        var repoRoot = ResolveRepositoryRoot();
+        var scriptPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneyScript.cshtml");
+        var scriptContent = File.ReadAllText(scriptPath);
+
+        Assert.Contains("const fromSequence = timeline.length > 0 ? lastSequence + 1 : 0;", scriptContent);
+        Assert.Contains("encodeURIComponent(fromSequence)", scriptContent);
+        Assert.DoesNotContain("encodeURIComponent(lastSequence)", scriptContent);
+        Assert.Contains("response.redirected && response.url.includes(\"/auth/login\")", scriptContent);
+    }
+
+    [Fact]
     public void SessionJourneyScript_ShouldUseMappedActionSlotLabelsForPlayerEvents()
     {
         var repoRoot = ResolveRepositoryRoot();

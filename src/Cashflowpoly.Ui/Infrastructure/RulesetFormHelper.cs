@@ -27,7 +27,7 @@ public static class RulesetFormHelper
                 "cash_min": 0,
                 "max_ingredient_total": 6,
                 "max_same_ingredient": 3,
-                "primary_need_max_per_day": 1,
+                "primary_need_max_per_day": null,
                 "require_primary_before_others": true
               },
               "donation": { "min_amount": 1, "max_amount": 999999 },

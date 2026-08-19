@@ -100,8 +100,8 @@ public sealed class PlayerMetricLabelFormatterTests
     }
 
     [Theory]
-    [InlineData("net_worth_index", "players.support.recommendation.wealth")]
-    [InlineData("income_diversification_ratio", "players.support.recommendation.income_mix")]
+    [InlineData("net_worth_index", "players.support.recommendation.cash_recover")]
+    [InlineData("income_diversification_ratio", "players.support.recommendation.income_mix_recover")]
     [InlineData("insurance_coverage_rate", "players.support.recommendation.protection")]
     [InlineData("friday_participation_rate", "players.support.recommendation.donation")]
     [InlineData("planning_horizon", "players.support.recommendation.planning")]
@@ -113,6 +113,30 @@ public sealed class PlayerMetricLabelFormatterTests
         var result = PlayerMetricLabelFormatter.DescribeMetric(
             path,
             "5",
+            true,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal(expectedRecommendation, result.Recommendation);
+    }
+
+    [Theory]
+    [InlineData("net_worth_index", "120", "players.support.recommendation.wealth")]
+    [InlineData("business_profit_margin", "-1", "players.support.recommendation.business_recover")]
+    [InlineData("business_profit_margin", "10", "players.support.recommendation.business_activity")]
+    [InlineData("action_efficiency_percent", "20", "players.support.recommendation.action_income")]
+    [InlineData("action_efficiency_percent", "60", "players.support.recommendation.action_balance")]
+    [InlineData("fulfillment_diversity", "0.2", "players.support.recommendation.needs_balance")]
+    [InlineData("donation_commitment_score", "20", "players.support.recommendation.donation_stabilize")]
+    public void DescribeMetric_AdaptsTheConsiderationToTheResult(
+        string path,
+        string value,
+        string expectedRecommendation)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            value,
             true,
             true,
             "Unavailable",
@@ -151,6 +175,12 @@ public sealed class PlayerMetricLabelFormatterTests
     [InlineData("coins_spent_per_turn[0].action_slot", "2", "2", "players.support.unit.action_slot")]
     [InlineData("coins_spent_per_turn[0].amount", "12", "12", "players.support.unit.coins")]
     [InlineData("N_active_income_sources", "3", "3", "players.support.unit.sources")]
+    [InlineData("actions_skipped", "2", "2", "players.support.unit.day")]
+    [InlineData("action_slots_unused", "3", "3", "players.support.unit.action_slot")]
+    [InlineData("goal_ambition_index", "62.5", "62.50", "players.support.unit.percent")]
+    [InlineData("goal_setting_ambition", "255.33", "255.33", "")]
+    [InlineData("fulfillment_diversity_document_formula", "0.625", "62.50", "players.support.unit.percent")]
+    [InlineData("donation_stability_index", "88.5", "88.50", "players.support.unit.percent")]
     public void DescribeMetric_UsesDimensionallyCorrectDisplayValuesAndUnits(
         string path,
         string value,

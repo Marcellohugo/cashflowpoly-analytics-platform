@@ -17,9 +17,9 @@
 
     string ResolvePlayerAvatarPath(int playerOrder) => $"/images/players/{ResolvePlayerAvatarIndex(playerOrder)}.png";
 
-    var isInstructor = Context.Session.IsInstructor();
+    var isInstructor = Context.IsInstructor();
     var hasCurrentPlayerId = Guid.TryParse(
-        Context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionUserIdKey),
+        Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
         out var currentPlayerId);
     var sessionGroupCount = Model.SessionGroups.Count;
 }

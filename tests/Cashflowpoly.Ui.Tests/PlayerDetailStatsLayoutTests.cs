@@ -9,21 +9,19 @@ public sealed class PlayerDetailStatsLayoutTests
     private static readonly string UiRoot = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui");
 
     [Fact]
-    public void PlayerDetails_ShouldRenderFocusedInstructorSummary()
+    public void PlayerDetails_ShouldRenderLayeredPlayerAnalysis()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
 
-        Assert.Contains("player-stats-verdict", view, StringComparison.Ordinal);
-        Assert.Contains("player-stats-pillar-grid", view, StringComparison.Ordinal);
-        Assert.Contains("player-stat-pillar--money", view, StringComparison.Ordinal);
-        Assert.Contains("player-stat-pillar--behavior", view, StringComparison.Ordinal);
-        Assert.Contains("player-stat-pillar--happiness", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-overview", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-scorecard", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-atlas", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-chapters", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-card__takeaway", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-grid", view, StringComparison.Ordinal);
+        Assert.Contains("player-evidence-library", view, StringComparison.Ordinal);
         Assert.Contains("player-stats-actions", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("players.stats.happiness_breakdown", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("player-stat-score-breakdown", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("player-stats-technical", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("player-stats-tablist", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-player-stat-tab", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-stats-pillar-grid", view, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -53,6 +51,22 @@ public sealed class PlayerDetailStatsLayoutTests
     }
 
     [Fact]
+    public void PlayerDetails_ShouldRenderThreeMainStatisticSectionsAsAccordions()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+
+        Assert.Contains("<details id=\"player-statistics-summary\"", view, StringComparison.Ordinal);
+        Assert.Contains("<details id=\"player-analysis-atlas\"", view, StringComparison.Ordinal);
+        Assert.Contains("<details id=\"player-evidence-library\"", view, StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(view, "open aria-labelledby=\"player-"));
+        Assert.Contains("<summary class=\"players-fusion-head ruleset-section-head player-stats-hero\"", view, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(view, "<summary class=\"player-analysis-section-head\""));
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary::after", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion[open]>summary::after", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlayerDetails_ShouldUseProminentIdentityWithoutPlayerId()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
@@ -62,23 +76,43 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("player-profile-avatar", view, StringComparison.Ordinal);
         Assert.Contains("player-profile-turn", view, StringComparison.Ordinal);
         Assert.DoesNotContain("@Model.PlayerId", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("Model.GameplayComputedAt", view, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-profile-avatar-shell", css, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void PlayerDetails_ShouldExplainWhatEveryMainNumberMeans()
+    public void PlayerDetails_ShouldExposeSourceFormulaGuidanceAndRecommendation()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+        var lexicon = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "UiTextLexicon.Players.cs"));
 
-        Assert.Contains("player-stat-pillar__summary", view, StringComparison.Ordinal);
         Assert.Contains("overallDescriptionKey", view, StringComparison.Ordinal);
-        Assert.Contains("financeMeaningKey", view, StringComparison.Ordinal);
-        Assert.Contains("behaviorMeaningKey", view, StringComparison.Ordinal);
-        Assert.Contains("happinessMeaningKey", view, StringComparison.Ordinal);
-        Assert.Equal(3, CountOccurrences(view, "player-stat-pillar__recommendation"));
-        Assert.Contains("financeRecommendationKey", view, StringComparison.Ordinal);
-        Assert.Contains("behaviorRecommendationKey", view, StringComparison.Ordinal);
-        Assert.Contains("happinessRecommendationKey", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-card__method", view, StringComparison.Ordinal);
+        Assert.Contains("players.support.field.source", view, StringComparison.Ordinal);
+        Assert.Contains("players.analysis.source.{analysis.Key}", view, StringComparison.Ordinal);
+        Assert.Contains("analysis.FormulaKey", view, StringComparison.Ordinal);
+        Assert.Contains("PlayerMetricCollectionHelper.BuildActualCalculation", view, StringComparison.Ordinal);
+        Assert.Contains("players.support.field.actual_calculation", view, StringComparison.Ordinal);
+        Assert.Contains("primaryMetric.Guidance", view, StringComparison.Ordinal);
+        Assert.Contains("primaryMetric.Recommendation", view, StringComparison.Ordinal);
+        Assert.True(
+            view.IndexOf("players.support.field.source", StringComparison.Ordinal) < view.IndexOf("players.support.field.formula", StringComparison.Ordinal),
+            "Data source must appear immediately before the calculation note.");
+        Assert.True(
+            view.IndexOf("players.support.field.formula", StringComparison.Ordinal) < view.IndexOf("players.support.field.actual_calculation", StringComparison.Ordinal) &&
+            view.IndexOf("players.support.field.actual_calculation", StringComparison.Ordinal) < view.IndexOf("players.support.field.recommendation", StringComparison.Ordinal),
+            "The numeric substitution must appear directly after the formula and before the recommendation.");
+        Assert.Equal(13, CountOccurrences(lexicon, "terms[\"players.analysis.source."));
+        Assert.Contains("(\"Sumber data\", \"Data source\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Cara menghitung\", \"How it is calculated\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Perhitungan dengan angka pemain\", \"Calculation using the player's numbers\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Indeks Pertumbuhan Kas = Koin Saat Ini ÷ Koin Awal × 100%.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("jumlah kuadrat setiap (Porsi Pendapatan ÷ 100)", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Skor Selera Risiko = (Tingkat Penerimaan Risiko ÷ 100) × (Intensitas Biaya Risiko ÷ 100) × 100, dibatasi 0–100.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Skor Komitmen Donasi = Indeks Konsistensi Donasi × (Rasio Donasi ÷ 100) × (Tingkat Partisipasi Hari Jumat ÷ 100), dibatasi 0–100.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Poin Kartu Kebutuhan + Poin Bonus Set Kebutuhan + Poin Donasi", lexicon, StringComparison.Ordinal);
+        Assert.DoesNotContain("tingkat tanpa perlindungan", lexicon, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Konsentrasi Kebutuhan memakai rumus dokumen yang ditampilkan terpisah", lexicon, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -92,23 +126,21 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("GameplayDerived = gameplay?.DerivedJson", controller, StringComparison.Ordinal);
         Assert.Contains("JsonElement? GameplayRaw", model, StringComparison.Ordinal);
         Assert.Contains("JsonElement? GameplayDerived", model, StringComparison.Ordinal);
-        Assert.Contains("BuildMetricGroups(Model.GameplayRaw", view, StringComparison.Ordinal);
+        Assert.Contains("BuildMetricVariableGroups(Model.GameplayRaw", view, StringComparison.Ordinal);
         Assert.Contains("BuildMetricGroups(Model.GameplayDerived", view, StringComparison.Ordinal);
-        Assert.Contains("player-metric-library", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-atlas", view, StringComparison.Ordinal);
+        Assert.Contains("player-evidence-library", view, StringComparison.Ordinal);
         Assert.Contains("PlayerMetricLabelFormatter.DescribeMetric", view, StringComparison.Ordinal);
         Assert.Contains("players.support.field.recommendation", view, StringComparison.Ordinal);
         Assert.Contains("player-metric-card__recommendation", view, StringComparison.Ordinal);
         Assert.Contains("players.support.mode.advanced", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("players.stats.technical", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("players.stats.library.notes", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetGroupRows(derivedGroupMap, \"notes\")", view, StringComparison.Ordinal);
         Assert.True(
-            view.IndexOf("Key = \"derived\"", StringComparison.Ordinal) < view.IndexOf("Key = \"raw\"", StringComparison.Ordinal),
+            view.IndexOf("player-analysis-atlas", StringComparison.Ordinal) < view.IndexOf("player-evidence-library", StringComparison.Ordinal),
             "Gameplay analysis results must appear before physical gameplay variables.");
     }
 
     [Fact]
-    public void PlayerMetricLibrary_ShouldOnlyOpenTheFirstDomainInEachCollection()
+    public void PlayerEvidenceLibrary_ShouldOnlyOpenTheFirstDomain()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
 
@@ -117,144 +149,182 @@ public sealed class PlayerDetailStatsLayoutTests
     }
 
     [Fact]
-    public void PlayerMetricLibrary_ShouldExcludeActionTokenUsageVariables()
+    public void PlayerEvidenceLibrary_ShouldIncludeAllElevenPhysicalVariableGroups()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
 
-        foreach (var rawGroup in new[] { "coins", "ingredients", "meal_orders", "needs", "donations", "gold", "pension", "life_risk", "financial_goals" })
+        foreach (var rawGroup in new[] { "coins", "ingredients", "meal_orders", "needs", "donations", "gold", "pension", "life_risk", "financial_goals", "actions", "turns" })
         {
             Assert.Contains($"GetGroupRows(rawGroupMap, \"{rawGroup}\")", view, StringComparison.Ordinal);
         }
 
-        Assert.DoesNotContain("GetGroupRows(rawGroupMap, \"actions\")", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetGroupRows(rawGroupMap, \"turns\")", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("players.details.raw.actions.title", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("metric.actions_used", view, StringComparison.Ordinal);
-
-        foreach (var derivedGroup in new[] { "financial", "strategy", "behavior", "flourishing" })
-        {
-            Assert.Contains($"Key = \"{derivedGroup}\"", view, StringComparison.Ordinal);
-        }
+        Assert.Contains("players.details.raw.actions.title", view, StringComparison.Ordinal);
+        Assert.Equal(11, CountOccurrences(view, "TitleKey = \"players.details.raw."));
+        Assert.DoesNotContain("domain.Number", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-evidence-domain__number", view, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void PlayerMetricLibrary_ShouldUseACuratedSetOfNonDuplicatePhysicalVariables()
+    public void PlayerEvidenceLibrary_ShouldExcludeRedundantAliasesOnly()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+        var lexicon = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "UiTextLexicon.Players.cs"));
 
-        Assert.Contains("rawMetricKeysToShow", view, StringComparison.Ordinal);
-        Assert.Contains("rows.RemoveAll", view, StringComparison.Ordinal);
-        Assert.Contains("!rawMetricKeysToShow.Contains(rootKey)", view, StringComparison.Ordinal);
-        foreach (var importantKey in new[]
+        Assert.Contains("BuildMetricVariableGroups", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("rawMetricKeysToShow", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("rows.RemoveAll", view, StringComparison.Ordinal);
+        foreach (var redundantKey in new[]
         {
-            "starting_coins",
-            "ingredients_used_total",
-            "meal_order_income_total",
-            "donation_total_coins",
-            "gold_investment_coins_earned",
-            "pension_fund_total",
-            "life_risks_accepted",
-            "financial_goals_completed",
-            "sharia_loans_unpaid_end"
-        })
-        {
-            Assert.Contains($"\"{importantKey}\"", view, StringComparison.Ordinal);
-        }
-
-        foreach (var excludedKey in new[]
-        {
-            "cash_in_total",
             "coins_net_end_game",
-            "ingredient_types_held",
-            "meal_orders_claimed",
-            "need_profile",
-            "donation_rank_per_friday",
-            "gold_prices_per_purchase",
-            "pension_fund_rank_per_game",
-            "life_risk_costs_per_card",
-            "financial_goals_coins_per_goal",
-            "day_when_first_risk_hit"
+            "leftover_coins_end_game",
+            "life_risks_available",
+            "sharia_loan_cards_taken",
+            "turn_number_when_debt_introduced",
+            "turn_number_when_first_risk_hit",
+            "turn_number_game_completion"
         })
         {
-            Assert.DoesNotContain($"\"{excludedKey}\"", view, StringComparison.Ordinal);
+            Assert.Contains(redundantKey, view, StringComparison.Ordinal);
         }
+        Assert.Contains("ExcludeRows", view, StringComparison.Ordinal);
+        Assert.Contains("isCollectionValue", view, StringComparison.Ordinal);
+        Assert.Contains("player-metric-card--series", view, StringComparison.Ordinal);
+        Assert.Contains("PlayerMetricJsonMapper.BuildCollectionTable", view, StringComparison.Ordinal);
+        Assert.Contains("<table>", view, StringComparison.Ordinal);
+        Assert.Contains("FormatActionSlot(actionSlot)", view, StringComparison.Ordinal);
+        Assert.Contains("player-metric-series__outside-quota", view, StringComparison.Ordinal);
+        Assert.Contains("var hasOutsideQuotaRows", view, StringComparison.Ordinal);
+        Assert.Contains("var seriesRows = collectionTable.Rows.ToList()", view, StringComparison.Ordinal);
+        Assert.Contains("collectionUnits", view, StringComparison.Ordinal);
+        Assert.Contains("FormatCollectionCell(row.Path", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirstOrDefault(seriesRow", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("seriesRow[actionSlotColumnIndex] != \"0\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("zeroBasedDay + 1", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("font-family: ui-monospace", css, StringComparison.Ordinal);
+        Assert.Contains("(\"Hari\", \"Day\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Persiapan\", \"Setup\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Tidak mengurangi jatah aksi utama.\", \"Does not use the main action allowance.\")", lexicon, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void PlayerMetricLibrary_ShouldExcludeTechnicalTimelinesAndRepeatedAnalysisComponents()
+    public void PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
 
-        foreach (var technicalKey in new[]
-        {
-            "latest_event_action_slot",
-            "action_slot_timeline",
-            "coins_spent_per_turn",
-            "coins_earned_per_turn",
-            "meal_order_income_per_order",
-            "donation_amount_per_friday"
-        })
-        {
-            Assert.DoesNotContain($"\"{technicalKey}\"", view, StringComparison.Ordinal);
-        }
-
-        foreach (var duplicateAnalysisKey in new[]
-        {
-            "growth_pattern_ratio",
-            "debt_ratio",
-            "sharia_loans_outstanding_coins"
-        })
-        {
-            Assert.Contains($"\"{duplicateAnalysisKey}\"", view, StringComparison.Ordinal);
-        }
-
-        Assert.DoesNotContain("Key = \"context\"", view, StringComparison.Ordinal);
         foreach (var componentGroup in new[]
         {
             "income_diversification_components",
             "expense_management_components",
             "risk_appetite_components",
             "goal_setting_components",
+            "action_efficiency_components",
+            "planning_horizon_components",
             "fulfillment_diversity_components",
             "donation_commitment_components",
             "happiness_portfolio"
         })
         {
-            Assert.DoesNotContain(componentGroup, view, StringComparison.Ordinal);
+            Assert.Contains(componentGroup, view, StringComparison.Ordinal);
         }
+
+        Assert.Equal(13, CountOccurrences(view, "Chapter = \""));
+        Assert.Equal(4, CountOccurrences(view, "Items = analysisSections.Where"));
+        Assert.Contains("Key = \"happiness-portfolio\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("analysis.Number", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("chapter.Number", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-analysis-card__number", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-stat-action__number", view, StringComparison.Ordinal);
+        Assert.Contains("player-stat-action__signal", view, StringComparison.Ordinal);
+        Assert.Equal(13, CountOccurrences(view, "PrimaryKey = \""));
+        Assert.Contains("SelectRaw(\"coins\", \"starting_coins\", \"coins_held_current\")", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"risk_appetite_score\"", view, StringComparison.Ordinal);
+        Assert.Contains("SelectDerivedGroup(\"risk_appetite_components\", \"risk_acceptance_rate\", \"Risk_Cost_Intensity\")", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"action_efficiency_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"action_efficiency_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("FormulaKey = \"players.support.formula.goal_ambition_index\"", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"planning_horizon_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"planning_horizon_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"donation_commitment_score\"", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"total_happiness_pts\"", view, StringComparison.Ordinal);
+        Assert.Contains("row.Path.Equals(analysis.PrimaryKey", view, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void PlayerStats_ShouldUseOneVerdictThreePillarsAndPrioritizedActions()
+    public void PlayerDetails_ShouldHideAdvancedOnlyContentInBeginnerMode()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+
+        Assert.Equal(2, CountOccurrences(view, ".Where(item => isAdvancedMode || !item.AdvancedOnly)"));
+        Assert.Contains(".Where(chapter => chapter.Items.Count > 0)", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlayerStats_ShouldUseScorecardAnalysisMapEvidenceAndPrioritizedActions()
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
         var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
 
-        Assert.Contains("player-stats-verdict", view, StringComparison.Ordinal);
-        Assert.Equal(3, CountOccurrences(view, "<article class=\"player-stat-pillar"));
-        Assert.Contains("Math.Min(3, statSummary.Insights.Count)", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("KeyMetrics", view, StringComparison.Ordinal);
-        Assert.DoesNotContain("player-stats-primary-grid", view, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-stats-verdict {", css, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-stats-pillar-grid {", css, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-overview", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-scorecard", view, StringComparison.Ordinal);
+        Assert.Contains("player-analysis-atlas", view, StringComparison.Ordinal);
+        Assert.Contains("player-evidence-library", view, StringComparison.Ordinal);
+        Assert.Contains("statSummary.Insights.Take(3)", view, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-analysis-overview {", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-analysis-grid {", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-evidence-domain>summary {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-actions {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-metric-card-grid {", css, StringComparison.Ordinal);
         Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));", css, StringComparison.Ordinal);
-        Assert.DoesNotContain(".player-detail-overhaul .player-stats-disclosure", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlayerStats_HeaderBadgeAndEvidenceRows_ShouldStayVisuallyAligned()
+    {
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+
+        Assert.DoesNotContain(".player-detail-overhaul .player-stats-hero::after", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-evidence-domain>summary {\n    display: flex;", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-evidence-domain__copy {\n    display: grid;\n    flex: 1 1 auto;", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlayerStats_ShouldAnimateProgressivelyAndRespectReducedMotion()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+        var script = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "js", "site.js"));
+
+        Assert.Contains("data-player-stats-reveal", view, StringComparison.Ordinal);
+        Assert.Contains("player-stats-motion-ready", css, StringComparison.Ordinal);
+        Assert.Contains("@keyframes player-stats-shine", css, StringComparison.Ordinal);
+        Assert.Contains("@keyframes player-stats-pill-float", css, StringComparison.Ordinal);
+        Assert.Contains("@media (prefers-reduced-motion: reduce)", css, StringComparison.Ordinal);
+        Assert.Contains("IntersectionObserver", script, StringComparison.Ordinal);
+        Assert.Contains("prefers-reduced-motion: reduce", script, StringComparison.Ordinal);
     }
 
     [Fact]
     public void PlayerStats_ShouldUsePlainLanguageExplanations()
     {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
         var lexicon = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "UiTextLexicon.Players.cs"));
 
         Assert.Contains("(\"Kesimpulan cepat\", \"Quick conclusion\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Tiga pilar hasil pemain\", \"Three player-result pillars\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Cerita di Balik Hasil Pemain\", \"The Story Behind the Player's Result\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Sudut analisis\", \"Analysis lenses\")", lexicon, StringComparison.Ordinal);
+        Assert.DoesNotContain("analysisSections.Count", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.analysis.metric_suffix", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Uang dan usaha\", \"Money and business\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Apakah kas pemain bertumbuh?\", \"Did the player's cash grow?\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Porsi Koin Keluar Produktif\", \"Productive Outgoing-Coin Share\")", lexicon, StringComparison.Ordinal);
+        Assert.DoesNotContain("apakah dua aksi per giliran digunakan secara beragam", lexicon, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("kecocokannya dengan misi koleksi pribadi", lexicon, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("(\"Prioritas pembahasan\", \"Discussion priorities\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Kondisi uang\", \"Money condition\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Kepatuhan Kebutuhan Primer\", \"Primary-Need Compliance\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Pembentuk Poin Kebahagiaan\", \"Happiness Score composition\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Pustaka Data Pemain\", \"Player Data Library\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Keberagaman Pemenuhan Kebutuhan\", \"Need Fulfillment Diversity\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Dari mana Poin Kebahagiaan berasal?\", \"Where did Happiness Points come from?\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Variabel Permainan Fisik\", \"Physical Gameplay Variables\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Pertimbangan\", \"Consideration\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("players.support.recommendation.savings", lexicon, StringComparison.Ordinal);
         Assert.Contains("players.support.recommendation.debt", lexicon, StringComparison.Ordinal);

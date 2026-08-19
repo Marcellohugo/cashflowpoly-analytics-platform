@@ -13,8 +13,9 @@ public sealed class PlayerDetailChartAssetTests
         var viewPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Ui", "Views", "Players", "Details.cshtml");
         var view = File.ReadAllText(viewPath);
 
-        Assert.Contains("player-stats-verdict", view);
-        Assert.Contains("player-stat-pillar__summary", view);
+        Assert.Contains("player-analysis-overview", view);
+        Assert.Contains("player-analysis-card__description", view);
+        Assert.Contains("player-analysis-card__method", view);
         Assert.DoesNotContain("js-metric-line-chart", view);
         Assert.DoesNotContain("window.cashflowpolyPlayerDetailCharts", view);
         Assert.DoesNotContain("~/js/player-detail-charts.js", view);

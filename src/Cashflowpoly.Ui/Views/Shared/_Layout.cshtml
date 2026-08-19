@@ -1,13 +1,13 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Shared/_Layout.cshtml beserta interaksi presentasinya. *@
 @using Cashflowpoly.Ui.Models
 @using Microsoft.AspNetCore.Http
+@using System.Security.Claims
 @{
-    var activeRole = Context.Session.GetString(AuthConstants.SessionRoleKey);
-    var activeDisplayName = Context.Session.GetString(AuthConstants.SessionDisplayNameKey);
-    var activeUsername = Context.Session.GetString(AuthConstants.SessionUsernameKey);
-    var activeToken = Context.Session.GetString(AuthConstants.SessionAccessTokenKey);
-    var isLoggedIn = !string.IsNullOrWhiteSpace(activeRole) && !string.IsNullOrWhiteSpace(activeToken);
-    var isInstructor = Context.Session.IsInstructor();
+    var activeRole = Context.User.FindFirst(ClaimTypes.Role)?.Value;
+    var activeDisplayName = Context.User.FindFirst(AuthConstants.DisplayNameClaim)?.Value;
+    var activeUsername = Context.User.FindFirst(ClaimTypes.Name)?.Value;
+    var isLoggedIn = Context.User.Identity?.IsAuthenticated == true;
+    var isInstructor = Context.IsInstructor();
     var roleThemeClass = isLoggedIn
         ? (isInstructor ? "role-instructor" : "role-player")
         : "role-guest";
@@ -344,4 +344,3 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-

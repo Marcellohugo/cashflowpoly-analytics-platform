@@ -33,9 +33,9 @@ public sealed class WideViewportShellLayoutTests
         Assert.Contains("box-sizing: border-box;", cssContent);
         Assert.Contains(".auth-panel-brand-text {", cssContent);
         Assert.Contains("overflow-wrap: normal !important;", cssContent);
-        Assert.Contains(".work-calendar-title-bar,", cssContent);
-        Assert.Contains("min-width: 24rem;", cssContent);
-        Assert.Contains("overflow-x: auto;", cssContent);
+        Assert.Contains("grid-template-columns: repeat(7, minmax(0, 1fr));", cssContent);
+        Assert.Contains(".work-calendar-cell.is-selected-day {", cssContent);
+        Assert.DoesNotContain("min-width: 24rem;", cssContent);
         Assert.Contains("min-height: 2.75rem !important;", cssContent);
     }
 

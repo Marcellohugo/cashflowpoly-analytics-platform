@@ -1,5 +1,6 @@
 // Fungsi file: Menangani request MVC dan penyusunan tampilan untuk PlayersController.
 using System.Net.Http.Json;
+using System.Security.Claims;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -20,9 +21,9 @@ public sealed class PlayersController : Controller
     [HttpGet("{playerId:guid}")]
     public async Task<IActionResult> Details(Guid sessionId, Guid playerId, CancellationToken ct)
     {
-        if (!HttpContext.Session.IsInstructor())
+        if (!HttpContext.IsInstructor())
         {
-            var currentUserIdRaw = HttpContext.Session.GetString(AuthConstants.SessionUserIdKey);
+            var currentUserIdRaw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(currentUserIdRaw, out var currentUserId) || currentUserId != playerId)
             {
                 return StatusCode(StatusCodes.Status403Forbidden);
@@ -213,4 +214,3 @@ public sealed class PlayersController : Controller
         return 20d;
     }
 }
-

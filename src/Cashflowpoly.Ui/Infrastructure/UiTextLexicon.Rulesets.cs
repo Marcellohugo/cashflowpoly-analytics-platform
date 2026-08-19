@@ -132,8 +132,6 @@ internal static partial class UiTextLexicon
         terms["rulesets.form.cash_min"] = ("Kas Minimum", "Cash Min");
         terms["rulesets.form.max_ingredient_total"] = ("Total Bahan Maksimum", "Max Ingredient Total");
         terms["rulesets.form.max_same_ingredient"] = ("Batas Bahan Sejenis", "Max Same Ingredient");
-        terms["rulesets.form.primary_need_max_day"] = ("Batas Kebutuhan Primer / Hari", "Primary Need Max / Day");
-        terms["rulesets.form.require_primary_first"] = ("Wajib Primer sebelum Lainnya", "Require Primary Before Others");
         terms["rulesets.form.economy_and_donation"] = ("Ekonomi dan Donasi", "Economy and Donation");
         terms["rulesets.form.donation_min"] = ("Donasi Minimum", "Donation Min");
         terms["rulesets.form.donation_max"] = ("Donasi Maksimum", "Donation Max");

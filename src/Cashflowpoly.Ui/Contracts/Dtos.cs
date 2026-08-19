@@ -141,7 +141,7 @@ public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("orders_completed_count")] int OrdersCompletedCount,
     [property: JsonPropertyName("inventory_ingredient_total")] int InventoryIngredientTotal,
     [property: JsonPropertyName("actions_used_total")] int ActionsUsedTotal,
-    [property: JsonPropertyName("compliance_primary_need_rate")] double CompliancePrimaryNeedRate,
+    [property: JsonPropertyName("fulfillment_diversity")] double FulfillmentDiversity,
     [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount,
     [property: JsonPropertyName("happiness_points_total")] double HappinessPointsTotal,
     [property: JsonPropertyName("need_points_total")] double NeedPointsTotal,
@@ -175,7 +175,8 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("economy")] GameplayEconomyMetrics Economy,
     [property: JsonPropertyName("progress")] GameplayProgressMetrics Progress,
     [property: JsonPropertyName("score")] GameplayScoreMetrics Score,
-    [property: JsonPropertyName("compliance")] GameplayComplianceMetrics Compliance,
+    [property: JsonPropertyName("needs")] GameplayNeedMetrics Needs,
+    [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount,
     [property: JsonPropertyName("raw_json")] JsonElement? RawJson = null,
     [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null);
 
@@ -204,9 +205,8 @@ public sealed record GameplayScoreMetrics(
     [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
     [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
 
-public sealed record GameplayComplianceMetrics(
-    [property: JsonPropertyName("primary_need_rate")] double PrimaryNeedRate,
-    [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount);
+public sealed record GameplayNeedMetrics(
+    [property: JsonPropertyName("fulfillment_diversity")] double FulfillmentDiversity);
 
 public sealed record TransactionHistoryItem(
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,

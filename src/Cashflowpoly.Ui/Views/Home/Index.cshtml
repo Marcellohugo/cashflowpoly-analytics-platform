@@ -5,7 +5,7 @@
     ViewData["Title"] = Context.T("nav.home");
     ViewData["MetaDescription"] = Context.T("home.meta_desc");
     ViewData["MetaKeywords"] = Context.T("home.meta_keywords");
-    var isInstructor = Context.Session.IsInstructor();
+    var isInstructor = Context.IsInstructor();
     var heroBadge = isInstructor ? Context.T("home.badge") : Context.T("home.player_badge");
     var heroTitle = isInstructor
         ? Context.T("home.title")
@@ -227,6 +227,11 @@ else
                             "Accept": "application/json"
                         }
                     });
+
+                    if (response.redirected && response.url.includes("/auth/login")) {
+                        window.location.assign(response.url);
+                        return;
+                    }
 
                     if (!response.ok) {
                         setError(realtimeStatusTemplate.replace("{status}", `${response.status}`));

@@ -1,4 +1,5 @@
 // Fungsi file: Mengonfigurasi dependency, middleware, route, dan startup UI MVC.
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -37,6 +38,18 @@ builder.Services.AddControllersWithViews(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = Cashflowpoly.Ui.Models.AuthConstants.AuthenticationCookieName;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = Cashflowpoly.Ui.Infrastructure.HttpsRedirectionPolicy.ResolveCookieSecurePolicy(builder.Configuration);
+        options.LoginPath = "/auth/login";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = false;
+    });
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Cashflowpoly.Ui.Session";
@@ -48,7 +61,12 @@ builder.Services.AddSession(options =>
 });
 builder.Services.AddTransient<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
 builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live", "ready"]);
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live", "ready"])
+    .AddCheck<Cashflowpoly.Ui.Infrastructure.ApiHealthCheck>(
+        "api",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready"],
+        timeout: TimeSpan.FromSeconds(5));
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
 if (string.IsNullOrWhiteSpace(apiBaseUrl))
@@ -63,6 +81,10 @@ builder.Services.AddHttpClient("Api", client =>
     client.BaseAddress = new Uri(apiBaseUrl);
 })
     .AddHttpMessageHandler<Cashflowpoly.Ui.Infrastructure.BearerTokenHandler>();
+builder.Services.AddHttpClient("ApiHealth", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
 
 var app = builder.Build();
 
@@ -75,13 +97,16 @@ if (!app.Environment.IsDevelopment())
 }
 if (useHttpsRedirection)
 {
-    app.UseHttpsRedirection();
+    app.UseWhen(
+        context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
+        branch => branch.UseHttpsRedirection());
 }
 
 app.UseStaticFiles();
 app.UseRouting();
 
 app.UseSession();
+app.UseAuthentication();
 
 app.Use(async (context, next) =>
 {
@@ -99,13 +124,11 @@ app.Use(async (context, next) =>
         || path.StartsWithSegments("/favicon.ico", StringComparison.OrdinalIgnoreCase)
         || path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase)
         || path.Equals("/sitemap.xml", StringComparison.OrdinalIgnoreCase);
-    var hasRole = !string.IsNullOrWhiteSpace(
-        context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey));
-    var hasAccessToken = !string.IsNullOrWhiteSpace(
-        context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionAccessTokenKey));
+    var isAuthenticated = context.User.Identity?.IsAuthenticated == true;
+    var hasRole = !string.IsNullOrWhiteSpace(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value);
+    var hasAccessToken = !string.IsNullOrWhiteSpace(context.User.FindFirst(Cashflowpoly.Ui.Models.AuthConstants.AccessTokenClaim)?.Value);
     var hasLanguage = !string.IsNullOrWhiteSpace(
         context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionLanguageKey));
-    var tokenExpiresAtRaw = context.Session.GetString(Cashflowpoly.Ui.Models.AuthConstants.SessionTokenExpiresAtKey);
 
     if (!hasLanguage)
     {
@@ -114,26 +137,13 @@ app.Use(async (context, next) =>
             Cashflowpoly.Ui.Models.AuthConstants.LanguageId);
     }
 
-    if (DateTimeOffset.TryParse(tokenExpiresAtRaw, out var tokenExpiresAt) &&
-        tokenExpiresAt <= DateTimeOffset.UtcNow)
-    {
-        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionUserIdKey);
-        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionDisplayNameKey);
-        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionRoleKey);
-        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionUsernameKey);
-        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionAccessTokenKey);
-        context.Session.Remove(Cashflowpoly.Ui.Models.AuthConstants.SessionTokenExpiresAtKey);
-        hasRole = false;
-        hasAccessToken = false;
-    }
-
     if (!isLoginPath &&
         !isRegisterPath &&
         !isLanguagePath &&
         !isHealthPath &&
         !isStaticAssetPath &&
         !isRulebookPath &&
-        (!hasRole || !hasAccessToken))
+        (!isAuthenticated || !hasRole || !hasAccessToken))
     {
         var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
         context.Response.Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");

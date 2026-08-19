@@ -26,7 +26,7 @@ public sealed class RulesetsController : Controller
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        if (!HttpContext.Session.IsInstructor())
+        if (!HttpContext.IsInstructor())
         {
             context.Result = RedirectToAction("Index", "Sessions");
             return;
@@ -643,4 +643,3 @@ public sealed class RulesetsController : Controller
     }
 
 }
-

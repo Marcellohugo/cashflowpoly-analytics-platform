@@ -55,31 +55,72 @@ public sealed class PlayerDirectoryController : Controller
         {
             var sessionsData = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
             var sessions = sessionsData?.Items ?? new List<SessionListItem>();
+            var playerNames = players.ToDictionary(player => player.UserId, player => player.DisplayName);
+            using var requestGate = new SemaphoreSlim(8);
             var sessionTasks = sessions.Select(async session =>
             {
-                var participantsResponse = await client.GetAsync($"api/v1/sessions/{session.SessionId}/players", ct);
-                if (!participantsResponse.IsSuccessStatusCode)
+                await requestGate.WaitAsync(ct);
+                try
+                {
+                    if (!string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var activeParticipantsResponse = await client.GetAsync($"api/v1/sessions/{session.SessionId}/players", ct);
+                        if (!activeParticipantsResponse.IsSuccessStatusCode)
+                        {
+                            return (session, participants: (SessionPlayerListResponse?)null, analytics: (AnalyticsSessionResponse?)null);
+                        }
+
+                        var activeParticipants = await activeParticipantsResponse.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
+                        return (session, participants: activeParticipants, analytics: (AnalyticsSessionResponse?)null);
+                    }
+
+                    var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
+                    if (analyticsResponse.IsSuccessStatusCode)
+                    {
+                        var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
+                        if (analytics is not null)
+                        {
+                            var analyticsParticipants = new SessionPlayerListResponse(analytics.ByPlayer
+                                .Select(player => new SessionPlayerResponse(
+                                    player.UserId,
+                                    playerNames.GetValueOrDefault(player.UserId, string.Empty),
+                                    player.PlayerOrder))
+                                .ToList());
+                            return (session, participants: analyticsParticipants, analytics);
+                        }
+                    }
+
+                    var participantsResponse = await client.GetAsync($"api/v1/sessions/{session.SessionId}/players", ct);
+                    if (!participantsResponse.IsSuccessStatusCode)
+                    {
+                        return (session, participants: (SessionPlayerListResponse?)null, analytics: (AnalyticsSessionResponse?)null);
+                    }
+
+                    var participants = await participantsResponse.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
+                    return (session, participants, analytics: (AnalyticsSessionResponse?)null);
+                }
+                catch (HttpRequestException)
                 {
                     return (session, participants: (SessionPlayerListResponse?)null, analytics: (AnalyticsSessionResponse?)null);
                 }
-
-                var participants = await participantsResponse.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
-                if (!string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase))
+                catch (TaskCanceledException) when (!ct.IsCancellationRequested)
                 {
-                    return (session, participants, analytics: (AnalyticsSessionResponse?)null);
+                    return (session, participants: (SessionPlayerListResponse?)null, analytics: (AnalyticsSessionResponse?)null);
                 }
-
-                var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
-                if (!analyticsResponse.IsSuccessStatusCode)
+                finally
                 {
-                    return (session, participants, analytics: (AnalyticsSessionResponse?)null);
+                    requestGate.Release();
                 }
-
-                var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
-                return (session, participants, analytics);
             });
 
             var sessionResults = await Task.WhenAll(sessionTasks);
+            if (sessionResults.Any(result =>
+                    result.participants is null ||
+                    (string.Equals(result.session.Status, "ENDED", StringComparison.OrdinalIgnoreCase) && result.analytics is null)))
+            {
+                groupError = HttpContext.T("players.error.load_session_details_partial");
+            }
+
             groups = sessionResults
                 .Where(x => x.participants is not null && x.participants.Items.Count > 0)
                 .Select(x => new PlayerSessionGroupViewModel
@@ -134,4 +175,3 @@ public sealed class PlayerDirectoryController : Controller
         });
     }
 }
-

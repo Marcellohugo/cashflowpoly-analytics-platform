@@ -12,7 +12,7 @@ public sealed class PlayerStatSummaryBuilderTests
     public void Build_AddsRiskInsightWhenCashflowIsNegative()
     {
         var summary = PlayerStatSummaryBuilder.Build(
-            BuildGameplay(cashflowNetTotal: -12, happinessPointsTotal: 30, primaryNeedRate: 0.9, hasUnpaidLoan: false),
+            BuildGameplay(cashflowNetTotal: -12, happinessPointsTotal: 30, fulfillmentDiversity: 0.9, hasUnpaidLoan: false),
             null,
             null,
             Translate);
@@ -24,7 +24,7 @@ public sealed class PlayerStatSummaryBuilderTests
     public void Build_AddsRiskInsightWhenLoanIsUnpaid()
     {
         var summary = PlayerStatSummaryBuilder.Build(
-            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, primaryNeedRate: 0.9, hasUnpaidLoan: true),
+            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, fulfillmentDiversity: 0.9, hasUnpaidLoan: true),
             null,
             null,
             Translate);
@@ -36,7 +36,7 @@ public sealed class PlayerStatSummaryBuilderTests
     public void Build_DoesNotRepeatPositivePillarsAsDiscussionPriorities()
     {
         var summary = PlayerStatSummaryBuilder.Build(
-            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 72, primaryNeedRate: 0.9, hasUnpaidLoan: false),
+            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 72, fulfillmentDiversity: 0.9, hasUnpaidLoan: false),
             null,
             null,
             Translate);
@@ -46,29 +46,29 @@ public sealed class PlayerStatSummaryBuilderTests
     }
 
     [Fact]
-    public void Build_AddsWarningInsightWhenPrimaryNeedComplianceIsLow()
+    public void Build_AddsWarningInsightWhenNeedDiversityIsLow()
     {
         var summary = PlayerStatSummaryBuilder.Build(
-            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, primaryNeedRate: 0.55, hasUnpaidLoan: false),
+            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, fulfillmentDiversity: 0.35, hasUnpaidLoan: false),
             null,
             null,
             Translate);
 
-        Assert.Contains(summary.Insights, item => item.Key == "primary_need_low" && item.Tone == "warning");
+        Assert.Contains(summary.Insights, item => item.Key == "need_diversity_low" && item.Tone == "warning");
     }
 
     [Fact]
     public void Build_PrioritizesRisksWithoutPositiveDuplicates()
     {
         var summary = PlayerStatSummaryBuilder.Build(
-            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 72, primaryNeedRate: 0.55, hasUnpaidLoan: true),
+            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 72, fulfillmentDiversity: 0.35, hasUnpaidLoan: true),
             null,
             null,
             Translate);
 
         Assert.Equal(2, summary.Insights.Count);
         Assert.Equal("loan_unpaid", summary.Insights[0].Key);
-        Assert.Contains(summary.Insights, item => item.Key == "primary_need_low");
+        Assert.Contains(summary.Insights, item => item.Key == "need_diversity_low");
         Assert.DoesNotContain(summary.Insights, item => item.Tone == "positive");
     }
 
@@ -76,33 +76,33 @@ public sealed class PlayerStatSummaryBuilderTests
     public void Build_PrefersTheAuthoritativePlayerAnalyticsSummary()
     {
         var summary = PlayerStatSummaryBuilder.Build(
-            BuildGameplay(cashflowNetTotal: 0, happinessPointsTotal: 0, primaryNeedRate: 0, hasUnpaidLoan: false),
-            BuildAnalyticsSummary(cashIn: 50, cashOut: 20, happiness: 72, primaryNeedRate: 0.9, hasUnpaidLoan: false),
+            BuildGameplay(cashflowNetTotal: 0, happinessPointsTotal: 0, fulfillmentDiversity: 0, hasUnpaidLoan: false),
+            BuildAnalyticsSummary(cashIn: 50, cashOut: 20, happiness: 72, fulfillmentDiversity: 0.9, hasUnpaidLoan: false),
             null,
             Translate);
 
         Assert.Contains(summary.Insights, item => item.Key == "stable_profile");
         Assert.DoesNotContain(summary.Insights, item => item.Key == "happiness_low");
-        Assert.DoesNotContain(summary.Insights, item => item.Key == "primary_need_low");
+        Assert.DoesNotContain(summary.Insights, item => item.Key == "need_diversity_low");
     }
 
     private static AnalyticsByPlayerItem BuildAnalyticsSummary(
         double cashIn,
         double cashOut,
         double happiness,
-        double primaryNeedRate,
+        double fulfillmentDiversity,
         bool hasUnpaidLoan)
     {
         return new AnalyticsByPlayerItem(
             Guid.NewGuid(), 1, cashIn, cashOut, 0, 0, 0, 0, 0,
-            primaryNeedRate, 0, happiness, 0, 0, 0, 0, 0, 0, 0,
+            fulfillmentDiversity, 0, happiness, 0, 0, 0, 0, 0, 0, 0,
             hasUnpaidLoan ? 4 : 0, hasUnpaidLoan);
     }
 
     private static GameplayMetricsResponse BuildGameplay(
         double cashflowNetTotal,
         double happinessPointsTotal,
-        double primaryNeedRate,
+        double fulfillmentDiversity,
         bool hasUnpaidLoan)
     {
         return new GameplayMetricsResponse(
@@ -112,7 +112,8 @@ public sealed class PlayerStatSummaryBuilderTests
             new GameplayEconomyMetrics(20, 50, 50 - cashflowNetTotal, cashflowNetTotal, 6),
             new GameplayProgressMetrics(3, 2, 5, 11),
             new GameplayScoreMetrics(happinessPointsTotal, 12, 2, 6, 4, 3, 5, 0, hasUnpaidLoan ? 4 : 0, hasUnpaidLoan),
-            new GameplayComplianceMetrics(primaryNeedRate, primaryNeedRate < 0.75 ? 2 : 0));
+            new GameplayNeedMetrics(fulfillmentDiversity),
+            fulfillmentDiversity < 0.4 ? 2 : 0);
     }
 
     private static string Translate(string key)

@@ -1,8 +1,11 @@
 // Fungsi file: Menangani request MVC dan penyusunan tampilan untuk AuthController.
+using System.Security.Claims;
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,11 +24,7 @@ public sealed class AuthController : Controller
     [HttpGet("login")]
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
-        var existingRole = HttpContext.Session.GetString(AuthConstants.SessionRoleKey);
-        var existingToken = HttpContext.Session.GetString(AuthConstants.SessionAccessTokenKey);
-        if (AuthConstants.IsValidRole(existingRole) &&
-            !string.IsNullOrWhiteSpace(existingToken) &&
-            string.IsNullOrWhiteSpace(returnUrl))
+        if (User.Identity?.IsAuthenticated == true && string.IsNullOrWhiteSpace(returnUrl))
         {
             return RedirectToAction("Index", "Home");
         }
@@ -85,16 +84,13 @@ public sealed class AuthController : Controller
             return View("Login", model);
         }
 
-        HttpContext.Session.SetString(AuthConstants.SessionRoleKey, data.Role.ToUpperInvariant());
-        HttpContext.Session.SetString(AuthConstants.SessionUserIdKey, data.UserId.ToString());
-        HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, data.Username);
-        HttpContext.Session.SetString(
-            AuthConstants.SessionDisplayNameKey,
-            string.IsNullOrWhiteSpace(data.DisplayName) ? data.Username : data.DisplayName);
-        HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, data.AccessToken);
-        HttpContext.Session.SetString(
-            AuthConstants.SessionTokenExpiresAtKey,
-            data.ExpiresAt.ToUniversalTime().ToString("O"));
+        await SignInAsync(
+            data.UserId,
+            data.Username,
+            data.DisplayName,
+            data.Role,
+            data.AccessToken,
+            data.ExpiresAt);
 
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -128,14 +124,6 @@ public sealed class AuthController : Controller
             return View(model);
         }
 
-        if (!AuthConstants.IsValidRole(model.Role))
-        {
-            model.ErrorMessage = HttpContext.T("auth.error.role_invalid");
-            model.Password = string.Empty;
-            model.ConfirmPassword = string.Empty;
-            return View(model);
-        }
-
         if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
         {
             model.ErrorMessage = HttpContext.T("auth.error.confirm_mismatch");
@@ -148,7 +136,7 @@ public sealed class AuthController : Controller
         var payload = new RegisterRequest(
             model.Username.Trim(),
             model.Password,
-            model.Role.ToUpperInvariant(),
+            AuthConstants.PlayerRole,
             model.DisplayName.Trim());
         HttpResponseMessage response;
         try
@@ -188,16 +176,13 @@ public sealed class AuthController : Controller
             return View(model);
         }
 
-        HttpContext.Session.SetString(AuthConstants.SessionRoleKey, created.Role.ToUpperInvariant());
-        HttpContext.Session.SetString(AuthConstants.SessionUserIdKey, created.UserId.ToString());
-        HttpContext.Session.SetString(AuthConstants.SessionUsernameKey, created.Username);
-        HttpContext.Session.SetString(
-            AuthConstants.SessionDisplayNameKey,
-            string.IsNullOrWhiteSpace(created.DisplayName) ? created.Username : created.DisplayName);
-        HttpContext.Session.SetString(AuthConstants.SessionAccessTokenKey, created.AccessToken);
-        HttpContext.Session.SetString(
-            AuthConstants.SessionTokenExpiresAtKey,
-            created.ExpiresAt.ToUniversalTime().ToString("O"));
+        await SignInAsync(
+            created.UserId,
+            created.Username,
+            created.DisplayName,
+            created.Role,
+            created.AccessToken,
+            created.ExpiresAt);
 
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -209,16 +194,38 @@ public sealed class AuthController : Controller
 
     [HttpPost("logout")]
     [ValidateAntiForgeryToken]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
-        HttpContext.Session.Remove(AuthConstants.SessionUserIdKey);
-        HttpContext.Session.Remove(AuthConstants.SessionRoleKey);
-        HttpContext.Session.Remove(AuthConstants.SessionDisplayNameKey);
-        HttpContext.Session.Remove(AuthConstants.SessionUsernameKey);
-        HttpContext.Session.Remove(AuthConstants.SessionAccessTokenKey);
-        HttpContext.Session.Remove(AuthConstants.SessionTokenExpiresAtKey);
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction(nameof(Login));
     }
 
-}
+    private Task SignInAsync(
+        Guid userId,
+        string username,
+        string? displayName,
+        string role,
+        string accessToken,
+        DateTimeOffset expiresAt)
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Name, username),
+            new Claim(ClaimTypes.Role, role.ToUpperInvariant()),
+            new Claim(AuthConstants.DisplayNameClaim, string.IsNullOrWhiteSpace(displayName) ? username : displayName),
+            new Claim(AuthConstants.AccessTokenClaim, accessToken)
+        };
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+        return HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            principal,
+            new AuthenticationProperties
+            {
+                IsPersistent = true,
+                AllowRefresh = false,
+                ExpiresUtc = expiresAt.ToUniversalTime()
+            });
+    }
 
+}

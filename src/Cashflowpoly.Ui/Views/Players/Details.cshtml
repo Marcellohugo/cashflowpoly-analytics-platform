@@ -6,7 +6,7 @@
 
 @{
     ViewData["Title"] = Context.T("players.detail_title");
-    var isInstructor = Context.Session.IsInstructor();
+    var isInstructor = Context.IsInstructor();
 
     string LocalizeTransactionDetail(string rawDetail)
     {
@@ -25,6 +25,55 @@
 
     string FormatNumber(double value) => value.ToString("N0", CultureInfo.CurrentCulture);
     string FormatSignedNumber(double value) => value > 0 ? $"+{FormatNumber(value)}" : FormatNumber(value);
+    string FormatActionSlot(int slot) => slot switch
+    {
+        0 => Context.T("players.details.action_slot.free"),
+        1 => Context.T("players.details.action_slot.first"),
+        2 => Context.T("players.details.action_slot.second"),
+        _ => string.Format(CultureInfo.CurrentCulture, Context.T("players.details.action_slot.numbered"), slot)
+    };
+
+    string FormatCollectionCell(string metricPath, string column, string value, bool advancedMode, string unavailableText)
+    {
+        if (column.Equals("action_slot", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var actionSlot))
+        {
+            return FormatActionSlot(actionSlot);
+        }
+
+        if (column.Equals("day_index", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dayIndex))
+        {
+            return dayIndex == 0
+                ? Context.T("players.details.day.setup")
+                : dayIndex.ToString(CultureInfo.CurrentCulture);
+        }
+
+        if (column.Equals("series", StringComparison.OrdinalIgnoreCase)
+            || column.Equals("action_type", StringComparison.OrdinalIgnoreCase))
+        {
+            return PlayerMetricLabelFormatter.HumanizeMetricKey(value, Context.T);
+        }
+
+        if (column.Equals("actions", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Join(", ", value
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(action => PlayerMetricLabelFormatter.HumanizeMetricKey(action, Context.T)));
+        }
+
+        return PlayerMetricLabelFormatter.DescribeMetric(
+            $"{metricPath}.{column}",
+            value,
+            false,
+            advancedMode,
+            unavailableText,
+            Context.T).DisplayValue;
+    }
+
+    static bool IsCollectionContextColumn(string column) =>
+        column is "action_slot" or "day_index" or "sequence_number" or "action_index"
+            or "action_type" or "actions" or "series" or "rank";
 
     var cashflowJourney = Model.CashflowJourney;
     var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
@@ -32,43 +81,15 @@
     var totalCashOut = Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut ?? 0d;
     var netCashflow = totalCashIn - totalCashOut;
     var endingCash = (cashflowJourney?.StartingCash ?? 0d) + netCashflow;
-    var primaryNeedRate = Model.Summary?.CompliancePrimaryNeedRate ?? 0d;
+    var fulfillmentDiversity = Model.Summary?.FulfillmentDiversity ?? 0d;
     var ruleViolations = Model.Summary?.RulesViolationsCount ?? 0;
-    var happinessPointsAdded = Model.Summary is null
-        ? 0d
-        : Model.Summary.NeedPointsTotal
-          + Model.Summary.NeedSetBonusPoints
-          + Model.Summary.DonationPointsTotal
-          + Model.Summary.GoldPointsTotal
-          + Model.Summary.PensionPointsTotal
-          + Model.Summary.SavingGoalPointsTotal;
-    var happinessPointsDeducted = Model.Summary is null
-        ? 0d
-        : Model.Summary.MissionPenaltyTotal + Model.Summary.LoanPenaltyTotal;
-    var financeMeaningKey = netCashflow > 0
-        ? "players.stats.focus.money.positive"
-        : netCashflow < 0
-            ? "players.stats.focus.money.negative"
-            : "players.stats.focus.money.balanced";
-    var behaviorMeaningKey = primaryNeedRate < 0.75 || ruleViolations > 0
-        ? "players.stats.focus.behavior.review"
-        : "players.stats.focus.behavior.good";
-    var happinessMeaningKey = happinessPointsDeducted > 0
-        ? "players.stats.focus.happiness.with_deduction"
-        : "players.stats.focus.happiness.no_deduction";
-    var financeRecommendationKey = $"{financeMeaningKey}.recommendation";
-    var behaviorRecommendationKey = $"{behaviorMeaningKey}.recommendation";
-    var happinessRecommendationKey = $"{happinessMeaningKey}.recommendation";
     var happinessPoints = Model.Summary?.HappinessPointsTotal ?? 0d;
     var hasUnpaidLoan = Model.Summary?.HasUnpaidLoan ?? false;
-    var financeTone = netCashflow < 0 ? "warning" : netCashflow > 0 ? "positive" : "neutral";
-    var behaviorTone = primaryNeedRate < 0.75 || ruleViolations > 0 ? "warning" : "positive";
-    var happinessTone = happinessPoints >= 60 ? "positive" : happinessPoints < 20 ? "warning" : "neutral";
     var overallTone = hasUnpaidLoan
         ? "danger"
-        : netCashflow < 0 || primaryNeedRate < 0.75 || ruleViolations > 0 || happinessPoints < 20
+        : netCashflow < 0 || fulfillmentDiversity < 0.4 || ruleViolations > 0 || happinessPoints < 20
             ? "warning"
-            : netCashflow > 0 && primaryNeedRate >= 0.9 && happinessPoints >= 60
+            : netCashflow > 0 && fulfillmentDiversity >= 0.7 && happinessPoints >= 60
                 ? "positive"
                 : "neutral";
     var overallStatusKey = $"players.stats.status.{overallTone}";
@@ -78,122 +99,89 @@
     var falseText = Context.T("players.support.value.no");
     var nullText = Context.T("players.support.value.unavailable");
     var rawGroupMap = PlayerMetricJsonMapper
-        .BuildMetricGroups(Model.GameplayRaw, trueText, falseText, nullText)
+        .BuildMetricVariableGroups(Model.GameplayRaw, trueText, falseText, nullText)
         .ToDictionary(group => group.GroupKey, group => group.Rows, StringComparer.OrdinalIgnoreCase);
     var derivedGroupMap = PlayerMetricJsonMapper
         .BuildMetricGroups(Model.GameplayDerived, trueText, falseText, nullText)
         .ToDictionary(group => group.GroupKey, group => group.Rows, StringComparer.OrdinalIgnoreCase);
-    // Curate this section explicitly so new backend fields do not automatically
-    // turn the player page into a duplicate data dump.
-    var rawMetricKeysToShow = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "starting_coins",
-        "ingredients_collected",
-        "ingredients_held_current",
-        "ingredients_used_total",
-        "ingredients_wasted",
-        "ingredient_investment_coins_total",
-        "meal_orders_available_passed",
-        "meal_order_income_total",
-        "need_cards_purchased",
-        "primary_needs_owned",
-        "secondary_needs_owned",
-        "tertiary_needs_owned",
-        "collection_mission_complete",
-        "need_cards_coins_spent",
-        "donation_total_coins",
-        "donation_champion_cards_earned",
-        "gold_cards_purchased",
-        "gold_cards_sold",
-        "gold_cards_held_end",
-        "gold_investment_coins_spent",
-        "gold_investment_coins_earned",
-        "pension_fund_total",
-        "life_risks_accepted",
-        "life_risk_costs_total",
-        "life_risk_mitigated_with_insurance",
-        "insurance_payments_made",
-        "emergency_options_used",
-        "financial_goals_available_total",
-        "financial_goals_attempted",
-        "financial_goals_completed",
-        "financial_goals_coins_total_invested",
-        "financial_goals_incomplete_coins_wasted",
-        "sharia_loans_taken",
-        "sharia_loans_repaid",
-        "sharia_loans_unpaid_end"
-    };
-    foreach (var rows in rawGroupMap.Values)
-    {
-        rows.RemoveAll(row =>
-        {
-            var separatorIndex = row.Path.IndexOfAny(['.', '[']);
-            var rootKey = separatorIndex < 0 ? row.Path : row.Path[..separatorIndex];
-            return !rawMetricKeysToShow.Contains(rootKey);
-        });
-    }
     var derivedSummaryRows = PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "summary");
-    var redundantDerivedMetricKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "income_diversification_ratio",
-        "goal_ambition",
-        "action_efficiency",
-        "planning_horizon",
-        "risk_appetite_score_normalized",
-        "donation_ratio",
-        "donation_stability",
-        "mission_achievement",
-        "p_primary",
-        "p_secondary",
-        "p_tertiary",
-        "total_income",
-        "total_expenses",
-        "transaction_count",
-        "insurance_activation_rate",
-        "growth_pattern_ratio",
-        "debt_ratio",
-        "sharia_loans_outstanding_coins"
-    };
-    foreach (var rows in derivedGroupMap.Values)
-    {
-        rows.RemoveAll(row => redundantDerivedMetricKeys.Contains(row.Path));
-    }
-    derivedSummaryRows.RemoveAll(row => redundantDerivedMetricKeys.Contains(row.Path));
-
-    var rawSections = new[]
-    {
-        new { Key = "coin-finance", TitleKey = "players.details.raw.coin_finance.title", DescriptionKey = "players.details.raw.coin_finance.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "coins") },
-        new { Key = "ingredients", TitleKey = "players.details.raw.ingredients.title", DescriptionKey = "players.details.raw.ingredients.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "ingredients") },
-        new { Key = "meal-orders", TitleKey = "players.details.raw.meal_orders.title", DescriptionKey = "players.details.raw.meal_orders.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "meal_orders") },
-        new { Key = "needs", TitleKey = "players.details.raw.needs.title", DescriptionKey = "players.details.raw.needs.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "needs") },
-        new { Key = "donations", TitleKey = "players.details.raw.donations.title", DescriptionKey = "players.details.raw.donations.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "donations") },
-        new { Key = "gold", TitleKey = "players.details.raw.gold.title", DescriptionKey = "players.details.raw.gold.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "gold") },
-        new { Key = "pension", TitleKey = "players.details.raw.pension.title", DescriptionKey = "players.details.raw.pension.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "pension") },
-        new { Key = "life-risk", TitleKey = "players.details.raw.life_risk.title", DescriptionKey = "players.details.raw.life_risk.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "life_risk") },
-        new { Key = "financial-goals", TitleKey = "players.details.raw.financial_goals.title", DescriptionKey = "players.details.raw.financial_goals.desc", Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals") }
-    }.Where(section => section.Rows.Count > 0).ToList();
-
-    var derivedSections = new[]
-    {
-        new { Key = "financial", TitleKey = "players.details.derived.financial.title", DescriptionKey = "players.details.derived.financial.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "net_worth", "income_diversification", "expense_management", "business_profit", "business_efficiency", "gold_roi") },
-        new { Key = "strategy", TitleKey = "players.details.derived.strategy.title", DescriptionKey = "players.details.derived.strategy.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "risk_", "debt_", "loan_", "goal_", "sharia_") },
-        new { Key = "behavior", TitleKey = "players.details.derived.behavior.title", DescriptionKey = "players.details.derived.behavior.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "action_", "meal_order_", "planning_") },
-        new { Key = "flourishing", TitleKey = "players.details.derived.flourishing.title", DescriptionKey = "players.details.derived.flourishing.desc", Rows = PlayerMetricCollectionHelper.FilterRowsByKeywords(derivedSummaryRows, "fulfillment_", "mission_", "donation_", "friday_", "happiness_") }
-    }.Where(section => section.Rows.Count > 0).ToList();
-
-    var rawMetricCount = rawSections.Sum(section => section.Rows.Count);
-    var derivedMetricCount = derivedSections.Sum(section => section.Rows.Count);
     var isAdvancedMode = Model.GameplayRaw.HasValue
         && Model.GameplayRaw.Value.ValueKind == JsonValueKind.Object
         && Model.GameplayRaw.Value.TryGetProperty("metadata", out var gameplayMetadata)
         && gameplayMetadata.ValueKind == JsonValueKind.Object
         && gameplayMetadata.TryGetProperty("game_mode", out var gameplayMode)
         && string.Equals(gameplayMode.GetString(), "advanced", StringComparison.OrdinalIgnoreCase);
-    var metricCollections = new[]
+
+    List<(string Path, string Value)> SelectDerived(params string[] keys)
     {
-        new { Key = "derived", TitleKey = "players.details.derived_title", DescriptionKey = "players.metrics_derived_desc", Count = derivedMetricCount, IsDerived = true, Sections = derivedSections },
-        new { Key = "raw", TitleKey = "players.details.raw_title", DescriptionKey = "players.metrics_raw_desc", Count = rawMetricCount, IsDerived = false, Sections = rawSections }
-    };
+        return derivedSummaryRows
+            .Where(row => keys.Contains(row.Path, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    List<(string Path, string Value)> SelectRaw(string group, params string[] keys) =>
+        PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, group)
+            .Where(row => keys.Contains(row.Path, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+    List<(string Path, string Value)> SelectDerivedGroup(string group, params string[] keys) =>
+        PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, group)
+            .Where(row => keys.Any(key =>
+                row.Path.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                row.Path.StartsWith($"{key}.", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+    List<(string Path, string Value)> ExcludeRows(
+        IEnumerable<(string Path, string Value)> rows,
+        params string[] keys) =>
+        rows.Where(row => !keys.Contains(row.Path, StringComparer.OrdinalIgnoreCase)).ToList();
+
+    var rawSections = new[]
+    {
+        new { Key = "coin-finance", TitleKey = "players.details.raw.coin_finance.title", DescriptionKey = "players.details.raw.coin_finance.desc", AdvancedOnly = false, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "coins"), "coins_net_end_game") },
+        new { Key = "ingredients", TitleKey = "players.details.raw.ingredients.title", DescriptionKey = "players.details.raw.ingredients.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "ingredients") },
+        new { Key = "meal-orders", TitleKey = "players.details.raw.meal_orders.title", DescriptionKey = "players.details.raw.meal_orders.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "meal_orders") },
+        new { Key = "needs", TitleKey = "players.details.raw.needs.title", DescriptionKey = "players.details.raw.needs.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "needs") },
+        new { Key = "donations", TitleKey = "players.details.raw.donations.title", DescriptionKey = "players.details.raw.donations.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "donations") },
+        new { Key = "gold", TitleKey = "players.details.raw.gold.title", DescriptionKey = "players.details.raw.gold.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "gold") },
+        new { Key = "pension", TitleKey = "players.details.raw.pension.title", DescriptionKey = "players.details.raw.pension.desc", AdvancedOnly = false, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "pension"), "leftover_coins_end_game") },
+        new { Key = "life-risk", TitleKey = "players.details.raw.life_risk.title", DescriptionKey = "players.details.raw.life_risk.desc", AdvancedOnly = true, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "life_risk"), "life_risks_available") },
+        new { Key = "financial-goals", TitleKey = "players.details.raw.financial_goals.title", DescriptionKey = "players.details.raw.financial_goals.desc", AdvancedOnly = true, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals"), "sharia_loan_cards_taken") },
+        new { Key = "actions", TitleKey = "players.details.raw.actions.title", DescriptionKey = "players.details.raw.actions.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "actions") },
+        new { Key = "turns", TitleKey = "players.details.raw.turns.title", DescriptionKey = "players.details.raw.turns.desc", AdvancedOnly = false, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "turns"), "turn_number_when_debt_introduced", "turn_number_when_first_risk_hit", "turn_number_game_completion") }
+    }.Where(item => isAdvancedMode || !item.AdvancedOnly).ToList();
+
+    var analysisSections = new[]
+    {
+        new { Chapter = "money", Key = "net-worth", PrimaryKey = "net_worth_index", TitleKey = "players.analysis.net_worth.title", DescriptionKey = "players.analysis.net_worth.desc", FormulaKey = "players.support.formula.net_worth", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("net_worth_index"), SelectRaw("coins", "starting_coins", "coins_held_current")) },
+        new { Chapter = "money", Key = "income-diversification", PrimaryKey = "income_diversification_index", TitleKey = "players.analysis.income_diversification.title", DescriptionKey = "players.analysis.income_diversification.desc", FormulaKey = "players.support.formula.income_diversification_index", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("income_diversification_index"), SelectDerivedGroup("income_diversification_components", "N_active_income_sources", "Income_Share_i")) },
+        new { Chapter = "money", Key = "expense-efficiency", PrimaryKey = "expense_management_efficiency", TitleKey = "players.analysis.expense_efficiency.title", DescriptionKey = "players.analysis.expense_efficiency.desc", FormulaKey = "players.support.formula.expense_efficiency", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("expense_management_efficiency"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "expense_management_components")) },
+        new { Chapter = "money", Key = "business-margin", PrimaryKey = "business_profit_margin", TitleKey = "players.analysis.business_margin.title", DescriptionKey = "players.analysis.business_margin.desc", FormulaKey = "players.support.formula.business_margin", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("business_profit_margin"), SelectRaw("meal_orders", "meal_order_income_total"), SelectRaw("ingredients", "ingredient_investment_coins_total")) },
+        new { Chapter = "future", Key = "risk-appetite", PrimaryKey = "risk_appetite_score", TitleKey = "players.analysis.risk_appetite.title", DescriptionKey = "players.analysis.risk_appetite.desc", FormulaKey = "players.support.formula.risk_appetite", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("risk_appetite_score"), SelectDerivedGroup("risk_appetite_components", "risk_acceptance_rate", "Risk_Cost_Intensity")) },
+        new { Chapter = "future", Key = "debt-discipline", PrimaryKey = "debt_leverage_ratio", TitleKey = "players.analysis.debt_discipline.title", DescriptionKey = "players.analysis.debt_discipline.desc", FormulaKey = "players.support.formula.debt_leverage", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("debt_leverage_ratio", "sharia_loans_outstanding_coins"), SelectRaw("coins", "coins_held_current")) },
+        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "goal_ambition_index", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_ambition_index", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("goal_ambition_index"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "goal_setting_components")) },
+        new { Chapter = "play", Key = "action-efficiency", PrimaryKey = "action_efficiency_percent", TitleKey = "players.analysis.action_efficiency.title", DescriptionKey = "players.analysis.action_efficiency.desc", FormulaKey = "players.support.formula.action_efficiency", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("action_efficiency_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "action_efficiency_components")) },
+        new { Chapter = "play", Key = "meal-success", PrimaryKey = "meal_order_success_rate", TitleKey = "players.analysis.meal_success.title", DescriptionKey = "players.analysis.meal_success.desc", FormulaKey = "players.support.formula.order_success", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("meal_order_success_rate"), SelectRaw("meal_orders", "meal_orders_claimed", "meal_orders_available_passed")) },
+        new { Chapter = "play", Key = "planning-horizon", PrimaryKey = "planning_horizon_percent", TitleKey = "players.analysis.planning_horizon.title", DescriptionKey = "players.analysis.planning_horizon.desc", FormulaKey = "players.support.formula.planning", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("planning_horizon_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "planning_horizon_components")) },
+        new { Chapter = "wellbeing", Key = "fulfillment-diversity", PrimaryKey = "fulfillment_diversity", TitleKey = "players.analysis.fulfillment_diversity.title", DescriptionKey = "players.analysis.fulfillment_diversity.desc", FormulaKey = "players.support.formula.fulfillment", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("fulfillment_diversity"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "fulfillment_diversity_components")) },
+        new { Chapter = "wellbeing", Key = "donation-commitment", PrimaryKey = "donation_commitment_score", TitleKey = "players.analysis.donation_commitment.title", DescriptionKey = "players.analysis.donation_commitment.desc", FormulaKey = "players.support.formula.donation_commitment", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("donation_commitment_score"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "donation_commitment_components")) },
+        new { Chapter = "wellbeing", Key = "happiness-portfolio", PrimaryKey = "total_happiness_pts", TitleKey = "players.analysis.happiness_portfolio.title", DescriptionKey = "players.analysis.happiness_portfolio.desc", FormulaKey = "players.support.formula.happiness_portfolio", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "happiness_portfolio") }
+    }.Where(item => isAdvancedMode || !item.AdvancedOnly).ToList();
+    var analysisChapters = new[]
+    {
+        new { Key = "money", TitleKey = "players.analysis.chapter.money.title", DescriptionKey = "players.analysis.chapter.money.desc", Items = analysisSections.Where(item => item.Chapter == "money").ToList() },
+        new { Key = "future", TitleKey = "players.analysis.chapter.future.title", DescriptionKey = "players.analysis.chapter.future.desc", Items = analysisSections.Where(item => item.Chapter == "future").ToList() },
+        new { Key = "play", TitleKey = "players.analysis.chapter.play.title", DescriptionKey = "players.analysis.chapter.play.desc", Items = analysisSections.Where(item => item.Chapter == "play").ToList() },
+        new { Key = "wellbeing", TitleKey = "players.analysis.chapter.wellbeing.title", DescriptionKey = "players.analysis.chapter.wellbeing.desc", Items = analysisSections.Where(item => item.Chapter == "wellbeing").ToList() }
+    }.Where(chapter => chapter.Items.Count > 0).ToList();
+
+    var rawMetricCount = rawSections.Sum(section => section.Rows.Count);
+    var derivedMetricCount = analysisSections.Sum(section => section.Rows.Count);
+    string ReadDerivedValue(string key) =>
+        derivedSummaryRows.FirstOrDefault(row => string.Equals(row.Path, key, StringComparison.OrdinalIgnoreCase)).Value
+        ?? nullText;
+    var netWorthMetric = PlayerMetricLabelFormatter.DescribeMetric("net_worth_index", ReadDerivedValue("net_worth_index"), true, isAdvancedMode, nullText, Context.T);
+    var actionEfficiencyMetric = PlayerMetricLabelFormatter.DescribeMetric("action_efficiency_percent", ReadDerivedValue("action_efficiency_percent"), true, isAdvancedMode, nullText, Context.T);
 
     var playerTurnOrder = Model.Summary?.PlayerOrder ?? 1;
     var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
@@ -215,10 +203,6 @@
             <div class="player-profile-copy">
                 <span class="player-profile-turn">@Context.T("common.turn_order") @playerTurnOrder</span>
                 <p class="player-detail-name">@(string.IsNullOrWhiteSpace(Model.PlayerDisplayName) ? Context.T("common.player") : Model.PlayerDisplayName)</p>
-                @if (Model.GameplayComputedAt.HasValue)
-                {
-                    <span class="player-detail-meta__item">@Context.T("common.computed"): @Model.GameplayComputedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
-                }
             </div>
         </div>
     </div>
@@ -318,211 +302,336 @@
     </details>
 
     <div id="player-statistics-dashboard" class="players-fusion-metrics player-detail-section player-stats-dashboard">
-        <div class="players-fusion-head ruleset-section-head player-stats-hero">
-            <div>
-                <p class="eyebrow">@Context.T("players.stats.badge")</p>
-                <h2 class="ruleset-section-title">@Context.T("players.stats.title")</h2>
-                <p class="ruleset-section-subtitle">@Context.T("players.stats.subtitle")</p>
-            </div>
-            <span class="player-stats-read-pill">@Context.T("players.stats.read_time")</span>
-        </div>
-
-        <section class="player-stats-verdict player-stat-tone-@overallTone" aria-labelledby="player-stats-verdict-title">
-            <div>
-                <p class="player-stats-verdict__eyebrow">@Context.T("players.stats.verdict.title")</p>
-                <h3 id="player-stats-verdict-title">@Context.T(overallStatusKey)</h3>
-                <p>@Context.T(overallDescriptionKey)</p>
-            </div>
-            <div class="player-stats-verdict__signals" aria-label="@Context.T("players.stats.verdict.title")">
-                <div><span>@Context.T("players.cashflow_journey.ending_cash")</span><strong>@FormatNumber(endingCash)</strong></div>
-                <div><span>@Context.T("metric.happiness")</span><strong>@FormatNumber(happinessPoints)</strong></div>
-                <div><span>@Context.T("metric.primary_need_compliance")</span><strong>@primaryNeedRate.ToString("P0", CultureInfo.CurrentCulture)</strong></div>
-            </div>
-        </section>
-
-        <section class="player-stats-pillars" aria-labelledby="player-stats-pillars-title">
-            <div class="player-stats-section-heading ruleset-section-head">
-                <h3 id="player-stats-pillars-title" class="ruleset-section-title">@Context.T("players.stats.pillars.title")</h3>
-                <p class="ruleset-section-subtitle">@Context.T("players.stats.pillars.desc")</p>
-            </div>
-
-            <div class="player-stats-pillar-grid">
-                <article class="player-stat-pillar player-stat-pillar--money player-stat-pillar--@financeTone">
-                    <div class="player-stat-pillar__heading">
-                        <h4>@Context.T("players.stats.focus.money.title")</h4>
-                        <p>@Context.T("players.stats.focus.money.question")</p>
-                    </div>
-                    <div class="player-stat-pillar__score">
-                        <span>@Context.T("players.stats.pillar.main_result")</span>
-                        <strong>@FormatSignedNumber(netCashflow)</strong>
-                    </div>
-                    <p class="player-stat-pillar__summary">@Context.T(financeMeaningKey)</p>
-                    <p class="player-stat-pillar__recommendation"><strong>@Context.T("players.stats.pillar.recommendation")</strong> @Context.T(financeRecommendationKey)</p>
-                    <dl class="player-stat-pillar__metrics">
-                        <div><dt>@Context.T("metric.cash_in")</dt><dd>@FormatNumber(totalCashIn)</dd></div>
-                        <div><dt>@Context.T("metric.cash_out")</dt><dd>@FormatNumber(totalCashOut)</dd></div>
-                        <div><dt>@Context.T("players.cashflow_journey.ending_cash")</dt><dd>@FormatNumber(endingCash)</dd></div>
-                    </dl>
-                </article>
-
-                <article class="player-stat-pillar player-stat-pillar--behavior player-stat-pillar--@behaviorTone">
-                    <div class="player-stat-pillar__heading">
-                        <h4>@Context.T("players.stats.focus.behavior.title")</h4>
-                        <p>@Context.T("players.stats.focus.behavior.question")</p>
-                    </div>
-                    <div class="player-stat-pillar__score">
-                        <span>@Context.T("players.stats.pillar.main_result")</span>
-                        <strong>@primaryNeedRate.ToString("P0", CultureInfo.CurrentCulture)</strong>
-                    </div>
-                    <p class="player-stat-pillar__summary">@Context.T(behaviorMeaningKey)</p>
-                    <p class="player-stat-pillar__recommendation"><strong>@Context.T("players.stats.pillar.recommendation")</strong> @Context.T(behaviorRecommendationKey)</p>
-                    <dl class="player-stat-pillar__metrics">
-                        <div><dt>@Context.T("metric.violations")</dt><dd>@ruleViolations</dd></div>
-                        <div><dt>@Context.T("metric.orders_completed")</dt><dd>@(Model.Summary?.OrdersCompletedCount ?? 0)</dd></div>
-                    </dl>
-                </article>
-
-                <article class="player-stat-pillar player-stat-pillar--happiness player-stat-pillar--@happinessTone">
-                    <div class="player-stat-pillar__heading">
-                        <h4>@Context.T("players.stats.focus.happiness.title")</h4>
-                        <p>@Context.T("players.stats.focus.happiness.question")</p>
-                    </div>
-                    <div class="player-stat-pillar__score">
-                        <span>@Context.T("players.stats.pillar.main_result")</span>
-                        <strong>@FormatNumber(happinessPoints)</strong>
-                    </div>
-                    <p class="player-stat-pillar__summary">@Context.T(happinessMeaningKey)</p>
-                    <p class="player-stat-pillar__recommendation"><strong>@Context.T("players.stats.pillar.recommendation")</strong> @Context.T(happinessRecommendationKey)</p>
-                    <dl class="player-stat-pillar__metrics">
-                        <div><dt>@Context.T("players.stats.points_added")</dt><dd>@FormatNumber(happinessPointsAdded)</dd></div>
-                        <div class="player-stat-pillar__metric--deduction"><dt>@Context.T("players.stats.points_deducted")</dt><dd>@FormatNumber(-happinessPointsDeducted)</dd></div>
-                    </dl>
-                </article>
-            </div>
-        </section>
-
-        <section class="player-stats-actions-section" aria-labelledby="player-stats-insights-title">
-            <div class="player-stats-section-heading ruleset-section-head">
-                <h3 id="player-stats-insights-title" class="ruleset-section-title">@Context.T("players.stats.insights_title")</h3>
-                <p class="ruleset-section-subtitle">@Context.T("players.stats.insights_desc")</p>
-            </div>
-            <ol class="player-stats-actions">
-                @for (var insightIndex = 0; insightIndex < Math.Min(3, statSummary.Insights.Count); insightIndex++)
-                {
-                    var insight = statSummary.Insights[insightIndex];
-                    <li class="player-stat-action player-stat-tone-@insight.Tone">
-                        <span class="player-stat-action__number">@(insightIndex + 1)</span>
-                        <div>
-                            <h4>@insight.Title</h4>
-                            <p>@insight.Description</p>
-                        </div>
-                    </li>
-                }
-            </ol>
-        </section>
-
-        <section class="player-metric-library" aria-labelledby="player-metric-library-title">
-            <div class="player-metric-library__hero">
+        <details id="player-statistics-summary" class="player-dashboard-accordion player-dashboard-accordion--summary" open aria-labelledby="player-statistics-summary-title">
+            <summary class="players-fusion-head ruleset-section-head player-stats-hero" data-player-stats-reveal>
                 <div>
-                    <p class="eyebrow">@Context.T("players.stats.library.badge")</p>
-                    <h3 id="player-metric-library-title">@Context.T("players.stats.library.title")</h3>
-                    <p>@Context.T("players.stats.library.desc")</p>
+                    <p class="eyebrow">@Context.T("players.stats.badge")</p>
+                    <h2 id="player-statistics-summary-title" class="ruleset-section-title">@Context.T("players.stats.title")</h2>
+                    <p class="ruleset-section-subtitle">@Context.T("players.stats.subtitle")</p>
                 </div>
-                <div class="player-metric-library__totals" aria-label="@Context.T("players.stats.library.title")">
-                    <div><strong>@rawMetricCount</strong><span>@Context.T("players.stats.library.raw_count")</span></div>
-                    <div><strong>@derivedMetricCount</strong><span>@Context.T("players.stats.library.derived_count")</span></div>
-                    <div><strong>@Context.T(isAdvancedMode ? "rulesets.form.mode_advanced" : "rulesets.form.mode_beginner")</strong><span>@Context.T("players.stats.library.session_mode")</span></div>
-                </div>
-            </div>
+                <span class="player-stats-read-pill">@Context.T("players.stats.read_time")</span>
+            </summary>
 
-            @if (rawMetricCount + derivedMetricCount == 0)
+            <div class="player-dashboard-accordion__body">
+                <section class="player-analysis-overview player-stat-tone-@overallTone" data-player-stats-reveal aria-labelledby="player-analysis-overview-title">
+                    <div class="player-analysis-overview__verdict">
+                        <p class="player-stats-verdict__eyebrow">@Context.T("players.stats.verdict.title")</p>
+                        <h3 id="player-analysis-overview-title">@Context.T(overallStatusKey)</h3>
+                        <p>@Context.T(overallDescriptionKey)</p>
+                    </div>
+                    <dl class="player-analysis-scorecard" aria-label="@Context.T("players.analysis.scorecard.title")">
+                        <div><dt>@Context.T("players.cashflow_journey.ending_cash")</dt><dd>@FormatNumber(endingCash)</dd></div>
+                        <div><dt>@Context.T("metric.cash_net")</dt><dd>@FormatSignedNumber(netCashflow)</dd></div>
+                        <div><dt>@Context.T("metric.happiness")</dt><dd>@FormatNumber(happinessPoints)</dd></div>
+                        <div><dt>@Context.T("metric.fulfillment_diversity")</dt><dd>@fulfillmentDiversity.ToString("P0", CultureInfo.CurrentCulture)</dd></div>
+                        <div><dt>@netWorthMetric.Label</dt><dd>@netWorthMetric.DisplayValue@netWorthMetric.Unit</dd></div>
+                        <div><dt>@actionEfficiencyMetric.Label</dt><dd>@actionEfficiencyMetric.DisplayValue@actionEfficiencyMetric.Unit</dd></div>
+                    </dl>
+                </section>
+
+                <section class="player-stats-actions-section" data-player-stats-reveal aria-labelledby="player-stats-insights-title">
+                    <div class="player-stats-section-heading ruleset-section-head">
+                        <h3 id="player-stats-insights-title" class="ruleset-section-title">@Context.T("players.stats.insights_title")</h3>
+                        <p class="ruleset-section-subtitle">@Context.T("players.stats.insights_desc")</p>
+                    </div>
+                    <ul class="player-stats-actions">
+                        @foreach (var insight in statSummary.Insights.Take(3))
+                        {
+                            <li class="player-stat-action player-stat-tone-@insight.Tone">
+                                <span class="player-stat-action__signal" aria-hidden="true"></span>
+                                <div>
+                                    <h4>@insight.Title</h4>
+                                    <p>@insight.Description</p>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            </div>
+        </details>
+
+        <details id="player-analysis-atlas" class="player-analysis-atlas player-dashboard-accordion" open aria-labelledby="player-analysis-atlas-title">
+            <summary class="player-analysis-section-head" data-player-stats-reveal>
+                <div>
+                    <p class="eyebrow">@Context.T("players.analysis.badge")</p>
+                    <h3 id="player-analysis-atlas-title">@Context.T("players.analysis.title")</h3>
+                    <p>@Context.T("players.analysis.desc")</p>
+                </div>
+            </summary>
+
+            <div class="player-analysis-chapters">
+                @foreach (var chapter in analysisChapters)
+                {
+                    <section class="player-analysis-chapter player-analysis-chapter--@chapter.Key" data-player-stats-reveal aria-labelledby="player-analysis-chapter-@chapter.Key">
+                        <header class="player-analysis-chapter__head">
+                            <div>
+                                <h4 id="player-analysis-chapter-@chapter.Key">@Context.T(chapter.TitleKey)</h4>
+                                <p>@Context.T(chapter.DescriptionKey)</p>
+                            </div>
+                        </header>
+                        <div class="player-analysis-grid">
+                            @foreach (var analysis in chapter.Items)
+                            {
+                                <article class="player-analysis-card player-analysis-card--@analysis.Key">
+                                    <div class="player-analysis-card__body">
+                                        <header class="player-analysis-card__heading">
+                                            <h5>@Context.T(analysis.TitleKey)</h5>
+                                            @if (analysis.AdvancedOnly)
+                                            {
+                                                <span class="player-analysis-card__mode">@Context.T("players.support.mode.advanced")</span>
+                                            }
+                                        </header>
+                                        <p class="player-analysis-card__description">@Context.T(analysis.DescriptionKey)</p>
+
+                                        @{
+                                            var primaryRow = analysis.Rows.FirstOrDefault(row =>
+                                                row.Path.Equals(analysis.PrimaryKey, StringComparison.OrdinalIgnoreCase));
+                                            var supportingRows = analysis.Rows
+                                                .Where(row => !row.Path.Equals(analysis.PrimaryKey, StringComparison.OrdinalIgnoreCase))
+                                                .ToList();
+                                        }
+                                        @if (string.IsNullOrWhiteSpace(primaryRow.Path))
+                                        {
+                                            <p class="player-analysis-card__empty">@nullText</p>
+                                        }
+                                        else
+                                        {
+                                            var primaryMetric = PlayerMetricLabelFormatter.DescribeMetric(
+                                                primaryRow.Path,
+                                                primaryRow.Value,
+                                                true,
+                                                isAdvancedMode,
+                                                nullText,
+                                                Context.T);
+                                            var actualCalculation = PlayerMetricCollectionHelper.BuildActualCalculation(
+                                                analysis.Key,
+                                                analysis.Rows,
+                                                primaryMetric.DisplayValue,
+                                                primaryMetric.Unit,
+                                                nullText,
+                                                CultureInfo.CurrentCulture);
+                                            <div class="player-analysis-card__takeaway">
+                                                <div>
+                                                    <span>@primaryMetric.Label</span>
+                                                    <strong>@primaryMetric.DisplayValue<small>@primaryMetric.Unit</small></strong>
+                                                </div>
+                                                <p><strong>@Context.T("players.analysis.reading")</strong> @primaryMetric.Guidance</p>
+                                            </div>
+
+                                            <details class="player-analysis-card__method">
+                                                <summary>@Context.T("players.analysis.details")</summary>
+                                                @if (supportingRows.Count > 0)
+                                                {
+                                                    <dl class="player-analysis-card__metrics">
+                                                        @foreach (var row in supportingRows)
+                                                        {
+                                                            var metric = PlayerMetricLabelFormatter.DescribeMetric(
+                                                                row.Path,
+                                                                row.Value,
+                                                                true,
+                                                                isAdvancedMode,
+                                                                nullText,
+                                                                Context.T);
+                                                            <div class="player-analysis-card__metric player-analysis-card__metric--@metric.State">
+                                                                <dt>@metric.Label</dt>
+                                                                <dd>
+                                                                    <strong>@metric.DisplayValue</strong>
+                                                                    @if (!string.IsNullOrWhiteSpace(metric.Unit))
+                                                                    {
+                                                                        <small>@metric.Unit</small>
+                                                                    }
+                                                                </dd>
+                                                            </div>
+                                                        }
+                                                    </dl>
+                                                }
+                                                <dl class="player-analysis-card__method-notes">
+                                                    <div>
+                                                        <dt>@Context.T("players.support.field.source")</dt>
+                                                        <dd>@Context.T($"players.analysis.source.{analysis.Key}")</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt>@Context.T("players.support.field.formula")</dt>
+                                                        <dd>@Context.T(analysis.FormulaKey)</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt>@Context.T("players.support.field.actual_calculation")</dt>
+                                                        <dd>@actualCalculation</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt>@Context.T("players.support.field.recommendation")</dt>
+                                                        <dd>@primaryMetric.Recommendation</dd>
+                                                    </div>
+                                                </dl>
+                                            </details>
+                                        }
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        </details>
+
+        <details id="player-evidence-library" class="player-evidence-library player-dashboard-accordion" data-player-stats-reveal open aria-labelledby="player-evidence-library-title">
+            <summary class="player-analysis-section-head">
+                <div>
+                    <p class="eyebrow">@Context.T("players.evidence.badge")</p>
+                    <h3 id="player-evidence-library-title">@Context.T("players.evidence.title")</h3>
+                    <p>@Context.T("players.evidence.desc")</p>
+                </div>
+                <div class="player-evidence-library__summary">
+                    <span><strong>@rawSections.Count</strong> @Context.T("players.evidence.group_suffix")</span>
+                    <span><strong>@rawMetricCount</strong> @Context.T("players.stats.library.raw_count")</span>
+                    <span><strong>@Context.T(isAdvancedMode ? "rulesets.form.mode_advanced" : "rulesets.form.mode_beginner")</strong> @Context.T("players.stats.library.session_mode")</span>
+                </div>
+            </summary>
+
+            @if (rawMetricCount == 0)
             {
                 <div class="alert alert-info" aria-live="polite">@Context.T("players.detail.empty_analytics")</div>
             }
             else
             {
-                <div class="player-metric-library__collections">
-                    @foreach (var collection in metricCollections)
+                <div class="player-evidence-domain-list">
+                    @for (var domainIndex = 0; domainIndex < rawSections.Count; domainIndex++)
                     {
-                        <section class="player-metric-collection player-metric-collection--@collection.Key" aria-labelledby="player-metric-collection-@collection.Key">
-                            <div class="player-metric-collection__heading">
-                                <div>
-                                    <span>@collection.Count @Context.T("players.metric_items_suffix")</span>
-                                    <h4 id="player-metric-collection-@collection.Key">@Context.T(collection.TitleKey)</h4>
-                                    <p>@Context.T(collection.DescriptionKey)</p>
-                                </div>
-                            </div>
-
-                            <div class="player-metric-domain-list">
-                                @for (var domainIndex = 0; domainIndex < collection.Sections.Count; domainIndex++)
+                        var domain = rawSections[domainIndex];
+                        <details class="player-evidence-domain" @(domainIndex == 0 ? "open" : null)>
+                            <summary>
+                                <span class="player-evidence-domain__copy">
+                                    <strong>@Context.T(domain.TitleKey)</strong>
+                                    <small>@Context.T(domain.DescriptionKey)</small>
+                                </span>
+                                @if (domain.AdvancedOnly)
                                 {
-                                    var domain = collection.Sections[domainIndex];
-                                    <details class="player-metric-domain" @(domainIndex == 0 ? "open" : null)>
-                                        <summary>
-                                            <span>
-                                                <strong>@Context.T(domain.TitleKey)</strong>
-                                                <small>@Context.T(domain.DescriptionKey)</small>
-                                            </span>
-                                            <em>@domain.Rows.Count @Context.T("players.metric_items_suffix")</em>
-                                        </summary>
-                                        <div class="player-metric-card-grid">
-                                            @foreach (var row in domain.Rows)
+                                    <span class="player-evidence-domain__mode">@Context.T("players.support.mode.advanced")</span>
+                                }
+                                <em>@domain.Rows.Count @Context.T("players.metric_items_suffix")</em>
+                            </summary>
+
+                            <div class="player-metric-card-grid">
+                                @foreach (var row in domain.Rows)
+                                {
+                                    var metric = PlayerMetricLabelFormatter.DescribeMetric(
+                                        row.Path,
+                                        row.Value,
+                                        false,
+                                        isAdvancedMode,
+                                        nullText,
+                                        Context.T);
+                                    var isCollectionValue = row.Value.TrimStart().StartsWith("[", StringComparison.Ordinal)
+                                        || row.Value.TrimStart().StartsWith("{", StringComparison.Ordinal);
+                                    var collectionTable = isCollectionValue
+                                        ? PlayerMetricJsonMapper.BuildCollectionTable(row.Value, trueText, falseText, nullText)
+                                        : null;
+                                    <article class="player-metric-card player-metric-card--@metric.State @(isCollectionValue ? "player-metric-card--series" : null)">
+                                        <div class="player-metric-card__heading">
+                                            <h5>@metric.Label</h5>
+                                            @if (metric.State != "recorded")
                                             {
-                                                var metric = PlayerMetricLabelFormatter.DescribeMetric(
-                                                    row.Path,
-                                                    row.Value,
-                                                    collection.IsDerived,
-                                                    isAdvancedMode,
-                                                    nullText,
-                                                    Context.T);
-                                                <article class="player-metric-card player-metric-card--@metric.State">
-                                                    <div class="player-metric-card__heading">
-                                                        <h5>@metric.Label</h5>
-                                                        <span>@Context.T($"players.support.state.{metric.State}")</span>
-                                                    </div>
-                                                    <p class="player-metric-card__value">
-                                                        <strong>@metric.DisplayValue</strong>
-                                                        @if (!string.IsNullOrWhiteSpace(metric.Unit))
-                                                        {
-                                                            <small>@metric.Unit</small>
-                                                        }
-                                                    </p>
-                                                    @if (metric.IsAdvancedOnly)
-                                                    {
-                                                        <span class="player-metric-card__advanced">@Context.T("players.support.mode.advanced")</span>
-                                                    }
-                                                    <p class="player-metric-card__explanation">@metric.Explanation</p>
-                                                    <details class="player-metric-card__guide">
-                                                        <summary>@Context.T("players.stats.library.read_metric")</summary>
-                                                        <dl>
-                                                            <div>
-                                                                <dt>@Context.T("players.support.field.guide")</dt>
-                                                                <dd>@metric.Guidance</dd>
-                                                            </div>
-                                                            <div class="player-metric-card__recommendation">
-                                                                <dt>@Context.T("players.support.field.recommendation")</dt>
-                                                                <dd>@metric.Recommendation</dd>
-                                                            </div>
-                                                            @if (!string.IsNullOrWhiteSpace(metric.Formula))
-                                                            {
-                                                                <div>
-                                                                    <dt>@Context.T("players.support.field.formula")</dt>
-                                                                    <dd>@metric.Formula</dd>
-                                                                </div>
-                                                            }
-                                                        </dl>
-                                                    </details>
-                                                </article>
+                                                <span>@Context.T($"players.support.state.{metric.State}")</span>
                                             }
                                         </div>
-                                    </details>
+                                        @if (collectionTable is not null)
+                                        {
+                                            var collectionUnits = collectionTable.Columns.ToDictionary(
+                                                column => column,
+                                                column => IsCollectionContextColumn(column)
+                                                    ? string.Empty
+                                                    : PlayerMetricLabelFormatter.DescribeMetric(
+                                                        $"{row.Path}.{column}",
+                                                        "0",
+                                                        false,
+                                                        isAdvancedMode,
+                                                        nullText,
+                                                        Context.T).Unit,
+                                                StringComparer.OrdinalIgnoreCase);
+                                            var actionSlotColumnIndex = collectionTable.Columns
+                                                .Select((column, index) => new { column, index })
+                                                .Where(item => item.column.Equals("action_slot", StringComparison.OrdinalIgnoreCase))
+                                                .Select(item => item.index)
+                                                .DefaultIfEmpty(-1)
+                                                .First();
+                                            var hasOutsideQuotaRows = actionSlotColumnIndex >= 0
+                                                && collectionTable.Rows.Any(seriesRow =>
+                                                    seriesRow.Count > actionSlotColumnIndex
+                                                    && seriesRow[actionSlotColumnIndex] == "0");
+                                            var seriesRows = collectionTable.Rows.ToList();
+                                            <div class="player-metric-series" role="region" aria-label="@metric.Label" tabindex="0">
+                                                @if (hasOutsideQuotaRows)
+                                                {
+                                                    <div class="player-metric-series__outside-quota">
+                                                        <span>
+                                                            <strong>@Context.T("players.details.action_slot.outside_quota")</strong>
+                                                            <small>@Context.T("players.details.action_slot.outside_quota.desc")</small>
+                                                        </span>
+                                                    </div>
+                                                }
+                                                @if (seriesRows.Count > 0)
+                                                {
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            @foreach (var column in collectionTable.Columns)
+                                                            {
+                                                                <th scope="col">
+                                                                    @PlayerMetricLabelFormatter.HumanizeMetricKey(column, Context.T)
+                                                                    @if (!string.IsNullOrWhiteSpace(collectionUnits[column]))
+                                                                    {
+                                                                        <small>(@collectionUnits[column])</small>
+                                                                    }
+                                                                </th>
+                                                            }
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var seriesRow in seriesRows)
+                                                        {
+                                                            <tr>
+                                                                @for (var cellIndex = 0; cellIndex < seriesRow.Count; cellIndex++)
+                                                                {
+                                                                    <td>@FormatCollectionCell(row.Path, collectionTable.Columns[cellIndex], seriesRow[cellIndex], isAdvancedMode, nullText)</td>
+                                                                }
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="player-metric-card__value">
+                                                <strong>@metric.DisplayValue</strong>
+                                                @if (!string.IsNullOrWhiteSpace(metric.Unit))
+                                                {
+                                                    <small>@metric.Unit</small>
+                                                }
+                                            </p>
+                                        }
+                                        <p class="player-metric-card__explanation">@metric.Explanation</p>
+                                        <details class="player-metric-card__guide">
+                                            <summary>@Context.T("players.stats.library.read_metric")</summary>
+                                            <dl>
+                                                <div>
+                                                    <dt>@Context.T("players.support.field.guide")</dt>
+                                                    <dd>@metric.Guidance</dd>
+                                                </div>
+                                                <div class="player-metric-card__recommendation">
+                                                    <dt>@Context.T("players.support.field.recommendation")</dt>
+                                                    <dd>@metric.Recommendation</dd>
+                                                </div>
+                                            </dl>
+                                        </details>
+                                    </article>
                                 }
                             </div>
-                        </section>
+                        </details>
                     }
                 </div>
             }
-        </section>
+        </details>
     </div>
 </section>
-

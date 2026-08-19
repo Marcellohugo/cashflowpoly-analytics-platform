@@ -50,7 +50,7 @@
                 <p class="auth-copy">@Context.T("auth.register_subtitle")</p>
             </div>
 
-            <form class="auth-form" method="post" asp-controller="Auth" asp-action="Register" data-enter-last-select="focus-submit">
+            <form class="auth-form" method="post" asp-controller="Auth" asp-action="Register">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="ReturnUrl" />
 
@@ -105,16 +105,6 @@
                                required
                                placeholder="********" />
                     </div>
-                </div>
-
-                <div class="form-field">
-                    <label class="auth-label" for="register-role">@Context.T("auth.role")</label>
-                    <select class="auth-input"
-                            id="register-role"
-                            asp-for="Role">
-                        <option value="PLAYER">@Context.T("auth.role_player")</option>
-                        <option value="INSTRUCTOR">@Context.T("auth.role_instructor")</option>
-                    </select>
                 </div>
 
                 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))

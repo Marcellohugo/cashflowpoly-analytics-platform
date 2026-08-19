@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = Context.T("nav.ruleset");
-    var isInstructor = Context.Session.IsInstructor();
+    var isInstructor = Context.IsInstructor();
     var hasMutableRulesets = Model.Items.Any(item => !item.IsDefault && !item.IsLockedBySession);
     var showMutationActions = isInstructor && hasMutableRulesets;
     var tableColumnCount = showMutationActions ? 7 : 5;

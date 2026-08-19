@@ -8,6 +8,6 @@
   },
   "scripts": {
     "tailwind:build": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --minify",
-    "tailwind:watch": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --watch"
+    "tailwind:watch": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --watch=always"
   }
 }

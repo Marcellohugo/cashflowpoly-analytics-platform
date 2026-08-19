@@ -1,36 +1,24 @@
-// Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui AuthSessionExtensions.
+// Fungsi file: Menyediakan pemeriksaan role dari principal autentikasi UI.
+using System.Security.Claims;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
 /// <summary>
-/// Kelas statis berisi extension method untuk ISession yang mempermudah
-/// pengecekan peran pengguna (instruktur atau pemain) dari data sesi.
+/// Kelas statis berisi extension method untuk membaca identitas pengguna
+/// dari principal cookie yang terenkripsi.
 /// </summary>
-public static class AuthSessionExtensions
+public static class AuthContextExtensions
 {
-    /// <summary>
-    /// Mengambil string peran pengguna saat ini dari sesi (misalnya "instructor" atau "player").
-    /// </summary>
-    /// <param name="session">Instance sesi HTTP aktif.</param>
-    /// <returns>Nama peran pengguna, atau null jika belum ditetapkan.</returns>
-    public static string? CurrentRole(this ISession session) =>
-        session.GetString(AuthConstants.SessionRoleKey);
-
     /// <summary>
     /// Memeriksa apakah pengguna yang sedang login memiliki peran instruktur.
     /// </summary>
-    /// <param name="session">Instance sesi HTTP aktif.</param>
+    /// <param name="context">Konteks HTTP aktif.</param>
     /// <returns>True jika peran pengguna adalah instruktur.</returns>
-    public static bool IsInstructor(this ISession session) =>
-        string.Equals(session.CurrentRole(), AuthConstants.InstructorRole, StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Memeriksa apakah pengguna yang sedang login memiliki peran pemain.
-    /// </summary>
-    /// <param name="session">Instance sesi HTTP aktif.</param>
-    /// <returns>True jika peran pengguna adalah pemain.</returns>
-    public static bool IsPlayer(this ISession session) =>
-        string.Equals(session.CurrentRole(), AuthConstants.PlayerRole, StringComparison.OrdinalIgnoreCase);
+    public static bool IsInstructor(this HttpContext context) =>
+        string.Equals(
+            context.User.FindFirst(ClaimTypes.Role)?.Value,
+            AuthConstants.InstructorRole,
+            StringComparison.OrdinalIgnoreCase);
 }

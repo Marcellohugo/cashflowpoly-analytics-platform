@@ -65,7 +65,7 @@
 
 @{
     var isEmbedded = ViewData["RulesetDetailEmbedded"] as bool? ?? false;
-    var isInstructor = Context.Session.IsInstructor();
+    var isInstructor = Context.IsInstructor();
     var showVersionActions = isInstructor && !Model.IsReadOnly && !isEmbedded;
     var idPrefix = isEmbedded ? "session-ruleset-detail" : "ruleset-detail";
 }
@@ -274,8 +274,6 @@ else
                             <div><label class="form-label" for="@(idPrefix + "-cash-min")">@Context.T("rulesets.form.cash_min")</label><input id="@(idPrefix + "-cash-min")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "cash_min"), 0)" class="form-input" /></div>
                             <div><label class="form-label" for="@(idPrefix + "-max-ingredient-total")">@Context.T("rulesets.form.max_ingredient_total")</label><input id="@(idPrefix + "-max-ingredient-total")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "max_ingredient_total"), 6)" class="form-input" /></div>
                             <div><label class="form-label" for="@(idPrefix + "-max-same-ingredient")">@Context.T("rulesets.form.max_same_ingredient")</label><input id="@(idPrefix + "-max-same-ingredient")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "max_same_ingredient"), 3)" class="form-input" /></div>
-                            <div><label class="form-label" for="@(idPrefix + "-primary-need-max")">@Context.T("rulesets.form.primary_need_max_day")</label><input id="@(idPrefix + "-primary-need-max")" type="number" readonly value="@AsInt(GetPath(cfg, "constraints", "primary_need_max_per_day"), 1)" class="form-input" /></div>
-                            <label class="metric-row md:col-span-2"><span class="metric-key">@Context.T("rulesets.form.require_primary_first")</span><input type="checkbox" disabled @(AsBool(GetPath(cfg, "constraints", "require_primary_before_others"), true) ? "checked" : null) /></label>
                         </div>
                     </div>
 
