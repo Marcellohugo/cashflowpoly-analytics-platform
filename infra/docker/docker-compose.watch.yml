@@ -1,6 +1,12 @@
 # Fungsi file: Menambahkan mode development auto-redeploy dengan dotnet watch.
+name: cashflowpoly-dev
+
 services:
+  db:
+    container_name: cashflowpoly-dev-db
+
   api:
+    container_name: cashflowpoly-dev-api
     build:
       context: ../..
       dockerfile: src/Cashflowpoly.Api/Dockerfile.dev
@@ -18,6 +24,7 @@ services:
       - cashflowpoly_api_obj:/src/src/Cashflowpoly.Api/obj
 
   ui:
+    container_name: cashflowpoly-dev-ui
     build:
       context: ../..
       dockerfile: src/Cashflowpoly.Ui/Dockerfile.dev
