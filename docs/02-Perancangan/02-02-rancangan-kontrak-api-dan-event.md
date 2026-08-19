@@ -795,7 +795,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ```
 - Catatan kebijakan:
   - Registrasi publik role `PLAYER` diperbolehkan.
-  - Registrasi publik role `INSTRUCTOR` diperbolehkan.
+  - Registrasi publik role `INSTRUCTOR` ditolak; akun instruktur dibuat melalui bootstrap/admin.
 
 ---
 
@@ -1012,6 +1012,29 @@ Alternatif lookup:
 Efek data:
 - Menambah atau memperbarui baris `session_participants`.
 - Menginisialisasi projection awal peserta sesi.
+
+---
+
+### 7.4 Ambil daftar Player pada sesi
+- Method: `GET`
+- Path: `/api/v1/sessions/{sessionId}/players`
+- Otorisasi: `INSTRUCTOR` atau `PLAYER` yang menjadi peserta sesi tersebut
+- Response 200:
+```json
+{
+  "items": [
+    {
+      "user_id": "uuid",
+      "display_name": "Player A",
+      "player_order_no": 1
+    }
+  ]
+}
+```
+
+Scope:
+- Instruktur dapat membaca peserta sesi yang dapat diaksesnya.
+- Player hanya dapat membaca peserta sesi tempat akunnya terdaftar.
 
 ---
 
@@ -1459,6 +1482,4 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
-
-
 

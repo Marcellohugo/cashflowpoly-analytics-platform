@@ -79,7 +79,7 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 | Detail Sesi & Analitika | `/sessions/{id}` | `SessionsController` | `Details` | `INSTRUCTOR` / `PLAYER` |
 | Performa Detil Pemain | `/sessions/{id}/players/{userId}` | `PlayersController` | `Details` | `INSTRUCTOR` / `PLAYER` |
 | Direktori Pemain Global | `/players` | `PlayerDirectoryController`| `Index` | `INSTRUCTOR` |
-| Buku Aturan (Rulebook) | `/rulebook` | `HomeController` | `Rulebook` | `INSTRUCTOR` / `PLAYER` |
+| Buku Aturan (Rulebook) | `/rulebook` | `HomeController` | `Rulebook` | Publik |
 | Daftar Ruleset | `/rulesets` | `RulesetsController` | `Index` | `INSTRUCTOR` / `PLAYER` |
 | Detail Versi Ruleset | `/rulesets/{id}` | `RulesetsController` | `Details` | `INSTRUCTOR` / `PLAYER` |
 | Formulir Buat Ruleset | `/rulesets/create` | `RulesetsController` | `Create` | `INSTRUCTOR` |
@@ -100,8 +100,10 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 - **Placeholder Data Kosong**: Jika data bernilai null/empty, wajib digantikan placeholder aman seperti `-` atau `N/A`, bukan dibiarkan kosong.
 
 ### 5.3 Detail Pemain
-- Urutan utama halaman adalah ringkasan pemain, **Alur Keuangan Pemain**, lalu **Evaluasi Instruktur**.
-- **Riwayat Aktivitas Keuangan** memakai elemen native `<details>/<summary>` agar dapat dilipat tanpa state JavaScript tambahan.
+- Urutan utama halaman adalah **Ringkasan Statistik Pemain**, **Cerita di Balik Hasil Pemain**, lalu **Data Permainan Lengkap**.
+- Ketiga bagian memakai elemen native `<details>/<summary>` agar dapat dilipat tanpa state JavaScript tambahan.
+- Setiap rincian **Lihat angka pembentuk dan rumus** harus memakai nama variabel yang sama dengan metrik induknya serta menampilkan sumber data, rumus, substitusi angka aktual, dan hasil perhitungan.
+- Metrik khusus mode Mahir hanya dirender ketika sesi memakai ruleset mode `MAHIR`.
 - Indikator buka/tutup ditempatkan di sisi kanan judul dan tetap memiliki target interaksi serta status aksesibel bawaan browser.
 
 ### 5.4 Jejak Perjalanan Sesi
@@ -128,8 +130,9 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 | Layanan Tampilan | Endpoint API Backend | Opsi Parameter / Keterangan |
 |---|---|---|
 | Autentikasi Masuk | `POST /api/v1/auth/login` | Memperoleh JWT token & data user role |
-| Registrasi Akun | `POST /api/v1/auth/register` | Mendaftarkan akun instruktur/pemain baru |
+| Registrasi Akun | `POST /api/v1/auth/register` | Registrasi publik hanya untuk akun Player; akun Instruktur dibuat lewat bootstrap/admin |
 | Halaman Daftar Sesi | `GET /api/v1/sessions` | Membaca daftar sesi sesuai peran pengguna |
+| Daftar Player Sesi | `GET /api/v1/sessions/{id}/players` | Membaca peserta sesi sesuai scope pengguna |
 | Dasbor Detail Sesi | `GET /api/v1/analytics/sessions/{id}` | Ringkasan analitika lifetime sesi |
 | Linimasa Event Sesi | `GET /api/v1/sessions/{id}/events` | Riwayat kronologi event permainan |
 | Histori Transaksi Pemain| `GET /api/v1/analytics/sessions/{id}/transactions?userId=...` | Transaksi koin per pemain |

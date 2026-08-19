@@ -13,9 +13,9 @@
 Dokumen ini disusun sebagai rujukan logis untuk memahami alur kerja pengguna (Instruktur & Player), istilah identitas yang digunakan sistem, aturan validasi *ruleset*, batasan hak akses data pemain (*Player scope*), serta hubungan otorisasi di dalam sistem.
 
 Dokumen ini menjadi penghubung antara:
-- Kontrak Teknis API: [02-02-rancangan-kontrak-api-dan-event.md](file:///c:/Users/marco/cashflowpoly-analytics-platform/docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md)
-- Struktur Skema DB: [02-01-rancangan-database-dan-model-data.md](file:///c:/Users/marco/cashflowpoly-analytics-platform/docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md)
-- Desain Antarmuka MVC: [02-04-rancangan-antarmuka-dan-viewmodel-mvc.md](file:///c:/Users/marco/cashflowpoly-analytics-platform/docs/02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md)
+- Kontrak Teknis API: [02-02-rancangan-kontrak-api-dan-event.md](../02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md)
+- Struktur Skema DB: [02-01-rancangan-database-dan-model-data.md](../02-Perancangan/02-01-rancangan-database-dan-model-data.md)
+- Desain Antarmuka MVC: [02-04-rancangan-antarmuka-dan-viewmodel-mvc.md](../02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md)
 
 ---
 
@@ -40,7 +40,7 @@ Sistem menggunakan terminologi identitas berikut untuk membedakan pengguna aplik
 
 ### 3.1 Pengguna Publik (Public / Guest)
 1. Pengguna membuka Web Analitika dasbor atau Game Client.
-2. Pengguna mendaftarkan akun baru melalui `/auth/register` (dengan peran `INSTRUCTOR` atau `PLAYER`) atau langsung masuk melalui `/auth/login`.
+2. Player dapat mendaftarkan akun baru melalui `/auth/register`; akun Instruktur dibuat melalui bootstrap/admin. Keduanya masuk melalui `/auth/login`.
 3. Setelah masuk, sistem menerbitkan JWT token yang berisi informasi `user_id`, `role`, dan data sesi login.
 
 ### 3.2 Alur Kerja Instruktur (`INSTRUCTOR`)
@@ -63,7 +63,7 @@ Sistem menggunakan terminologi identitas berikut untuk membedakan pengguna aplik
 
 Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
 
-*   **Autentikasi & Registrasi**: Dapat diakses secara publik (tanpa token).
+*   **Autentikasi & Registrasi**: Login dan registrasi Player dapat diakses publik; registrasi publik Instruktur ditolak.
 *   **Modifikasi Sesi & Ruleset (Create/Update/Delete/Activate)**: Hanya diizinkan untuk peran `INSTRUCTOR`. Player hanya memiliki hak baca (*read-only*).
 *   **Pengiriman Event Permainan**:
     *   `INSTRUCTOR` dapat mengirim event untuk sesi mana pun yang mereka buat.
@@ -74,7 +74,7 @@ Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
 *   **Audit Keamanan & Metrik Observabilitas**: Hanya dapat diakses oleh peran `INSTRUCTOR` atau administrator sistem.
 
 > [!TIP]
-> Detail pemetaan endpoint API secara teknis beserta kode respons HTTP yang dikembalikan dapat dilihat pada dokumen [02-02-rancangan-kontrak-api-dan-event.md](file:///c:/Users/marco/cashflowpoly-analytics-platform/docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md).
+> Detail pemetaan endpoint API secara teknis beserta kode respons HTTP yang dikembalikan dapat dilihat pada dokumen [02-02-rancangan-kontrak-api-dan-event.md](../02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md).
 
 ---
 
@@ -86,4 +86,3 @@ Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
    - Versi ruleset dengan status `ACTIVE` tidak boleh dihapus.
    - Ruleset yang sudah pernah digunakan oleh sesi permainan tidak dapat dihapus (`is_locked_by_session = true`).
    - Versi ruleset yang memiliki korelasi data dengan tabel event tidak boleh dihapus.
-

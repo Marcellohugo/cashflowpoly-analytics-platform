@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 2.2
-- Tanggal: 12 Juli 2026
+- Versi: 2.3
+- Tanggal: 19 Agustus 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -27,10 +27,10 @@ Acuan utama:
 | Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
 | API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
 | UI dashboard (home/sessions/players/rulesets/rulebook/analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route redirect. |
-| Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, registrasi publik tersedia untuk seluruh role. |
+| Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, dan registrasi publik dibatasi untuk `PLAYER`. |
 | Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman detail sesi (`/sessions/{sessionId}`). |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
-| Dokumen uji + smoke + postman sinkron Bearer | Sesuai | Langkah smoke berbasis CLI dan Postman collection sudah menggunakan login + token Bearer. |
+| Dokumen uji + smoke + Postman sinkron Bearer | Sesuai | Koleksi Postman mewajibkan login Instruktur berhasil, menguji penolakan registrasi publik Instruktur, dan tidak menganggap respons autentikasi gagal sebagai hasil lulus. |
 | Observability operasional | Sesuai | Endpoint ringkas `GET /api/v1/observability/metrics/summary` tersedia untuk role `INSTRUCTOR` dan menunjuk ke endpoint Prometheus `GET /metrics`; trace ID diseragamkan pada header/log. |
 | Hardening keamanan produksi (baseline) | Sesuai | Rotasi JWT multi-key berbasis `kid` + window aktivasi/retire, dukungan secret env/file untuk integrasi vault/secret manager, dan audit log keamanan persisten tersedia. |
 | Baseline uji performa | Sesuai | Baseline performa dapat diulang memakai skenario request berulang ke endpoint ingest event dan analytics sesi, lalu dicatat pada laporan pengujian. |
@@ -38,15 +38,19 @@ Acuan utama:
 ---
 
 ## 3. Bukti Verifikasi Terakhir
-Verifikasi lokal pada 12 Juli 2026:
+Verifikasi lokal pada 19 Agustus 2026:
 
 | Pemeriksaan | Hasil |
 |---|---|
-| `dotnet build Cashflowpoly.sln --no-restore --nologo` | Lulus, 0 warning, 0 error |
-| Test UI | 103/103 lulus |
-| Test API | 290/290 lulus |
-| Total test solution | 393/393 lulus |
+| `dotnet build Cashflowpoly.sln -c Release --no-restore --nologo -warnaserror` | Lulus, 0 warning, 0 error |
+| Test UI | 188/188 lulus |
+| Test API | 304/304 lulus |
+| Total test solution | 492/492 lulus |
 | Seed simulasi Pemula + Mahir | Lulus schema, login, analitika, proyeksi, snapshot, dan replay |
+| Render konfigurasi Docker Compose Development dan Production | Lulus |
+| Audit paket NuGet transitif dan npm runtime | Tidak ditemukan kerentanan yang dilaporkan sumber audit |
+| Health API/UI (`/health/live` dan `/health/ready`) | Seluruh endpoint mengembalikan HTTP 200 |
+| Validasi JSON koleksi dan environment Postman | Lulus |
 
 Penilaian penutupan audit internal:
 
@@ -79,6 +83,3 @@ Implementasi dianggap siap ketika:
 4. docs, smoke, postman, dan implementasi konsisten,
 5. hasil build/test/smoke/compose/load-test baseline lulus tanpa bug blocker,
 6. observability operasional + audit log keamanan aktif dan dapat diverifikasi.
-
-
-

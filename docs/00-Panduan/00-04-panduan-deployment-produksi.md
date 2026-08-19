@@ -33,7 +33,7 @@ Cloudflare Edge (SSL Termination)
 |                                                          |
 | cloudflared -> nginx:80 -> api:5041 (REST API)          |
 |                      |-> ui:5203 (MVC Web)              |
-|                      `-> swagger, health, dll           |
+|                      `-> health dan static asset        |
 |                                                          |
 | db (PostgreSQL 16) <- api                               |
 +----------------------------------------------------------+
@@ -46,7 +46,7 @@ Cloudflare Edge (SSL Termination)
 | **PostgreSQL 16** | Database relasional | 5432 |
 | **Cashflowpoly.Api** | REST API (.NET 10) | 5041 |
 | **Cashflowpoly.Ui** | Dashboard MVC (.NET 10) | 5203 |
-| **Nginx** | Reverse proxy, routing, dan pembatasan rate limit | 80, 443 |
+| **Nginx** | Reverse proxy HTTP internal, routing, dan pembatasan rate limit | 80 |
 | **Cloudflared** | Tunnel ke jaringan tepi Cloudflare | - |
 
 ### Aturan Routing Nginx
@@ -56,9 +56,9 @@ Cloudflare Edge (SSL Termination)
 | `/` | UI (5203) | Dashboard utama analitika |
 | `/api/` | API (5041) | Semua endpoint REST API |
 | `/api/v1/auth/login` | API (5041) | Login dengan pembatasan rate limit ketat |
-| `/swagger` | API (5041) | Swagger UI (Dokumentasi API) |
-| `/health`, `/health/ready`, `/health/live` | API (5041) | Pemeriksaan kesehatan layanan (*health check*) |
-| Static assets (`.css`, `.js`, dll) | UI (5203) | Cache browser selama 7 hari |
+| `/health` | UI (5203) lalu API/DB | Readiness seluruh aplikasi |
+| `/health/ready`, `/health/live` | API (5041) | Readiness/liveness API |
+| Static assets (`.css`, `.js`, dll) | UI (5203) | Cache browser selama 10 menit |
 
 ---
 
@@ -162,13 +162,13 @@ Pastikan semua kontainer berjalan dengan normal dan sehat:
 
 ```powershell
 docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml ps
-curl http://localhost/health/ready
+curl http://localhost/health
 docker logs cashflowpoly-nginx --tail 20
 ```
 
 Ekspektasi:
 - Kontainer `db`, `api`, `ui`, dan `nginx` berstatus `healthy`.
-- Endpoint `/health/ready` mengembalikan respons `200 OK`.
+- Endpoint `/health` mengembalikan respons `200 OK` hanya jika UI, API, dan database siap.
 
 ---
 
@@ -184,8 +184,10 @@ Cloudflare Tunnel digunakan agar aplikasi dapat diakses secara publik melalui SS
 
 Setelah tunnel aktif, Anda dapat mengakses:
 - **Dashboard UI**: `https://narafin.org`
-- **Swagger UI**: `https://narafin.org/swagger`
+- **Readiness aplikasi**: `https://narafin.org/health`
 - **Readiness API**: `https://narafin.org/health/ready`
+
+Swagger UI sengaja tidak dipublikasikan pada environment Production. Gunakan koleksi Postman atau jalankan API pada environment Development untuk melihat OpenAPI/Swagger.
 
 ---
 
@@ -218,12 +220,9 @@ docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.ym
 *   **Penyebab**: Konfigurasi connection string PostgreSQL atau JWT signing key bermasalah.
 *   **Solusi**: Periksa log API menggunakan perintah `docker logs cashflowpoly-api`. Cek kebenaran isian password DB di file `.env.prod`.
 
-### 9.2 Halaman Swagger Blank atau Tidak Bisa Diakses di Produksi
-*   **Penyebab**: Nginx gagal mengarahkan rute static asset untuk Swagger.
-*   **Solusi**: Pastikan file `infra/nginx/default.conf` memuat routing static asset Swagger ke backend, lalu rebuild Nginx dengan:
-    ```powershell
-    docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build nginx
-    ```
+### 9.2 Swagger Tidak Bisa Diakses di Produksi
+*   **Penyebab**: Swagger hanya diaktifkan pada environment Development sebagai kebijakan pengurangan permukaan informasi publik.
+*   **Solusi**: Gunakan koleksi `postman/Cashflowpoly.postman_collection.json`. Untuk inspeksi Swagger, jalankan API secara lokal dengan `ASPNETCORE_ENVIRONMENT=Development` dan buka `http://localhost:5041/swagger`.
 
 ### 9.3 Backup dan Restore Database PostgreSQL (Kontainer)
 Untuk melakukan ekspor data (backup):

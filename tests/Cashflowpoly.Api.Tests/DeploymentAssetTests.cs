@@ -1,4 +1,5 @@
 // Fungsi file: Memverifikasi perilaku API, database, atau domain melalui DeploymentAssetTests.
+using System.Text.Json;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
@@ -90,6 +91,44 @@ public sealed class DeploymentAssetTests
 
         Assert.DoesNotContain("migration EF", readme, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("bootstrap schema SQL kanonik", readme, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PostmanAndDocumentation_ShouldMatchCurrentAuthAndApiContract()
+    {
+        var collection = File.ReadAllText(Path.Combine(RepoRoot, "postman", "Cashflowpoly.postman_collection.json"));
+        var environment = File.ReadAllText(Path.Combine(RepoRoot, "postman", "Cashflowpoly.local.postman_environment.json"));
+        var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
+        var docsIndex = File.ReadAllText(Path.Combine(RepoRoot, "docs", "README.md"));
+
+        using var collectionJson = JsonDocument.Parse(collection);
+        using var environmentJson = JsonDocument.Parse(environment);
+
+        Assert.Contains("baseline schema 3.0.11", collection, StringComparison.Ordinal);
+        Assert.Contains("Verify Public Instructor Registration Is Rejected", collection, StringComparison.Ordinal);
+        Assert.Contains("'Login': [200]", collection, StringComparison.Ordinal);
+        Assert.DoesNotContain("'Login': [200, 401]", collection, StringComparison.Ordinal);
+        Assert.DoesNotContain("protectedRequests", collection, StringComparison.Ordinal);
+        Assert.Contains("List Session Players", collection, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/sessions/{{sessionId}}/players", collection, StringComparison.Ordinal);
+        Assert.Contains("deniedInstructorUsername", environment, StringComparison.Ordinal);
+        Assert.Contains("schema `3.0.11`", readme, StringComparison.Ordinal);
+        Assert.DoesNotContain("file:///", docsIndex, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProductionAssets_ShouldValidateBootstrapAndNotPublishSwagger()
+    {
+        var prodEnvironment = File.ReadAllText(Path.Combine(RepoRoot, "config", "env", ".env.prod.example"));
+        var readinessScript = File.ReadAllText(Path.Combine(RepoRoot, "scripts", "Test-ProductionReadiness.ps1"));
+        var nginx = File.ReadAllText(Path.Combine(RepoRoot, "infra", "nginx", "default.conf"));
+
+        Assert.Contains("AUTH_BOOTSTRAP_SEED_DEFAULT_USERS=false", prodEnvironment, StringComparison.Ordinal);
+        Assert.Contains("AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME=", prodEnvironment, StringComparison.Ordinal);
+        Assert.Contains("Test-BootstrapCredentialPair", readinessScript, StringComparison.Ordinal);
+        Assert.Contains("UTF8.GetByteCount", readinessScript, StringComparison.Ordinal);
+        Assert.DoesNotContain("location /swagger", nginx, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("^/swagger/", nginx, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ResolveRepositoryRoot()

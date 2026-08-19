@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Panduan Menjalankan Sistem
-- Versi: 1.2
-- Tanggal: 18 Juni 2026
+- Versi: 1.3
+- Tanggal: 19 Agustus 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -27,7 +27,7 @@ Lihat detailnya pada: `docs/00-Panduan/00-01-panduan-setup-lingkungan.md`.
 
 ---
 
-## 3. Menjalankan REST API dan Swagger
+## 3. Menjalankan REST API dan Swagger (Development)
 ### 3.1 Jalankan API
 Dari folder `src`:
 ```bash
@@ -39,6 +39,8 @@ Pada startup pertama, API akan:
 2. memastikan ruleset default dari `database/01_seed_default_rulesets_components.sql` tersedia.
 
 ### 3.2 Akses Swagger
+Buka Swagger hanya ketika `ASPNETCORE_ENVIRONMENT=Development`; endpoint ini sengaja tidak tersedia pada Production.
+
 Buka Chrome:
 - `https://localhost:7041/swagger` (HTTPS)
 - `http://localhost:5041/swagger` (HTTP)
@@ -77,7 +79,7 @@ Buka:
 - `http://localhost:5203/sessions` (HTTP)
 
 Jika halaman kosong atau terus-menerus diarahkan ke login, cek bahwa:
-1. login API berhasil dan token tersimpan di session UI,
+1. login API berhasil dan token tersimpan dalam cookie autentikasi UI terenkripsi,
 2. endpoint `/api/v1/sessions` mengembalikan `200`,
 3. `ApiBaseUrl` UI mengarah ke API yang benar.
 
@@ -177,7 +179,5 @@ Hentikan container:
 ```bash
 docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml down
 ```
-
-
 
 

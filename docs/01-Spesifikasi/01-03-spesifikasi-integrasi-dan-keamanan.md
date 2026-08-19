@@ -36,7 +36,7 @@ Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cas
 
 Kebijakan registrasi:
 - role `PLAYER` boleh register publik.
-- role `INSTRUCTOR` boleh register publik.
+- role `INSTRUCTOR` ditolak pada registrasi publik dan dibuat melalui bootstrap/admin.
 
 Response login minimal:
 ```json
@@ -71,6 +71,7 @@ Response login minimal:
 | `DELETE /api/v1/rulesets/{rulesetId}` | Ya | Tidak |
 | `POST /api/v1/players` | Ya | Tidak |
 | `POST /api/v1/sessions/{sessionId}/players` | Ya | Tidak |
+| `GET /api/v1/sessions/{sessionId}/players` | Ya | Ya, hanya sesi sendiri |
 | `GET /api/v1/sessions` | Ya | Ya |
 | `GET /api/v1/analytics/...` | Ya | Ya |
 | `GET /api/v1/game-components` | Ya | Ya |
@@ -215,5 +216,3 @@ Sistem dianggap siap integrasi IDN jika:
 2. retry event dengan `event_id` sama tidak menggandakan data,
 3. seluruh endpoint utama mengembalikan format error standar saat gagal,
 4. data analitika sesi dan pemain dapat diambil konsisten setelah ingest event.
-
-

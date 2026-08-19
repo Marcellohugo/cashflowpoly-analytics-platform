@@ -3,8 +3,8 @@
 
 ### Informasi Dokumen
 - **Nama Dokumen**: Panduan Manual Pengguna Dashboard
-- **Versi**: 1.4
-- **Tanggal**: 11 Juli 2026
+- **Versi**: 1.5
+- **Tanggal**: 19 Agustus 2026
 - **Penyusun**: Marco Marcello Hugo
 
 ---
@@ -13,7 +13,7 @@
 Dokumen ini disusun untuk memandu pengguna (Instruktur dan Player) dalam berinteraksi dengan antarmuka Web Analitika MVC (Razor Views). Dokumen ini berfokus pada navigasi menu dashboard, cara membaca grafik, visualisasi metrik literasi keuangan, serta pengelolaan ruleset.
 
 > [!NOTE]
-> Panduan ini khusus untuk penggunaan **Web Dashboard MVC**. Untuk instruksi pengiriman event permainan dari Game Client/IDN atau simulator, silakan merujuk ke spesifikasi simulasi di [01-05-spesifikasi-skenario-simulasi.md](file:///c:/Users/marco/cashflowpoly-analytics-platform/docs/01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md).
+> Panduan ini khusus untuk penggunaan **Web Dashboard MVC**. Untuk instruksi pengiriman event permainan dari Game Client/IDN atau simulator, silakan merujuk ke spesifikasi simulasi di [01-05-spesifikasi-skenario-simulasi.md](../01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md).
 
 ---
 
@@ -50,7 +50,7 @@ Dasbor dapat diakses melalui browser pada port UI MVC (default pada environment 
 
 ### 4.1 Halaman Autentikasi (Masuk & Daftar)
 1. Buka halaman utama dasbor. Sistem akan mengarahkan Anda ke `/auth/login` secara otomatis jika belum masuk.
-2. **Daftar Akun Baru**: Jika belum memiliki akun, klik tautan pendaftaran (`/auth/register`) untuk mendaftar sebagai `INSTRUCTOR` atau `PLAYER`.
+2. **Daftar Akun Baru**: Player dapat memakai tautan pendaftaran (`/auth/register`). Akun Instruktur disediakan administrator.
 3. **Masuk**: Isi kredensial username dan password yang valid.
 4. *Catatan Teknis*: Dasbor akan menyimpan token JWT di session server-side UI secara otomatis. Anda tidak perlu menyalin token Bearer secara manual pada browser.
 
@@ -78,15 +78,11 @@ Halaman utama pemantauan analitika sesi permainan yang memuat:
 
 ### 4.4 Halaman Detail Performa Pemain (`/sessions/{id}/players/{userId}`)
 Menyajikan visualisasi mendalam tentang performa literasi keuangan seorang pemain:
-1. **Visualisasi Skor Kebahagiaan**:
-   - Poin dari pemenuhan kebutuhan dasar & sekunder.
-   - Bonus set kartu/asset yang terkumpul.
-   - Poin sosial (Donasi) dan proteksi aset (Kepemilikan Emas & Asuransi).
-   - Penalti yang didapat akibat keputusan keuangan yang buruk.
-2. **Grafik & Chart**: Menampilkan grafik arus kas dan kepemilikan aset yang berfluktuasi seiring giliran permainan.
-3. **Alur Keuangan Pemain**: Bagian ini tampil sebelum **Evaluasi Instruktur**. Judul **Riwayat Aktivitas Keuangan** memiliki kontrol buka/tutup di sisi kanan dan dapat dilipat untuk mengurangi kepadatan halaman.
-4. **Tabel Histori Transaksi**: Menampilkan daftar transaksi yang dilakukan pemain secara rinci (Tipe, Jumlah, Saldo Akhir, dan Waktu Transaksi).
-5. **Evaluasi Instruktur**: Menampilkan indikator utama dan tab rincian setelah bagian alur keuangan.
+1. **Ringkasan Statistik Pemain**: Menampilkan metrik inti dan prioritas pembahasan tanpa mengulang indikator yang sama.
+2. **Cerita di Balik Hasil Pemain**: Menjelaskan arti setiap metrik. Kontrol **Lihat angka pembentuk dan rumus** menampilkan sumber data, nama variabel yang konsisten, rumus, substitusi angka aktual, dan hasil perhitungannya.
+3. **Data Permainan Lengkap**: Menampilkan rincian transaksi, urutan event, inventori, dan data pembentuk lain untuk audit hasil.
+4. Ketiga bagian utama memakai *accordion* native `<details>/<summary>` sehingga dapat dibuka atau ditutup tanpa kehilangan konteks.
+5. Analitika khusus mode Mahir—misalnya pinjaman, asuransi, tabungan, tujuan finansial, dan risiko kehidupan—hanya muncul pada sesi mode Mahir.
 
 ### 4.5 Halaman Manajemen Ruleset (`/rulesets`)
 Tempat Instruktur mengonfigurasi aturan permainan yang akan diikat pada sesi:

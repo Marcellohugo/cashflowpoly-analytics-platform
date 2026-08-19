@@ -178,7 +178,7 @@ Untuk hardening produksi, API mendukung opsi tambahan:
 3. Header token otomatis membawa `kid` dan API memvalidasi token berdasarkan daftar key aktif/retired grace-period.
 
 Catatan bootstrap auth:
-- Registrasi publik untuk role `INSTRUCTOR` dan `PLAYER` tersedia melalui endpoint `POST /api/v1/auth/register`.
+- Registrasi publik `POST /api/v1/auth/register` hanya untuk role `PLAYER`; akun `INSTRUCTOR` disediakan melalui bootstrap/admin.
 - Jika butuh seed user awal otomatis, aktifkan `AuthBootstrap:SeedDefaultUsers=true` dan isi kredensial bootstrap.
 - Identitas akun Player memakai `app_users.user_id`. Saat akun Player masuk
   ke sesi, sistem membuat baris peserta pada `session_participants` dan
@@ -246,7 +246,6 @@ Setup selesai jika:
 7. jika memakai secret manager, path secret file JWT dapat diakses container/proses API.
 
 Untuk menjalankan sistem, lanjutkan ke: `docs/00-Panduan/00-03-panduan-menjalankan-sistem.md`.
-
 
 
 

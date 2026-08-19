@@ -138,7 +138,7 @@ Kriteria uji minimum:
 - FR-DSH-03 Sistem menampilkan histori transaksi dan histori keputusan berdasarkan event.
 - FR-DSH-04 Sistem menyediakan filter dan pengelompokan berdasarkan ruleset, sesi, pemain, dan rentang waktu.
 - FR-DSH-05 Sistem memperbarui tampilan setelah sistem menerima event pada setiap aksi atau akhir giliran.
-- FR-DSH-06 Instruktur melihat event count, cash in, cash out, net cashflow, performa Player, dan pelanggaran validasi secara near real-time melalui Web Analitik.
+- FR-DSH-06 Instruktur melihat event count, cash in, cash out, net cashflow, performa Player, dan prioritas analitik secara near real-time melalui Web Analitik. Upaya event yang tidak valid ditolak backend dan tetap tersedia sebagai data audit, bukan kartu statistik utama.
 - FR-DSH-07 Player hanya melihat data sesi dan performa yang sesuai dengan hak aksesnya setelah permainan berakhir atau saat data sudah diizinkan.
 
 ---
@@ -281,7 +281,6 @@ Tahap perancangan siap dimulai apabila:
 5. Setiap aturan domain yang berdampak pada validasi memiliki aturan validasi yang tertulis.
 
 ---
-
 
 
 

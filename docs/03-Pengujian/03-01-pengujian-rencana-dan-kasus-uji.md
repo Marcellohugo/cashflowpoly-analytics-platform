@@ -60,7 +60,7 @@ Sistem menganggap respons error valid jika sistem mengembalikan struktur berikut
 {
   "error_code": "STRING",
   "message": "STRING",
-  "details": {},
+  "details": [],
   "trace_id": "STRING"
 }
 ```
@@ -362,7 +362,7 @@ Catatan:
 - Endpoint: `POST /api/v1/auth/register`
 - Input: role `INSTRUCTOR`.
 - Ekspektasi:
-  - Status: `201`.
+  - Status production: `403`.
 
 **TC-API-21 — Endpoint terproteksi tanpa token**
 - Contoh endpoint: `POST /api/v1/rulesets`.
@@ -604,11 +604,14 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 5. Verifikasi semua langkah smoke berstatus sukses tanpa exception.
 
 ### 14.2 Verifikasi API collection
-1. Jalankan collection `postman/Cashflowpoly.postman_collection.json`.
-2. Verifikasi endpoint kritikal:
+1. Impor `postman/Cashflowpoly.postman_collection.json` dan `postman/Cashflowpoly.local.postman_environment.json`.
+2. Isi `authUsername` dan `authPassword` dengan akun Instruktur bootstrap yang valid, lalu jalankan koleksi dari request pertama.
+3. Pastikan Login menghasilkan `200`; respons `401/403` pada request positif harus menggagalkan pengujian.
+4. Verifikasi endpoint kritikal:
    - autentikasi (`login/register`),
    - ruleset (create/update/activate/delete),
    - sesi (create/start/end dengan `ruleset_version_id`),
+   - daftar pemain sesi (`GET /api/v1/sessions/{sessionId}/players`),
    - ingest event dan analytics.
 
 ### 14.2A RBAC smoke test
@@ -622,7 +625,7 @@ Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur 
 ### 14.2B Web UI smoke test
 1. Login ke UI menggunakan akun valid.
 2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/rulebook`) dapat diakses tanpa error, dan route kompatibilitas `/analytics` atau `/Analytics` melakukan redirect yang benar ke halaman sesi.
-3. Verifikasi Swagger API (`/swagger`) dapat diakses.
+3. Pada environment Development, verifikasi Swagger API (`/swagger`) dapat diakses. Swagger tidak diekspos pada Production.
 
 ### 14.3 Definition of Done (DoD)
 Fitur dinyatakan selesai jika:
@@ -644,4 +647,3 @@ Fitur dinyatakan selesai jika:
    - status compose/health,
    - ringkasan load test,
    - sampel SQL/security audit/observability (`/api/v1/observability/metrics/summary` dan `/metrics`).
-

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Cashflowpoly API",
-    "description": "Collection kontrak API Cashflowpoly baseline schema 3.0.7 (12 Juli 2026).",
+    "description": "Collection kontrak API Cashflowpoly baseline schema 3.0.11 (19 Agustus 2026). Isi authUsername dan authPassword dengan akun Instruktur yang sudah di-bootstrap, lalu jalankan koleksi dari awal. Dua request event bertanda Reject adalah uji negatif dan harus menghasilkan 422.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -28,25 +28,29 @@
           "};",
           "setVar('timestamp', now);",
           "const suffix = Date.now().toString().slice(-8);",
-          "ensure('registerUsername', `instructor_${suffix}`);",
-          "ensure('registerPassword', 'Pass123!Aa2026');",
+          "ensure('deniedInstructorUsername', `instructor_denied_${suffix}`);",
+          "ensure('deniedInstructorPassword', 'Pass123!Aa2026');",
           "ensure('playerUsername', `player_${suffix}`);",
           "ensure('playerPassword', 'Pass123!Aa2026');",
           "ensure('secondPlayerUsername', `player_b_${suffix}`);",
           "ensure('secondPlayerPassword', 'Pass123!Aa2026');",
           "ensure('rulesetVersionNumber', '1');",
-          "if (!pm.variables.get('authPassword') || String(pm.variables.get('authPassword')).startsWith('replace-with-')) {",
-          "  setVar('authUsername', pm.variables.get('registerUsername'));",
-          "  setVar('authPassword', pm.variables.get('registerPassword'));",
+          "const startsCollectionRun = pm.info.requestName === 'Verify Public Instructor Registration Is Rejected';",
+          "if (startsCollectionRun) {",
+          "  setVar('deniedInstructorUsername', `instructor_denied_${suffix}`);",
+          "  setVar('playerUsername', `player_${suffix}`);",
+          "  setVar('secondPlayerUsername', `player_b_${suffix}`);",
+          "  setVar('accessToken', '');",
           "}",
-          "[",
+          "const eventIdKeys = [",
           "  'eventIdFreelance','eventIdNeedPrimary','eventIdNeedSecondary','eventIdNeedTertiary','eventIdIngredient',",
           "  'eventIdOrder','eventIdRisk','eventIdInsuranceUsed','eventIdTurnEnd','eventIdMission','eventIdInsurance',",
           "  'eventIdSavingDeposit','eventIdSavingWithdraw','eventIdSavingGoal','eventIdLoanTaken','eventIdLoanRepaid',",
           "  'eventIdOrderPassed','eventIdIngredientDiscarded','eventIdRiskEmergency','eventIdBatch1','eventIdBatch2',",
           "  'eventIdDonation','eventIdGoldBuy'",
-          "].forEach(function(key) {",
-          "  if (!pm.collectionVariables.get(key)) {",
+          "];",
+          "eventIdKeys.forEach(function(key) {",
+          "  if (startsCollectionRun || !pm.collectionVariables.get(key)) {",
           "    setVar(key, uuid());",
           "  }",
           "});"
@@ -59,10 +63,10 @@
         "type": "text/javascript",
         "exec": [
           "const expectedByRequest = {",
-          "  'Register Instructor': [201, 409, 403],",
-          "  'Login': [200, 401],",
+          "  'Verify Public Instructor Registration Is Rejected': [403],",
+          "  'Login': [200],",
           "  'Create Ruleset PEMULA': [201],",
-          "  'Update Ruleset PEMULA': [200, 409, 422],",
+          "  'Update Ruleset PEMULA': [200],",
           "  'Create Ruleset MAHIR': [201],",
           "  'List Rulesets': [200],",
           "  'Get Ruleset Detail': [200],",
@@ -70,26 +74,27 @@
           "  'Get Default Ruleset Components': [200],",
           "  'Get Game Components Alias': [200],",
           "  'Get Ruleset Sections': [200],",
-          "  'Activate Ruleset Version': [200, 422],",
-          "  'Delete Ruleset Version': [204, 422, 404],",
-          "  'Delete Ruleset': [204, 422, 404],",
+          "  'Activate Ruleset Version': [200],",
+          "  'Delete Ruleset Version': [422],",
+          "  'Delete Ruleset': [422],",
           "  'Create Session': [201],",
           "  'List Sessions': [200],",
           "  'Start Session': [200],",
-          "  'End Session': [200, 422],",
+          "  'End Session': [200],",
           "  'Get Session State': [200],",
           "  'Write Session State Disabled': [410],",
-          "  'Create Player A': [201, 409],",
-          "  'Create Player B': [201, 409],",
+          "  'Create Player A': [201],",
+          "  'Create Player B': [201],",
           "  'List Players': [200],",
           "  'Add Player A To Session': [200],",
           "  'Add Player B To Session': [200],",
+          "  'List Session Players': [200],",
           "  'Create Event': [201],",
           "  'Need Primary Purchased': [201],",
           "  'Ingredient Purchased': [201],",
           "  'Order Claimed': [201],",
-          "  'Donation Friday': [201],",
-          "  'Gold Buy Saturday': [400, 422],",
+          "  'Reject Future Friday Donation': [422],",
+          "  'Reject Future Saturday Gold Buy': [422],",
           "  'Turn Ended': [201],",
           "  'Create Events Batch': [200],",
           "  'Get Events By Session': [200],",
@@ -104,25 +109,10 @@
           "  'Health Live': [200],",
           "  'Health Ready': [200]",
           "};",
-          "const protectedRequests = [",
-          "  'Create Ruleset PEMULA','Update Ruleset PEMULA','Create Ruleset MAHIR','List Rulesets','Get Ruleset Detail',",
-          "  'Get Ruleset Components','Get Default Ruleset Components','Get Game Components Alias','Get Ruleset Sections',",
-          "  'Activate Ruleset Version','Delete Ruleset Version','Delete Ruleset','Create Session','List Sessions',",
-          "  'Start Session','End Session','Get Session State','Write Session State Disabled','Create Player A','Create Player B','List Players',",
-          "  'Add Player A To Session','Add Player B To Session','Create Event','Need Primary Purchased','Ingredient Purchased',",
-          "  'Order Claimed','Donation Friday','Gold Buy Saturday','Turn Ended','Create Events Batch','Get Events By Session','Recompute Session Analytics',",
-          "  'Get Session Analytics','Get Transactions','Get Gameplay Metrics','Get Ruleset Analytics Summary',",
-          "  'Get Observability Summary','Get Security Audit Logs'",
-          "];",
           "const current = pm.info.requestName;",
           "const expected = expectedByRequest[current];",
-          "const hasToken = !!pm.collectionVariables.get('accessToken');",
           "if (expected) {",
           "  pm.test(`${current} status is expected`, function () {",
-          "    if (!hasToken && protectedRequests.includes(current)) {",
-          "      pm.expect([401, 403]).to.include(pm.response.code);",
-          "      return;",
-          "    }",
           "    pm.expect(expected).to.include(pm.response.code);",
           "  });",
           "}",
@@ -150,10 +140,6 @@
           "  }",
           "  return null;",
           "};",
-          "if (current === 'Register Instructor' && pm.response.code === 201 && (!pm.variables.get('authPassword') || String(pm.variables.get('authPassword')).startsWith('replace-with-'))) {",
-          "  setVar('authUsername', pm.variables.get('registerUsername'));",
-          "  setVar('authPassword', pm.variables.get('registerPassword'));",
-          "}",
           "if (current === 'Login' && pm.response.code === 200) {",
           "  const data = tryJson();",
           "  if (data && data.access_token) setVar('accessToken', data.access_token);",
@@ -213,10 +199,12 @@
           "if (current === 'Get Session State' && pm.response.code === 200) {",
           "  const data = tryJson();",
           "  const firstPlayer = data && Array.isArray(data.players) ? data.players.find(player => player.player_order_no === 1) : null;",
+          "  const nextPlayer = data && Array.isArray(data.players) ? data.players.find(player => player.player_order_no === 2) : null;",
           "  const nextSequence = data && Number(data.next_sequence_number);",
           "  if (firstPlayer && firstPlayer.user_id) setVar('activePlayerUserId', firstPlayer.user_id);",
+          "  if (nextPlayer && nextPlayer.user_id) setVar('nextPlayerUserId', nextPlayer.user_id);",
           "  if (Number.isInteger(nextSequence)) {",
-          "    for (let offset = 0; offset <= 7; offset += 1) setVar(`sequence${offset}`, String(nextSequence + offset));",
+          "    for (let offset = 0; offset <= 8; offset += 1) setVar(`sequence${offset}`, String(nextSequence + offset));",
           "  }",
           "}"
         ]
@@ -228,7 +216,7 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Register Instructor",
+          "name": "Verify Public Instructor Registration Is Rejected",
           "request": {
             "method": "POST",
             "header": [
@@ -237,7 +225,7 @@
             "url": "{{baseUrl}}/api/v1/auth/register",
             "body": {
               "mode": "raw",
-              "raw": "{\"username\":\"{{registerUsername}}\",\"password\":\"{{registerPassword}}\",\"role\":\"INSTRUCTOR\",\"display_name\":\"Instructor Test\"}"
+              "raw": "{\"username\":\"{{deniedInstructorUsername}}\",\"password\":\"{{deniedInstructorPassword}}\",\"role\":\"INSTRUCTOR\",\"display_name\":\"Instructor Ditolak\"}"
             }
           }
         },
@@ -471,6 +459,16 @@
           }
         },
         {
+          "name": "List Session Players",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/players",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ]
+          }
+        },
+        {
           "name": "List Sessions",
           "request": {
             "method": "GET",
@@ -561,7 +559,7 @@
             "url": "{{baseUrl}}/api/v1/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdIngredient}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":2,\"weekday\":\"TUE\",\"turn_number\":1,\"action_slot\":1,\"sequence_number\":{{sequence2}},\"action_type\":\"BahanMasakan\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"ING-001\",\"amount\":1}}"
+              "raw": "{\"event_id\":\"{{eventIdIngredient}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{nextPlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":2,\"action_slot\":1,\"sequence_number\":{{sequence2}},\"action_type\":\"BahanMasakan\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"ING-001\",\"amount\":1}}"
             }
           }
         },
@@ -576,12 +574,12 @@
             "url": "{{baseUrl}}/api/v1/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdOrder}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":2,\"weekday\":\"TUE\",\"turn_number\":1,\"action_slot\":2,\"sequence_number\":{{sequence3}},\"action_type\":\"JualMasakan\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-001\",\"required_ingredient_card_ids\":[\"ING-001\"],\"income\":5}}"
+              "raw": "{\"event_id\":\"{{eventIdOrder}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{nextPlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":2,\"action_slot\":2,\"sequence_number\":{{sequence3}},\"action_type\":\"JualMasakan\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"order_card_id\":\"ORD-001\",\"required_ingredient_card_ids\":[\"ING-001\"],\"income\":5}}"
             }
           }
         },
         {
-          "name": "Donation Friday",
+          "name": "Reject Future Friday Donation",
           "request": {
             "method": "POST",
             "header": [
@@ -596,7 +594,7 @@
           }
         },
         {
-          "name": "Gold Buy Saturday",
+          "name": "Reject Future Saturday Gold Buy",
           "request": {
             "method": "POST",
             "header": [
@@ -606,7 +604,7 @@
             "url": "{{baseUrl}}/api/v1/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdGoldBuy}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":6,\"weekday\":\"SAT\",\"turn_number\":1,\"action_slot\":0,\"sequence_number\":{{sequence5}},\"action_type\":\"InvestasiEmas\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"trade_type\":\"BUY\",\"qty\":1,\"unit_price\":5,\"amount\":5}}"
+              "raw": "{\"event_id\":\"{{eventIdGoldBuy}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":6,\"weekday\":\"SAT\",\"turn_number\":1,\"action_slot\":0,\"sequence_number\":{{sequence4}},\"action_type\":\"InvestasiEmas\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"trade_type\":\"BUY\",\"qty\":1,\"unit_price\":5,\"amount\":5}}"
             }
           }
         },
@@ -621,7 +619,7 @@
             "url": "{{baseUrl}}/api/v1/events",
             "body": {
               "mode": "raw",
-              "raw": "{\"event_id\":\"{{eventIdTurnEnd}}\",\"session_id\":\"{{sessionId}}\",\"actor_type\":\"SYSTEM\",\"timestamp\":\"{{timestamp}}\",\"day_index\":6,\"weekday\":\"SAT\",\"turn_number\":0,\"action_slot\":0,\"sequence_number\":{{sequence5}},\"action_type\":\"AkhirGiliran\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"used\":2,\"remaining\":0}}"
+              "raw": "{\"event_id\":\"{{eventIdTurnEnd}}\",\"session_id\":\"{{sessionId}}\",\"actor_type\":\"SYSTEM\",\"timestamp\":\"{{timestamp}}\",\"day_index\":1,\"weekday\":\"MON\",\"turn_number\":0,\"action_slot\":0,\"sequence_number\":{{sequence4}},\"action_type\":\"AkhirGiliran\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{}}"
             }
           }
         },
@@ -636,7 +634,7 @@
             "url": "{{baseUrl}}/api/v1/events/batch",
             "body": {
               "mode": "raw",
-              "raw": "{\"events\":[{\"event_id\":\"{{eventIdBatch1}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":7,\"weekday\":\"SUN\",\"turn_number\":1,\"action_slot\":1,\"sequence_number\":{{sequence6}},\"action_type\":\"KerjaLepas\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"amount\":1}},{\"event_id\":\"{{eventIdBatch2}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":8,\"weekday\":\"MON\",\"turn_number\":1,\"action_slot\":1,\"sequence_number\":{{sequence7}},\"action_type\":\"Kebutuhan\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"card_id\":\"NEED-P-001\",\"need_tier\":\"PRIMARY\",\"amount\":2,\"points\":2}}]}"
+              "raw": "{\"events\":[{\"event_id\":\"{{eventIdBatch1}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":2,\"weekday\":\"TUE\",\"turn_number\":1,\"action_slot\":1,\"sequence_number\":{{sequence5}},\"action_type\":\"KerjaLepas\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"amount\":1}},{\"event_id\":\"{{eventIdBatch2}}\",\"session_id\":\"{{sessionId}}\",\"user_id\":\"{{activePlayerUserId}}\",\"actor_type\":\"PLAYER\",\"timestamp\":\"{{timestamp}}\",\"day_index\":2,\"weekday\":\"TUE\",\"turn_number\":1,\"action_slot\":2,\"sequence_number\":{{sequence6}},\"action_type\":\"KerjaLepas\",\"ruleset_version_id\":\"{{rulesetVersionId}}\",\"payload\":{\"amount\":1}}]}"
             }
           }
         },
@@ -803,8 +801,8 @@
     { "key": "baseUrl", "value": "http://localhost:5041", "type": "string" },
     { "key": "authUsername", "value": "instructor", "type": "string" },
     { "key": "authPassword", "value": "replace-with-your-password", "type": "string" },
-    { "key": "registerUsername", "value": "instructor_postman", "type": "string" },
-    { "key": "registerPassword", "value": "replace-with-instructor-password", "type": "string" },
+    { "key": "deniedInstructorUsername", "value": "", "type": "string" },
+    { "key": "deniedInstructorPassword", "value": "Pass123!Aa2026", "type": "string" },
     { "key": "playerUsername", "value": "", "type": "string" },
     { "key": "playerPassword", "value": "Pass123!Aa2026", "type": "string" },
     { "key": "secondPlayerUsername", "value": "", "type": "string" },
@@ -819,6 +817,7 @@
     { "key": "sessionId", "value": "", "type": "string" },
     { "key": "playerUserId", "value": "", "type": "string" },
     { "key": "secondPlayerUserId", "value": "", "type": "string" },
+    { "key": "nextPlayerUserId", "value": "", "type": "string" },
     { "key": "timestamp", "value": "", "type": "string" }
   ]
 }

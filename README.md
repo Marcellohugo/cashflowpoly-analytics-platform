@@ -2,7 +2,7 @@
 
 Repositori ini dibangun sebagai sistem informasi yang merekam aktivitas gim papan Cashflowpoly sebagai rangkaian *event*, memvalidasi data masuk, menyimpan data secara konsisten di PostgreSQL, lalu mengolahnya menjadi metrik literasi finansial dan capaian misi yang tampil pada Web Analitik. Setup sesi, penambahan Player, start/end sesi, dan input keputusan Player dilakukan oleh Instruktur melalui Klien Game/IDN yang mengirim data ke API. Pengelolaan *ruleset* dan penguncian `ruleset_version_id` pada sesi tersedia untuk Instruktur melalui Web Analitik MVC dan API.
 
-Baseline dokumentasi ini mengikuti implementasi aktual per 12 Agustus 2026 dengan schema `3.0.8`.
+Baseline dokumentasi ini mengikuti implementasi aktual per 19 Agustus 2026 dengan schema `3.0.11`.
 
 ## Tujuan
 Tujuan utama:
@@ -30,7 +30,7 @@ Tujuan utama:
 - Membantu Instruktur dan Player membaca konteks validasi/metrik tanpa mengubah data permainan dari Web.
 
 ### API back-end
-- Menyediakan endpoint login/register untuk Instruktur dan Player.
+- Menyediakan login untuk Instruktur/Player dan registrasi publik khusus Player; akun Instruktur dibuat melalui bootstrap/admin.
 - Menyediakan endpoint lifecycle sesi, penguncian `ruleset_version_id` saat sesi dibuat, dan pengelolaan Player untuk Klien Game/IDN.
 - Menulis data permainan ke basis data dari *event*.
 - Membaca data dari basis data untuk kebutuhan analitika dan referensi *ruleset*.
@@ -47,7 +47,7 @@ Tujuan utama:
 ## Arsitektur tingkat tinggi
 Arsitektur dibagi menjadi empat komponen:
 - **Klien Game/IDN**: aplikasi operasional permainan untuk Instruktur dan Player. Klien ini membuat sesi, memilih *ruleset*, menambahkan Player, memulai/mengakhiri sesi, dan mengirim event permainan ke API.
-- **Cashflowpoly.Api**: REST API (ASP.NET Core 10) + Swagger UI.
+- **Cashflowpoly.Api**: REST API (ASP.NET Core 10) dengan Swagger UI khusus environment Development.
 - **Cashflowpoly.Ui**: Web Analitik MVC (Controller + Razor Views) yang membaca data REST API via `HttpClient`.
 - **PostgreSQL**: penyimpanan data dan sumber kebenaran untuk analitika.
 
@@ -68,7 +68,7 @@ Catatan kontrak API:
 5. API memvalidasi token, data sesi, data Player, ruleset aktif, urutan event, dan duplikasi event.
 6. Event valid disimpan ke PostgreSQL.
 7. Web Analitik membaca data permainan dari API.
-8. Instruktur memantau jumlah event, cash in, cash out, net cashflow, performa Player, dan pelanggaran validasi.
+8. Instruktur memantau jumlah event, cash in, cash out, net cashflow, performa Player, dan prioritas analitik; event yang melanggar aturan ditolak oleh backend sebelum tersimpan.
 9. Setelah permainan berakhir, Player melihat data permainan sesuai hak aksesnya melalui Web Analitik.
 
 ## Teknologi dan alat
@@ -80,8 +80,8 @@ Catatan kontrak API:
 | 4 | PostgreSQL 15+ (direkomendasikan PostgreSQL 16) | DBMS untuk menyimpan sesi, *event*, *ruleset*, proyeksi, dan metrik |
 | 5 | Docker Desktop | Menjalankan seluruh komponen melalui *container* |
 | 6 | DBeaver | Mengelola PostgreSQL (koneksi, skema, query, inspeksi data) |
-| 7 | Google Chrome | Menguji UI MVC dan mengakses Swagger UI |
-| 8 | Swagger UI (Swashbuckle) | Dokumentasi dan uji *endpoint* API dari browser |
+| 7 | Google Chrome | Menguji UI MVC dan, pada Development, mengakses Swagger UI |
+| 8 | Swagger UI (Swashbuckle) | Dokumentasi dan uji *endpoint* API dari browser khusus Development |
 | 9 | Postman | Uji fungsional *endpoint* API (black-box) |
 | 10 | Tailwind CSS | Styling UI dasbor MVC |
 
@@ -225,7 +225,7 @@ Catatan keamanan lokal:
 - Untuk rotasi key JWT, bisa pakai:
   - `JWT_SIGNING_KEYS_JSON` (array JSON key + `kid` + window aktivasi), atau
   - `Jwt:SigningKeysFile`/`Jwt:SigningKeyFile` (secret file, cocok untuk mount dari secret manager).
-- Registrasi publik untuk semua role (`INSTRUCTOR` dan `PLAYER`) tersedia melalui endpoint `POST /api/v1/auth/register`.
+- Registrasi publik melalui `POST /api/v1/auth/register` hanya menerima role `PLAYER`; akun `INSTRUCTOR` dibuat melalui bootstrap/admin.
 - Setiap kartu pinjaman memakai `loan_instance_id`; beberapa instance produk yang sama dapat aktif selama stok fisik `card_qty` sesi tersedia, dan pelunasan menutup satu instance penuh.
 - Aksi gratis dan event sistem memakai `action_slot=0`; aksi reguler pemain memakai `1..actions_per_turn` sesuai `GameActionCatalog`.
 - Risiko `OUT` Mode Mahir disimpan pending dan diselesaikan melalui `BayarRisiko`, asuransi aktif, atau `GunakanOpsiDarurat`. Nominal opsi darurat dihitung server.
@@ -318,6 +318,7 @@ Endpoint tambahan yang tersedia:
 - `POST /api/v1/players` buat pemain
 - `GET /api/v1/players` daftar pemain
 - `POST /api/v1/sessions/{sessionId}/players` tambah pemain ke sesi
+- `GET /api/v1/sessions/{sessionId}/players` daftar pemain pada sesi sesuai scope pengguna
 - `POST /api/v1/events` ingest satu event permainan
 - `POST /api/v1/events/batch` ingest batch event permainan
 - `GET /api/v1/sessions/{sessionId}/events` ambil event sesi berurutan (`fromSeq`, `limit`)
@@ -339,7 +340,7 @@ Endpoint tambahan yang tersedia:
 - `GET /health/ready` readiness API/UI
 
 ## Catatan pengembangan
-- Gunakan Swagger untuk uji cepat *endpoint* dan gunakan Postman untuk skenario uji *black-box* yang terdokumentasi.
+- Gunakan Swagger pada Development untuk uji cepat *endpoint* dan gunakan Postman untuk skenario uji *black-box* yang terdokumentasi. Swagger tidak dipublikasikan pada Production.
 
 ## Dokumen desain dan spesifikasi
 Seluruh dokumen TA disimpan pada folder `docs/` agar repositori memuat artefak desain dan artefak implementasi pada satu tempat.
@@ -366,8 +367,10 @@ Dokumen kunci:
 - Jalankan hanya integration test: `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category=Integration"`.
 - Jalankan test non-integration (lebih cepat): `dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"`.
 - Jalankan load test baseline dengan tool HTTP pilihan tim menggunakan skenario request berulang ke endpoint ingest event dan analytics sesi.
-- Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`.
-- Uji *endpoint* melalui Swagger UI untuk verifikasi cepat.
+- Koleksi Postman: `postman/Cashflowpoly.postman_collection.json`; environment lokal: `postman/Cashflowpoly.local.postman_environment.json`.
+- Sebelum menjalankan koleksi, isi `authUsername` dan `authPassword` dengan akun Instruktur bootstrap yang valid. Login harus menghasilkan `200`; kegagalan autentikasi tidak dianggap lulus.
+- Jalankan koleksi dari awal agar setup state dan nomor urut event konsisten. Request event berawalan **Reject** adalah uji negatif dan harus menghasilkan `422`.
+- Uji *endpoint* melalui Swagger UI pada environment Development untuk verifikasi cepat.
 - Jalankan skenario pengujian fungsional melalui Postman sesuai dokumen rencana pengujian.
 - Validasi dasbor dengan membandingkan metrik UI vs data pada tabel `metric_snapshots` dan proyeksi transaksi.
 - Verifikasi end-to-end API, RBAC, dan Web UI dilakukan mengikuti checklist pada `docs/03-Pengujian/03-01-pengujian-rencana-dan-kasus-uji.md`.
@@ -380,9 +383,6 @@ Dokumen kunci:
 
 ## Lisensi
 Lisensi akan ditentukan untuk repositori ini.
-
-
-
 
 
 

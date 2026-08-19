@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 12 Agustus 2026. Baseline schema: 3.0.8.**
+**Tanggal ringkasan: 19 Agustus 2026. Baseline schema: 3.0.11.**
 
 ## 1. Ringkasan Besar
 
@@ -124,7 +124,7 @@ Snapshots --> Dashboard[Web Analitik MVC]
 
 | Endpoint | Fungsi |
 | --- | --- |
-| POST /api/v1/auth/register | Membuat akun INSTRUCTOR atau PLAYER. |
+| POST /api/v1/auth/register | Registrasi publik akun PLAYER; akun INSTRUCTOR dibuat melalui bootstrap/admin. |
 | POST /api/v1/auth/login | Mengembalikan JWT dan data user. |
 
 **Setelah login:**
@@ -143,7 +143,7 @@ Cashflowpoly.Ui mengizinkan route publik:
 - /rulebook
 - static assets
 
-Route lain akan redirect ke login bila session UI tidak memiliki role/token.
+Route lain akan redirect ke login bila cookie autentikasi terenkripsi UI tidak memiliki role/token yang valid.
 
 ## 7. Alur Ruleset
 
@@ -623,7 +623,7 @@ Dashboard transaksi membaca projection ini, bukan menghitung ulang di browser.
 | inventory.ingredient.total | Jumlah bahan di tangan. |
 | actions.used.total | Aksi yang dipakai. |
 | compliance.primary_need.rate | Rasio kepatuhan kebutuhan primer. |
-| rules.violations.count | Jumlah validasi gagal. |
+| rules.violations.count | Jumlah upaya event yang ditolak; data audit internal, bukan kartu statistik utama. |
 | happiness.points.total | Total poin kebahagiaan. |
 | happiness.need.points | Poin dari kebutuhan. |
 | happiness.need.bonus | Bonus set kebutuhan. |
@@ -820,7 +820,7 @@ Jangan pakai file ini sebagai bootstrap wajib production.
 | RBAC | Role INSTRUCTOR/PLAYER. |
 | Player scope | Player hanya data dirinya. |
 | CSRF UI | AutoValidateAntiforgeryToken pada MVC. |
-| Session UI | Cookie server-side, HttpOnly, SameSite=Lax. |
+| Auth UI | Cookie autentikasi terenkripsi, HttpOnly, SameSite=Lax; key Data Protection dipersistenkan. |
 | Rate limit | Policy per endpoint/identitas. |
 | Error | Format standar + trace_id. |
 

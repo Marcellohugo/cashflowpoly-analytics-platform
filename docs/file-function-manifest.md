@@ -17,7 +17,7 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `infra/docker/docker-compose.yml` | Infrastruktur | Definisi service dasar `db`, `api`, dan `ui`. |
 | `infra/docker/docker-compose.watch.yml` | Infrastruktur | Override development/watch. |
 | `infra/docker/docker-compose.prod.yml` | Infrastruktur | Override production, Nginx, dan Cloudflare Tunnel. |
-| `infra/nginx/default.conf` | Infrastruktur | Reverse proxy Nginx untuk UI, API, Swagger, health, dan static asset. |
+| `infra/nginx/default.conf` | Infrastruktur | Reverse proxy Nginx production untuk UI, API, health, dan static asset. |
 | `infra/cloudflared/config.yml` | Infrastruktur | Konfigurasi Cloudflare Tunnel. |
 
 ## Database dan Integrasi
@@ -57,4 +57,3 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `docs/Img/RuleBook/*.png` | Aset dokumen | Scan/gambar halaman rulebook untuk lampiran dokumen. |
 
 *(Bagian file src/ dan tests/ tidak berubah, silakan lihat rincian lengkapnya pada repositori kode).*
-

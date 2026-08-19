@@ -93,7 +93,7 @@ Sistem melacak metrik inti berikut untuk penyajian data antarmuka dasbor:
 | `inventory.ingredient.total` | Pemain | Numeric | Proyeksi inventory | Jumlah kartu bahan makanan di tangan. |
 | `compliance.primary_need.rate` | Pemain | Numeric | Event `Kebutuhan` + Ruleset | Rasio hari pemenuhan kebutuhan primer. |
 | `actions.used.total` | Pemain | Numeric | Event `events` | Jumlah token aksi yang telah digunakan. |
-| `rules.violations.count` | Sesi & Pemain | Numeric | `validation_logs` | Jumlah pelanggaran validasi aturan. |
+| `rules.violations.count` | Sesi & Pemain | Numeric internal | `validation_logs` | Jumlah upaya event yang ditolak validasi; dipakai untuk audit/risk assessment dan tidak ditampilkan sebagai kartu statistik utama. |
 | `happiness.points.total` | Sesi & Pemain | Numeric | Agregasi Poin Kebahagiaan | Total skor kebahagiaan akhir pemain. |
 | `happiness.need.points` | Pemain | Numeric | Event `Kebutuhan` | Skor kebahagiaan dari kartu kebutuhan. |
 | `happiness.need.bonus` | Pemain | Numeric | Rumus kombinasi | Bonus dari set kartu kebutuhan (kombinasi). |

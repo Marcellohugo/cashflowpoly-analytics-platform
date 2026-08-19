@@ -58,7 +58,7 @@ Diagram UML yang dibutuhkan: semuanya.
 
 ### Fitur utama
 1. Login/register
-   - Instruktur dan Player dapat login/register.
+   - Instruktur dan Player dapat login; registrasi publik hanya untuk Player.
    - API menghasilkan JWT access token.
 
 2. Setup sesi melalui Klien Game/IDN
@@ -85,7 +85,7 @@ Diagram UML yang dibutuhkan: semuanya.
    - API mencatat validation log untuk event invalid yang ditolak.
 
 6. Web Analitik real-time
-   - Instruktur melihat jumlah event, cash in, cash out, net cashflow, performa Player, dan pelanggaran validasi.
+   - Instruktur melihat jumlah event, cash in, cash out, net cashflow, performa Player, dan prioritas analitik.
    - Web Analitik membaca data dari API.
 
 7. Akses Player setelah permainan
@@ -108,7 +108,7 @@ Diagram UML yang dibutuhkan: semuanya.
 8. API memvalidasi event permainan, meliputi token autentikasi, data sesi permainan, data Player, ruleset aktif, urutan event, dan duplikasi event.
 9. Jika event valid, API menyimpan event permainan ke PostgreSQL.
 10. Web Analitik membaca data permainan dari API.
-11. Instruktur melihat data permainan secara real-time melalui Web Analitik, meliputi jumlah event, cash in, cash out, net cashflow, performa Player, dan pelanggaran validasi.
+11. Instruktur melihat data permainan secara real-time melalui Web Analitik, meliputi jumlah event, cash in, cash out, net cashflow, performa Player, dan prioritas analitik; upaya event tidak valid tersimpan untuk audit backend dan tidak ditampilkan sebagai kartu statistik utama.
 12. Setelah permainan berakhir, Player dapat melihat data permainan yang sesuai dengan hak aksesnya melalui Web Analitik.
 
 #### Alur login/register
