@@ -88,11 +88,48 @@ public sealed class EventTurnProgressValidatorTests
         Assert.Equal("Setiap pemain harus menyelesaikan seluruh jatah aksi sebelum giliran berakhir", result.Message);
     }
 
+    [Fact]
+    public void TryValidateTurnEndedFriday_RejectsMissingPlayerDonation()
+    {
+        var firstPlayer = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var request = CreateRequest("AkhirGiliran", "{}", sessionId, firstPlayer, "FRI");
+        var history = new[]
+        {
+            CreateEvent("JumatBerkah", """{"amount":1}""", sessionId, firstPlayer, 0, "FRI")
+        };
+
+        new EventTurnProgressValidator().TryValidate(request, CreateConfig(), history, 2, out var result);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("setiap pemain", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TryValidateTurnEndedSaturday_AcceptsOneDecisionPerPlayerAfterPriceOpened()
+    {
+        var firstPlayer = Guid.NewGuid();
+        var secondPlayer = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var request = CreateRequest("AkhirGiliran", "{}", sessionId, firstPlayer, "SAT");
+        var history = new[]
+        {
+            CreateEvent("BukaHargaEmas", """{"gold_price":5}""", sessionId, null, 0, "SAT", "SYSTEM"),
+            CreateEvent("InvestasiEmas", """{"trade_type":"BUY","qty":2,"unit_price":5,"amount":10}""", sessionId, firstPlayer, 0, "SAT"),
+            CreateEvent("LewatiTransaksiEmas", "{}", sessionId, secondPlayer, 0, "SAT")
+        };
+
+        new EventTurnProgressValidator().TryValidate(request, CreateConfig(), history, 2, out var result);
+
+        Assert.True(result.IsValid);
+    }
+
     private static EventRequest CreateRequest(
         string actionType,
         string payloadJson,
         Guid? sessionId = null,
-        Guid? playerId = null)
+        Guid? playerId = null,
+        string weekday = "MON")
     {
         using var document = JsonDocument.Parse(payloadJson);
         return new EventRequest(
@@ -102,7 +139,7 @@ public sealed class EventTurnProgressValidatorTests
             "PLAYER",
             new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             0,
-            "MON",
+            weekday,
             1,
             0,
             actionType,
@@ -115,18 +152,20 @@ public sealed class EventTurnProgressValidatorTests
         string actionType,
         string payloadJson,
         Guid sessionId,
-        Guid playerId,
-        int actionSlot)
+        Guid? playerId,
+        int actionSlot,
+        string weekday = "MON",
+        string actorType = "PLAYER")
     {
         return new EventDb
         {
             EventId = Guid.NewGuid(),
             SessionId = sessionId,
             UserId = playerId,
-            ActorType = "PLAYER",
+            ActorType = actorType,
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
-            Weekday = "MON",
+            Weekday = weekday,
             ActionSlot = actionSlot,
             SequenceNumber = 0,
             ActionType = actionType,

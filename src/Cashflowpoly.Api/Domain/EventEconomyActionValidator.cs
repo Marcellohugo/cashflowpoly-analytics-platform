@@ -13,6 +13,7 @@ public sealed record EventEconomyActionValidation(
 internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
 {
     private static readonly EventPayloadReader _payloadReader = new();
+    private const int RulebookGoldCardSupply = 20;
 
     public bool TryValidate(
         EventRequest request,
@@ -32,6 +33,12 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return true;
         }
 
+        if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.GoldPriceOpened))
+        {
+            result = ValidateGoldPrice(request, config, history);
+            return true;
+        }
+
         if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.InvestasiEmas) ||
             GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.JualEmas))
         {
@@ -41,6 +48,40 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
 
         result = new EventEconomyActionValidation(EventDomainValidationResult.Valid, null);
         return false;
+    }
+
+    private EventEconomyActionValidation ValidateGoldPrice(
+        EventRequest request,
+        RulesetConfig config,
+        IEnumerable<EventDb> history)
+    {
+        if (!_payloadReader.TryGetInt32(request.Payload, "gold_price", out var price) || price <= 0)
+        {
+            return Fail(StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Harga emas tidak valid",
+                new ErrorDetail("payload.gold_price", "OUT_OF_RANGE"));
+        }
+
+        if (config.GoldPrices.All(item => item.UnitPrice != price))
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Harga emas harus berasal dari Kartu Harga Emas ruleset");
+        }
+
+        var events = history.ToList();
+        if (events.Any(e => e.DayIndex == request.DayIndex &&
+            GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.GoldPriceOpened)))
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Harga emas hari ini sudah dibuka");
+        }
+
+        if (!request.Weekday.Equals("SAT", StringComparison.OrdinalIgnoreCase) &&
+            !HasActiveGoldRiskOnDay(request.DayIndex, config, events))
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Harga emas hanya dibuka pada Sabtu atau saat efek Risiko Kehidupan emas aktif");
+        }
+
+        return new EventEconomyActionValidation(EventDomainValidationResult.Valid, null);
     }
 
     private EventEconomyActionValidation ValidateTransaction(EventRequest request)
@@ -274,6 +315,16 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset melarang SELL emas");
         }
 
+        if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase))
+        {
+            var cardsHeld = new GoldGameplayCalculator().Compute(history).GoldHeldEnd;
+            if (cardsHeld + qty > RulebookGoldCardSupply)
+            {
+                return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    $"Stok fisik Kartu Emas tidak cukup; tersedia {Math.Max(0, RulebookGoldCardSupply - cardsHeld)} kartu");
+            }
+        }
+
         var outgoing = string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && request.UserId is not null
             ? amount
             : (double?)null;
@@ -322,5 +373,33 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                string.Equals(risk.EffectType, "GOLD_TRADE", StringComparison.OrdinalIgnoreCase) &&
                request.DayIndex >= riskEvent.DayIndex &&
                request.DayIndex <= endDay;
+    }
+
+    private static bool HasActiveGoldRiskOnDay(
+        int dayIndex,
+        RulesetConfig config,
+        IEnumerable<EventDb> history)
+    {
+        foreach (var evt in history)
+        {
+            var payload = _payloadReader.ReadPayload(evt.Payload);
+            if (!GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.RisikoKehidupan) ||
+                !_payloadReader.TryGetString(payload, "risk_id", out var riskId))
+            {
+                continue;
+            }
+
+            var risk = config.LifeRisks.FirstOrDefault(item =>
+                string.Equals(item.RiskCode, riskId, StringComparison.OrdinalIgnoreCase));
+            var endDay = evt.DayIndex + (risk?.DurationDays ?? 1) - 1;
+            if (risk is not null &&
+                string.Equals(risk.EffectType, "GOLD_TRADE", StringComparison.OrdinalIgnoreCase) &&
+                dayIndex >= evt.DayIndex && dayIndex <= endDay)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

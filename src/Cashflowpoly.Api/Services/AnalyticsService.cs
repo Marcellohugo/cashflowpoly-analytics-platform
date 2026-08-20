@@ -831,6 +831,9 @@ internal sealed class AnalyticsService : IAnalyticsService
             _happinessCalc.SumRankAwarded(playerEvents, "PoinPeringkatDonasi"),
             _happinessCalc.SumPointsAwarded(playerEvents, "PoinEmas"),
             _happinessCalc.SumRankAwarded(playerEvents, "PoinPeringkatPensiun"));
+        var pensionRank = config is not null && sessionEnded
+            ? _happinessCalc.ComputePensionRanks(events, projections, config).GetValueOrDefault(playerId)
+            : (int?)null;
 
         metrics["happiness.points.total"] = (resolvedHappiness.Total, null);
         metrics["happiness.need.points"] = (resolvedHappiness.NeedPoints, null);
@@ -850,6 +853,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             config,
             resolvedHappiness,
             finalScore,
+            pensionRank,
             playerAlias,
             sessionEnded);
         metrics["gameplay.raw.variables"] = (null, gameplaySnapshots.RawJson);

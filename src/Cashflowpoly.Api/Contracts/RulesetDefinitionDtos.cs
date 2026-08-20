@@ -170,6 +170,9 @@ public sealed class RulesetIngredientDto
 
     [JsonPropertyName("hargaBeli")]
     public int HargaBeli { get; init; }
+
+    [JsonPropertyName("cardQty")]
+    public int? CardQty { get; init; }
 }
 
 public sealed class RulesetOrderDto
@@ -212,6 +215,9 @@ public sealed class RulesetNeedDto
 
     [JsonPropertyName("poinKebahagiaan")]
     public int PoinKebahagiaan { get; init; }
+
+    [JsonPropertyName("cardQty")]
+    public int? CardQty { get; init; }
 }
 
 public sealed class RulesetNeedSetBonusDto
@@ -272,6 +278,9 @@ public sealed class RulesetFinancialGoalDto
 
     [JsonPropertyName("poinKebahagiaan")]
     public int PoinKebahagiaan { get; init; }
+
+    [JsonPropertyName("cardQty")]
+    public int? CardQty { get; init; }
 }
 
 public sealed class RulesetNarrativeDto

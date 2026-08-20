@@ -266,11 +266,17 @@ public sealed class SessionStateRepository
             .Where(item => !string.IsNullOrWhiteSpace(item.Id))
             .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        var ingredientDeck = ingredients
+            .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 5)))
+            .ToList();
         var orders = definition.Orders.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
         var primaryNeeds = definition.Needs
             .Where(item => !string.IsNullOrWhiteSpace(item.Id) &&
                            item.Tipe.Equals("primer", StringComparison.OrdinalIgnoreCase))
             .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var primaryNeedDeck = primaryNeeds
+            .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 1)))
             .ToList();
         var missions = definition.CollectionMissions
             .Where(item => !string.IsNullOrWhiteSpace(item.Id))
@@ -289,9 +295,9 @@ public sealed class SessionStateRepository
             .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 1)))
             .ToList();
 
-        if (ingredients.Count < 3)
+        if (ingredients.Count < 3 || ingredientDeck.Count < orderedPlayers.Count + 5)
         {
-            throw new InvalidOperationException("Ruleset membutuhkan minimal 3 jenis bahan untuk mengisi 5 slot pasar tanpa lebih dari 2 kartu sejenis.");
+            throw new InvalidOperationException("Ruleset membutuhkan minimal 3 jenis dan cukup kartu bahan untuk pembagian awal serta 5 slot pasar.");
         }
 
         if (orderDeck.Count < 5)
@@ -299,7 +305,7 @@ public sealed class SessionStateRepository
             throw new InvalidOperationException("Ruleset membutuhkan minimal 5 kartu pesanan untuk pasar awal.");
         }
 
-        if (primaryNeeds.Count < 5)
+        if (primaryNeedDeck.Count < 5)
         {
             throw new InvalidOperationException("Ruleset membutuhkan minimal 5 Kartu Aneka Kebutuhan Primer untuk pasar awal.");
         }
@@ -324,11 +330,12 @@ public sealed class SessionStateRepository
             .ToDictionary(item => item.SessionParticipantId, item => item.TieBreaker);
         var firstPlayerId = tieBreakerByPlayerId.Single(item => item.Value.TieNumber == 1).Key;
         await ApplyTieBreakerTurnOrderAsync(conn, tx, sessionId, tieBreakerByPlayerId, ct);
-        var ingredientDrawPile = ingredients.SelectMany(item => Enumerable.Repeat(item, 2)).ToList();
+        var ingredientDrawPile = ingredientDeck.ToList();
         Shuffle(ingredientDrawPile);
         Shuffle(missions);
         Shuffle(orderDeck);
-        Shuffle(primaryNeeds);
+        Shuffle(primaryNeedDeck);
+        var ingredientMarket = DrawIngredientMarket(ingredientDrawPile, orderedPlayers.Count, 5);
 
         var loan = definition.ShariaLoans.FirstOrDefault();
         var insurance = definition.InsuranceProducts.FirstOrDefault();
@@ -430,7 +437,7 @@ public sealed class SessionStateRepository
             (
                 SlotGroup: "INGREDIENT_MARKET",
                 AssetType: "INGREDIENT",
-                Codes: ingredientDrawPile.Skip(orderedPlayers.Count).Concat(ingredientDrawPile).Take(5).Select(item => item.Id).ToList()),
+                Codes: ingredientMarket.Select(item => item.Id).ToList()),
             (
                 SlotGroup: "ORDER_MARKET",
                 AssetType: "ORDER",
@@ -438,7 +445,7 @@ public sealed class SessionStateRepository
             (
                 SlotGroup: "NEED_MARKET",
                 AssetType: "NEED",
-                Codes: primaryNeeds.Take(5).Select(item => item.Id).ToList())
+                Codes: primaryNeedDeck.Take(5).Select(item => item.Id).ToList())
         };
         foreach (var market in marketGroups)
         {
@@ -460,6 +467,32 @@ public sealed class SessionStateRepository
         }
 
         return (sequence, firstPlayerId);
+    }
+
+    internal static List<RulesetIngredientDto> DrawIngredientMarket(
+        IReadOnlyList<RulesetIngredientDto> shuffledDeck,
+        int dealtCards,
+        int marketSize)
+    {
+        var result = new List<RulesetIngredientDto>(marketSize);
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var card in shuffledDeck.Skip(dealtCards))
+        {
+            counts.TryGetValue(card.Id, out var count);
+            if (count >= 2)
+            {
+                continue;
+            }
+
+            result.Add(card);
+            counts[card.Id] = count + 1;
+            if (result.Count == marketSize)
+            {
+                return result;
+            }
+        }
+
+        throw new InvalidOperationException($"Deck bahan tidak dapat mengisi {marketSize} slot pasar dengan maksimal 2 kartu sejenis.");
     }
 
     private static void Shuffle<T>(IList<T> items)

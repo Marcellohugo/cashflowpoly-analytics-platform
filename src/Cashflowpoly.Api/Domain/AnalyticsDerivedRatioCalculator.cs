@@ -61,9 +61,12 @@ internal sealed class DerivedRatioCalculator : IDerivedRatioCalculator
 
         var mealOrdersAttempted = mealOrdersClaimed + mealOrdersPassed;
         var mealOrderSuccessRate = SafeRatio(mealOrdersClaimed, mealOrdersAttempted, true);
-        var savingsActionCount = playerEvents.Count(e => e.ActionType == GameActionCatalog.Menabung);
-        var financialGoalActionCount = playerEvents.Count(e => e.ActionType == GameActionCatalog.TujuanFinansial);
+        var savingsActionCount = playerEvents.Count(e =>
+            e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.Menabung);
+        var financialGoalActionCount = playerEvents.Count(e =>
+            e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.TujuanFinansial);
         var insurancePremiumActionCount = playerEvents.Count(e =>
+            e.ActorType == "PLAYER" &&
             e.ActionType == GameActionCatalog.Asuransi &&
             e.Payload.Contains("\"premium\"", StringComparison.OrdinalIgnoreCase));
         var longTermActionCount = savingsActionCount + financialGoalActionCount + insurancePremiumActionCount;

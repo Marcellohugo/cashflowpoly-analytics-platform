@@ -1727,6 +1727,29 @@ public sealed class EventAnalyticsIntegrationTests
                     }
                 }
             }
+            else if (weekday == "FRI")
+            {
+                foreach (var player in players)
+                {
+                    using var donationResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+                    {
+                        event_id = Guid.NewGuid(),
+                        session_id = setup.SessionId,
+                        user_id = player.UserId,
+                        actor_type = "PLAYER",
+                        timestamp = now.AddSeconds(sequence),
+                        day_index = day,
+                        weekday,
+                        turn_number = player.TurnNumber,
+                        action_slot = 0,
+                        sequence_number = sequence++,
+                        action_type = "JumatBerkah",
+                        ruleset_version_id = setup.RulesetVersionId,
+                        payload = new { amount = 1 }
+                    }, instructorToken);
+                    Assert.True(donationResponse.StatusCode == HttpStatusCode.Created, await donationResponse.Content.ReadAsStringAsync());
+                }
+            }
 
             using var endTurnResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
             {
@@ -1877,6 +1900,11 @@ public sealed class EventAnalyticsIntegrationTests
                 new RulesetActionDto { ActionId = "BukaHargaEmas" },
                 new RulesetActionDto { ActionId = "InvestasiEmas" },
                 new RulesetActionDto { ActionId = "JualEmas" }
+            ],
+            GoldPrices =
+            [
+                new RulesetGoldPriceDto { PriceCode = "gold_price_5", Qty = 1, UnitPrice = 5, CardQty = 3 },
+                new RulesetGoldPriceDto { PriceCode = "gold_price_6", Qty = 1, UnitPrice = 6, CardQty = 3 }
             ],
             Ingredients =
             [

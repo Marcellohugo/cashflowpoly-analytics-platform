@@ -71,6 +71,37 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
                     "Setiap pemain harus menyelesaikan seluruh jatah aksi sebelum giliran berakhir");
             }
         }
+        else if (request.Weekday.Equals("FRI", StringComparison.OrdinalIgnoreCase))
+        {
+            var donations = turnEvents
+                .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.JumatBerkah))
+                .ToList();
+            if (donations.Select(e => e.UserId!.Value).Distinct().Count() != participantCount ||
+                donations.GroupBy(e => e.UserId!.Value).Any(group => group.Count() != 1))
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Setiap pemain harus menyelesaikan tepat satu donasi Jumat sebelum hari berakhir");
+            }
+        }
+        else if (request.Weekday.Equals("SAT", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasGoldPrice = sessionEvents.Any(e => e.DayIndex == request.DayIndex &&
+                GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.GoldPriceOpened));
+            var decisions = turnEvents
+                .Where(e => IsScheduledGoldDecision(e.ActionType, _payloadReader.ReadPayload(e.Payload)))
+                .ToList();
+            if (!hasGoldPrice ||
+                decisions.Select(e => e.UserId!.Value).Distinct().Count() != participantCount ||
+                decisions.GroupBy(e => e.UserId!.Value).Any(group => group.Count() != 1))
+            {
+                return EventDomainValidationResult.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Harga emas harus dibuka dan setiap pemain harus memilih beli, jual, atau lewati tepat satu kali pada Sabtu");
+            }
+        }
 
         var hasUsed = request.Payload.TryGetProperty("used", out _);
         var hasRemaining = request.Payload.TryGetProperty("remaining", out _);
@@ -152,5 +183,15 @@ internal sealed class EventTurnProgressValidator : IEventTurnProgressValidator
            weekday.Equals("TUE", StringComparison.OrdinalIgnoreCase) ||
            weekday.Equals("WED", StringComparison.OrdinalIgnoreCase) ||
            weekday.Equals("THU", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsScheduledGoldDecision(string actionType, System.Text.Json.JsonElement payload)
+    {
+        var isDecision = GameActionCatalog.Is(actionType, payload, GameActionCatalog.InvestasiEmas) ||
+                         GameActionCatalog.Is(actionType, payload, GameActionCatalog.JualEmas) ||
+                         GameActionCatalog.Is(actionType, payload, GameActionCatalog.GoldSkipped);
+        return isDecision && !(payload.TryGetProperty("risk_event_id", out var riskEventId) &&
+                               riskEventId.ValueKind == System.Text.Json.JsonValueKind.String &&
+                               Guid.TryParse(riskEventId.GetString(), out _));
+    }
 
 }

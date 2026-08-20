@@ -184,6 +184,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("trg_events_session_scope", schemaContent, StringComparison.OrdinalIgnoreCase);
         AssertSqlContains("new.day_index is distinct from v_current_day", schemaContent);
         AssertSqlContains("new.action_type = 'AkhiriSesi' and v_current_day is distinct from v_finish_day", schemaContent);
+        AssertSqlContains("is_failed = not is_completed", schemaContent);
         AssertSqlContains("when v_event.action_type = 'AkhirGiliran' then v_event.day_index + 1", schemaContent);
         Assert.Matches(
             "(?is)new\\.action_type\\s+in\\s*\\([^)]*'CatatTransaksi'[^)]*'AkhirGiliran'",
@@ -398,12 +399,34 @@ public sealed class BootstrapAssetConsistencyTests
 
         Assert.Contains("Friday player actions are limited to donation", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Saturday player actions are limited to gold trades", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("All players must finish exactly", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("All players must submit one Friday donation", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Saturday requires one gold decision per player", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Physical gold card supply exceeded", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Physical financial goal card", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("v_new_risk_effect_type", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("v_new_risk_direction", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("RisikoKehidupan in MAHIR mode must immediately follow JualMasakan for the same player", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Emergency loan principal must match catalog principal", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Insurance premium must match catalog premium", scopeValidatorBody, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("'TarikTabungan'", seedContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RulesetRepository_ShouldPreservePhysicalCountsMissionFamiliesAndLifeRiskRuntimeFields()
+    {
+        var repository = File.ReadAllText(Path.Combine(
+            RepoRoot, "src", "Cashflowpoly.Api", "Data", "RulesetRepository.cs"));
+
+        Assert.Contains("card_qty as CardQty", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("need_family_code as Family", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("required_need_family_code", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("target_scope as TargetScope", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'value_delta', '')::int as ValueDelta", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("jsonb_build_object('value_delta', @ValueDelta)", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("@DurationDays", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("@TargetScope", repository, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("duration_days as DurationDays", repository, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -418,7 +441,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("checksum varchar", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("compute_schema_fingerprint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("assert_schema_baseline", schemaContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.11')", schemaContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("assert_schema_baseline('canonical_relational_baseline', '3.0.13')", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("information_schema.columns", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_constraint", schemaContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("pg_indexes", schemaContent, StringComparison.OrdinalIgnoreCase);
@@ -797,6 +820,8 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("risk_id", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"risk_id\":\"risk_investasi_emas\"", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\"direction\":\"IN\",\"amount\"", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("{\"goal_id\":\"tujuan_35\",\"cost\":35,\"points\":35}", seedContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("{\"goal_id\":\"tujuan_25\",\"cost\":25,\"points\":20}", seedContent, StringComparison.Ordinal);
 
         var applyIndex = seedContent.IndexOf("perform apply_game_event(", StringComparison.OrdinalIgnoreCase);
         var finalScoreIndex = seedContent.IndexOf("create temporary table seed_pension_rank_points", StringComparison.OrdinalIgnoreCase);

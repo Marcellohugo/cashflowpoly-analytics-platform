@@ -57,6 +57,30 @@ public sealed class AnalyticsHappinessCalculatorTests
     }
 
     [Fact]
+    public void ComputeBreakdown_CountsMixedAndSameNeedSetsIndependently()
+    {
+        var playerEvents = new List<EventDb>
+        {
+            BuildEvent("Kebutuhan", """{"card_id":"primer-1","need_tier":"primer","amount":1,"points":1}"""),
+            BuildEvent("Kebutuhan", """{"card_id":"primer-2","need_tier":"primer","amount":1,"points":1}"""),
+            BuildEvent("Kebutuhan", """{"card_id":"primer-3","need_tier":"primer","amount":1,"points":1}"""),
+            BuildEvent("Kebutuhan", """{"card_id":"sekunder-1","need_tier":"sekunder","amount":1,"points":1}"""),
+            BuildEvent("Kebutuhan", """{"card_id":"sekunder-2","need_tier":"sekunder","amount":1,"points":1}"""),
+            BuildEvent("Kebutuhan", """{"card_id":"tersier-1","need_tier":"tersier","amount":1,"points":1}""")
+        };
+
+        var breakdown = new HappinessCalculator().ComputeBreakdown(
+            playerEvents,
+            donationPoints: 0,
+            goldPoints: 0,
+            pensionPoints: 0);
+
+        Assert.Equal(6, breakdown.NeedPoints);
+        Assert.Equal(6, breakdown.NeedSetBonusPoints);
+        Assert.Equal(12, breakdown.Total);
+    }
+
+    [Fact]
     public void ComputeBreakdown_ExcludesNeedSoldForEmergency()
     {
         var playerEvents = new List<EventDb>

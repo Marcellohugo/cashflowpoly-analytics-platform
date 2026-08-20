@@ -796,7 +796,7 @@ public sealed class RulesetRepository
                 @displayName,
                 @sortOrder,
                 true,
-                '{}'::jsonb,
+                case when @assetType = 'GOLD' then '{"card_qty":20}'::jsonb else '{}'::jsonb end,
                 now(),
                 now()
             )
@@ -1043,7 +1043,7 @@ public sealed class RulesetRepository
                 @DisplayName,
                 @PurchasePrice,
                 @SortOrder,
-                null,
+                @CardQty,
                 true,
                 '{}',
                 now()
@@ -1078,6 +1078,7 @@ public sealed class RulesetRepository
                         DisplayName = ingredient.Nama,
                         PurchasePrice = ingredient.HargaBeli,
                         SortOrder = index + 1,
+                        CardQty = ingredient.CardQty ?? 5,
                         PayloadJson = "{}"
                     },
                     tx,
@@ -1199,6 +1200,7 @@ public sealed class RulesetRepository
                 ruleset_game_asset_id,
                 need_code,
                 item_name,
+                need_family_code,
                 need_tier,
                 purchase_price,
                 happiness_points,
@@ -1214,11 +1216,12 @@ public sealed class RulesetRepository
                 @RulesetGameAssetId,
                 @NeedCode,
                 @ItemName,
+                @NeedFamilyCode,
                 @NeedTier,
                 @PurchasePrice,
                 @HappinessPoints,
                 @SortOrder,
-                null,
+                @CardQty,
                 true,
                 '{}',
                 now()
@@ -1250,10 +1253,12 @@ public sealed class RulesetRepository
                         RulesetGameAssetId = assetId,
                         NeedCode = need.Id,
                         ItemName = need.Nama,
+                        NeedFamilyCode = string.IsNullOrWhiteSpace(need.Family) ? need.Id : need.Family,
                         NeedTier = need.Tipe,
                         PurchasePrice = need.HargaBeli,
                         HappinessPoints = need.PoinKebahagiaan,
-                        SortOrder = index + 1
+                        SortOrder = index + 1,
+                        CardQty = need.CardQty ?? 1
                     },
                     tx,
                     cancellationToken: ct));
@@ -1341,6 +1346,7 @@ public sealed class RulesetRepository
                 requirement_type,
                 required_asset_id,
                 required_need_tier,
+                required_need_family_code,
                 qty_required,
                 payload_json,
                 created_at
@@ -1353,6 +1359,7 @@ public sealed class RulesetRepository
                 @RequirementType,
                 @RequiredAssetId,
                 @RequiredNeedTier,
+                @RequiredNeedFamilyCode,
                 null,
                 '{}',
                 now()
@@ -1383,8 +1390,10 @@ public sealed class RulesetRepository
             {
                 var isTier = string.Equals(requirement.Type, "TIER", StringComparison.OrdinalIgnoreCase)
                              || string.Equals(requirement.Type, "NEED_TIER", StringComparison.OrdinalIgnoreCase);
+                var isFamily = string.Equals(requirement.Type, "FAMILY", StringComparison.OrdinalIgnoreCase)
+                               || string.Equals(requirement.Type, "NEED_FAMILY", StringComparison.OrdinalIgnoreCase);
                 Guid? requiredAssetId = null;
-                if (!isTier)
+                if (!isTier && !isFamily)
                 {
                     if (!needAssetIds.TryGetValue(requirement.Value, out var resolvedAssetId))
                     {
@@ -1403,9 +1412,10 @@ public sealed class RulesetRepository
                             RulesetVersionId = rulesetVersionId,
                             RulesetCollectionMissionId = missionId,
                             RequirementOrder = requirement.Order,
-                            RequirementType = isTier ? "NEED_TIER" : "ASSET",
+                            RequirementType = isTier ? "NEED_TIER" : isFamily ? "NEED_FAMILY" : "ASSET",
                             RequiredAssetId = requiredAssetId,
-                            RequiredNeedTier = isTier ? requirement.Value.ToLowerInvariant() : null
+                            RequiredNeedTier = isTier ? requirement.Value.ToLowerInvariant() : null,
+                            RequiredNeedFamilyCode = isFamily ? requirement.Value : null
                         },
                         tx,
                         cancellationToken: ct));
@@ -1434,7 +1444,7 @@ public sealed class RulesetRepository
                 @PurchasePrice,
                 @HappinessPoints,
                 @SortOrder,
-                null,
+                @CardQty,
                 true,
                 '{}',
                 now()
@@ -1455,7 +1465,8 @@ public sealed class RulesetRepository
                         ItemName = goal.Nama,
                         PurchasePrice = goal.HargaBeli,
                         HappinessPoints = goal.PoinKebahagiaan,
-                        SortOrder = index + 1
+                        SortOrder = index + 1,
+                        CardQty = goal.CardQty ?? 1
                     },
                     tx,
                     cancellationToken: ct));
@@ -1949,6 +1960,8 @@ public sealed class RulesetRepository
                 effect_type,
                 direction,
                 amount,
+                duration_days,
+                target_scope,
                 sort_order,
                 card_qty,
                 payload_json,
@@ -1963,9 +1976,11 @@ public sealed class RulesetRepository
                 @EffectType,
                 @Direction,
                 @Amount,
+                @DurationDays,
+                @TargetScope,
                 @SortOrder,
                 @CardQty,
-                '{}',
+                jsonb_strip_nulls(jsonb_build_object('value_delta', @ValueDelta)),
                 now()
             )
             """;
@@ -1995,6 +2010,9 @@ public sealed class RulesetRepository
                         risk.EffectType,
                         Direction = string.IsNullOrWhiteSpace(risk.Direction) ? null : risk.Direction,
                         risk.Amount,
+                        DurationDays = risk.DurationDays.GetValueOrDefault(1),
+                        TargetScope = string.IsNullOrWhiteSpace(risk.TargetScope) ? "SELF" : risk.TargetScope,
+                        risk.ValueDelta,
                         SortOrder = index + 1,
                         risk.CardQty
                     },
@@ -2090,7 +2108,8 @@ public sealed class RulesetRepository
                 select
                     ingredient_code as Id,
                     display_name as Nama,
-                    purchase_price as HargaBeli
+                    purchase_price as HargaBeli,
+                    card_qty as CardQty
                 from ruleset_ingredients
                 where ruleset_version_id = @rulesetVersionId
                   and is_active
@@ -2164,9 +2183,11 @@ public sealed class RulesetRepository
                 select
                     need_code as Id,
                     item_name as Nama,
+                    need_family_code as Family,
                     need_tier as Tipe,
                     purchase_price as HargaBeli,
-                    happiness_points as PoinKebahagiaan
+                    happiness_points as PoinKebahagiaan,
+                    card_qty as CardQty
                 from ruleset_needs
                 where ruleset_version_id = @rulesetVersionId
                   and is_active
@@ -2216,9 +2237,10 @@ public sealed class RulesetRepository
                     requirement.requirement_order as RequirementOrder,
                     case
                       when requirement.requirement_type = 'NEED_TIER' then 'TIER'
+                      when requirement.requirement_type = 'NEED_FAMILY' then 'FAMILY'
                       else 'NAME'
                     end as Type,
-                    coalesce(requirement.required_need_tier, asset.asset_code) as Value
+                    coalesce(requirement.required_need_tier, requirement.required_need_family_code, asset.asset_code) as Value
                 from ruleset_collection_mission_requirements requirement
                 left join ruleset_game_assets asset
                   on asset.ruleset_game_asset_id = requirement.required_asset_id
@@ -2263,7 +2285,8 @@ public sealed class RulesetRepository
                     goal_code as Id,
                     item_name as Nama,
                     purchase_price as HargaBeli,
-                    happiness_points as PoinKebahagiaan
+                    happiness_points as PoinKebahagiaan,
+                    card_qty as CardQty
                 from ruleset_financial_goals
                 where ruleset_version_id = @rulesetVersionId
                   and is_active
@@ -2451,6 +2474,9 @@ public sealed class RulesetRepository
                     effect_type as EffectType,
                     coalesce(direction, '') as Direction,
                     amount as Amount,
+                    target_scope as TargetScope,
+                    nullif(payload_json ->> 'value_delta', '')::int as ValueDelta,
+                    duration_days as DurationDays,
                     card_qty as CardQty
                 from ruleset_life_risks
                 where ruleset_version_id = @rulesetVersionId

@@ -4730,19 +4730,19 @@ scenario_event_seed_raw as (
           'MAHIR',
           null,
           16,
-          1,
+          2,
           17,
           1,
           'SYSTEM',
           'TujuanFinansial',
           'TujuanFinansial',
-          '{"goal_id":"tujuan_25","cost":25,"points":20}' :: jsonb
+          '{"goal_id":"tujuan_35","cost":35,"points":35}' :: jsonb
         ),
         (
           'MAHIR',
           null,
           16,
-          2,
+          1,
           17,
           1,
           'PLAYER',
@@ -6415,11 +6415,11 @@ scored_with_bonuses as (
     *,
     (
       mixed_need_sets * 4 + (
-        ((primary_need_count - mixed_need_sets) / 3) :: int * 2
+        (primary_need_count / 3) :: int * 2
       ) + (
-        ((secondary_need_count - mixed_need_sets) / 3) :: int * 2
+        (secondary_need_count / 3) :: int * 2
       ) + (
-        ((tertiary_need_count - mixed_need_sets) / 3) :: int * 2
+        (tertiary_need_count / 3) :: int * 2
       )
     ) :: int as need_set_bonus_points,
     case

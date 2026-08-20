@@ -129,6 +129,37 @@ public sealed class EventEconomyActionValidatorTests
         Assert.Equal(StatusCodes.Status400BadRequest, result.Validation.StatusCode);
     }
 
+    [Fact]
+    public void TryValidate_GoldPriceRejectsValueOutsideRulesetDeck()
+    {
+        var request = CreateRequest("BukaHargaEmas", """{"gold_price":99}""", weekday: "SAT");
+
+        new EventEconomyActionValidator().TryValidate(request, CreateConfig(), [], out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains("Kartu Harga Emas", result.Validation.Message);
+    }
+
+    [Fact]
+    public void TryValidate_GoldBuyRejectsWhenTwentyPhysicalCardsAreHeld()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest(
+            "InvestasiEmas",
+            """{"trade_type":"BUY","qty":1,"unit_price":5,"amount":5}""",
+            playerId,
+            weekday: "SAT");
+        var history = Enumerable.Range(0, 20)
+            .Select(_ => CreateEvent(Guid.NewGuid(), "SetupEmasAwal", """{"qty":1}""", sessionId: request.SessionId))
+            .Append(CreateEvent(playerId, "BukaHargaEmas", """{"gold_price":5}""", sessionId: request.SessionId))
+            .ToArray();
+
+        new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains("Stok fisik", result.Validation.Message);
+    }
+
     private static EventRequest CreateRequest(
         string actionType,
         string payloadJson,
@@ -203,6 +234,11 @@ public sealed class EventEconomyActionValidatorTests
             FreelanceIncome: 5,
             Scoring: null)
         {
+            GoldPrices =
+            [
+                new RulesetGoldPriceDto { PriceCode = "harga_5", Qty = 1, UnitPrice = 5, CardQty = 1 },
+                new RulesetGoldPriceDto { PriceCode = "harga_6", Qty = 1, UnitPrice = 6, CardQty = 1 }
+            ],
             LifeRisks =
             [
                 new RulesetLifeRiskDto

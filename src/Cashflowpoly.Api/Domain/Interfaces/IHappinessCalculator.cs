@@ -10,6 +10,11 @@ public interface IHappinessCalculator
         List<CashflowProjectionDb> projections,
         RulesetConfig? config);
 
+    Dictionary<Guid, int> ComputePensionRanks(
+        List<EventDb> events,
+        List<CashflowProjectionDb> projections,
+        RulesetConfig config);
+
     AnalyticsHappinessBreakdown ComputeBreakdown(
         List<EventDb> playerEvents,
         double donationPoints,

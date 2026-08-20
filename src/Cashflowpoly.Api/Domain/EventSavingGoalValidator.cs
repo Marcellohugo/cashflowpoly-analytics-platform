@@ -81,6 +81,12 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
             return new EventSavingGoalValidation(payloadValidation, null);
         }
 
+        if (config.FinancialGoals.All(goal => !string.Equals(goal.Id, goalId, StringComparison.OrdinalIgnoreCase)))
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Kartu Tujuan Finansial tidak ditemukan pada ruleset");
+        }
+
         var isCreate = string.Equals(request.ActionType, "Menabung", StringComparison.OrdinalIgnoreCase);
         if (isCreate && amount > RulebookSavingMaxDeposit)
         {
@@ -132,6 +138,30 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
                 "VALIDATION_ERROR",
                 "Cost tidak valid",
                 new ErrorDetail("payload.cost", "OUT_OF_RANGE"));
+        }
+
+        var goal = config.FinancialGoals.FirstOrDefault(item =>
+            string.Equals(item.Id, goalId, StringComparison.OrdinalIgnoreCase));
+        if (goal is null)
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Kartu Tujuan Finansial tidak ditemukan pada ruleset");
+        }
+
+        if (cost != goal.HargaBeli || points != goal.PoinKebahagiaan)
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Biaya atau poin tujuan tidak sesuai katalog ruleset");
+        }
+
+        var completedCount = history.Count(evt =>
+            GameActionCatalog.Is(evt.ActionType, _payloadReader.ReadPayload(evt.Payload), GameActionCatalog.TujuanFinansial) &&
+            _payloadReader.TryReadSavingGoalAchieved(_payloadReader.ReadPayload(evt.Payload), out var completedGoalId, out _, out _) &&
+            string.Equals(completedGoalId, goalId, StringComparison.OrdinalIgnoreCase));
+        if (completedCount >= Math.Max(1, goal.CardQty ?? 1))
+        {
+            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Kartu Tujuan Finansial ini sudah dimiliki pemain lain");
         }
 
         var balance = _derivedState.ComputeSavingBalance(history, request.UserId!.Value, goalId);

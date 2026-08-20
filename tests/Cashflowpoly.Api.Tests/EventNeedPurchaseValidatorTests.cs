@@ -112,6 +112,35 @@ public sealed class EventNeedPurchaseValidatorTests
         Assert.True(result.Validation.IsValid, result.Validation.Message);
     }
 
+    [Fact]
+    public void TryValidate_RejectsClientValuesThatDifferFromNeedCatalog()
+    {
+        var request = CreateRequest(
+            "Kebutuhan",
+            """{"card_id":"buku_1","amount":99,"points":99,"need_tier":"primer"}""",
+            Guid.NewGuid());
+        var config = CreateConfig() with
+        {
+            Needs =
+            [
+                new RulesetNeedDto
+                {
+                    Id = "buku_1",
+                    Nama = "Buku",
+                    Tipe = "primer",
+                    HargaBeli = 3,
+                    PoinKebahagiaan = 1,
+                    CardQty = 1
+                }
+            ]
+        };
+
+        new EventNeedPurchaseValidator().TryValidate(request, config, [], out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains("katalog", result.Validation.Message);
+    }
+
     private static EventRequest CreateRequest(string actionType, string payloadJson, Guid? playerId = null)
     {
         using var document = JsonDocument.Parse(payloadJson);

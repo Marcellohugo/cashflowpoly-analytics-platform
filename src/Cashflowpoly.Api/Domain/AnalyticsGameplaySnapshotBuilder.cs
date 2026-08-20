@@ -29,6 +29,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         RulesetConfig? config,
         AnalyticsHappinessBreakdown happiness,
         SessionFinalScoreDb? finalScore = null,
+        int? pensionRank = null,
         string? playerAlias = null,
         bool sessionEnded = false)
     {
@@ -78,7 +79,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             .Where(e => e.ActionType == "PoinPeringkatPensiun")
             .Select(e => _payloadReader.TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0)
             .FirstOrDefault(rank => rank > 0);
-        int? pensionRank = pensionRankFromEvent > 0
+        pensionRank ??= pensionRankFromEvent > 0
             ? pensionRankFromEvent
             : config?.Scoring?.PensionRankPoints
                 .Where(item => Math.Abs(item.Points - happiness.PensionPoints) < 0.000001)

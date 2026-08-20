@@ -54,8 +54,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
 
         if (hasScoring && config!.Scoring!.PensionRankPoints.Count > 0)
         {
-            var tieBreakers = BuildTieBreakerLookup(events);
-            pensionPointsByPlayer = ComputePensionPointsFromScoring(events, projections, config, tieBreakers);
+            pensionPointsByPlayer = ComputePensionPointsFromScoring(events, projections, config);
         }
         else
         {
@@ -164,12 +163,11 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         var mixedSets = differentBonus.RequiredCount == 3
             ? Math.Min(primaryCount, Math.Min(secondaryCount, tertiaryCount))
             : 0;
-        var remainingPrimary = primaryCount - mixedSets;
-        var remainingSecondary = secondaryCount - mixedSets;
-        var remainingTertiary = tertiaryCount - mixedSets;
-        var sameSets = (remainingPrimary / sameBonus.RequiredCount) +
-                       (remainingSecondary / sameBonus.RequiredCount) +
-                       (remainingTertiary / sameBonus.RequiredCount);
+        // Kedua pola dihitung mandiri. Contoh rulebook: 3 primer, 2 sekunder,
+        // dan 1 tersier memperoleh bonus 4 + 2, bukan hanya bonus campuran 4.
+        var sameSets = (primaryCount / sameBonus.RequiredCount) +
+                       (secondaryCount / sameBonus.RequiredCount) +
+                       (tertiaryCount / sameBonus.RequiredCount);
         var needSetBonusPoints = mixedSets * differentBonus.Points + sameSets * sameBonus.Points;
 
         var hasPrimary = primaryCount > 0;
@@ -352,11 +350,29 @@ internal sealed class HappinessCalculator : IHappinessCalculator
     private Dictionary<Guid, double> ComputePensionPointsFromScoring(
         List<EventDb> events,
         List<CashflowProjectionDb> projections,
-        RulesetConfig config,
-        Dictionary<Guid, int> tieBreakers)
+        RulesetConfig config)
     {
         var pointsByRank = config.Scoring?.PensionRankPoints.ToDictionary(item => item.Rank, item => item.Points)
                            ?? new Dictionary<int, int>();
+
+        var result = new Dictionary<Guid, double>();
+        foreach (var (playerId, rank) in ComputePensionRanks(events, projections, config))
+        {
+            if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
+            {
+                result[playerId] = points;
+            }
+        }
+
+        return result;
+    }
+
+    public Dictionary<Guid, int> ComputePensionRanks(
+        List<EventDb> events,
+        List<CashflowProjectionDb> projections,
+        RulesetConfig config)
+    {
+        var tieBreakers = BuildTieBreakerLookup(events);
 
         var cashByPlayer = projections
             .GroupBy(p => p.UserId)
@@ -380,19 +396,9 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             .ThenBy(item => item.UserId)
             .ToList();
 
-        var result = new Dictionary<Guid, double>();
-        var rank = 1;
-        foreach (var item in ranking)
-        {
-            if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
-            {
-                result[item.UserId] = points;
-            }
-
-            rank += 1;
-        }
-
-        return result;
+        return ranking
+            .Select((item, index) => new { item.UserId, Rank = index + 1 })
+            .ToDictionary(item => item.UserId, item => item.Rank);
     }
 
     private Dictionary<Guid, int> BuildSavingLookup(IEnumerable<EventDb> events)

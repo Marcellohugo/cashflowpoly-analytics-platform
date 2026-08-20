@@ -25,7 +25,7 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
             return false;
         }
 
-        if (!_payloadReader.TryReadNeedPurchase(request.Payload, out var cardId, out _, out _))
+        if (!_payloadReader.TryReadNeedPurchase(request.Payload, out var cardId, out var amount, out var points))
         {
             var payloadValidation = ValidatePayload(request, primary: false, out _, out _);
             result = new EventNeedPurchaseValidation(payloadValidation, null);
@@ -33,6 +33,32 @@ internal sealed class EventNeedPurchaseValidator : IEventNeedPurchaseValidator
         }
 
         var needTier = NeedTierClassifier.FromPayload(request.Payload, cardId);
+        if (config.Needs.Count > 0)
+        {
+            var catalogItem = config.Needs.FirstOrDefault(item =>
+                string.Equals(item.Id, cardId, StringComparison.OrdinalIgnoreCase));
+            if (catalogItem is null)
+            {
+                result = Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Kartu kebutuhan tidak ditemukan pada ruleset");
+                return true;
+            }
+
+            var catalogTier = catalogItem.Tipe.Trim().ToLowerInvariant() switch
+            {
+                "primer" or "primary" => NeedTier.Primary,
+                "sekunder" or "secondary" => NeedTier.Secondary,
+                "tersier" or "tertiary" => NeedTier.Tertiary,
+                _ => NeedTier.Unknown
+            };
+            if (amount != catalogItem.HargaBeli || points != catalogItem.PoinKebahagiaan || needTier != catalogTier)
+            {
+                result = Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Harga, poin, atau jenis kebutuhan tidak sesuai katalog ruleset");
+                return true;
+            }
+        }
+
         result = needTier == NeedTier.Primary
             ? ValidatePrimary(request, config, history)
             : ValidateSecondaryOrTertiary(request, config, history);

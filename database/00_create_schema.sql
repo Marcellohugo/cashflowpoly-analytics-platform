@@ -2351,6 +2351,7 @@ select
     ro.card_qty,
     rn.card_qty,
     rgp.card_qty,
+    nullif(rga.metadata_json ->> 'card_qty', '') :: int,
     rgold.card_qty,
     rtb.card_qty,
     rlr.card_qty,
@@ -2358,7 +2359,6 @@ select
     rfg.card_qty,
     rsl.card_qty,
     rip.card_qty,
-    nullif(rga.metadata_json ->> 'card_qty', '') :: int,
     1
   ) as card_qty,
   rga.is_active
@@ -3002,6 +3002,146 @@ and new.action_type not in (
 
 end if;
 
+if new.action_type = 'AkhirGiliran' then declare v_participant_total int;
+
+v_completed_total int;
+
+v_actions_per_turn int;
+
+begin
+select count(*) :: int into v_participant_total
+from session_participants
+where session_id = new.session_id;
+
+if new.weekday in ('MON', 'TUE', 'WED', 'THU') then
+select actions_per_turn into v_actions_per_turn
+from ruleset_game_settings
+where ruleset_version_id = new.ruleset_version_id;
+
+select count(*) :: int into v_completed_total
+from session_participants participant
+where participant.session_id = new.session_id
+  and (
+    select count(distinct action.action_slot)
+    from events action
+    where action.session_id = new.session_id
+      and action.session_player_id = participant.session_participant_id
+      and action.day_index = new.day_index
+      and action.actor_type = 'PLAYER'
+      and (
+        action.action_type in (
+          'BahanMasakan', 'BuangBahanMasakan', 'JualMasakan', 'LewatiOrder',
+          'Kebutuhan', 'KerjaLepas', 'Menabung', 'TarikTabungan',
+          'TujuanFinansial', 'BayarPinjaman'
+        )
+        or (action.action_type in ('Asuransi', 'PinjamanSyariah') and not (action.payload ? 'risk_event_id'))
+      )
+  ) = v_actions_per_turn;
+
+if v_completed_total <> v_participant_total then raise exception 'All players must finish exactly % actions before ending the day',
+v_actions_per_turn using errcode = '23514';
+
+end if;
+
+elsif new.weekday = 'FRI' then
+select count(distinct donation.session_player_id) :: int into v_completed_total
+from events donation
+where donation.session_id = new.session_id
+  and donation.day_index = new.day_index
+  and donation.action_type = 'JumatBerkah';
+
+if v_completed_total <> v_participant_total then raise exception 'All players must submit one Friday donation before ending the day' using errcode = '23514';
+
+end if;
+
+elsif new.weekday = 'SAT' then
+select count(distinct decision.session_player_id) :: int into v_completed_total
+from events decision
+where decision.session_id = new.session_id
+  and decision.day_index = new.day_index
+  and decision.action_type in ('InvestasiEmas', 'JualEmas', 'LewatiTransaksiEmas')
+  and not (decision.payload ? 'risk_event_id');
+
+if v_completed_total <> v_participant_total
+or not exists (
+  select 1 from events price
+  where price.session_id = new.session_id
+    and price.day_index = new.day_index
+    and price.action_type = 'BukaHargaEmas'
+) then raise exception 'Saturday requires one gold decision per player after opening the gold price' using errcode = '23514';
+
+end if;
+
+end if;
+
+end;
+
+end if;
+
+if new.action_type = 'BukaHargaEmas' then declare v_opened_gold_price int;
+
+begin
+if not (new.payload ? 'gold_price') then raise exception 'BukaHargaEmas payload must contain gold_price' using errcode = '23514';
+
+end if;
+
+v_opened_gold_price := (new.payload ->> 'gold_price') :: int;
+
+if not exists (
+  select 1
+  from ruleset_gold_prices price
+  where price.ruleset_version_id = new.ruleset_version_id
+    and price.unit_price = v_opened_gold_price
+    and price.is_active
+) then raise exception 'Gold price % is not active in this ruleset',
+v_opened_gold_price using errcode = '23514';
+
+end if;
+
+if exists (
+  select 1
+  from events price_event
+  where price_event.session_id = new.session_id
+    and price_event.day_index = new.day_index
+    and price_event.action_type = 'BukaHargaEmas'
+) then raise exception 'Gold price is already opened on day %',
+new.day_index using errcode = '23514';
+
+end if;
+
+if new.weekday <> 'SAT'
+and not exists (
+  select 1
+  from session_rule_effects effect
+  where effect.session_id = new.session_id
+    and effect.effect_type = 'GOLD_TRADE'
+    and effect.is_active
+    and effect.starts_day <= new.day_index
+    and effect.ends_day >= new.day_index
+) then raise exception 'Gold price can only be opened on SAT or during an active gold risk' using errcode = '23514';
+
+end if;
+
+end;
+
+end if;
+
+if new.actor_type = 'PLAYER'
+and new.weekday = 'SAT'
+and new.action_type in ('InvestasiEmas', 'JualEmas', 'LewatiTransaksiEmas')
+and not (new.payload ? 'risk_event_id')
+and exists (
+  select 1
+  from events decision
+  where decision.session_id = new.session_id
+    and decision.session_player_id = new.session_player_id
+    and decision.day_index = new.day_index
+    and decision.action_type in ('InvestasiEmas', 'JualEmas', 'LewatiTransaksiEmas')
+    and not (decision.payload ? 'risk_event_id')
+) then raise exception 'Saturday gold decision is already recorded for this player' using errcode = '23514';
+
+end if;
+
 if v_session_mode = 'PEMULA'
 and (
   new.action_type in (
@@ -3260,6 +3400,8 @@ v_current_coins int;
 
 v_current_gold_qty int;
 
+v_total_gold_qty int;
+
 v_gold_asset_code text;
 
 begin v_qty := (new.payload ->> 'qty') :: int;
@@ -3351,6 +3493,19 @@ where
 if coalesce(v_current_coins, 0) < v_amount then raise exception 'Saldo tidak cukup untuk membeli emas: required %, available %',
 v_amount,
 coalesce(v_current_coins, 0) using errcode = '23514';
+
+end if;
+
+select
+  coalesce(sum(quantity), 0) :: int into v_total_gold_qty
+from
+  session_participant_gold_holdings
+where
+  session_id = new.session_id;
+
+if coalesce(v_total_gold_qty, 0) + v_qty > 20 then raise exception 'Physical gold card supply exceeded: requested %, available %',
+v_qty,
+greatest(0, 20 - coalesce(v_total_gold_qty, 0)) using errcode = '23514';
 
 end if;
 
@@ -4467,9 +4622,13 @@ if new.action_type = 'TujuanFinansial' then declare v_goal_price int;
 
 v_goal_points int;
 
+v_goal_card_qty int;
+
 v_current_saving int;
 
 v_goal_completed boolean;
+
+v_goal_completed_count int;
 
 begin if not (new.payload ? 'goal_id') then raise exception 'TujuanFinansial event payload must contain goal_id' using errcode = '23514';
 
@@ -4477,8 +4636,10 @@ end if;
 
 select
   rfg.purchase_price,
-  rfg.happiness_points into v_goal_price,
-  v_goal_points
+  rfg.happiness_points,
+  coalesce(rfg.card_qty, 1) into v_goal_price,
+  v_goal_points,
+  v_goal_card_qty
 from
   ruleset_financial_goals rfg
 where
@@ -4516,6 +4677,21 @@ if coalesce(v_current_saving, 0) < v_goal_price then raise exception 'Tabungan t
 new.payload ->> 'goal_id',
 v_goal_price,
 coalesce(v_current_saving, 0) using errcode = '23514';
+
+end if;
+
+select count(*) :: int into v_goal_completed_count
+from session_participant_financial_goals completed_goal
+join session_participants participant
+  on participant.session_participant_id = completed_goal.session_participant_id
+join ruleset_financial_goals goal_catalog
+  on goal_catalog.ruleset_financial_goal_id = completed_goal.ruleset_financial_goal_id
+where participant.session_id = new.session_id
+  and lower(goal_catalog.goal_code) = lower(new.payload ->> 'goal_id')
+  and completed_goal.status = 'COMPLETED';
+
+if v_goal_completed_count >= v_goal_card_qty then raise exception 'Physical financial goal card % is no longer available',
+new.payload ->> 'goal_id' using errcode = '23514';
 
 end if;
 
@@ -6293,6 +6469,18 @@ end if;
 
 end if;
 
+if v_event.action_type = 'AkhiriSesi' then
+update
+  session_participant_collection_missions
+set
+  is_failed = not is_completed,
+  last_event_id = v_event.event_id,
+  updated_at = now()
+where
+  session_id = v_event.session_id;
+
+end if;
+
 if v_participant_id is not null
 and v_event.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan') then
 update session_card_positions position
@@ -7611,6 +7799,6 @@ end;
 $$;
 
 select
-  assert_schema_baseline('canonical_relational_baseline', '3.0.11');
+  assert_schema_baseline('canonical_relational_baseline', '3.0.13');
 
 commit;

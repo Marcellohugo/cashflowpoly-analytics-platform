@@ -47,6 +47,10 @@ public sealed record RulesetConfig(
     public IReadOnlyList<RulesetIngredientDto> Ingredients { get; init; } = [];
 
     public IReadOnlyList<RulesetFinancialGoalDto> FinancialGoals { get; init; } = [];
+
+    public IReadOnlyList<RulesetNeedDto> Needs { get; init; } = [];
+
+    public IReadOnlyList<RulesetActionDto> Actions { get; init; } = [];
 }
 
 /// <summary>
@@ -200,7 +204,9 @@ internal static class RulesetRuntimeMapper
             LifeRisks = definition.LifeRisks.ToList(),
             Orders = definition.Orders.ToList(),
             Ingredients = definition.Ingredients.ToList(),
-            FinancialGoals = definition.FinancialGoals.ToList()
+            FinancialGoals = definition.FinancialGoals.ToList(),
+            Needs = definition.Needs.ToList(),
+            Actions = definition.Actions.ToList()
         };
         return true;
     }

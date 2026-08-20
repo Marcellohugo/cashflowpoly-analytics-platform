@@ -12,6 +12,7 @@ public interface IGameplaySnapshotBuilder
         RulesetConfig? config,
         AnalyticsHappinessBreakdown happiness,
         SessionFinalScoreDb? finalScore = null,
+        int? pensionRank = null,
         string? playerAlias = null,
         bool sessionEnded = false);
 }

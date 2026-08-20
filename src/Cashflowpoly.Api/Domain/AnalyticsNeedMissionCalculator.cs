@@ -108,7 +108,7 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             pPrimary.HasValue && pSecondary.HasValue && pTertiary.HasValue
                 ? (1 - (Math.Pow(pPrimary.Value, 2) + Math.Pow(pSecondary.Value, 2) + Math.Pow(pTertiary.Value, 2)))
                     / (1 - (1d / 3))
-                : 0;
+                : (double?)null;
         var fulfillmentDiversityDocumentFormula = needCardsOwnedCurrent > 0
             ? Math.Sqrt(
                 Math.Pow(primaryNeeds, 2) +

@@ -104,7 +104,7 @@ public sealed class DeploymentAssetTests
         using var collectionJson = JsonDocument.Parse(collection);
         using var environmentJson = JsonDocument.Parse(environment);
 
-        Assert.Contains("baseline schema 3.0.11", collection, StringComparison.Ordinal);
+        Assert.Contains("baseline schema 3.0.13", collection, StringComparison.Ordinal);
         Assert.Contains("Verify Public Instructor Registration Is Rejected", collection, StringComparison.Ordinal);
         Assert.Contains("'Login': [200]", collection, StringComparison.Ordinal);
         Assert.DoesNotContain("'Login': [200, 401]", collection, StringComparison.Ordinal);
@@ -112,7 +112,7 @@ public sealed class DeploymentAssetTests
         Assert.Contains("List Session Players", collection, StringComparison.Ordinal);
         Assert.Contains("/api/v1/sessions/{{sessionId}}/players", collection, StringComparison.Ordinal);
         Assert.Contains("deniedInstructorUsername", environment, StringComparison.Ordinal);
-        Assert.Contains("schema `3.0.11`", readme, StringComparison.Ordinal);
+        Assert.Contains("schema `3.0.13`", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("file:///", docsIndex, StringComparison.OrdinalIgnoreCase);
     }
 

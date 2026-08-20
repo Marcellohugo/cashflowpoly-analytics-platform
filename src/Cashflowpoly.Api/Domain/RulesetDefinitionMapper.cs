@@ -218,7 +218,8 @@ public static class RulesetDefinitionMapper
                 {
                     ["id"] = item.Id,
                     ["nama"] = item.Nama,
-                    ["hargaBeli"] = item.HargaBeli
+                    ["hargaBeli"] = item.HargaBeli,
+                    ["cardQty"] = item.CardQty
                 }).ToArray()),
                 ["resep"] = new JsonArray(definition.Orders.Select(item => (JsonNode)new JsonObject
                 {
@@ -226,7 +227,8 @@ public static class RulesetDefinitionMapper
                     ["nama"] = item.Nama,
                     ["hargaJual"] = item.HargaJual,
                     ["poinKebahagiaan"] = item.PoinKebahagiaan,
-                    ["bahan"] = new JsonArray(item.Bahan.Select(name => (JsonNode)name).ToArray())
+                    ["bahan"] = new JsonArray(item.Bahan.Select(name => (JsonNode)name).ToArray()),
+                    ["cardQty"] = item.CardQty
                 }).ToArray()),
                 ["kebutuhan"] = new JsonArray(definition.Needs.Select(item => (JsonNode)new JsonObject
                 {
@@ -235,7 +237,8 @@ public static class RulesetDefinitionMapper
                     ["family"] = string.IsNullOrWhiteSpace(item.Family) ? item.Id : item.Family,
                     ["tipe"] = item.Tipe,
                     ["hargaBeli"] = item.HargaBeli,
-                    ["poinKebahagiaan"] = item.PoinKebahagiaan
+                    ["poinKebahagiaan"] = item.PoinKebahagiaan,
+                    ["cardQty"] = item.CardQty
                 }).ToArray()),
                 ["targetKebutuhan"] = new JsonArray(definition.CollectionMissions.Select(item => (JsonNode)new JsonObject
                 {
@@ -256,7 +259,8 @@ public static class RulesetDefinitionMapper
                     ["id"] = item.Id,
                     ["nama"] = item.Nama,
                     ["hargaBeli"] = item.HargaBeli,
-                    ["poinKebahagiaan"] = item.PoinKebahagiaan
+                    ["poinKebahagiaan"] = item.PoinKebahagiaan,
+                    ["cardQty"] = item.CardQty
                 }).ToArray()),
                 ["narasi"] = new JsonArray(definition.Narratives.Select(item => (JsonNode)new JsonObject
                 {
@@ -284,7 +288,8 @@ public static class RulesetDefinitionMapper
         {
             Id = ReadString(item, "id", string.Empty),
             Nama = ReadString(item, "nama", string.Empty),
-            HargaBeli = ReadInt(item, "hargaBeli", 0)
+            HargaBeli = ReadInt(item, "hargaBeli", 0),
+            CardQty = ReadNullableInt(item, "cardQty")
         });
     }
 
@@ -343,7 +348,8 @@ public static class RulesetDefinitionMapper
             Family = ReadString(item, "family", string.Empty),
             Tipe = ReadString(item, "tipe", string.Empty),
             HargaBeli = ReadInt(item, "hargaBeli", 0),
-            PoinKebahagiaan = ReadInt(item, "poinKebahagiaan", 0)
+            PoinKebahagiaan = ReadInt(item, "poinKebahagiaan", 0),
+            CardQty = ReadNullableInt(item, "cardQty")
         });
     }
 
@@ -374,7 +380,8 @@ public static class RulesetDefinitionMapper
             Id = ReadString(item, "id", string.Empty),
             Nama = ReadString(item, "nama", string.Empty),
             HargaBeli = ReadInt(item, "hargaBeli", 0),
-            PoinKebahagiaan = ReadInt(item, "poinKebahagiaan", 0)
+            PoinKebahagiaan = ReadInt(item, "poinKebahagiaan", 0),
+            CardQty = ReadNullableInt(item, "cardQty")
         });
     }
 

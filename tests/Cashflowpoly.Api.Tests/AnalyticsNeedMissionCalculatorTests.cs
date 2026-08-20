@@ -68,13 +68,13 @@ public sealed class AnalyticsNeedMissionCalculatorTests
     }
 
     [Fact]
-    public void Compute_NoOwnedNeeds_HasZeroFulfillmentDiversity()
+    public void Compute_NoOwnedNeeds_HasNoFulfillmentDiversity()
     {
         var metrics = new NeedMissionCalculator().Compute(
             Array.Empty<EventDb>(),
             Array.Empty<CashflowProjectionDb>());
 
-        Assert.Equal(0, metrics.FulfillmentDiversity);
+        Assert.Null(metrics.FulfillmentDiversity);
         Assert.Null(metrics.FulfillmentDiversityDocumentFormula);
     }
 

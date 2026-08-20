@@ -98,6 +98,28 @@ public sealed class EventSavingGoalValidatorTests
         Assert.Equal("TujuanFinansial bukan aksi pemain terpisah; kartu tujuan diperoleh otomatis saat Menabung mencapai target", result.Validation.Message);
     }
 
+    [Fact]
+    public void TryValidateGoalAchieved_RejectsGoalCardAlreadyTaken()
+    {
+        var playerId = Guid.NewGuid();
+        var request = CreateRequest("TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":8}""", playerId) with
+        {
+            ActorType = "SYSTEM",
+            ActionSlot = 0,
+            TurnNumber = 0
+        };
+        var history = new[]
+        {
+            CreateEvent("Menabung", """{"goal_id":"goal-a","amount":8}""", playerId),
+            CreateEvent("TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":8}""", Guid.NewGuid())
+        };
+
+        new EventSavingGoalValidator().TryValidate(request, CreateConfig(), history, out var result);
+
+        Assert.False(result.Validation.IsValid);
+        Assert.Contains("pemain lain", result.Validation.Message);
+    }
+
     private static EventRequest CreateRequest(string actionType, string payloadJson, Guid? playerId)
     {
         using var document = JsonDocument.Parse(payloadJson);
@@ -160,6 +182,19 @@ public sealed class EventSavingGoalValidatorTests
             InsuranceEnabled: true,
             enabled,
             FreelanceIncome: 5,
-            Scoring: null);
+            Scoring: null)
+        {
+            FinancialGoals =
+            [
+                new RulesetFinancialGoalDto
+                {
+                    Id = "goal-a",
+                    Nama = "Tujuan A",
+                    HargaBeli = 8,
+                    PoinKebahagiaan = 10,
+                    CardQty = 1
+                }
+            ]
+        };
     }
 }

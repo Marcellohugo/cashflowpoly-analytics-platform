@@ -382,6 +382,16 @@ internal sealed class EventIngestionService : IEventIngestionService
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Definition ruleset tidak valid");
         }
 
+        var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload);
+        if (canonicalAction is null ||
+            (config!.Actions.Count > 0 && config.Actions.All(action =>
+                !string.Equals(action.ActionId, canonicalAction, StringComparison.OrdinalIgnoreCase))))
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Aksi tidak tersedia pada ruleset aktif",
+                new ErrorDetail("action_type", "NOT_ACTIVE"));
+        }
+
         var dayValidation = await ValidateActiveDayAsync(request, ct);
         if (!dayValidation.IsValid)
         {
@@ -500,8 +510,37 @@ internal sealed class EventIngestionService : IEventIngestionService
                 new ErrorDetail("turn_number", "MISMATCH"));
         }
 
-        if (GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload) != PlayerActionSlotPolicy.Consumes)
+        var slotPolicy = GameActionCatalog.GetPlayerActionSlotPolicy(request.ActionType, request.Payload);
+        var scheduledFreeAction = ResolveScheduledFreeAction(request);
+        if (slotPolicy != PlayerActionSlotPolicy.Consumes && scheduledFreeAction is null)
         {
+            return Valid;
+        }
+
+
+        var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
+        if (scheduledFreeAction is not null)
+        {
+            var scheduledEvents = events
+                .Where(e => e.DayIndex == request.DayIndex &&
+                            e.SessionPlayerId.HasValue &&
+                            string.Equals(ResolveScheduledFreeAction(e), scheduledFreeAction, StringComparison.Ordinal))
+                .ToList();
+            if (scheduledEvents.Any(e => e.SessionPlayerId == participantId.Value))
+            {
+                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                    "Pilihan khusus hari ini sudah dicatat untuk pemain");
+            }
+
+            foreach (var priorPlayer in playerOrders.Where(item => item.Value < currentPlayerOrder).OrderBy(item => item.Value))
+            {
+                if (scheduledEvents.All(e => e.SessionPlayerId != priorPlayer.Key))
+                {
+                    return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                        "Pemain sebelumnya belum menyelesaikan pilihan khusus hari ini");
+                }
+            }
+
             return Valid;
         }
 
@@ -512,7 +551,6 @@ internal sealed class EventIngestionService : IEventIngestionService
                 new ErrorDetail("action_slot", "OUT_OF_RANGE"));
         }
 
-        var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
         var dayEvents = events
             .Where(e => e.DayIndex == request.DayIndex &&
                         e.SessionPlayerId.HasValue &&
@@ -555,6 +593,34 @@ internal sealed class EventIngestionService : IEventIngestionService
         }
 
         return Valid;
+    }
+
+    private static string? ResolveScheduledFreeAction(EventRequest request)
+        => ResolveScheduledFreeAction(request.Weekday, request.ActionType, request.Payload);
+
+    private string? ResolveScheduledFreeAction(EventDb record)
+        => ResolveScheduledFreeAction(
+            record.Weekday,
+            record.ActionType,
+            _payloadReader.ReadPayload(string.IsNullOrWhiteSpace(record.Payload) ? "{}" : record.Payload));
+
+    private static string? ResolveScheduledFreeAction(string weekday, string actionType, JsonElement payload)
+    {
+        if (weekday.Equals("FRI", StringComparison.OrdinalIgnoreCase) &&
+            GameActionCatalog.Is(actionType, payload, GameActionCatalog.JumatBerkah))
+        {
+            return "FRIDAY_DONATION";
+        }
+
+        var hasRiskReference = payload.TryGetProperty("risk_event_id", out var riskEventId) &&
+                               riskEventId.ValueKind == JsonValueKind.String &&
+                               Guid.TryParse(riskEventId.GetString(), out _);
+        var isGoldDecision = GameActionCatalog.Is(actionType, payload, GameActionCatalog.InvestasiEmas) ||
+                             GameActionCatalog.Is(actionType, payload, GameActionCatalog.JualEmas) ||
+                             GameActionCatalog.Is(actionType, payload, GameActionCatalog.GoldSkipped);
+        return weekday.Equals("SAT", StringComparison.OrdinalIgnoreCase) && isGoldDecision && !hasRiskReference
+            ? "SATURDAY_GOLD"
+            : null;
     }
 
     /// <summary>
@@ -1483,10 +1549,12 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         if (IsAction(request, GameActionCatalog.TransactionRecorded) ||
             IsAction(request, GameActionCatalog.JumatBerkah) ||
+            IsAction(request, GameActionCatalog.GoldPriceOpened) ||
             IsAction(request, GameActionCatalog.InvestasiEmas) ||
             IsAction(request, GameActionCatalog.JualEmas))
         {
             IEnumerable<EventDb> events = IsAction(request, GameActionCatalog.JumatBerkah) ||
+                                          IsAction(request, GameActionCatalog.GoldPriceOpened) ||
                                           IsAction(request, GameActionCatalog.InvestasiEmas) ||
                                           IsAction(request, GameActionCatalog.JualEmas)
                 ? await _events.GetAllEventsBySessionAsync(request.SessionId, ct)

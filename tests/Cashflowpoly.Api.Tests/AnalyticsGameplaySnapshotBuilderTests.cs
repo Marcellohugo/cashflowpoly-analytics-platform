@@ -58,6 +58,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
             config: null,
             happiness,
             finalScore,
+            pensionRank: 4,
             playerAlias: "Marco",
             sessionEnded: true);
 
@@ -72,6 +73,7 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         Assert.Equal(5, raw.GetProperty("coins").GetProperty("coins_net_end_game").GetDouble());
         Assert.False(raw.GetProperty("outcomes").GetProperty("finish_line_reached").GetBoolean());
         Assert.Equal(2, raw.GetProperty("outcomes").GetProperty("final_rank").GetInt32());
+        Assert.Equal(4, raw.GetProperty("pension").GetProperty("pension_fund_rank_per_game").GetInt32());
         Assert.False(raw.GetProperty("outcomes").GetProperty("winner_flag").GetBoolean());
         Assert.True(raw.GetProperty("outcomes").GetProperty("dnf_flag").GetBoolean());
         Assert.Equal(1, raw.GetProperty("life_risk").GetProperty("life_risk_cards_drawn").GetInt32());

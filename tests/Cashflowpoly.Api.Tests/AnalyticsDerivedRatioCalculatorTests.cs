@@ -39,7 +39,8 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
             MissionAchievement: 1);
         var playerEvents = new List<EventDb>
         {
-            CreateEvent("Asuransi", """{"premium":1}""")
+            CreateEvent("Asuransi", """{"premium":1}"""),
+            CreateEvent("TujuanFinansial", """{"goal_id":"goal-a","cost":25,"points":20}""", "SYSTEM")
         };
 
         var metrics = new DerivedRatioCalculator().Compute(
@@ -76,14 +77,14 @@ public sealed class AnalyticsDerivedRatioCalculatorTests
         Assert.Equal(100, metrics.RiskAppetiteScoreNormalized);
     }
 
-    private static EventDb CreateEvent(string actionType, string payload = "{}")
+    private static EventDb CreateEvent(string actionType, string payload = "{}", string actorType = "PLAYER")
     {
         return new EventDb
         {
             EventId = Guid.NewGuid(),
             SessionId = Guid.NewGuid(),
             UserId = Guid.NewGuid(),
-            ActorType = "PLAYER",
+            ActorType = actorType,
             Timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             DayIndex = 0,
             Weekday = "MON",
