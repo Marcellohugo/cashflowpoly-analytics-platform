@@ -560,8 +560,8 @@ Tambahan pengujian untuk event baru:
 2. TC-API-24 — `PoinPeringkatDonasi` valid (award poin)
 3. TC-API-25 — `PoinEmas` valid (award poin emas)
 4. TC-API-26 — `PoinPeringkatPensiun` valid (award poin pensiun)
-5. TC-API-27 — `Menabung` dan `TarikTabungan` valid (deposit max 15 koin/aksi)
-6. TC-API-28 — `TujuanFinansial` valid
+5. TC-API-27 — `Menabung` valid sampai maksimal 15 koin/aksi dan `TarikTabungan` ditolak
+6. TC-API-28 — event sistem `TujuanFinansial` valid hanya saat saldo, biaya, poin, dan stok kartu sesuai
 7. TC-API-29 — `RisikoKehidupan` valid untuk mode MAHIR
 8. TC-API-30 — `BayarPinjaman` menolak pembayaran yang tidak sama dengan seluruh outstanding
 9. TC-API-31 — `KerjaLepas` valid sesuai `freelance.income`

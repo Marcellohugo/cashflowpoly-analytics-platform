@@ -122,8 +122,10 @@ Sistem melacak metrik inti berikut untuk penyajian data antarmuka dasbor:
 -   **Tujuan**: Memberikan poin tambahan bagi pemain yang memiliki variasi kebutuhan seimbang (*diversity*).
 -   **Rumus**:
     $$\text{mixed\_sets} = \min(\text{primary\_count}, \text{secondary\_count}, \text{tertiary\_count})$$
-    $$\text{same\_sets} = \sum_{t \in \{\text{pri, sec, ter}\}} \lfloor\frac{t\_count - \text{mixed\_sets}}{3}\rfloor$$
+    $$\text{same\_sets} = \sum_{t \in \{\text{pri, sec, ter}\}} \lfloor\frac{t\_count}{3}\rfloor$$
     $$\text{need\_bonus\_points} = (\text{mixed\_sets} \times 4) + (\text{same\_sets} \times 2)$$
+
+Kedua pola dihitung secara independen sesuai contoh pada rulebook. Karena itu 3 primer, 2 sekunder, dan 1 tersier menghasilkan satu set berbeda serta satu set primer sama: `(1 × 4) + (1 × 2) = 6` poin.
 
 ---
 

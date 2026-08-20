@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Cashflowpoly API",
-    "description": "Collection kontrak API Cashflowpoly baseline schema 3.0.11 (19 Agustus 2026). Isi authUsername dan authPassword dengan akun Instruktur yang sudah di-bootstrap, lalu jalankan koleksi dari awal. Dua request event bertanda Reject adalah uji negatif dan harus menghasilkan 422.",
+    "description": "Collection kontrak API Cashflowpoly baseline schema 3.0.13 (20 Agustus 2026). Isi authUsername dan authPassword dengan akun Instruktur yang sudah di-bootstrap, lalu jalankan koleksi dari awal. Dua request event bertanda Reject adalah uji negatif dan harus menghasilkan 422.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [

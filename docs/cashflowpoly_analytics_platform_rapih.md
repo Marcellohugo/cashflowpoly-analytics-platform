@@ -2,7 +2,7 @@
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 19 Agustus 2026. Baseline schema: 3.0.11.**
+**Tanggal ringkasan: 20 Agustus 2026. Baseline schema: 3.0.13.**
 
 ## 1. Ringkasan Besar
 
@@ -401,12 +401,11 @@ Selama sesi aktif, payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pem
 | PinjamanSyariah | Mengambil/menerima pinjaman 10. |
 | BayarPinjaman | Melunasi pinjaman. |
 | Menabung | Setor tabungan tujuan, maksimal 15 koin per aksi. |
-| TarikTabungan | Menarik saldo tabungan tujuan. |
-| TujuanFinansial | Aksi pemain untuk memperoleh tujuan finansial saat prasyarat terpenuhi. |
+| TujuanFinansial | Event sistem otomatis saat tabungan mencapai harga kartu tujuan. |
 | GunakanOpsiDarurat | Menutup risiko dengan opsi darurat. |
 
 **Catatan rulebook:**
-- Implementasi digital menyediakan `TarikTabungan` dan `TujuanFinansial` sebagai aksi reguler pemain yang memakai token aksi.
+- `TarikTabungan` ditolak karena bukan aksi resmi rulebook. `TujuanFinansial` tidak memakai token aksi pemain; sistem mencatatnya otomatis ketika saldo tabungan mencapai target.
 
 ## 11. Struktur Event API
 
@@ -498,7 +497,9 @@ Request Event
 - BayarPinjaman: wajib melunasi seluruh outstanding.
 - Asuransi: premium sesuai katalog; penggunaan hanya melalui event `Asuransi` dengan `risk_event_id`, memerlukan polis `ACTIVE` dengan `remaining_uses > 0`, dan mengurangi tepat satu penggunaan secara atomik.
 - Menabung: amount > 0 dan maksimal 15.
-- TarikTabungan/TujuanFinansial: aksi reguler pemain dan memakai slot aksi.
+- TarikTabungan: ditolak. TujuanFinansial: event sistem otomatis; biaya, poin, saldo, dan stok satu kartu fisik diverifikasi terhadap katalog.
+- AkhirGiliran: hari Senin–Kamis memerlukan tepat dua aksi per pemain; Jumat memerlukan satu donasi per pemain; Sabtu memerlukan harga terbuka dan satu keputusan emas per pemain.
+- InvestasiEmas: total kepemilikan seluruh pemain tidak boleh melampaui 20 Kartu Emas fisik.
 
 ## 14. Projection dan State
 

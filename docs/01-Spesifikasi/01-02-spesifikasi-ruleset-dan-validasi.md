@@ -265,7 +265,7 @@ Sistem memetakan aturan *ruleset* ke validasi event:
 - aturan kebutuhan primer memvalidasi `Kebutuhan`.
 - `freelance.income` memvalidasi `KerjaLepas`.
 - fitur mode mahir memvalidasi event `PinjamanSyariah`, `BayarPinjaman`, `Asuransi`, `BayarRisiko`, dan `GunakanOpsiDarurat`.
-- `advanced.saving_goal.enabled` memvalidasi event `Menabung`, `TarikTabungan`, dan `TujuanFinansial`.
+- `advanced.saving_goal.enabled` memvalidasi `Menabung` dan event sistem otomatis `TujuanFinansial`. `TarikTabungan` selalu ditolak karena tidak terdapat pada rulebook.
 - mode `MAHIR` memvalidasi pasangan `JualMasakan`/`RisikoKehidupan`, status penyelesaian risiko, polis aktif, aset darurat, dan pinjaman aktif.
 - `scoring.*` mengatur perhitungan poin donasi/emas/pensiun pada modul analitika.
 
@@ -414,6 +414,5 @@ Sistem siap masuk tahap implementasi modul manajemen *ruleset* jika:
 5. Sistem menolak event dengan `ruleset_version_id` yang tidak cocok.
 6. Sistem menegakkan lifecycle ruleset sesuai bagian 3.3.
 7. Sistem mencatat jejak audit perubahan (`created_by_user_id`, `created_at`, dan status versi) untuk operasi ruleset utama.
-
 
 

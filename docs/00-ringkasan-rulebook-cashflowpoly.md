@@ -196,6 +196,7 @@ Pemetaan digital: setiap kartu pinjaman memiliki `loan_instance_id`. Pemain dapa
 ### 2) Investasi emas (hari Sabtu)
 - Saat token kalender berhenti pada hari Sabtu, sistem membuka satu kartu harga emas melalui event `BukaHargaEmas`.
 - Mulai dari pemain pertama lalu mengikuti urutan pemain, setiap pemain memilih membeli (`InvestasiEmas`), menjual (`JualEmas`), atau tidak bertransaksi (`LewatiTransaksiEmas`).
+- Setiap pemain mengambil tepat satu keputusan transaksi. Jumlah Kartu Emas yang dibeli atau dijual dalam keputusan tersebut tidak dibatasi selama saldo, kepemilikan, dan stok fisik mencukupi.
 - Ketiga pilihan tersebut merupakan aksi bebas dan memakai `action_slot=0`.
 - Harga beli atau jual harus sama dengan harga yang dibuka pada `day_index` tersebut; harga dari hari sebelumnya tidak berlaku.
 - Pembelian mengurangi koin dan menambah holding emas. Penjualan hanya diterima jika holding mencukupi, lalu mengurangi emas dan menambah koin.
@@ -225,6 +226,7 @@ Langkah pencatatan:
 - Bonus set kebutuhan:
   - 3 jenis berbeda (primer + sekunder + tersier): +4.
   - 3 jenis sama: +2.
+  - Kedua pola dihitung secara mandiri. Contoh rulebook: 3 primer + 2 sekunder + 1 tersier memperoleh +4 dan +2, sehingga total bonus setnya +6.
 - Total poin kartu juara peduli donasi.
 - Total poin investasi emas:
   - 1 emas: 3 poin.
