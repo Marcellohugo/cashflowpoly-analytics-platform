@@ -251,7 +251,7 @@ public static class PlayerMetricLabelFormatter
             : hasNumericValue
                 ? FormatDisplayNumber(displayNumericValue)
                 : rawValue;
-        if (state == "not_applicable")
+        if (state is "not_applicable" or "unavailable")
         {
             unit = string.Empty;
         }
@@ -563,6 +563,19 @@ public static class PlayerMetricLabelFormatter
         if (metricKey is "n_active_income_sources")
         {
             return "players.support.unit.sources";
+        }
+
+        if (metricKey is "income_producing_actions" or "all_player_actions" or
+                "savings_actions" or "financial_goal_actions" or "insurance_premium_actions" ||
+            leafMetricKey is "income_producing_actions" or "all_player_actions" or
+                "savings_actions" or "financial_goal_actions" or "insurance_premium_actions")
+        {
+            return "players.support.unit.actions";
+        }
+
+        if (normalizedPath.Contains("financial_goals_balance_per_goal", StringComparison.OrdinalIgnoreCase))
+        {
+            return "players.support.unit.coins";
         }
 
         if (metricKey is "specific_tertiary_need" or "collection_mission_complete")

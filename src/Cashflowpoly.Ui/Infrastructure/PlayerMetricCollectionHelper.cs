@@ -210,6 +210,18 @@ public static class PlayerMetricCollectionHelper
                 ],
                 unavailableText,
                 culture),
+            "happiness-portfolio-beginner" => BuildSignedSum(
+                values,
+                [
+                    "need_cards_pts",
+                    "need_set_bonus_pts",
+                    "donations_pts",
+                    "gold_pts",
+                    "pension_pts",
+                    "mission_bonus_pts"
+                ],
+                unavailableText,
+                culture),
             _ => unavailableText
         };
 

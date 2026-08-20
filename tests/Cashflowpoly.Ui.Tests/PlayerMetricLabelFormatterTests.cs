@@ -181,6 +181,9 @@ public sealed class PlayerMetricLabelFormatterTests
     [InlineData("goal_setting_ambition", "255.33", "255.33", "")]
     [InlineData("fulfillment_diversity_document_formula", "0.625", "62.50", "players.support.unit.percent")]
     [InlineData("donation_stability_index", "88.5", "88.50", "players.support.unit.percent")]
+    [InlineData("income_producing_actions", "10", "10", "players.support.unit.actions")]
+    [InlineData("planning_horizon_components.financial_goal_actions", "0", "0", "players.support.unit.actions")]
+    [InlineData("financial_goals_balance_per_goal.tujuan_35", "3", "3", "players.support.unit.coins")]
     public void DescribeMetric_UsesDimensionallyCorrectDisplayValuesAndUnits(
         string path,
         string value,
@@ -207,6 +210,21 @@ public sealed class PlayerMetricLabelFormatterTests
         {
             CultureInfo.CurrentCulture = previousCulture;
         }
+    }
+
+    [Fact]
+    public void DescribeMetric_DoesNotAppendAUnitToUnavailableValues()
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            "fulfillment_diversity",
+            "Unavailable",
+            true,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal("players.support.value.unavailable", result.DisplayValue);
+        Assert.Empty(result.Unit);
     }
 
     private static string Translate(string key)

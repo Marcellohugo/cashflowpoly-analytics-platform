@@ -335,7 +335,8 @@
                 `
                     <button type="button"
                              class="session-journey-filter-btn ${selectedTimelineFilter === "all" ? "is-active" : ""}"
-                             data-timeline-filter="all">${escapeHtml(allPlayersLabel)}</button>
+                             data-timeline-filter="all"
+                             aria-pressed="${selectedTimelineFilter === "all" ? "true" : "false"}">${escapeHtml(allPlayersLabel)}</button>
                 `
             ];
 
@@ -344,7 +345,8 @@
                 buttons.push(`
                     <button type="button"
                              class="session-journey-filter-btn ${selectedTimelineFilter === filterKey ? "is-active" : ""}"
-                             data-timeline-filter="${escapeHtml(filterKey)}">${escapeHtml(option.label)}</button>
+                             data-timeline-filter="${escapeHtml(filterKey)}"
+                             aria-pressed="${selectedTimelineFilter === filterKey ? "true" : "false"}">${escapeHtml(option.label)}</button>
                 `);
             });
 
@@ -453,7 +455,12 @@
             const goActive = selectedTimelineFilter === "all" || eventsByDay.has(0);
             const goSelected = selectedDay === 0;
             cellsHtml.push(`
-                <div class="work-calendar-cell work-calendar-cell--go ${goActive ? 'is-active-day' : ''} ${goSelected ? 'is-selected-day' : ''}" data-day="0" role="button" tabindex="0" aria-label="GO">
+                <div class="work-calendar-cell work-calendar-cell--go ${goActive ? 'is-active-day' : ''} ${goSelected ? 'is-selected-day' : ''}"
+                     data-day="0"
+                     role="button"
+                     tabindex="${goActive ? "0" : "-1"}"
+                     aria-disabled="${goActive ? "false" : "true"}"
+                     aria-label="GO">
                     <span class="go-title">${'GO'}</span>
                     <span class="go-arrow">➡️</span>
                 </div>
@@ -488,7 +495,12 @@
                 }
 
                 cellsHtml.push(`
-                    <div class="${cellClass}" data-day="${d}" role="button" tabindex="0" aria-label="Day ${d}">
+                    <div class="${cellClass}"
+                         data-day="${d}"
+                         role="button"
+                         tabindex="${hasEvents ? "0" : "-1"}"
+                         aria-disabled="${hasEvents ? "false" : "true"}"
+                         aria-label="${escapeHtml(`${dayLabel} ${d}`)}">
                         <span class="work-calendar-cell__number">${d}</span>
                         <span class="work-calendar-cell__label">${escapeHtml(label)}</span>
                     </div>
@@ -508,7 +520,12 @@
 
             const finishLabel = activeLanguage === "en" ? "FINISH" : "SELESAI";
             cellsHtml.push(`
-                <div class="${finishClass}" data-day="26" role="button" tabindex="0" aria-label="Finish">
+                <div class="${finishClass}"
+                     data-day="26"
+                     role="button"
+                     tabindex="${finishActive ? "0" : "-1"}"
+                     aria-disabled="${finishActive ? "false" : "true"}"
+                     aria-label="${escapeHtml(finishLabel)}">
                     <span class="finish-text">${escapeHtml(finishLabel)} 🏁</span>
                 </div>
             `);

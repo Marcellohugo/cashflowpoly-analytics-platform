@@ -96,6 +96,20 @@ public sealed class PlayerMetricCollectionHelperTests
             "points",
             "N/A",
             CultureInfo.InvariantCulture);
+        var beginnerHappiness = PlayerMetricCollectionHelper.BuildActualCalculation(
+            "happiness-portfolio-beginner",
+            [
+                ("need_cards_pts", "5"),
+                ("need_set_bonus_pts", "10"),
+                ("donations_pts", "3"),
+                ("gold_pts", "2"),
+                ("pension_pts", "1"),
+                ("mission_bonus_pts", "-6")
+            ],
+            "15",
+            "points",
+            "N/A",
+            CultureInfo.InvariantCulture);
         var unavailable = PlayerMetricCollectionHelper.BuildActualCalculation(
             "expense-efficiency",
             [("essential_expenses", "0"), ("total_expenses", "0")],
@@ -107,6 +121,7 @@ public sealed class PlayerMetricCollectionHelperTests
         Assert.Equal("15 ÷ 10 × 100% = 150%", netWorth);
         Assert.Equal("[1 − ((75 ÷ 100)² + (25 ÷ 100)²)] ÷ [1 − (1 ÷ 2)] × 100% = 75%", incomeDiversification);
         Assert.Equal("5 + 10 + 3 + 2 + 1 + 4 − 6 − 2 = 17 points", happiness);
+        Assert.Equal("5 + 10 + 3 + 2 + 1 − 6 = 15 points", beginnerHappiness);
         Assert.EndsWith("= N/A", unavailable, StringComparison.Ordinal);
     }
 

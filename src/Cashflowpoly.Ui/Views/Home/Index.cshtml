@@ -57,10 +57,6 @@
                         <span id="home-active-total-sessions">/ @Model.TotalSessions</span>
                     </div>
                 </div>
-                <div class="home-live-summary">
-                    <strong id="home-active-percentage">@activeSessionPercent%</strong>
-                    <span>@totalSessionsLabel</span>
-                </div>
             </aside>
         </div>
 
@@ -80,13 +76,11 @@
                 <span class="home-stat-label">@totalSessionsLabel</span>
                 <strong id="home-total-sessions">@Model.TotalSessions</strong>
                 <span class="home-stat-accent" aria-hidden="true"></span>
-                <span class="home-stat-mark" aria-hidden="true">01</span>
             </article>
             <article class="home-stat-card home-stat-card-players">
                 <span class="home-stat-label">@totalPlayersLabel</span>
                 <strong id="home-total-players">@Model.TotalPlayers</strong>
                 <span class="home-stat-accent" aria-hidden="true"></span>
-                <span class="home-stat-mark" aria-hidden="true">02</span>
             </article>
             @if (isInstructor)
             {
@@ -94,7 +88,6 @@
                     <span class="home-stat-label">@Context.T("home.ruleset_active")</span>
                     <strong id="home-total-rulesets">@Model.TotalRulesets</strong>
                     <span class="home-stat-accent" aria-hidden="true"></span>
-                    <span class="home-stat-mark" aria-hidden="true">03</span>
                 </article>
             }
         </div>
@@ -196,7 +189,6 @@ else
             const totalSessionsEl = document.getElementById("home-total-sessions");
             const activeSessionsEl = document.getElementById("home-active-sessions");
             const activeTotalSessionsEl = document.getElementById("home-active-total-sessions");
-            const activePercentageEl = document.getElementById("home-active-percentage");
             const sessionRingEl = document.getElementById("home-session-ring");
             const totalPlayersEl = document.getElementById("home-total-players");
             const totalRulesetsEl = document.getElementById("home-total-rulesets");
@@ -250,7 +242,6 @@ else
                     if (totalSessionsEl) totalSessionsEl.textContent = `${totalSessions}`;
                     if (activeSessionsEl) activeSessionsEl.textContent = `${activeSessions}`;
                     if (activeTotalSessionsEl) activeTotalSessionsEl.textContent = `/ ${totalSessions}`;
-                    if (activePercentageEl) activePercentageEl.textContent = `${activePercentage}%`;
                     if (sessionRingEl) {
                         sessionRingEl.style.setProperty("--home-active-progress", `${activePercentage}%`);
                         sessionRingEl.setAttribute("aria-label", `${activeSessions} / ${totalSessions} ${activeSessionsLabel}`);

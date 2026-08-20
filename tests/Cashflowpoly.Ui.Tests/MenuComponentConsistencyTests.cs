@@ -6,6 +6,15 @@ namespace Cashflowpoly.Ui.Tests;
 
 public sealed class MenuComponentConsistencyTests
 {
+    [Fact]
+    public void QuickstartToggle_ShouldReferenceItsControlledPanel()
+    {
+        var layoutContent = File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Views", "Shared", "_Layout.cshtml"));
+
+        Assert.Contains("aria-controls=\"quickstart-guide-body\"", layoutContent);
+        Assert.Contains("id=\"quickstart-guide-body\"", layoutContent);
+    }
+
     [Theory]
     [InlineData("Home", "Index.cshtml", 2)]
     [InlineData("Sessions", "Index.cshtml", 2)]

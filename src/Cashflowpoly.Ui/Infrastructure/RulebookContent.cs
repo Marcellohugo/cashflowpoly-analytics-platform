@@ -127,7 +127,7 @@ public static class RulebookContent
                     Description = L("Alur satu putaran sampai permainan selesai.", "Round flow until game completion."),
                     Points = new List<string>
                     {
-                        L("Setiap pemain menjalankan maksimal 2 aksi per hari saat urutannya berjalan; aksi boleh sama atau berbeda.", "Each player performs up to 2 actions per day when their order is active; actions may be same or different."),
+                        L("Setiap pemain menjalankan tepat 2 aksi per hari saat gilirannya; kedua aksi boleh sama atau berbeda.", "Each player performs exactly 2 actions per day on their turn; both actions may be the same or different."),
                         L("Setelah semua pemain selesai, token Mr.Cashflowpoly maju 1 tanggal.", "After all players finish, Mr. Cashflowpoly token moves forward by 1 date."),
                         L("Semua pemain mengambil kembali 2 token aksi di akhir putaran.", "All players take back 2 action tokens at end of round."),
                         L("Hari khusus: Jumat = peduli donasi, Sabtu = investasi emas, Minggu = libur.", "Special days: Friday = donation care, Saturday = gold investment, Sunday = rest."),
@@ -188,7 +188,7 @@ public static class RulebookContent
                         L("Poin donasi: juara 1 = 7 poin, juara 2 = 5 poin, juara 3 = 2 poin.", "Donation points: rank 1 = 7 points, rank 2 = 5 points, rank 3 = 2 points."),
                         L("Jika donasi sama, gunakan angka tie breaker terbesar.", "If donations tie, use highest tie-breaker number."),
                         L("Investasi emas (Sabtu): buka kartu harga emas, lalu pemain bebas beli atau jual emas sesuai harga aktif.", "Gold investment (Saturday): reveal gold price card, then players may freely buy/sell gold at active price."),
-                        L("Jumlah transaksi emas pada hari Sabtu tidak dibatasi per pemain.", "Number of gold transactions on Saturday is not limited per player.")
+                        L("Pada hari Sabtu, setiap pemain memilih membeli atau menjual satu kali. Jumlah kartu emas dalam transaksi itu tidak dibatasi.", "On Saturday, each player chooses to buy or sell once. The number of gold cards in that transaction is unlimited.")
                     }
                 },
                 new()
@@ -211,7 +211,7 @@ public static class RulebookContent
                     Points = new List<string>
                     {
                         L("Jumlahkan seluruh poin kartu aneka kebutuhan.", "Sum all points from needs cards."),
-                        L("Tambahkan bonus set kebutuhan: 3 jenis berbeda = +4 poin, 3 jenis sama = +2 poin.", "Add needs-set bonus: 3 different types = +4 points, 3 same types = +2 points."),
+                        L("Tambahkan bonus set kebutuhan secara mandiri: 3 jenis berbeda = +4 poin dan setiap 3 jenis sama = +2 poin.", "Count each needs-set pattern independently: 3 different types = +4 points and each 3 same types = +2 points."),
                         L("Tambahkan poin juara donasi dan poin investasi emas.", "Add donation champion points and gold investment points."),
                         L("Tambahkan poin juara dana pensiun berdasarkan sisa koin akhir.", "Add pension champion points based on remaining end-game coins."),
                         L("Tambahkan poin kartu tujuan keuangan pada mode mahir hanya jika pinjaman lunas.", "Add financial-goal card points in advanced mode only if loans are repaid."),
@@ -253,7 +253,7 @@ public static class RulebookContent
                 new()
                 {
                     Category = L("Bonus Set Kebutuhan", "Need Set Bonus"),
-                    Rule = L("3 jenis berbeda = +4 poin, 3 jenis sama = +2 poin.", "3 different types = +4 points, 3 same types = +2 points.")
+                    Rule = L("Hitung mandiri: 3 jenis berbeda = +4 poin; setiap 3 jenis sama = +2 poin.", "Count independently: 3 different types = +4 points; each 3 same types = +2 points.")
                 },
                 new()
                 {

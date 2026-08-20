@@ -33,7 +33,9 @@ public sealed class HomeCommandCenterLayoutTests
         Assert.Contains("home-total-sessions", viewContent);
         Assert.Contains("home-active-sessions", viewContent);
         Assert.Contains("home-active-total-sessions", viewContent);
-        Assert.Contains("home-active-percentage", viewContent);
+        Assert.DoesNotContain("home-active-percentage", viewContent);
+        Assert.DoesNotContain("home-live-summary", viewContent);
+        Assert.DoesNotContain("home-stat-mark", viewContent);
         Assert.Contains("home-total-players", viewContent);
         Assert.Contains("home-total-rulesets", viewContent);
         Assert.Contains("home-realtime-error", viewContent);

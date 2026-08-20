@@ -1,4 +1,5 @@
 // Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui PlayerStatSummaryBuilder.
+using System.Text.Json;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Models;
 
@@ -22,6 +23,7 @@ public static class PlayerStatSummaryBuilder
             : cashflowJourney?.NetCashflow ?? gameplay?.Economy.CashflowNetTotal ?? 0d;
         var happiness = analyticsSummary?.HappinessPointsTotal ?? gameplay?.Score.HappinessPointsTotal ?? 0d;
         var fulfillmentDiversity = analyticsSummary?.FulfillmentDiversity ?? gameplay?.Needs.FulfillmentDiversity ?? 0d;
+        var needCardsOwned = ReadNeedCardsOwned(gameplay?.RawJson);
         var hasUnpaidLoan = analyticsSummary?.HasUnpaidLoan ?? gameplay?.Score.HasUnpaidLoan ?? false;
 
         if (netCashflow < 0)
@@ -51,7 +53,15 @@ public static class PlayerStatSummaryBuilder
                 "warning"));
         }
 
-        if (fulfillmentDiversity < 0.4)
+        if (needCardsOwned == 0)
+        {
+            insights.Add(Insight(
+                "need_cards_missing",
+                translate("players.stats.insight.need_cards_missing.title"),
+                translate("players.stats.insight.need_cards_missing.desc"),
+                "warning"));
+        }
+        else if (fulfillmentDiversity < 0.4)
         {
             insights.Add(Insight(
                 "need_diversity_low",
@@ -76,6 +86,20 @@ public static class PlayerStatSummaryBuilder
                 .Take(3)
                 .ToList()
         };
+    }
+
+    private static int? ReadNeedCardsOwned(JsonElement? rawJson)
+    {
+        if (!rawJson.HasValue || rawJson.Value.ValueKind != JsonValueKind.Object ||
+            !rawJson.Value.TryGetProperty("needs", out var needs) ||
+            needs.ValueKind != JsonValueKind.Object ||
+            !needs.TryGetProperty("need_cards_owned_current", out var owned) ||
+            !owned.TryGetInt32(out var count))
+        {
+            return null;
+        }
+
+        return count;
     }
 
     private static PlayerInstructorInsightViewModel Insight(string key, string title, string description, string tone)

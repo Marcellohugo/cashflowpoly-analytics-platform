@@ -1,4 +1,5 @@
 // Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui PlayerStatSummaryBuilderTests.
+using System.Text.Json;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -58,6 +59,19 @@ public sealed class PlayerStatSummaryBuilderTests
     }
 
     [Fact]
+    public void Build_ExplainsWhenNeedBalanceCannotBeCalculated()
+    {
+        var summary = PlayerStatSummaryBuilder.Build(
+            BuildGameplay(cashflowNetTotal: 8, happinessPointsTotal: 30, fulfillmentDiversity: 0, hasUnpaidLoan: false, needCardsOwned: 0),
+            null,
+            null,
+            Translate);
+
+        Assert.Contains(summary.Insights, item => item.Key == "need_cards_missing" && item.Tone == "warning");
+        Assert.DoesNotContain(summary.Insights, item => item.Key == "need_diversity_low");
+    }
+
+    [Fact]
     public void Build_PrioritizesRisksWithoutPositiveDuplicates()
     {
         var summary = PlayerStatSummaryBuilder.Build(
@@ -103,8 +117,16 @@ public sealed class PlayerStatSummaryBuilderTests
         double cashflowNetTotal,
         double happinessPointsTotal,
         double fulfillmentDiversity,
-        bool hasUnpaidLoan)
+        bool hasUnpaidLoan,
+        int? needCardsOwned = null)
     {
+        JsonElement? rawJson = needCardsOwned.HasValue
+            ? JsonSerializer.SerializeToElement(new
+            {
+                needs = new { need_cards_owned_current = needCardsOwned.Value }
+            })
+            : null;
+
         return new GameplayMetricsResponse(
             Guid.NewGuid(),
             Guid.NewGuid(),
@@ -113,7 +135,8 @@ public sealed class PlayerStatSummaryBuilderTests
             new GameplayProgressMetrics(3, 2, 5, 11),
             new GameplayScoreMetrics(happinessPointsTotal, 12, 2, 6, 4, 3, 5, 0, hasUnpaidLoan ? 4 : 0, hasUnpaidLoan),
             new GameplayNeedMetrics(fulfillmentDiversity),
-            fulfillmentDiversity < 0.4 ? 2 : 0);
+            fulfillmentDiversity < 0.4 ? 2 : 0,
+            rawJson);
     }
 
     private static string Translate(string key)

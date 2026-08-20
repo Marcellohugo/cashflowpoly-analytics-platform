@@ -59,11 +59,13 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("<details id=\"player-statistics-summary\"", view, StringComparison.Ordinal);
         Assert.Contains("<details id=\"player-analysis-atlas\"", view, StringComparison.Ordinal);
         Assert.Contains("<details id=\"player-evidence-library\"", view, StringComparison.Ordinal);
-        Assert.Equal(3, CountOccurrences(view, "open aria-labelledby=\"player-"));
+        Assert.Equal(1, CountOccurrences(view, "open aria-labelledby=\"player-"));
         Assert.Contains("<summary class=\"players-fusion-head ruleset-section-head player-stats-hero\"", view, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(view, "<summary class=\"player-analysis-section-head\""));
-        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary::after", css, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion[open]>summary::after", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.stats.read_time", view, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary :is(h2, h3)::after", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion[open]>summary :is(h2, h3)::after", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary::after {\n    content: none;", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -75,6 +77,7 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("player-profile-identity", view, StringComparison.Ordinal);
         Assert.Contains("player-profile-avatar", view, StringComparison.Ordinal);
         Assert.Contains("player-profile-turn", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.analytics_title", view, StringComparison.Ordinal);
         Assert.DoesNotContain("@Model.PlayerId", view, StringComparison.Ordinal);
         Assert.DoesNotContain("Model.GameplayComputedAt", view, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-profile-avatar-shell", css, StringComparison.Ordinal);
@@ -102,14 +105,14 @@ public sealed class PlayerDetailStatsLayoutTests
             view.IndexOf("players.support.field.formula", StringComparison.Ordinal) < view.IndexOf("players.support.field.actual_calculation", StringComparison.Ordinal) &&
             view.IndexOf("players.support.field.actual_calculation", StringComparison.Ordinal) < view.IndexOf("players.support.field.recommendation", StringComparison.Ordinal),
             "The numeric substitution must appear directly after the formula and before the recommendation.");
-        Assert.Equal(13, CountOccurrences(lexicon, "terms[\"players.analysis.source."));
+        Assert.Equal(14, CountOccurrences(lexicon, "terms[\"players.analysis.source."));
         Assert.Contains("(\"Sumber data\", \"Data source\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Cara menghitung\", \"How it is calculated\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Perhitungan dengan angka pemain\", \"Calculation using the player's numbers\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("Indeks Pertumbuhan Kas = Koin Saat Ini ÷ Koin Awal × 100%.", lexicon, StringComparison.Ordinal);
-        Assert.Contains("jumlah kuadrat setiap (Porsi Pendapatan ÷ 100)", lexicon, StringComparison.Ordinal);
-        Assert.Contains("Skor Selera Risiko = (Tingkat Penerimaan Risiko ÷ 100) × (Intensitas Biaya Risiko ÷ 100) × 100, dibatasi 0–100.", lexicon, StringComparison.Ordinal);
-        Assert.Contains("Skor Komitmen Donasi = Indeks Konsistensi Donasi × (Rasio Donasi ÷ 100) × (Tingkat Partisipasi Hari Jumat ÷ 100), dibatasi 0–100.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Hitungan dengan angka pemain\", \"Calculation with the player's numbers\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Pertumbuhan Kas = Koin Saat Ini ÷ Koin Awal × 100%.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("jumlah kuadrat setiap (Bagian Pendapatan ÷ 100)", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Tingkat Risiko yang Diambil = (Tingkat Penerimaan Risiko ÷ 100) × (Beban Biaya Risiko ÷ 100) × 100, dibatasi 0–100.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Konsistensi Donasi = Nilai Keteraturan Donasi × (Bagian Kas untuk Donasi ÷ 100) × (Keikutsertaan Hari Jumat ÷ 100), dibatasi 0–100.", lexicon, StringComparison.Ordinal);
         Assert.Contains("Poin Kartu Kebutuhan + Poin Bonus Set Kebutuhan + Poin Donasi", lexicon, StringComparison.Ordinal);
         Assert.DoesNotContain("tingkat tanpa perlindungan", lexicon, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Konsentrasi Kebutuhan memakai rumus dokumen yang ditampilkan terpisah", lexicon, StringComparison.OrdinalIgnoreCase);
@@ -132,7 +135,7 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("player-evidence-library", view, StringComparison.Ordinal);
         Assert.Contains("PlayerMetricLabelFormatter.DescribeMetric", view, StringComparison.Ordinal);
         Assert.Contains("players.support.field.recommendation", view, StringComparison.Ordinal);
-        Assert.Contains("player-metric-card__recommendation", view, StringComparison.Ordinal);
+        Assert.Contains("player-evidence-domain__recommendation", view, StringComparison.Ordinal);
         Assert.Contains("players.support.mode.advanced", view, StringComparison.Ordinal);
         Assert.True(
             view.IndexOf("player-analysis-atlas", StringComparison.Ordinal) < view.IndexOf("player-evidence-library", StringComparison.Ordinal),
@@ -177,6 +180,8 @@ public sealed class PlayerDetailStatsLayoutTests
         foreach (var redundantKey in new[]
         {
             "coins_net_end_game",
+            "coins_donated",
+            "coins_saved",
             "leftover_coins_end_game",
             "life_risks_available",
             "sharia_loan_cards_taken",
@@ -193,8 +198,11 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("PlayerMetricJsonMapper.BuildCollectionTable", view, StringComparison.Ordinal);
         Assert.Contains("<table>", view, StringComparison.Ordinal);
         Assert.Contains("FormatActionSlot(actionSlot)", view, StringComparison.Ordinal);
-        Assert.Contains("player-metric-series__outside-quota", view, StringComparison.Ordinal);
-        Assert.Contains("var hasOutsideQuotaRows", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-metric-series__outside-quota", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.details.action_slot.outside_quota", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-metric-series__outside-quota", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.details.action_slot.outside_quota", lexicon, StringComparison.Ordinal);
+        Assert.DoesNotContain("var hasOutsideQuotaRows", view, StringComparison.Ordinal);
         Assert.Contains("var seriesRows = collectionTable.Rows.ToList()", view, StringComparison.Ordinal);
         Assert.Contains("collectionUnits", view, StringComparison.Ordinal);
         Assert.Contains("FormatCollectionCell(row.Path", view, StringComparison.Ordinal);
@@ -204,7 +212,16 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.DoesNotContain("font-family: ui-monospace", css, StringComparison.Ordinal);
         Assert.Contains("(\"Hari\", \"Day\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Persiapan\", \"Setup\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Tidak mengurangi jatah aksi utama.\", \"Does not use the main action allowance.\")", lexicon, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PlayerEvidenceLibrary_ShouldGroupRepeatedGuidanceByDomain()
+    {
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Details.cshtml"));
+
+        Assert.Contains(".GroupBy(metric => (metric.Guidance, metric.Recommendation))", view, StringComparison.Ordinal);
+        Assert.Contains("player-evidence-domain__guide", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-metric-card__guide", view, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -257,6 +274,12 @@ public sealed class PlayerDetailStatsLayoutTests
 
         Assert.Equal(2, CountOccurrences(view, ".Where(item => isAdvancedMode || !item.AdvancedOnly)"));
         Assert.Contains(".Where(chapter => chapter.Items.Count > 0)", view, StringComparison.Ordinal);
+        Assert.Contains("analysis.AdvancedOnly && !chapter.AdvancedOnly", view, StringComparison.Ordinal);
+        Assert.Contains("ExcludeAdvancedRowsInBeginner", view, StringComparison.Ordinal);
+        Assert.Contains("players.analysis.happiness_portfolio.beginner.desc", view, StringComparison.Ordinal);
+        Assert.Contains("players.support.formula.happiness_portfolio.beginner", view, StringComparison.Ordinal);
+        Assert.Contains("players.analysis.source.happiness-portfolio.beginner", view, StringComparison.Ordinal);
+        Assert.Contains("players.details.raw.turns.beginner.desc", view, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -275,7 +298,9 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains(".player-detail-overhaul .player-evidence-domain>summary {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-actions {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-metric-card-grid {", css, StringComparison.Ordinal);
-        Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));", css, StringComparison.Ordinal);
+        Assert.Contains("flex-wrap: wrap;", css, StringComparison.Ordinal);
+        Assert.Contains("flex: 1 1 250px;", css, StringComparison.Ordinal);
+        Assert.Contains("flex-basis: 100%;", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -298,7 +323,6 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("data-player-stats-reveal", view, StringComparison.Ordinal);
         Assert.Contains("player-stats-motion-ready", css, StringComparison.Ordinal);
         Assert.Contains("@keyframes player-stats-shine", css, StringComparison.Ordinal);
-        Assert.Contains("@keyframes player-stats-pill-float", css, StringComparison.Ordinal);
         Assert.Contains("@media (prefers-reduced-motion: reduce)", css, StringComparison.Ordinal);
         Assert.Contains("IntersectionObserver", script, StringComparison.Ordinal);
         Assert.Contains("prefers-reduced-motion: reduce", script, StringComparison.Ordinal);
@@ -312,20 +336,20 @@ public sealed class PlayerDetailStatsLayoutTests
 
         Assert.Contains("(\"Kesimpulan cepat\", \"Quick conclusion\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Cerita di Balik Hasil Pemain\", \"The Story Behind the Player's Result\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Sudut analisis\", \"Analysis lenses\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Penjelasan hasil\", \"Result explanation\")", lexicon, StringComparison.Ordinal);
         Assert.DoesNotContain("analysisSections.Count", view, StringComparison.Ordinal);
         Assert.DoesNotContain("players.analysis.metric_suffix", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Uang dan usaha\", \"Money and business\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Apakah kas pemain bertumbuh?\", \"Did the player's cash grow?\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Porsi Koin Keluar Produktif\", \"Productive Outgoing-Coin Share\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Belanja untuk Bahan Terpakai\", \"Spending on Used Ingredients\")", lexicon, StringComparison.Ordinal);
         Assert.DoesNotContain("apakah dua aksi per giliran digunakan secara beragam", lexicon, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("kecocokannya dengan misi koleksi pribadi", lexicon, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("(\"Prioritas pembahasan\", \"Discussion priorities\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Kondisi uang\", \"Money condition\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Keberagaman Pemenuhan Kebutuhan\", \"Need Fulfillment Diversity\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Pemerataan Kebutuhan\", \"Need Balance\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("(\"Dari mana Poin Kebahagiaan berasal?\", \"Where did Happiness Points come from?\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Variabel Permainan Fisik\", \"Physical Gameplay Variables\")", lexicon, StringComparison.Ordinal);
-        Assert.Contains("(\"Pertimbangan\", \"Consideration\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Data permainan\", \"Gameplay data\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Saran\", \"Suggestion\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("players.support.recommendation.savings", lexicon, StringComparison.Ordinal);
         Assert.Contains("players.support.recommendation.debt", lexicon, StringComparison.Ordinal);
         Assert.DoesNotContain("Lihat fungsi metrik", lexicon, StringComparison.Ordinal);

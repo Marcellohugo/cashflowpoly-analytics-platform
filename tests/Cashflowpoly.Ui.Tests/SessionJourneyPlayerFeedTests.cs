@@ -96,6 +96,25 @@ public sealed class SessionJourneyPlayerFeedTests
     }
 
     [Fact]
+    public void SessionJourneyControls_ShouldExposeSelectionAndDisabledStates()
+    {
+        var repoRoot = ResolveRepositoryRoot();
+        var sectionPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneySection.cshtml");
+        var scriptPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneyScript.cshtml");
+        var sectionContent = File.ReadAllText(sectionPath);
+        var scriptContent = File.ReadAllText(scriptPath);
+
+        Assert.Contains("aria-pressed=\"true\"", sectionContent);
+        Assert.Contains("aria-pressed=\"${selectedTimelineFilter === filterKey ? \"true\" : \"false\"}\"", scriptContent);
+        Assert.Contains("tabindex=\"${hasEvents ? \"0\" : \"-1\"}\"", scriptContent);
+        Assert.Contains("aria-disabled=\"${hasEvents ? \"false\" : \"true\"}\"", scriptContent);
+        Assert.Contains("aria-label=\"${escapeHtml(`${dayLabel} ${d}`)}\"", scriptContent);
+        Assert.Contains("aria-label=\"${escapeHtml(finishLabel)}\"", scriptContent);
+        Assert.DoesNotContain("aria-label=\"Day ${d}\"", scriptContent);
+        Assert.DoesNotContain("aria-label=\"Finish\"", scriptContent);
+    }
+
+    [Fact]
     public void SessionJourneyScript_ShouldRequestOnlyEventsAfterTheLastSequence()
     {
         var repoRoot = ResolveRepositoryRoot();
