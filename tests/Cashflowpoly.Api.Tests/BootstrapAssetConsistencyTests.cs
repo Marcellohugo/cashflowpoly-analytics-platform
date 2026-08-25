@@ -630,11 +630,12 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.Contains("BagikanMisiKoleksi", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Single(Regex.Matches(seedContent, "BagikanEmasAwal", RegexOptions.IgnoreCase));
         Assert.Single(Regex.Matches(seedContent, "BagikanMisiKoleksi", RegexOptions.IgnoreCase));
-        Assert.Contains("AmbilKartuDariDeck", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("KartuDiambilDariPasar", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.Single(Regex.Matches(seedContent, "KartuDiambilDariPasar", RegexOptions.IgnoreCase));
-        Assert.Contains("KartuMasukDiscard", seedContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("IsiUlangPasar", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("AmbilKartuDariDeck", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("KartuMasukDiscard", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("IsiUlangPasar", seedContent, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LewatiOrder", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("gold.initial.granted", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("card.drawn", seedContent, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("card.taken", seedContent, StringComparison.OrdinalIgnoreCase);
@@ -838,7 +839,7 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("insert into session_participant_financial_goals", postApplyRuntimeBlock, StringComparison.OrdinalIgnoreCase);
 
         var consumingActionListPattern =
-            @"'BahanMasakan'[\s\S]{0,160}'BuangBahanMasakan'[\s\S]{0,160}'JualMasakan'[\s\S]{0,160}'LewatiOrder'[\s\S]{0,160}'Kebutuhan'[\s\S]{0,160}'KerjaLepas'[\s\S]{0,160}'Menabung'[\s\S]{0,160}'TarikTabungan'[\s\S]{0,160}'TujuanFinansial'[\s\S]{0,160}'BayarPinjaman'";
+            @"'BahanMasakan'[\s\S]{0,160}'BuangBahanMasakan'[\s\S]{0,160}'JualMasakan'[\s\S]{0,160}'Kebutuhan'[\s\S]{0,160}'KerjaLepas'[\s\S]{0,160}'Menabung'[\s\S]{0,160}'TarikTabungan'[\s\S]{0,160}'TujuanFinansial'[\s\S]{0,160}'BayarPinjaman'";
         Assert.True(
             Regex.Matches(seedContent, consumingActionListPattern, RegexOptions.IgnoreCase).Count >= 3,
             "Manual simulation seed must use the canonical consuming-action list in all action_slot calculations.");
@@ -908,7 +909,6 @@ public sealed class BootstrapAssetConsistencyTests
             "BahanMasakan",
             "BuangBahanMasakan",
             "JualMasakan",
-            "LewatiOrder",
             "Kebutuhan",
             "KerjaLepas",
             "Menabung",
@@ -933,7 +933,7 @@ public sealed class BootstrapAssetConsistencyTests
         }
 
         Assert.Contains(beginnerActions, evt => evt.ActionType == "BuangBahanMasakan");
-        Assert.Contains(beginnerActions, evt => evt.ActionType == "LewatiOrder");
+        Assert.DoesNotContain(beginnerActions, evt => evt.ActionType == "LewatiOrder");
     }
 
     private static string ResolveRepositoryRoot()

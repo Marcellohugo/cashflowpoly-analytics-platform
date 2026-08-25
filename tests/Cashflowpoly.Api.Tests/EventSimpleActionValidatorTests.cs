@@ -21,7 +21,7 @@ public sealed class EventSimpleActionValidatorTests
     }
 
     [Fact]
-    public void TryValidateOrderPassed_RequiresPlayer()
+    public void TryValidateOrderPassed_IsNoLongerHandled()
     {
         var request = CreateRequest("LewatiOrder", """{"required_ingredient_card_ids":["A"],"income":5}""") with
         {
@@ -30,11 +30,8 @@ public sealed class EventSimpleActionValidatorTests
 
         var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
 
-        Assert.True(handled);
-        Assert.False(result.IsValid);
-        Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
-        Assert.Equal("VALIDATION_ERROR", result.ErrorCode);
-        Assert.Contains(result.Details, detail => detail.Field == "user_id" && detail.Issue == "REQUIRED");
+        Assert.False(handled);
+        Assert.True(result.IsValid);
     }
 
     [Fact]

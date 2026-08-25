@@ -36,7 +36,6 @@ internal sealed class EventIngestionService : IEventIngestionService
         string SlotCode,
         string AssetType,
         string AssetCode);
-
     /// <summary>
     /// Singleton outcome validasi sukses untuk menghindari alokasi berulang.
     /// </summary>
@@ -328,16 +327,6 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (!shapeValidation.IsValid)
         {
             return BuildOutcome(shapeValidation);
-        }
-
-        if (request.Payload.ValueKind == JsonValueKind.Object &&
-            request.Payload.TryGetProperty("market_refills", out _))
-        {
-            return BuildOutcome(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "market_refills hanya boleh dihitung oleh server",
-                new ErrorDetail("payload.market_refills", "RESERVED"));
         }
 
         if (request.UserId is not null)
@@ -851,11 +840,6 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         await _projector.ProjectAsync(request, record, projections, conn, tx, ct);
 
-        if (config is not null && ShouldRefillMarket(request, config))
-        {
-            await ApplyAutomaticMarketRefillsAsync(request, record, conn, tx, ct);
-        }
-
         await tx.CommitAsync(ct);
 
         return eventPk;
@@ -1099,7 +1083,6 @@ internal sealed class EventIngestionService : IEventIngestionService
                 Add(references, payload, "INGREDIENT", "ingredient_name", "TARGET");
                 break;
             case GameActionCatalog.JualMasakan:
-            case GameActionCatalog.OrderPassed:
                 Add(references, payload, "ORDER", "order_id", "TARGET");
                 Add(references, payload, "ORDER", "card_id", "TARGET");
                 if (payload.TryGetProperty("required_ingredient_card_ids", out var ingredients) &&
@@ -1449,15 +1432,6 @@ internal sealed class EventIngestionService : IEventIngestionService
     {
         var actionType = request.ActionType;
         var payload = request.Payload;
-
-        if (IsAction(request, GameActionCatalog.CardDrawn) ||
-            IsAction(request, GameActionCatalog.MarketRefilled))
-        {
-            return BuildOutcome(
-                StatusCodes.Status422UnprocessableEntity,
-                "DOMAIN_RULE_VIOLATION",
-                "Refill pasar saat sesi berjalan dikelola otomatis setelah aksi terakhir pemain");
-        }
 
         if (_simpleActionValidator.TryValidate(request, config, out var simpleValidation))
         {

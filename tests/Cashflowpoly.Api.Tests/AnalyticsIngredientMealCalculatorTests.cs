@@ -43,10 +43,10 @@ public sealed class AnalyticsIngredientMealCalculatorTests
         Assert.Equal(4, metrics.IngredientInvestmentTotal);
         Assert.Equal(new[] { 12 }, metrics.MealOrderIncomeValues);
         Assert.Equal(1, metrics.MealOrdersClaimed);
-        Assert.Equal(1, metrics.MealOrdersPassed);
+        Assert.Equal(0, metrics.MealOrdersPassed);
         Assert.Equal(12, metrics.MealOrderIncomeTotal);
-        Assert.Equal(3, metrics.LatestDayIndex);
-        Assert.Equal(0.25, metrics.MealOrdersPerTurnAverage);
+        Assert.Equal(2, metrics.LatestDayIndex);
+        Assert.Equal(1.0 / 3.0, metrics.MealOrdersPerTurnAverage);
         Assert.Equal(4, metrics.EssentialIngredientExpenses);
     }
 

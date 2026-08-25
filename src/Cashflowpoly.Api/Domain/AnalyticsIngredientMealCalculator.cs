@@ -21,6 +21,13 @@ public sealed record AnalyticsIngredientMealMetrics(
 
 internal sealed class IngredientMealCalculator : IIngredientMealCalculator
 {
+    private static readonly HashSet<string> _retiredActionTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "LewatiOrder",
+        "AmbilKartuDariDeck",
+        "KartuMasukDiscard",
+        "IsiUlangPasar"
+    };
     private static readonly AnalyticsPayloadReader _payloadReader = new();
     private static readonly IngredientInventoryCalculator _inventoryCalculator = new();
 
@@ -28,6 +35,8 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         IReadOnlyCollection<EventDb> playerEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections)
     {
+        playerEvents = playerEvents.Where(e => !_retiredActionTypes.Contains(e.ActionType)).ToArray();
+
         var ingredientPurchaseMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var ingredientsCollected = 0;
         foreach (var evt in playerEvents.Where(e => string.Equals(e.ActionType, "BahanMasakan", StringComparison.OrdinalIgnoreCase) || string.Equals(e.ActionType, "SetupBahanAwal", StringComparison.OrdinalIgnoreCase)))
@@ -88,7 +97,7 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         }
 
         var mealOrdersClaimed = mealOrderIncomeValues.Count;
-        var mealOrdersPassed = playerEvents.Count(e => e.ActionType == "LewatiOrder");
+        var mealOrdersPassed = 0;
         var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
         var latestDayIndex = playerEvents.Count == 0 ? -1 : playerEvents.Max(e => e.DayIndex);
         var eventPayloadReader = new EventPayloadReader();

@@ -89,6 +89,24 @@ public sealed class EventTurnProgressValidatorTests
     }
 
     [Fact]
+    public void TryValidateTurnEnded_AcceptsTheSameActionInBothSlots()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var request = CreateRequest("AkhirGiliran", "{}", sessionId, playerId);
+        var history = new[]
+        {
+            CreateEvent("KerjaLepas", "{\"amount\":1}", sessionId, playerId, actionSlot: 1),
+            CreateEvent("KerjaLepas", "{\"amount\":1}", sessionId, playerId, actionSlot: 2)
+        };
+
+        var handled = new EventTurnProgressValidator().TryValidate(request, CreateConfig(), history, 1, out var result);
+
+        Assert.True(handled);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
     public void TryValidateTurnEndedFriday_RejectsMissingPlayerDonation()
     {
         var firstPlayer = Guid.NewGuid();

@@ -15,7 +15,6 @@ internal static class GameActionCatalog
     public const string BahanMasakan = "BahanMasakan";
     public const string IngredientDiscarded = "BuangBahanMasakan";
     public const string JualMasakan = "JualMasakan";
-    public const string OrderPassed = "LewatiOrder";
     public const string Kebutuhan = "Kebutuhan";
     public const string KerjaLepas = "KerjaLepas";
     public const string TransactionRecorded = "CatatTransaksi";
@@ -87,7 +86,7 @@ internal static class GameActionCatalog
                 : PlayerActionSlotPolicy.Consumes;
         }
 
-        return actionId is BahanMasakan or IngredientDiscarded or JualMasakan or OrderPassed or
+        return actionId is BahanMasakan or IngredientDiscarded or JualMasakan or
             Kebutuhan or KerjaLepas or Menabung or SavingDepositWithdrawn or TujuanFinansial or BayarPinjaman
             ? PlayerActionSlotPolicy.Consumes
             : PlayerActionSlotPolicy.Unspecified;
@@ -98,7 +97,7 @@ internal static class GameActionCatalog
         return ResolveGameActionId(actionType, payload) is TransactionRecorded or SundayRest or GoldPriceOpened or
             DonationRankAwarded or DonationWinnersAnnounced or GoldPointsAwarded or PensionRankAwarded or
             SetupModalAwal or SetupBahanAwal or SetupEmasAwal or SetupMisiAwal or SetupPinjamanAwal or
-            SetupAsuransiAwal or TieBreakerAssigned or CardDrawn or CardDiscarded or MarketRefilled or
+            SetupAsuransiAwal or TieBreakerAssigned or
             SessionStarted or SessionEnded or AkhirGiliran;
     }
 
@@ -121,7 +120,6 @@ internal static class GameActionCatalog
             "bahanmasakan" => BahanMasakan,
             "buangbahanmasakan" => IngredientDiscarded,
             "jualmasakan" => JualMasakan,
-            "lewatiorder" => OrderPassed,
             "kebutuhan" => Kebutuhan,
             "kerjalepas" => KerjaLepas,
             "catattransaksi" => TransactionRecorded,
@@ -151,9 +149,6 @@ internal static class GameActionCatalog
             "setuppinjamanawal" => SetupPinjamanAwal,
             "setupasuransiawal" => SetupAsuransiAwal,
             "bagikantiebreaker" => TieBreakerAssigned,
-            "ambilkartudarideck" => CardDrawn,
-            "kartumasukdiscard" => CardDiscarded,
-            "isiulangpasar" => MarketRefilled,
             "mulaisesi" => SessionStarted,
             "akhirisesi" => SessionEnded,
             "akhirgiliran" => AkhirGiliran,

@@ -13,15 +13,17 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
     private readonly string _jwtSigningKey;
+    private readonly bool _seedSimulation;
 
     /// <summary>
     /// Membuat instance factory dengan connection string database dan signing key JWT
     /// yang akan diinjeksikan ke konfigurasi aplikasi saat pengujian.
     /// </summary>
-    public ApiWebApplicationFactory(string connectionString, string jwtSigningKey)
+    public ApiWebApplicationFactory(string connectionString, string jwtSigningKey, bool seedSimulation = false)
     {
         _connectionString = connectionString;
         _jwtSigningKey = jwtSigningKey;
+        _seedSimulation = seedSimulation;
     }
 
     /// <summary>
@@ -39,7 +41,8 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = _jwtSigningKey,
                 ["JWT_SIGNING_KEY"] = _jwtSigningKey,
                 ["AuthBootstrap:SeedDefaultUsers"] = "false",
-                ["Auth:AllowPublicInstructorRegistration"] = "true"
+                ["Auth:AllowPublicInstructorRegistration"] = "true",
+                ["DatabaseMigrations:SeedSimulation"] = _seedSimulation.ToString()
             });
         });
     }

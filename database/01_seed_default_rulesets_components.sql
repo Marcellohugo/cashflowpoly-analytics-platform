@@ -84,18 +84,6 @@ values
         true
     ),
     (
-        'LewatiOrder',
-        'Lewati Order',
-        'LewatiOrder',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
         'Kebutuhan',
         'Beli Kebutuhan',
         'Kebutuhan',
@@ -339,42 +327,6 @@ values
         'BagikanTieBreaker',
         'Sistem: Bagikan Tie Breaker',
         'BagikanTieBreaker',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
-        'AmbilKartuDariDeck',
-        'Sistem: Ambil Kartu dari Deck',
-        'AmbilKartuDariDeck',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
-        'KartuMasukDiscard',
-        'Sistem: Kartu Masuk Discard',
-        'KartuMasukDiscard',
-        'BOTH',
-        null,
-        false,
-        false,
-        false,
-        false,
-        true
-    ),
-    (
-        'IsiUlangPasar',
-        'Sistem: Isi Ulang Pasar',
-        'IsiUlangPasar',
         'BOTH',
         null,
         false,

@@ -27,15 +27,6 @@ public sealed class SessionEventProjector
         await UpdateSessionStateAsync(request, storedEvent.SessionPlayerId, conn, tx, ct);
         var canonicalAction = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload) ?? request.ActionType.Trim();
 
-        if (canonicalAction is GameActionCatalog.CardDrawn or GameActionCatalog.MarketRefilled)
-        {
-            await ProjectMarketRefillAsync(request, storedEvent.EventId, conn, tx, ct);
-        }
-        else if (canonicalAction == GameActionCatalog.CardDiscarded)
-        {
-            await ProjectCardDiscardAsync(request, storedEvent.EventId, conn, tx, ct);
-        }
-
         if (!storedEvent.SessionPlayerId.HasValue)
         {
             if (GameActionCatalog.Is(request.ActionType, request.Payload, GameActionCatalog.SessionEnded))
@@ -75,20 +66,15 @@ public sealed class SessionEventProjector
         {
             case GameActionCatalog.BahanMasakan:
                 await ProjectIngredientPurchaseAsync(request, participantId, conn, tx, ct);
-                await TakeMarketCardAsync(request, participantId, "INGREDIENT", "card_id", conn, tx, ct);
                 break;
             case GameActionCatalog.IngredientDiscarded:
                 await ProjectIngredientDiscardAsync(request, participantId, conn, tx, ct);
-                await DiscardOwnedCardAsync(request, participantId, "INGREDIENT", "card_id", conn, tx, ct);
                 break;
             case GameActionCatalog.JualMasakan:
                 await ProjectOrderClaimAsync(request, participantId, conn, tx, ct);
-                await TakeMarketCardAsync(request, participantId, "ORDER", "order_card_id", conn, tx, ct);
-                await DiscardOrderIngredientsAsync(request, participantId, conn, tx, ct);
                 break;
             case GameActionCatalog.Kebutuhan:
                 await ProjectNeedPurchaseAsync(request, participantId, conn, tx, ct);
-                await TakeMarketCardAsync(request, participantId, "NEED", "card_id", conn, tx, ct);
                 break;
             case GameActionCatalog.SetupMisiAwal:
                 await ProjectMissionAssignmentAsync(request, participantId, conn, tx, ct);
@@ -493,7 +479,6 @@ public sealed class SessionEventProjector
         {
             case "SELL_NEED":
                 await ProjectEmergencyNeedSaleAsync(request, participantId, conn, tx, ct);
-                await DiscardOwnedCardAsync(request, participantId, "NEED", "card_id", conn, tx, ct);
                 break;
             case "SELL_GOLD":
                 await ProjectEmergencyGoldSaleAsync(request, participantId, conn, tx, ct);

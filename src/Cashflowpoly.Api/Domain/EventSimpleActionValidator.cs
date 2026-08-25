@@ -16,12 +16,6 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
         var actionType = request.ActionType;
         var payload = request.Payload;
 
-        if (string.Equals(actionType, "LewatiOrder", StringComparison.OrdinalIgnoreCase))
-        {
-            result = ValidateOrderPassed(request, payload);
-            return true;
-        }
-
         if (string.Equals(actionType, "KerjaLepas", StringComparison.OrdinalIgnoreCase))
         {
             result = ValidateFreelanceCompleted(request, payload, config.FreelanceIncome);
@@ -54,35 +48,6 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
 
         result = EventDomainValidationResult.Valid;
         return false;
-    }
-
-    private EventDomainValidationResult ValidateOrderPassed(EventRequest request, System.Text.Json.JsonElement payload)
-    {
-        var playerCheck = RequirePlayer(request);
-        if (!playerCheck.IsValid)
-        {
-            return playerCheck;
-        }
-
-        if (!_payloadReader.TryReadOrderClaim(payload, out _, out var income))
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Payload order pass tidak valid",
-                new ErrorDetail("payload.required_ingredient_card_ids", "REQUIRED"));
-        }
-
-        if (income <= 0)
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Income harus > 0",
-                new ErrorDetail("payload.income", "OUT_OF_RANGE"));
-        }
-
-        return EventDomainValidationResult.Valid;
     }
 
     private EventDomainValidationResult ValidateFreelanceCompleted(

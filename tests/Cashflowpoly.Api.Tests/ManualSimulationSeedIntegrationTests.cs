@@ -34,17 +34,9 @@ public sealed class ManualSimulationSeedIntegrationTests
 
         await database.StartAsync();
 
-        await using (var setupConnection = new NpgsqlConnection(database.GetConnectionString()))
-        {
-            await setupConnection.OpenAsync();
-            await setupConnection.ExecuteAsync(await File.ReadAllTextAsync(Path.Combine(RepoRoot, "database", "00_create_schema.sql")));
-            await setupConnection.ExecuteAsync(await File.ReadAllTextAsync(Path.Combine(RepoRoot, "database", "01_seed_default_rulesets_components.sql")));
-            await setupConnection.ExecuteAsync(await File.ReadAllTextAsync(Path.Combine(RepoRoot, "database", "02_seed_simulation_sessions_events.sql")));
-        }
-
         await RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
         {
-            await using var factory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
+            await using var factory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey, seedSimulation: true);
             using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
             {
                 AllowAutoRedirect = false
@@ -467,10 +459,11 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Contains("BayarRisiko", mahirActions);
         Assert.Contains("Asuransi", mahirActions);
         Assert.Contains("GunakanOpsiDarurat", mahirActions);
-        Assert.Contains("AmbilKartuDariDeck", mahirActions);
+        Assert.DoesNotContain("AmbilKartuDariDeck", mahirActions);
         Assert.DoesNotContain("KartuDiambilDariPasar", mahirActions);
-        Assert.Contains("KartuMasukDiscard", mahirActions);
-        Assert.Contains("IsiUlangPasar", mahirActions);
+        Assert.DoesNotContain("KartuMasukDiscard", mahirActions);
+        Assert.DoesNotContain("IsiUlangPasar", mahirActions);
+        Assert.DoesNotContain("LewatiOrder", mahirActions);
 
         var emergencyOptions = (await connection.QueryAsync<string>(
             """
@@ -680,12 +673,7 @@ public sealed class ManualSimulationSeedIntegrationTests
                 mahirSessionName = SeedMahirSessionName
             })).ToList();
 
-        foreach (var sessionName in new[] { SeedPemulaSessionName, SeedMahirSessionName })
-        {
-            Assert.Equal(5, Assert.Single(marketSlotRows, row => row.SessionName == sessionName && row.SlotGroup == "INGREDIENT_MARKET").SlotCount);
-            Assert.Equal(5, Assert.Single(marketSlotRows, row => row.SessionName == sessionName && row.SlotGroup == "ORDER_MARKET").SlotCount);
-            Assert.Equal(5, Assert.Single(marketSlotRows, row => row.SessionName == sessionName && row.SlotGroup == "NEED_MARKET").SlotCount);
-        }
+        Assert.Empty(marketSlotRows);
 
         var missionAndDonationChecks = (await connection.QueryAsync<ScenarioSystemEventCountRow>(
             """

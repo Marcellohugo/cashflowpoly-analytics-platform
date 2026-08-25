@@ -59,7 +59,7 @@ public sealed class AnalyticsActionUsageCalculatorTests
     }
 
     [Fact]
-    public void Compute_CountsSkippedOrderAndDiscardButExcludesFreeActions()
+    public void Compute_IgnoresLegacySkippedOrderAndExcludesFreeActions()
     {
         var playerId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -72,8 +72,8 @@ public sealed class AnalyticsActionUsageCalculatorTests
 
         var metrics = new ActionUsageCalculator().Compute(events, [], latestDayIndex: 0, actionsPerTurn: 2);
 
-        Assert.Equal(new[] { "LewatiOrder", "BuangBahanMasakan" }, metrics.ActionSequences.Single().Actions);
-        Assert.Equal(2, metrics.ActionEventCount);
+        Assert.Equal(new[] { "BuangBahanMasakan" }, metrics.ActionSequences.Single().Actions);
+        Assert.Equal(1, metrics.ActionEventCount);
         Assert.Equal(0, metrics.ActionsSkipped);
     }
 

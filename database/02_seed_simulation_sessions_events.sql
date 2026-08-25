@@ -1769,9 +1769,9 @@ scenario_event_seed_raw as (
           11,
           4,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Menunda pesanan agar kas cukup untuk pembelian bahan berikutnya"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -2333,9 +2333,9 @@ scenario_event_seed_raw as (
           18,
           4,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Bahan belum cukup untuk pesanan yang tersedia"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'PEMULA',
@@ -4206,9 +4206,9 @@ scenario_event_seed_raw as (
           10,
           4,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4854,9 +4854,9 @@ scenario_event_seed_raw as (
           18,
           1,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4890,9 +4890,9 @@ scenario_event_seed_raw as (
           18,
           2,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4926,9 +4926,9 @@ scenario_event_seed_raw as (
           18,
           3,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4962,9 +4962,9 @@ scenario_event_seed_raw as (
           18,
           4,
           'PLAYER',
-          'LewatiOrder',
-          'LewatiOrder',
-          '{"reason":"Tidak mengambil pesanan pada aksi kedua"}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5940,7 +5940,6 @@ transition_seed as (
               'BahanMasakan',
               'BuangBahanMasakan',
               'JualMasakan',
-              'LewatiOrder',
               'Kebutuhan',
               'KerjaLepas',
               'Menabung',
@@ -5978,18 +5977,6 @@ event_seed as (
   select
     *
   from
-    setup_market_seed
-  union
-  all
-  select
-    *
-  from
-    final_market_seed
-  union
-  all
-  select
-    *
-  from
     transition_seed
 ),
 ordered_events as (
@@ -6010,7 +5997,6 @@ ordered_events as (
           'BahanMasakan',
           'BuangBahanMasakan',
           'JualMasakan',
-          'LewatiOrder',
           'Kebutuhan',
           'KerjaLepas',
           'Menabung',
@@ -6032,7 +6018,6 @@ ordered_events as (
                 'BahanMasakan',
                 'BuangBahanMasakan',
                 'JualMasakan',
-                'LewatiOrder',
                 'Kebutuhan',
                 'KerjaLepas',
                 'Menabung',
@@ -6083,6 +6068,7 @@ ordered_events as (
     join session_context sc on sc.session_key = es.session_key
     left join player_context pc on pc.session_key = es.session_key
     and pc.player_no = es.player_no
+  where es.action_type not in ('AmbilKartuDariDeck', 'KartuMasukDiscard', 'IsiUlangPasar')
 ),
 numbered_events as (
   select
@@ -6645,10 +6631,6 @@ event_agg as (
       where
         e.action_type = 'JualMasakan'
     ) :: int as meal_orders_claimed,
-    count(*) filter (
-      where
-        e.action_type = 'LewatiOrder'
-    ) :: int as meal_orders_passed,
     coalesce(
       sum(
         case
@@ -6951,7 +6933,6 @@ player_metric_base as (
     ea.ingredients_collected,
     ea.ingredients_wasted,
     ea.meal_orders_claimed,
-    ea.meal_orders_passed,
     ea.meal_order_income_total,
     ea.primary_needs_owned,
     ea.secondary_needs_owned,
@@ -7086,8 +7067,6 @@ snapshot_rows as (
       jsonb_build_object(
         'meal_orders_claimed',
         meal_orders_claimed,
-        'meal_orders_available_passed',
-        meal_orders_passed,
         'meal_order_income_total',
         meal_order_income_total,
         'meal_orders_per_turn_average',
@@ -7369,13 +7348,6 @@ snapshot_rows as (
       ),
       'action_diversity_score_avg',
       transaction_count,
-      'meal_order_success_rate',
-      round(
-        (
-          meal_orders_claimed :: numeric / greatest(meal_orders_claimed + meal_orders_passed, 1)
-        ) * 100,
-        2
-      ),
       'planning_horizon',
       latest_action_slot,
       'planning_horizon_percent',

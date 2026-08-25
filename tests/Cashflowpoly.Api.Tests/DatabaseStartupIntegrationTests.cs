@@ -283,7 +283,7 @@ public sealed class DatabaseStartupIntegrationTests
 
         await using var connection = new NpgsqlConnection(database.GetConnectionString());
         await connection.OpenAsync();
-        Assert.Equal(2, await connection.ExecuteScalarAsync<int>("select count(*) from schema_history;"));
+        Assert.Equal(3, await connection.ExecuteScalarAsync<int>("select count(*) from schema_history;"));
         Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
             "select count(*) from schema_history where checksum !~ '^[0-9a-f]{64}$';"));
     }

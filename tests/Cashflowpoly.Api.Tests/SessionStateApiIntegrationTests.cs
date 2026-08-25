@@ -110,17 +110,6 @@ public sealed class SessionStateApiIntegrationTests
         var token = await RegisterInstructorAndGetTokenAsync();
         var names = Enumerable.Range(1, playerCount).Select(index => $"P{index}").ToArray();
         var started = await CreateStartedSessionAsync(token, names);
-        using var sectionsResponse = await SendJsonAsync(
-            HttpMethod.Get,
-            "/api/v1/rulesets/sections?mode=MAHIR",
-            null,
-            token);
-        using var sectionsBody = await ReadJsonAsync(sectionsResponse);
-        var primaryNeedIds = sectionsBody.RootElement.GetProperty("kebutuhan")
-            .EnumerateArray()
-            .Where(item => item.GetProperty("tipe").GetString() == "primer")
-            .Select(item => item.GetProperty("id").GetString()!)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         AssertInitialState(started.State, playerCount, names);
 
         using var eventsResponse = await SendJsonAsync(
@@ -131,24 +120,10 @@ public sealed class SessionStateApiIntegrationTests
         Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
         using var eventsBody = await ReadJsonAsync(eventsResponse);
         var setupEvents = eventsBody.RootElement.GetProperty("events").EnumerateArray().ToList();
-        Assert.Equal(1 + (playerCount * 6) + 15, setupEvents.Count);
+        Assert.Equal(1 + (playerCount * 6), setupEvents.Count);
         Assert.Single(setupEvents, item => item.GetProperty("action_type").GetString() == "MulaiSesi");
-        var initialMarketEvents = setupEvents
-            .Where(item => item.GetProperty("action_type").GetString() == "AmbilKartuDariDeck")
-            .ToList();
-        Assert.Equal(15, initialMarketEvents.Count);
-        Assert.All(
-            new[] { "INGREDIENT_MARKET", "ORDER_MARKET", "NEED_MARKET" },
-            group => Assert.Equal(
-                5,
-                initialMarketEvents.Count(item =>
-                    item.GetProperty("payload").GetProperty("slot_group").GetString() == group)));
-        Assert.All(
-            initialMarketEvents.Where(item =>
-                item.GetProperty("payload").GetProperty("slot_group").GetString() == "NEED_MARKET"),
-            item => Assert.Contains(
-                item.GetProperty("payload").GetProperty("asset_code").GetString()!,
-                primaryNeedIds));
+        Assert.DoesNotContain(setupEvents, item =>
+            item.GetProperty("action_type").GetString() is "AmbilKartuDariDeck" or "IsiUlangPasar" or "KartuMasukDiscard");
 
         var tieNumbers = setupEvents
             .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
@@ -518,7 +493,7 @@ public sealed class SessionStateApiIntegrationTests
     private static void AssertInitialState(JsonElement state, int playerCount, string[] names)
     {
         Assert.Equal(1, state.GetProperty("state_version").GetInt64());
-        Assert.Equal(1 + (playerCount * 6) + 15, state.GetProperty("next_sequence_number").GetInt64());
+        Assert.Equal(1 + (playerCount * 6), state.GetProperty("next_sequence_number").GetInt64());
         Assert.Equal(1, state.GetProperty("day").GetInt32());
         Assert.Equal(1, state.GetProperty("turn").GetInt32());
         Assert.Equal(2, state.GetProperty("action_slots_left").GetInt32());

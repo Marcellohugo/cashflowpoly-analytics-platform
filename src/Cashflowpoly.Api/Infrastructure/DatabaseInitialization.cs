@@ -103,12 +103,28 @@ internal static class DatabaseInitialization
                     cancellationToken: cancellationToken));
             }
         }
+        catch
+        {
+            try
+            {
+                await connection.ExecuteAsync(new CommandDefinition("rollback;", cancellationToken: cancellationToken));
+            }
+            catch (PostgresException)
+            {
+                // Menutup koneksi tetap melepaskan advisory lock jika transaksi gagal sebelum rollback.
+            }
+
+            throw;
+        }
         finally
         {
-            await connection.ExecuteAsync(new CommandDefinition(
-                "select pg_advisory_unlock(@lockKey);",
-                new { lockKey = MigrationLockKey },
-                cancellationToken: cancellationToken));
+            if (connection.FullState == System.Data.ConnectionState.Open)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(
+                    "select pg_advisory_unlock(@lockKey);",
+                    new { lockKey = MigrationLockKey },
+                    cancellationToken: cancellationToken));
+            }
         }
     }
 

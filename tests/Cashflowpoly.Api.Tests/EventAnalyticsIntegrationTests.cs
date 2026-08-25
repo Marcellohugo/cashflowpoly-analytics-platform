@@ -978,9 +978,9 @@ public sealed class EventAnalyticsIntegrationTests
     }
 
     [Fact]
-    public async Task MarketRefill_IsRejectedBeforeSecondAction_AndAppliedAtomicallyAfterIt()
+    public async Task VirtualMarketActions_AreRejected_AndPhysicalCardActionHasNoRefillPayload()
     {
-        var suffix = $"market_refill_{Guid.NewGuid():N}";
+        var suffix = $"physical_cards_{Guid.NewGuid():N}";
         var instructorToken = (await RegisterAsync(
             $"it_market_instructor_{Guid.NewGuid():N}",
             "IntegrationMarketInstructorPass!123",
@@ -988,47 +988,7 @@ public sealed class EventAnalyticsIntegrationTests
         var setup = await CreateReadySessionAsync(instructorToken, suffix);
         var now = DateTimeOffset.UtcNow;
 
-        using var setupEventsResponse = await SendJsonAsync(
-            HttpMethod.Get,
-            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
-            null,
-            instructorToken);
-        using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
-        var marketCard = setupEventsBody.RootElement.GetProperty("events")
-            .EnumerateArray()
-            .First(item =>
-                item.GetProperty("action_type").GetString() == "AmbilKartuDariDeck" &&
-                item.GetProperty("payload").GetProperty("slot_group").GetString() == "INGREDIENT_MARKET");
-        var marketPayload = marketCard.GetProperty("payload");
-        var cardId = marketPayload.GetProperty("asset_code").GetString()!;
-        var slotCode = marketPayload.GetProperty("slot_code").GetString()!;
-        var prices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["nasi_putih"] = 1,
-            ["telur"] = 4,
-            ["sayur"] = 2
-        };
-        var purchaseEventId = Guid.NewGuid();
-
-        using var purchaseResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
-        {
-            event_id = purchaseEventId,
-            session_id = setup.SessionId,
-            user_id = setup.ActingUserId,
-            actor_type = "PLAYER",
-            timestamp = now,
-            day_index = 1,
-            weekday = "MON",
-            turn_number = 1,
-            action_slot = 1,
-            sequence_number = setup.NextSequenceNumber,
-            action_type = "BahanMasakan",
-            ruleset_version_id = setup.RulesetVersionId,
-            payload = new { card_id = cardId, amount = prices[cardId] }
-        }, instructorToken);
-        Assert.True(purchaseResponse.StatusCode == HttpStatusCode.Created, await purchaseResponse.Content.ReadAsStringAsync());
-
-        using var prematureRefillResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        using var virtualMarketResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
         {
             event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
@@ -1039,37 +999,49 @@ public sealed class EventAnalyticsIntegrationTests
             weekday = "MON",
             turn_number = 0,
             action_slot = 0,
-            sequence_number = setup.NextSequenceNumber + 1,
+            sequence_number = setup.NextSequenceNumber,
             action_type = "IsiUlangPasar",
             ruleset_version_id = setup.RulesetVersionId,
-            payload = new
-            {
-                slot_group = "INGREDIENT_MARKET",
-                slot_code = slotCode,
-                asset_type = "INGREDIENT",
-                asset_code = cardId
-            }
+            payload = new { }
         }, instructorToken);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, prematureRefillResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, virtualMarketResponse.StatusCode);
 
-        var secondActionEventId = Guid.NewGuid();
-        using var secondActionResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        using var skippedOrderResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
         {
-            event_id = secondActionEventId,
+            event_id = Guid.NewGuid(),
             session_id = setup.SessionId,
             user_id = setup.ActingUserId,
             actor_type = "PLAYER",
-            timestamp = now.AddSeconds(2),
+            timestamp = now.AddMilliseconds(500),
             day_index = 1,
             weekday = "MON",
             turn_number = 1,
-            action_slot = 2,
-            sequence_number = setup.NextSequenceNumber + 1,
-            action_type = "KerjaLepas",
+            action_slot = 1,
+            sequence_number = setup.NextSequenceNumber,
+            action_type = "LewatiOrder",
             ruleset_version_id = setup.RulesetVersionId,
-            payload = new { amount = 1 }
+            payload = new { }
         }, instructorToken);
-        Assert.True(secondActionResponse.StatusCode == HttpStatusCode.Created, await secondActionResponse.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, skippedOrderResponse.StatusCode);
+
+        var purchaseEventId = Guid.NewGuid();
+        using var purchaseResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = purchaseEventId,
+            session_id = setup.SessionId,
+            user_id = setup.ActingUserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(1),
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 1,
+            sequence_number = setup.NextSequenceNumber,
+            action_type = "BahanMasakan",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { card_id = "nasi_putih", amount = 1 }
+        }, instructorToken);
+        Assert.True(purchaseResponse.StatusCode == HttpStatusCode.Created, await purchaseResponse.Content.ReadAsStringAsync());
 
         using var eventsResponse = await SendJsonAsync(
             HttpMethod.Get,
@@ -1077,14 +1049,10 @@ public sealed class EventAnalyticsIntegrationTests
             null,
             instructorToken);
         using var eventsBody = await ReadJsonAsync(eventsResponse);
-        var secondAction = Assert.Single(
+        var purchaseEvent = Assert.Single(
             eventsBody.RootElement.GetProperty("events").EnumerateArray(),
-            item => item.GetProperty("event_id").GetGuid() == secondActionEventId);
-        var refills = secondAction.GetProperty("payload").GetProperty("market_refills").EnumerateArray().ToList();
-        var refill = Assert.Single(refills, item =>
-            item.GetProperty("slot_group").GetString() == "INGREDIENT_MARKET" &&
-            item.GetProperty("slot_code").GetString() == slotCode);
-        Assert.False(string.IsNullOrWhiteSpace(refill.GetProperty("asset_code").GetString()));
+            item => item.GetProperty("event_id").GetGuid() == purchaseEventId);
+        Assert.False(purchaseEvent.GetProperty("payload").TryGetProperty("market_refills", out _));
     }
 
     [Fact]

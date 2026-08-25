@@ -1,5 +1,4 @@
 // Fungsi file: Mengelola pemetaan dan akses PostgreSQL untuk SessionStateRepository.
-using System.Security.Cryptography;
 using System.Text.Json;
 using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Domain;
@@ -116,18 +115,6 @@ public sealed class SessionStateRepository
             .Where(item => !string.IsNullOrWhiteSpace(item.Id))
             .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var ingredientDeck = ingredients
-            .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 5)))
-            .ToList();
-        var orders = definition.Orders.Where(item => !string.IsNullOrWhiteSpace(item.Id)).ToList();
-        var primaryNeeds = definition.Needs
-            .Where(item => !string.IsNullOrWhiteSpace(item.Id) &&
-                           item.Tipe.Equals("primer", StringComparison.OrdinalIgnoreCase))
-            .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var primaryNeedDeck = primaryNeeds
-            .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 1)))
-            .ToList();
         var missions = definition.CollectionMissions
             .Where(item => !string.IsNullOrWhiteSpace(item.Id))
             .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
@@ -136,25 +123,6 @@ public sealed class SessionStateRepository
             .Where(item => !string.IsNullOrWhiteSpace(item.TieBreakerCode) && item.TieNumber >= 1)
             .DistinctBy(item => item.TieBreakerCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(item => item.TieBreakerCode, StringComparer.OrdinalIgnoreCase);
-        var orderDeck = orders
-            .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 1)))
-            .ToList();
-
-        if (ingredients.Count < 3 || ingredientDeck.Count < orderedPlayers.Count + 5)
-        {
-            throw new InvalidOperationException("Ruleset membutuhkan minimal 3 jenis dan cukup kartu bahan untuk pembagian awal serta 5 slot pasar.");
-        }
-
-        if (orderDeck.Count < 5)
-        {
-            throw new InvalidOperationException("Ruleset membutuhkan minimal 5 kartu pesanan untuk pasar awal.");
-        }
-
-        if (primaryNeedDeck.Count < 5)
-        {
-            throw new InvalidOperationException("Ruleset membutuhkan minimal 5 Kartu Aneka Kebutuhan Primer untuk pasar awal.");
-        }
-
         var assignments = setupRequest.Players.ToDictionary(item => item.SessionPlayerId);
         var tieBreakerByPlayerId = assignments.ToDictionary(
             item => item.Key,
@@ -162,23 +130,6 @@ public sealed class SessionStateRepository
         var firstPlayerId = tieBreakerByPlayerId.Single(item => item.Value.TieNumber == 1).Key;
         await ApplyTieBreakerTurnOrderAsync(conn, tx, sessionId, tieBreakerByPlayerId, ct);
 
-        var ingredientDrawPile = ingredientDeck.ToList();
-        foreach (var assignment in assignments.Values)
-        {
-            var dealtCardIndex = ingredientDrawPile.FindIndex(item =>
-                item.Id.Equals(assignment.IngredientCardId, StringComparison.OrdinalIgnoreCase));
-            if (dealtCardIndex < 0)
-            {
-                throw new InvalidOperationException("Jumlah Kartu Bahan Masakan tidak mencukupi untuk pembagian awal.");
-            }
-
-            ingredientDrawPile.RemoveAt(dealtCardIndex);
-        }
-
-        Shuffle(ingredientDrawPile);
-        Shuffle(orderDeck);
-        Shuffle(primaryNeedDeck);
-        var ingredientMarket = DrawIngredientMarket(ingredientDrawPile, 0, 5);
         var ingredientsById = ingredients.ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
         var loansByCode = definition.ShariaLoans.ToDictionary(item => item.LoanCode, StringComparer.OrdinalIgnoreCase);
         var insuranceByCode = definition.InsuranceProducts.ToDictionary(item => item.ProductCode, StringComparer.OrdinalIgnoreCase);
@@ -274,76 +225,7 @@ public sealed class SessionStateRepository
                 timestamp, ct);
         }
 
-        var marketGroups = new[]
-        {
-            (
-                SlotGroup: "INGREDIENT_MARKET",
-                AssetType: "INGREDIENT",
-                Codes: ingredientMarket.Select(item => item.Id).ToList()),
-            (
-                SlotGroup: "ORDER_MARKET",
-                AssetType: "ORDER",
-                Codes: orderDeck.Take(5).Select(item => item.Id).ToList()),
-            (
-                SlotGroup: "NEED_MARKET",
-                AssetType: "NEED",
-                Codes: primaryNeedDeck.Take(5).Select(item => item.Id).ToList())
-        };
-        foreach (var market in marketGroups)
-        {
-            for (var index = 0; index < market.Codes.Count; index++)
-            {
-                await InsertAndProjectSetupEventAsync(
-                    conn, tx, sessionId, rulesetVersionId, null, null,
-                    sequence++, GameActionCatalog.CardDrawn,
-                    new
-                    {
-                        setup = "INITIAL_MARKET",
-                        slot_group = market.SlotGroup,
-                        slot_code = $"SLOT_{index + 1}",
-                        asset_type = market.AssetType,
-                        asset_code = market.Codes[index]
-                    },
-                    timestamp, ct);
-            }
-        }
-
         return (sequence, firstPlayerId);
-    }
-
-    internal static List<RulesetIngredientDto> DrawIngredientMarket(
-        IReadOnlyList<RulesetIngredientDto> shuffledDeck,
-        int dealtCards,
-        int marketSize)
-    {
-        var result = new List<RulesetIngredientDto>(marketSize);
-        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var card in shuffledDeck.Skip(dealtCards))
-        {
-            counts.TryGetValue(card.Id, out var count);
-            if (count >= 2)
-            {
-                continue;
-            }
-
-            result.Add(card);
-            counts[card.Id] = count + 1;
-            if (result.Count == marketSize)
-            {
-                return result;
-            }
-        }
-
-        throw new InvalidOperationException($"Deck bahan tidak dapat mengisi {marketSize} slot pasar dengan maksimal 2 kartu sejenis.");
-    }
-
-    private static void Shuffle<T>(IList<T> items)
-    {
-        for (var index = items.Count - 1; index > 0; index--)
-        {
-            var swapIndex = RandomNumberGenerator.GetInt32(index + 1);
-            (items[index], items[swapIndex]) = (items[swapIndex], items[index]);
-        }
     }
 
     private static Task ApplyTieBreakerTurnOrderAsync(

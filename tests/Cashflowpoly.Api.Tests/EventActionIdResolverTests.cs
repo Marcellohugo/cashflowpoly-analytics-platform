@@ -12,7 +12,6 @@ public sealed class EventActionIdResolverTests
     [InlineData("BahanMasakan")]
     [InlineData("BuangBahanMasakan")]
     [InlineData("JualMasakan")]
-    [InlineData("LewatiOrder")]
     [InlineData("Kebutuhan")]
     [InlineData("KerjaLepas")]
     [InlineData("CatatTransaksi")]
@@ -35,9 +34,6 @@ public sealed class EventActionIdResolverTests
     [InlineData("PoinEmas")]
     [InlineData("PoinPeringkatPensiun")]
     [InlineData("BagikanTieBreaker")]
-    [InlineData("AmbilKartuDariDeck")]
-    [InlineData("KartuMasukDiscard")]
-    [InlineData("IsiUlangPasar")]
     [InlineData("MulaiSesi")]
     [InlineData("AkhiriSesi")]
     [InlineData("AkhirGiliran")]
@@ -69,6 +65,10 @@ public sealed class EventActionIdResolverTests
     [InlineData("BagikanEmasAwal")]
     [InlineData("BagikanMisiKoleksi")]
     [InlineData("KartuDiambilDariPasar")]
+    [InlineData("LewatiOrder")]
+    [InlineData("AmbilKartuDariDeck")]
+    [InlineData("KartuMasukDiscard")]
+    [InlineData("IsiUlangPasar")]
     public void Resolve_ReturnsNull_ForRemovedTechnicalActionTypes(string actionType)
     {
         var resolved = EventActionIdResolver.Resolve(actionType, Parse("""{"trade_type":"SELL"}"""));
