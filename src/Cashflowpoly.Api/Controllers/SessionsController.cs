@@ -4,8 +4,10 @@ using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Infrastructure;
 using Cashflowpoly.Api.Contracts;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace Cashflowpoly.Api.Controllers;
 
@@ -27,22 +29,19 @@ public sealed class SessionsController : ControllerBase
     private readonly SessionStateRepository _state;
     private readonly PlayerRepository _players;
     private readonly UserRepository _users;
-    private readonly IWebHostEnvironment _environment;
 
     public SessionsController(
         RulesetRepository rulesets,
         SessionRepository sessions,
         SessionStateRepository state,
         PlayerRepository players,
-        UserRepository users,
-        IWebHostEnvironment environment)
+        UserRepository users)
     {
         _rulesets = rulesets;
         _sessions = sessions;
         _state = state;
         _players = players;
         _users = users;
-        _environment = environment;
     }
 
     [HttpGet]
@@ -113,16 +112,11 @@ public sealed class SessionsController : ControllerBase
 
         if (request.PlayerNames is not null)
         {
-            if (!IsNonProductionPlayerBootstrapAllowed())
-            {
-                return BadRequest(ApiErrorHelper.BuildError(
-                    HttpContext,
-                    "VALIDATION_ERROR",
-                    "player_names hanya tersedia untuk environment dev/test",
-                    new ErrorDetail("player_names", "NOT_ALLOWED")));
-            }
-
-            return await CreateSessionWithInitialStateAsync(request, mode, instructorUserId, ct);
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "player_names tidak lagi didukung. Buat sesi, tambahkan pemain, lalu kirim pembagian awal dari IDN.",
+                new ErrorDetail("player_names", "NOT_ALLOWED")));
         }
 
         if (!request.RulesetVersionId.HasValue)
@@ -137,7 +131,7 @@ public sealed class SessionsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset version tidak ditemukan"));
         }
 
-        var ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetVersion.RulesetId, instructorUserId, ct);
+        var ruleset = await _rulesets.GetRulesetForSessionAsync(rulesetVersion.RulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
@@ -191,6 +185,187 @@ public sealed class SessionsController : ControllerBase
             new CreateSessionResponse(sessionId, rulesetVersion.RulesetId, rulesetVersion.RulesetVersionId));
     }
 
+    [HttpPost("{sessionId:guid}/setup/validate")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionSetupValidationResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ValidateSetup(
+        Guid sessionId,
+        [FromBody] SessionSetupRequest request,
+        CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        if (!string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase))
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Pembagian awal hanya dapat diperiksa sebelum sesi dimulai"));
+        }
+
+        var activeRuleset = await GetActiveRulesetAsync(session, ct);
+        if (activeRuleset is null)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Session belum memiliki ruleset ACTIVE yang valid"));
+        }
+
+        var sessionPlayers = await _players.ListSessionPlayersAsync(sessionId, ct);
+        var errors = SessionSetupValidator.Validate(
+            request,
+            activeRuleset.Value.Version.Definition!,
+            session.Mode,
+            sessionPlayers);
+        if (errors.Count > 0)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "INVALID_SESSION_SETUP",
+                "Pembagian awal tidak sesuai dengan pemain dan set aturan sesi",
+                errors.ToArray()));
+        }
+
+        return Ok(new SessionSetupValidationResponse(true));
+    }
+
+    [HttpPost("{sessionId:guid}/setup")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionSetupResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SessionSetupResponse), StatusCodes.Status201Created)]
+    public async Task<IActionResult> SaveSetup(
+        Guid sessionId,
+        [FromBody] SessionSetupRequest request,
+        CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        if (!string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase))
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Pembagian awal tidak dapat diubah setelah sesi dimulai"));
+        }
+
+        var activeRuleset = await GetActiveRulesetAsync(session, ct);
+        if (activeRuleset is null)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "DOMAIN_RULE_VIOLATION",
+                "Session belum memiliki ruleset ACTIVE yang valid"));
+        }
+
+        var normalized = SessionSetupValidator.Normalize(request);
+        var sessionPlayers = await _players.ListSessionPlayersAsync(sessionId, ct);
+        var errors = SessionSetupValidator.Validate(
+            normalized,
+            activeRuleset.Value.Version.Definition!,
+            session.Mode,
+            sessionPlayers);
+        if (errors.Count > 0)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "INVALID_SESSION_SETUP",
+                "Pembagian awal tidak sesuai dengan pemain dan set aturan sesi",
+                errors.ToArray()));
+        }
+
+        var existingRequestId = await _state.GetSessionSetupByClientRequestAsync(
+            instructorUserId,
+            normalized.ClientRequestId,
+            ct);
+        if (existingRequestId is not null)
+        {
+            var existingRequest = SessionStateRepository.DeserializeSetup(existingRequestId);
+            if (existingRequestId.SessionId != sessionId || !SessionSetupMatches(existingRequest, normalized))
+            {
+                return Conflict(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "CLIENT_REQUEST_ID_CONFLICT",
+                    "client_request_id sudah dipakai untuk pembagian awal lain"));
+            }
+
+            return Ok(BuildSetupResponse(existingRequestId, existingRequest));
+        }
+
+        SessionSetupDb stored;
+        try
+        {
+            stored = await _state.CreateSessionSetupRevisionAsync(
+                sessionId,
+                activeRuleset.Value.Version.RulesetVersionId,
+                normalized,
+                instructorUserId,
+                DateTimeOffset.UtcNow,
+                ct);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            return Conflict(ApiErrorHelper.BuildError(
+                HttpContext,
+                "CLIENT_REQUEST_ID_CONFLICT",
+                "client_request_id sudah dipakai untuk pembagian awal lain"));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiErrorHelper.BuildError(HttpContext, "SESSION_SETUP_LOCKED", ex.Message));
+        }
+
+        return Created(
+            $"/api/v1/sessions/{sessionId}/setup",
+            BuildSetupResponse(stored, normalized));
+    }
+
+    [HttpGet("{sessionId:guid}/setup")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionSetupResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSetup(Guid sessionId, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
+        if (session is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+        }
+
+        var stored = await _state.GetSessionSetupAsync(sessionId, ct);
+        if (stored is null)
+        {
+            return NotFound(ApiErrorHelper.BuildError(
+                HttpContext,
+                "SETUP_NOT_FOUND",
+                "Pembagian awal belum dikirim oleh IDN"));
+        }
+
+        return Ok(BuildSetupResponse(stored, SessionStateRepository.DeserializeSetup(stored)));
+    }
+
     [HttpPost("{sessionId:guid}/start")]
     [Authorize(Roles = "INSTRUCTOR")]
     [ProducesResponseType(typeof(SessionStatusResponse), StatusCodes.Status200OK)]
@@ -212,7 +387,7 @@ public sealed class SessionsController : ControllerBase
             return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Status sesi tidak valid"));
         }
 
-        var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
+        var sessionPlayers = await _players.ListSessionPlayersAsync(sessionId, ct);
         var activeRuleset = await GetActiveRulesetAsync(session, ct);
         if (activeRuleset is null)
         {
@@ -223,7 +398,7 @@ public sealed class SessionsController : ControllerBase
         }
 
         var settings = activeRuleset.Value.Version.Definition!.Settings;
-        if (playersInSession < settings.MinPlayers || playersInSession > settings.MaxPlayers)
+        if (sessionPlayers.Count < settings.MinPlayers || sessionPlayers.Count > settings.MaxPlayers)
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(
                 HttpContext,
@@ -231,6 +406,52 @@ public sealed class SessionsController : ControllerBase
                 $"Session membutuhkan {settings.MinPlayers} sampai {settings.MaxPlayers} pemain",
                 new ErrorDetail("player_count", "COUNT_OUT_OF_RANGE")));
         }
+
+        var storedSetup = await _state.GetSessionSetupAsync(sessionId, ct);
+        if (storedSetup is null)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "SETUP_REQUIRED",
+                "Kirim dan kunci pembagian awal dari IDN sebelum memulai sesi"));
+        }
+
+        if (storedSetup.RulesetVersionId != activeRuleset.Value.Version.RulesetVersionId)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "INVALID_SESSION_SETUP",
+                "Pembagian awal tidak menggunakan set aturan sesi yang aktif"));
+        }
+
+        SessionSetupRequest setupRequest;
+        try
+        {
+            setupRequest = SessionStateRepository.DeserializeSetup(storedSetup);
+        }
+        catch (InvalidOperationException)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "INVALID_SESSION_SETUP",
+                "Data pembagian awal tidak dapat dibaca"));
+        }
+
+        var setupErrors = SessionSetupValidator.Validate(
+            setupRequest,
+            activeRuleset.Value.Version.Definition!,
+            session.Mode,
+            sessionPlayers);
+        if (setupErrors.Count > 0)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(
+                HttpContext,
+                "INVALID_SESSION_SETUP",
+                "Pembagian awal tidak lagi sesuai dengan pemain dan set aturan sesi",
+                setupErrors.ToArray()));
+        }
+
+        setupRequest = SessionSetupValidator.Normalize(setupRequest);
 
         var startedAt = DateTimeOffset.UtcNow;
         try
@@ -240,6 +461,8 @@ public sealed class SessionsController : ControllerBase
                 session.Mode,
                 activeRuleset.Value.Version.RulesetVersionId,
                 activeRuleset.Value.Version.Definition!,
+                setupRequest,
+                storedSetup.Revision,
                 startedAt,
                 ct);
         }
@@ -350,76 +573,6 @@ public sealed class SessionsController : ControllerBase
                 HttpContext,
                 "STATE_WRITE_DISABLED",
                 "State permainan hanya dapat diubah melalui event ingestion"));
-    }
-
-    private async Task<IActionResult> CreateSessionWithInitialStateAsync(
-        CreateSessionRequest request,
-        string mode,
-        Guid instructorUserId,
-        CancellationToken ct)
-    {
-        var playerNames = request.PlayerNames?.Select(name => name.Trim()).ToList() ?? [];
-        if (!request.RulesetVersionId.HasValue)
-        {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Field wajib tidak lengkap",
-                new ErrorDetail("ruleset_version_id", "REQUIRED")));
-        }
-
-        var rulesetSection = await _state.GetRulesetSectionByVersionIdAsync(mode, request.RulesetVersionId.Value, instructorUserId, ct);
-        if (rulesetSection is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
-
-        var settings = rulesetSection.Definition.Settings;
-        if (playerNames.Count < settings.MinPlayers || playerNames.Count > settings.MaxPlayers)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                $"Session membutuhkan {settings.MinPlayers} sampai {settings.MaxPlayers} pemain",
-                new ErrorDetail("player_names", "COUNT_OUT_OF_RANGE")));
-        }
-
-        if (playerNames.Any(string.IsNullOrWhiteSpace))
-        {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama pemain wajib diisi",
-                new ErrorDetail("player_names", "REQUIRED")));
-        }
-
-        if (playerNames.Any(name => name.Length > 80))
-        {
-            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama pemain maksimal 80 karakter",
-                new ErrorDetail("player_names", "MAX_LENGTH")));
-        }
-
-        CreateSessionWithStateResult? created;
-        try
-        {
-            created = await _state.CreateSessionAsync(
-                request.SessionName!.Trim(),
-                mode,
-                playerNames,
-                request.RulesetVersionId.Value,
-                instructorUserId,
-                GetActorName(),
-                ct);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                ex.Message));
-        }
-        if (created is null)
-        {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
-        }
-
-        return Created(
-            $"/api/v1/sessions/{created.SessionId}/state",
-            new CreateSessionResponse(created.SessionId, created.RulesetId, created.RulesetVersionId, created.State));
     }
 
     private IActionResult? ValidateStateRequest(
@@ -645,6 +798,27 @@ public sealed class SessionsController : ControllerBase
         return false;
     }
 
+    private static bool SessionSetupMatches(SessionSetupRequest first, SessionSetupRequest second)
+    {
+        var firstJson = JsonSerializer.Serialize(SessionSetupValidator.Normalize(first));
+        var secondJson = JsonSerializer.Serialize(SessionSetupValidator.Normalize(second));
+        return string.Equals(firstJson, secondJson, StringComparison.Ordinal);
+    }
+
+    private static SessionSetupResponse BuildSetupResponse(SessionSetupDb setup, SessionSetupRequest request)
+    {
+        var normalized = SessionSetupValidator.Normalize(request);
+        return new SessionSetupResponse(
+            setup.SessionId,
+            setup.RulesetVersionId,
+            setup.Revision,
+            setup.LockedAt.HasValue ? "LOCKED" : "EDITABLE",
+            normalized.ClientRequestId,
+            normalized.Players,
+            setup.SavedAt,
+            setup.LockedAt);
+    }
+
     private IActionResult BadRequestError(string field, string issue, string message)
     {
         return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", message, new ErrorDetail(field, issue)));
@@ -667,8 +841,4 @@ public sealed class SessionsController : ControllerBase
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    private bool IsNonProductionPlayerBootstrapAllowed()
-    {
-        return _environment.IsDevelopment() || _environment.IsEnvironment("Testing");
-    }
 }

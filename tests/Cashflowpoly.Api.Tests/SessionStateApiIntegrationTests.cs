@@ -109,7 +109,7 @@ public sealed class SessionStateApiIntegrationTests
     {
         var token = await RegisterInstructorAndGetTokenAsync();
         var names = Enumerable.Range(1, playerCount).Select(index => $"P{index}").ToArray();
-        var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", token);
+        var started = await CreateStartedSessionAsync(token, names);
         using var sectionsResponse = await SendJsonAsync(
             HttpMethod.Get,
             "/api/v1/rulesets/sections?mode=MAHIR",
@@ -121,36 +121,11 @@ public sealed class SessionStateApiIntegrationTests
             .Where(item => item.GetProperty("tipe").GetString() == "primer")
             .Select(item => item.GetProperty("id").GetString()!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        using var createResponse = await SendJsonAsync(
-            HttpMethod.Post,
-            "/api/v1/sessions",
-            new
-            {
-                session_name = $"Session IT {Guid.NewGuid():N}",
-                mode = "MAHIR",
-                ruleset_version_id = rulesetVersionId,
-                player_names = names
-            },
-            token);
-        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
-
-        using var createBody = await ReadJsonAsync(createResponse);
-        var createdState = createBody.RootElement.GetProperty("state");
-        AssertInitialState(createdState, playerCount, names);
-
-        var sessionId = createBody.RootElement.GetProperty("session_id").GetGuid();
-        using var predictablePasswordLogin = await _client.PostAsJsonAsync(
-            "/api/v1/auth/login",
-            new LoginRequest(
-                $"dev-player-{sessionId:N}-1",
-                $"dev-only-{sessionId:N}-1"),
-            TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Unauthorized, predictablePasswordLogin.StatusCode);
+        AssertInitialState(started.State, playerCount, names);
 
         using var eventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{sessionId}/events?fromSeq=0&limit=100",
+            $"/api/v1/sessions/{started.SessionId}/events?fromSeq=0&limit=100",
             null,
             token);
         Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
@@ -181,7 +156,7 @@ public sealed class SessionStateApiIntegrationTests
             .OrderBy(number => number)
             .ToArray();
         Assert.Equal(Enumerable.Range(1, playerCount), tieNumbers);
-        var turnOrderByUserId = createdState.GetProperty("players")
+        var turnOrderByUserId = started.State.GetProperty("players")
             .EnumerateArray()
             .ToDictionary(
                 item => item.GetProperty("user_id").GetGuid(),
@@ -199,7 +174,7 @@ public sealed class SessionStateApiIntegrationTests
 
         using var getResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{sessionId}/state",
+            $"/api/v1/sessions/{started.SessionId}/state",
             null,
             token);
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
@@ -212,22 +187,9 @@ public sealed class SessionStateApiIntegrationTests
     public async Task PutState_ReturnsGone_AndDoesNotMutateState()
     {
         var token = await RegisterInstructorAndGetTokenAsync();
-        var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", token);
-        var createPayload = new
-        {
-            session_name = $"Session Save {Guid.NewGuid():N}",
-            mode = "MAHIR",
-            ruleset_version_id = rulesetVersionId,
-            player_names = new[] { "Doni", "Rani", "Bimo" }
-        };
-
-        using var createResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/sessions", createPayload, token);
-        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
-        using var createBody = await ReadJsonAsync(createResponse);
-
-        var sessionId = createBody.RootElement.GetProperty("session_id").GetGuid();
-        var initialState = createBody.RootElement.GetProperty("state");
-        var players = initialState.GetProperty("players").EnumerateArray().ToList();
+        var started = await CreateStartedSessionAsync(token, ["Doni", "Rani", "Bimo"]);
+        var sessionId = started.SessionId;
+        var players = started.State.GetProperty("players").EnumerateArray().ToList();
         var firstPlayerId = players[0].GetProperty("session_player_id").GetGuid();
         var secondPlayerId = players[1].GetProperty("session_player_id").GetGuid();
         var thirdPlayerId = players[2].GetProperty("session_player_id").GetGuid();
@@ -262,54 +224,169 @@ public sealed class SessionStateApiIntegrationTests
     }
 
     [Fact]
-    public async Task SessionStateEndpoints_RejectInvalidPlayerCountNegativeValuesAndWrongOwner()
+    public async Task SetupEndpoints_RequireSetupAllowRetryAndLockLatestRevisionOnStart()
+    {
+        var token = await RegisterInstructorAndGetTokenAsync();
+        var prepared = await CreateSessionWithPlayersAsync(token, ["A", "B"]);
+
+        using var startWithoutSetupResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{prepared.SessionId}/start",
+            null,
+            token);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, startWithoutSetupResponse.StatusCode);
+        var startError = await startWithoutSetupResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(startError);
+        Assert.Equal("SETUP_REQUIRED", startError.ErrorCode);
+
+        using var firstSaveResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            token,
+            prepared.SessionId,
+            prepared.Definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, firstSaveResponse.StatusCode);
+
+        using var setupBody = await ReadJsonAsync(firstSaveResponse);
+        var validateRequest = new SessionSetupRequest(
+            setupBody.RootElement.GetProperty("client_request_id").GetString()!,
+            setupBody.RootElement.GetProperty("players").Deserialize<List<SessionPlayerSetupRequest>>()!);
+        using var validateResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{prepared.SessionId}/setup/validate",
+            validateRequest,
+            token);
+        Assert.Equal(HttpStatusCode.OK, validateResponse.StatusCode);
+
+        using var retryResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            token,
+            prepared.SessionId,
+            prepared.Definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, retryResponse.StatusCode);
+
+        var revisedPlayers = validateRequest.Players.ToList();
+        (revisedPlayers[0], revisedPlayers[1]) = (
+            revisedPlayers[0] with { TieBreakerCode = revisedPlayers[1].TieBreakerCode },
+            revisedPlayers[1] with { TieBreakerCode = revisedPlayers[0].TieBreakerCode });
+        using var revisionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{prepared.SessionId}/setup",
+            new SessionSetupRequest($"test-setup-revision-{prepared.SessionId:N}", revisedPlayers),
+            token);
+        Assert.Equal(HttpStatusCode.Created, revisionResponse.StatusCode);
+        var revision = await revisionResponse.Content.ReadFromJsonAsync<SessionSetupResponse>();
+        Assert.NotNull(revision);
+        Assert.Equal(2, revision.Revision);
+
+        using var extraPlayerResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/players",
+            new CreatePlayerRequest("Roster Locked", $"locked_{Guid.NewGuid():N}", "SessionStatePlayerPass!123"),
+            token);
+        var extraPlayer = await extraPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+        Assert.NotNull(extraPlayer);
+        using var addAfterSetupResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{prepared.SessionId}/players",
+            new AddSessionPlayerRequest(extraPlayer.UserId, null, 3),
+            token);
+        Assert.Equal(HttpStatusCode.Conflict, addAfterSetupResponse.StatusCode);
+
+        using var getSetupResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{prepared.SessionId}/setup",
+            null,
+            token);
+        Assert.Equal(HttpStatusCode.OK, getSetupResponse.StatusCode);
+        var storedSetup = await getSetupResponse.Content.ReadFromJsonAsync<SessionSetupResponse>();
+        Assert.NotNull(storedSetup);
+        Assert.Equal(2, storedSetup.Revision);
+        Assert.Equal("EDITABLE", storedSetup.SetupStatus);
+        Assert.Null(storedSetup.LockedAt);
+
+        using var startResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{prepared.SessionId}/start",
+            null,
+            token);
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+
+        using var lockedSetupResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{prepared.SessionId}/setup",
+            null,
+            token);
+        var lockedSetup = await lockedSetupResponse.Content.ReadFromJsonAsync<SessionSetupResponse>();
+        Assert.NotNull(lockedSetup);
+        Assert.Equal("LOCKED", lockedSetup.SetupStatus);
+        Assert.NotNull(lockedSetup.LockedAt);
+    }
+
+    [Fact]
+    public async Task SessionStateEndpoints_RejectLegacyBootstrapInvalidPlayerCountAndWrongOwner()
     {
         var ownerToken = await RegisterInstructorAndGetTokenAsync();
         var otherInstructorToken = await RegisterInstructorAndGetTokenAsync();
-        var rulesetVersionId = await GetDefaultRulesetVersionIdAsync("MAHIR", ownerToken);
+        var ruleset = await GetDefaultRulesetAsync("MAHIR", ownerToken);
 
-        using var invalidLowCountResponse = await SendJsonAsync(
+        using var legacyBootstrapResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            new
+            {
+                session_name = $"Legacy Bootstrap {Guid.NewGuid():N}",
+                mode = "MAHIR",
+                ruleset_version_id = ruleset.RulesetVersionId,
+                player_names = new[] { "A" }
+            },
+            ownerToken);
+        Assert.Equal(HttpStatusCode.BadRequest, legacyBootstrapResponse.StatusCode);
+        var legacyError = await legacyBootstrapResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(legacyError);
+        Assert.Contains(legacyError.Details, detail => detail.Field == "player_names" && detail.Issue == "NOT_ALLOWED");
+
+        using var lowCountSessionResponse = await SendJsonAsync(
             HttpMethod.Post,
             "/api/v1/sessions",
             new
             {
                 session_name = $"Invalid Low Count {Guid.NewGuid():N}",
                 mode = "MAHIR",
-                ruleset_version_id = rulesetVersionId,
-                player_names = new[] { "A" }
+                ruleset_version_id = ruleset.RulesetVersionId
             },
             ownerToken);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidLowCountResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, lowCountSessionResponse.StatusCode);
+        var lowCountSession = await lowCountSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
+        Assert.NotNull(lowCountSession);
 
-        using var invalidHighCountResponse = await SendJsonAsync(
+        using var createPlayerResponse = await SendJsonAsync(
             HttpMethod.Post,
-            "/api/v1/sessions",
-            new
-            {
-                session_name = $"Invalid High Count {Guid.NewGuid():N}",
-                mode = "MAHIR",
-                ruleset_version_id = rulesetVersionId,
-                player_names = new[] { "A", "B", "C", "D", "E" }
-            },
+            "/api/v1/players",
+            new CreatePlayerRequest("Only Player", $"only_player_{Guid.NewGuid():N}", "OnlyPlayerPass!123"),
             ownerToken);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidHighCountResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+        var onlyPlayer = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+        Assert.NotNull(onlyPlayer);
 
-        using var createResponse = await SendJsonAsync(
+        using var addOnlyPlayerResponse = await SendJsonAsync(
             HttpMethod.Post,
-            "/api/v1/sessions",
-            new
-            {
-                session_name = $"Owner Check {Guid.NewGuid():N}",
-                mode = "MAHIR",
-                ruleset_version_id = rulesetVersionId,
-                player_names = new[] { "Doni", "Rani", "Bimo" }
-            },
+            $"/api/v1/sessions/{lowCountSession.SessionId}/players",
+            new AddSessionPlayerRequest(onlyPlayer.UserId, null, 1),
             ownerToken);
-        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
-        using var createBody = await ReadJsonAsync(createResponse);
+        Assert.Equal(HttpStatusCode.OK, addOnlyPlayerResponse.StatusCode);
 
-        var sessionId = createBody.RootElement.GetProperty("session_id").GetGuid();
-        var players = createBody.RootElement.GetProperty("state").GetProperty("players").EnumerateArray().ToList();
+        using var lowCountStartResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{lowCountSession.SessionId}/start",
+            null,
+            ownerToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, lowCountStartResponse.StatusCode);
+
+        var started = await CreateStartedSessionAsync(ownerToken, ["Doni", "Rani", "Bimo"]);
+        var sessionId = started.SessionId;
+        var players = started.State.GetProperty("players").EnumerateArray().ToList();
         var firstPlayerId = players[0].GetProperty("session_player_id").GetGuid();
         var secondPlayerId = players[1].GetProperty("session_player_id").GetGuid();
         var thirdPlayerId = players[2].GetProperty("session_player_id").GetGuid();
@@ -501,13 +578,91 @@ public sealed class SessionStateApiIntegrationTests
         return body.AccessToken;
     }
 
-    private async Task<Guid> GetDefaultRulesetVersionIdAsync(string mode, string accessToken)
+    private async Task<(Guid RulesetVersionId, RulesetDefinitionDto Definition)> GetDefaultRulesetAsync(
+        string mode,
+        string accessToken)
     {
-        using var response = await SendJsonAsync(HttpMethod.Get, $"/api/v1/rulesets/sections?mode={mode}", null, accessToken);
+        using var response = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/rulesets/components/defaults?mode={mode}",
+            null,
+            accessToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        using var body = await ReadJsonAsync(response);
-        return body.RootElement.GetProperty("ruleset_version_id").GetGuid();
+        var body = await response.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
+        Assert.NotNull(body);
+        var selected = Assert.Single(body.Items, item => string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(selected.Definition);
+        return (selected.RulesetVersionId, selected.Definition!);
+    }
+
+    private async Task<(Guid SessionId, JsonElement State)> CreateStartedSessionAsync(
+        string accessToken,
+        string[] playerNames)
+    {
+        var prepared = await CreateSessionWithPlayersAsync(accessToken, playerNames);
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            accessToken,
+            prepared.SessionId,
+            prepared.Definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
+
+        using var startResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/sessions/{prepared.SessionId}/start",
+            null,
+            accessToken);
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+
+        using var stateResponse = await SendJsonAsync(
+            HttpMethod.Get,
+            $"/api/v1/sessions/{prepared.SessionId}/state",
+            null,
+            accessToken);
+        Assert.Equal(HttpStatusCode.OK, stateResponse.StatusCode);
+        using var state = await ReadJsonAsync(stateResponse);
+        return (prepared.SessionId, state.RootElement.Clone());
+    }
+
+    private async Task<(Guid SessionId, RulesetDefinitionDto Definition)> CreateSessionWithPlayersAsync(
+        string accessToken,
+        string[] playerNames)
+    {
+        var ruleset = await GetDefaultRulesetAsync("MAHIR", accessToken);
+        using var createSessionResponse = await SendJsonAsync(
+            HttpMethod.Post,
+            "/api/v1/sessions",
+            new CreateSessionRequest($"Session State {Guid.NewGuid():N}", "MAHIR", ruleset.RulesetVersionId),
+            accessToken);
+        Assert.Equal(HttpStatusCode.Created, createSessionResponse.StatusCode);
+        var session = await createSessionResponse.Content.ReadFromJsonAsync<CreateSessionResponse>();
+        Assert.NotNull(session);
+
+        for (var index = 0; index < playerNames.Length; index++)
+        {
+            using var createPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                "/api/v1/players",
+                new CreatePlayerRequest(
+                    playerNames[index],
+                    $"state_player_{Guid.NewGuid():N}",
+                    "SessionStatePlayerPass!123"),
+                accessToken);
+            Assert.Equal(HttpStatusCode.Created, createPlayerResponse.StatusCode);
+            var player = await createPlayerResponse.Content.ReadFromJsonAsync<PlayerResponse>();
+            Assert.NotNull(player);
+
+            using var addPlayerResponse = await SendJsonAsync(
+                HttpMethod.Post,
+                $"/api/v1/sessions/{session.SessionId}/players",
+                new AddSessionPlayerRequest(player.UserId, null, index + 1),
+                accessToken);
+            Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
+        }
+
+        return (session.SessionId, ruleset.Definition);
     }
 
     private async Task<HttpResponseMessage> SendJsonAsync(

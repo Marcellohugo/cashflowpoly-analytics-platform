@@ -74,6 +74,32 @@ public sealed class CreateSessionResponse
 
 public sealed record SessionStatusResponse([property: JsonPropertyName("status")] string Status);
 
+public sealed record SessionPlayerSetupRequest(
+    [property: JsonPropertyName("session_player_id")] Guid SessionPlayerId,
+    [property: JsonPropertyName("tie_breaker_code")] string TieBreakerCode,
+    [property: JsonPropertyName("ingredient_card_id")] string IngredientCardId,
+    [property: JsonPropertyName("gold_quantity")] int GoldQuantity,
+    [property: JsonPropertyName("mission_id")] string? MissionId,
+    [property: JsonPropertyName("loan_code")] string? LoanCode,
+    [property: JsonPropertyName("insurance_product_code")] string? InsuranceProductCode);
+
+public sealed record SessionSetupRequest(
+    [property: JsonPropertyName("client_request_id")] string ClientRequestId,
+    [property: JsonPropertyName("players")] List<SessionPlayerSetupRequest> Players);
+
+public sealed record SessionSetupValidationResponse(
+    [property: JsonPropertyName("valid")] bool Valid);
+
+public sealed record SessionSetupResponse(
+    [property: JsonPropertyName("session_id")] Guid SessionId,
+    [property: JsonPropertyName("ruleset_version_id")] Guid RulesetVersionId,
+    [property: JsonPropertyName("revision")] int Revision,
+    [property: JsonPropertyName("setup_status")] string SetupStatus,
+    [property: JsonPropertyName("client_request_id")] string ClientRequestId,
+    [property: JsonPropertyName("players")] List<SessionPlayerSetupRequest> Players,
+    [property: JsonPropertyName("saved_at")] DateTimeOffset SavedAt,
+    [property: JsonPropertyName("locked_at")] DateTimeOffset? LockedAt);
+
 public sealed record CreatePlayerRequest(
     [property: JsonPropertyName("display_name")] string DisplayName,
     [property: JsonPropertyName("username")] string Username,
@@ -86,6 +112,7 @@ public sealed record PlayerResponse(
 public sealed record PlayerListResponse([property: JsonPropertyName("items")] List<PlayerResponse> Items);
 
 public sealed record SessionPlayerResponse(
+    [property: JsonPropertyName("session_player_id")] Guid SessionPlayerId,
     [property: JsonPropertyName("user_id")] Guid UserId,
     [property: JsonPropertyName("display_name")] string DisplayName,
     [property: JsonPropertyName("player_order_no")] int PlayerOrder);

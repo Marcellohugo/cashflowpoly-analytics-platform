@@ -111,9 +111,22 @@ public sealed class SessionFinalScoreDb
 
 public sealed class SessionPlayerDb
 {
+    public Guid SessionPlayerId { get; set; }
     public Guid UserId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public int PlayerOrder { get; set; }
+}
+
+public sealed class SessionSetupDb
+{
+    public Guid SessionId { get; set; }
+    public int Revision { get; set; }
+    public Guid RulesetVersionId { get; set; }
+    public string ClientRequestId { get; set; } = string.Empty;
+    public string SetupJson { get; set; } = "{}";
+    public DateTimeOffset SavedAt { get; set; }
+    public DateTimeOffset? LockedAt { get; set; }
+    public Guid CreatedByUserId { get; set; }
 }
 
 /// <summary>

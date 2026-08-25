@@ -42,11 +42,12 @@ public sealed class EventAnalyticsIntegrationTests
 
         var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
 
+        var definition = BuildRulesetDefinition(startingCash: 20);
         var createRulesetPayload = new
         {
             name = $"Ruleset Event IT {suffix}",
             description = "Integration event analytics",
-            definition = BuildRulesetDefinition(startingCash: 20)
+            definition
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -160,6 +161,14 @@ public sealed class EventAnalyticsIntegrationTests
                 instructorToken);
             Assert.Equal(HttpStatusCode.OK, addExtraPlayerResponse.StatusCode);
         }
+
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            instructorToken,
+            createdSession.SessionId,
+            definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
 
         var startSessionResponse = await SendJsonAsync(
             HttpMethod.Post,
@@ -313,9 +322,9 @@ public sealed class EventAnalyticsIntegrationTests
     [Fact]
     /// <summary>
     /// Memvalidasi bahwa urutan aksi dan analitika sesi yang sudah dimulai
-    /// mengikuti hasil pembagian Tie Breaker, bukan urutan pendaftaran awal.
+    /// mengikuti hasil Tie Breaker yang dikirim IDN, bukan urutan pendaftaran awal.
     /// </summary>
-    public async Task StartedSession_UsesShuffledTieBreakerAsPlayerTurnOrder()
+    public async Task StartedSession_UsesSubmittedTieBreakerAsPlayerTurnOrder()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var instructorUsername = $"it_evt_order_instructor_{suffix}";
@@ -323,11 +332,12 @@ public sealed class EventAnalyticsIntegrationTests
 
         var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
 
+        var definition = BuildRulesetDefinition(startingCash: 20);
         var createRulesetPayload = new
         {
             name = $"Ruleset Order IT {suffix}",
             description = "Integration player order assignment",
-            definition = BuildRulesetDefinition(startingCash: 20)
+            definition
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -393,6 +403,14 @@ public sealed class EventAnalyticsIntegrationTests
                 instructorToken);
             Assert.Equal(HttpStatusCode.OK, addPlayerResponse.StatusCode);
         }
+
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            instructorToken,
+            createdSession.SessionId,
+            definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
 
         var startSessionResponse = await SendJsonAsync(
             HttpMethod.Post,
@@ -496,11 +514,12 @@ public sealed class EventAnalyticsIntegrationTests
         var secondPlayerUsername = $"it_evt_assignment_order_player_2_{suffix}";
         var thirdPlayerUsername = $"it_evt_assignment_order_player_3_{suffix}";
 
+        var definition = BuildRulesetDefinition(startingCash: 20);
         var createRulesetPayload = new
         {
             name = $"Ruleset Assignment Order IT {suffix}",
             description = "Integration assignment order by username",
-            definition = BuildRulesetDefinition(startingCash: 20)
+            definition
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -621,11 +640,12 @@ public sealed class EventAnalyticsIntegrationTests
         const string instructorPassword = "IntegrationLimitInstructorPass!123";
         var instructorToken = (await RegisterAsync(instructorUsername, instructorPassword, "INSTRUCTOR")).AccessToken;
 
+        var definition = BuildRulesetDefinition(startingCash: 20);
         var createRulesetPayload = new
         {
             name = $"Ruleset Limit IT {suffix}",
             description = "Integration max player per session",
-            definition = BuildRulesetDefinition(startingCash: 20)
+            definition
         };
 
         var createRulesetResponse = await SendJsonAsync(
@@ -715,6 +735,14 @@ public sealed class EventAnalyticsIntegrationTests
         var addFifthPlayerError = await addFifthPlayerResponse.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.NotNull(addFifthPlayerError);
         Assert.Equal("DOMAIN_RULE_VIOLATION", addFifthPlayerError.ErrorCode);
+
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            instructorToken,
+            createdSession.SessionId,
+            definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
 
         var startSessionResponse = await SendJsonAsync(
             HttpMethod.Post,
@@ -1514,11 +1542,11 @@ public sealed class EventAnalyticsIntegrationTests
                 role = "ADMIN"
             },
             instructorToken);
-        Assert.Equal(HttpStatusCode.OK, addWithInvalidRoleResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, addWithInvalidRoleResponse.StatusCode);
 
-        var added = await addWithInvalidRoleResponse.Content.ReadFromJsonAsync<AddSessionPlayerResponse>();
-        Assert.NotNull(added);
-        Assert.Equal(createdPlayer.UserId, added.UserId);
+        var error = await addWithInvalidRoleResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("SESSION_ROSTER_LOCKED", error.ErrorCode);
     }
 
     /// <summary>
@@ -1623,6 +1651,14 @@ public sealed class EventAnalyticsIntegrationTests
                 instructorToken);
             Assert.Equal(HttpStatusCode.OK, addExtraPlayerResponse.StatusCode);
         }
+
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            instructorToken,
+            createdSession.SessionId,
+            definition,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
 
         var startSessionResponse = await SendJsonAsync(
             HttpMethod.Post,

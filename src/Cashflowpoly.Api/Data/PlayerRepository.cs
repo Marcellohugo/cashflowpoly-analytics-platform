@@ -114,6 +114,7 @@ public sealed class PlayerRepository
     {
         const string sql = """
             select
+                sp.session_participant_id as session_player_id,
                 sp.user_id,
                 coalesce(nullif(sp.player_name, ''), u.display_name) as display_name,
                 sp.player_order_no as player_order

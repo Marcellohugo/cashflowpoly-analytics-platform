@@ -60,6 +60,25 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
+    /// Mengambil ruleset yang boleh dipakai untuk membuat sesi: ruleset bawaan
+    /// atau ruleset milik instruktur yang sedang masuk.
+    /// </summary>
+    public async Task<RulesetDb?> GetRulesetForSessionAsync(Guid rulesetId, Guid instructorUserId, CancellationToken ct)
+    {
+        const string sql = """
+            select ruleset_id, name, description, instructor_user_id, is_archived, archived_at, created_at, created_by_user_id
+            from rulesets
+            where ruleset_id = @rulesetId
+              and (instructor_user_id is null or instructor_user_id = @instructorUserId)
+              and not is_archived
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<RulesetDb>(
+            new CommandDefinition(sql, new { rulesetId, instructorUserId }, cancellationToken: ct));
+    }
+
+    /// <summary>
     /// Mengambil versi terbaru (nomor tertinggi) dari ruleset tertentu.
     /// </summary>
     public async Task<RulesetVersionDb?> GetLatestVersionAsync(Guid rulesetId, CancellationToken ct)

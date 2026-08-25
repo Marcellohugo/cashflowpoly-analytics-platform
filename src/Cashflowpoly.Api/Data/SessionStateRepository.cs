@@ -10,6 +10,7 @@ namespace Cashflowpoly.Api.Data;
 
 public sealed class SessionStateRepository
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly NpgsqlDataSource _dataSource;
     private readonly RulesetRepository _rulesets;
     private readonly EventRepository _events;
@@ -93,158 +94,6 @@ public sealed class SessionStateRepository
         };
     }
 
-    public async Task<CreateSessionWithStateResult?> CreateSessionAsync(
-        string sessionName,
-        string mode,
-        IReadOnlyList<string> playerNames,
-        Guid rulesetVersionId,
-        Guid instructorUserId,
-        string? createdBy,
-        CancellationToken ct)
-    {
-        var ruleset = await GetRulesetSectionByVersionIdAsync(mode, rulesetVersionId, instructorUserId, ct);
-        if (ruleset is null)
-        {
-            return null;
-        }
-
-        var catalog = RulesetSectionCatalog.FromDefinition(ruleset.Definition);
-        var gameConfig = catalog.GameConfigValues;
-        var sessionId = Guid.NewGuid();
-        var now = DateTimeOffset.UtcNow;
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
-
-        const string insertSessionSql = """
-            insert into sessions (session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, created_at)
-            values (@sessionId, @sessionName, @mode, 'CREATED', null, null, @instructorUserId, @rulesetVersionId, @createdAt)
-            """;
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            insertSessionSql,
-            new
-            {
-                sessionId,
-                sessionName,
-                mode = mode.ToUpperInvariant(),
-                instructorUserId,
-                rulesetVersionId = ruleset.RulesetVersionId,
-                createdAt = now
-            },
-            tx,
-            cancellationToken: ct));
-
-        const string insertSessionStateSql = """
-            insert into session_states (
-                session_id, day, weekday, turn_number, action_slot, current_session_player_id, current_action_slot,
-                action_slots_left, finish_day, phase, is_game_over, state_version, created_at, updated_at
-            )
-            values (@sessionId, 1, @weekday, 0, 1, null, 1, @actionSlotsLeft, @finishDay, 'PLAYER_TURN', false, 1, @createdAt, @createdAt)
-            """;
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            insertSessionStateSql,
-            new
-            {
-                sessionId,
-                weekday = ResolveWeekdayCode(1),
-                actionSlotsLeft = gameConfig.ActionsPerTurn,
-                finishDay = gameConfig.FinishDay,
-                createdAt = now
-            },
-            tx,
-            cancellationToken: ct));
-
-        const string insertPlayerSql = """
-            insert into app_users (user_id, username, display_name, password_hash, role, is_active, created_at)
-            values (@userId, @username, @displayName, crypt(@password, gen_salt('bf', 10)), 'PLAYER', true, @createdAt)
-            """;
-
-        const string insertSessionPlayerSql = """
-            insert into session_participants (session_participant_id, session_id, user_id, player_order_no, player_name, joined_at)
-            values (@sessionPlayerId, @sessionId, @userId, @playerOrder, @playerName, @createdAt)
-            """;
-
-        var setupPlayers = new List<SetupParticipant>(playerNames.Count);
-        for (var index = 0; index < playerNames.Count; index++)
-        {
-            var userId = Guid.NewGuid();
-            var sessionPlayerId = Guid.NewGuid();
-            var playerName = playerNames[index].Trim();
-            var playerOrder = index + 1;
-            var username = BuildSyntheticPlayerUsername(sessionId, playerOrder);
-            var password = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-
-            await conn.ExecuteAsync(new CommandDefinition(
-                insertPlayerSql,
-                new { userId, username, displayName = playerName, password, createdAt = now },
-                tx,
-                cancellationToken: ct));
-
-            await conn.ExecuteAsync(new CommandDefinition(
-                insertSessionPlayerSql,
-                new { sessionPlayerId, sessionId, userId, playerOrder, playerName, createdAt = now },
-                tx,
-                cancellationToken: ct));
-
-            setupPlayers.Add(new SetupParticipant(sessionPlayerId, userId, playerOrder));
-        }
-
-        var setup = await InitializeSetupAsync(
-            conn,
-            tx,
-            sessionId,
-            ruleset.RulesetVersionId,
-            mode,
-            ruleset.Definition,
-            setupPlayers,
-            now,
-            ct);
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            """
-            update sessions
-            set status = 'STARTED',
-                started_at = @startedAt
-            where session_id = @sessionId;
-
-            update session_states
-            set day = 1,
-                weekday = 'MON',
-                turn_number = 1,
-                action_slot = 1,
-                current_session_player_id = @firstPlayerId,
-                current_action_slot = 1,
-                action_slots_left = @actionsPerTurn,
-                phase = 'PLAYER_TURN',
-                is_game_over = false,
-                state_version = 1,
-                updated_at = @startedAt
-            where session_id = @sessionId;
-            """,
-            new
-            {
-                sessionId,
-                startedAt = now,
-                firstPlayerId = setup.FirstPlayerId,
-                actionsPerTurn = gameConfig.ActionsPerTurn
-            },
-            tx,
-            cancellationToken: ct));
-
-        await tx.CommitAsync(ct);
-
-        var state = await GetStateAsync(sessionId, ct);
-        if (state is null)
-        {
-            throw new InvalidOperationException("Session state gagal dibuat.");
-        }
-
-        state.NextSequenceNumber = setup.NextSequenceNumber;
-        return new CreateSessionWithStateResult(sessionId, ruleset.RulesetId, ruleset.RulesetVersionId, state);
-    }
-
     private static async Task<(long NextSequenceNumber, Guid FirstPlayerId)> InitializeSetupAsync(
         NpgsqlConnection conn,
         NpgsqlTransaction tx,
@@ -253,6 +102,7 @@ public sealed class SessionStateRepository
         string mode,
         RulesetDefinitionDto definition,
         IReadOnlyList<SetupParticipant> players,
+        SessionSetupRequest setupRequest,
         DateTimeOffset timestamp,
         CancellationToken ct)
     {
@@ -281,16 +131,11 @@ public sealed class SessionStateRepository
         var missions = definition.CollectionMissions
             .Where(item => !string.IsNullOrWhiteSpace(item.Id))
             .DistinctBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
         var tieBreakers = definition.TieBreakers
-            .Where(item => item.TieNumber >= 1)
-            .ToList();
-        var duplicateTieNumber = tieBreakers
-            .GroupBy(item => item.TieNumber)
-            .FirstOrDefault(group => group.Count() > 1);
-        var tieBreakersByNumber = duplicateTieNumber is null
-            ? tieBreakers.ToDictionary(item => item.TieNumber)
-            : [];
+            .Where(item => !string.IsNullOrWhiteSpace(item.TieBreakerCode) && item.TieNumber >= 1)
+            .DistinctBy(item => item.TieBreakerCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(item => item.TieBreakerCode, StringComparer.OrdinalIgnoreCase);
         var orderDeck = orders
             .SelectMany(item => Enumerable.Repeat(item, Math.Max(1, item.CardQty ?? 1)))
             .ToList();
@@ -310,40 +155,34 @@ public sealed class SessionStateRepository
             throw new InvalidOperationException("Ruleset membutuhkan minimal 5 Kartu Aneka Kebutuhan Primer untuk pasar awal.");
         }
 
-        if (missions.Count < orderedPlayers.Count)
-        {
-            throw new InvalidOperationException("Jumlah Kartu Misi Koleksi tidak mencukupi untuk seluruh pemain.");
-        }
-
-        if (duplicateTieNumber is not null ||
-            Enumerable.Range(1, orderedPlayers.Count).Any(number => !tieBreakersByNumber.ContainsKey(number)))
-        {
-            throw new InvalidOperationException($"Ruleset wajib memiliki Tie Breaker unik #1 sampai #{orderedPlayers.Count}.");
-        }
-
-        var tieBreakerDeck = Enumerable.Range(1, orderedPlayers.Count)
-            .Select(number => tieBreakersByNumber[number])
-            .ToList();
-        Shuffle(tieBreakerDeck);
-        var tieBreakerByPlayerId = orderedPlayers
-            .Select((player, index) => new { player.SessionParticipantId, TieBreaker = tieBreakerDeck[index] })
-            .ToDictionary(item => item.SessionParticipantId, item => item.TieBreaker);
+        var assignments = setupRequest.Players.ToDictionary(item => item.SessionPlayerId);
+        var tieBreakerByPlayerId = assignments.ToDictionary(
+            item => item.Key,
+            item => tieBreakers[item.Value.TieBreakerCode]);
         var firstPlayerId = tieBreakerByPlayerId.Single(item => item.Value.TieNumber == 1).Key;
         await ApplyTieBreakerTurnOrderAsync(conn, tx, sessionId, tieBreakerByPlayerId, ct);
+
         var ingredientDrawPile = ingredientDeck.ToList();
+        foreach (var assignment in assignments.Values)
+        {
+            var dealtCardIndex = ingredientDrawPile.FindIndex(item =>
+                item.Id.Equals(assignment.IngredientCardId, StringComparison.OrdinalIgnoreCase));
+            if (dealtCardIndex < 0)
+            {
+                throw new InvalidOperationException("Jumlah Kartu Bahan Masakan tidak mencukupi untuk pembagian awal.");
+            }
+
+            ingredientDrawPile.RemoveAt(dealtCardIndex);
+        }
+
         Shuffle(ingredientDrawPile);
-        Shuffle(missions);
         Shuffle(orderDeck);
         Shuffle(primaryNeedDeck);
-        var ingredientMarket = DrawIngredientMarket(ingredientDrawPile, orderedPlayers.Count, 5);
-
-        var loan = definition.ShariaLoans.FirstOrDefault();
-        var insurance = definition.InsuranceProducts.FirstOrDefault();
+        var ingredientMarket = DrawIngredientMarket(ingredientDrawPile, 0, 5);
+        var ingredientsById = ingredients.ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
+        var loansByCode = definition.ShariaLoans.ToDictionary(item => item.LoanCode, StringComparer.OrdinalIgnoreCase);
+        var insuranceByCode = definition.InsuranceProducts.ToDictionary(item => item.ProductCode, StringComparer.OrdinalIgnoreCase);
         var isMahir = string.Equals(mode, "MAHIR", StringComparison.OrdinalIgnoreCase);
-        if (isMahir && (loan is null || insurance is null))
-        {
-            throw new InvalidOperationException("Ruleset MAHIR wajib memiliki produk pinjaman dan asuransi.");
-        }
 
         long sequence = 0;
         await InsertAndProjectSetupEventAsync(
@@ -353,9 +192,10 @@ public sealed class SessionStateRepository
         for (var index = 0; index < orderedPlayers.Count; index++)
         {
             var player = orderedPlayers[index];
+            var assignment = assignments[player.SessionParticipantId];
             var tieBreaker = tieBreakerByPlayerId[player.SessionParticipantId];
-            var ingredient = ingredientDrawPile[index];
-            var mission = missions[index];
+            var ingredient = ingredientsById[assignment.IngredientCardId];
+            var mission = missions[assignment.MissionId!];
             var targetFamily = mission.KebutuhanTarget.FirstOrDefault(item =>
                     item.Type.Equals("FAMILY", StringComparison.OrdinalIgnoreCase) ||
                     item.Type.Equals("NEED_FAMILY", StringComparison.OrdinalIgnoreCase))
@@ -382,7 +222,7 @@ public sealed class SessionStateRepository
             await InsertAndProjectSetupEventAsync(
                 conn, tx, sessionId, rulesetVersionId, player.SessionParticipantId, player.UserId,
                 sequence++, "SetupEmasAwal",
-                new { qty = 1, asset_code = "gold_card", setup = "INITIAL" },
+                new { qty = assignment.GoldQuantity, asset_code = "gold_card", unit_value = 5, setup = "INITIAL" },
                 timestamp, ct);
             await InsertAndProjectSetupEventAsync(
                 conn, tx, sessionId, rulesetVersionId, player.SessionParticipantId, player.UserId,
@@ -398,12 +238,14 @@ public sealed class SessionStateRepository
                 },
                 timestamp, ct);
 
-            if (!isMahir)
+            if (!isMahir || string.IsNullOrWhiteSpace(assignment.LoanCode) || string.IsNullOrWhiteSpace(assignment.InsuranceProductCode))
             {
                 continue;
             }
 
-            var loanInstanceId = $"{loan!.LoanCode}:setup:{player.SessionParticipantId:N}";
+            var loan = loansByCode[assignment.LoanCode];
+            var insurance = insuranceByCode[assignment.InsuranceProductCode];
+            var loanInstanceId = $"{loan.LoanCode}:setup:{player.SessionParticipantId:N}";
             await InsertAndProjectSetupEventAsync(
                 conn, tx, sessionId, rulesetVersionId, player.SessionParticipantId, player.UserId,
                 sequence++, "SetupPinjamanAwal",
@@ -423,7 +265,7 @@ public sealed class SessionStateRepository
                 sequence++, "SetupAsuransiAwal",
                 new
                 {
-                    product_code = insurance!.ProductCode,
+                    product_code = insurance.ProductCode,
                     policy_id = $"{insurance.ProductCode}:setup:{player.SessionParticipantId:N}",
                     premium = 0,
                     coverage_type = "MULTIRISK",
@@ -584,16 +426,177 @@ public sealed class SessionStateRepository
             cancellationToken: ct));
     }
 
+    public async Task<SessionSetupDb?> GetSessionSetupAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select
+                session_id as SessionId,
+                revision as Revision,
+                ruleset_version_id as RulesetVersionId,
+                client_request_id as ClientRequestId,
+                setup_json::text as SetupJson,
+                saved_at as SavedAt,
+                locked_at as LockedAt,
+                created_by_user_id as CreatedByUserId
+            from session_setup_revisions
+            where session_id = @sessionId
+            order by revision desc
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<SessionSetupDb>(
+            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
+    public async Task<SessionSetupDb?> GetSessionSetupByClientRequestAsync(
+        Guid createdByUserId,
+        string clientRequestId,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select
+                session_id as SessionId,
+                revision as Revision,
+                ruleset_version_id as RulesetVersionId,
+                client_request_id as ClientRequestId,
+                setup_json::text as SetupJson,
+                saved_at as SavedAt,
+                locked_at as LockedAt,
+                created_by_user_id as CreatedByUserId
+            from session_setup_revisions
+            where created_by_user_id = @createdByUserId
+              and client_request_id = @clientRequestId
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleOrDefaultAsync<SessionSetupDb>(new CommandDefinition(
+            sql,
+            new { createdByUserId, clientRequestId },
+            cancellationToken: ct));
+    }
+
+    public async Task<bool> HasSessionSetupAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = "select exists(select 1 from session_setup_revisions where session_id = @sessionId)";
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.ExecuteScalarAsync<bool>(new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+    }
+
+    public async Task<SessionSetupDb> CreateSessionSetupRevisionAsync(
+        Guid sessionId,
+        Guid rulesetVersionId,
+        SessionSetupRequest request,
+        Guid createdByUserId,
+        DateTimeOffset savedAt,
+        CancellationToken ct)
+    {
+        const string lockSql = """
+            select status
+            from sessions
+            where session_id = @sessionId
+            for update
+            """;
+
+        const string insertSql = """
+            insert into session_setup_revisions (
+                session_id,
+                revision,
+                ruleset_version_id,
+                client_request_id,
+                setup_json,
+                saved_at,
+                created_by_user_id
+            )
+            select
+                @sessionId,
+                coalesce(max(revision), 0) + 1,
+                @rulesetVersionId,
+                @clientRequestId,
+                @setupJson::jsonb,
+                @savedAt,
+                @createdByUserId
+            from session_setup_revisions
+            where session_id = @sessionId
+            returning
+                session_id as SessionId,
+                revision as Revision,
+                ruleset_version_id as RulesetVersionId,
+                client_request_id as ClientRequestId,
+                setup_json::text as SetupJson,
+                saved_at as SavedAt,
+                locked_at as LockedAt,
+                created_by_user_id as CreatedByUserId
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        var status = await conn.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
+            lockSql,
+            new { sessionId },
+            tx,
+            cancellationToken: ct));
+        if (!string.Equals(status, "CREATED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Pembagian awal tidak dapat diubah setelah sesi dimulai");
+        }
+
+        var created = await conn.QuerySingleAsync<SessionSetupDb>(new CommandDefinition(
+            insertSql,
+            new
+            {
+                sessionId,
+                rulesetVersionId,
+                clientRequestId = request.ClientRequestId,
+                setupJson = JsonSerializer.Serialize(request, JsonOptions),
+                savedAt,
+                createdByUserId
+            },
+            tx,
+            cancellationToken: ct));
+        await tx.CommitAsync(ct);
+        return created;
+    }
+
+    public static SessionSetupRequest DeserializeSetup(SessionSetupDb setup)
+    {
+        return JsonSerializer.Deserialize<SessionSetupRequest>(setup.SetupJson, JsonOptions)
+            ?? throw new InvalidOperationException("Data setup sesi tidak dapat dibaca.");
+    }
+
     public async Task<long> StartSessionWithSetupAsync(
         Guid sessionId,
         string mode,
         Guid rulesetVersionId,
         RulesetDefinitionDto definition,
+        SessionSetupRequest setupRequest,
+        int setupRevision,
         DateTimeOffset startedAt,
         CancellationToken ct)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
+
+        var status = await conn.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
+            "select status from sessions where session_id = @sessionId for update",
+            new { sessionId },
+            tx,
+            cancellationToken: ct));
+        if (!string.Equals(status, "CREATED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Status sesi tidak valid");
+        }
+
+        var latestRevision = await conn.QuerySingleOrDefaultAsync<int>(new CommandDefinition(
+            "select coalesce(max(revision), 0) from session_setup_revisions where session_id = @sessionId",
+            new { sessionId },
+            tx,
+            cancellationToken: ct));
+        if (latestRevision != setupRevision)
+        {
+            throw new InvalidOperationException("Pembagian awal berubah; baca revisi terbaru sebelum memulai sesi");
+        }
 
         var players = (await conn.QueryAsync<SetupParticipant>(new CommandDefinition(
             """
@@ -617,16 +620,23 @@ public sealed class SessionStateRepository
             mode,
             definition,
             players,
+            setupRequest,
             startedAt,
             ct);
 
-        await conn.ExecuteAsync(new CommandDefinition(
+        var affected = await conn.ExecuteAsync(new CommandDefinition(
             """
             update sessions
             set status = 'STARTED',
                 started_at = @startedAt
             where session_id = @sessionId
               and status = 'CREATED';
+
+            update session_setup_revisions
+            set locked_at = @startedAt
+            where session_id = @sessionId
+              and revision = @setupRevision
+              and locked_at is null;
 
             update session_states state
             set day = 1,
@@ -648,11 +658,16 @@ public sealed class SessionStateRepository
             {
                 sessionId,
                 rulesetVersionId,
+                setupRevision,
                 firstPlayerId = setup.FirstPlayerId,
                 startedAt
             },
             tx,
             cancellationToken: ct));
+        if (affected < 3)
+        {
+            throw new InvalidOperationException("Sesi tidak dapat dimulai secara atomik");
+        }
 
         await tx.CommitAsync(ct);
         return setup.NextSequenceNumber;
@@ -1647,11 +1662,6 @@ public sealed class SessionStateRepository
         return Math.Clamp(3 - Math.Max(0, actionSlotsLeft), 1, 2);
     }
 
-    private static string BuildSyntheticPlayerUsername(Guid sessionId, int playerOrder)
-    {
-        return $"dev-player-{sessionId:N}-{playerOrder}";
-    }
-
     private static bool TryGetJson(JsonElement? element, out string json)
     {
         json = string.Empty;
@@ -1907,12 +1917,6 @@ public sealed class RulesetSectionDb
     public string Mode { get; init; } = string.Empty;
     public RulesetDefinitionDto Definition { get; init; } = new();
 }
-
-public sealed record CreateSessionWithStateResult(
-    Guid SessionId,
-    Guid RulesetId,
-    Guid RulesetVersionId,
-    SessionStateResponse State);
 
 public enum SaveSessionStateStatus
 {

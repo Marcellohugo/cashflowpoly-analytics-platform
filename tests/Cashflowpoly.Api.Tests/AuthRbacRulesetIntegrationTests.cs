@@ -345,6 +345,14 @@ public sealed class AuthRbacRulesetIntegrationTests
             playerLogin.AccessToken);
         Assert.Equal(HttpStatusCode.Forbidden, playerStartSession.StatusCode);
 
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            instructorLogin.AccessToken,
+            createdSession.SessionId,
+            BuildRulesetDefinition(startingCash: 21),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
+
         var instructorStartSession = await SendJsonAsync(
             HttpMethod.Post,
             $"/api/v1/sessions/{createdSession.SessionId}/start",
@@ -473,6 +481,14 @@ public sealed class AuthRbacRulesetIntegrationTests
         var createdSession = await CreateSessionAsync(instructor.AccessToken, suffix, createdRuleset.RulesetVersionId);
 
         await AddPlayersForStartAsync(instructor.AccessToken, createdSession.SessionId, suffix);
+
+        using var saveSetupResponse = await SessionSetupTestHelper.SaveAsync(
+            _client,
+            instructor.AccessToken,
+            createdSession.SessionId,
+            BuildRulesetDefinition(startingCash: 51),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, saveSetupResponse.StatusCode);
 
         var startResponse = await SendJsonAsync(
             HttpMethod.Post,

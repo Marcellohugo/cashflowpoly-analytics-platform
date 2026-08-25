@@ -674,12 +674,18 @@ public sealed class RulesetsController : ControllerBase
             Ingredients = source.Ingredients,
             Orders = source.Orders,
             Needs = source.Needs,
+            NeedSetBonuses = source.NeedSetBonuses,
             CollectionMissions = source.CollectionMissions,
             FinancialGoals = source.FinancialGoals,
             Narratives = source.Narratives,
             DonationRankPoints = source.DonationRankPoints,
             GoldPointsByQty = source.GoldPointsByQty,
-            PensionRankPoints = source.PensionRankPoints
+            GoldPrices = source.GoldPrices,
+            PensionRankPoints = source.PensionRankPoints,
+            TieBreakers = source.TieBreakers,
+            ShariaLoans = source.ShariaLoans,
+            InsuranceProducts = source.InsuranceProducts,
+            LifeRisks = source.LifeRisks
         };
     }
 

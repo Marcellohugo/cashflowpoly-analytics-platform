@@ -25,13 +25,20 @@ public sealed class PlayersController : ControllerBase
 {
     private readonly PlayerRepository _players;
     private readonly SessionRepository _sessions;
+    private readonly SessionStateRepository _state;
     private readonly RulesetRepository _rulesets;
     private readonly UserRepository _users;
 
-    public PlayersController(PlayerRepository players, SessionRepository sessions, RulesetRepository rulesets, UserRepository users)
+    public PlayersController(
+        PlayerRepository players,
+        SessionRepository sessions,
+        SessionStateRepository state,
+        RulesetRepository rulesets,
+        UserRepository users)
     {
         _players = players;
         _sessions = sessions;
+        _state = state;
         _rulesets = rulesets;
         _users = users;
     }
@@ -176,7 +183,7 @@ public sealed class PlayersController : ControllerBase
         }
 
         var items = (await _players.ListSessionPlayersAsync(sessionId, ct))
-            .Select(player => new SessionPlayerResponse(player.UserId, player.DisplayName, player.PlayerOrder))
+            .Select(player => new SessionPlayerResponse(player.SessionPlayerId, player.UserId, player.DisplayName, player.PlayerOrder))
             .ToList();
         return Ok(new SessionPlayerListResponse(items));
     }
@@ -205,6 +212,14 @@ public sealed class PlayersController : ControllerBase
                 "User ID atau username wajib diisi",
                 new ErrorDetail("user_id", "REQUIRED"),
                 new ErrorDetail("username", "REQUIRED")));
+        }
+
+        if (await _state.HasSessionSetupAsync(sessionId, ct))
+        {
+            return Conflict(ApiErrorHelper.BuildError(
+                HttpContext,
+                "SESSION_ROSTER_LOCKED",
+                "Daftar pemain sudah dikunci sejak pembagian awal disimpan"));
         }
 
         if (request.PlayerOrder is <= 0)
