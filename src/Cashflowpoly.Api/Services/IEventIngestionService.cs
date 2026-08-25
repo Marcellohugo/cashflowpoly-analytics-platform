@@ -13,5 +13,5 @@ public interface IEventIngestionService
         EventBatchRequest request, ClaimsPrincipal user, CancellationToken ct);
 
     Task<(EventsBySessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetEventsBySessionAsync(
-        Guid sessionId, ClaimsPrincipal user, long fromSeq, int limit, CancellationToken ct);
+        Guid sessionId, ClaimsPrincipal user, string? cursor, int limit, CancellationToken ct);
 }

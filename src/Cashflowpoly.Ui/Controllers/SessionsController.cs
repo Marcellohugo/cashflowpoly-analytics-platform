@@ -65,13 +65,14 @@ public sealed class SessionsController : Controller
     [HttpGet("{sessionId:guid}/timeline")]
     public async Task<IActionResult> Timeline(
         Guid sessionId,
-        [FromQuery] long fromSeq = 0,
-        [FromQuery] int limit = 300,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int limit = 100,
         CancellationToken ct = default)
     {
-        var normalizedLimit = Math.Clamp(limit, 1, 1000);
+        var normalizedLimit = Math.Clamp(limit, 1, 100);
         var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq={fromSeq}&limit={normalizedLimit}", ct);
+        var cursorQuery = string.IsNullOrWhiteSpace(cursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
+        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit={normalizedLimit}{cursorQuery}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -92,13 +93,15 @@ public sealed class SessionsController : Controller
 
         var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
-        var timeline = SessionTimelineMapper.MapTimeline(data?.Events, language);
+        var timeline = SessionTimelineMapper.MapTimeline(data?.Items, language);
         var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, ct);
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
 
         return Json(new
         {
             timeline,
+            nextCursor = data?.NextCursor,
+            hasMore = data?.HasMore ?? false,
             errorMessage = (string?)null,
             lastSyncedAt = DateTimeOffset.UtcNow
         });
@@ -252,24 +255,38 @@ public sealed class SessionsController : Controller
         string language,
         CancellationToken ct)
     {
-        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?fromSeq=0&limit=1000", ct);
-        if (!response.IsSuccessStatusCode)
+        var events = new List<EventRequest>();
+        string? cursor = null;
+        do
         {
-            return (
-                new List<SessionTimelineEventViewModel>(),
-                HttpContext.T("sessions.error.load_timeline_failed")
-                    .Replace("{status}", ((int)response.StatusCode).ToString()));
-        }
+            var cursorQuery = string.IsNullOrWhiteSpace(cursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
+            var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit=100{cursorQuery}", ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                return (
+                    new List<SessionTimelineEventViewModel>(),
+                    HttpContext.T("sessions.error.load_timeline_failed")
+                        .Replace("{status}", ((int)response.StatusCode).ToString()));
+            }
 
-        var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
-        if (data?.Events is null || data.Events.Count == 0)
+            var page = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
+            if (page is null)
+            {
+                break;
+            }
+
+            events.AddRange(page.Items);
+            cursor = page.HasMore ? page.NextCursor : null;
+        }
+        while (!string.IsNullOrWhiteSpace(cursor));
+
+        if (events.Count == 0)
         {
             return (new List<SessionTimelineEventViewModel>(), null);
         }
 
-        var timeline = SessionTimelineMapper.MapTimeline(data.Events, language);
+        var timeline = SessionTimelineMapper.MapTimeline(events, language);
         return (timeline, null);
     }
 
 }
-

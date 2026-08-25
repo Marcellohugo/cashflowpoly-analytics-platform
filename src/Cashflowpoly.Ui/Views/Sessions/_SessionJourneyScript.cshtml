@@ -41,6 +41,7 @@
             Object.entries(playerLookupRaw ?? {}).map(([key, value]) => [String(key).toLowerCase(), value])
         );
         let timeline = [];
+        let timelineCursor = null;
         let pollingTimerId = null;
         let lastSequence = 0;
         let selectedTimelineFilter = "all";
@@ -659,8 +660,8 @@
         };
         const syncTimeline = async () => {
             try {
-                const fromSequence = timeline.length > 0 ? lastSequence + 1 : 0;
-                const response = await fetch(`${timelineUrl}?fromSeq=${encodeURIComponent(fromSequence)}&limit=200`, {
+                const cursorQuery = timelineCursor ? `&cursor=${encodeURIComponent(timelineCursor)}` : "";
+                const response = await fetch(`${timelineUrl}?limit=100${cursorQuery}`, {
                     method: "GET",
                     headers: { "Accept": "application/json" }
                 });
@@ -677,6 +678,7 @@
 
                 const data = await response.json();
                 const incomingTimeline = normalizeTimeline(data?.timeline);
+                timelineCursor = data?.nextCursor || timelineCursor;
                 mergeTimeline(incomingTimeline);
                 renderAll();
                 setError(data?.errorMessage || "");

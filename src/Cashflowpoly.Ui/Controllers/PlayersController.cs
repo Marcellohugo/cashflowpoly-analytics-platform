@@ -56,7 +56,7 @@ public sealed class PlayersController : Controller
         var analytics = await analyticsResponse.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
         var summary = analytics?.ByPlayer.FirstOrDefault(p => p.UserId == playerId);
 
-        var txResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/transactions?userId={playerId}", ct);
+        var txResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/transactions?userId={playerId}&limit=100", ct);
         unauthorized = this.HandleUnauthorizedApiResponse(txResponse);
         if (unauthorized is not null)
         {
@@ -80,6 +80,22 @@ public sealed class PlayersController : Controller
 
         var tx = await txResponse.Content.TryReadFromJsonAsync<TransactionHistoryResponse>(cancellationToken: ct);
         var transactions = tx?.Items ?? new List<TransactionHistoryItem>();
+        while (tx?.HasMore == true && !string.IsNullOrWhiteSpace(tx.NextCursor))
+        {
+            txResponse = await client.GetAsync(
+                $"api/v1/analytics/sessions/{sessionId}/transactions?userId={playerId}&limit=100&cursor={Uri.EscapeDataString(tx.NextCursor)}",
+                ct);
+            if (!txResponse.IsSuccessStatusCode)
+            {
+                break;
+            }
+
+            tx = await txResponse.Content.TryReadFromJsonAsync<TransactionHistoryResponse>(cancellationToken: ct);
+            if (tx is not null)
+            {
+                transactions.AddRange(tx.Items);
+            }
+        }
         string? gameplayError = null;
         GameplayMetricsResponse? gameplay = null;
         var gameplayResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}/players/{playerId}/gameplay", ct);

@@ -13,7 +13,7 @@ public interface IAnalyticsService
         Guid sessionId, ClaimsPrincipal user, CancellationToken ct);
 
     Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
-        Guid sessionId, Guid? playerId, ClaimsPrincipal user, CancellationToken ct);
+        Guid sessionId, Guid? playerId, string? cursor, int limit, ClaimsPrincipal user, CancellationToken ct);
 
     Task<(GameplayMetricsResponse? Result, int StatusCode, ErrorResponse? Error)> GetGameplayMetricsAsync(
         Guid sessionId, Guid playerId, ClaimsPrincipal user, CancellationToken ct);

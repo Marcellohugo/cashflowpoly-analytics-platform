@@ -121,8 +121,8 @@ public sealed class SessionJourneyPlayerFeedTests
         var scriptPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneyScript.cshtml");
         var scriptContent = File.ReadAllText(scriptPath);
 
-        Assert.Contains("const fromSequence = timeline.length > 0 ? lastSequence + 1 : 0;", scriptContent);
-        Assert.Contains("encodeURIComponent(fromSequence)", scriptContent);
+        Assert.Contains("let timelineCursor = null;", scriptContent);
+        Assert.Contains("encodeURIComponent(timelineCursor)", scriptContent);
         Assert.DoesNotContain("encodeURIComponent(lastSequence)", scriptContent);
         Assert.Contains("response.redirected && response.url.includes(\"/auth/login\")", scriptContent);
     }

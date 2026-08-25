@@ -41,9 +41,9 @@ public sealed class EventsController : ControllerBase
 
     [HttpGet("sessions/{sessionId:guid}/events")]
     [ProducesResponseType(typeof(EventsBySessionResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] long fromSeq = 0, [FromQuery] int limit = 200, CancellationToken ct = default)
+    public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] string? cursor = null, [FromQuery] int limit = 50, CancellationToken ct = default)
     {
-        var (result, status, error) = await _ingestion.GetEventsBySessionAsync(sessionId, User, fromSeq, limit, ct);
+        var (result, status, error) = await _ingestion.GetEventsBySessionAsync(sessionId, User, cursor, limit, ct);
         return status == 200 ? Ok(result) : StatusCode(status, error);
     }
 }

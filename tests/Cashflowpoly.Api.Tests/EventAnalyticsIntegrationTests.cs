@@ -195,11 +195,11 @@ public sealed class EventAnalyticsIntegrationTests
         var nextSequence = await GetNextSequenceNumberAsync(createdSession.SessionId, instructorToken);
         using var setupEventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{createdSession.SessionId}/events?fromSeq=0&limit=100",
+            $"/api/v1/sessions/{createdSession.SessionId}/events?limit=100",
             null,
             instructorToken);
         using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
-        var setupEvents = setupEventsBody.RootElement.GetProperty("events")
+        var setupEvents = setupEventsBody.RootElement.GetProperty("items")
             .EnumerateArray()
             .Select(item => item.Clone())
             .ToList();
@@ -436,11 +436,11 @@ public sealed class EventAnalyticsIntegrationTests
 
         using var setupEventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{createdSession.SessionId}/events?fromSeq=0&limit=100",
+            $"/api/v1/sessions/{createdSession.SessionId}/events?limit=100",
             null,
             instructorToken);
         using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
-        var playerOrderByUserId = setupEventsBody.RootElement.GetProperty("events")
+        var playerOrderByUserId = setupEventsBody.RootElement.GetProperty("items")
             .EnumerateArray()
             .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
             .ToDictionary(
@@ -887,7 +887,7 @@ public sealed class EventAnalyticsIntegrationTests
 
         var invalidQueryResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=-1",
+            $"/api/v1/sessions/{setup.SessionId}/events?limit=-1",
             null,
             instructorToken);
         Assert.Equal(HttpStatusCode.BadRequest, invalidQueryResponse.StatusCode);
@@ -908,12 +908,12 @@ public sealed class EventAnalyticsIntegrationTests
         {
             using var response = await SendJsonAsync(
                 HttpMethod.Get,
-                $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
+                $"/api/v1/sessions/{setup.SessionId}/events?limit=100",
                 null,
                 instructorToken);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             using var body = await ReadJsonAsync(response);
-            return body.RootElement.GetProperty("events")
+            return body.RootElement.GetProperty("items")
                 .EnumerateArray()
                 .Select(item => item.Clone())
                 .ToList();
@@ -1045,12 +1045,12 @@ public sealed class EventAnalyticsIntegrationTests
 
         using var eventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq={setup.NextSequenceNumber}&limit=10",
+            $"/api/v1/sessions/{setup.SessionId}/events?limit=100",
             null,
             instructorToken);
         using var eventsBody = await ReadJsonAsync(eventsResponse);
         var purchaseEvent = Assert.Single(
-            eventsBody.RootElement.GetProperty("events").EnumerateArray(),
+            eventsBody.RootElement.GetProperty("items").EnumerateArray(),
             item => item.GetProperty("event_id").GetGuid() == purchaseEventId);
         Assert.False(purchaseEvent.GetProperty("payload").TryGetProperty("market_refills", out _));
     }
@@ -1354,12 +1354,12 @@ public sealed class EventAnalyticsIntegrationTests
         {
             using var response = await SendJsonAsync(
                 HttpMethod.Get,
-                $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
+                $"/api/v1/sessions/{setup.SessionId}/events?limit=100",
                 null,
                 token);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             using var body = await ReadJsonAsync(response);
-            return body.RootElement.GetProperty("events")
+            return body.RootElement.GetProperty("items")
                 .EnumerateArray()
                 .Where(item => item.GetProperty("action_type").GetString() == "SetupMisiAwal")
                 .Select(item => item.Clone())
@@ -1422,14 +1422,14 @@ public sealed class EventAnalyticsIntegrationTests
 
         var ownEventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{ownSession.SessionId}/events?fromSeq=0&limit=10",
+            $"/api/v1/sessions/{ownSession.SessionId}/events?limit=10",
             null,
             playerToken);
         Assert.Equal(HttpStatusCode.OK, ownEventsResponse.StatusCode);
 
         var foreignEventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{foreignSession.SessionId}/events?fromSeq=0&limit=10",
+            $"/api/v1/sessions/{foreignSession.SessionId}/events?limit=10",
             null,
             playerToken);
         Assert.Equal(HttpStatusCode.Forbidden, foreignEventsResponse.StatusCode);
@@ -1651,11 +1651,11 @@ public sealed class EventAnalyticsIntegrationTests
 
         using var setupEventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{createdSession.SessionId}/events?fromSeq=0&limit=100",
+            $"/api/v1/sessions/{createdSession.SessionId}/events?limit=100",
             null,
             instructorToken);
         using var setupEventsBody = await ReadJsonAsync(setupEventsResponse);
-        var actingUserId = setupEventsBody.RootElement.GetProperty("events")
+        var actingUserId = setupEventsBody.RootElement.GetProperty("items")
             .EnumerateArray()
             .Single(item =>
                 item.GetProperty("action_type").GetString() == "BagikanTieBreaker" &&
@@ -1685,11 +1685,11 @@ public sealed class EventAnalyticsIntegrationTests
     {
         using var eventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{setup.SessionId}/events?fromSeq=0&limit=100",
+            $"/api/v1/sessions/{setup.SessionId}/events?limit=100",
             null,
             instructorToken);
         using var eventsBody = await ReadJsonAsync(eventsResponse);
-        var players = eventsBody.RootElement.GetProperty("events")
+        var players = eventsBody.RootElement.GetProperty("items")
             .EnumerateArray()
             .Where(item => item.GetProperty("action_type").GetString() == "BagikanTieBreaker")
             .Select(item => new

@@ -235,7 +235,9 @@ public sealed record EventBatchResponse(
 
 public sealed record EventsBySessionResponse(
     [property: JsonPropertyName("session_id")] Guid SessionId,
-    [property: JsonPropertyName("events")] List<EventRequest> Events);
+    [property: JsonPropertyName("items")] List<EventRequest> Items,
+    [property: JsonPropertyName("next_cursor")] string? NextCursor,
+    [property: JsonPropertyName("has_more")] bool HasMore);
 
 public sealed record AnalyticsSessionSummary(
     [property: JsonPropertyName("event_count")] int EventCount,
@@ -322,13 +324,16 @@ public sealed record GameplayNeedMetrics(
     [property: JsonPropertyName("fulfillment_diversity")] double FulfillmentDiversity);
 
 public sealed record TransactionHistoryItem(
+    [property: JsonPropertyName("transaction_id")] Guid TransactionId,
     [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
     [property: JsonPropertyName("direction")] string Direction,
     [property: JsonPropertyName("amount")] double Amount,
     [property: JsonPropertyName("category")] string Category);
 
 public sealed record TransactionHistoryResponse(
-    [property: JsonPropertyName("items")] List<TransactionHistoryItem> Items);
+    [property: JsonPropertyName("items")] List<TransactionHistoryItem> Items,
+    [property: JsonPropertyName("next_cursor")] string? NextCursor,
+    [property: JsonPropertyName("has_more")] bool HasMore);
 
 public sealed record RulesetAnalyticsPlayerItem(
     [property: JsonPropertyName("user_id")] Guid UserId,

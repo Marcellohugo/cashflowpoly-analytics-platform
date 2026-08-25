@@ -41,9 +41,9 @@ public sealed class AnalyticsController : ControllerBase
 
     [HttpGet("sessions/{sessionId:guid}/transactions")]
     [ProducesResponseType(typeof(TransactionHistoryResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? userId = null, CancellationToken ct = default)
+    public async Task<IActionResult> GetTransactions(Guid sessionId, [FromQuery] Guid? userId = null, [FromQuery] string? cursor = null, [FromQuery] int limit = 50, CancellationToken ct = default)
     {
-        var (result, status, error) = await _analytics.GetTransactionsAsync(sessionId, userId, User, ct);
+        var (result, status, error) = await _analytics.GetTransactionsAsync(sessionId, userId, cursor, limit, User, ct);
         return status == 200 ? Ok(result) : StatusCode(status, error);
     }
 

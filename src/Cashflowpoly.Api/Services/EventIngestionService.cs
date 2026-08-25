@@ -233,7 +233,7 @@ internal sealed class EventIngestionService : IEventIngestionService
     /// Mengambil daftar event sesi dengan pagination berbasis sequence number.
     /// </summary>
     public async Task<(EventsBySessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetEventsBySessionAsync(
-        Guid sessionId, ClaimsPrincipal user, long fromSeq, int limit, CancellationToken ct)
+        Guid sessionId, ClaimsPrincipal user, string? cursor, int limit, CancellationToken ct)
     {
         var accessScopeCheck = await ValidateSessionAccessAsync(sessionId, user, ct);
         if (!accessScopeCheck.IsValid)
@@ -247,19 +247,24 @@ internal sealed class EventIngestionService : IEventIngestionService
             return (null, StatusCodes.Status404NotFound, BuildError("NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        if (fromSeq < 0)
+        if (!OpaqueCursor.TryDecodeEvent(cursor, out var afterSequence))
         {
-            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR", "fromSeq tidak boleh negatif",
-                new ErrorDetail("fromSeq", "OUT_OF_RANGE")));
+            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR", "Cursor event tidak valid",
+                new ErrorDetail("cursor", "INVALID_FORMAT")));
         }
 
-        if (limit is < 1 or > 1000)
+        if (limit is < 1 or > 100)
         {
-            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR", "limit harus antara 1 sampai 1000",
+            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR", "limit harus antara 1 sampai 100",
                 new ErrorDetail("limit", "OUT_OF_RANGE")));
         }
 
-        var events = await _events.GetEventsBySessionAsync(sessionId, fromSeq, limit, ct);
+        var events = await _events.GetEventsBySessionAsync(sessionId, afterSequence, limit + 1, ct);
+        var hasMore = events.Count > limit;
+        if (hasMore)
+        {
+            events.RemoveAt(events.Count - 1);
+        }
         var allEvents = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var participantCount = await _players.CountPlayersInSessionAsync(sessionId, ct);
         var sealedDonationDays = allEvents
@@ -286,7 +291,10 @@ internal sealed class EventIngestionService : IEventIngestionService
 
             return mapped;
         }).ToList();
-        return (new EventsBySessionResponse(sessionId, responseEvents), StatusCodes.Status200OK, null);
+        var nextCursor = events.Count > 0
+            ? OpaqueCursor.EncodeEvent(events[^1].SequenceNumber)
+            : null;
+        return (new EventsBySessionResponse(sessionId, responseEvents, nextCursor, hasMore), StatusCodes.Status200OK, null);
     }
 
     /// <summary>

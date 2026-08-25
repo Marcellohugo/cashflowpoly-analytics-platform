@@ -114,12 +114,12 @@ public sealed class SessionStateApiIntegrationTests
 
         using var eventsResponse = await SendJsonAsync(
             HttpMethod.Get,
-            $"/api/v1/sessions/{started.SessionId}/events?fromSeq=0&limit=100",
+            $"/api/v1/sessions/{started.SessionId}/events?limit=100",
             null,
             token);
         Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
         using var eventsBody = await ReadJsonAsync(eventsResponse);
-        var setupEvents = eventsBody.RootElement.GetProperty("events").EnumerateArray().ToList();
+        var setupEvents = eventsBody.RootElement.GetProperty("items").EnumerateArray().ToList();
         Assert.Equal(1 + (playerCount * 6), setupEvents.Count);
         Assert.Single(setupEvents, item => item.GetProperty("action_type").GetString() == "MulaiSesi");
         Assert.DoesNotContain(setupEvents, item =>

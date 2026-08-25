@@ -144,7 +144,7 @@ internal sealed class AnalyticsService : IAnalyticsService
     }
 
     public async Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
-        Guid sessionId, Guid? userId, ClaimsPrincipal user, CancellationToken ct)
+        Guid sessionId, Guid? userId, string? cursor, int limit, ClaimsPrincipal user, CancellationToken ct)
     {
         var access = await ResolveSessionAccessAsync(sessionId, user, ct);
         if (access.Error is not null)
@@ -160,14 +160,39 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         var effectiveUserId = scope.UserId ?? userId;
 
-        var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        if (!OpaqueCursor.TryDecodeTransaction(cursor, out var afterTimestamp, out var afterTransactionId))
+        {
+            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR", "Cursor transaksi tidak valid",
+                new ErrorDetail("cursor", "INVALID_FORMAT")));
+        }
+
+        if (limit is < 1 or > 100)
+        {
+            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR", "limit harus antara 1 sampai 100",
+                new ErrorDetail("limit", "OUT_OF_RANGE")));
+        }
+
+        var projections = await _events.GetCashflowProjectionPageAsync(
+            sessionId,
+            effectiveUserId,
+            string.IsNullOrWhiteSpace(cursor) ? null : afterTimestamp,
+            string.IsNullOrWhiteSpace(cursor) ? null : afterTransactionId,
+            limit + 1,
+            ct);
+        var hasMore = projections.Count > limit;
+        if (hasMore)
+        {
+            projections.RemoveAt(projections.Count - 1);
+        }
+
         var items = projections
-            .Where(p => !effectiveUserId.HasValue || p.UserId == effectiveUserId.Value)
-            .OrderBy(p => p.Timestamp)
-            .Select(p => new TransactionHistoryItem(p.Timestamp, p.Direction, p.Amount, p.Category))
+            .Select(p => new TransactionHistoryItem(p.ProjectionId, p.Timestamp, p.Direction, p.Amount, p.Category))
             .ToList();
 
-        return (new TransactionHistoryResponse(items), 200, null);
+        var nextCursor = projections.Count > 0
+            ? OpaqueCursor.EncodeTransaction(projections[^1].Timestamp, projections[^1].ProjectionId)
+            : null;
+        return (new TransactionHistoryResponse(items, nextCursor, hasMore), 200, null);
     }
 
     public async Task<(GameplayMetricsResponse? Result, int StatusCode, ErrorResponse? Error)> GetGameplayMetricsAsync(
@@ -554,15 +579,15 @@ internal sealed class AnalyticsService : IAnalyticsService
         return Guid.TryParse(userIdRaw, out userId);
     }
 
-    private ErrorResponse BuildError(string code, string message)
+    private ErrorResponse BuildError(string code, string message, params ErrorDetail[] details)
     {
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is not null)
         {
-            return ApiErrorHelper.BuildError(httpContext, code, message);
+            return ApiErrorHelper.BuildError(httpContext, code, message, details);
         }
 
-        return new ErrorResponse(code, message, [], "unknown");
+        return new ErrorResponse(code, message, details.ToList(), "unknown");
     }
 
     private static double ReadMetric(IReadOnlyDictionary<string, double> values, string name)

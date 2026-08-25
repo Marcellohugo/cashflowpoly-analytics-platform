@@ -422,20 +422,58 @@ public sealed class EventRepository
     }
 
     /// <summary>
-    /// Mengambil daftar event pada satu sesi mulai dari fromSeq dengan batas jumlah tertentu.
+    /// Mengambil event setelah sequence number cursor dengan batas jumlah tertentu.
     /// </summary>
-    public async Task<List<EventDb>> GetEventsBySessionAsync(Guid sessionId, long fromSeq, int limit, CancellationToken ct)
+    public async Task<List<EventDb>> GetEventsBySessionAsync(Guid sessionId, long afterSequence, int limit, CancellationToken ct)
     {
         var sql = EventSelectColumns + """
 
             where session_id = @sessionId
-              and sequence_number >= @fromSeq
+              and sequence_number > @afterSequence
             order by sequence_number
             limit @limit
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        var items = await conn.QueryAsync<EventDb>(new CommandDefinition(sql, new { sessionId, fromSeq, limit }, cancellationToken: ct));
+        var items = await conn.QueryAsync<EventDb>(new CommandDefinition(sql, new { sessionId, afterSequence, limit }, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    public async Task<List<CashflowProjectionDb>> GetCashflowProjectionPageAsync(
+        Guid sessionId,
+        Guid? userId,
+        DateTimeOffset? afterTimestamp,
+        Guid? afterTransactionId,
+        int limit,
+        CancellationToken ct)
+    {
+        const string sql = """
+            select projection_id,
+                   session_id,
+                   user_id,
+                   event_pk,
+                   event_id,
+                   projection_order,
+                   timestamp,
+                   direction,
+                   amount,
+                   category,
+                   counterparty,
+                   reference,
+                   note
+            from event_cashflow_projections
+            where session_id = @sessionId
+              and (@userId is null or user_id = @userId)
+              and (@afterTimestamp is null or (timestamp, projection_id) > (@afterTimestamp, @afterTransactionId))
+            order by timestamp, projection_id
+            limit @limit
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<CashflowProjectionDb>(new CommandDefinition(
+            sql,
+            new { sessionId, userId, afterTimestamp, afterTransactionId, limit },
+            cancellationToken: ct));
         return items.ToList();
     }
 
