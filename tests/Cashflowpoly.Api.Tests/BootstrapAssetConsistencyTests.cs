@@ -9,7 +9,7 @@ public sealed class BootstrapAssetConsistencyTests
     private static readonly string RepoRoot = ResolveRepositoryRoot();
 
     [Fact]
-    public void BootstrapAssetList_ShouldOnlyReferenceCanonicalSchemaAndDefaultRulesetSeed()
+    public void BootstrapAssetList_ShouldIncludeVersionedMigrationsAndOptionalSimulationSeed()
     {
         var initializerPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Infrastructure", "DatabaseInitialization.cs");
         var apiProjectPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Cashflowpoly.Api.csproj");
@@ -24,13 +24,14 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("03_session_state_seed.sql", File.ReadAllText(initializerPath), StringComparison.Ordinal);
         Assert.DoesNotContain("03_session_state_seed.sql", File.ReadAllText(apiProjectPath), StringComparison.Ordinal);
         Assert.DoesNotContain("03_session_state_seed.sql", File.ReadAllText(apiTestProjectPath), StringComparison.Ordinal);
-        Assert.DoesNotContain("02_seed_simulation_sessions_events.sql", File.ReadAllText(initializerPath), StringComparison.Ordinal);
-        Assert.DoesNotContain("02_seed_simulation_sessions_events.sql", File.ReadAllText(apiProjectPath), StringComparison.Ordinal);
-        Assert.DoesNotContain("02_seed_simulation_sessions_events.sql", File.ReadAllText(apiTestProjectPath), StringComparison.Ordinal);
+        Assert.Contains("02_seed_simulation_sessions_events.sql", File.ReadAllText(initializerPath), StringComparison.Ordinal);
+        Assert.Contains("02_seed_simulation_sessions_events.sql", File.ReadAllText(apiProjectPath), StringComparison.Ordinal);
+        Assert.Contains("02_seed_simulation_sessions_events.sql", File.ReadAllText(apiTestProjectPath), StringComparison.Ordinal);
+        Assert.Contains("database\\migrations", File.ReadAllText(apiProjectPath), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Bootstrap_ShouldNotCarryRemovedMigrationHistoryCompatibility()
+    public void Bootstrap_ShouldUseChecksummedMigrationHistory()
     {
         var initializerPath = Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Infrastructure", "DatabaseInitialization.cs");
         var initializerContent = File.ReadAllText(initializerPath);
@@ -40,7 +41,9 @@ public sealed class BootstrapAssetConsistencyTests
         Assert.DoesNotContain("InitialSchema", initializerContent, StringComparison.Ordinal);
         Assert.DoesNotContain("SchemaParityAndDefaultSeed", initializerContent, StringComparison.Ordinal);
         Assert.DoesNotContain("SessionStateSchemaConsolidation", initializerContent, StringComparison.Ordinal);
-        Assert.Contains("reset", initializerContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("schema_history", initializerContent, StringComparison.Ordinal);
+        Assert.Contains("SHA256", initializerContent, StringComparison.Ordinal);
+        Assert.Contains("--migrate-only", File.ReadAllText(Path.Combine(RepoRoot, "src", "Cashflowpoly.Api", "Program.cs")), StringComparison.Ordinal);
     }
 
     [Fact]

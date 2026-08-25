@@ -23,6 +23,7 @@ using Cashflowpoly.Api.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 var bypassOperationalRateLimit = builder.Environment.IsEnvironment("Testing");
+var migrateOnly = args.Any(argument => string.Equals(argument, "--migrate-only", StringComparison.OrdinalIgnoreCase));
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 Activity.DefaultIdFormat = ActivityIdFormat.W3C;
@@ -277,7 +278,13 @@ builder.Services.AddScoped<Cashflowpoly.Api.Services.IEventIngestionService, Cas
 
 var app = builder.Build();
 
-await DatabaseInitialization.InitializeAsync(app.Services, CancellationToken.None);
+var applyDatabaseChanges = migrateOnly || app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing");
+await DatabaseInitialization.InitializeAsync(app.Services, applyDatabaseChanges, CancellationToken.None);
+
+if (migrateOnly)
+{
+    return;
+}
 
 using (var scope = app.Services.CreateScope())
 {

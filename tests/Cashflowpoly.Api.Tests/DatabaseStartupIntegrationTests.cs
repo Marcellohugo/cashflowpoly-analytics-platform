@@ -213,7 +213,7 @@ public sealed class DatabaseStartupIntegrationTests
     }
 
     [Fact]
-    public async Task ApiStartup_OnPartiallyInitializedDatabase_ReappliesCanonicalSqlSchema()
+    public async Task ApiStartup_OnDamagedCanonicalDatabase_RejectsMigration()
     {
         await using var database = new PostgreSqlBuilder("postgres:16")
             .WithDatabase("cashflowpoly_partial_boot")
@@ -242,40 +242,84 @@ public sealed class DatabaseStartupIntegrationTests
                 """);
         }
 
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() =>
+            RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
+            {
+                await using var factory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
+                using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+                {
+                    AllowAutoRedirect = false
+                });
+                await client.GetAsync("/health/ready");
+            }));
+
+        Assert.Contains("fingerprint mismatch", exception.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ApiStartup_WhenRepeated_IsIdempotentAndKeepsMigrationHistory()
+    {
+        await using var database = new PostgreSqlBuilder("postgres:16")
+            .WithDatabase("cashflowpoly_repeat_boot")
+            .WithUsername("cashflowpoly")
+            .WithPassword("cashflowpoly")
+            .Build();
+
+        await database.StartAsync();
         await RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
         {
-            await using var factory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
-            using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+            await using (var firstFactory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey))
+            using (var firstClient = firstFactory.CreateClient())
             {
-                AllowAutoRedirect = false
-            });
+                Assert.Equal(HttpStatusCode.OK, (await firstClient.GetAsync("/health/ready")).StatusCode);
+            }
 
-            var response = await client.GetAsync("/health/ready");
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            await using (var secondFactory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey))
+            using (var secondClient = secondFactory.CreateClient())
+            {
+                Assert.Equal(HttpStatusCode.OK, (await secondClient.GetAsync("/health/ready")).StatusCode);
+            }
         });
 
         await using var connection = new NpgsqlConnection(database.GetConnectionString());
         await connection.OpenAsync();
+        Assert.Equal(2, await connection.ExecuteScalarAsync<int>("select count(*) from schema_history;"));
+        Assert.Equal(0, await connection.ExecuteScalarAsync<int>(
+            "select count(*) from schema_history where checksum !~ '^[0-9a-f]{64}$';"));
+    }
 
-        var canonicalSchemaState = await connection.QuerySingleAsync<(
-            bool HasEventAssetReferences,
-            bool HasInventory,
-            bool HasGoldHoldings,
-            bool HasLoans,
-            bool HasInsurances)>(
-            """
-            select
-                to_regclass('public.event_asset_references') is not null as HasEventAssetReferences,
-                to_regclass('public.session_participant_inventory') is not null as HasInventory,
-                to_regclass('public.session_participant_gold_holdings') is not null as HasGoldHoldings,
-                to_regclass('public.session_participant_loans') is not null as HasLoans,
-                to_regclass('public.session_participant_insurances') is not null as HasInsurances
-            """);
-        Assert.True(canonicalSchemaState.HasEventAssetReferences);
-        Assert.True(canonicalSchemaState.HasInventory);
-        Assert.True(canonicalSchemaState.HasGoldHoldings);
-        Assert.True(canonicalSchemaState.HasLoans);
-        Assert.True(canonicalSchemaState.HasInsurances);
+    [Fact]
+    public async Task ApiStartup_WhenAppliedChecksumWasChanged_StopsStartup()
+    {
+        await using var database = new PostgreSqlBuilder("postgres:16")
+            .WithDatabase("cashflowpoly_checksum_boot")
+            .WithUsername("cashflowpoly")
+            .WithPassword("cashflowpoly")
+            .Build();
+
+        await database.StartAsync();
+        await RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
+        {
+            await using var factory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
+            using var client = factory.CreateClient();
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/ready")).StatusCode);
+        });
+
+        await using (var connection = new NpgsqlConnection(database.GetConnectionString()))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync("update schema_history set checksum = repeat('0', 64) where version = 2;");
+        }
+
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() =>
+            RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
+            {
+                await using var factory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
+                using var client = factory.CreateClient();
+                await client.GetAsync("/health/ready");
+            }));
+
+        Assert.Contains("Checksum migrasi V2 berbeda", exception.ToString(), StringComparison.Ordinal);
     }
 
     private static async Task RunWithConnectionStringAsync(string connectionString, Func<Task> action)

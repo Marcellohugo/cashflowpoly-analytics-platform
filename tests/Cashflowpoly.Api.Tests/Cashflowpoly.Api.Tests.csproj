@@ -28,6 +28,8 @@
   <ItemGroup>
     <None Include="..\..\database\00_create_schema.sql" Link="database\00_create_schema.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\database\01_seed_default_rulesets_components.sql" Link="database\01_seed_default_rulesets_components.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\database\02_seed_simulation_sessions_events.sql" Link="database\02_seed_simulation_sessions_events.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\database\migrations\**\*.sql" Link="database\migrations\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
