@@ -1,5 +1,6 @@
 // Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsGameplaySnapshotBuilder.
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Contracts;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
@@ -20,7 +21,6 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
     private static readonly RiskLoanCalculator _riskLoanCalc = new();
     private static readonly ActionUsageCalculator _actionUsageCalc = new();
     private static readonly IncomeDiversificationCalculator _incomeDivCalc = new();
-    private static readonly DerivedRatioCalculator _derivedRatioCalc = new();
 
     public AnalyticsGameplaySnapshot Build(
         List<EventDb> playerEvents,
@@ -62,7 +62,6 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var ingredientInvestmentTotal = ingredientMealMetrics.IngredientInvestmentTotal;
         var mealOrderIncomeValues = ingredientMealMetrics.MealOrderIncomeValues;
         var mealOrdersClaimed = ingredientMealMetrics.MealOrdersClaimed;
-        var mealOrdersPassed = ingredientMealMetrics.MealOrdersPassed;
         var mealOrderIncomeTotal = ingredientMealMetrics.MealOrderIncomeTotal;
         var mealOrdersPerTurnAverage = ingredientMealMetrics.MealOrdersPerTurnAverage;
         var essentialIngredientExpenses = ingredientMealMetrics.EssentialIngredientExpenses;
@@ -159,7 +158,6 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             meal_orders = new
             {
                 meal_orders_claimed = mealOrdersClaimed,
-                meal_orders_available_passed = mealOrdersPassed,
                 meal_order_income_per_order = mealOrderIncomeValues,
                 meal_order_income_total = mealOrderIncomeTotal,
                 meal_orders_per_turn_average = mealOrdersPerTurnAverage
@@ -211,9 +209,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             },
             life_risk = new
             {
-                life_risks_available = riskLoanMetrics.RiskCardsDrawn,
                 life_risk_cards_drawn = riskLoanMetrics.RiskCardsDrawn,
-                life_risks_accepted = riskLoanMetrics.RiskAccepted,
                 life_risk_costs_per_card = riskLoanMetrics.RiskCostsPerCard,
                 life_risk_costs_total = riskLoanMetrics.RiskCostsTotal,
                 life_risk_mitigated_with_insurance = riskLoanMetrics.RiskMitigated,
@@ -222,7 +218,6 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             },
             financial_goals = new
             {
-                financial_goals_available_total = savingGoalMetrics.FinancialGoalsAvailableTotal,
                 financial_goals_attempted = savingGoalMetrics.FinancialGoalsAttempted,
                 financial_goals_completed = savingGoalMetrics.FinancialGoalsCompleted,
                 financial_goals_coins_per_goal = savingGoalMetrics.SavingGoalCostsByGoal,
@@ -230,7 +225,6 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 financial_goals_coins_total_invested = savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
                 financial_goals_incomplete_coins_wasted = savingGoalMetrics.FinancialGoalsIncompleteCoinsWasted,
                 sharia_loans_taken = riskLoanMetrics.LoansTaken,
-                sharia_loan_cards_taken = riskLoanMetrics.LoansTaken,
                 sharia_loans_repaid = riskLoanMetrics.LoansRepaid,
                 sharia_loans_unpaid_end = riskLoanMetrics.LoansUnpaid,
                 sharia_loans_outstanding_coins = riskLoanMetrics.LoansOutstandingAmount,
@@ -240,25 +234,12 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             {
                 actions_per_turn = config?.ActionsPerTurn ?? 2,
                 action_repetitions_per_turn = actionMetrics.ActionRepetitions,
-                action_sequence = actionMetrics.ActionSequences,
-                actions_skipped = actionMetrics.ActionsSkipped,
-                action_slots_unused = actionMetrics.ActionSlotsUnused
+                action_sequence = actionMetrics.ActionSequences
             },
             turns = new
             {
                 coins_per_turn_progression = cashTimeline.CoinsProgression,
                 net_income_per_turn = cashTimeline.NetIncomePerTurn,
-                turn_number_when_debt_introduced = playerEvents
-                    .Where(e => e.ActionType == "PinjamanSyariah")
-                    .Select(e => (int?)e.DayIndex)
-                    .OrderBy(t => t)
-                    .FirstOrDefault(),
-                turn_number_when_first_risk_hit = playerEvents
-                    .Where(e => e.ActionType == "RisikoKehidupan")
-                    .Select(e => (int?)e.DayIndex)
-                    .OrderBy(t => t)
-                    .FirstOrDefault(),
-                turn_number_game_completion = latestDayIndex < 0 ? (int?)null : latestDayIndex,
                 day_when_debt_introduced = playerEvents
                     .Where(e => e.ActionType == "PinjamanSyariah")
                     .Select(e => (int?)e.DayIndex)
@@ -282,18 +263,10 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             notes = notesRaw
         };
 
-        var totalIncome = cashInTotal;
         var totalExpenses = cashOutTotal;
-        var businessEfficiencyRatio = SafeRatio(mealOrderIncomeTotal, ingredientInvestmentTotal);
-        var goldRoiPercentage = SafeRatio(goldInvestmentNet, goldInvestmentSpent, true);
-        var riskExposurePercentage = riskLoanMetrics.RiskExposurePercentage;
-        var riskMitigationEffectiveness = riskLoanMetrics.RiskMitigationEffectiveness;
-
-        var netWorthIndex = SafeRatio(coinsNetEndGame, startingCoins, true);
+        var cashGrowthPercent = SafeRatio(coinsNetEndGame, startingCoins, true);
         var incomeDiversificationMetrics = _incomeDivCalc.Compute(
             playerEvents,
-            playerProjections,
-            totalIncome,
             mealOrderIncomeTotal,
             goldInvestmentEarned);
         if (incomeDiversificationMetrics.RequiresIncomeNote)
@@ -301,148 +274,173 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             notesDerived.Add("income_diversification_requires_income");
         }
         var incomeDiversificationIndex = incomeDiversificationMetrics.IncomeDiversificationIndex;
-        var incomeDiversificationRatio = incomeDiversificationMetrics.IncomeDiversificationRatio;
-
-        var Risk_Acceptance_Rate = riskLoanMetrics.RiskAcceptanceRate;
-        var Insurance_Coverage_Rate = riskLoanMetrics.InsuranceCoverageRate;
-        var Risk_Cost_Intensity = riskLoanMetrics.RiskCostIntensity;
-        var insuranceActivationRate = riskLoanMetrics.InsuranceCoverageRate;
-        var riskAppetiteScore = riskLoanMetrics.RiskAppetiteScore;
-        if (riskLoanMetrics.RiskCardsDrawn == 0)
-        {
-            notesDerived.Add("risk_appetite_requires_risk_events");
-        }
-        var debtLeverageRatio = riskLoanMetrics.DebtLeverageRatio;
-        var loanRepaymentDiscipline = riskLoanMetrics.LoanRepaymentDiscipline;
-        var debtRatio = riskLoanMetrics.DebtRatio;
-
-        var actionEfficiency = actionMetrics.ActionEfficiency;
-        var actionEfficiencyPercent = actionMetrics.ActionEfficiencyPercent;
-        var actionDiversityAverage = actionMetrics.ActionDiversityAverage;
-
-        var derivedRatioMetrics = _derivedRatioCalc.Compute(
-            essentialIngredientExpenses,
-            totalExpenses,
+        var businessExpenseSharePercent = SafeRatio(ingredientInvestmentTotal, totalExpenses, true);
+        var mealOrderProfitMarginPercent = SafeRatio(
+            mealOrderIncomeTotal - essentialIngredientExpenses,
             mealOrderIncomeTotal,
-            ingredientInvestmentTotal,
-            savingGoalMetrics,
-            coinsNetEndGame,
-            playerEvents,
-            actionMetrics.ActionEventCount,
-            mealOrdersClaimed,
-            mealOrdersPassed,
-            needMissionMetrics,
-            startingCoins,
-            riskAppetiteScore);
+            true);
+        var incomeActionFocusPercent = actionMetrics.ActionEfficiencyPercent;
+        var ingredientUtilizationPercent = SafeRatio(ingredientsUsedTotal, ingredientsCollected, true);
+        var primaryNeedShare = SafeRatio(needMissionMetrics.PrimaryNeeds, needMissionMetrics.NeedCardsOwnedCurrent);
+        var secondaryNeedShare = SafeRatio(needMissionMetrics.SecondaryNeeds, needMissionMetrics.NeedCardsOwnedCurrent);
+        var tertiaryNeedShare = SafeRatio(needMissionMetrics.TertiaryNeeds, needMissionMetrics.NeedCardsOwnedCurrent);
+        var needFulfillmentDiversityPercent = needMissionMetrics.FulfillmentDiversity.HasValue
+            ? needMissionMetrics.FulfillmentDiversity.Value * 100
+            : (double?)null;
+        var donationResourceShare = SafeRatio(
+            donationTotal,
+            Math.Max(0, coinsNetEndGame) + donationTotal);
+        var donationCommitmentScore = donationMetrics.DonationStabilityIndex.HasValue &&
+                                      donationResourceShare.HasValue &&
+                                      donationMetrics.FridayParticipationRate.HasValue
+            ? Clamp(
+                donationMetrics.DonationStabilityIndex.Value *
+                donationResourceShare.Value *
+                donationMetrics.FridayParticipationRate.Value,
+                0,
+                100)
+            : (double?)null;
 
-        var derived = new
+        var derived = new Dictionary<string, object?>
         {
-            net_worth_index = netWorthIndex,
-            income_diversification_index = incomeDiversificationIndex,
-            income_diversification_ratio = incomeDiversificationRatio,
-            income_diversification_components = new
+            ["cash_growth_percent"] = cashGrowthPercent,
+            ["cash_growth_components"] = new
+            {
+                coins_net_end_game = coinsNetEndGame,
+                starting_coins = startingCoins
+            },
+            ["income_diversification_index"] = incomeDiversificationIndex,
+            ["income_diversification_components"] = new
             {
                 freelance_income = incomeDiversificationMetrics.FreelanceIncome,
-                meal_income = incomeDiversificationMetrics.MealIncome,
-                gold_income = incomeDiversificationMetrics.GoldIncome,
-                donations_received = incomeDiversificationMetrics.DonationIncome,
-                other_income = incomeDiversificationMetrics.OtherIncome,
-                total_income = totalIncome,
-                N_active_income_sources = incomeDiversificationMetrics.ActiveIncomeSourceCount,
-                Income_Share_i = incomeDiversificationMetrics.IncomeShares
+                meal_order_income = incomeDiversificationMetrics.MealIncome,
+                gold_sale_income = incomeDiversificationMetrics.GoldIncome,
+                active_income_source_count = incomeDiversificationMetrics.ActiveIncomeSourceCount,
+                income_shares = incomeDiversificationMetrics.IncomeShares
             },
-            expense_management_efficiency = derivedRatioMetrics.ExpenseEfficiency,
-            expense_management_components = new
+            ["business_expense_share_percent"] = businessExpenseSharePercent,
+            ["business_expense_share_components"] = new
             {
-                essential_expenses = essentialIngredientExpenses,
-                total_expenses = totalExpenses
+                ingredient_investment_coins_total = ingredientInvestmentTotal,
+                total_cash_out = totalExpenses
             },
-            business_profit_margin = derivedRatioMetrics.BusinessProfitMargin,
-            business_efficiency_ratio = businessEfficiencyRatio,
-            gold_roi_percentage = goldRoiPercentage,
-            risk_exposure_percentage = riskExposurePercentage,
-            risk_mitigation_effectiveness = riskMitigationEffectiveness,
-            risk_appetite_score = riskAppetiteScore,
-            risk_appetite_components = new
+            ["meal_order_profit_margin_percent"] = mealOrderProfitMarginPercent,
+            ["meal_order_profit_margin_components"] = new
             {
-                life_risks_accepted = riskLoanMetrics.RiskAccepted,
-                life_risks_available = riskLoanMetrics.RiskCardsDrawn,
-                risk_acceptance_rate = Risk_Acceptance_Rate,
-                average_risk_cost = riskLoanMetrics.AverageRiskCost,
-                insurance_activation_rate = insuranceActivationRate,
-                Insurance_Coverage_Rate,
-                Risk_Cost_Intensity
+                meal_order_income_total = mealOrderIncomeTotal,
+                ingredient_cost_used = essentialIngredientExpenses
             },
-            debt_leverage_ratio = debtLeverageRatio,
-            loan_repayment_discipline = loanRepaymentDiscipline,
-            debt_ratio = debtRatio,
-            goal_ambition = derivedRatioMetrics.GoalAmbitionIndex,
-            goal_ambition_index = derivedRatioMetrics.GoalAmbitionIndex,
-            goal_setting_ambition = derivedRatioMetrics.GoalSettingAmbition,
-            goal_setting_components = new
+            ["income_action_focus_percent"] = incomeActionFocusPercent,
+            ["income_action_focus_components"] = new
             {
-                Goal_Attempt_Rate = derivedRatioMetrics.GoalAttemptRate,
-                Goal_Investment_Rate = derivedRatioMetrics.GoalInvestmentRate
+                income_main_actions = actionMetrics.IncomeActions,
+                total_main_actions = actionMetrics.ActionEventCount
             },
-            action_efficiency = actionEfficiency,
-            action_efficiency_percent = actionEfficiencyPercent,
-            action_diversity_score_avg = actionDiversityAverage,
-            action_efficiency_components = new
+            ["ingredient_utilization_percent"] = ingredientUtilizationPercent,
+            ["ingredient_utilization_components"] = new
             {
-                income_producing_actions = actionMetrics.IncomeActions,
-                all_player_actions = actionMetrics.ActionEventCount
+                ingredients_used_in_completed_orders = ingredientsUsedTotal,
+                ingredients_collected = ingredientsCollected
             },
-            meal_order_success_rate = derivedRatioMetrics.MealOrderSuccessRate,
-            planning_horizon = derivedRatioMetrics.PlanningHorizon,
-            planning_horizon_percent = derivedRatioMetrics.PlanningHorizonPercent,
-            planning_horizon_components = new
+            ["need_fulfillment_diversity_percent"] = needFulfillmentDiversityPercent,
+            ["need_fulfillment_diversity_components"] = new
             {
-                savings_actions = derivedRatioMetrics.SavingsActionCount,
-                financial_goal_actions = derivedRatioMetrics.FinancialGoalActionCount,
-                insurance_premium_actions = derivedRatioMetrics.InsurancePremiumActionCount,
-                all_player_actions = actionMetrics.ActionEventCount
+                primary_need_share = primaryNeedShare,
+                secondary_need_share = secondaryNeedShare,
+                tertiary_need_share = tertiaryNeedShare
             },
-            fulfillment_diversity = needMissionMetrics.FulfillmentDiversity,
-            fulfillment_diversity_document_formula = needMissionMetrics.FulfillmentDiversityDocumentFormula,
-            fulfillment_diversity_components = new
-            {
-                p_primary = derivedRatioMetrics.PrimaryNeedShare,
-                p_secondary = derivedRatioMetrics.SecondaryNeedShare,
-                p_tertiary = derivedRatioMetrics.TertiaryNeedShare
-            },
-            mission_achievement = needMissionMetrics.MissionAchievement,
-            growth_pattern_ratio = derivedRatioMetrics.GrowthPatternRatio,
-            donation_aggressiveness_percent = donationMetrics.DonationAggressivenessPercent,
-            donation_stability_std_deviation = donationMetrics.DonationStabilityStdDeviation,
-            donation_stability = donationMetrics.DonationStability,
-            donation_stability_index = donationMetrics.DonationStabilityIndex,
-            donation_ratio = donationMetrics.DonationRatio,
-            friday_participation_rate = donationMetrics.FridayParticipationRate,
-            donation_commitment_score = donationMetrics.DonationCommitmentScore,
-            donation_commitment_components = new
+            ["donation_commitment_score"] = donationCommitmentScore,
+            ["donation_commitment_components"] = new
             {
                 donation_stability_index = donationMetrics.DonationStabilityIndex,
-                donation_ratio = donationMetrics.DonationRatio,
+                donated_resource_share = donationResourceShare,
                 friday_participation_rate = donationMetrics.FridayParticipationRate
             },
-            risk_appetite_score_normalized = derivedRatioMetrics.RiskAppetiteScoreNormalized,
-            sharia_loans_outstanding_coins = riskLoanMetrics.LoansOutstandingAmount,
-            happiness_portfolio = new
+            ["happiness_points_composition"] = new
             {
-                total_happiness_pts = happiness.Total,
-                need_cards_pts = happiness.NeedPoints,
-                need_set_bonus_pts = happiness.NeedSetBonusPoints,
-                donations_pts = happiness.DonationPoints,
-                gold_pts = happiness.GoldPoints,
-                pension_pts = happiness.PensionPoints,
-                financial_goals_pts = happiness.SavingGoalPointsEffective,
-                mission_bonus_pts = 0 - happiness.MissionPenaltyPoints,
-                loan_penalty_pts = 0 - happiness.LoanPenaltyPoints
+                total_happiness_points = happiness.Total,
+                need_card_points = happiness.NeedPoints,
+                need_set_bonus_points = happiness.NeedSetBonusPoints,
+                donation_points = happiness.DonationPoints,
+                gold_points = happiness.GoldPoints,
+                pension_points = happiness.PensionPoints,
+                financial_goal_points = happiness.SavingGoalPointsEffective,
+                mission_penalty_points = 0 - happiness.MissionPenaltyPoints,
+                loan_penalty_points = 0 - happiness.LoanPenaltyPoints
             },
-            notes = notesDerived
+            ["notes"] = notesDerived
         };
 
-        var rawJson = JsonSerializer.Serialize(raw);
+        if (string.Equals(config?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+        {
+            var risksResolvedWithoutEmergency = Math.Max(0, riskLoanMetrics.RiskCardsDrawn - riskLoanMetrics.EmergencyOptionsUsed);
+            var liquidAssets = Math.Max(0, coinsHeldCurrent) + Math.Max(0, coinsSaved);
+            var attemptedGoalIds = savingGoalMetrics.SavingDepositsByGoal.Keys
+                .Concat(savingGoalMetrics.SavingGoalsAchieved)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var attemptedGoalTargetTotal = config!.FinancialGoals
+                .Where(goal => attemptedGoalIds.Contains(goal.Id))
+                .Sum(goal => goal.HargaBeli);
+            var savingsActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.Menabung);
+            var financialGoalActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.TujuanFinansial);
+            var insuranceActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.Asuransi);
+            var loanRepaymentActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.BayarPinjaman);
+            var longTermActionCount = savingsActionCount + financialGoalActionCount + insuranceActionCount + loanRepaymentActionCount;
+
+            derived["risk_readiness_percent"] = SafeRatio(
+                risksResolvedWithoutEmergency,
+                riskLoanMetrics.RiskCardsDrawn,
+                true);
+            derived["risk_readiness_components"] = new
+            {
+                risks_resolved_without_emergency = risksResolvedWithoutEmergency,
+                life_risk_cards_drawn = riskLoanMetrics.RiskCardsDrawn
+            };
+            derived["loan_burden_percent"] = SafeRatio(
+                riskLoanMetrics.LoansOutstandingAmount,
+                riskLoanMetrics.LoansOutstandingAmount + liquidAssets,
+                true);
+            derived["loan_burden_components"] = new
+            {
+                outstanding_loan = riskLoanMetrics.LoansOutstandingAmount,
+                liquid_assets = liquidAssets
+            };
+            derived["financial_goal_progress_percent"] = SafeRatio(
+                savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
+                attemptedGoalTargetTotal,
+                true);
+            derived["financial_goal_progress_components"] = new
+            {
+                coins_committed_to_goals = savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
+                attempted_goal_target_total = attemptedGoalTargetTotal
+            };
+            derived["long_term_action_share_percent"] = SafeRatio(
+                longTermActionCount,
+                actionMetrics.ActionEventCount,
+                true);
+            derived["long_term_action_share_components"] = new
+            {
+                saving_actions = savingsActionCount,
+                financial_goal_actions = financialGoalActionCount,
+                insurance_actions = insuranceActionCount,
+                loan_repayment_actions = loanRepaymentActionCount,
+                total_main_actions = actionMetrics.ActionEventCount
+            };
+        }
+
+        var rawNode = JsonSerializer.SerializeToNode(raw)!.AsObject();
+        if (!string.Equals(config?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
+        {
+            rawNode.Remove("life_risk");
+            rawNode.Remove("financial_goals");
+            if (rawNode["turns"] is JsonObject turns)
+            {
+                turns.Remove("day_when_debt_introduced");
+                turns.Remove("day_when_first_risk_hit");
+            }
+        }
+
+        var rawJson = rawNode.ToJsonString();
         var derivedJson = JsonSerializer.Serialize(derived);
         return new AnalyticsGameplaySnapshot(rawJson, derivedJson);
     }

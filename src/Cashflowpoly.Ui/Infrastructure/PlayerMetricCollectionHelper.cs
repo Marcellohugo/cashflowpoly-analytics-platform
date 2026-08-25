@@ -165,7 +165,7 @@ public static class PlayerMetricCollectionHelper
                 ? $"{resultValue}{resultUnit}"
                 : $"{resultValue} {resultUnit}";
         var incomeShares = values
-            .Where(item => item.Key.StartsWith("Income_Share_i.", StringComparison.OrdinalIgnoreCase))
+            .Where(item => item.Key.StartsWith("income_shares.", StringComparison.OrdinalIgnoreCase))
             .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
             .Select(item => double.TryParse(item.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var share)
                 ? $"({FormatCalculationNumber(share * 100, culture)} ÷ 100)²"
@@ -174,51 +174,51 @@ public static class PlayerMetricCollectionHelper
 
         var expression = analysisKey switch
         {
-            "net-worth" => $"{Value("coins_held_current")} ÷ {Value("starting_coins")} × 100%",
+            "net-worth" => $"{Value("coins_net_end_game")} ÷ {Value("starting_coins")} × 100%",
             "income-diversification" =>
-                $"[1 − ({(incomeShares.Count > 0 ? string.Join(" + ", incomeShares) : unavailableText)})] ÷ [1 − (1 ÷ {Value("N_active_income_sources")})] × 100%",
-            "expense-efficiency" => $"{Value("essential_expenses")} ÷ {Value("total_expenses")} × 100%",
+                $"[1 − ({(incomeShares.Count > 0 ? string.Join(" + ", incomeShares) : unavailableText)})] ÷ [1 − (1 ÷ {Value("active_income_source_count")})] × 100%",
+            "expense-efficiency" => $"{Value("ingredient_investment_coins_total")} ÷ {Value("total_cash_out")} × 100%",
             "business-margin" =>
-                $"({Value("meal_order_income_total")} − {Value("ingredient_investment_coins_total")}) ÷ {Value("meal_order_income_total")} × 100%",
+                $"({Value("meal_order_income_total")} − {Value("ingredient_cost_used")}) ÷ {Value("meal_order_income_total")} × 100%",
             "risk-appetite" =>
-                $"min(100, max(0, ({Value("risk_acceptance_rate", 100)} ÷ 100) × ({Value("Risk_Cost_Intensity", 100)} ÷ 100) × 100))",
+                $"{Value("risks_resolved_without_emergency")} ÷ {Value("life_risk_cards_drawn")} × 100%",
             "debt-discipline" =>
-                $"{Value("sharia_loans_outstanding_coins")} ÷ {Value("coins_held_current")} × 100%",
+                $"{Value("outstanding_loan")} ÷ ({Value("outstanding_loan")} + {Value("liquid_assets")}) × 100%",
             "goal-ambition" =>
-                $"min(100, max(0, ({Value("Goal_Attempt_Rate", 100)} + {Value("Goal_Investment_Rate", 100)}) ÷ 2))",
+                $"{Value("coins_committed_to_goals")} ÷ {Value("attempted_goal_target_total")} × 100%",
             "action-efficiency" =>
-                $"{Value("income_producing_actions")} ÷ {Value("all_player_actions")} × 100%",
+                $"{Value("income_main_actions")} ÷ {Value("total_main_actions")} × 100%",
             "meal-success" =>
-                $"{Value("meal_orders_claimed")} ÷ ({Value("meal_orders_claimed")} + {Value("meal_orders_available_passed")}) × 100%",
+                $"{Value("ingredients_used_in_completed_orders")} ÷ {Value("ingredients_collected")} × 100%",
             "planning-horizon" =>
-                $"({Value("savings_actions")} + {Value("financial_goal_actions")} + {Value("insurance_premium_actions")}) ÷ {Value("all_player_actions")} × 100%",
+                $"({Value("saving_actions")} + {Value("financial_goal_actions")} + {Value("insurance_actions")} + {Value("loan_repayment_actions")}) ÷ {Value("total_main_actions")} × 100%",
             "fulfillment-diversity" =>
-                $"[1 − (({Value("p_primary", 100)} ÷ 100)² + ({Value("p_secondary", 100)} ÷ 100)² + ({Value("p_tertiary", 100)} ÷ 100)²)] ÷ (1 − ⅓) × 100%",
+                $"[1 − ({Value("primary_need_share")}² + {Value("secondary_need_share")}² + {Value("tertiary_need_share")}²)] ÷ (1 − ⅓) × 100%",
             "donation-commitment" =>
-                $"min(100, max(0, {Value("donation_stability_index")} × ({Value("donation_ratio", 100)} ÷ 100) × ({Value("friday_participation_rate", 100)} ÷ 100)))",
+                $"min(100, max(0, {Value("donation_stability_index")} × {Value("donated_resource_share")} × {Value("friday_participation_rate")}))",
             "happiness-portfolio" => BuildSignedSum(
                 values,
                 [
-                    "need_cards_pts",
-                    "need_set_bonus_pts",
-                    "donations_pts",
-                    "gold_pts",
-                    "pension_pts",
-                    "financial_goals_pts",
-                    "mission_bonus_pts",
-                    "loan_penalty_pts"
+                    "need_card_points",
+                    "need_set_bonus_points",
+                    "donation_points",
+                    "gold_points",
+                    "pension_points",
+                    "financial_goal_points",
+                    "mission_penalty_points",
+                    "loan_penalty_points"
                 ],
                 unavailableText,
                 culture),
             "happiness-portfolio-beginner" => BuildSignedSum(
                 values,
                 [
-                    "need_cards_pts",
-                    "need_set_bonus_pts",
-                    "donations_pts",
-                    "gold_pts",
-                    "pension_pts",
-                    "mission_bonus_pts"
+                    "need_card_points",
+                    "need_set_bonus_points",
+                    "donation_points",
+                    "gold_points",
+                    "pension_points",
+                    "mission_penalty_points"
                 ],
                 unavailableText,
                 culture),

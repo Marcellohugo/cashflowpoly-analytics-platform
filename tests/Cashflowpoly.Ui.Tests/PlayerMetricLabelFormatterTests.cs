@@ -175,8 +175,6 @@ public sealed class PlayerMetricLabelFormatterTests
     [InlineData("coins_spent_per_turn[0].action_slot", "2", "2", "players.support.unit.action_slot")]
     [InlineData("coins_spent_per_turn[0].amount", "12", "12", "players.support.unit.coins")]
     [InlineData("N_active_income_sources", "3", "3", "players.support.unit.sources")]
-    [InlineData("actions_skipped", "2", "2", "players.support.unit.day")]
-    [InlineData("action_slots_unused", "3", "3", "players.support.unit.action_slot")]
     [InlineData("goal_ambition_index", "62.5", "62.50", "players.support.unit.percent")]
     [InlineData("goal_setting_ambition", "255.33", "255.33", "")]
     [InlineData("fulfillment_diversity_document_formula", "0.625", "62.50", "players.support.unit.percent")]

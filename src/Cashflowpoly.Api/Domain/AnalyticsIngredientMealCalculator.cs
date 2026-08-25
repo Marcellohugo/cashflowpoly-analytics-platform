@@ -13,7 +13,6 @@ public sealed record AnalyticsIngredientMealMetrics(
     int IngredientInvestmentTotal,
     IReadOnlyList<int> MealOrderIncomeValues,
     int MealOrdersClaimed,
-    int MealOrdersPassed,
     int MealOrderIncomeTotal,
     int LatestDayIndex,
     double MealOrdersPerTurnAverage,
@@ -97,7 +96,6 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
         }
 
         var mealOrdersClaimed = mealOrderIncomeValues.Count;
-        var mealOrdersPassed = 0;
         var mealOrderIncomeTotal = mealOrderIncomeValues.Sum();
         var latestDayIndex = playerEvents.Count == 0 ? -1 : playerEvents.Max(e => e.DayIndex);
         var eventPayloadReader = new EventPayloadReader();
@@ -122,7 +120,6 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
             ingredientInvestmentTotal,
             mealOrderIncomeValues,
             mealOrdersClaimed,
-            mealOrdersPassed,
             mealOrderIncomeTotal,
             latestDayIndex,
             mealOrdersPerTurnAverage,

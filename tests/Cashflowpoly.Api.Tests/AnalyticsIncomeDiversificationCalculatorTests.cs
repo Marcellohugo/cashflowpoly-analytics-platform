@@ -25,21 +25,16 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
 
         var metrics = new IncomeDiversificationCalculator().Compute(
             events,
-            projections,
-            totalIncome: 100,
             mealOrderIncomeTotal: 20,
             goldInvestmentEarned: 0);
 
         Assert.Equal(10, metrics.FreelanceIncome);
         Assert.Equal(20, metrics.MealIncome);
         Assert.Equal(0, metrics.GoldIncome);
-        Assert.Equal(10, metrics.DonationIncome);
-        Assert.Equal(3, metrics.ActiveIncomeSourceCount);
-        Assert.Equal(0.25, metrics.IncomeShares["freelance_income"]);
-        Assert.Equal(0.5, metrics.IncomeShares["meal_income"]);
-        Assert.Equal(0.25, metrics.IncomeShares["donations_received"]);
-        Assert.Equal(93.75, metrics.IncomeDiversificationIndex!.Value, precision: 6);
-        Assert.Equal(40, metrics.IncomeDiversificationRatio!.Value, precision: 6);
+        Assert.Equal(2, metrics.ActiveIncomeSourceCount);
+        Assert.Equal(1d / 3d, metrics.IncomeShares["freelance_income"], precision: 6);
+        Assert.Equal(2d / 3d, metrics.IncomeShares["meal_order_income"], precision: 6);
+        Assert.Equal(88.888889, metrics.IncomeDiversificationIndex!.Value, precision: 6);
         Assert.False(metrics.RequiresIncomeNote);
     }
 
@@ -48,14 +43,11 @@ public sealed class AnalyticsIncomeDiversificationCalculatorTests
     {
         var metrics = new IncomeDiversificationCalculator().Compute(
             Array.Empty<EventDb>(),
-            Array.Empty<CashflowProjectionDb>(),
-            totalIncome: 0,
             mealOrderIncomeTotal: 0,
             goldInvestmentEarned: 0);
 
         Assert.Empty(metrics.IncomeShares);
         Assert.Null(metrics.IncomeDiversificationIndex);
-        Assert.Null(metrics.IncomeDiversificationRatio);
         Assert.True(metrics.RequiresIncomeNote);
     }
 

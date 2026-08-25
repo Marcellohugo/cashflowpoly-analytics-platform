@@ -8,7 +8,7 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class AnalyticsActionUsageCalculatorTests
 {
     [Fact]
-    public void Compute_SummarizesActionSequencesRepetitionsSlotsAndEfficiency()
+    public void Compute_SummarizesActionSequencesRepetitionsAndEfficiency()
     {
         var playerId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -49,8 +49,6 @@ public sealed class AnalyticsActionUsageCalculatorTests
         Assert.Equal("JualMasakan", metrics.ActionSlotTimeline[3].ActionType);
         Assert.Equal(2, metrics.LatestActionSlot);
         Assert.Equal(1, metrics.LatestDayIndex);
-        Assert.Equal(0, metrics.ActionsSkipped);
-        Assert.Equal(0, metrics.ActionSlotsUnused);
         Assert.Equal(4, metrics.ActionEventCount);
         Assert.Equal(2, metrics.IncomeActions);
         Assert.Equal(0.5, metrics.ActionEfficiency);
@@ -74,23 +72,6 @@ public sealed class AnalyticsActionUsageCalculatorTests
 
         Assert.Equal(new[] { "BuangBahanMasakan" }, metrics.ActionSequences.Single().Actions);
         Assert.Equal(1, metrics.ActionEventCount);
-        Assert.Equal(0, metrics.ActionsSkipped);
-    }
-
-    [Fact]
-    public void Compute_DistinguishesFullTurnsSkippedFromUnusedSlots()
-    {
-        var playerId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var events = new[]
-        {
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "KerjaLepas", dayIndex: 1, actionSlot: 1, sequence: 1)
-        };
-
-        var metrics = new ActionUsageCalculator().Compute(events, [], latestDayIndex: 3, actionsPerTurn: 2);
-
-        Assert.Equal(2, metrics.ActionsSkipped);
-        Assert.Equal(5, metrics.ActionSlotsUnused);
     }
 
     private static EventDb CreateEvent(

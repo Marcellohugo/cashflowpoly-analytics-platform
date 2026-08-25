@@ -26,6 +26,16 @@ public static class PlayerMetricLabelFormatter
 {
     private static readonly HashSet<string> PercentageMetricKeys = new(StringComparer.OrdinalIgnoreCase)
     {
+        "cash_growth_percent",
+        "business_expense_share_percent",
+        "meal_order_profit_margin_percent",
+        "risk_readiness_percent",
+        "loan_burden_percent",
+        "financial_goal_progress_percent",
+        "income_action_focus_percent",
+        "ingredient_utilization_percent",
+        "long_term_action_share_percent",
+        "need_fulfillment_diversity_percent",
         "net_worth_index",
         "income_diversification_index",
         "income_diversification_ratio",
@@ -67,7 +77,12 @@ public static class PlayerMetricLabelFormatter
         "p_tertiary",
         "donation_ratio",
         "friday_participation_rate",
-        "income_share_i"
+        "income_share_i",
+        "income_shares",
+        "primary_need_share",
+        "secondary_need_share",
+        "tertiary_need_share",
+        "donated_resource_share"
     };
 
     private static readonly HashSet<string> MultiplierMetricKeys = new(StringComparer.OrdinalIgnoreCase)
@@ -87,7 +102,8 @@ public static class PlayerMetricLabelFormatter
         "risk_",
         "debt_",
         "goal_",
-        "planning_horizon"
+        "planning_horizon",
+        "long_term"
     };
 
     /// <summary>
@@ -115,7 +131,6 @@ public static class PlayerMetricLabelFormatter
         {
             "coins_net_end" => "players.raw.coins_net_end_game",
             "coins_net_end_game" => "players.raw.coins_net_end_game",
-            "meal_orders_available_passed" => "players.raw.meal_orders_passed",
             _ => string.Empty
         };
 
@@ -550,16 +565,6 @@ public static class PlayerMetricLabelFormatter
             return "players.support.unit.day";
         }
 
-        if (metricKey is "actions_skipped")
-        {
-            return "players.support.unit.day";
-        }
-
-        if (metricKey is "action_slots_unused")
-        {
-            return "players.support.unit.action_slot";
-        }
-
         if (metricKey is "n_active_income_sources")
         {
             return "players.support.unit.sources";
@@ -625,21 +630,21 @@ public static class PlayerMetricLabelFormatter
         {
             var derivedKey = metricKey switch
             {
-                "net_worth_index" or "growth_pattern_ratio" => "players.support.meaning.growth",
+                "cash_growth_percent" or "net_worth_index" or "growth_pattern_ratio" => "players.support.meaning.growth",
                 "income_diversification_index" or "income_diversification_ratio" or "income_share_i" or
                     "n_active_income_sources" => "players.support.meaning.income_mix",
-                "expense_management_efficiency" => "players.support.meaning.expense_efficiency",
-                "business_profit_margin" or "business_efficiency_ratio" => "players.support.meaning.business",
+                "business_expense_share_percent" or "expense_management_efficiency" => "players.support.meaning.expense_efficiency",
+                "meal_order_profit_margin_percent" or "business_profit_margin" or "business_efficiency_ratio" => "players.support.meaning.business",
                 "gold_roi_percentage" => "players.support.meaning.gold_return",
                 "risk_exposure_percentage" or "risk_cost_intensity" => "players.support.meaning.risk_impact",
-                "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "players.support.meaning.risk_protection",
+                "risk_readiness_percent" or "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "players.support.meaning.risk_protection",
                 "risk_appetite_score" or "risk_appetite_score_normalized" or "risk_acceptance_rate" => "players.support.meaning.risk_appetite",
-                "debt_leverage_ratio" or "debt_ratio" or "loan_repayment_discipline" => "players.support.meaning.debt",
-                "goal_ambition" or "goal_ambition_index" or "goal_setting_ambition" or "goal_attempt_rate" or "goal_investment_rate" => "players.support.meaning.goals",
-                "action_efficiency" or "action_efficiency_percent" or "action_diversity_score_avg" => "players.support.meaning.actions",
-                "meal_order_success_rate" => "players.support.meaning.orders",
-                "planning_horizon" or "planning_horizon_percent" => "players.support.meaning.planning",
-                "fulfillment_diversity" or "fulfillment_diversity_document_formula" or "p_primary" or "p_secondary" or "p_tertiary" => "players.support.meaning.need_balance",
+                "loan_burden_percent" or "debt_leverage_ratio" or "debt_ratio" or "loan_repayment_discipline" => "players.support.meaning.debt",
+                "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" or "goal_setting_ambition" or "goal_attempt_rate" or "goal_investment_rate" => "players.support.meaning.goals",
+                "income_action_focus_percent" or "action_efficiency" or "action_efficiency_percent" or "action_diversity_score_avg" => "players.support.meaning.actions",
+                "ingredient_utilization_percent" or "meal_order_success_rate" => "players.support.meaning.orders",
+                "long_term_action_share_percent" or "planning_horizon" or "planning_horizon_percent" => "players.support.meaning.planning",
+                "need_fulfillment_diversity_percent" or "fulfillment_diversity" or "fulfillment_diversity_document_formula" or "p_primary" or "p_secondary" or "p_tertiary" => "players.support.meaning.need_balance",
                 "mission_achievement" => "players.support.meaning.needs",
                 "donation_aggressiveness_percent" or "donation_stability_std_deviation" or "donation_ratio" or
                     "friday_participation_rate" or "donation_commitment_score" or "donation_stability" or "donation_stability_index" => "players.support.meaning.donation",
@@ -691,17 +696,17 @@ public static class PlayerMetricLabelFormatter
 
             return metricKey switch
             {
-                "net_worth_index" when numericValue >= 300 => "players.support.guide.wealth_exceptional",
-                "net_worth_index" when numericValue >= 200 => "players.support.guide.wealth_strong",
-                "net_worth_index" when numericValue >= 100 => "players.support.guide.wealth_growing",
-                "net_worth_index" => "players.support.guide.wealth_declining",
+                "cash_growth_percent" or "net_worth_index" when numericValue >= 300 => "players.support.guide.wealth_exceptional",
+                "cash_growth_percent" or "net_worth_index" when numericValue >= 200 => "players.support.guide.wealth_strong",
+                "cash_growth_percent" or "net_worth_index" when numericValue >= 100 => "players.support.guide.wealth_growing",
+                "cash_growth_percent" or "net_worth_index" => "players.support.guide.wealth_declining",
                 "income_diversification_index" or "income_diversification_ratio" when numericValue >= 67 => "players.support.guide.income_diverse",
                 "income_diversification_index" or "income_diversification_ratio" when numericValue < 34 => "players.support.guide.income_concentrated",
                 "income_diversification_index" or "income_diversification_ratio" => "players.support.guide.income_mixed",
-                "expense_management_efficiency" => "players.support.guide.expense_efficiency",
-                "business_profit_margin" or "gold_roi_percentage" when numericValue > 0 => "players.support.guide.return_positive",
-                "business_profit_margin" or "gold_roi_percentage" when numericValue < 0 => "players.support.guide.return_negative",
-                "business_profit_margin" or "gold_roi_percentage" => "players.support.guide.return_even",
+                "business_expense_share_percent" or "expense_management_efficiency" => "players.support.guide.expense_efficiency",
+                "meal_order_profit_margin_percent" or "business_profit_margin" or "gold_roi_percentage" when numericValue > 0 => "players.support.guide.return_positive",
+                "meal_order_profit_margin_percent" or "business_profit_margin" or "gold_roi_percentage" when numericValue < 0 => "players.support.guide.return_negative",
+                "meal_order_profit_margin_percent" or "business_profit_margin" or "gold_roi_percentage" => "players.support.guide.return_even",
                 "business_efficiency_ratio" when numericValue > 2 => "players.support.guide.business_efficient",
                 "business_efficiency_ratio" when numericValue < 1.5 => "players.support.guide.business_inefficient",
                 "business_efficiency_ratio" => "players.support.guide.business_moderate",
@@ -711,26 +716,29 @@ public static class PlayerMetricLabelFormatter
                 "risk_appetite_score" or "risk_appetite_score_normalized" when numericValue < 25 => "players.support.guide.appetite_cautious",
                 "risk_appetite_score" or "risk_appetite_score_normalized" when numericValue <= 75 => "players.support.guide.appetite_balanced",
                 "risk_appetite_score" or "risk_appetite_score_normalized" => "players.support.guide.appetite_high",
-                "debt_leverage_ratio" when numericValue > 75 => "players.support.guide.debt_high",
-                "debt_leverage_ratio" when numericValue <= 25 => "players.support.guide.debt_low",
-                "debt_leverage_ratio" => "players.support.guide.debt_moderate",
-                "goal_ambition" or "goal_ambition_index" when numericValue >= 67 => "players.support.guide.goals_strong",
-                "goal_ambition" or "goal_ambition_index" when numericValue < 34 => "players.support.guide.goals_limited",
-                "goal_ambition" or "goal_ambition_index" => "players.support.guide.goals_moderate",
+                "loan_burden_percent" or "debt_leverage_ratio" when numericValue > 75 => "players.support.guide.debt_high",
+                "loan_burden_percent" or "debt_leverage_ratio" when numericValue <= 25 => "players.support.guide.debt_low",
+                "loan_burden_percent" or "debt_leverage_ratio" => "players.support.guide.debt_moderate",
+                "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue >= 67 => "players.support.guide.goals_strong",
+                "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue < 34 => "players.support.guide.goals_limited",
+                "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" => "players.support.guide.goals_moderate",
                 "loan_repayment_discipline" when numericValue >= 99.5 => "players.support.guide.loan_repaid",
                 "loan_repayment_discipline" => "players.support.guide.loan_remaining",
-                "action_efficiency_percent" when numericValue > 60 => "players.support.guide.action_income",
-                "action_efficiency_percent" when numericValue < 40 => "players.support.guide.action_exploration",
-                "action_efficiency_percent" => "players.support.guide.action_balanced",
-                "meal_order_success_rate" when numericValue >= 80 => "players.support.guide.orders_strong",
-                "meal_order_success_rate" when numericValue < 60 => "players.support.guide.orders_review",
-                "meal_order_success_rate" => "players.support.guide.orders_moderate",
-                "planning_horizon_percent" when numericValue > 40 => "players.support.guide.planning_long",
-                "planning_horizon_percent" when numericValue < 20 => "players.support.guide.planning_short",
-                "planning_horizon_percent" => "players.support.guide.planning_balanced",
+                "income_action_focus_percent" or "action_efficiency_percent" when numericValue > 60 => "players.support.guide.action_income",
+                "income_action_focus_percent" or "action_efficiency_percent" when numericValue < 40 => "players.support.guide.action_exploration",
+                "income_action_focus_percent" or "action_efficiency_percent" => "players.support.guide.action_balanced",
+                "ingredient_utilization_percent" or "meal_order_success_rate" when numericValue >= 80 => "players.support.guide.orders_strong",
+                "ingredient_utilization_percent" or "meal_order_success_rate" when numericValue < 60 => "players.support.guide.orders_review",
+                "ingredient_utilization_percent" or "meal_order_success_rate" => "players.support.guide.orders_moderate",
+                "long_term_action_share_percent" or "planning_horizon_percent" when numericValue > 40 => "players.support.guide.planning_long",
+                "long_term_action_share_percent" or "planning_horizon_percent" when numericValue < 20 => "players.support.guide.planning_short",
+                "long_term_action_share_percent" or "planning_horizon_percent" => "players.support.guide.planning_balanced",
                 "planning_horizon" when normalizedRatio > 0.4 => "players.support.guide.planning_long",
                 "planning_horizon" when normalizedRatio < 0.2 => "players.support.guide.planning_short",
                 "planning_horizon" => "players.support.guide.planning_balanced",
+                "need_fulfillment_diversity_percent" when numericValue >= 67 => "players.support.guide.need_balance_high",
+                "need_fulfillment_diversity_percent" when numericValue < 34 => "players.support.guide.need_balance_low",
+                "need_fulfillment_diversity_percent" => "players.support.guide.need_balance_moderate",
                 "fulfillment_diversity" when numericValue >= 0.67 => "players.support.guide.need_balance_high",
                 "fulfillment_diversity" when numericValue < 0.34 => "players.support.guide.need_balance_low",
                 "fulfillment_diversity" => "players.support.guide.need_balance_moderate",
@@ -840,16 +848,17 @@ public static class PlayerMetricLabelFormatter
         {
             var resultSpecificKey = metricKey switch
             {
-                "net_worth_index" when numericValue < 100 => "players.support.recommendation.cash_recover",
+                "cash_growth_percent" or "net_worth_index" when numericValue < 100 => "players.support.recommendation.cash_recover",
                 "income_diversification_index" or "income_diversification_ratio" when numericValue < 34 => "players.support.recommendation.income_mix_recover",
-                "business_profit_margin" when numericValue <= 0 => "players.support.recommendation.business_recover",
+                "meal_order_profit_margin_percent" or "business_profit_margin" when numericValue <= 0 => "players.support.recommendation.business_recover",
                 "risk_appetite_score" or "risk_appetite_score_normalized" when numericValue > 75 => "players.support.recommendation.risk_reduce",
-                "debt_leverage_ratio" when numericValue > 75 => "players.support.recommendation.debt_reduce",
-                "goal_ambition" or "goal_ambition_index" when numericValue < 50 => "players.support.recommendation.goals_focus",
-                "action_efficiency_percent" when numericValue < 40 => "players.support.recommendation.action_income",
-                "meal_order_success_rate" when numericValue < 60 => "players.support.recommendation.orders_improve",
-                "planning_horizon_percent" when numericValue < 20 => "players.support.recommendation.planning_build",
+                "loan_burden_percent" or "debt_leverage_ratio" when numericValue > 75 => "players.support.recommendation.debt_reduce",
+                "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue < 50 => "players.support.recommendation.goals_focus",
+                "income_action_focus_percent" or "action_efficiency_percent" when numericValue < 40 => "players.support.recommendation.action_income",
+                "ingredient_utilization_percent" or "meal_order_success_rate" when numericValue < 60 => "players.support.recommendation.orders_improve",
+                "long_term_action_share_percent" or "planning_horizon_percent" when numericValue < 20 => "players.support.recommendation.planning_build",
                 "planning_horizon" when numericValue < 0.2 => "players.support.recommendation.planning_build",
+                "need_fulfillment_diversity_percent" when numericValue < 67 => "players.support.recommendation.needs_balance",
                 "fulfillment_diversity" when numericValue < 0.67 => "players.support.recommendation.needs_balance",
                 "donation_commitment_score" when numericValue < 34 => "players.support.recommendation.donation_stabilize",
                 "total_happiness_pts" when numericValue < 0 => "players.support.recommendation.outcome_recover",
@@ -864,13 +873,13 @@ public static class PlayerMetricLabelFormatter
 
         var recommendationCategory = metricKey switch
         {
-            "net_worth_index" or "growth_pattern_ratio" => "wealth",
+            "cash_growth_percent" or "net_worth_index" or "growth_pattern_ratio" => "wealth",
             "income_diversification_index" or "income_diversification_ratio" or "income_share_i" or
                 "n_active_income_sources" => "income_mix",
-            "expense_management_efficiency" => "productive_spending",
-            "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "protection",
-            "action_efficiency" or "action_efficiency_percent" => "action_balance",
-            "planning_horizon" or "planning_horizon_percent" => "planning",
+            "business_expense_share_percent" or "expense_management_efficiency" => "productive_spending",
+            "risk_readiness_percent" or "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "protection",
+            "income_action_focus_percent" or "action_efficiency" or "action_efficiency_percent" => "action_balance",
+            "long_term_action_share_percent" or "planning_horizon" or "planning_horizon_percent" => "planning",
             _ => ResolveFunctionCategory(metricKey)
         };
 
@@ -883,25 +892,25 @@ public static class PlayerMetricLabelFormatter
     {
         return metricKey switch
         {
-            "net_worth_index" => "players.support.formula.net_worth",
+            "cash_growth_percent" or "net_worth_index" => "players.support.formula.net_worth",
             "income_diversification_index" => "players.support.formula.income_diversification_index",
             "income_diversification_ratio" => "players.support.formula.income_diversification",
-            "expense_management_efficiency" => "players.support.formula.expense_efficiency",
-            "business_profit_margin" => "players.support.formula.business_margin",
+            "business_expense_share_percent" or "expense_management_efficiency" => "players.support.formula.expense_efficiency",
+            "meal_order_profit_margin_percent" or "business_profit_margin" => "players.support.formula.business_margin",
             "business_efficiency_ratio" => "players.support.formula.business_efficiency",
             "gold_roi_percentage" => "players.support.formula.gold_roi",
             "risk_exposure_percentage" => "players.support.formula.risk_exposure",
             "risk_mitigation_effectiveness" => "players.support.formula.risk_mitigation",
-            "risk_appetite_score" or "risk_appetite_score_normalized" => "players.support.formula.risk_appetite",
-            "debt_leverage_ratio" => "players.support.formula.debt_leverage",
+            "risk_readiness_percent" or "risk_appetite_score" or "risk_appetite_score_normalized" => "players.support.formula.risk_appetite",
+            "loan_burden_percent" or "debt_leverage_ratio" => "players.support.formula.debt_leverage",
             "loan_repayment_discipline" => "players.support.formula.loan_discipline",
             "debt_ratio" => "players.support.formula.debt_ratio",
-            "goal_ambition" or "goal_ambition_index" => "players.support.formula.goal_ambition_index",
+            "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" => "players.support.formula.goal_ambition_index",
             "goal_setting_ambition" => "players.support.formula.goal_ambition",
-            "action_efficiency" or "action_efficiency_percent" => "players.support.formula.action_efficiency",
-            "meal_order_success_rate" => "players.support.formula.order_success",
-            "planning_horizon" or "planning_horizon_percent" => "players.support.formula.planning",
-            "fulfillment_diversity" => "players.support.formula.fulfillment",
+            "income_action_focus_percent" or "action_efficiency" or "action_efficiency_percent" => "players.support.formula.action_efficiency",
+            "ingredient_utilization_percent" or "meal_order_success_rate" => "players.support.formula.order_success",
+            "long_term_action_share_percent" or "planning_horizon" or "planning_horizon_percent" => "players.support.formula.planning",
+            "need_fulfillment_diversity_percent" or "fulfillment_diversity" => "players.support.formula.fulfillment",
             "fulfillment_diversity_document_formula" => "players.support.formula.fulfillment_document",
             "growth_pattern_ratio" => "players.support.formula.growth",
             "donation_aggressiveness_percent" => "players.support.formula.donation_aggressiveness",

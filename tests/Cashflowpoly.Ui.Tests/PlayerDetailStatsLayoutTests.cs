@@ -111,7 +111,7 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("(\"Hitungan dengan angka pemain\", \"Calculation with the player's numbers\")", lexicon, StringComparison.Ordinal);
         Assert.Contains("Pertumbuhan Kas = Koin Saat Ini ÷ Koin Awal × 100%.", lexicon, StringComparison.Ordinal);
         Assert.Contains("jumlah kuadrat setiap (Bagian Pendapatan ÷ 100)", lexicon, StringComparison.Ordinal);
-        Assert.Contains("Tingkat Risiko yang Diambil = (Tingkat Penerimaan Risiko ÷ 100) × (Beban Biaya Risiko ÷ 100) × 100, dibatasi 0–100.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Kesiapan Menghadapi Risiko = Risiko Selesai tanpa Opsi Darurat ÷ Kartu Risiko Kehidupan yang Muncul × 100%.", lexicon, StringComparison.Ordinal);
         Assert.Contains("Konsistensi Donasi = Nilai Keteraturan Donasi × (Bagian Kas untuk Donasi ÷ 100) × (Keikutsertaan Hari Jumat ÷ 100), dibatasi 0–100.", lexicon, StringComparison.Ordinal);
         Assert.Contains("Poin Kartu Kebutuhan + Poin Bonus Set Kebutuhan + Poin Donasi", lexicon, StringComparison.Ordinal);
         Assert.DoesNotContain("tingkat tanpa perlindungan", lexicon, StringComparison.OrdinalIgnoreCase);
@@ -182,12 +182,7 @@ public sealed class PlayerDetailStatsLayoutTests
             "coins_net_end_game",
             "coins_donated",
             "coins_saved",
-            "leftover_coins_end_game",
-            "life_risks_available",
-            "sharia_loan_cards_taken",
-            "turn_number_when_debt_introduced",
-            "turn_number_when_first_risk_hit",
-            "turn_number_game_completion"
+            "leftover_coins_end_game"
         })
         {
             Assert.Contains(redundantKey, view, StringComparison.Ordinal);
@@ -231,15 +226,19 @@ public sealed class PlayerDetailStatsLayoutTests
 
         foreach (var componentGroup in new[]
         {
+            "cash_growth_components",
             "income_diversification_components",
-            "expense_management_components",
-            "risk_appetite_components",
-            "goal_setting_components",
-            "action_efficiency_components",
-            "planning_horizon_components",
-            "fulfillment_diversity_components",
+            "business_expense_share_components",
+            "meal_order_profit_margin_components",
+            "risk_readiness_components",
+            "loan_burden_components",
+            "financial_goal_progress_components",
+            "income_action_focus_components",
+            "ingredient_utilization_components",
+            "long_term_action_share_components",
+            "need_fulfillment_diversity_components",
             "donation_commitment_components",
-            "happiness_portfolio"
+            "happiness_points_composition"
         })
         {
             Assert.Contains(componentGroup, view, StringComparison.Ordinal);
@@ -254,16 +253,16 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.DoesNotContain("player-stat-action__number", view, StringComparison.Ordinal);
         Assert.Contains("player-stat-action__signal", view, StringComparison.Ordinal);
         Assert.Equal(13, CountOccurrences(view, "PrimaryKey = \""));
-        Assert.Contains("SelectRaw(\"coins\", \"starting_coins\", \"coins_held_current\")", view, StringComparison.Ordinal);
-        Assert.Contains("PrimaryKey = \"risk_appetite_score\"", view, StringComparison.Ordinal);
-        Assert.Contains("SelectDerivedGroup(\"risk_appetite_components\", \"risk_acceptance_rate\", \"Risk_Cost_Intensity\")", view, StringComparison.Ordinal);
-        Assert.Contains("PrimaryKey = \"action_efficiency_percent\"", view, StringComparison.Ordinal);
-        Assert.Contains("GetGroupRows(derivedGroupMap, \"action_efficiency_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"cash_growth_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"risk_readiness_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"risk_readiness_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"income_action_focus_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"income_action_focus_components\")", view, StringComparison.Ordinal);
         Assert.Contains("FormulaKey = \"players.support.formula.goal_ambition_index\"", view, StringComparison.Ordinal);
-        Assert.Contains("PrimaryKey = \"planning_horizon_percent\"", view, StringComparison.Ordinal);
-        Assert.Contains("GetGroupRows(derivedGroupMap, \"planning_horizon_components\")", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"long_term_action_share_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("GetGroupRows(derivedGroupMap, \"long_term_action_share_components\")", view, StringComparison.Ordinal);
         Assert.Contains("PrimaryKey = \"donation_commitment_score\"", view, StringComparison.Ordinal);
-        Assert.Contains("PrimaryKey = \"total_happiness_pts\"", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"total_happiness_points\"", view, StringComparison.Ordinal);
         Assert.Contains("row.Path.Equals(analysis.PrimaryKey", view, StringComparison.Ordinal);
     }
 

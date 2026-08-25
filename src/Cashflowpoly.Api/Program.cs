@@ -271,7 +271,6 @@ builder.Services.AddScoped<INeedMissionCalculator, NeedMissionCalculator>();
 builder.Services.AddScoped<IRiskLoanCalculator, RiskLoanCalculator>();
 builder.Services.AddScoped<IActionUsageCalculator, ActionUsageCalculator>();
 builder.Services.AddScoped<IIncomeDiversificationCalculator, IncomeDiversificationCalculator>();
-builder.Services.AddScoped<IDerivedRatioCalculator, DerivedRatioCalculator>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Cashflowpoly.Api.Services.IAnalyticsService, Cashflowpoly.Api.Services.AnalyticsService>();
 builder.Services.AddScoped<Cashflowpoly.Api.Services.IEventIngestionService, Cashflowpoly.Api.Services.EventIngestionService>();

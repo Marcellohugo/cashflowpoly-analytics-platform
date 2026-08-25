@@ -9,8 +9,6 @@ public sealed record AnalyticsActionUsageMetrics(
     IReadOnlyList<AnalyticsActionSequence> ActionSequences,
     IReadOnlyList<AnalyticsActionRepetition> ActionRepetitions,
     IReadOnlyList<AnalyticsActionSlot> ActionSlotTimeline,
-    int ActionsSkipped,
-    int ActionSlotsUnused,
     int? LatestDayIndex,
     int? LatestActionSlot,
     int ActionEventCount,
@@ -83,19 +81,6 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             })
             .ToList();
 
-        var usedSlotsByDay = actionEvents
-            .Where(e => e.DayIndex > 0 && e.ActionSlot > 0)
-            .GroupBy(e => e.DayIndex)
-            .ToDictionary(group => group.Key, group => group.Select(e => e.ActionSlot).Distinct().Count());
-        var regularDays = Enumerable.Range(1, Math.Max(0, latestDayIndex))
-            .Where(IsRegularActionDay)
-            .ToList();
-        var actionsSkipped = actionsPerTurn > 0
-            ? regularDays.Count(dayIndex => usedSlotsByDay.GetValueOrDefault(dayIndex) == 0)
-            : 0;
-        var actionSlotsUnused = actionsPerTurn > 0
-            ? regularDays.Sum(dayIndex => Math.Max(0, actionsPerTurn - usedSlotsByDay.GetValueOrDefault(dayIndex)))
-            : 0;
         var actionSlotTimeline = actionEvents
             .GroupBy(e => e.DayIndex)
             .OrderBy(g => g.Key)
@@ -127,8 +112,6 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             actionSequences,
             actionRepetitions,
             actionSlotTimeline,
-            actionsSkipped,
-            actionSlotsUnused,
             actionEvents.Count == 0 ? null : actionEvents.Max(e => e.DayIndex),
             latestActionSlot,
             actionEvents.Count,
@@ -137,7 +120,4 @@ internal sealed class ActionUsageCalculator : IActionUsageCalculator
             actionEfficiency.HasValue ? actionEfficiency.Value * 100 : null,
             actionDiversityAverage);
     }
-
-    private static bool IsRegularActionDay(int dayIndex)
-        => ((dayIndex - 1) % 7 + 7) % 7 is <= 3;
 }

@@ -66,26 +66,6 @@ public interface IIncomeDiversificationCalculator
 {
     AnalyticsIncomeDiversificationMetrics Compute(
         IReadOnlyCollection<EventDb> playerEvents,
-        IReadOnlyCollection<CashflowProjectionDb> playerProjections,
-        double totalIncome,
         int mealOrderIncomeTotal,
         int goldInvestmentEarned);
-}
-
-public interface IDerivedRatioCalculator
-{
-    AnalyticsDerivedRatioMetrics Compute(
-        double essentialIngredientExpenses,
-        double totalExpenses,
-        int mealOrderIncomeTotal,
-        int ingredientInvestmentTotal,
-        AnalyticsSavingGoalMetrics savingGoalMetrics,
-        double coinsNetEndGame,
-        IReadOnlyCollection<EventDb> playerEvents,
-        int actionEventCount,
-        int mealOrdersClaimed,
-        int mealOrdersPassed,
-        AnalyticsNeedMissionMetrics needMissionMetrics,
-        int startingCoins,
-        double? riskAppetiteScore);
 }
