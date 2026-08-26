@@ -12,7 +12,7 @@ public sealed class AnalyticsScoreCalculatorTests
 {
     [Fact]
     /// <summary>
-    /// Memvalidasi ringkasan sesi menjumlahkan cashflow masuk, keluar, net, event, dan pelanggaran.
+    /// Memvalidasi ringkasan sesi menjumlahkan cashflow masuk, keluar, net, dan event.
     /// </summary>
     public void BuildSummary_ComputesCashflowTotalsAndEventCount()
     {
@@ -28,13 +28,12 @@ public sealed class AnalyticsScoreCalculatorTests
             new() { Direction = "IN", Amount = 3 }
         };
 
-        var summary = new ScoreCalculator().BuildSummary(events, projections, rulesViolationsCount: 4);
+        var summary = new ScoreCalculator().BuildSummary(events, projections);
 
         Assert.Equal(2, summary.EventCount);
         Assert.Equal(15, summary.CashInTotal);
         Assert.Equal(5, summary.CashOutTotal);
         Assert.Equal(10, summary.CashflowNetTotal);
-        Assert.Equal(4, summary.RulesViolationsCount);
     }
 
     [Fact]

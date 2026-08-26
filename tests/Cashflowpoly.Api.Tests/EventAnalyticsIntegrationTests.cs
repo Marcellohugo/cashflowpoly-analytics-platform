@@ -295,7 +295,7 @@ public sealed class EventAnalyticsIntegrationTests
         Assert.Equal(1, byPlayer.GetProperty("inventory_ingredient_total").GetInt32());
         Assert.Equal(2, byPlayer.GetProperty("actions_used_total").GetInt32());
         Assert.Equal(0d, byPlayer.GetProperty("fulfillment_diversity").GetDouble(), 6);
-        Assert.Equal(0, byPlayer.GetProperty("rules_violations_count").GetInt32());
+        Assert.False(byPlayer.TryGetProperty("rules_violations_count", out _));
 
         var transactionsResponse = await SendJsonAsync(
             HttpMethod.Get,

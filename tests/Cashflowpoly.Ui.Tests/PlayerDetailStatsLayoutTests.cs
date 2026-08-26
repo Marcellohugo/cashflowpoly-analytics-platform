@@ -63,9 +63,15 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains("<summary class=\"players-fusion-head ruleset-section-head player-stats-hero\"", view, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(view, "<summary class=\"player-analysis-section-head\""));
         Assert.DoesNotContain("players.stats.read_time", view, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary :is(h2, h3)::after", css, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion[open]>summary :is(h2, h3)::after", css, StringComparison.Ordinal);
-        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary::after {\n    content: none;", css, StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(view, " data-player-section-accordion data-accordion-key"));
+        Assert.Contains("data-accordion-key=\"summary\"", view, StringComparison.Ordinal);
+        Assert.Contains("data-accordion-key=\"analysis\"", view, StringComparison.Ordinal);
+        Assert.Contains("data-accordion-key=\"evidence\"", view, StringComparison.Ordinal);
+        Assert.Contains("cashflowpoly.player-section-accordions", view, StringComparison.Ordinal);
+        Assert.Contains("localStorage.getItem(storageKey)", view, StringComparison.Ordinal);
+        Assert.Contains("localStorage.setItem(storageKey", view, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion>summary::after", css, StringComparison.Ordinal);
+        Assert.Contains(".player-detail-overhaul .player-dashboard-accordion[open]>summary::after", css, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -165,6 +171,10 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Equal(11, CountOccurrences(view, "TitleKey = \"players.details.raw."));
         Assert.DoesNotContain("domain.Number", view, StringComparison.Ordinal);
         Assert.DoesNotContain("player-evidence-domain__number", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("player-evidence-library__summary", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("rawMetricCount", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("derivedMetricCount", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.metric_items_suffix", view, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -297,9 +307,10 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.Contains(".player-detail-overhaul .player-evidence-domain>summary {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-stats-actions {", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-metric-card-grid {", css, StringComparison.Ordinal);
-        Assert.Contains("flex-wrap: wrap;", css, StringComparison.Ordinal);
-        Assert.Contains("flex: 1 1 250px;", css, StringComparison.Ordinal);
-        Assert.Contains("flex-basis: 100%;", css, StringComparison.Ordinal);
+        Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));", css, StringComparison.Ordinal);
+        Assert.Contains("align-items: stretch;", css, StringComparison.Ordinal);
+        Assert.Contains("block-size: 100%;", css, StringComparison.Ordinal);
+        Assert.Contains("grid-column: 1 / -1;", css, StringComparison.Ordinal);
     }
 
     [Fact]

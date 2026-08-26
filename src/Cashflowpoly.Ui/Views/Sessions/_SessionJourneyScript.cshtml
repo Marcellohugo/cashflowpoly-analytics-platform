@@ -1,6 +1,14 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Sessions/_SessionJourneyScript.cshtml beserta interaksi presentasinya. *@
 @model Cashflowpoly.Ui.Models.SessionDetailViewModel
 @using System.Text.Json
+@{
+    var journeyRuleset = Model.ActiveRulesetDetail?.Ruleset?.Definition
+        ?? Model.ActiveRulesetDetail?.Components?.Definition;
+    var journeyFinishDay = Math.Max(1, journeyRuleset?.Settings.FinishDay ?? 25);
+    var fridayEnabled = journeyRuleset?.PlayerOrdering.FridayEnabled ?? true;
+    var saturdayEnabled = journeyRuleset?.PlayerOrdering.SaturdayEnabled ?? true;
+    var sundayEnabled = journeyRuleset?.PlayerOrdering.SundayEnabled ?? true;
+}
 
 <script>
     (() => {
@@ -35,6 +43,10 @@
         const actionSlotLabel = @Html.Raw(JsonSerializer.Serialize(Context.T("sessions.turn_label")));
         const playerLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames));
         const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
+        const finishDay = @journeyFinishDay;
+        const fridayEnabled = @Html.Raw(JsonSerializer.Serialize(fridayEnabled));
+        const saturdayEnabled = @Html.Raw(JsonSerializer.Serialize(saturdayEnabled));
+        const sundayEnabled = @Html.Raw(JsonSerializer.Serialize(sundayEnabled));
         const pollIntervalMs = 10000;
 
         const playerLookup = Object.fromEntries(
@@ -467,20 +479,20 @@
                 </div>
             `);
 
-            // Work days 1 to 25
-            for (let d = 1; d <= 25; d++) {
+            // Board days before the finish line come directly from the active ruleset.
+            for (let d = 1; d < finishDay; d++) {
                 const hasEvents = selectedTimelineFilter === "all" || eventsByDay.has(d);
                 const isSelected = selectedDay === d;
                 let cellClass = "work-calendar-cell";
                 let label = "";
 
-                if (d === 7 || d === 14 || d === 21) {
+                if (sundayEnabled && d % 7 === 0) {
                     cellClass += " work-calendar-cell--rest";
                     label = activeLanguage === "en" ? "Rest" : "Libur";
-                } else if (d % 7 === 5) {
+                } else if (fridayEnabled && d % 7 === 5) {
                     cellClass += " work-calendar-cell--charity";
                     label = activeLanguage === "en" ? "Charity" : "Peduli Donasi";
-                } else if (d % 7 === 6) {
+                } else if (saturdayEnabled && d % 7 === 6) {
                     cellClass += " work-calendar-cell--gold";
                     label = activeLanguage === "en" ? "Gold Trade" : "Investasi Emas";
                 } else {
@@ -508,9 +520,8 @@
                 `);
             }
 
-            // Finish cell (index 26, spans 2 columns, represents day >= 26)
-            const finishActive = selectedTimelineFilter === "all" || activeDays.some(day => day >= 26);
-            const finishSelected = selectedDay >= 26;
+            const finishActive = selectedTimelineFilter === "all" || activeDays.some(day => day >= finishDay);
+            const finishSelected = selectedDay >= finishDay;
             let finishClass = "work-calendar-cell work-calendar-cell--finish";
             if (finishActive) {
                 finishClass += " is-active-day";
@@ -522,7 +533,7 @@
             const finishLabel = activeLanguage === "en" ? "FINISH" : "SELESAI";
             cellsHtml.push(`
                 <div class="${finishClass}"
-                     data-day="26"
+                     data-day="${finishDay}"
                      role="button"
                      tabindex="${finishActive ? "0" : "-1"}"
                      aria-disabled="${finishActive ? "false" : "true"}"
@@ -558,17 +569,17 @@
             if (dayNum === 0) {
                 title = activeLanguage === "en" ? "GO Day" : "Hari GO";
                 desc = activeLanguage === "en" ? "Starting line of the game board." : "Garis start papan permainan.";
-            } else if (dayNum >= 26) {
+            } else if (dayNum >= finishDay) {
                 title = activeLanguage === "en" ? "Finish" : "Selesai";
                 desc = activeLanguage === "en" ? "Game completed. Final results and rankings calculated." : "Permainan selesai. Hasil akhir dan peringkat dihitung.";
             } else {
-                if (dayNum === 7 || dayNum === 14 || dayNum === 21) {
+                if (sundayEnabled && dayNum % 7 === 0) {
                     title = `${dayLabel} ${dayNum} - ${activeLanguage === "en" ? "Rest Day" : "Hari Libur"}`;
                     desc = activeLanguage === "en" ? "Rest day. No work is performed, players recover and plan." : "Hari libur. Tidak ada aktivitas bekerja, waktu untuk istirahat dan menyusun strategi.";
-                } else if (dayNum % 7 === 5) {
+                } else if (fridayEnabled && dayNum % 7 === 5) {
                     title = `${dayLabel} ${dayNum} - ${activeLanguage === "en" ? "Charity Day" : "Peduli Donasi"}`;
                     desc = activeLanguage === "en" ? "Charity day. Players can donate to support social causes." : "Hari Peduli Donasi. Pemain dapat berdonasi untuk mendukung kepedulian sosial.";
-                } else if (dayNum % 7 === 6) {
+                } else if (saturdayEnabled && dayNum % 7 === 6) {
                     title = `${dayLabel} ${dayNum} - ${activeLanguage === "en" ? "Gold Trade" : "Investasi Emas"}`;
                     desc = activeLanguage === "en" ? "Gold Trade day. Perfect time for gold investment and transactions." : "Hari Investasi Emas. Waktu yang tepat untuk transaksi dan investasi emas.";
                 } else {
@@ -593,13 +604,12 @@
             // Keep empty board days selectable in the unfiltered calendar.
             if (activeDays.length > 0) {
                 const selectedDayIsAvailable = selectedTimelineFilter === "all"
-                    ? selectedDay !== null && selectedDay >= 0 && selectedDay <= 26
-                    : activeDays.some(day => (selectedDay === 26 ? day >= 26 : day === selectedDay));
+                    ? selectedDay !== null && selectedDay >= 0 && selectedDay <= finishDay
+                    : activeDays.some(day => (selectedDay === finishDay ? day >= finishDay : day === selectedDay));
                 if (!selectedDayIsAvailable) {
                     selectedDay = activeDays[activeDays.length - 1];
-                    // If the latest day is >= 26, normalize it to 26 for the UI selection
-                    if (selectedDay > 26) {
-                        selectedDay = 26;
+                    if (selectedDay > finishDay) {
+                        selectedDay = finishDay;
                     }
                 }
             } else {
@@ -620,16 +630,16 @@
                 if (selectedDay !== null) {
                     const dayEvents = visibleTimeline.filter(item => {
                         const day = toNumber(item.dayIndex, 0);
-                        if (selectedDay === 26) {
-                            return day >= 26;
+                        if (selectedDay === finishDay) {
+                            return day >= finishDay;
                         }
                         return day === selectedDay;
                     });
 
                     const dayFeedTimeline = feedTimeline.filter(item => {
                         const day = toNumber(item.dayIndex, 0);
-                        if (selectedDay === 26) {
-                            return day >= 26;
+                        if (selectedDay === finishDay) {
+                            return day >= finishDay;
                         }
                         return day === selectedDay;
                     });

@@ -22,12 +22,16 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     }
 
     [Fact]
-    public void SessionDetails_PlayerScoresShouldUsePlayersAsColumns()
+    public void SessionDetails_PlayerScoresShouldUseOneAccordionPerPlayer()
     {
         var sessionDetailView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Details.cshtml"));
         var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
 
-        Assert.Contains("happiness-score-table", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-accordions", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("<details class=\"happiness-score-player-accordion", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-player-summary", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-player-body", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-component", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("happinessScoreRows", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("item.NeedPointsTotal", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("-item.MissionPenaltyTotal", sessionDetailView, StringComparison.Ordinal);
@@ -35,18 +39,28 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.Contains("item.HappinessPointsTotal", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("@Context.T(\"sessions.view_analytics\")", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("value == 0d ? \"0\"", sessionDetailView, StringComparison.Ordinal);
-        Assert.Contains("happiness-score-label-column", sessionDetailView, StringComparison.Ordinal);
-        Assert.Contains("happiness-score-player-column", sessionDetailView, StringComparison.Ordinal);
-        Assert.Contains(".happiness-score-label-column {", css, StringComparison.Ordinal);
-        Assert.Contains("width: 12rem;", css, StringComparison.Ordinal);
-        Assert.DoesNotContain(".happiness-score-label {" + Environment.NewLine + "    position: sticky;", css, StringComparison.Ordinal);
-        Assert.Contains("happiness-score-desktop", sessionDetailView, StringComparison.Ordinal);
-        Assert.Contains("happiness-score-mobile-card", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("scoreRow.Values[playerIndex]", sessionDetailView, StringComparison.Ordinal);
-        Assert.Contains(".happiness-score-desktop {", css, StringComparison.Ordinal);
-        Assert.Contains(".happiness-score-mobile-row", css, StringComparison.Ordinal);
-        Assert.Contains("@media (max-width: 900px)", css, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-player-summary::after", css, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-player-accordion[open]>.happiness-score-player-summary::after", css, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-player-body dl", css, StringComparison.Ordinal);
         Assert.Contains("grid-template-columns: repeat(2, minmax(0, 1fr));", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("happiness-score-table", sessionDetailView, StringComparison.Ordinal);
+        Assert.DoesNotContain("happiness-score-mobile", sessionDetailView, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SessionJourneyCalendar_ShouldUseActiveRulesetFinishDayAndWeekdayFeatures()
+    {
+        var script = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "_SessionJourneyScript.cshtml"));
+
+        Assert.Contains("Settings.FinishDay", script, StringComparison.Ordinal);
+        Assert.Contains("PlayerOrdering.FridayEnabled", script, StringComparison.Ordinal);
+        Assert.Contains("PlayerOrdering.SaturdayEnabled", script, StringComparison.Ordinal);
+        Assert.Contains("PlayerOrdering.SundayEnabled", script, StringComparison.Ordinal);
+        Assert.Contains("for (let d = 1; d < finishDay; d++)", script, StringComparison.Ordinal);
+        Assert.Contains("day >= finishDay", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("d <= 25", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("selectedDay === 26", script, StringComparison.Ordinal);
     }
 
     [Fact]

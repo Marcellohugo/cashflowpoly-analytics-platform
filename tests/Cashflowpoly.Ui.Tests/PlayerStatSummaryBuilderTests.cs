@@ -109,7 +109,7 @@ public sealed class PlayerStatSummaryBuilderTests
     {
         return new AnalyticsByPlayerItem(
             Guid.NewGuid(), 1, cashIn, cashOut, 0, 0, 0, 0, 0,
-            fulfillmentDiversity, 0, happiness, 0, 0, 0, 0, 0, 0, 0,
+            fulfillmentDiversity, happiness, 0, 0, 0, 0, 0, 0, 0,
             hasUnpaidLoan ? 4 : 0, hasUnpaidLoan);
     }
 
@@ -135,7 +135,6 @@ public sealed class PlayerStatSummaryBuilderTests
             new GameplayProgressMetrics(3, 2, 5, 11),
             new GameplayScoreMetrics(happinessPointsTotal, 12, 2, 6, 4, 3, 5, 0, hasUnpaidLoan ? 4 : 0, hasUnpaidLoan),
             new GameplayNeedMetrics(fulfillmentDiversity),
-            fulfillmentDiversity < 0.4 ? 2 : 0,
             rawJson);
     }
 

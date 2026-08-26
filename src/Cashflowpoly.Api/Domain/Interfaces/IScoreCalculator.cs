@@ -8,8 +8,7 @@ public interface IScoreCalculator
 {
     AnalyticsSessionSummary BuildSummary(
         List<EventDb> events,
-        List<CashflowProjectionDb> projections,
-        int rulesViolationsCount);
+        List<CashflowProjectionDb> projections);
 
     double? ComputeLearningPerformanceScore(
         double cashInTotal,

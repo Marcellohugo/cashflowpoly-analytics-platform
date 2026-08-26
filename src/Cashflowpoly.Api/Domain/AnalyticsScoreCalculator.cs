@@ -10,17 +10,16 @@ namespace Cashflowpoly.Api.Domain;
 internal sealed class ScoreCalculator : IScoreCalculator
 {
     /// <summary>
-    /// Membangun ringkasan analitik sesi dari event, proyeksi cashflow, dan jumlah pelanggaran aturan.
+    /// Membangun ringkasan analitik sesi dari event dan proyeksi cashflow.
     /// </summary>
     public AnalyticsSessionSummary BuildSummary(
         List<EventDb> events,
-        List<CashflowProjectionDb> projections,
-        int rulesViolationsCount)
+        List<CashflowProjectionDb> projections)
     {
         var cashInTotal = projections.Where(p => p.Direction == "IN").Sum(p => (double)p.Amount);
         var cashOutTotal = projections.Where(p => p.Direction == "OUT").Sum(p => (double)p.Amount);
         var cashflowNetTotal = cashInTotal - cashOutTotal;
-        return new AnalyticsSessionSummary(events.Count, cashInTotal, cashOutTotal, cashflowNetTotal, rulesViolationsCount);
+        return new AnalyticsSessionSummary(events.Count, cashInTotal, cashOutTotal, cashflowNetTotal);
     }
 
     /// <summary>

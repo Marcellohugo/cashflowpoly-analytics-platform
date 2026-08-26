@@ -603,7 +603,6 @@ internal static partial class UiTextLexicon
         terms["metric.cash_out"] = ("Semua Uang Keluar", "All Money Out");
         terms["metric.cash_net"] = ("Selisih Uang Masuk dan Keluar", "Money In and Out Difference");
         terms["metric.net_cashflow"] = ("Selisih Uang Masuk dan Keluar", "Income and Spending Difference");
-        terms["metric.violations"] = ("Pelanggaran Aturan", "Rule Violations");
         terms["metric.donation"] = ("Jumlah Donasi", "Donation Amount");
         terms["metric.gold_qty"] = ("Emas yang Dimiliki", "Gold Owned");
         terms["metric.happiness"] = ("Total Poin Kebahagiaan", "Total Happiness Points");

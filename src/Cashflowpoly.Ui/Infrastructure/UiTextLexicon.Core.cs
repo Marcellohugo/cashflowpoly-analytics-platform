@@ -130,7 +130,7 @@ internal static partial class UiTextLexicon
         terms["home.quick_flow.step1"] = ("Siapkan sesi dan pilih Set Aturan yang sesuai dengan tujuan permainan.", "Prepare a session and choose the ruleset that matches the gameplay objective.");
         terms["home.quick_flow.step2"] = ("Tempatkan pemain pada urutan yang benar, lalu mulai sesi.", "Place players in the correct order, then start the session.");
         terms["home.quick_flow.step3"] = ("Aktivitas permainan dicatat menjadi urutan kejadian, perubahan uang, dan hasil pemain.", "Gameplay activity is recorded as an event sequence, money changes, and player results.");
-        terms["home.quick_flow.step4"] = ("Buka Analitika Sesi untuk membaca aktivitas, arus kas, performa, dan pelanggaran aturan.", "Open Session Analytics to review activity, cashflow, performance, and rule violations.");
+        terms["home.quick_flow.step4"] = ("Buka Analitika Sesi untuk membaca aktivitas, arus kas, performa, dan pola keputusan.", "Open Session Analytics to review activity, cashflow, performance, and decision patterns.");
         terms["home.quick_flow.step5"] = ("Buka Analitika Pemain untuk membahas keputusan dan hasil tiap individu.", "Open Player Analytics to discuss each individual's decisions and results.");
         terms["home.player_guide.menu"] = ("Panduan Pemain", "Player Guide");
         terms["home.player_guide.title"] = ("Langkah cepat melihat progres", "Quick steps to view progress");

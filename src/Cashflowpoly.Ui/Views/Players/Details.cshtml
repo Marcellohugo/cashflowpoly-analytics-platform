@@ -90,12 +90,11 @@
         && ownedNeedCards.TryGetInt32(out var ownedNeedCardCount)
             ? ownedNeedCardCount
             : (int?)null;
-    var ruleViolations = Model.Summary?.RulesViolationsCount ?? 0;
     var happinessPoints = Model.Summary?.HappinessPointsTotal ?? 0d;
     var hasUnpaidLoan = Model.Summary?.HasUnpaidLoan ?? false;
     var overallTone = hasUnpaidLoan
         ? "danger"
-        : netCashflow < 0 || fulfillmentDiversity < 0.4 || ruleViolations > 0 || happinessPoints < 20
+        : netCashflow < 0 || fulfillmentDiversity < 0.4 || happinessPoints < 20
             ? "warning"
             : netCashflow > 0 && fulfillmentDiversity >= 0.7 && happinessPoints >= 60
                 ? "positive"
@@ -176,8 +175,7 @@
         new { Key = "wellbeing", TitleKey = "players.analysis.chapter.wellbeing.title", DescriptionKey = "players.analysis.chapter.wellbeing.desc", AdvancedOnly = false, Items = analysisSections.Where(item => item.Chapter == "wellbeing").ToList() }
     }.Where(chapter => chapter.Items.Count > 0).ToList();
 
-    var rawMetricCount = rawSections.Sum(section => section.Rows.Count);
-    var derivedMetricCount = analysisSections.Sum(section => section.Rows.Count);
+    var hasRawMetrics = rawSections.Any(section => section.Rows.Count > 0);
     string ReadDerivedValue(string key) =>
         derivedSummaryRows.FirstOrDefault(row => string.Equals(row.Path, key, StringComparison.OrdinalIgnoreCase)).Value
         ?? nullText;
@@ -302,7 +300,7 @@
     </details>
 
     <div id="player-statistics-dashboard" class="players-fusion-metrics player-detail-section player-stats-dashboard">
-        <details id="player-statistics-summary" class="player-dashboard-accordion player-dashboard-accordion--summary" open aria-labelledby="player-statistics-summary-title">
+        <details id="player-statistics-summary" class="player-dashboard-accordion player-dashboard-accordion--summary" data-player-section-accordion data-accordion-key="summary" open aria-labelledby="player-statistics-summary-title">
             <summary class="players-fusion-head ruleset-section-head player-stats-hero" data-player-stats-reveal>
                 <div>
                     <p class="eyebrow">@Context.T("players.stats.badge")</p>
@@ -349,7 +347,7 @@
             </div>
         </details>
 
-        <details id="player-analysis-atlas" class="player-analysis-atlas player-dashboard-accordion" aria-labelledby="player-analysis-atlas-title">
+        <details id="player-analysis-atlas" class="player-analysis-atlas player-dashboard-accordion" data-player-section-accordion data-accordion-key="analysis" aria-labelledby="player-analysis-atlas-title">
             <summary class="player-analysis-section-head" data-player-stats-reveal>
                 <div>
                     <p class="eyebrow">@Context.T("players.analysis.badge")</p>
@@ -483,21 +481,16 @@
             </div>
         </details>
 
-        <details id="player-evidence-library" class="player-evidence-library player-dashboard-accordion" data-player-stats-reveal aria-labelledby="player-evidence-library-title">
+        <details id="player-evidence-library" class="player-evidence-library player-dashboard-accordion" data-player-section-accordion data-accordion-key="evidence" data-player-stats-reveal aria-labelledby="player-evidence-library-title">
             <summary class="player-analysis-section-head">
                 <div>
                     <p class="eyebrow">@Context.T("players.evidence.badge")</p>
                     <h3 id="player-evidence-library-title">@Context.T("players.evidence.title")</h3>
                     <p>@Context.T("players.evidence.desc")</p>
                 </div>
-                <div class="player-evidence-library__summary">
-                    <span><strong>@rawSections.Count</strong> @Context.T("players.evidence.group_suffix")</span>
-                    <span><strong>@rawMetricCount</strong> @Context.T("players.stats.library.raw_count")</span>
-                    <span><strong>@Context.T(isAdvancedMode ? "rulesets.form.mode_advanced" : "rulesets.form.mode_beginner")</strong> @Context.T("players.stats.library.session_mode")</span>
-                </div>
             </summary>
 
-            @if (rawMetricCount == 0)
+            @if (!hasRawMetrics)
             {
                 <div class="alert alert-info" aria-live="polite">@Context.T("players.detail.empty_analytics")</div>
             }
@@ -533,7 +526,6 @@
                                 {
                                     <span class="player-evidence-domain__mode">@Context.T("players.support.mode.advanced")</span>
                                 }
-                                <em>@domain.Rows.Count @Context.T("players.metric_items_suffix")</em>
                             </summary>
 
                             @if (domainGuides.Count > 0)
@@ -645,3 +637,36 @@
         </details>
     </div>
 </section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const storageKey = "cashflowpoly.player-section-accordions";
+            const accordions = Array.from(document.querySelectorAll("[data-player-section-accordion]"));
+            let savedState = {};
+
+            try {
+                savedState = JSON.parse(localStorage.getItem(storageKey) ?? "{}") ?? {};
+            } catch {
+                savedState = {};
+            }
+
+            accordions.forEach((accordion) => {
+                const key = accordion.dataset.accordionKey;
+                if (key && Object.prototype.hasOwnProperty.call(savedState, key)) {
+                    accordion.open = savedState[key] === true;
+                }
+
+                accordion.addEventListener("toggle", () => {
+                    if (!key) return;
+                    savedState[key] = accordion.open;
+                    try {
+                        localStorage.setItem(storageKey, JSON.stringify(savedState));
+                    } catch {
+                        // The accordion still works when browser storage is unavailable.
+                    }
+                });
+            });
+        })();
+    </script>
+}

@@ -243,8 +243,7 @@ public sealed record AnalyticsSessionSummary(
     [property: JsonPropertyName("event_count")] int EventCount,
     [property: JsonPropertyName("cash_in_total")] double CashInTotal,
     [property: JsonPropertyName("cash_out_total")] double CashOutTotal,
-    [property: JsonPropertyName("cashflow_net_total")] double CashflowNetTotal,
-    [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount);
+    [property: JsonPropertyName("cashflow_net_total")] double CashflowNetTotal);
 
 public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -257,7 +256,6 @@ public sealed record AnalyticsByPlayerItem(
     [property: JsonPropertyName("inventory_ingredient_total")] int InventoryIngredientTotal,
     [property: JsonPropertyName("actions_used_total")] int ActionsUsedTotal,
     [property: JsonPropertyName("fulfillment_diversity")] double FulfillmentDiversity,
-    [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount,
     [property: JsonPropertyName("happiness_points_total")] double HappinessPointsTotal,
     [property: JsonPropertyName("need_points_total")] double NeedPointsTotal,
     [property: JsonPropertyName("need_set_bonus_points")] double NeedSetBonusPoints,
@@ -291,7 +289,6 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("progress")] GameplayProgressMetrics Progress,
     [property: JsonPropertyName("score")] GameplayScoreMetrics Score,
     [property: JsonPropertyName("needs")] GameplayNeedMetrics Needs,
-    [property: JsonPropertyName("rules_violations_count")] int RulesViolationsCount,
     [property: JsonPropertyName("raw_json")] JsonElement? RawJson = null,
     [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null);
 

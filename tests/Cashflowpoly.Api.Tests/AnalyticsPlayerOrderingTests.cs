@@ -150,7 +150,6 @@ public sealed class AnalyticsPlayerOrderingTests
             0,
             0,
             0,
-            0,
             happinessPoints,
             0,
             0,

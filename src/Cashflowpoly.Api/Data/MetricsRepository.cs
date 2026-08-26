@@ -56,29 +56,6 @@ public sealed class MetricsRepository
     }
 
     /// <summary>
-    /// Menghitung jumlah pelanggaran validasi pada sesi dengan filter opsional per pemain.
-    /// </summary>
-    public async Task<int> CountValidationViolationsAsync(Guid sessionId, Guid? userId, CancellationToken ct)
-    {
-        var sql = """
-            select count(*)
-            from validation_logs
-            where session_id = @sessionId
-            """;
-
-        if (userId.HasValue)
-        {
-            sql += """
-
-                 and details_json->>'user_id' = @userIdText
-                 """;
-        }
-
-        await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        return await conn.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { sessionId, userIdText = userId?.ToString() }, cancellationToken: ct));
-    }
-
-    /// <summary>
     /// Mengambil snapshot gameplay JSON terbaru (variabel mentah dan metrik turunan) per pemain.
     /// </summary>
     public async Task<List<MetricSnapshotJsonDb>> GetLatestGameplaySnapshotsAsync(Guid sessionId, Guid userId, CancellationToken ct)
