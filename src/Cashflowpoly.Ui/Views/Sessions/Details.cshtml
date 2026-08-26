@@ -360,7 +360,75 @@
         }
         else
         {
-            <div class="mt-3 happiness-score-accordions">
+            <div class="mt-3 table-wrap happiness-score-sheet happiness-score-desktop" tabindex="0" role="region" aria-label="@Context.T(isInstructor ? "sessions.detail.players_title" : "sessions.detail.player_scores_title")">
+                <table class="happiness-score-table text-sm">
+                    <colgroup>
+                        <col class="happiness-score-label-column" />
+                        @for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
+                        {
+                            <col class="happiness-score-player-column" />
+                        }
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="happiness-score-label happiness-score-title" scope="col">
+                                @Context.T("sessions.score.elements_title")
+                            </th>
+                            @for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
+                            {
+                                var item = orderedPlayers[playerIndex];
+                                var turnOrder = item.PlayerOrder > 0 ? item.PlayerOrder : playerIndex + 1;
+                                var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
+                                    ? resolvedRank
+                                    : 0;
+                                <th class="happiness-score-player happiness-score-player--turn-@turnOrder @(rank == 1 ? "happiness-score-player--winner" : string.Empty)" scope="col">
+                                    <span class="happiness-score-player-card">
+                                        <img src="@ResolvePlayerAvatarPath(turnOrder)"
+                                             alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
+                                        <span class="happiness-score-player-name">@ResolvePlayerName(item.UserId)</span>
+                                        <span class="happiness-score-player-meta">
+                                            @Context.T("common.turn_order") @turnOrder · @Context.T("common.rank") @(rank > 0 ? rank : "-")
+                                        </span>
+                                        <a class="table-link"
+                                           asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
+                                           asp-route-playerId="@item.UserId">@Context.T("sessions.view_analytics")</a>
+                                    </span>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var scoreRow in happinessScoreRows)
+                        {
+                            <tr class="@(scoreRow.IsDeduction ? "happiness-score-deduction" : string.Empty)">
+                                <th class="happiness-score-label" scope="row">
+                                    <span class="happiness-score-label-content">
+                                        <span class="happiness-score-number">@scoreRow.Number</span>
+                                        <span>@scoreRow.Label</span>
+                                    </span>
+                                </th>
+                                @foreach (var value in scoreRow.Values)
+                                {
+                                    <td>
+                                        <span class="happiness-score-value @(scoreRow.IsDeduction ? "happiness-score-value--deduction" : string.Empty)">@F(value)</span>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th class="happiness-score-label" scope="row">@Context.T("sessions.score.total")</th>
+                            @foreach (var item in orderedPlayers)
+                            {
+                                <td><strong>@F(item.HappinessPointsTotal)</strong></td>
+                            }
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="happiness-score-mobile">
                 @for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
                 {
                     var item = orderedPlayers[playerIndex];
@@ -368,26 +436,22 @@
                     var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
                         ? resolvedRank
                         : 0;
-                    <details class="happiness-score-player-accordion @(rank == 1 ? "happiness-score-player-accordion--winner" : string.Empty)" @(playerIndex == 0 ? "open" : null)>
-                        <summary class="happiness-score-player-summary happiness-score-player--turn-@turnOrder">
-                            <span class="happiness-score-player-identity">
-                                <img src="@ResolvePlayerAvatarPath(turnOrder)"
-                                     alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
-                                <span>
-                                    <strong>@ResolvePlayerName(item.UserId)</strong>
-                                    <small>@Context.T("common.turn_order") @turnOrder · @Context.T("common.rank") @(rank > 0 ? rank : "-")</small>
-                                </span>
-                            </span>
-                            <span class="happiness-score-player-total">
-                                <small>@Context.T("sessions.score.total")</small>
-                                <strong>@F(item.HappinessPointsTotal)</strong>
-                            </span>
-                        </summary>
-                        <div class="happiness-score-player-body">
-                            <dl>
+                    <article class="happiness-score-mobile-card @(rank == 1 ? "happiness-score-mobile-card--winner" : string.Empty)">
+                        <header class="happiness-score-mobile-player happiness-score-player--turn-@turnOrder">
+                            <img src="@ResolvePlayerAvatarPath(turnOrder)"
+                                 alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
+                            <div>
+                                <h3>@ResolvePlayerName(item.UserId)</h3>
+                                <p>@Context.T("common.turn_order") @turnOrder · @Context.T("common.rank") @(rank > 0 ? rank : "-")</p>
+                                <a class="table-link"
+                                   asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
+                                   asp-route-playerId="@item.UserId">@Context.T("sessions.view_analytics")</a>
+                            </div>
+                        </header>
+                        <dl>
                             @foreach (var scoreRow in happinessScoreRows)
                             {
-                                <div class="happiness-score-component @(scoreRow.IsDeduction ? "happiness-score-deduction" : string.Empty)">
+                                <div class="happiness-score-mobile-row @(scoreRow.IsDeduction ? "happiness-score-deduction" : string.Empty)">
                                     <dt>
                                         <span class="happiness-score-number">@scoreRow.Number</span>
                                         <span>@scoreRow.Label</span>
@@ -397,12 +461,12 @@
                                     </dd>
                                 </div>
                             }
-                            </dl>
-                            <a class="table-link"
-                               asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
-                               asp-route-playerId="@item.UserId">@Context.T("sessions.view_analytics")</a>
-                        </div>
-                    </details>
+                            <div class="happiness-score-mobile-total">
+                                <dt>@Context.T("sessions.score.total")</dt>
+                                <dd>@F(item.HappinessPointsTotal)</dd>
+                            </div>
+                        </dl>
+                    </article>
                 }
             </div>
         }

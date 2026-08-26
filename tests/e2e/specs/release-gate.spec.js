@@ -72,3 +72,29 @@ test("rincian sesi tidak menampilkan kartu pelanggaran aturan", async ({ page })
   await expect(page.getByText(/pelanggaran aturan|rule violations/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });
+
+test("daftar pemain tetap terbaca tanpa overflow pada semua ukuran utama", async ({ page }) => {
+  const viewports = [
+    { width: 320, height: 800, mobile: true },
+    { width: 768, height: 1024, mobile: true },
+    { width: 1024, height: 768, mobile: false },
+    { width: 1440, height: 900, mobile: false }
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto(`/sessions/${advancedSessionId}`);
+
+    const desktopTable = page.locator(".happiness-score-desktop");
+    const mobileCards = page.locator(".happiness-score-mobile");
+    if (viewport.mobile) {
+      await expect(desktopTable).toBeHidden();
+      await expect(mobileCards).toBeVisible();
+    } else {
+      await expect(desktopTable).toBeVisible();
+      await expect(mobileCards).toBeHidden();
+    }
+    await expect(page.locator(".happiness-score-mobile-card")).toHaveCount(4);
+    await expectNoHorizontalOverflow(page);
+  }
+});
