@@ -1500,6 +1500,112 @@ body > footer .footer-shell {
 body > footer .footer-shell {
     min-height: var(--footer-height);
     color: #4d6f83;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.6rem 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    color: #247c8f;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.footer-links a:hover,
+.footer-links a:focus-visible {
+    text-decoration: underline;
+}
+
+.legal-page {
+    max-width: 72rem;
+    margin-inline: auto;
+}
+
+.legal-page__header {
+    display: grid;
+    gap: 0.65rem;
+    max-width: 58rem;
+}
+
+.legal-page__header h1 {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    line-height: 1.08;
+}
+
+.legal-page__notice {
+    padding: 0.85rem 1rem;
+    border: 1px solid #b9e1dc;
+    border-radius: 0.9rem;
+    background: #effaf8;
+    color: #176c64;
+    font-weight: 700;
+}
+
+.legal-page__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.4rem;
+}
+
+.legal-page__section {
+    min-width: 0;
+    padding: 1.2rem;
+    border: 1px solid #cce1e5;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.84);
+}
+
+.legal-page__section--wide {
+    grid-column: 1 / -1;
+}
+
+.legal-page__section h2 {
+    margin-bottom: 0.55rem;
+    color: #174c69;
+    font-size: 1.08rem;
+}
+
+.legal-page__section p,
+.legal-section-list {
+    color: #527187;
+    line-height: 1.7;
+}
+
+.legal-section-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: disc outside;
+}
+
+.legal-section-list li + li {
+    margin-top: 0.4rem;
+}
+
+@media (max-width: 720px) {
+    .legal-page__grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .legal-page__section--wide {
+        grid-column: auto;
+    }
+
+    body > footer .footer-shell,
+    .footer-links {
+        justify-content: center;
+        text-align: center;
+    }
 }
 
 .page-shell {

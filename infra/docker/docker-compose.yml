@@ -68,6 +68,7 @@ services:
       ASPNETCORE_ENVIRONMENT: ${UI_ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:${UI_HTTP_PORT:-5203}
       ApiBaseUrl: http://api:${API_HTTP_PORT:-5041}
+      DOMAIN: ${DOMAIN:-http://localhost:5203}
     ports:
       - "${UI_HTTP_PORT:-5203}:${UI_HTTP_PORT:-5203}"
     volumes:

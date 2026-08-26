@@ -1,7 +1,9 @@
 @* Fungsi file: Merender tampilan Razor untuk bagian Shared/_Layout.cshtml beserta interaksi presentasinya. *@
 @using Cashflowpoly.Ui.Models
+@using Cashflowpoly.Ui.Infrastructure
 @using Microsoft.AspNetCore.Http
 @using System.Security.Claims
+@inject IConfiguration Configuration
 @{
     var activeRole = Context.User.FindFirst(ClaimTypes.Role)?.Value;
     var activeDisplayName = Context.User.FindFirst(AuthConstants.DisplayNameClaim)?.Value;
@@ -19,10 +21,13 @@
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
     var isAuthPage = string.Equals(currentController, "Auth", StringComparison.OrdinalIgnoreCase);
     var isRulebookSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
-        && (string.Equals(currentAction, "Rulebook", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(currentAction, "Privacy", StringComparison.OrdinalIgnoreCase));
+        && string.Equals(currentAction, "Rulebook", StringComparison.OrdinalIgnoreCase);
+    var isLegalSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
+        && (string.Equals(currentAction, "Privacy", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(currentAction, "Terms", StringComparison.OrdinalIgnoreCase));
     var isHomeSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
-        && !isRulebookSection;
+        && !isRulebookSection
+        && !isLegalSection;
     var isSessionsSection = string.Equals(currentController, "Sessions", StringComparison.OrdinalIgnoreCase);
     var isSessionListPage = isSessionsSection && string.Equals(currentAction, "Index", StringComparison.OrdinalIgnoreCase);
     var isSessionDetailPage = isSessionsSection && string.Equals(currentAction, "Details", StringComparison.OrdinalIgnoreCase);
@@ -38,7 +43,7 @@
         : string.Equals(activeRole, AuthConstants.PlayerRole, StringComparison.OrdinalIgnoreCase)
             ? Context.T("auth.role_player")
             : activeRole;
-    var showQuickStartGuide = isLoggedIn && !isAuthPage;
+    var showQuickStartGuide = isLoggedIn && !isAuthPage && !isLegalSection;
     var quickStartTitle = isInstructor
         ? Context.T("layout.quickstart.instructor.title")
         : Context.T("layout.quickstart.player.title");
@@ -134,10 +139,14 @@
         var pageTitle = string.IsNullOrEmpty(ViewData["Title"]?.ToString()) ? "Narafin" : $"Narafin | {ViewData["Title"]}";
         var metaDesc = ViewData["MetaDescription"] ?? Context.T("layout.meta_description");
         var metaKeywords = ViewData["MetaKeywords"] ?? Context.T("layout.meta_keywords");
-        var isPublicPage = isAuthPage || isRulebookSection;
-        var robotsValue = isPublicPage ? "index, follow" : "noindex, nofollow";
-        var currentUrl = $"https://narafin.org{Context.Request.Path}{Context.Request.QueryString}";
-        var ogImageUrl = "https://narafin.org/images/images.jpg";
+        var robotsValue = isRulebookSection || isLegalSection
+            ? "index, follow"
+            : isAuthPage
+                ? "noindex, follow"
+                : "noindex, nofollow";
+        var baseUrl = SiteUrlResolver.ResolveBaseUrl(Configuration, Context.Request);
+        var currentUrl = SiteUrlResolver.BuildAbsoluteUrl(baseUrl, Context.Request.Path);
+        var ogImageUrl = SiteUrlResolver.BuildAbsoluteUrl(baseUrl, "/images/images.jpg");
         var ogLocale = isEnglish ? "en_US" : "id_ID";
     }
     <title>@pageTitle</title>
@@ -337,7 +346,11 @@
         <footer class="border-t border-white/70">
             <div class="footer-shell">
                 <span>&copy; @DateTime.Now.Year - @brandName</span>
-                <a class="hover:text-slate-700" href="/rulebook#rulebook-copyright">@Context.T("footer.rulebook_copyright")</a>
+                <nav class="footer-links" aria-label="@Context.T("footer.legal_navigation")">
+                    <a class="hover:text-slate-700" href="/privacy">@Context.T("footer.privacy")</a>
+                    <a class="hover:text-slate-700" href="/terms">@Context.T("footer.terms")</a>
+                    <a class="hover:text-slate-700" href="/rulebook#rulebook-copyright">@Context.T("footer.rulebook_copyright")</a>
+                </nav>
             </div>
         </footer>
     }

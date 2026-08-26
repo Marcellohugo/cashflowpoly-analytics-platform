@@ -116,6 +116,8 @@ app.Use(async (context, next) =>
     var isLanguagePath = path.StartsWithSegments("/language", StringComparison.OrdinalIgnoreCase);
     var isHealthPath = path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
     var isRulebookPath = path.StartsWithSegments("/rulebook", StringComparison.OrdinalIgnoreCase);
+    var isLegalPath = path.StartsWithSegments("/privacy", StringComparison.OrdinalIgnoreCase)
+        || path.StartsWithSegments("/terms", StringComparison.OrdinalIgnoreCase);
     var isStaticAssetPath = path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/js", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase)
@@ -143,6 +145,7 @@ app.Use(async (context, next) =>
         !isHealthPath &&
         !isStaticAssetPath &&
         !isRulebookPath &&
+        !isLegalPath &&
         (!isAuthenticated || !hasRole || !hasAccessToken))
     {
         var returnUrl = $"{context.Request.Path}{context.Request.QueryString}";
@@ -167,6 +170,14 @@ app.MapControllerRoute(
     name: "rulebook",
     pattern: "rulebook",
     defaults: new { controller = "Home", action = "Rulebook" });
+app.MapControllerRoute(
+    name: "privacy",
+    pattern: "privacy",
+    defaults: new { controller = "Home", action = "Privacy" });
+app.MapControllerRoute(
+    name: "terms",
+    pattern: "terms",
+    defaults: new { controller = "Home", action = "Terms" });
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

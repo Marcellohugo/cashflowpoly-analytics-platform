@@ -1,0 +1,50 @@
+@* Fungsi file: Menjelaskan kebijakan privasi proyek akademik Cashflowpoly. *@
+@{
+    ViewData["Title"] = Context.T("privacy.title");
+    ViewData["MetaDescription"] = Context.T("privacy.meta_desc");
+    ViewData["MetaKeywords"] = Context.T("privacy.meta_keywords");
+}
+
+<section class="section-shell legal-page" aria-labelledby="privacy-title">
+    <header class="legal-page__header">
+        <p class="eyebrow">@Context.T("privacy.kicker")</p>
+        <h1 id="privacy-title">@Context.T("privacy.title")</h1>
+        <p class="subhead">@Context.T("privacy.intro")</p>
+        <p class="legal-page__notice">@Context.T("legal.academic_notice")</p>
+    </header>
+
+    <div class="legal-page__grid">
+        <article class="legal-page__section">
+            <h2>@Context.T("privacy.scope.title")</h2>
+            <p>@Context.T("privacy.scope.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("privacy.data.title")</h2>
+            <ul class="legal-section-list">
+                <li>@Context.T("privacy.data.account")</li>
+                <li>@Context.T("privacy.data.gameplay")</li>
+                <li>@Context.T("privacy.data.technical")</li>
+            </ul>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("privacy.purpose.title")</h2>
+            <p>@Context.T("privacy.purpose.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("privacy.access.title")</h2>
+            <p>@Context.T("privacy.access.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("privacy.retention.title")</h2>
+            <p>@Context.T("privacy.retention.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("privacy.security.title")</h2>
+            <p>@Context.T("privacy.security.desc")</p>
+        </article>
+        <article class="legal-page__section legal-page__section--wide">
+            <h2>@Context.T("privacy.limitations.title")</h2>
+            <p>@Context.T("privacy.limitations.desc")</p>
+        </article>
+    </div>
+</section>

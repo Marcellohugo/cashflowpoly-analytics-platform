@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Security;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
@@ -16,11 +17,16 @@ public class HomeController : Controller
 
     private readonly IHttpClientFactory _clientFactory;
     private readonly IMemoryCache _memoryCache;
+    private readonly IConfiguration _configuration;
 
-    public HomeController(IHttpClientFactory clientFactory, IMemoryCache memoryCache)
+    public HomeController(
+        IHttpClientFactory clientFactory,
+        IMemoryCache memoryCache,
+        IConfiguration configuration)
     {
         _clientFactory = clientFactory;
         _memoryCache = memoryCache;
+        _configuration = configuration;
     }
 
     public async Task<IActionResult> Index(CancellationToken ct)
@@ -71,7 +77,32 @@ public class HomeController : Controller
 
     public IActionResult Privacy()
     {
-        return Redirect("/rulebook");
+        return View("PrivacyPolicy");
+    }
+
+    public IActionResult Terms()
+    {
+        return View();
+    }
+
+    [HttpGet("/robots.txt")]
+    public IActionResult Robots()
+    {
+        var baseUrl = SiteUrlResolver.ResolveBaseUrl(_configuration, Request);
+        var content = $"User-agent: *\nAllow: /rulebook\nAllow: /privacy\nAllow: /terms\nDisallow: /auth/\nDisallow: /sessions/\nDisallow: /players/\nDisallow: /rulesets/\nSitemap: {baseUrl}/sitemap.xml\n";
+        return Content(content, "text/plain");
+    }
+
+    [HttpGet("/sitemap.xml")]
+    public IActionResult Sitemap()
+    {
+        var baseUrl = SecurityElement.Escape(SiteUrlResolver.ResolveBaseUrl(_configuration, Request));
+        var content = $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            $"<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n" +
+            $"  <url><loc>{baseUrl}/</loc></url>\n" +
+            $"  <url><loc>{baseUrl}/rulebook</loc></url>\n" +
+            $"</urlset>\n";
+        return Content(content, "application/xml");
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

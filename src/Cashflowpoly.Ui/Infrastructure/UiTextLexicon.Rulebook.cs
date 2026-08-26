@@ -5,7 +5,7 @@ internal static partial class UiTextLexicon
 {
     private static partial void AddRulebook(Dictionary<string, (string Id, string En)> terms)
     {
-        terms["privacy.title"] = ("Buku Aturan Cashflowpoly", "Cashflowpoly Rulebook");
+        terms["rulebook.title"] = ("Buku Aturan Cashflowpoly", "Cashflowpoly Rulebook");
         terms["privacy.outline_title"] = ("Daftar Isi Aturan", "Rulebook Contents");
         terms["privacy.total_sections"] = ("Jumlah Bagian Aturan", "Total Rulebook Sections");
         terms["privacy.total_points"] = ("Jumlah Aturan Skoring", "Total Scoring Rules");

@@ -26,6 +26,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       AllowedHosts: ui;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}
+      DOMAIN: ${DOMAIN:?DOMAIN wajib diisi untuk production}
       Networking__TrustedNetworks__0: 172.16.0.0/12
       Security__RequireHttps: "true"
     ports: !override []

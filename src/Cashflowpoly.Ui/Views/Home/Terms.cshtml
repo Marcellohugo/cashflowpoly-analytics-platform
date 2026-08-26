@@ -1,0 +1,46 @@
+@* Fungsi file: Menjelaskan ketentuan penggunaan proyek akademik Cashflowpoly. *@
+@{
+    ViewData["Title"] = Context.T("terms.title");
+    ViewData["MetaDescription"] = Context.T("terms.meta_desc");
+    ViewData["MetaKeywords"] = Context.T("terms.meta_keywords");
+}
+
+<section class="section-shell legal-page" aria-labelledby="terms-title">
+    <header class="legal-page__header">
+        <p class="eyebrow">@Context.T("terms.kicker")</p>
+        <h1 id="terms-title">@Context.T("terms.title")</h1>
+        <p class="subhead">@Context.T("terms.intro")</p>
+        <p class="legal-page__notice">@Context.T("legal.academic_notice")</p>
+    </header>
+
+    <div class="legal-page__grid">
+        <article class="legal-page__section">
+            <h2>@Context.T("terms.purpose.title")</h2>
+            <p>@Context.T("terms.purpose.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("terms.roles.title")</h2>
+            <p>@Context.T("terms.roles.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("terms.account.title")</h2>
+            <p>@Context.T("terms.account.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("terms.demo.title")</h2>
+            <p>@Context.T("terms.demo.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("terms.use.title")</h2>
+            <p>@Context.T("terms.use.desc")</p>
+        </article>
+        <article class="legal-page__section">
+            <h2>@Context.T("terms.guarantee.title")</h2>
+            <p>@Context.T("terms.guarantee.desc")</p>
+        </article>
+        <article class="legal-page__section legal-page__section--wide">
+            <h2>@Context.T("terms.termination.title")</h2>
+            <p>@Context.T("terms.termination.desc")</p>
+        </article>
+    </div>
+</section>
