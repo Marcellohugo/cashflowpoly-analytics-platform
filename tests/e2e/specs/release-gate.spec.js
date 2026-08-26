@@ -95,8 +95,16 @@ test("daftar pemain tetap terbaca tanpa overflow pada semua ukuran utama", async
     } else {
       await expect(desktopTable).toBeVisible();
       await expect(mobileCards).toBeHidden();
+      const playerColumnColors = await page.locator(".happiness-score-table tbody tr:first-child td").evaluateAll(
+        cells => cells.map(cell => getComputedStyle(cell).backgroundColor)
+      );
+      expect(new Set(playerColumnColors).size).toBe(4);
     }
     await expect(page.locator(".happiness-score-mobile-card")).toHaveCount(4);
+    const playerCardColors = await page.locator(".happiness-score-mobile-card").evaluateAll(
+      cards => cards.map(card => getComputedStyle(card).backgroundColor)
+    );
+    expect(new Set(playerCardColors).size).toBe(4);
     await expectNoHorizontalOverflow(page);
   }
 });

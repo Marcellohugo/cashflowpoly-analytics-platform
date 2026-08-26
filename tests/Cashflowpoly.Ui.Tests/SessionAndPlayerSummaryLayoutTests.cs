@@ -42,6 +42,8 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.Contains("@Context.T(\"sessions.view_analytics\")", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("value == 0d ? \"0\"", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("scoreRow.Values[playerIndex]", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-player-cell happiness-score-player--turn-@turnOrder", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("happiness-score-mobile-card happiness-score-player--turn-@turnOrder", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-sheet {", css, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-label-content {", css, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-label-content>span:last-child {", css, StringComparison.Ordinal);
@@ -328,13 +330,17 @@ public sealed class SessionAndPlayerSummaryLayoutTests
 
         Assert.Contains("happiness-score-player--turn-@turnOrder", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-player--turn-1", css, StringComparison.Ordinal);
-        Assert.Contains("background: #e7f1fb;", css, StringComparison.Ordinal);
+        Assert.Contains("--player-header: #e7f1fb;", css, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-player--turn-2", css, StringComparison.Ordinal);
-        Assert.Contains("background: #fff4df;", css, StringComparison.Ordinal);
+        Assert.Contains("--player-header: #fff4df;", css, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-player--turn-3", css, StringComparison.Ordinal);
-        Assert.Contains("background: #e8f7ec;", css, StringComparison.Ordinal);
+        Assert.Contains("--player-header: #e8f7ec;", css, StringComparison.Ordinal);
         Assert.Contains(".happiness-score-player--turn-4", css, StringComparison.Ordinal);
-        Assert.Contains("background: #f1edfb;", css, StringComparison.Ordinal);
+        Assert.Contains("--player-header: #f1edfb;", css, StringComparison.Ordinal);
+        Assert.Contains(".happiness-score-table tbody td.happiness-score-player-cell", css, StringComparison.Ordinal);
+        Assert.Contains("background: var(--player-surface);", css, StringComparison.Ordinal);
+        Assert.Contains("background: var(--player-surface-alt);", css, StringComparison.Ordinal);
+        Assert.Contains("background: var(--player-value);", css, StringComparison.Ordinal);
         Assert.DoesNotContain(".happiness-score-player:nth-child", css, StringComparison.Ordinal);
     }
 

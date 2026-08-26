@@ -407,10 +407,12 @@
                                         <span>@scoreRow.Label</span>
                                     </span>
                                 </th>
-                                @foreach (var value in scoreRow.Values)
+                                @for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
                                 {
-                                    <td>
-                                        <span class="happiness-score-value @(scoreRow.IsDeduction ? "happiness-score-value--deduction" : string.Empty)">@F(value)</span>
+                                    var item = orderedPlayers[playerIndex];
+                                    var turnOrder = item.PlayerOrder > 0 ? item.PlayerOrder : playerIndex + 1;
+                                    <td class="happiness-score-player-cell happiness-score-player--turn-@turnOrder">
+                                        <span class="happiness-score-value @(scoreRow.IsDeduction ? "happiness-score-value--deduction" : string.Empty)">@F(scoreRow.Values[playerIndex])</span>
                                     </td>
                                 }
                             </tr>
@@ -419,9 +421,11 @@
                     <tfoot>
                         <tr>
                             <th class="happiness-score-label" scope="row">@Context.T("sessions.score.total")</th>
-                            @foreach (var item in orderedPlayers)
+                            @for (var playerIndex = 0; playerIndex < orderedPlayers.Count; playerIndex++)
                             {
-                                <td><strong>@F(item.HappinessPointsTotal)</strong></td>
+                                var item = orderedPlayers[playerIndex];
+                                var turnOrder = item.PlayerOrder > 0 ? item.PlayerOrder : playerIndex + 1;
+                                <td class="happiness-score-player-cell happiness-score-player--turn-@turnOrder"><strong>@F(item.HappinessPointsTotal)</strong></td>
                             }
                         </tr>
                     </tfoot>
@@ -436,7 +440,7 @@
                     var rank = playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)
                         ? resolvedRank
                         : 0;
-                    <article class="happiness-score-mobile-card @(rank == 1 ? "happiness-score-mobile-card--winner" : string.Empty)">
+                    <article class="happiness-score-mobile-card happiness-score-player--turn-@turnOrder @(rank == 1 ? "happiness-score-mobile-card--winner" : string.Empty)">
                         <header class="happiness-score-mobile-player happiness-score-player--turn-@turnOrder">
                             <img src="@ResolvePlayerAvatarPath(turnOrder)"
                                  alt="@($"{Context.T("common.turn_order")} {turnOrder}")" />
