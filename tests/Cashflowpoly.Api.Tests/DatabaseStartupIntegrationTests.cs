@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Tests.Infrastructure;
 using Dapper;
@@ -320,6 +322,48 @@ public sealed class DatabaseStartupIntegrationTests
             }));
 
         Assert.Contains("Checksum migrasi V2 berbeda", exception.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApiStartup_WhenOnlyMigrationLineEndingsDiffer_StillStarts()
+    {
+        await using var database = new PostgreSqlBuilder("postgres:16")
+            .WithDatabase("cashflowpoly_line_endings_boot")
+            .WithUsername("cashflowpoly")
+            .WithPassword("cashflowpoly")
+            .Build();
+
+        await database.StartAsync();
+        await RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
+        {
+            await using var firstFactory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
+            using var firstClient = firstFactory.CreateClient();
+            Assert.Equal(HttpStatusCode.OK, (await firstClient.GetAsync("/health/ready")).StatusCode);
+        });
+
+        var migrationPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "database",
+            "migrations",
+            "V002__setup_revisions_and_demo_accounts.sql");
+        var migrationSql = await File.ReadAllTextAsync(migrationPath);
+        var crlfBytes = Encoding.UTF8.GetBytes(migrationSql.ReplaceLineEndings("\r\n"));
+        var crlfChecksum = Convert.ToHexString(SHA256.HashData(crlfBytes)).ToLowerInvariant();
+
+        await using (var connection = new NpgsqlConnection(database.GetConnectionString()))
+        {
+            await connection.OpenAsync();
+            await connection.ExecuteAsync(
+                "update schema_history set checksum = @checksum where version = 2;",
+                new { checksum = crlfChecksum });
+        }
+
+        await RunWithConnectionStringAsync(database.GetConnectionString(), async () =>
+        {
+            await using var secondFactory = new ApiWebApplicationFactory(database.GetConnectionString(), JwtSigningKey);
+            using var secondClient = secondFactory.CreateClient();
+            Assert.Equal(HttpStatusCode.OK, (await secondClient.GetAsync("/health/ready")).StatusCode);
+        });
     }
 
     private static async Task RunWithConnectionStringAsync(string connectionString, Func<Task> action)

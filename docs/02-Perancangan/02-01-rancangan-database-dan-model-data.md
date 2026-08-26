@@ -12,6 +12,9 @@
 > Riwayat, nama, checksum SHA-256, dan waktu penerapan dicatat pada
 > `schema_history`. Jika ada perbedaan detail teknis, baseline beserta seluruh
 > migrasi yang sudah diterapkan menjadi acuan terakhir.
+> Checksum memakai teks UTF-8 dengan pemisah baris kanonik `LF`; checksum lama
+> yang hanya berbeda karena `CRLF` tetap dikenali, sedangkan perubahan isi SQL
+> tetap menghentikan startup.
 
 ---
 

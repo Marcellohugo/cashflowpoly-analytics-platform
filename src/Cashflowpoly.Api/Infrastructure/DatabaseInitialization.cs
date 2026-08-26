@@ -1,5 +1,6 @@
 // Fungsi file: Menerapkan migrasi SQL berurutan dan seed idempoten secara aman.
 using System.Security.Cryptography;
+using System.Text;
 using Dapper;
 using Npgsql;
 
@@ -196,12 +197,11 @@ internal static class DatabaseInitialization
         CancellationToken cancellationToken)
     {
         var baselinePath = ResolveSqlFilePath("00_create_schema.sql", configuration);
-        var baselineChecksum = ComputeChecksum(await File.ReadAllBytesAsync(baselinePath, cancellationToken));
+        var baseline = CreateMigrationDescriptor(1, BaselineName, baselinePath, includeSql: false);
         var applied = await connection.QuerySingleOrDefaultAsync<AppliedMigration>(new CommandDefinition(
             "select version, name, checksum from schema_history where version = 1;",
             cancellationToken: cancellationToken));
 
-        var baseline = new SqlMigration(1, BaselineName, baselineChecksum, string.Empty);
         if (applied is not null)
         {
             EnsureChecksumMatches(applied, baseline);
@@ -210,7 +210,7 @@ internal static class DatabaseInitialization
 
         await connection.ExecuteAsync(new CommandDefinition(
             "insert into schema_history (version, name, checksum) values (1, @name, @checksum);",
-            new { name = BaselineName, checksum = baselineChecksum },
+            new { name = BaselineName, checksum = baseline.Checksum },
             cancellationToken: cancellationToken));
     }
 
@@ -242,8 +242,7 @@ internal static class DatabaseInitialization
                 }
 
                 var name = Path.GetFileNameWithoutExtension(fileName)[(separator + 2)..].Replace('_', ' ');
-                var bytes = File.ReadAllBytes(path);
-                return new SqlMigration(version, name, ComputeChecksum(bytes), File.ReadAllText(path));
+                return CreateMigrationDescriptor(version, name, path, includeSql: true);
             })
             .OrderBy(migration => migration.Version)
             .ToArray();
@@ -301,17 +300,46 @@ internal static class DatabaseInitialization
 
     private static string ComputeChecksum(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
+    private static SqlMigration CreateMigrationDescriptor(
+        int version,
+        string name,
+        string path,
+        bool includeSql)
+    {
+        var sql = File.ReadAllText(path);
+        var normalized = sql.ReplaceLineEndings("\n");
+        var checksums = new HashSet<string>(StringComparer.Ordinal)
+        {
+            ComputeChecksum(File.ReadAllBytes(path)),
+            ComputeChecksum(Encoding.UTF8.GetBytes(normalized)),
+            ComputeChecksum(Encoding.UTF8.GetBytes(normalized.Replace("\n", "\r\n", StringComparison.Ordinal)))
+        };
+
+        var canonicalChecksum = ComputeChecksum(Encoding.UTF8.GetBytes(normalized));
+        return new SqlMigration(
+            version,
+            name,
+            canonicalChecksum,
+            includeSql ? sql : string.Empty,
+            checksums);
+    }
+
     private static void EnsureChecksumMatches(AppliedMigration applied, SqlMigration expected)
     {
         if (!string.Equals(applied.Name, expected.Name, StringComparison.Ordinal) ||
-            !string.Equals(applied.Checksum, expected.Checksum, StringComparison.Ordinal))
+            !expected.CompatibleChecksums.Contains(applied.Checksum))
         {
             throw new InvalidOperationException(
                 $"Checksum migrasi V{expected.Version} berbeda. Migrasi yang sudah diterapkan tidak boleh diedit.");
         }
     }
 
-    private sealed record SqlMigration(int Version, string Name, string Checksum, string Sql);
+    private sealed record SqlMigration(
+        int Version,
+        string Name,
+        string Checksum,
+        string Sql,
+        IReadOnlySet<string> CompatibleChecksums);
     private sealed record AppliedMigration(int Version, string Name, string Checksum);
     private sealed record DatabaseState(bool HasApplicationSchema, bool HasHistory);
 }

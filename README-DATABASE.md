@@ -254,11 +254,13 @@ Gunakan query `SELECT` untuk diagnosis. Jangan memperbaiki projection dengan `UP
 2. Operator menjalankan image API dengan argumen `--migrate-only`.
 3. Database kosong menjalankan baseline [`database/00_create_schema.sql`](database/00_create_schema.sql), lalu seluruh migrasi berurutan.
 4. Database lama tanpa `schema_history` diverifikasi terhadap baseline sebelum ditandai.
-5. Checksum setiap migrasi yang sudah diterapkan dibandingkan; perbedaan menghentikan proses.
+5. Checksum setiap migrasi yang sudah diterapkan dibandingkan; perbedaan isi menghentikan proses.
 6. Seed komponen default selalu idempoten. Seed 2 hanya berjalan bila `DatabaseMigrations__SeedSimulation=true` pada proses migrasi.
 7. Setelah migrasi berhasil, instance API biasa dijalankan tanpa mengubah schema.
 
 Migrasi yang pernah diterapkan tidak boleh diedit. Jangan mengubah database production secara manual.
+
+Checksum migrasi dihitung dari teks UTF-8 dengan pemisah baris yang dikanonisasi menjadi `LF`. Runtime tetap menerima checksum lama yang hanya berbeda karena representasi `LF`/`CRLF`, sehingga database yang dimigrasikan dari Linux tetap dapat diverifikasi ketika operator menjalankan pemeriksaan dari Windows, dan sebaliknya. Perubahan nama atau isi SQL selain pemisah baris tetap ditolak.
 
 ## Menjalankan Seed 2 ulang
 
