@@ -70,6 +70,8 @@ test("mode pemula tidak merender kelompok atau metrik khusus mahir", async ({ pa
 test("rincian sesi tidak menampilkan kartu pelanggaran aturan", async ({ page }) => {
   await page.goto(`/sessions/${advancedSessionId}`);
   await expect(page.getByText(/pelanggaran aturan|rule violations/i)).toHaveCount(0);
+  await expect(page.locator('.work-calendar-cell[data-day="25"] .work-calendar-cell__number')).toHaveText("25");
+  await expect(page.locator('.work-calendar-cell--finish[data-day="26"]')).toContainText(/selesai|finish/i);
   await expectNoHorizontalOverflow(page);
 });
 

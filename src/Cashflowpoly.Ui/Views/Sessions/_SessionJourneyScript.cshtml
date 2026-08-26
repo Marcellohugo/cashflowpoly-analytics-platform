@@ -44,6 +44,7 @@
         const playerLookupRaw = @Html.Raw(JsonSerializer.Serialize(Model.PlayerDisplayNames));
         const initialTimelineRaw = @Html.Raw(JsonSerializer.Serialize(Model.Timeline));
         const finishDay = @journeyFinishDay;
+        const finishMarkerDay = finishDay + 1;
         const fridayEnabled = @Html.Raw(JsonSerializer.Serialize(fridayEnabled));
         const saturdayEnabled = @Html.Raw(JsonSerializer.Serialize(saturdayEnabled));
         const sundayEnabled = @Html.Raw(JsonSerializer.Serialize(sundayEnabled));
@@ -479,8 +480,8 @@
                 </div>
             `);
 
-            // Board days before the finish line come directly from the active ruleset.
-            for (let d = 1; d < finishDay; d++) {
+            // All numbered days, including the final gameplay day, come from the active ruleset.
+            for (let d = 1; d <= finishDay; d++) {
                 const hasEvents = selectedTimelineFilter === "all" || eventsByDay.has(d);
                 const isSelected = selectedDay === d;
                 let cellClass = "work-calendar-cell";
@@ -520,8 +521,8 @@
                 `);
             }
 
-            const finishActive = selectedTimelineFilter === "all" || activeDays.some(day => day >= finishDay);
-            const finishSelected = selectedDay >= finishDay;
+            const finishActive = selectedTimelineFilter === "all" || activeDays.some(day => day >= finishMarkerDay);
+            const finishSelected = selectedDay >= finishMarkerDay;
             let finishClass = "work-calendar-cell work-calendar-cell--finish";
             if (finishActive) {
                 finishClass += " is-active-day";
@@ -533,7 +534,7 @@
             const finishLabel = activeLanguage === "en" ? "FINISH" : "SELESAI";
             cellsHtml.push(`
                 <div class="${finishClass}"
-                     data-day="${finishDay}"
+                     data-day="${finishMarkerDay}"
                      role="button"
                      tabindex="${finishActive ? "0" : "-1"}"
                      aria-disabled="${finishActive ? "false" : "true"}"
@@ -569,7 +570,7 @@
             if (dayNum === 0) {
                 title = activeLanguage === "en" ? "GO Day" : "Hari GO";
                 desc = activeLanguage === "en" ? "Starting line of the game board." : "Garis start papan permainan.";
-            } else if (dayNum >= finishDay) {
+            } else if (dayNum >= finishMarkerDay) {
                 title = activeLanguage === "en" ? "Finish" : "Selesai";
                 desc = activeLanguage === "en" ? "Game completed. Final results and rankings calculated." : "Permainan selesai. Hasil akhir dan peringkat dihitung.";
             } else {
@@ -604,12 +605,12 @@
             // Keep empty board days selectable in the unfiltered calendar.
             if (activeDays.length > 0) {
                 const selectedDayIsAvailable = selectedTimelineFilter === "all"
-                    ? selectedDay !== null && selectedDay >= 0 && selectedDay <= finishDay
-                    : activeDays.some(day => (selectedDay === finishDay ? day >= finishDay : day === selectedDay));
+                    ? selectedDay !== null && selectedDay >= 0 && selectedDay <= finishMarkerDay
+                    : activeDays.some(day => (selectedDay === finishMarkerDay ? day >= finishMarkerDay : day === selectedDay));
                 if (!selectedDayIsAvailable) {
                     selectedDay = activeDays[activeDays.length - 1];
-                    if (selectedDay > finishDay) {
-                        selectedDay = finishDay;
+                    if (selectedDay > finishMarkerDay) {
+                        selectedDay = finishMarkerDay;
                     }
                 }
             } else {
@@ -630,16 +631,16 @@
                 if (selectedDay !== null) {
                     const dayEvents = visibleTimeline.filter(item => {
                         const day = toNumber(item.dayIndex, 0);
-                        if (selectedDay === finishDay) {
-                            return day >= finishDay;
+                        if (selectedDay === finishMarkerDay) {
+                            return day >= finishMarkerDay;
                         }
                         return day === selectedDay;
                     });
 
                     const dayFeedTimeline = feedTimeline.filter(item => {
                         const day = toNumber(item.dayIndex, 0);
-                        if (selectedDay === finishDay) {
-                            return day >= finishDay;
+                        if (selectedDay === finishMarkerDay) {
+                            return day >= finishMarkerDay;
                         }
                         return day === selectedDay;
                     });

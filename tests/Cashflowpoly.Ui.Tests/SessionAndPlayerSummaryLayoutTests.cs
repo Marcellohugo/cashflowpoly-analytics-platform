@@ -62,8 +62,9 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.Contains("PlayerOrdering.FridayEnabled", script, StringComparison.Ordinal);
         Assert.Contains("PlayerOrdering.SaturdayEnabled", script, StringComparison.Ordinal);
         Assert.Contains("PlayerOrdering.SundayEnabled", script, StringComparison.Ordinal);
-        Assert.Contains("for (let d = 1; d < finishDay; d++)", script, StringComparison.Ordinal);
-        Assert.Contains("day >= finishDay", script, StringComparison.Ordinal);
+        Assert.Contains("const finishMarkerDay = finishDay + 1;", script, StringComparison.Ordinal);
+        Assert.Contains("for (let d = 1; d <= finishDay; d++)", script, StringComparison.Ordinal);
+        Assert.Contains("day >= finishMarkerDay", script, StringComparison.Ordinal);
         Assert.DoesNotContain("d <= 25", script, StringComparison.Ordinal);
         Assert.DoesNotContain("selectedDay === 26", script, StringComparison.Ordinal);
     }

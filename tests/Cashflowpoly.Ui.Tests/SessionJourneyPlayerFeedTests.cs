@@ -91,7 +91,7 @@ public sealed class SessionJourneyPlayerFeedTests
         var scriptContent = File.ReadAllText(scriptPath);
 
         Assert.Contains("const selectedDayIsAvailable = selectedTimelineFilter === \"all\"", scriptContent);
-        Assert.Contains("selectedDay >= 0 && selectedDay <= finishDay", scriptContent);
+        Assert.Contains("selectedDay >= 0 && selectedDay <= finishMarkerDay", scriptContent);
         Assert.Contains("dayEventCountEl.textContent = dayFeedTimeline.length", scriptContent);
     }
 
