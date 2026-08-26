@@ -63,6 +63,9 @@ Response login minimal:
 | Endpoint | INSTRUCTOR | PLAYER |
 |---|---:|---:|
 | `POST /api/v1/sessions` | Ya | Tidak |
+| `POST /api/v1/sessions/{sessionId}/setup/validate` | Ya | Tidak |
+| `POST /api/v1/sessions/{sessionId}/setup` | Ya | Tidak |
+| `GET /api/v1/sessions/{sessionId}/setup` | Ya | Tidak |
 | `POST /api/v1/sessions/{sessionId}/start` | Ya | Tidak |
 | `POST /api/v1/sessions/{sessionId}/end` | Ya | Tidak |
 | `POST /api/v1/rulesets` | Ya | Tidak |
@@ -203,10 +206,10 @@ Target performa mengikuti NFR pada `docs/01-Spesifikasi/01-01-spesifikasi-kebutu
 4. Audit keamanan disimpan pada tabel `security_audit_logs` dan tersedia via `GET /api/v1/security/audit-logs` (role `INSTRUCTOR`).
 5. Error tak terduga harus direkam ke log server dan dikembalikan sebagai respons error standar.
 
-### 8.4 Backup dan restore
-1. Backup database harian.
-2. Uji restore minimal bulanan.
-3. Prosedur operasional lokal memakai utilitas native PostgreSQL (`pg_dump`, `pg_restore`, atau `psql`) sesuai environment.
+### 8.4 Migrasi dan keputusan tanpa backup
+1. Schema diperbarui melalui migrasi berurutan dengan checksum dan mode aplikasi `--migrate-only`.
+2. Rollback deployment hanya mengembalikan image aplikasi; schema database tidak diturunkan.
+3. Sesuai keputusan proyek, tidak ada backup database, restore test, atau backup sebelum migrasi. Risiko kehilangan data permanen harus dipahami operator sebelum deployment.
 
 ---
 

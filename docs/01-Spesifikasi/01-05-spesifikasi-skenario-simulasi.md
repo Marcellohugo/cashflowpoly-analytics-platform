@@ -40,7 +40,7 @@ Dokumen ini menyatukan skenario permainan untuk Mode Pemula dan Mode Mahir. Tim 
 2. Setiap baris aksi pemain menghasilkan satu event dengan `actor_type=PLAYER`, kecuali bagian yang secara eksplisit menyebut sistem.
 3. Setiap perpindahan hari menghasilkan event sistem dengan `actor_type=SYSTEM` dan `action_type=AkhirGiliran`.
 4. Setiap hari Minggu menghasilkan event sistem dengan `actor_type=SYSTEM` dan `action_type=HariMingguLibur`.
-5. Seed simulasi mencatat event setup pada `day_index=0` (kotak GO) sebelum aksi utama: `MulaiSesi`, `BagikanTieBreaker`, `SetupBahanAwal`, `SetupEmasAwal`, `SetupMisiAwal`, serta pengisian awal deck/market. Event setup tidak muncul sebagai aksi tanggal 1 dan tidak mengurangi jatah aksi harian pemain.
+5. Seed simulasi mencatat event setup pada `day_index=0` (kotak GO) sebelum aksi utama: `MulaiSesi`, `BagikanTieBreaker`, `SetupBahanAwal`, `SetupEmasAwal`, dan `SetupMisiAwal`. Backend tidak mencatat atau mengisi deck/pasar fisik. Event setup tidak muncul sebagai aksi tanggal 1 dan tidak mengurangi jatah aksi harian pemain.
 6. Seed memberi satu emas awal per pemain melalui `SetupEmasAwal`; holding tersebut dapat dipakai oleh penjualan reguler maupun opsi darurat.
 7. Setup Mode Mahir memberi satu `SetupPinjamanAwal` dan satu `SetupAsuransiAwal` per pemain untuk merepresentasikan kondisi awal skenario uji. Keduanya tidak mengurangi slot aksi.
 8. Sistem hanya membuat event `BayarPinjaman` bila pemain memiliki pinjaman aktif. Jika pemain tidak memiliki pinjaman aktif, sistem mencatat aksi alternatif sesuai skenario, misalnya `KerjaLepas` atau catatan audit tanpa transaksi.
@@ -65,7 +65,7 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 | Kebutuhan Tersier Misi Koleksi | `jam`, `boneka`, `gameboy`, `hiburan` | sesuai kartu misi pemain |
 
 ### 1.6 Konvensi Event Harian
-1. Hari Senin sampai Kamis memakai maksimal dua aksi pemain sesuai `actions_per_turn=2`.
+1. Hari Senin sampai Kamis mewajibkan tepat dua aksi pemain sesuai `actions_per_turn=2`; aksi yang sama boleh diulang.
 2. Hari Jumat memakai aksi donasi, pengumuman juara donasi, dan event poin peringkat donasi.
 3. Hari Sabtu memakai aksi harga emas, beli emas, jual emas, atau lewati transaksi emas.
 4. Hari Minggu tidak memakai aksi pemain. Sistem hanya mencatat libur dan melanjutkan hari.
@@ -591,7 +591,6 @@ Bagian ini membantu pengembang mengubah skenario naratif menjadi payload event t
 | Beli bahan masakan | `BahanMasakan` | `PLAYER` | `ingredient_code`, `display_name`, `qty`, `coin_delta`. |
 | Buang bahan masakan | `BuangBahanMasakan` | `PLAYER` | `ingredient_code`, `qty`, alasan bila ada. |
 | Jual pesanan masakan | `JualMasakan` | `PLAYER` | `order_code`, `required_ingredients`, `sell_price`, `happiness_delta`. |
-| Lewati pesanan | `LewatiOrder` | `PLAYER` | `reason`, `order_code` bila relevan. |
 | Beli kebutuhan | `Kebutuhan` | `PLAYER` | `need_code`, `need_tier`, `purchase_price`, `happiness_delta`. |
 | Kerja lepas | `KerjaLepas` | `PLAYER` | `coin_delta=+1`. |
 | Catat transaksi | `CatatTransaksi` | `PLAYER` | `transaction_type`, `amount`, `note`. |
@@ -619,7 +618,7 @@ Bagian ini membantu pengembang mengubah skenario naratif menjadi payload event t
 2. Setiap pemain memiliki `player_order_no` dari 1 sampai 4.
 3. Event pemain memakai `actor_type=PLAYER`, `session_player_id`, `turn_number`, `action_slot`, `action_type`, dan `payload`.
 4. Event sistem memakai `actor_type=SYSTEM` dan tidak mengambil jatah aksi pemain.
-5. Hari Senin sampai Kamis memiliki maksimal dua aksi per pemain.
+5. Hari Senin sampai Kamis memiliki tepat dua aksi per pemain; aksi yang sama boleh diulang.
 6. Hari Jumat hanya menjalankan donasi, pengumuman peringkat donasi, dan perpindahan hari.
 7. Hari Sabtu hanya menjalankan mekanik harga emas, beli emas, jual emas, lewati transaksi emas, dan perpindahan hari.
 8. Hari Minggu hanya menjalankan `HariMingguLibur` dan `AkhirGiliran`.
@@ -662,9 +661,12 @@ Bagian ini menjelaskan skenario teknis daur hidup (*lifecycle*) sesi permainan d
 ### 7.3 Skenario Memulai Sesi
 - **Tujuan**: Mengubah status sesi agar siap menerima event permainan.
 - **Langkah**:
-  1. Game Client memanggil `POST /api/v1/sessions/{sessionId}/start`.
-  2. API mengubah status sesi dari `CREATED` menjadi `STARTED`.
-- **Hasil**: Sesi berstatus `STARTED` dan siap menerima event gameplay.
+  1. IDN membaca `session_player_id` seluruh peserta.
+  2. IDN mengirim hasil pembagian fisik melalui endpoint validasi setup.
+  3. IDN menyimpan revisi setup; penyimpanan pertama mengunci peserta dan ruleset, sedangkan pembagian masih dapat direvisi sebelum start.
+  4. Game Client memanggil `POST /api/v1/sessions/{sessionId}/start`.
+  5. API mengunci revisi setup terbaru, membentuk event setup secara atomik, dan mengubah status sesi dari `CREATED` menjadi `STARTED`.
+- **Hasil**: Sesi berstatus `STARTED`, pembagian awal dapat diaudit, dan sesi siap menerima event gameplay.
 
 ### 7.4 Skenario Ingestion Event Gameplay
 - **Tujuan**: Mengirim event transaksi dan aksi permainan secara real-time.

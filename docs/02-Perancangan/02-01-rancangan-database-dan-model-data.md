@@ -7,10 +7,11 @@
 - Tanggal: 11 Juli 2026
 - Penyusun: Marco Marcello Hugo
 
-> Baseline kanonis schema berada pada `database/00_create_schema.sql`.
-> Dokumen ini menjelaskan alur, relasi, dan fungsi tabel berdasarkan baseline
-> implementasi 20 Agustus 2026 (baseline `3.0.13`). Jika ada perbedaan detail teknis, skrip SQL
-> kanonis menjadi acuan terakhir.
+> Baseline kanonis schema berada pada `database/00_create_schema.sql`, kemudian
+> diperbarui oleh migrasi immutable berurutan di `database/migrations`.
+> Riwayat, nama, checksum SHA-256, dan waktu penerapan dicatat pada
+> `schema_history`. Jika ada perbedaan detail teknis, baseline beserta seluruh
+> migrasi yang sudah diterapkan menjadi acuan terakhir.
 
 ---
 
@@ -85,7 +86,7 @@ Alur operasional:
 7. API memvalidasi token, scope, sesi, peserta, urutan, idempotensi, ruleset,
    dan payload.
 8. API menyimpan event valid, asset reference, projection, dan metric snapshot.
-9. API menyimpan event invalid ke `validation_logs`, bukan ke `events`.
+9. API tidak menyimpan event invalid ke `events`; `validation_logs` hanya menerima metadata penolakan berupa status, kode error, dan `trace_id`, tanpa payload gameplay.
 
 ---
 
@@ -95,13 +96,14 @@ Tabel pada `database/00_create_schema.sql`:
 | Kelompok | Tabel |
 |---|---|
 | Baseline | `schema_baseline_versions` |
-| Auth | `app_users` |
+| Migrasi | `schema_history` |
+| Auth | `app_users` (`is_demo` menandai akun Seed 2) |
 | Katalog aksi | `actions` |
 | Ruleset core | `rulesets`, `ruleset_versions` |
 | Ruleset detail | `ruleset_game_settings`, `ruleset_player_ordering_rules`, `ruleset_actions`, `ruleset_game_assets`, `ruleset_ingredients`, `ruleset_orders`, `ruleset_order_requirements`, `ruleset_needs`, `ruleset_need_set_bonuses`, `ruleset_collection_missions`, `ruleset_collection_mission_requirements`, `ruleset_financial_goals`, `ruleset_narratives`, `ruleset_narrative_scenes`, `ruleset_trigger_conditions`, `ruleset_gold_prices`, `ruleset_gold_assets`, `ruleset_rank_points`, `ruleset_tie_breakers`, `ruleset_sharia_loans`, `ruleset_insurance_products`, `ruleset_life_risks` |
-| Session core | `sessions`, `session_participants`, `session_states` |
+| Session core | `sessions`, `session_participants`, `session_setup_revisions`, `session_states` |
 | Session participant projection | `session_participant_balances`, `session_participant_inventory`, `session_participant_need_purchases`, `session_participant_financial_goals`, `session_participant_collection_missions`, `session_participant_action_counters`, `session_participant_gold_holdings`, `session_participant_loans`, `session_participant_insurances`, `session_participant_tie_breakers` |
-| Session projection lain | `session_donation_events`, `session_card_positions` |
+| Session projection lain | `session_donation_events`; `session_card_positions` hanya data legacy |
 | Event | `events`, `event_asset_references` |
 | Analitika | `event_cashflow_projections`, `session_projection_checkpoints`, `metric_snapshots` |
 | Validasi dan hasil akhir | `validation_logs`, `session_final_scores`, `session_final_score_components`, `session_narrative_logs` |
@@ -123,10 +125,12 @@ Kolom penting:
 - `password_hash`
 - `role`
 - `is_active`
+- `is_demo`
 - `created_at`
 
 Aturan:
 - `username` unik.
+- Akun Seed 2 ditandai `is_demo=true` tanpa mengubah hak akses berdasarkan role.
 - Password tidak pernah dikembalikan API.
 - Resource API `/api/v1/players` membuat atau membaca akun role `PLAYER`.
 
@@ -244,7 +248,32 @@ Aturan:
 - Kombinasi `(session_id, player_order_no)` unik.
 - DTO state menyebut `session_participant_id` sebagai `session_player_id`.
 
-### 7.3 `session_states`
+### 7.3 `session_setup_revisions`
+Fungsi:
+- menyimpan riwayat revisi pembagian kartu fisik yang dikirim IDN;
+- menyediakan revisi terbaru sebagai sumber event setup ketika sesi dimulai;
+- menjaga retry setup tetap idempoten.
+
+Kolom penting:
+- `session_id`
+- `revision`
+- `ruleset_version_id`
+- `client_request_id`
+- `setup_json`
+- `saved_at`
+- `locked_at`
+- `created_by_user_id`
+
+Aturan:
+- Satu sesi dapat memiliki beberapa revisi selama status masih `CREATED`.
+- Revisi pertama mengunci peserta dan ruleset; revisi berikutnya hanya dapat memperbaiki pembagian untuk peserta dan ruleset yang sama.
+- Start mengunci revisi terbaru dengan mengisi `locked_at`; setelah itu setup tidak dapat diubah.
+- `client_request_id` unik per Instruktur.
+- Retry dengan `client_request_id` dan payload identik mengembalikan revisi yang sama; payload berbeda menghasilkan konflik.
+- Payload pemain wajib berupa array yang tidak kosong.
+- Validasi peserta, kode ruleset, mode, dan stok kartu dilakukan API sebelum insert.
+
+### 7.4 `session_states`
 Fungsi:
 - projection state umum sesi,
 - menyimpan hari, giliran, slot aksi, dan peserta aktif.
@@ -351,19 +380,10 @@ Manfaat:
 - Analitika tidak perlu menebak relasi dari string bebas pada JSON.
 - Replay dan audit dapat menelusuri asset yang dipakai event.
 
-### 9.3 `session_card_positions`
-Fungsi:
-- menyimpan zona `DECK`, `MARKET`, `PLAYER`, atau `DISCARD`, termasuk grup dan slot market,
-- memastikan pembelian bahan/kebutuhan serta klaim pesanan berasal dari kartu yang sedang terbuka,
-- menelusuri draw, discard, dan refill melalui `last_event_id`.
+### 9.3 `session_card_positions` (legacy)
+Tabel ini dipertahankan agar data historis lama tetap dapat dibaca. Backend baru tidak membentuk, mengisi, atau memvalidasi deck/pasar virtual dari tabel ini. Kepemilikan pemain yang dapat divalidasi berasal dari setup fisik yang dikonfirmasi dan event gameplay sah. Event legacy deck/pasar tidak memengaruhi proyeksi atau analitik baru.
 
-Aturan:
-- Non-bahan mengikuti `card_qty` katalog dan refill hanya mengambil posisi dari `DECK`/`DISCARD`.
-- Bahan masakan tidak menjalankan pengecekan jumlah kartu deck atau batas `copy_number`; projector dapat membuat posisi logis baru ketika deck/discard kosong.
-- Pengecualian bahan tidak mengubah batas maksimal lima slot, dua bahan sejenis di market, tiga bahan sejenis di tangan, dan enam bahan total per pemain.
-- Refill runtime dijalankan server setelah aksi reguler terakhir pemain. Pilihan kartu disimpan pada array `market_refills` di payload event sumber dan diproyeksikan ulang oleh `project_session_event`.
-- Kartu pesanan yang diklaim berpindah ke zona `PLAYER`; hanya bahan resep yang dikonsumsi yang berpindah ke `DISCARD`.
-- Nomor Tie Breaker unik per versi ruleset dan satu kartu Misi Koleksi tidak dapat diberikan kepada dua peserta dalam sesi yang sama.
+Nomor Tie Breaker tetap unik per versi ruleset dan satu kartu Misi Koleksi tidak dapat diberikan kepada dua peserta dalam sesi yang sama.
 
 ---
 
@@ -444,19 +464,21 @@ Aturan:
 ## 11. Validasi, Skor, Narrative, dan Audit
 ### 11.1 `validation_logs`
 Fungsi:
-- menyimpan request/event invalid yang ditolak,
-- mendukung audit validasi dan perhitungan pelanggaran aturan.
+- menyimpan metadata operasional event yang ditolak tanpa payload gameplay,
+- membantu korelasi masalah melalui kode error dan `trace_id`; data ini bukan metrik domain atau pelanggaran permainan.
 
 Kolom penting:
 - `validation_log_id`
 - `session_id`
 - `ruleset_version_id`
 - `event_id`
+- `status_code`
+- `trace_id`
 - `error_code`
 - `error_message`
-- `raw_payload_json`
-- `details_json`
 - `created_at`
+
+Kolom legacy `raw_payload_json` dan `details_json` tetap ada untuk kompatibilitas schema, tetapi selalu dikosongkan menjadi objek JSON dan tidak boleh diisi payload gameplay.
 
 ### 11.2 `session_final_scores`
 Fungsi:

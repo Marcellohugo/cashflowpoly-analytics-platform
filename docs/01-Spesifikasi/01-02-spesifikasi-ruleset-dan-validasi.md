@@ -236,15 +236,15 @@ Sistem memeriksa:
 7. Risiko katalog berarah `OUT` tetap pending sampai diselesaikan; saldo cukup tidak otomatis memilih pembayaran tunai.
 8. Setiap kartu pinjaman memakai `loan_instance_id` unik; beberapa instance produk yang sama dapat `ACTIVE` selama stok `card_qty` sesi tersedia, dan `BayarPinjaman` wajib melunasi seluruh outstanding satu instance.
 9. Validasi jual emas membaca `session_participant_gold_holdings`, bukan menghitung ulang sebagian event.
-10. Pembelian bahan/kebutuhan dan klaim pesanan hanya menerima aset yang sedang berada di market yang sesuai.
+10. Pembelian bahan/kebutuhan dan penyelesaian pesanan hanya menerima kode aset yang ada pada katalog ruleset serta kepemilikan yang sudah dilaporkan melalui event.
 11. Harga emas transaksi wajib berasal dari event `BukaHargaEmas` pada `day_index` yang sama.
 12. Syarat Primer menggunakan riwayat pembelian sepanjang sesi, walaupun kartu Primer kemudian dijual.
-13. Jumlah kartu deck bahan masakan tidak divalidasi; refill dapat membuat posisi logis baru tanpa menghapus batas market dan batas kartu di tangan.
+13. Jumlah kartu pada deck dan kartu yang terbuka di meja tidak divalidasi backend; instruktur menjalankan pengelolaan kartu fisik sesuai rulebook.
 14. Nomor tie breaker wajib berada pada rentang `1..jumlah pemain`; skor emas di atas tier terbesar memakai nilai tier terbesar tersebut.
 15. Sebelum sesi dimulai, katalog wajib menyediakan minimal tiga jenis bahan, lima kartu pesanan, lima kebutuhan Primer, misi unik sejumlah pemain, dan Tie Breaker unik `#1..#N`.
 16. Tie Breaker `#1..#N` dibagikan acak; pemilik `#1` menjadi pemain pertama dan urutan peserta mengikuti nomor kartu.
 17. Misi tidak boleh diberikan kepada lebih dari satu pemain dan payload misi pemain lain disembunyikan selama sesi aktif.
-18. Slot market kosong hanya diisi server setelah aksi reguler terakhir pemain; `market_refills` merupakan field payload khusus server.
+18. Backend tidak membentuk state deck/pasar, tidak melakukan refill, dan menolak event pengelolaan deck/pasar sebagai gameplay baru.
 
 ### 6.4 Validasi kompatibilitas versi
 Sistem menetapkan nomor versi secara otomatis. Sistem melarang instruktur mengubah nomor versi manual.
@@ -414,5 +414,4 @@ Sistem siap masuk tahap implementasi modul manajemen *ruleset* jika:
 5. Sistem menolak event dengan `ruleset_version_id` yang tidak cocok.
 6. Sistem menegakkan lifecycle ruleset sesuai bagian 3.3.
 7. Sistem mencatat jejak audit perubahan (`created_by_user_id`, `created_at`, dan status versi) untuk operasi ruleset utama.
-
 

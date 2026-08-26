@@ -107,9 +107,9 @@ Urutan satu putaran:
 4. Semua pemain mengambil kembali 2 token aksi.
 5. Lanjut ke putaran berikutnya sampai permainan selesai.
 
-Hari khusus kalender:
-- **Jumat**: peduli donasi (aksi bebas).
-- **Sabtu**: investasi emas (aksi bebas).
+Hari khusus kalender (menggantikan dua aksi normal, bukan menambahkannya):
+- **Jumat**: peduli donasi (tidak memakai token aksi utama).
+- **Sabtu**: investasi emas (tidak memakai token aksi utama).
 - **Minggu**: libur.
 
 Akhir permainan:

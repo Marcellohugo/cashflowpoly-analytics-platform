@@ -12,7 +12,7 @@ Cashflowpoly Analytics Platform adalah sistem event-first untuk mencatat permain
 - Permainan berjalan di papan fisik atau Klien Game/IDN.
 - Semua aksi permainan dikirim sebagai event ke API.
 - Tabel events adalah sumber kebenaran gameplay.
-- State, saldo, inventory, market, skor, dan metric adalah projection/cache dari event.
+- Setup fisik dan event valid menjadi sumber data; state, saldo, inventory yang dilaporkan, skor, dan metric adalah projection/cache.
 - Sesi mengunci satu ruleset_version_id.
 - UI tidak menulis state gameplay langsung. UI membaca API dan mengelola ruleset.
 
@@ -97,12 +97,14 @@ Snapshots --> Dashboard[Web Analitik MVC]
 
 ## 5. Alur Bootstrap Aplikasi
 
-**Saat Cashflowpoly.Api startup:**
-- API membaca ConnectionStrings:Default.
-- API memvalidasi konfigurasi JWT.
-- API menjalankan database/00_create_schema.sql.
-- API menjalankan database/01_seed_default_rulesets_components.sql.
-- API opsional membuat user bootstrap jika AuthBootstrap:SeedDefaultUsers=true.
+**Saat proses migrasi `--migrate-only`:**
+- API membaca `ConnectionStrings:Default`.
+- Database kosong menjalankan baseline, lalu migrasi berurutan yang dicatat pada `schema_history` bersama checksum.
+- Seed komponen default dijalankan idempoten; Seed 2 hanya jika `DatabaseMigrations:SeedSimulation=true`.
+
+**Saat instance API normal:**
+- API memvalidasi konfigurasi JWT dan riwayat migrasi tanpa mengubah schema.
+- API opsional membuat user bootstrap jika `AuthBootstrap:SeedDefaultUsers=true`.
 
 **API membuka endpoint:**
 - /api/v1/...
@@ -212,9 +214,6 @@ rulesets
 | Pemain | 2-4 |
 | Max bahan total di tangan | 6 |
 | Max bahan sejenis | 3 |
-| Slot market bahan | 5 |
-| Slot market pesanan | 5 |
-| Slot market kebutuhan | 5 |
 | Bahan awal per pemain | 1 kartu, bayar harga kartu |
 | Emas awal per pemain | 1 kartu |
 | Misi koleksi awal | 1 kartu |
@@ -242,27 +241,13 @@ rulesets
 | Sabtu | Fokus harga emas dan transaksi emas. |
 | Minggu | Libur, tidak ada aksi pemain. |
 
-## 8.4 Market awal
+## 8.4 Kartu fisik dan batas pengetahuan backend
 
-**Setup market awal:**
-
-| Market | Slot |
-| --- | --- |
-| Bahan Masakan | 5 slot |
-| Pesanan Masakan | 5 slot |
-| Aneka Kebutuhan | 5 slot, awal berupa kebutuhan primer |
-
-**session_card_positions menyimpan posisi kartu (fisik untuk non-bahan, logis untuk bahan):**
-
-```
-DECK -> MARKET -> PLAYER -> DISCARD
-```
-
-**Untuk risiko:**
-
-```
-RISK_DECK -> PLAYER/RESOLVED -> DISCARD
-```
+- Instruktur membagikan, mengocok, membuka, dan mengisi ulang kartu langsung di meja sesuai rulebook.
+- IDN hanya melaporkan kartu yang benar-benar diterima/dipakai pemain melalui setup atau event.
+- Backend memvalidasi kode katalog, mode, saldo, kepemilikan yang sudah dilaporkan, urutan, dan status sesi.
+- Backend tidak menyimpan slot, isi pasar, urutan deck, refill, atau ketersediaan kartu terbuka sebagai fakta.
+- `session_card_positions` dan event pasar/deck lama tetap berada di database untuk jejak historis, tetapi tidak diproyeksikan atau dihitung oleh gameplay/analitik baru.
 
 ## 9. Alur Lifecycle Sesi
 
@@ -294,16 +279,19 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 
 ## 9.3 Mulai sesi
 
-- Klien memanggil POST /api/v1/sessions/{sessionId}/start.
-- API memvalidasi minimal tiga jenis bahan, lima kartu pesanan, lima kebutuhan Primer, misi unik yang cukup, serta Tie Breaker unik `#1..#N`.
-- API mengocok dan membagikan Tie Breaker `#1..#N`; pemilik `#1` menjadi pemain pertama dan `player_order_no` peserta diperbarui secara atomik mengikuti nomor kartu.
-- API mengacak bahan awal, misi, serta isi pasar awal. Pasar kebutuhan berisi tepat lima kartu Primer.
+- IDN membaca `session_player_id`, mencatat pembagian kartu fisik, lalu memanggil `POST /api/v1/sessions/{sessionId}/setup/validate`.
+- Setelah valid, IDN menyimpan revisi melalui `POST /api/v1/sessions/{sessionId}/setup`.
+- API memvalidasi setiap peserta, stok kartu, bahan awal, satu emas, misi unik, Tie Breaker unik `#1..#N`, serta tambahan pinjaman/asuransi sesuai mode dan feature flag ruleset.
+- Revisi pertama mengunci peserta dan ruleset. Sebelum start, koreksi pembagian boleh disimpan sebagai revisi baru dengan `client_request_id` baru.
+- Klien memanggil `POST /api/v1/sessions/{sessionId}/start`; start ditolak dengan `SETUP_REQUIRED` bila setup belum disimpan.
+- API membentuk event setup dari pembagian IDN; pemilik Tie Breaker `#1` menjadi pemain pertama dan `player_order_no` diperbarui secara atomik mengikuti nomor kartu.
+- Start mengunci revisi terbaru secara permanen; tidak ada endpoint membuka kembali setup.
 - API mengubah status CREATED -> STARTED dan menyimpan pemain pemilik Tie Breaker `#1` sebagai pemain aktif pertama.
 - Sesi siap menerima event.
 
 ## 9.4 Setup gameplay
 
-**Setup dicatat sebagai event sistem agar hasil acak dapat diaudit dan direplay:**
+**Setup dicatat sebagai event sistem agar pembagian fisik yang dikonfirmasi dapat diaudit dan direplay:**
 
 | Event | Actor | Fungsi |
 | --- | --- | --- |
@@ -313,9 +301,8 @@ RISK_DECK -> PLAYER/RESOLVED -> DISCARD
 | SetupEmasAwal | SYSTEM | Memberi 1 emas awal. |
 | SetupPinjamanAwal | SYSTEM | Mode Mahir: memberi pinjaman awal 10. |
 | SetupAsuransiAwal | SYSTEM | Mode Mahir: memberi proteksi gratis. |
-| AmbilKartuDariDeck | SYSTEM | Mencatat hasil pengisian market awal. |
 
-Selama sesi aktif, payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pemain pemilik misi. Pemain lain menerima `{ "status": "HIDDEN" }`; setelah sesi berstatus `ENDED`, seluruh misi dapat dibaca.
+Payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pemain pemilik misi. Misi pemain lain tetap tersembunyi setelah sesi berstatus `ENDED`.
 
 ## 9.5 Gameplay harian
 
@@ -324,8 +311,7 @@ Selama sesi aktif, payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pem
 - Player 2 menjalankan aksi slot 1 dan 2.
 - Player 3 menjalankan aksi slot 1 dan 2.
 - Player 4 menjalankan aksi slot 1 dan 2.
-- Setelah aksi reguler terakhir setiap pemain, server mengisi semua slot pasar kosong dalam transaksi yang sama. Hasil acak disimpan pada `payload.market_refills` milik event aksi tersebut sehingga replay tetap deterministik.
-- Klien tidak mengirim event draw/refill manual ketika sesi berjalan.
+- Aksi yang sama boleh dipilih dua kali selama kedua slot aksi sah.
 - Sistem mengirim/menyimpan event akhir giliran/perpindahan hari.
 - Mr. Cashflowpoly maju ke tanggal berikutnya.
 
@@ -371,7 +357,6 @@ Selama sesi aktif, payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pem
 | BahanMasakan | Membeli/menerima bahan. |
 | BuangBahanMasakan | Membuang bahan dari inventory. |
 | JualMasakan | Klaim pesanan dan menerima koin. |
-| LewatiOrder | Melewati pesanan yang tersedia. |
 | Kebutuhan | Membeli kebutuhan dan memperoleh poin kebutuhan. |
 | KerjaLepas | Menerima 1 koin. |
 | JumatBerkah | Donasi hari Jumat. |
@@ -484,7 +469,7 @@ Request Event
 
 **Contoh validasi domain:**
 - BahanMasakan: total bahan tidak melebihi 6 dan bahan sejenis tidak melebihi 3.
-- BahanMasakan/Kebutuhan/JualMasakan: kartu target wajib sedang terbuka pada market yang sesuai.
+- BahanMasakan/Kebutuhan/JualMasakan: kode kartu harus ada pada katalog ruleset; backend tidak mengklaim mengetahui kartu yang sedang terbuka di meja.
 - JualMasakan: pemain harus punya bahan yang cukup.
 - Kebutuhan: points wajib ada; prasyarat Primer dilihat dari riwayat pembelian sepanjang sesi walaupun kartu Primer kemudian dijual.
 - JumatBerkah: weekday harus FRI, nominal dalam batas.
@@ -518,7 +503,7 @@ Projection utama:
 | Pinjaman | session_participant_loans |
 | Asuransi | session_participant_insurances |
 | Tie breaker | session_participant_tie_breakers |
-| Posisi kartu fisik | session_card_positions |
+| Posisi kartu pasar/deck legacy | session_card_positions (historis, tidak diperbarui gameplay baru) |
 | Donasi | session_donation_events |
 | Cashflow | event_cashflow_projections |
 | Checkpoint replay | session_projection_checkpoints |
@@ -528,52 +513,9 @@ Projection utama:
 - Projection menyimpan provenance event (last_event_id atau source_event_id) jika tersedia.
 - PUT /api/v1/sessions/{sessionId}/state sengaja disabled dan mengembalikan 410 STATE_WRITE_DISABLED.
 
-## 15. Alur Card Position
+## 15. Alur Kepemilikan Kartu yang Dilaporkan
 
-session_card_positions menjadi snapshot posisi kartu. Posisi non-bahan mengikuti stok fisik katalog; posisi bahan bersifat logis agar refill tidak perlu menghitung sisa deck.
-
-**Zona umum:**
-
-| Zona | Makna |
-| --- | --- |
-| DECK | Kartu masih di deck. |
-| MARKET | Kartu terbuka di slot market. |
-| PLAYER | Kartu dipegang player. |
-| DISCARD | Kartu sudah dibuang/selesai dipakai. |
-
-**Alur kartu bahan:**
-
-```
-DECK -> MARKET -> PLAYER -> DISCARD
-```
-
-Saat bahan tidak tersedia di `DECK`/`DISCARD`, refill boleh membuat posisi logis baru. Batas lima slot, maksimal dua bahan sejenis di market, maksimal tiga sejenis di tangan, dan maksimal enam bahan total tetap dijaga.
-
-**Alur kartu pesanan:**
-
-```
-DECK -> MARKET -> PLAYER
-```
-
-Pesanan yang berhasil diklaim tetap menjadi kartu milik pemain; bahan resep yang dipakai masuk `DISCARD`.
-
-**Alur kartu kebutuhan:**
-
-```
-DECK -> MARKET -> PLAYER
-```
-
-**Alur risiko:**
-
-```
-RISK_DECK -> PLAYER/RESOLVED -> DISCARD
-```
-
-**Manfaat audit:**
-- Dashboard bisa membuktikan kartu apa yang terbuka.
-- Validator bisa memastikan kartu yang dibeli memang ada.
-- Refill market setelah aksi dapat ditelusuri.
-- Sisa kartu market akhir sesi terlihat.
+Backend hanya membentuk kepemilikan/inventory dari setup dan event yang dilaporkan IDN. Kartu bahan bertambah ketika `BahanMasakan`, berkurang ketika dipakai/dibuang; kebutuhan, emas, misi, pinjaman, dan asuransi mengikuti event domain masing-masing. Posisi kartu yang masih berada di deck, pasar, atau discard fisik tidak tersedia karena IDN tidak mencatatnya. Data `session_card_positions` lama dipertahankan tanpa menjadi bukti keadaan papan sekarang.
 
 ## 16. Alur Cashflow
 
@@ -623,8 +565,7 @@ Dashboard transaksi membaca projection ini, bukan menghitung ulang di browser.
 | orders.completed.count | Jumlah pesanan selesai. |
 | inventory.ingredient.total | Jumlah bahan di tangan. |
 | actions.used.total | Aksi yang dipakai. |
-| compliance.primary_need.rate | Rasio kepatuhan kebutuhan primer. |
-| rules.violations.count | Jumlah upaya event yang ditolak; data audit internal, bukan kartu statistik utama. |
+| fulfillment.diversity | Keragaman pemenuhan kebutuhan Primer/Sekunder/Tersier. |
 | happiness.points.total | Total poin kebahagiaan. |
 | happiness.need.points | Poin dari kebutuhan. |
 | happiness.need.bonus | Bonus set kebutuhan. |
@@ -854,20 +795,25 @@ docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml
 ## 24.2 Production Docker
 
 ```bash
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
+sudo APP_ROOT=/opt/cashflowpoly REPOSITORY_DIR=/opt/cashflowpoly/repository \
+  ENV_FILE=/opt/cashflowpoly/shared/.env.prod BRANCH=prod \
+  /opt/cashflowpoly/repository/scripts/deploy-production.sh
 ```
 
 **Alur production:**
 - DB PostgreSQL naik.
-- API naik dan bootstrap schema/seed default.
+- Proses `--migrate-only` menerapkan migrasi dan Seed 2 idempoten sebelum API baru naik.
 - UI naik dan mengarah ke API internal.
 - Nginx menjadi reverse proxy.
-- Cloudflared opsional membuka tunnel.
+- Cloudflared membuka tunnel ke Nginx internal; API, UI, database, dan `/metrics` tidak diekspos langsung.
+- Jika health/smoke test gagal, image SHA sebelumnya dijalankan kembali tanpa menurunkan schema database.
+- Tidak ada backup database; risiko kehilangan permanen diterima oleh keputusan proyek.
 
 ## 24.3 Health check
 
 ```bash
-curl http://localhost/health/ready
+curl --header 'Host: narafin.org' http://127.0.0.1/health
+curl --header 'Host: narafin.org' http://127.0.0.1/privacy
 ```
 
 ## 25. Alur Pengujian
@@ -899,7 +845,7 @@ dotnet test Cashflowpoly.sln --no-restore
 ## 26. Alur Kerja Developer
 
 **Untuk perubahan schema/seed:**
-- Baca database/00_create_schema.sql.
+- Baca baseline `database/00_create_schema.sql` dan migrasi berurutan pada `database/migrations`.
 - Baca database/01_seed_default_rulesets_components.sql.
 - Jika menyentuh simulasi, baca database/02_seed_simulation_sessions_events.sql.
 - Tambah/ubah test seed atau integration yang relevan.
@@ -944,7 +890,7 @@ dotnet test Cashflowpoly.sln --no-restore
 - TujuanFinansial bukan aksi player terpisah.
 - Jumat hanya domain donasi.
 - Sabtu hanya domain emas, kecuali risiko emas memicu trade.
-- Ruleset default mengisi 5 slot bahan, 5 slot pesanan, dan 5 slot kebutuhan; ruleset custom mengisi sampai lima berdasarkan kapasitas katalognya.
+- Backend tidak menyimpan atau mengisi slot pasar/deck fisik.
 - Mode Mahir memiliki risiko, pinjaman, asuransi, dan tujuan keuangan.
 
 ## 28. Peta Baca Cepat
@@ -993,7 +939,7 @@ Gunakan checklist ini saat ada perubahan besar:
 | Validasi | Apakah invalid path masuk validation_logs? |
 | Projection | Apakah state turunan berubah dari event yang benar? |
 | Cashflow | Apakah uang masuk/keluar masuk projection? |
-| Kartu | Apakah session_card_positions konsisten? |
+| Kartu | Apakah setup/event hanya memakai kartu yang benar-benar dilaporkan IDN? |
 | Analytics | Apakah metric snapshot berubah sesuai event? |
 | UI | Apakah halaman membaca API, bukan DB langsung? |
 | Scope | Apakah player tidak bisa melihat data player lain? |

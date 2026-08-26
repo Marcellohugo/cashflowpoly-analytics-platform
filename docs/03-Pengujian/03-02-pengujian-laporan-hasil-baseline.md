@@ -39,7 +39,7 @@ Cakupan laporan ini:
 | Jenis Uji | Cakupan | Status |
 |---|---|---|
 | Uji REST API (kotak-hitam) | Alur auth, ruleset, sessions, players, ingest event, analytics | PASS |
-| Uji Integrasi | Setup acak, privasi misi, refill atomik, risiko pending, asuransi, opsi darurat, holding emas, pinjaman multi-instance, dan Seed 2 | PASS |
+| Uji Integrasi | Baseline historis setup, privasi misi, risiko pending, asuransi, opsi darurat, holding emas, pinjaman multi-instance, dan Seed 2 | PASS |
 | Validasi UI MVC | Login UI + 6 halaman inti + akses Swagger API | PASS |
 | Verifikasi keamanan API | RBAC (401/403), role boundary, fixed-window rate limit (429) | PASS |
 | Verifikasi observability + audit keamanan | Endpoint operasional metrics + security audit logs | PASS |

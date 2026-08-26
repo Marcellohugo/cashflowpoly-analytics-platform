@@ -131,10 +131,11 @@ Setiap skenario memuat:
 **TC-API-02 — Mulai sesi**
 - Endpoint: `POST /api/v1/sessions/{sessionId}/start`
 - Langkah:
-1. Kirim permintaan pada sesi berstatus `CREATED`.
+1. Tambahkan peserta, validasi dan kunci pembagian awal, lalu kirim permintaan pada sesi berstatus `CREATED`.
 - Ekspektasi:
   - Status: `200`
   - DB: `status=STARTED`, `started_at` terisi.
+  - Event setup memakai kartu yang dikirim IDN, bukan hasil pembagian acak backend.
 
 **TC-API-03 — Akhiri sesi**
 - Endpoint: `POST /api/v1/sessions/{sessionId}/end`

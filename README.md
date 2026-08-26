@@ -33,7 +33,7 @@ Cashflowpoly Analytics Platform memiliki empat tanggung jawab utama:
 
 1. Menerima data permainan dari Klien Game/IDN melalui REST API.
 2. Menolak data yang tidak sah, tidak berurutan, duplikat, atau melanggar aturan domain.
-3. Menyimpan event sebagai sumber kebenaran gameplay dan membentuk proyeksi yang dapat dihitung ulang.
+3. Menyimpan setup fisik yang dikonfirmasi dan event gameplay sebagai sumber kebenaran, lalu membentuk proyeksi yang dapat dihitung ulang.
 4. Menyajikan hasil sesi dan pemain pada Web Analitik sesuai peran pengguna.
 
 Fitur utamanya meliputi:
@@ -45,7 +45,7 @@ Fitur utamanya meliputi:
 - lifecycle sesi `CREATED` → `STARTED` → `ENDED`;
 - ingestion event tunggal dan batch;
 - validasi `sequence_number`, `action_slot`, aktor, hari, giliran, payload, dan versi ruleset;
-- proyeksi arus kas, aset, kebutuhan, misi, risiko, pinjaman, asuransi, dan skor;
+- proyeksi arus kas, kepemilikan yang dilaporkan, kebutuhan, misi, risiko, pinjaman, asuransi, dan skor;
 - ringkasan sesi, transaksi, metrik gameplay pemain, leaderboard, dan ringkasan ruleset;
 - audit keamanan, health checks, Prometheus metrics, tracing, dan rate limiting;
 - Swagger/OpenAPI pada environment Development;
@@ -80,14 +80,15 @@ Alur data satu keputusan pemain:
 1. Pengguna login melalui Klien Game/IDN atau Web Analitik.
 2. Klien mengirim event ke `POST /api/v1/events` menggunakan JWT.
 3. API memeriksa identitas, akses sesi, status sesi, versi ruleset, urutan, slot aksi, dan payload.
-4. Event valid disimpan dan proyeksi terkait diperbarui dalam transaksi database.
+4. Event valid disimpan dan proyeksi terkait diperbarui dalam transaksi database. Backend tidak mengacak atau menebak isi pasar/deck fisik.
 5. Event tidak valid ditolak; event tersebut tidak menjadi aktivitas permainan yang berhasil.
 6. Web Analitik meminta data melalui endpoint analytics—UI tidak membaca database secara langsung.
 7. Jika diperlukan, Instruktur dapat membangun ulang hasil melalui endpoint recompute.
 
 ### Sumber kebenaran dan proyeksi
 
-- Tabel `events` adalah sumber kebenaran untuk gameplay.
+- Revisi terakhir pada `session_setup_revisions` adalah sumber pembagian awal; setelah start, revisi tersebut dikunci.
+- Tabel `events` adalah sumber kebenaran untuk gameplay setelah setup.
 - Tabel saldo, inventory, aset, risiko, pinjaman, asuransi, narrative, skor, dan metric snapshot adalah proyeksi yang memiliki provenance event.
 - Perubahan state tidak boleh dikirim langsung. `PUT /api/v1/sessions/{sessionId}/state` tetap ada sebagai guard kompatibilitas dan selalu mengembalikan `410 STATE_WRITE_DISABLED` setelah akses diverifikasi.
 - `ruleset_version_id` dikunci pada sesi sehingga hasil lama tidak berubah ketika Instruktur menerbitkan versi ruleset baru.
@@ -332,12 +333,14 @@ Player selanjutnya dapat mendaftar sendiri atau dibuat oleh Instruktur melalui A
 5. Aktifkan versi ruleset yang akan dipakai.
 6. Dari Klien Game/IDN, buat sesi dengan `ruleset_version_id` aktif tersebut.
 7. Buat akun Player bila belum ada atau cari akun yang sudah terdaftar.
-8. Tambahkan Player ke sesi dan tetapkan `player_order_no`.
-9. Start sesi. API membentuk setup permainan dari ruleset dan menolak start bila jumlah Player tidak memenuhi batas.
-10. Kirim keputusan sebagai event berurutan selama permainan.
-11. Gunakan halaman detail/timeline/analitika pemain untuk memantau hasil.
-12. End sesi. API menyelesaikan proyeksi dan skor final.
-13. Buka **Ringkasan Statistik Pemain**, **Cerita di Balik Hasil Pemain**, dan **Data Permainan Lengkap** untuk audit hasil.
+8. Tambahkan Player ke sesi. Nomor urut sementara akan diganti sesuai hasil Tie Breaker saat start.
+9. Lakukan pembagian kartu fisik sesuai buku aturan, lalu IDN mengirim Tie Breaker, kartu bahan, emas, misi, serta tambahan mode Mahir untuk setiap `session_player_id`.
+10. Validasi lalu simpan pembagian awal melalui endpoint setup. Sebelum start, kirim revisi baru dengan `client_request_id` baru bila ada kesalahan. Sejak revisi pertama, daftar peserta dan ruleset tidak dapat diganti.
+11. Start sesi. API mengunci revisi terbaru dan membentuk event setup secara atomik; backend tidak membagikan kartu pemain secara acak.
+12. Kirim keputusan sebagai event berurutan selama permainan.
+13. Gunakan halaman detail/timeline/analitika pemain untuk memantau hasil.
+14. End sesi. API menyelesaikan proyeksi dan skor final.
+15. Buka **Ringkasan Statistik Pemain**, **Cerita di Balik Hasil Pemain**, dan **Data Permainan Lengkap** untuk audit hasil.
 
 ### B. Alur Player
 
@@ -358,6 +361,8 @@ login Instruktur
   → buat sesi
   → buat/cari Player
   → tambahkan Player ke sesi
+  → baca session_player_id
+  → validasi + simpan/revisi pembagian awal fisik
   → start sesi
   → baca next_sequence_number setelah start
   → kirim event dengan sequence kontigu sampai N
@@ -374,6 +379,7 @@ Klien harus menyimpan setidaknya:
 - `event_id` unik;
 - `sequence_number` terakhir yang berhasil disimpan;
 - `client_request_id` bila membutuhkan korelasi log klien-server.
+- `cursor` terakhir ketika memuat event atau transaksi per halaman.
 
 ### D. Peta halaman Web Analitik
 
@@ -470,6 +476,7 @@ Template tersedia pada:
 | `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | Kondisional | — | Password bootstrap Instruktur |
 | `AUTH_BOOTSTRAP_PLAYER_USERNAME` | Kondisional | — | Username bootstrap Player opsional |
 | `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | Kondisional | — | Password bootstrap Player opsional |
+| `DATABASE_MIGRATIONS_SEED_SIMULATION` | — | `false` | Menjalankan Seed 2 idempoten setelah migrasi; aktifkan hanya pada proses migrasi yang disengaja |
 | `LEGACY_API_COMPATIBILITY` | — | `false` | Variabel transisi yang masih ada di template; belum dibaca runtime saat ini |
 | `DOMAIN` | Produksi | `narafin.org` | Host publik untuk Nginx |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Profil tunnel | — | Token tunnel HTTPS publik |
@@ -493,9 +500,9 @@ Saat rotasi key, pertahankan key lama pada key ring sampai semua token lama keda
 Dokumentasi teknis rinci ditempatkan pada README terpisah di root proyek:
 
 - [README-API.md](README-API.md) — autentikasi, seluruh endpoint, kontrak request/response, event, ruleset, analitika, error, dan Postman.
-- [README-DATABASE.md](README-DATABASE.md) — relasi, seluruh tabel dan view, constraint, trigger, seed, query inspeksi, backup, restore, reset, dan perubahan schema.
+- [README-DATABASE.md](README-DATABASE.md) — relasi, seluruh tabel dan view, migrasi berurutan, constraint, trigger, seed, query inspeksi, reset development, dan risiko operasi tanpa backup.
 
-API aktif memakai prefix `/api/v1`. Database dijalankan melalui **bootstrap schema SQL kanonik** dengan baseline schema `3.0.13`. Ringkasan setup tetap berada di README utama; detail kontrak hanya dipelihara pada kedua dokumen di atas.
+API aktif memakai prefix `/api/v1`. Database kosong memakai baseline SQL lalu migrasi berurutan yang dicatat bersama checksum pada `schema_history`; instance runtime biasa tidak menjalankan migrasi. Ringkasan setup tetap berada di README utama; detail kontrak dipelihara pada kedua dokumen di atas.
 
 ## Pengujian dan pemeriksaan kualitas
 
@@ -580,24 +587,19 @@ docker compose `
   config -q
 ```
 
-### 4. Backup database
+### 4. Deploy dari VPS
 
-Buat dan verifikasi backup sebelum build/deploy, terutama bila schema berubah.
-
-### 5. Deploy
-
-```powershell
-docker compose `
-  --env-file config/env/.env.prod `
-  -f infra/docker/docker-compose.yml `
-  -f infra/docker/docker-compose.prod.yml `
-  --profile tunnel `
-  up -d --build db api ui nginx cloudflared
+```bash
+sudo APP_ROOT=/opt/cashflowpoly \
+  REPOSITORY_DIR=/opt/cashflowpoly/repository \
+  ENV_FILE=/opt/cashflowpoly/shared/.env.prod \
+  BRANCH=prod \
+  /opt/cashflowpoly/repository/scripts/deploy-production.sh
 ```
 
-Tanpa Cloudflare Tunnel, hilangkan profil dan service `cloudflared`, lalu sediakan terminasi TLS tepercaya di depan Nginx.
+Skrip mengambil commit terbaru `origin/prod`, mengunci proses agar tidak berjalan ganda, membangun API/UI secara berurutan, menampilkan maintenance singkat, menjalankan `--migrate-only`, Seed 2 idempoten, rekalkulasi analitik, health/smoke test, lalu mempertahankan rilis aktif dan satu rilis sebelumnya.
 
-### 6. Verifikasi
+### 5. Verifikasi
 
 ```powershell
 docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel ps
@@ -613,14 +615,17 @@ Periksa:
 - log API/UI/Nginx tidak berulang error;
 - `/swagger` tidak tersedia pada Production;
 - database dan API tidak dipublikasikan langsung ke internet.
+- akses publik `/metrics` menghasilkan `404`.
 
-### 7. Matikan bootstrap
+### 6. Matikan bootstrap
 
 Jika bootstrap digunakan, segera set flag ke `false`, kosongkan secret bootstrap, dan recreate API.
 
 ### Rollback
 
-Rollback aplikasi harus menggunakan commit/image source yang sebelumnya terverifikasi. Untuk rollback database, gunakan backup yang diuji dan runbook pemulihan; jangan memakai `down -v`, `DROP DATABASE`, atau script seed pada production.
+Jika health/smoke test gagal, skrip menjalankan kembali image dari SHA sebelumnya. Schema database tidak diturunkan, sehingga semua migrasi wajib kompatibel maju (*expand/contract*).
+
+Keputusan proyek ini secara eksplisit tidak membuat backup database, termasuk sebelum migrasi. Kegagalan VPS, kesalahan operator, atau migrasi rusak dapat menyebabkan kehilangan data permanen. Jangan memakai `down -v`, `DROP DATABASE`, atau reset Seed pada production.
 
 ## Observabilitas dan troubleshooting
 
@@ -665,7 +670,7 @@ Ketika melaporkan error API, sertakan:
 | API `403` | Role benar tetapi resource mungkin bukan milik/partisipasi pengguna |
 | Event `409` | Periksa duplicate `event_id` atau sequence terakhir sesi |
 | Event `422` | Baca `details`; payload/aksi melanggar ruleset atau status permainan |
-| Start sesi gagal | Cek versi ruleset aktif, mode cocok, serta jumlah/urutan Player |
+| Start sesi gagal | Cek versi ruleset aktif, mode cocok, jumlah Player, dan pembagian awal IDN yang sudah dikunci |
 | Analytics kosong | Pastikan event tersimpan; end/recompute sesi bila sesuai |
 | API ready gagal | Cek `docker logs`, credential DB, health container DB, dan baseline schema |
 | Perubahan CSS tidak tampil | Pastikan Tailwind watcher berjalan; hard refresh browser |
@@ -674,8 +679,8 @@ Ketika melaporkan error API, sertakan:
 
 ### Prometheus dan tracing
 
-- scrape `/metrics` dari jaringan internal;
-- batasi akses endpoint tersebut dengan firewall/reverse proxy;
+- scrape `/metrics` hanya dari jaringan internal container;
+- Nginx sengaja mengembalikan `404` untuk `/metrics` dari akses publik;
 - OpenTelemetry menambahkan trace/metric runtime dan request;
 - gunakan trace ID untuk menghubungkan error response dengan log server.
 
@@ -691,7 +696,7 @@ Checklist minimum:
 - expose hanya Nginx/HTTPS pada production—bukan PostgreSQL, API, atau `/metrics` langsung;
 - pertahankan scope berbasis owner/participant; jangan mengandalkan penyembunyian tombol UI;
 - validasi TLS, domain, trusted proxies, dan header forwarding;
-- backup terenkripsi dan uji restore secara berkala;
+- pahami keputusan proyek tanpa backup: rollback hanya mengembalikan image aplikasi dan tidak memulihkan schema/data;
 - periksa security audit log dan alert rate limit;
 - sensor Authorization header, password, signing key, token, dan payload sensitif dari log/tiket;
 - jangan menjalankan Seed 2 atau reset volume pada production.

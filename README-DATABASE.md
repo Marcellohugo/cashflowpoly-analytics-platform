@@ -1,6 +1,6 @@
 # Dokumentasi Database Cashflowpoly
 
-Dokumen ini menjelaskan schema, relasi, tabel, view, constraint, trigger, seed, backup, restore, reset, dan prosedur perubahan database Cashflowpoly Analytics Platform.
+Dokumen ini menjelaskan schema, migrasi, relasi, tabel, view, constraint, trigger, seed, reset development, keputusan tanpa backup, dan prosedur perubahan database Cashflowpoly Analytics Platform.
 
 Baseline aktif: **schema `3.0.13`**.
 
@@ -21,11 +21,11 @@ Navigasi:
 - [Query inspeksi database](#query-inspeksi-database)
 - [Urutan inisialisasi](#urutan-inisialisasi)
 - [Menjalankan Seed 2 ulang](#menjalankan-seed-2-ulang)
-- [Backup dan restore](#backup-developmentproduction)
+- [Keputusan tanpa backup dan restore](#keputusan-tanpa-backup-dan-restore)
 - [Reset penuh development](#reset-penuh-development)
 - [Perubahan schema](#perubahan-schema)
 
-Schema PostgreSQL canonical berada pada [`database/00_create_schema.sql`](database/00_create_schema.sql). File tersebut—bukan diagram, model EF Core, atau dokumentasi ini—adalah sumber teknis terakhir untuk tabel, kolom, foreign key, constraint, index, view, function, dan trigger. API memakai Dapper/Npgsql untuk akses utama, memiliki pemetaan EF Core untuk sebagian model, dan menerapkan **bootstrap schema SQL kanonik** saat startup. Baseline aktif adalah schema `3.0.13`.
+Baseline PostgreSQL berada pada [`database/00_create_schema.sql`](database/00_create_schema.sql), sedangkan perubahan berikutnya berada pada [`database/migrations`](database/migrations). Riwayat aktual dan checksum SHA-256 disimpan pada `schema_history`. API memakai Dapper/Npgsql untuk akses utama dan pemetaan EF Core untuk sebagian model. Migrasi hanya dijalankan melalui mode aplikasi `--migrate-only`, bukan otomatis oleh setiap instance API.
 
 Dokumentasi desain yang lebih terperinci tersedia pada [`docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md`](docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md).
 
@@ -41,6 +41,7 @@ erDiagram
     RULESET_VERSIONS ||--o{ RULESET_ACTIONS : enables
     RULESET_VERSIONS ||--o{ SESSIONS : locked_by
     SESSIONS ||--|{ SESSION_PARTICIPANTS : contains
+    SESSIONS ||--o{ SESSION_SETUP_REVISIONS : revises
     SESSIONS ||--|| SESSION_STATES : projects
     SESSIONS ||--o{ EVENTS : records
     SESSION_PARTICIPANTS ||--o{ EVENTS : performs
@@ -79,7 +80,8 @@ Extension yang diperlukan:
 | Tabel | Fungsi utama |
 |---|---|
 | `schema_baseline_versions` | Fingerprint nama, versi, checksum, dan waktu penerapan baseline schema |
-| `app_users` | Akun, password hash, nama tampil, role `INSTRUCTOR`/`PLAYER`, dan status aktif |
+| `schema_history` | Versi migrasi, nama file, checksum SHA-256, dan waktu penerapan |
+| `app_users` | Akun, password hash, nama tampil, role `INSTRUCTOR`/`PLAYER`, status aktif, dan penanda `is_demo` |
 | `actions` | Katalog aksi canonical, behavior, mode, arah cashflow, dan dampak domain |
 
 ### Ruleset dan seluruh komponen versinya
@@ -119,6 +121,7 @@ Semua detail ruleset diikat ke `ruleset_version_id`. Versi yang sudah digunakan 
 |---|---|
 | `sessions` | Metadata sesi, owner, mode, status, jumlah pemain, waktu start/end, dan versi ruleset terkunci |
 | `session_participants` | Hubungan akun Player ke sesi serta `player_order_no` |
+| `session_setup_revisions` | Riwayat revisi pembagian awal IDN, nomor revisi, versi ruleset, idempotency key, pembuat, waktu simpan, dan waktu penguncian |
 | `session_states` | Hari, weekday, giliran, slot aksi, fase, versi state, dan event terakhir |
 | `session_participant_balances` | Koin, happiness, saving, dan total donasi per peserta |
 | `session_participant_inventory` | Kuantitas bahan/asset inventory per peserta |
@@ -131,10 +134,10 @@ Semua detail ruleset diikat ke `ruleset_version_id`. Versi yang sudah digunakan 
 | `session_participant_insurances` | Polis, premi, sisa penggunaan, status, dan provenance |
 | `session_participant_tie_breakers` | Nilai tie breaker peserta |
 | `session_donation_events` | Kejadian/ranking donasi per hari |
-| `session_card_positions` | Posisi instance kartu pada `DECK`, `MARKET`, `PLAYER`, atau `DISCARD` |
+| `session_card_positions` | Struktur legacy untuk data historis pasar/deck; tidak menjadi sumber kebenaran gameplay baru |
 | `session_rule_effects` | Efek aturan/risiko sementara, scope, nilai delta, rentang hari, dan status aktif |
 
-Projection di atas tidak boleh dijadikan jalur tulis dari klien. Semuanya dibentuk dari event valid atau proses recompute.
+Projection aktif di atas tidak boleh dijadikan jalur tulis dari klien. Semuanya dibentuk dari setup/event valid atau proses recompute. Struktur pasar/deck legacy dipertahankan hanya agar data lama tidak dihapus dan tidak lagi diperbarui oleh gameplay baru.
 
 ### Event, analitika, hasil akhir, dan operasional
 
@@ -145,7 +148,7 @@ Projection di atas tidak boleh dijadikan jalur tulis dari klien. Semuanya dibent
 | `event_cashflow_projections` | Baris transaksi `IN/OUT` yang dihasilkan event |
 | `session_projection_checkpoints` | Sequence/event terakhir dan status rebuild projection |
 | `metric_snapshots` | Nilai metric numeric/text/boolean/JSON per sesi atau pemain |
-| `validation_logs` | Request event yang ditolak beserta error dan payload audit |
+| `validation_logs` | Metadata event yang ditolak: status, kode/pesan, dan `trace_id`; payload gameplay selalu dikosongkan |
 | `session_final_scores` | Total poin, ranking, tie breaker, dan status pinjaman saat finalisasi |
 | `session_final_score_components` | Rincian setiap komponen pembentuk skor akhir |
 | `session_narrative_logs` | Narasi/scene yang sudah ditampilkan dan event pemicunya |
@@ -169,15 +172,16 @@ View dibuat ulang oleh schema canonical agar definisinya tetap sinkron dengan ta
 3. `ruleset_versions` unik pada `(ruleset_id, version)` dan `(ruleset_id, config_hash)`.
 4. Mode sesi harus sama dengan mode versi ruleset yang dikunci.
 5. Sesi hanya dapat berjalan dengan 2–4 peserta sesuai batas ruleset; satu akun dan satu nomor urut hanya boleh muncul sekali per sesi.
-6. Event unik pada `(session_id, event_id)` dan `(session_id, sequence_number)`; `client_request_id` juga unik per sesi ketika diisi.
-7. Event Player wajib merujuk akun/participant sesi yang sah; event system tidak menyamar sebagai Player.
-8. `action_slot` dibatasi oleh `actions_per_turn`; aksi bebas/system memakai aturan slot khusus.
-9. Asset reference, inventory, kartu, emas, pinjaman, asuransi, dan requirement harus berasal dari katalog versi ruleset yang sama.
-10. Projection cashflow harus merujuk event sumber dan menjaga konsistensi session/user/direction/amount.
-11. Saldo berjalan tidak boleh melewati batas minimum yang ditetapkan ruleset.
-12. Ruleset default, versi aktif, versi terakhir, dan data yang sudah direferensikan sesi memiliki guard penghapusan.
-13. Penutupan hari divalidasi dari event sebelumnya: dua aksi per pemain pada Senin–Kamis, satu donasi pada Jumat, serta satu keputusan emas setelah harga dibuka pada Sabtu.
-14. Total holding emas satu sesi tidak boleh melebihi 20 kartu fisik; tujuan finansial tidak boleh melampaui `card_qty` katalog.
+6. Revisi setup bernomor naik per sesi; `client_request_id` unik per Instruktur. Revisi pertama mengunci peserta/ruleset dan start mengunci revisi terbaru.
+7. Event unik pada `(session_id, event_id)` dan `(session_id, sequence_number)`; `client_request_id` juga unik per sesi ketika diisi.
+8. Event Player wajib merujuk akun/participant sesi yang sah; event system tidak menyamar sebagai Player.
+9. `action_slot` dibatasi oleh `actions_per_turn`; aksi bebas/system memakai aturan slot khusus.
+10. Asset reference, inventory yang dilaporkan, emas, pinjaman, asuransi, dan requirement harus berasal dari katalog versi ruleset yang sama. Backend tidak memvalidasi posisi pasar/deck fisik.
+11. Projection cashflow harus merujuk event sumber dan menjaga konsistensi session/user/direction/amount.
+12. Saldo berjalan tidak boleh melewati batas minimum yang ditetapkan ruleset.
+13. Ruleset default, versi aktif, versi terakhir, dan data yang sudah direferensikan sesi memiliki guard penghapusan.
+14. Penutupan hari divalidasi dari event sebelumnya: dua aksi per pemain pada Senin–Kamis, satu donasi pada Jumat, serta satu keputusan emas setelah harga dibuka pada Sabtu.
+15. Total holding emas satu sesi tidak boleh melebihi 20 kartu fisik; tujuan finansial tidak boleh melampaui `card_qty` katalog.
 
 Sebagian invariant diperiksa dua lapis: validator domain di API memberikan error yang mudah dipahami, sedangkan foreign key/check/unique constraint dan trigger PostgreSQL menjaga data dari jalur tulis lain.
 
@@ -213,6 +217,11 @@ select baseline_name, schema_version, checksum, applied_at
 from schema_baseline_versions
 order by applied_at desc;
 
+-- Migrasi yang sudah diterapkan
+select version, name, checksum, applied_at
+from schema_history
+order by version;
+
 -- Sesi dan ruleset yang dikunci
 select s.session_id, s.session_name, s.mode, s.status,
        rv.ruleset_id, s.ruleset_version_id, rv.version
@@ -242,39 +251,30 @@ Gunakan query `SELECT` untuk diagnosis. Jangan memperbaiki projection dengan `UP
 ## Urutan inisialisasi
 
 1. PostgreSQL start dan health check lulus.
-2. API menjalankan [`database/00_create_schema.sql`](database/00_create_schema.sql).
-3. API memverifikasi baseline `canonical_relational_baseline` versi `3.0.13`.
-4. API memastikan komponen/ruleset default dari [`database/01_seed_default_rulesets_components.sql`](database/01_seed_default_rulesets_components.sql).
-5. Seed 2 hanya berjalan bila dijalankan manual.
+2. Operator menjalankan image API dengan argumen `--migrate-only`.
+3. Database kosong menjalankan baseline [`database/00_create_schema.sql`](database/00_create_schema.sql), lalu seluruh migrasi berurutan.
+4. Database lama tanpa `schema_history` diverifikasi terhadap baseline sebelum ditandai.
+5. Checksum setiap migrasi yang sudah diterapkan dibandingkan; perbedaan menghentikan proses.
+6. Seed komponen default selalu idempoten. Seed 2 hanya berjalan bila `DatabaseMigrations__SeedSimulation=true` pada proses migrasi.
+7. Setelah migrasi berhasil, instance API biasa dijalankan tanpa mengubah schema.
 
-Schema canonical ditulis idempotent untuk startup normal. Jangan mengedit database production secara manual tanpa backup dan review SQL.
+Migrasi yang pernah diterapkan tidak boleh diedit. Jangan mengubah database production secara manual.
 
 ## Menjalankan Seed 2 ulang
 
 ```powershell
-Get-Content -Raw database/02_seed_simulation_sessions_events.sql |
-  docker exec -i cashflowpoly-dev-db sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+$env:DATABASE_MIGRATIONS_SEED_SIMULATION = 'true'
+docker compose --env-file config/env/.env.dev `
+  -f infra/docker/docker-compose.yml `
+  -f infra/docker/docker-compose.watch.yml `
+  run --rm api --migrate-only
 ```
 
-`ON_ERROR_STOP=1` penting agar proses berhenti pada statement pertama yang gagal.
+Seed 2 bersifat idempoten: memastikan akun/data contoh tersedia dan bertanda demo tanpa menghapus akun, sesi, event, atau analitik lain.
 
-## Backup development/production
+## Keputusan tanpa backup dan restore
 
-```powershell
-$backupFile = "cashflowpoly-$((Get-Date).ToString('yyyyMMdd-HHmmss')).sql"
-docker exec cashflowpoly-dev-db sh -lc 'pg_dump --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > $backupFile
-```
-
-Untuk production, ganti nama container dengan container database dari Compose production dan simpan hasil di lokasi backup terenkripsi. Verifikasi file backup tidak nol byte.
-
-## Restore ke database kosong
-
-```powershell
-Get-Content -Raw .\cashflowpoly-YYYYMMDD-HHMMSS.sql |
-  docker exec -i cashflowpoly-dev-db sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-```
-
-Restore menimpa objek database target. Hentikan penulisan event dan buat backup sebelum menjalankannya.
+Proyek ini tidak membuat backup database development maupun production, tidak melakukan restore test, dan tidak membuat backup sebelum migrasi. Keputusan ini diterapkan sesuai rencana proyek, tetapi risikonya tinggi: kerusakan VPS, kesalahan operator, atau migrasi yang merusak data dapat menyebabkan kehilangan permanen. Rollback aplikasi tidak mengembalikan schema atau data.
 
 ## Reset penuh development
 
@@ -284,7 +284,7 @@ docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml
 ```
 
 > [!CAUTION]
-> `down -v` menghapus volume Compose development termasuk seluruh data PostgreSQL yang belum dibackup. Perintah ini tidak boleh dipakai pada production.
+> `down -v` menghapus volume Compose development beserta seluruh data PostgreSQL. Perintah ini tidak boleh dipakai pada production.
 
 Setelah reset, tunggu readiness API lalu jalankan Seed 2 kembali bila membutuhkan data simulasi.
 
@@ -292,12 +292,12 @@ Setelah reset, tunggu readiness API lalu jalankan Seed 2 kembali bila membutuhka
 
 Saat mengubah model database:
 
-1. ubah [`database/00_create_schema.sql`](database/00_create_schema.sql) secara idempoten;
-2. naikkan fingerprint baseline bila perubahan kontrak memang memerlukannya;
+1. tambahkan file baru `VNNN__nama_perubahan.sql`; jangan edit migrasi lama;
+2. gunakan perubahan *expand/contract* agar image sebelumnya masih dapat berjalan setelah migrasi;
 3. sinkronkan model/repository/DTO yang terdampak;
-4. sinkronkan Seed 1, Seed 2, Postman, dan dokumen desain;
-5. uji startup pada database kosong dan database baseline yang masih didukung;
-6. jalankan integration test PostgreSQL;
-7. siapkan backup serta runbook migrasi/reset sebelum production.
+4. sinkronkan Seed 1, Seed 2, Postman, README, dan dokumen desain;
+5. uji database kosong, database baseline lama, idempotensi migrasi, serta penolakan checksum berbeda;
+6. jalankan integration test PostgreSQL dan smoke test `--migrate-only`;
+7. dokumentasikan risiko rollback karena database tidak diturunkan dan tidak mempunyai backup.
 
-Jika schema mendeteksi struktur lama yang sudah tidak didukung, startup sengaja gagal dengan instruksi reset. Jangan mengakali pemeriksaan fingerprint pada database yang menyimpan data penting.
+Jika verifikasi baseline atau checksum gagal, deployment harus berhenti. Jangan mengakali pemeriksaan tersebut pada database yang menyimpan data penting.

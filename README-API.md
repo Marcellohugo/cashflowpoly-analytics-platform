@@ -127,10 +127,10 @@ Status yang perlu ditangani klien:
 - Definisi ruleset mempertahankan beberapa nama domain/kompatibilitas seperti `nama`, `hargaBeli`, dan `poinKebahagiaan`; selalu ambil template dari endpoint defaults agar casing dan koleksi lengkap tidak ditebak manual.
 - UUID dikirim sebagai string canonical; timestamp dikirim sebagai ISO-8601 dengan offset, direkomendasikan UTC (`Z`).
 - Response sukses dikembalikan langsung sebagai DTO, tanpa envelope global `data`.
-- Daftar utama memakai bentuk `{ "items": [...] }`; histori event memakai `{ "session_id": "...", "events": [...] }`.
+- Daftar utama memakai bentuk `{ "items": [...] }`. Event dan transaksi memakai cursor dengan `items`, `next_cursor`, dan `has_more`.
 - Response delete `204` tidak memiliki body.
 - Field nullable dapat bernilai `null`; beberapa field response create yang opsional dapat tidak diserialisasi.
-- Endpoint event adalah satu-satunya daftar yang memiliki window eksplisit (`fromSeq`, `limit`). Endpoint daftar lain pada kontrak saat ini belum memakai pagination.
+- Hanya event dan transaksi yang memakai pagination cursor. Default `limit=50`, maksimum `100`; daftar sesi dan pemain tetap dikembalikan penuh.
 - Nilai enum/status canonical memakai huruf besar, misalnya `INSTRUCTOR`, `PLAYER`, `PEMULA`, `MAHIR`, `CREATED`, `STARTED`, dan `ENDED`.
 
 Ringkasan bentuk response utama:
@@ -147,6 +147,8 @@ Ringkasan bentuk response utama:
 | `RulesetDetailResponse` | metadata, daftar versi, versi terpilih, mode, dan `definition` |
 | `EventStoredResponse` | `stored`, `event_id` |
 | `EventBatchResponse` | `stored_count`, `failed[]` (`event_id`, `error_code`) |
+| `EventsBySessionResponse` | `session_id`, `items[]`, `next_cursor`, `has_more` |
+| `TransactionHistoryResponse` | `items[]`, `next_cursor`, `has_more` |
 | `AnalyticsSessionResponse` | `session_id`, `summary`, `by_player`, ruleset, dan `leaderboard` |
 | `GameplayMetricsResponse` | economy, progress, score, needs, raw/derived provenance, dan waktu hitung |
 | `SecurityAuditLogResponse` | `items[]` berisi trace, identitas, request, outcome, status, dan detail audit |
@@ -220,7 +222,10 @@ Menambahkan akun yang ada ke sesi—isi `user_id` **atau** `username`:
 |---|---|---|---|---|
 | `GET` | `/api/v1/sessions` | Login | — | sesi milik Instruktur / sesi yang diikuti Player |
 | `POST` | `/api/v1/sessions` | Instruktur | `CreateSessionRequest` | `201 CreateSessionResponse` |
-| `POST` | `/api/v1/sessions/{sessionId}/start` | Instruktur | — | start sesi dan setup awal |
+| `POST` | `/api/v1/sessions/{sessionId}/setup/validate` | Instruktur | `SessionSetupRequest` | memeriksa pembagian fisik tanpa menyimpan |
+| `POST` | `/api/v1/sessions/{sessionId}/setup` | Instruktur | `SessionSetupRequest` | menyimpan revisi pembagian awal dari IDN; `201` untuk revisi baru, `200` untuk retry identik |
+| `GET` | `/api/v1/sessions/{sessionId}/setup` | Instruktur | — | membaca revisi pembagian awal terbaru |
+| `POST` | `/api/v1/sessions/{sessionId}/start` | Instruktur | — | mengunci revisi terbaru dan memulai sesi |
 | `POST` | `/api/v1/sessions/{sessionId}/end` | Instruktur | — | end sesi dan skor final |
 | `GET` | `/api/v1/sessions/{sessionId}/state` | Instruktur | — | state/proyeksi sesi |
 | `PUT` | `/api/v1/sessions/{sessionId}/state` | Instruktur | body legacy | selalu `410 STATE_WRITE_DISABLED` |
@@ -241,8 +246,52 @@ Syarat:
 - mode ruleset dan mode sesi harus sama;
 - peserta ditambahkan sebelum start;
 - jumlah peserta saat start harus berada pada `min_players`–`max_players` ruleset;
+- IDN wajib mengirim pembagian awal setiap peserta sebelum start;
 - hanya sesi `CREATED` yang dapat di-start dan hanya sesi `STARTED` yang dapat di-end;
-- field bootstrap `player_names` hanya tersedia untuk development/testing dan tidak boleh dipakai integrasi production.
+- `player_names` tidak lagi diterima; akun pemain dan peserta sesi harus dibuat melalui endpoint pemain;
+- setup pertama mengunci daftar peserta dan ruleset; pembagian kartu masih dapat direvisi sebelum start dengan `client_request_id` baru;
+- pengiriman ulang payload dan `client_request_id` yang identik aman dan menghasilkan `200`;
+- pemakaian ulang `client_request_id` untuk sesi atau payload berbeda menghasilkan `409 CLIENT_REQUEST_ID_CONFLICT`;
+- start mengunci revisi terbaru. Setelah itu POST setup ditolak.
+
+Ambil `session_player_id` dari `GET /api/v1/sessions/{sessionId}/players`, lalu kirim hasil pembagian kartu fisik oleh IDN. Contoh mode Pemula:
+
+```json
+{
+  "client_request_id": "idn-setup-kelas-a-001",
+  "players": [
+    {
+      "session_player_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "tie_breaker_code": "TB-1",
+      "ingredient_card_id": "ING-001",
+      "gold_quantity": 1,
+      "mission_id": "MIS-001",
+      "loan_code": null,
+      "insurance_product_code": null
+    },
+    {
+      "session_player_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "tie_breaker_code": "TB-2",
+      "ingredient_card_id": "ING-002",
+      "gold_quantity": 1,
+      "mission_id": "MIS-002",
+      "loan_code": null,
+      "insurance_product_code": null
+    }
+  ]
+}
+```
+
+Validasi mengikuti set aturan sesi dan buku permainan:
+
+- setiap peserta muncul tepat satu kali;
+- Tie Breaker harus unik dan membentuk urutan `#1` sampai jumlah pemain;
+- setiap pemain mendapat tepat 1 kartu bahan, 1 kartu emas, dan 1 misi koleksi;
+- kode kartu harus tersedia pada ruleset dan jumlah pembagian tidak boleh melebihi jumlah kartu fisik (`card_qty`);
+- mode Pemula tidak menerima pinjaman atau asuransi;
+- bila fitur terkait aktif pada mode Mahir, setiap pemain wajib menerima 1 pinjaman awal dan 1 asuransi gratis aktif.
+
+Respons setup memuat `revision`, `setup_status` (`EDITABLE` sebelum start atau `LOCKED` setelah start), `saved_at`, dan `locked_at`. Misi hanya dikembalikan kepada Instruktur pemilik sesi; response event dan analitik untuk Player tidak membuka misi peserta lain.
 
 Contoh panggilan lifecycle:
 
@@ -255,6 +304,8 @@ $session = Invoke-RestMethod -Method Post -Uri "$baseUrl/sessions" -Headers $hea
 
 $sessionId = $session.session_id
 
+Invoke-RestMethod -Method Post -Uri "$baseUrl/sessions/$sessionId/setup/validate" -Headers $headers -ContentType 'application/json' -Body $setupJson
+Invoke-RestMethod -Method Post -Uri "$baseUrl/sessions/$sessionId/setup" -Headers $headers -ContentType 'application/json' -Body $setupJson
 Invoke-RestMethod -Method Post -Uri "$baseUrl/sessions/$sessionId/start" -Headers $headers
 # ... kirim event ...
 Invoke-RestMethod -Method Post -Uri "$baseUrl/sessions/$sessionId/end" -Headers $headers
@@ -315,9 +366,9 @@ Contoh tersebut hanya memperlihatkan bentuk, bukan definition lengkap. Selalu mu
 |---|---|---|---|---|
 | `POST` | `/api/v1/events` | Login | `EventRequest` | `201 EventStoredResponse` |
 | `POST` | `/api/v1/events/batch` | Login | `EventBatchRequest` | `200`, jumlah berhasil/gagal |
-| `GET` | `/api/v1/sessions/{sessionId}/events` | Login | `fromSeq=0`, `limit=200` | event sesuai scope |
+| `GET` | `/api/v1/sessions/{sessionId}/events` | Login | `cursor`, `limit=50` | halaman event berurutan `sequence_number` |
 
-`limit` query event harus 1–1000. Batch menerima paling banyak 500 event per request. Lihat [Kontrak event permainan](#kontrak-event-permainan) untuk aturan lengkap.
+`limit` event harus 1–100. Cursor bersifat opaque Base64URL; cursor rusak menghasilkan `400`. Batch menerima paling banyak 500 event per request. Lihat [Kontrak event permainan](#kontrak-event-permainan) untuk aturan lengkap.
 
 ### Analitika
 
@@ -325,7 +376,7 @@ Contoh tersebut hanya memperlihatkan bentuk, bukan definition lengkap. Selalu mu
 |---|---|---|---|---|
 | `POST` | `/api/v1/analytics/sessions/{sessionId}/recompute` | Instruktur | — | rebuild projection/metrik sesi |
 | `GET` | `/api/v1/analytics/sessions/{sessionId}` | Login | — | ringkasan sesi + leaderboard |
-| `GET` | `/api/v1/analytics/sessions/{sessionId}/transactions` | Login | opsional `userId` | transaksi sesuai scope |
+| `GET` | `/api/v1/analytics/sessions/{sessionId}/transactions` | Login | opsional `userId`, `cursor`, `limit=50` | transaksi sesuai scope, urut `timestamp, transaction_id` |
 | `GET` | `/api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay` | Login | — | metrik gameplay pemain |
 | `GET` | `/api/v1/analytics/rulesets/{rulesetId}/summary` | Login | — | agregasi sesi ruleset |
 
@@ -339,9 +390,9 @@ Instruktur dapat meminta peserta dalam sesi miliknya. Player selalu dibatasi ke 
 | `GET` | `/api/v1/security/audit-logs` | Instruktur | `limit`, `eventType`, `userId` | audit keamanan; `limit` dijepit ke 1–500 |
 | `GET` | `/health/live` | Publik | — | proses API hidup |
 | `GET` | `/health/ready` | Publik | — | API dan database siap |
-| `GET` | `/metrics` | Publik langsung ke API | — | format Prometheus |
+| `GET` | `/metrics` | Jaringan internal API | — | format Prometheus; Nginx publik mengembalikan `404` |
 
-Endpoint `/metrics` sebaiknya hanya dapat dijangkau jaringan monitoring tepercaya pada production.
+Endpoint `/metrics` hanya boleh dijangkau jaringan monitoring internal pada production.
 
 ## Kontrak event permainan
 
@@ -426,10 +477,10 @@ Endpoint `/metrics` sebaiknya hanya dapat dijangkau jaringan monitoring tepercay
 
 | Kelompok | Action type canonical |
 |---|---|
-| Lifecycle/setup system | `MulaiSesi`, `AkhiriSesi`, `AkhirGiliran`, `SetupModalAwal`, `SetupBahanAwal`, `SetupEmasAwal`, `SetupMisiAwal`, `SetupPinjamanAwal`, `SetupAsuransiAwal` |
-| Deck/pasar system | `AmbilKartuDariDeck`, `KartuMasukDiscard`, `IsiUlangPasar`, `BukaHargaEmas`, `HariMingguLibur` |
+| Lifecycle/setup system | `MulaiSesi`, `AkhiriSesi`, `AkhirGiliran`, `BagikanTieBreaker`, `SetupModalAwal`, `SetupBahanAwal`, `SetupEmasAwal`, `SetupMisiAwal`, `SetupPinjamanAwal`, `SetupAsuransiAwal` |
+| Hari khusus system | `BukaHargaEmas`, `HariMingguLibur` |
 | Arus kas | `CatatTransaksi`, `KerjaLepas`, `Menabung` (`TarikTabungan` hanya dikenali untuk data lama dan ditolak saat ingestion) |
-| Bahan dan pesanan | `BahanMasakan`, `BuangBahanMasakan`, `JualMasakan`, `LewatiOrder` |
+| Bahan dan pesanan | `BahanMasakan`, `BuangBahanMasakan`, `JualMasakan` |
 | Kebutuhan dan tujuan | `Kebutuhan`; `TujuanFinansial` dicatat otomatis oleh aktor `SYSTEM` |
 | Donasi dan peringkat | `JumatBerkah`, `PoinPeringkatDonasi`, `UmumkanJuaraDonasi`, `PoinPeringkatPensiun`, `BagikanTieBreaker` |
 | Emas | `InvestasiEmas`, `JualEmas`, `LewatiTransaksiEmas`, `PoinEmas` |
@@ -440,8 +491,8 @@ Aturan aktor dan slot:
 - aksi utama Player umumnya memakai slot `1..actions_per_turn`;
 - `JumatBerkah`, aksi risiko tertentu, serta transaksi emas tertentu merupakan aksi bebas dengan slot `0`;
 - `Asuransi` dan `PinjamanSyariah` dapat menjadi aksi bebas hanya ketika menyelesaikan konteks risiko yang sah melalui `risk_event_id`;
-- action type setup, lifecycle, deck, pasar, dan scoring hanya boleh dikirim aktor `SYSTEM`;
-- `AmbilKartuDariDeck` dan `IsiUlangPasar` adalah operasi internal/setup dan ingestion manual saat runtime dapat ditolak.
+- action type setup, lifecycle, hari khusus, dan scoring hanya boleh dikirim aktor `SYSTEM`;
+- backend tidak menerima atau membentuk `LewatiOrder`, `AmbilKartuDariDeck`, `KartuMasukDiscard`, `IsiUlangPasar`, slot pasar, ataupun refill. Event legacy tersebut tetap tersimpan tetapi diabaikan oleh analitik baru;
 - Senin–Kamis ditutup setelah setiap pemain memakai tepat dua aksi. Jumat memerlukan tepat satu donasi per pemain. Sabtu memerlukan satu harga emas dan tepat satu pilihan beli/jual/lewati per pemain; jumlah kartu dalam transaksi boleh lebih dari satu.
 - Harga/poin kebutuhan dan tujuan harus sama dengan katalog. Total Kartu Emas yang sedang dimiliki seluruh pemain dibatasi 20 dan setiap Kartu Tujuan Finansial hanya tersedia sesuai `cardQty` (default satu).
 
@@ -493,12 +544,12 @@ Untuk integrasi yang tahan perubahan, bangun form/config dari `/rulesets/section
 `GET /api/v1/analytics/sessions/{sessionId}` menghasilkan:
 
 - `session_id`;
-- `summary`: `event_count`, `cash_in_total`, `cash_out_total`, `cashflow_net_total`, dan `rules_violations_count`;
+- `summary`: `event_count`, `cash_in_total`, `cash_out_total`, dan `cashflow_net_total`;
 - `by_player`: agregasi per Player;
 - metadata `ruleset_id` dan nama ruleset;
 - `leaderboard`.
 
-`rules_violations_count` merepresentasikan log validasi/audit yang relevan, bukan event gameplay ilegal yang lolos. Backend tetap menolak mutasi yang melanggar aturan.
+Event yang ditolak tidak disimpan sebagai gameplay event atau statistik. Log operasional penolakan hanya menyimpan status, kode error, dan `trace_id` tanpa payload permainan.
 
 ### Metrik gameplay Player
 
@@ -509,7 +560,6 @@ Untuk integrasi yang tahan perubahan, bangun form/config dari `/rulesets/section
 - kelompok `progress`;
 - kelompok `score`;
 - kelompok `needs`;
-- `rules_violations_count`;
 - `raw_json` untuk angka sumber;
 - `derived_json` untuk nilai turunan dan penjelasan perhitungan.
 
@@ -522,13 +572,35 @@ Field terstruktur pada kelompok metrik:
 | `score` | `happiness_points_total`, `need_points_total`, `need_set_bonus_points`, `donation_points_total`, `gold_points_total`, `pension_points_total`, `saving_goal_points_total`, `mission_penalty_total`, `loan_penalty_total`, `has_unpaid_loan` |
 | `needs` | `fulfillment_diversity` |
 
-Item `by_player` pada ringkasan sesi memadukan identitas (`user_id`, `player_order_no`), arus kas, donasi, emas, pesanan, inventory, pemakaian aksi, keberagaman kebutuhan, pelanggaran tervalidasi, seluruh komponen skor, penalti, dan status pinjaman. `leaderboard` berisi `user_id`, `player_order_no`, `rank`, dan `happiness_points_total`, dan bersifat final setelah sesi `ENDED`.
+Item `by_player` pada ringkasan sesi memadukan identitas (`user_id`, `player_order_no`), arus kas, donasi, emas, pesanan, inventory, pemakaian aksi, keberagaman kebutuhan, seluruh komponen skor, penalti, dan status pinjaman. `leaderboard` berisi `user_id`, `player_order_no`, `rank`, dan `happiness_points_total`, dan bersifat final setelah sesi `ENDED`.
 
 Tampilan **Lihat angka pembentuk dan rumus/Lihat cara menghitung** harus membaca variabel dari response/provenance tersebut. Nama variabel, angka aktual, substitusi rumus, hasil, dan asal data harus konsisten dengan parent metric.
 
+`raw_json` mengelompokkan variabel permainan fisik menjadi `coins`, `ingredients`, `meal_orders`, `needs`, `donations`, `gold`, `pension`, `life_risk`, `financial_goals`, `actions`, dan `turns`. Tiga kelompok Mahir (`life_risk`, `financial_goals`, serta field utang/risiko pada `turns`) tidak dibentuk untuk sesi Pemula.
+
+Metrik turunan baku pada `derived_json`:
+
+| Key | Perhitungan |
+|---|---|
+| `cash_growth_percent` | `coins_net_end_game ÷ starting_coins × 100%` |
+| `income_diversification_index` | indeks konsentrasi ternormalisasi dari pendapatan kerja lepas, pesanan, dan penjualan emas |
+| `business_expense_share_percent` | `ingredient_investment_coins_total ÷ total_cash_out × 100%` |
+| `meal_order_profit_margin_percent` | `(meal_order_income_total − ingredient_cost_used) ÷ meal_order_income_total × 100%` |
+| `risk_readiness_percent` | `risks_resolved_without_emergency ÷ life_risk_cards_drawn × 100%` (Mahir) |
+| `loan_burden_percent` | `outstanding_loan ÷ (outstanding_loan + liquid_assets) × 100%` (Mahir) |
+| `financial_goal_progress_percent` | `coins_committed_to_goals ÷ attempted_goal_target_total × 100%` (Mahir) |
+| `income_action_focus_percent` | `income_main_actions ÷ total_main_actions × 100%` |
+| `ingredient_utilization_percent` | `ingredients_used_in_completed_orders ÷ ingredients_collected × 100%` |
+| `long_term_action_share_percent` | `(saving_actions + financial_goal_actions + insurance_actions + loan_repayment_actions) ÷ total_main_actions × 100%` (Mahir) |
+| `need_fulfillment_diversity_percent` | indeks keragaman ternormalisasi kebutuhan Primer/Sekunder/Tersier |
+| `donation_commitment_score` | `donation_stability_index × donated_resource_share × friday_participation_rate`, dibatasi 0–100 |
+| `happiness_points_composition` | jumlah komponen poin dan penalti aktual sesuai mode |
+
+Setiap nilai numerik mempunyai objek `*_components` dengan nama variabel yang sama seperti pada rumus. Pembagi nol atau data yang belum cukup menghasilkan `null` dan ditampilkan sebagai “Belum dapat dihitung”, bukan nol palsu.
+
 ### Transaksi
 
-`GET /api/v1/analytics/sessions/{sessionId}/transactions?userId=<UUID>` mengembalikan item dengan timestamp, arah (`IN`/`OUT`), jumlah, dan kategori. Untuk Player, API mengabaikan upaya memilih user lain dan tetap menerapkan scope diri sendiri.
+`GET /api/v1/analytics/sessions/{sessionId}/transactions?userId=<UUID>&cursor=<opaque>&limit=50` mengembalikan `transaction_id`, timestamp, arah (`IN`/`OUT`), jumlah, dan kategori. Untuk Player, API mengabaikan upaya memilih user lain dan tetap menerapkan scope diri sendiri. Gunakan `next_cursor` sampai `has_more=false`.
 
 ### Recompute
 

@@ -52,8 +52,8 @@ Targetnya, metrik dan tampilan dasbor diperbarui setelah sistem menerima event p
 
 ## 4. Aturan Domain yang Mempengaruhi Sistem
 Dalam rancangan ini, aturan permainan yang berdampak pada pencatatan dan validasi meliputi:
-1. Pemain menjalankan maksimal dua aksi per hari pemain menggunakan token aksi.
-2. Hari Jumat menjalankan mekanik donasi, dan hari Sabtu menjalankan mekanik investasi emas.
+1. Pada Senin-Kamis, pemain wajib menjalankan tepat dua aksi utama menggunakan token aksi; aksi yang sama boleh diulang.
+2. Hari Jumat hanya menjalankan mekanik donasi, hari Sabtu hanya menjalankan mekanik investasi emas, dan hari Minggu libur. Hari khusus menggantikan dua aksi normal.
 3. Setiap transaksi yang menambah atau mengurangi koin wajib tercatat sebagai arus kas.
 4. Aturan pembelian kebutuhan primer mensyaratkan pembelian kebutuhan primer sebelum kebutuhan lain serta membatasi pembelian kebutuhan primer maksimal satu kali per hari.
 5. Aturan pembelian bahan membatasi kepemilikan maksimal enam kartu bahan dan maksimal tiga kartu untuk jenis bahan yang sama.
@@ -196,9 +196,7 @@ Kebutuhan non-fungsional berikut ditetapkan.
 - NFR-REL-01 Sistem tidak menggandakan dampak saat menerima event duplikat.
 - NFR-REL-02 Sistem tetap menjaga konsistensi data saat terjadi kegagalan parsial, melalui transaksi dan mekanisme penanganan error.
 - NFR-REL-03 Sistem mendukung retry klien pada kegagalan jaringan tanpa menimbulkan efek ganda (mengacu idempotensi event).
-- NFR-REL-04 Sistem menyediakan prosedur backup/restore database:
-  1. backup harian otomatis untuk lingkungan staging/produksi,
-  2. uji restore minimal 1 kali per bulan.
+- NFR-REL-04 Migrasi database memakai versi dan checksum; rollback aplikasi tidak menurunkan schema. Sesuai keputusan proyek, sistem tidak membuat backup atau menyediakan prosedur restore, sehingga risiko kehilangan data permanen diterima secara eksplisit.
 
 ### 9.5 Observability
 - NFR-OBS-01 Sistem menghasilkan log terstruktur minimum: `timestamp`, `trace_id`, `path`, `status_code`, `error_code`.
@@ -237,7 +235,6 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - BahanMasakan
 - BuangBahanMasakan
 - JualMasakan
-- LewatiOrder
 - KerjaLepas
 
 ### 10.6 Event mode mahir
@@ -251,16 +248,15 @@ Katalog berikut menjadi dasar desain payload, validasi, dan model data.
 - BayarRisiko
 - GunakanOpsiDarurat
 
-### 10.7 Event setup dan pengelolaan kartu
+### 10.7 Event setup fisik
 - SetupModalAwal
 - SetupBahanAwal
 - SetupEmasAwal
 - SetupMisiAwal
 - SetupPinjamanAwal
 - SetupAsuransiAwal
-- AmbilKartuDariDeck
-- KartuMasukDiscard
-- IsiUlangPasar
+
+Backend tidak mengacak deck, mengisi pasar, atau mencatat posisi kartu fisik. Event legacy terkait deck/pasar tetap dapat tersimpan untuk jejak historis, tetapi tidak diterima sebagai event baru dan tidak memengaruhi analitik.
 
 ### 10.8 Event misi dan skor
 - PoinPeringkatDonasi
@@ -281,8 +277,6 @@ Tahap perancangan siap dimulai apabila:
 5. Setiap aturan domain yang berdampak pada validasi memiliki aturan validasi yang tertulis.
 
 ---
-
-
 
 
 

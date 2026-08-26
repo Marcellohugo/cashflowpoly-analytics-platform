@@ -2,234 +2,192 @@
 ## Cashflowpoly Analytics Platform
 
 ### Informasi Dokumen
-- **Nama Dokumen**: Panduan Deployment Produksi
-- **Versi**: 1.3
-- **Tanggal**: 20 Juni 2026
-- **Penyusun**: Marco Marcello Hugo
+
+- Nama dokumen: Panduan Deployment Produksi
+- Versi: 2.0
+- Tanggal: 26 Agustus 2026
+- Penyusun: Marco Marcello Hugo
 
 ---
 
-## 1. Tujuan
-Dokumen ini disusun untuk memandu jalannya deployment Cashflowpoly Analytics Platform ke lingkungan produksi menggunakan Docker Compose, proses kompilasi (*build*) image lokal dari source code, konfigurasi Nginx reverse proxy, dan Cloudflare Tunnel.
+## 1. Tujuan dan batasan
 
-Perubahan utama pada versi ini:
-- Deployment tidak lagi bergantung pada workflow CI/CD eksternal.
-- Service `api` dan `ui` dibangun langsung dari source code lokal saat proses deploy dijalankan.
-- Mekanisme auto-redeploy berbasis registry image dan Watchtower tidak digunakan lagi.
+Dokumen ini menjelaskan deployment manual Cashflowpoly ke VPS melalui Docker Compose dan Cloudflare Tunnel. Commit yang dipasang selalu commit terbaru `origin/prod`. VPS membangun image dari source, menjalankan migrasi maju, menyelaraskan Seed 2 secara idempoten, menghitung ulang analitik, lalu melakukan health check.
 
----
+Keputusan operasional proyek:
 
-## 2. Arsitektur Deployment
+- deployment dijalankan sebagai `root` melalui SSH;
+- tidak ada GitHub Actions atau staging terpisah;
+- jeda pemeliharaan singkat diperbolehkan;
+- rollback hanya mengembalikan image aplikasi, bukan schema database;
+- tidak ada backup database, backup sebelum migrasi, atau restore test;
+- hanya rilis aktif dan satu rilis sebelumnya yang dipertahankan.
 
-```
+## 2. Arsitektur produksi
+
+```text
 Internet
-    |
-    v
-Cloudflare Edge (SSL Termination)
-    v https://narafin.org
-    |
-+----------------------------------------------------------+
-| Docker Host (Server)                                     |
-|                                                          |
-| cloudflared -> nginx:80 -> api:5041 (REST API)          |
-|                      |-> ui:5203 (MVC Web)              |
-|                      `-> health dan static asset        |
-|                                                          |
-| db (PostgreSQL 16) <- api                               |
-+----------------------------------------------------------+
+  -> Cloudflare Edge (TLS)
+  -> Cloudflare Tunnel
+  -> nginx:8080
+       -> ui:5203
+       -> api:5041
+            -> db:5432
 ```
 
-### Komponen Utama
+PostgreSQL, API, UI, dan `/metrics` tidak diekspos langsung. Hanya Nginx yang dipetakan ke `127.0.0.1:80`; Cloudflare Tunnel meneruskan trafik publik ke `nginx:8080`. Nginx mengembalikan `404` untuk `/metrics`.
 
-| Komponen | Deskripsi | Port Internal |
-|---|---|---|
-| **PostgreSQL 16** | Database relasional | 5432 |
-| **Cashflowpoly.Api** | REST API (.NET 10) | 5041 |
-| **Cashflowpoly.Ui** | Dashboard MVC (.NET 10) | 5203 |
-| **Nginx** | Reverse proxy HTTP internal, routing, dan pembatasan rate limit | 80 |
-| **Cloudflared** | Tunnel ke jaringan tepi Cloudflare | - |
+| Service | Image/runtime | Port internal | Akses publik |
+|---|---|---:|---|
+| `db` | PostgreSQL 16.15 | 5432 | Tidak |
+| `api` | .NET 10.0.4 | 5041 | Melalui `/api/` |
+| `ui` | .NET 10.0.4 | 5203 | Melalui `/` |
+| `nginx` | nginx-unprivileged 1.31.3 | 8080 | Melalui tunnel |
+| `cloudflared` | 2026.8.1 | - | Koneksi keluar saja |
 
-### Aturan Routing Nginx
+API, UI, dan Nginx berjalan sebagai pengguna non-root. Semua service memakai `no-new-privileges` dan log production dikirim ke journald.
 
-| Path | Diarahkan ke | Keterangan |
-|---|---|---|
-| `/` | UI (5203) | Dashboard utama analitika |
-| `/api/` | API (5041) | Semua endpoint REST API |
-| `/api/v1/auth/login` | API (5041) | Login dengan pembatasan rate limit ketat |
-| `/health` | UI (5203) lalu API/DB | Readiness seluruh aplikasi |
-| `/health/ready`, `/health/live` | API (5041) | Readiness/liveness API |
-| Static assets (`.css`, `.js`, dll) | UI (5203) | Cache browser selama 10 menit |
+## 3. Prasyarat
 
----
+VPS membutuhkan Ubuntu 24.04, Git, Docker Engine, Docker Compose V2, `curl`, `flock`, `logger`, `realpath`, systemd, akses keluar ke GitHub dan Cloudflare, serta minimal ruang untuk dua rilis dan image terkait.
 
-## 3. Prasyarat Sistem
+Repository deployment harus dapat menjalankan `git fetch origin prod` tanpa prompt interaktif. Domain produksi adalah `https://narafin.org`.
 
-### 3.1 Perangkat Lunak
+## 4. Konfigurasi awal VPS
 
-| Perangkat Lunak | Versi Minimum | Cara Cek |
-|---|---|---|
-| Docker Desktop / Engine | 24.x | `docker --version` |
-| Docker Compose V2 | 2.20+ | `docker compose version` |
-| Git | 2.x | `git --version` |
-| PowerShell | 5.1+ / 7+ | `$PSVersionTable.PSVersion` |
+Jalankan sekali sebagai `root`:
 
-### 3.2 Akun dan Layanan
-- **Akun Cloudflare**: Digunakan untuk mengelola DNS dan Tunnel.
-- **Domain `narafin.org`**: Domain publik permanen (dibeli melalui registrar MyDomaiNesia).
+```bash
+install -d /opt/cashflowpoly/repository /opt/cashflowpoly/releases /opt/cashflowpoly/shared
+git clone <repository-url> /opt/cashflowpoly/repository
+cp /opt/cashflowpoly/repository/config/env/.env.prod.example /opt/cashflowpoly/shared/.env.prod
+chmod 600 /opt/cashflowpoly/shared/.env.prod
+```
 
----
+Isi `/opt/cashflowpoly/shared/.env.prod`:
 
-## 4. Variabel Lingkungan Penting (Environment Variables)
+- `POSTGRES_DB` dan `POSTGRES_USER`;
+- `POSTGRES_PASSWORD` minimal 16 karakter dan bukan placeholder;
+- `JWT_SIGNING_KEY` minimal 32 karakter dan bukan placeholder;
+- `DOMAIN=narafin.org`;
+- `CLOUDFLARE_TUNNEL_TOKEN`;
+- kredensial bootstrap hanya bila benar-benar diperlukan.
 
-Salin template berkas environment produksi:
+Validasi file environment dari checkout lokal:
 
 ```powershell
-Copy-Item config/env/.env.prod.example config/env/.env.prod
-notepad config/env/.env.prod
+./scripts/Test-ProductionReadiness.ps1 -EnvironmentFile config/env/.env.prod
 ```
 
-Konfigurasi kunci yang wajib diisi:
+Jangan mencatat nilai rahasia di repository, command history, tiket, atau log deployment.
 
-| Variabel | Contoh Nilai | Keterangan |
-|---|---|---|
-| `POSTGRES_PASSWORD` | `SandiKuatDB123!` | Password untuk basis data PostgreSQL |
-| `JWT_SIGNING_KEY` | (kunci acak 48 karakter) | Minimal 32 karakter untuk pengamanan token |
-| `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` | `true` | Set `true` hanya untuk inisiasi akun awal |
-| `AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME` | `rina.kartika` | Username akun instruktur bootstrap |
-| `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | `SandiSeed!2026` | Password akun instruktur bootstrap |
-| `AUTH_BOOTSTRAP_PLAYER_USERNAME` | `marco` | Username akun player bootstrap |
-| `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | `SandiSeed!2026` | Password akun player bootstrap |
-| `CLOUDFLARE_TUNNEL_TOKEN` | `eyJ...` | Token koneksi Cloudflare Tunnel |
+## 5. Konfigurasi Cloudflare
 
-*Catatan Keamanan*: Setelah akun bootstrap berhasil dibuat dan masuk pertama kali, segera ubah nilai `AUTH_BOOTSTRAP_SEED_DEFAULT_USERS` menjadi `false`.
+1. Hubungkan `narafin.org` ke Cloudflare DNS.
+2. Buat Named Tunnel untuk aplikasi.
+3. Arahkan hostname publik ke `http://nginx:8080`.
+4. Simpan token pada `CLOUDFLARE_TUNNEL_TOKEN` di environment production.
+5. Jangan membuka port PostgreSQL, API, atau UI pada firewall VPS.
 
----
+## 6. Gerbang sebelum rilis
 
-## 5. Deployment Lingkungan Pengembangan (Development)
-
-Untuk menjalankan sistem secara lokal di lingkungan pengembangan dengan fitur *auto-reload*:
+Di komputer pengembang, jalankan gerbang verifikasi lengkap:
 
 ```powershell
-docker context use default
-Copy-Item config/env/.env.dev.example config/env/.env.dev
-docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up --build
+./scripts/Invoke-ReleaseVerification.ps1
 ```
 
-Akses Layanan:
-- **Dashboard UI**: `http://localhost:5203`
-- **REST API / Swagger**: `http://localhost:5041/swagger`
-
-Untuk menghentikan kontainer pengembangan:
+Setelah seluruh pemeriksaan lulus:
 
 ```powershell
-docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml down
+git switch prod
+git merge --ff-only codex/project-alignment
+git push origin prod
 ```
 
----
+Jangan melakukan deployment dari perubahan lokal yang belum ada pada `origin/prod`.
 
-## 6. Deployment Lingkungan Produksi (Production)
+## 7. Menjalankan deployment
 
-### 6.1 Sinkronisasi Source Code
-Pastikan Anda berada di commit/tag/cabang yang ingin dideploy:
+Masuk ke VPS sebagai `root`, lalu:
 
-```powershell
-git pull
+```bash
+git -C /opt/cashflowpoly/repository fetch origin prod
+git -C /opt/cashflowpoly/repository checkout --force origin/prod
+/opt/cashflowpoly/repository/scripts/deploy-production.sh
 ```
 
-### 6.2 Verifikasi Lokal Sebelum Deploy
-Disarankan untuk melakukan verifikasi penuh atas build dan unit testing secara lokal:
+Skrip deployment melakukan langkah berikut:
 
-```powershell
-dotnet restore src/Cashflowpoly.Api/Cashflowpoly.Api.csproj
-dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
-dotnet build src/Cashflowpoly.Api/Cashflowpoly.Api.csproj -c Release /warnaserror
-dotnet build src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release /warnaserror
-dotnet test tests/Cashflowpoly.Api.Tests/Cashflowpoly.Api.Tests.csproj -c Release --filter "Category!=Integration"
-./scripts/Test-ProductionReadiness.ps1
+1. Mengambil lock `/var/lock/cashflowpoly-deploy.lock` agar tidak ada dua deployment bersamaan.
+2. Mengambil SHA terbaru `origin/prod` dan membuat worktree rilis per SHA.
+3. Memvalidasi Docker Compose dan environment.
+4. Memasang retensi journald 30 hari dengan batas disk.
+5. Menarik image eksternal yang dipin dan membangun API/UI berurutan.
+6. Menampilkan halaman pemeliharaan singkat bila ada rilis sebelumnya.
+7. Menyalakan PostgreSQL dan menunggu status sehat.
+8. Menjalankan API `--migrate-only`.
+9. Menjalankan Seed 2 idempoten melalui konfigurasi migrasi/seed.
+10. Menjalankan `--recalculate-analytics` untuk seluruh sesi.
+11. Menyalakan API, UI, Nginx, dan tunnel baru.
+12. Memeriksa health container, `/health`, serta `/privacy`.
+13. Mengubah symlink `current`, menyimpan dua rilis terakhir, dan membersihkan image lama.
+
+## 8. Verifikasi setelah deployment
+
+```bash
+docker compose --project-name cashflowpoly \
+  --env-file /opt/cashflowpoly/shared/.env.prod \
+  -f /opt/cashflowpoly/current/infra/docker/docker-compose.yml \
+  -f /opt/cashflowpoly/current/infra/docker/docker-compose.prod.yml \
+  --profile tunnel ps
+
+curl --fail https://narafin.org/health
+curl --fail https://narafin.org/privacy
+curl --fail https://narafin.org/terms
 ```
 
-### 6.3 Menjalankan Deploy Produksi
-Jalankan perintah berikut untuk mengompilasi image lokal dan memulai seluruh service:
+Lakukan smoke test login Instruktur dan Player Seed 2, daftar sesi, setup, event, analitik pemain, buku aturan, Privasi, dan Ketentuan. Permintaan publik `https://narafin.org/metrics` harus menghasilkan `404`.
 
-```powershell
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel up -d --build db api ui nginx cloudflared
+## 9. Rollback dan kegagalan
+
+Jika build, migrasi, container health, atau smoke test gagal, trap pada skrip menjalankan kembali image SHA sebelumnya. Database tidak diturunkan. Karena itu seluruh migrasi wajib memakai pola expand/contract sehingga aplikasi versi sebelumnya tetap dapat membaca schema yang sudah maju.
+
+Periksa kegagalan dengan:
+
+```bash
+journalctl -t cashflowpoly-deploy --since today
+journalctl CONTAINER_NAME=cashflowpoly-api --since "30 minutes ago"
+docker inspect cashflowpoly-api cashflowpoly-ui cashflowpoly-nginx cashflowpoly-tunnel
 ```
 
-Template production ini menggunakan Cloudflare Tunnel sebagai terminasi HTTPS. Deployment dihentikan oleh skrip kesiapan apabila token tunnel atau rahasia production belum valid.
+Jangan mengatasi kegagalan dengan `down -v`, `DROP DATABASE`, reset Seed, atau penghapusan direktori rilis secara manual.
 
-### 6.4 Verifikasi Status Setelah Deploy
-Pastikan semua kontainer berjalan dengan normal dan sehat:
+## 10. Keputusan tanpa backup
 
-```powershell
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml ps
-curl http://localhost/health
-docker logs cashflowpoly-nginx --tail 20
+Deployment tidak membuat backup database, tidak melakukan restore test, dan tidak membuat backup sebelum migrasi. Konsekuensinya, kerusakan VPS, kesalahan operator, atau migrasi destruktif dapat menyebabkan kehilangan data permanen. Rollback image tidak memulihkan schema atau data.
+
+Karena risiko tersebut diterima oleh keputusan proyek, setiap migrasi wajib:
+
+- mempunyai versi baru dan checksum yang tidak berubah setelah diterapkan;
+- lulus pada database kosong serta database baseline lama;
+- idempoten ketika mode migrasi dijalankan ulang;
+- bersifat expand/contract dan tidak bergantung pada downgrade schema.
+
+## 11. Operasi rutin
+
+```bash
+# Deploy commit prod terbaru
+/opt/cashflowpoly/repository/scripts/deploy-production.sh
+
+# Status service
+docker compose --project-name cashflowpoly ps
+
+# Log aplikasi
+journalctl CONTAINER_NAME=cashflowpoly-api --since today
+
+# Rilis aktif
+readlink -f /opt/cashflowpoly/current
 ```
 
-Ekspektasi:
-- Kontainer `db`, `api`, `ui`, dan `nginx` berstatus `healthy`.
-- Endpoint `/health` mengembalikan respons `200 OK` hanya jika UI, API, dan database siap.
-
----
-
-## 7. Pengaturan Cloudflare Tunnel
-
-Cloudflare Tunnel digunakan agar aplikasi dapat diakses secara publik melalui SSL/HTTPS tanpa harus membuka port router server secara langsung.
-
-1. Hubungkan domain `narafin.org` ke DNS Cloudflare.
-2. Pada dasbor Cloudflare, buat Named Tunnel baru dengan nama `cashflowpoly`.
-3. Tambahkan rute publik yang mengarah ke kontainer Nginx internal: `http://nginx:80`.
-4. Salin token tunnel yang diberikan Cloudflare ke file konfigurasi `config/env/.env.prod` pada variabel `CLOUDFLARE_TUNNEL_TOKEN`.
-5. Mulai kontainer dengan menyertakan profil `tunnel`.
-
-Setelah tunnel aktif, Anda dapat mengakses:
-- **Dashboard UI**: `https://narafin.org`
-- **Readiness aplikasi**: `https://narafin.org/health`
-- **Readiness API**: `https://narafin.org/health/ready`
-
-Swagger UI sengaja tidak dipublikasikan pada environment Production. Gunakan koleksi Postman atau jalankan API pada environment Development untuk melihat OpenAPI/Swagger.
-
----
-
-## 8. Manajemen Kontainer Harian
-
-Berikut daftar perintah yang sering digunakan untuk operasional:
-
-```powershell
-# Memantau log service API secara real-time
-docker logs cashflowpoly-api -f --tail 50
-
-# Merestart service backend API
-docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml restart api
-
-# Melakukan kompilasi ulang (rebuild) setelah ada perubahan kode
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml up -d --build db api ui nginx
-
-# Menghentikan seluruh service produksi
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel down
-
-# Menghentikan service dan HAPUS data database (Tindakan Destruktif)
-docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel down -v
-```
-
----
-
-## 9. Pemecahan Masalah (Troubleshooting)
-
-### 9.1 Kontainer Gagal Mencapai Status Healthy
-*   **Penyebab**: Konfigurasi connection string PostgreSQL atau JWT signing key bermasalah.
-*   **Solusi**: Periksa log API menggunakan perintah `docker logs cashflowpoly-api`. Cek kebenaran isian password DB di file `.env.prod`.
-
-### 9.2 Swagger Tidak Bisa Diakses di Produksi
-*   **Penyebab**: Swagger hanya diaktifkan pada environment Development sebagai kebijakan pengurangan permukaan informasi publik.
-*   **Solusi**: Gunakan koleksi `postman/Cashflowpoly.postman_collection.json`. Untuk inspeksi Swagger, jalankan API secara lokal dengan `ASPNETCORE_ENVIRONMENT=Development` dan buka `http://localhost:5041/swagger`.
-
-### 9.3 Backup dan Restore Database PostgreSQL (Kontainer)
-Untuk melakukan ekspor data (backup):
-```powershell
-docker exec cashflowpoly-db pg_dump -U cashflowpoly cashflowpoly > backup.sql
-```
-Untuk mengimpor kembali data (restore):
-```powershell
-Get-Content backup.sql | docker exec -i cashflowpoly-db psql -U cashflowpoly cashflowpoly
-```
+Swagger hanya aktif pada environment Development. Gunakan `postman/Cashflowpoly.postman_collection.json` atau Swagger lokal untuk inspeksi kontrak API.

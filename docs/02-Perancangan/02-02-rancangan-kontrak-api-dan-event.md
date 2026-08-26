@@ -117,9 +117,9 @@ Validasi:
 
 Efek data:
 - Mengubah status sesi menjadi `STARTED`.
-- Mengocok Tie Breaker `#1..#N`, menetapkan pemilik `#1` sebagai pemain pertama, dan memperbarui `player_order_no` mengikuti nomor kartu dalam transaksi setup yang sama.
-- Mengacak bahan awal dan misi unik setiap pemain.
-- Mengisi lima slot bahan, lima slot pesanan, dan lima slot kebutuhan Primer. Start mengembalikan `422 DOMAIN_RULE_VIOLATION` bila katalog setup tidak mencukupi atau memiliki nomor Tie Breaker duplikat.
+- Mengunci revisi setup terbaru yang sudah diperiksa Instruktur.
+- Membentuk event setup dari Tie Breaker, bahan, emas, misi, dan komponen Mahir yang benar-benar dibagikan secara fisik.
+- Menetapkan urutan peserta berdasarkan nomor Tie Breaker dan menginisialisasi projection secara atomik. Backend tidak mengacak deck/pasar atau membagikan kartu.
 
 ---
 
@@ -153,25 +153,8 @@ Efek data:
 
 ---
 
-#### 4.2.2 Pengelolaan posisi kartu dan refill pasar
-Payload draw/refill:
-```json
-{
-  "slot_group": "INGREDIENT_MARKET",
-  "slot_code": "SLOT_1",
-  "asset_type": "INGREDIENT",
-  "asset_code": "nasi_putih"
-}
-```
-
-Validasi dan efek data:
-- Ketiganya merupakan event `SYSTEM` dengan `turn_number=0` dan `action_slot=0`.
-- `AmbilKartuDariDeck` dan `IsiUlangPasar` hanya digunakan oleh setup, seed, atau proses internal. Endpoint ingest menolak pengiriman manual kedua action tersebut saat runtime.
-- `KartuMasukDiscard` mengosongkan slot pasar atau memindahkan aset pemain ke `DISCARD`.
-- Draw/refill hanya mengisi slot kosong dan memilih kartu non-bahan dari `DECK` atau `DISCARD`, tidak memindahkan kartu yang masih terbuka di slot pasar lain.
-- Khusus `INGREDIENT`, sistem tidak menghitung batas `card_qty` deck. Jika tidak ada posisi di `DECK`/`DISCARD`, projector membuat posisi logis baru; batas lima slot, maksimal dua bahan sejenis di pasar, maksimal tiga bahan sejenis di tangan, dan maksimal enam bahan total tetap berlaku.
-- Setelah aksi reguler terakhir (`action_slot=actions_per_turn`), server mengisi semua slot kosong secara atomik. Hasil refill disisipkan ke event aksi sebagai array khusus server `market_refills` dengan item `slot_group`, `slot_code`, `asset_type`, dan `asset_code`.
-- Klien yang mengirim `payload.market_refills` menerima `400 VALIDATION_ERROR`. Menyimpan hasil acak pada event sumber membuat replay memilih kartu yang sama tanpa menambah sequence event baru.
+#### 4.2.2 Batas pengetahuan kartu fisik
+Instruktur mengelola deck, kartu terbuka, discard, dan refill langsung di meja sesuai rulebook. Backend hanya mengenali katalog ruleset, setup yang dikonfirmasi, serta perubahan kepemilikan yang dilaporkan lewat event sah. Event pengelolaan deck/pasar tidak tersedia pada endpoint ingest. Data legacy terkait deck/pasar tetap tersimpan untuk histori, tetapi diabaikan oleh proyeksi dan analitik baru.
 
 ---
 
@@ -291,7 +274,7 @@ Validasi:
 - `amount > 0`.
 - `card_id` wajib diisi.
 - `points` wajib diisi (nilai poin pada kartu kebutuhan).
-- Kartu dengan `card_id` tersebut wajib sedang terbuka di `NEED_MARKET`.
+- `card_id` wajib berasal dari katalog kebutuhan ruleset; ketersediaan kartu fisik dikonfirmasi IDN saat mengirim event.
 
 Efek data:
 - Mengurangi saldo.
@@ -316,7 +299,7 @@ Validasi:
 - Total kartu bahan tidak melebihi 6.
 - Kartu bahan yang sama tidak melebihi 3.
 - `amount > 0`.
-- Kartu dengan `card_id` tersebut wajib sedang terbuka di `INGREDIENT_MARKET`.
+- `card_id` wajib berasal dari katalog bahan ruleset; ketersediaan kartu fisik dikonfirmasi IDN saat mengirim event.
 
 Efek data:
 - Mengurangi saldo.
@@ -357,7 +340,7 @@ Payload:
 Validasi:
 - Pemain memiliki semua bahan pada daftar.
 - `income > 0`.
-- Pesanan dengan `order_card_id` tersebut wajib sedang terbuka di `ORDER_MARKET`.
+- `order_card_id` wajib berasal dari katalog ruleset; ketersediaan kartu fisik dikonfirmasi oleh IDN saat mengirim event.
 
 Efek data:
 - Mengurangi inventori bahan.
@@ -365,27 +348,7 @@ Efek data:
 
 ---
 
-#### 4.5.5 `LewatiOrder`
-Payload:
-```json
-{
-  "order_card_id": "ORD-006",
-  "required_ingredient_card_ids": ["ING-003", "ING-010"],
-  "income": 13
-}
-```
-
-Validasi:
-- `income > 0`.
-- `required_ingredient_card_ids` wajib diisi.
-
-Efek data:
-- Tidak mengubah saldo.
-- Menambah catatan order yang dilewati untuk analitika.
-
----
-
-#### 4.5.6 `KerjaLepas`
+#### 4.5.5 `KerjaLepas`
 Payload:
 ```json
 {
@@ -861,10 +824,41 @@ Status code:
 
 ---
 
-### 6.3 Mulai sesi
+### 6.3 Validasi, simpan, dan revisi pembagian awal
+- Method: `POST`
+- Path validasi tanpa penyimpanan: `/api/v1/sessions/{sessionId}/setup/validate`
+- Path penyimpanan/revisi: `/api/v1/sessions/{sessionId}/setup`
+- Otorisasi: `INSTRUCTOR`
+- Request:
+```json
+{
+  "client_request_id": "idn-setup-001",
+  "players": [
+    {
+      "session_player_id": "uuid",
+      "tie_breaker_code": "TB-1",
+      "ingredient_card_id": "ING-001",
+      "gold_quantity": 1,
+      "mission_id": "MIS-001",
+      "loan_code": null,
+      "insurance_product_code": null
+    }
+  ]
+}
+```
+- Setup harus mencakup setiap peserta tepat satu kali dan seluruh kode harus berasal dari ruleset sesi.
+- Penyimpanan pertama mengunci daftar peserta dan ruleset. Selama status sesi masih `CREATED`, payload baru dengan `client_request_id` baru membuat revisi berikutnya untuk peserta/ruleset yang sama.
+- Respons revisi baru berstatus `201` dan memuat `revision`, `setup_status=EDITABLE`, `saved_at`, `locked_at=null`, serta `players`.
+- Retry dengan `client_request_id` dan payload identik mengembalikan revisi yang sama dengan status `200`. Pemakaian ID yang sama untuk payload berbeda menghasilkan `409 CLIENT_REQUEST_ID_CONFLICT`.
+- `GET /api/v1/sessions/{sessionId}/setup` membaca revisi terbaru. Start mengubah status revisi tersebut menjadi `LOCKED` dan mengisi `locked_at`; setelah start tidak ada endpoint untuk membuka kembali setup.
+
+---
+
+### 6.4 Mulai sesi
 - Method: `POST`
 - Path: `/api/v1/sessions/{sessionId}/start`
 - Otorisasi: `INSTRUCTOR`
+- Prasyarat: revisi pembagian awal terbaru dari IDN tersedia dan masih valid terhadap peserta/ruleset yang terkunci sejak revisi pertama.
 - Response 200:
 ```json
 { "status": "STARTED" }
@@ -872,7 +866,7 @@ Status code:
 
 ---
 
-### 6.4 Akhiri sesi
+### 6.5 Akhiri sesi
 - Method: `POST`
 - Path: `/api/v1/sessions/{sessionId}/end`
 - Otorisasi: `INSTRUCTOR`
@@ -883,7 +877,7 @@ Status code:
 
 ---
 
-### 6.5 Ambil state sesi
+### 6.6 Ambil state sesi
 - Method: `GET`
 - Path: `/api/v1/sessions/{sessionId}/state`
 - Otorisasi: `INSTRUCTOR`
@@ -914,7 +908,7 @@ Status code:
 
 ---
 
-### 6.6 Tulis state sesi
+### 6.7 Tulis state sesi
 - Method: `PUT`
 - Path: `/api/v1/sessions/{sessionId}/state`
 - Otorisasi: `INSTRUCTOR`
@@ -1078,14 +1072,17 @@ Status code:
 
 ### 8.3 Ambil event per sesi
 - Method: `GET`
-- Path: `/api/v1/sessions/{sessionId}/events?fromSeq=0&limit=200`
+- Path: `/api/v1/sessions/{sessionId}/events?cursor=opaque&limit=50`
 - Response 200:
 ```json
 {
-  "session_id": "uuid",
-  "events": [ { ... }, { ... } ]
+  "items": [ { ... }, { ... } ],
+  "next_cursor": "opaque-or-null",
+  "has_more": true
 }
 ```
+
+Urutan stabil memakai `sequence_number`. `limit` default 50 dan maksimum 100; cursor Base64URL yang rusak menghasilkan `400 VALIDATION_ERROR`.
 
 ---
 
@@ -1289,8 +1286,7 @@ Keterangan:
     "event_count": 120,
     "cash_in_total": 200,
     "cash_out_total": 150,
-    "cashflow_net_total": 50,
-    "rules_violations_count": 2
+    "cashflow_net_total": 50
   },
   "by_player": [
     {
@@ -1303,8 +1299,7 @@ Keterangan:
       "orders_completed_count": 3,
       "inventory_ingredient_total": 4,
       "actions_used_total": 12,
-      "compliance_primary_need_rate": 0.8,
-      "rules_violations_count": 0,
+      "fulfillment_diversity": 0.8,
       "happiness_points_total": 14,
       "need_points_total": 6,
       "need_set_bonus_points": 4,
@@ -1324,15 +1319,19 @@ Keterangan:
 
 ### 10.2 Ambil histori transaksi
 - Method: `GET`
-- Path: `/api/v1/analytics/sessions/{sessionId}/transactions?userId=uuid`
+- Path: `/api/v1/analytics/sessions/{sessionId}/transactions?userId=uuid&cursor=opaque&limit=50`
 - Response 200:
 ```json
 {
   "items": [
-    { "timestamp":"...", "direction":"OUT", "amount":5, "category":"NEED_PRIMARY" }
-  ]
+    { "transaction_id":"uuid", "timestamp":"...", "direction":"OUT", "amount":5, "category":"NEED_PRIMARY" }
+  ],
+  "next_cursor": "opaque-or-null",
+  "has_more": false
 }
 ```
+
+Urutan stabil memakai `timestamp, transaction_id`. `limit` default 50 dan maksimum 100.
 
 ---
 
@@ -1370,16 +1369,15 @@ Keterangan:
     "loan_penalty_total": 0,
     "has_unpaid_loan": false
   },
-  "compliance": {
-    "primary_need_rate": 0.8,
-    "rules_violations_count": 0
+  "needs": {
+    "fulfillment_diversity": 0.8
   }
 }
 ```
 
 Catatan:
 - Response gameplay API saat ini disajikan dalam empat kelompok:
-  `economy`, `progress`, `score`, dan `compliance`.
+  `economy`, `progress`, `score`, dan `needs`, ditambah `raw_json` serta `derived_json` agar asal data dan substitusi rumus dapat ditelusuri.
 - Snapshot JSON mentah/turunan tetap dapat disimpan pada `metric_snapshots`
   dengan nama `gameplay.raw.variables` dan `gameplay.derived.metrics` sebagai
   sumber perhitungan.
@@ -1432,7 +1430,8 @@ Catatan:
 ```
 
 Catatan: metrik operasional detail tersedia pada `GET /metrics` dalam format
-Prometheus pada service API.
+Prometheus hanya di jaringan internal service API. Nginx mengembalikan `404`
+untuk permintaan publik ke `/metrics`.
 
 ---
 
@@ -1482,4 +1481,3 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
-
