@@ -316,7 +316,8 @@ public sealed class PlayerDetailStatsLayoutTests
     [Fact]
     public void PlayerStats_HeaderBadgeAndEvidenceRows_ShouldStayVisuallyAligned()
     {
-        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
+        var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"))
+            .ReplaceLineEndings("\n");
 
         Assert.DoesNotContain(".player-detail-overhaul .player-stats-hero::after", css, StringComparison.Ordinal);
         Assert.Contains(".player-detail-overhaul .player-evidence-domain>summary {\n    display: flex;", css, StringComparison.Ordinal);
