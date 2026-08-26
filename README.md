@@ -21,6 +21,7 @@ README ini adalah pintu masuk utama untuk menjalankan, memakai, mengintegrasikan
 - [Dokumentasi teknis terpisah](#dokumentasi-teknis-terpisah)
   - [Dokumentasi REST API](README-API.md)
   - [Dokumentasi database](README-DATABASE.md)
+  - [Catatan keputusan final](CATATAN-KEPUTUSAN-FINAL.md)
 - [Pengujian dan pemeriksaan kualitas](#pengujian-dan-pemeriksaan-kualitas)
 - [Deployment produksi](#deployment-produksi)
 - [Observabilitas dan troubleshooting](#observabilitas-dan-troubleshooting)
@@ -152,6 +153,7 @@ cashflowpoly-analytics-platform/
 ├── Cashflowpoly.sln
 ├── README-API.md
 ├── README-DATABASE.md
+├── CATATAN-KEPUTUSAN-FINAL.md
 └── README.md
 ```
 
@@ -501,6 +503,7 @@ Dokumentasi teknis rinci ditempatkan pada README terpisah di root proyek:
 
 - [README-API.md](README-API.md) — autentikasi, seluruh endpoint, kontrak request/response, event, ruleset, analitika, error, dan Postman.
 - [README-DATABASE.md](README-DATABASE.md) — relasi, seluruh tabel dan view, migrasi berurutan, constraint, trigger, seed, query inspeksi, reset development, dan risiko operasi tanpa backup.
+- [CATATAN-KEPUTUSAN-FINAL.md](CATATAN-KEPUTUSAN-FINAL.md) — keputusan produk, gameplay, setup fisik, analitik, UI, infrastruktur, deployment, reset data, dan hal-hal yang sengaja tidak dipilih.
 
 API aktif memakai prefix `/api/v1`. Database kosong memakai baseline SQL lalu migrasi berurutan yang dicatat bersama checksum pada `schema_history`; instance runtime biasa tidak menjalankan migrasi. Ringkasan setup tetap berada di README utama; detail kontrak dipelihara pada kedua dokumen di atas.
 
