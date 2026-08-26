@@ -97,6 +97,8 @@ Di komputer pengembang, jalankan gerbang verifikasi lengkap:
 ./scripts/Invoke-ReleaseVerification.ps1
 ```
 
+Perintah tersebut wajib selesai tanpa parameter `-SkipBrowser`, `-SkipPerformance`, atau `-SkipDockerBuild`. Pemeriksaannya meliputi build/test .NET, kontrak OpenAPI, audit dependency, konsistensi dokumentasi, performa, migrasi dan Seed 2 development, E2E Chromium desktop/ponsel, validasi Compose, dan build image production. Kegagalan satu langkah menghentikan proses dan berarti commit belum siap dirilis.
+
 Setelah seluruh pemeriksaan lulus:
 
 ```powershell

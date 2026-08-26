@@ -592,6 +592,16 @@ Catatan:
 ## 14. Smoke Test dan Kriteria Fitur Selesai
 Checklist ini wajib dipenuhi sebagai *acceptance criteria* teknis sebelum fitur dinyatakan selesai.
 
+### 14.0 Gerbang rilis tunggal
+
+Sebelum merge dan deployment, jalankan dari root repository:
+
+```powershell
+.\scripts\Invoke-ReleaseVerification.ps1
+```
+
+Gerbang akhir wajib dijalankan tanpa parameter skip. Parameter `-SkipBrowser`, `-SkipPerformance`, dan `-SkipDockerBuild` hanya untuk mempercepat iterasi pengembangan, bukan bukti kelulusan rilis.
+
 ### 14.1 Smoke test otomatis
 1. Jalankan `docker compose up --build -d`.
 2. Jalankan build per proyek:
@@ -638,10 +648,10 @@ Fitur dinyatakan selesai jika:
 6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 
 ### 14.4 Baseline uji performa dan evidence formal
-1. Jalankan skenario request berulang ke endpoint ingest event dan analytics sesi dengan HTTP client atau tool uji beban yang tersedia.
+1. Jalankan `ReleasePerformanceIntegrationTests` yang menyiapkan 100 akun, 20 sesi aktif, 20 pengguna bersamaan, serta request berulang ke endpoint umum dan analitik.
 2. Verifikasi target minimum:
-   - P95 ingest event <= 500 ms,
-   - P95 analytics sesi <= 1500 ms,
+   - P95 API umum < 500 ms,
+   - P95 analitik < 2 detik,
    - error rate 0% pada skenario baseline.
 3. Simpan artefak pada media dokumentasi pengujian yang dipakai:
    - output build/test,

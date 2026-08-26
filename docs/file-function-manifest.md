@@ -1,6 +1,6 @@
 # Manifest Fungsi File
 
-Baseline manifest: 20 Juni 2026 (Setelah Restrukturisasi Dokumentasi).
+Baseline manifest: 26 Agustus 2026 (setelah penyelarasan rulebook dan gerbang rilis).
 
 Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususnya setelah dilakukan penyederhanaan struktur berkas dokumentasi di bawah folder `docs/`.
 
@@ -8,6 +8,8 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | Path | Kategori | Fungsi |
 |---|---|---|
 | `README.md` | Root | Entry point dokumentasi repository, setup, endpoint utama, dan tautan dokumen desain. |
+| `README-API.md` | Root | Dokumentasi kontrak API v1, autentikasi, setup, event, pagination, error, dan Postman. |
+| `README-DATABASE.md` | Root | Dokumentasi schema, relasi, migrasi berurutan, seed, operasi, dan batas rollback database. |
 | `Cashflowpoly.sln` | Root | Solution .NET untuk API, UI, dan test project. |
 | `.gitattributes` | Root | Aturan atribut Git lintas platform. |
 | `.gitignore` | Root | Daftar file/folder yang tidak dilacak Git. |
@@ -19,6 +21,10 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `infra/docker/docker-compose.prod.yml` | Infrastruktur | Override production, Nginx, dan Cloudflare Tunnel. |
 | `infra/nginx/default.conf` | Infrastruktur | Reverse proxy Nginx production untuk UI, API, health, dan static asset. |
 | `infra/cloudflared/config.yml` | Infrastruktur | Konfigurasi Cloudflare Tunnel. |
+| `scripts/Invoke-ReleaseVerification.ps1` | Otomasi | Gerbang rilis lokal untuk build, test, audit, dokumentasi, performa, E2E, Compose, migrasi, Seed 2, dan image Docker. |
+| `scripts/Test-DocumentationConsistency.ps1` | Otomasi | Memastikan README, database, Postman, endpoint, pagination, serta nama metrik tetap selaras. |
+| `scripts/Test-ProductionReadiness.ps1` | Otomasi | Memeriksa environment dan konfigurasi sebelum deployment production. |
+| `scripts/deploy-production.sh` | Otomasi | Deployment production ber-lock, migrasi, health/smoke test, dan rollback image aplikasi. |
 
 ## Database dan Integrasi
 | Path | Kategori | Fungsi |
@@ -28,6 +34,15 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `database/02_seed_simulation_sessions_events.sql` | Database | Seed simulasi manual untuk sesi dan event contoh. |
 | `postman/Cashflowpoly.postman_collection.json` | Integrasi | Collection Postman untuk smoke/API/RBAC flow. |
 | `postman/Cashflowpoly.local.postman_environment.json` | Integrasi | Environment lokal Postman. |
+
+## Pengujian Otomatis
+
+| Path | Kategori | Fungsi |
+|---|---|---|
+| `tests/Cashflowpoly.Api.Tests/OpenApiContractIntegrationTests.cs` | Contract test | Memastikan OpenAPI dan bentuk error autentikasi sesuai kontrak publik. |
+| `tests/Cashflowpoly.Api.Tests/ReleasePerformanceIntegrationTests.cs` | Performance test | Menguji 100 akun, 20 sesi aktif, dan 20 pengguna bersamaan terhadap target p95 API/analitik. |
+| `tests/e2e/playwright.config.js` | E2E | Konfigurasi Chromium desktop dan Pixel 7. |
+| `tests/e2e/specs/release-gate.spec.js` | E2E | Memeriksa login, UI nonredundan, accordion, mode Pemula, halaman sesi, dan overflow. |
 
 ## Dokumentasi (`docs/`)
 | Path | Kategori | Fungsi |

@@ -506,6 +506,26 @@ API aktif memakai prefix `/api/v1`. Database kosong memakai baseline SQL lalu mi
 
 ## Pengujian dan pemeriksaan kualitas
 
+### Gerbang rilis lengkap
+
+Jalankan satu perintah berikut sebelum commit rilis, merge ke `prod`, atau deployment:
+
+```powershell
+.\scripts\Invoke-ReleaseVerification.ps1
+```
+
+Gerbang ini menjalankan restore dan build ketat, seluruh unit/integration/contract test, audit kerentanan NuGet dan npm, pemeriksaan konsistensi dokumentasi, uji performa 100 akun/20 sesi/20 pengguna bersamaan, migrasi dan Seed 2 pada Docker development, E2E Chromium desktop dan ponsel, validasi Compose, serta build image Docker. Gunakan parameter `-SkipBrowser`, `-SkipPerformance`, atau `-SkipDockerBuild` hanya untuk iterasi lokal; pemeriksaan akhir tidak boleh memakai parameter skip.
+
+E2E dapat dijalankan tersendiri setelah aplikasi development aktif:
+
+```powershell
+Push-Location tests/e2e
+npm ci
+npx playwright install chromium
+npm test
+Pop-Location
+```
+
 ### Build ketat
 
 ```powershell
@@ -550,7 +570,7 @@ docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml
 docker compose --env-file config/env/.env.prod -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.prod.yml --profile tunnel config -q
 ```
 
-Sebelum merge/deploy, minimal lakukan build Release, unit test, UI test, integration test bila Docker tersedia, validasi Compose, dan pemeriksaan `git diff --check`.
+Perintah terpisah di atas berguna ketika mengembangkan satu modul. Sebelum merge/deploy, jalankan gerbang rilis lengkap tanpa parameter skip dan pastikan `git diff --check` bersih.
 
 ## Deployment produksi
 

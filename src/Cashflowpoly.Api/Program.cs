@@ -141,43 +141,56 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             },
             OnChallenge = async context =>
             {
-                if (context.HttpContext.Items.ContainsKey("security_auth_audit_written"))
+                context.HandleResponse();
+                if (!context.HttpContext.Items.ContainsKey("security_auth_audit_written"))
                 {
-                    return;
+                    context.HttpContext.Items["security_auth_audit_written"] = true;
+                    var audit = context.HttpContext.RequestServices.GetRequiredService<SecurityAuditService>();
+                    await audit.LogAsync(
+                        context.HttpContext,
+                        SecurityAuditEventTypes.AuthChallenge,
+                        SecurityAuditOutcomes.Denied,
+                        StatusCodes.Status401Unauthorized,
+                        new
+                        {
+                            reason = "MISSING_OR_INVALID_TOKEN"
+                        },
+                        context.HttpContext.RequestAborted);
                 }
 
-                context.HttpContext.Items["security_auth_audit_written"] = true;
-                var audit = context.HttpContext.RequestServices.GetRequiredService<SecurityAuditService>();
-                await audit.LogAsync(
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var error = ApiErrorHelper.BuildError(
                     context.HttpContext,
-                    SecurityAuditEventTypes.AuthChallenge,
-                    SecurityAuditOutcomes.Denied,
-                    StatusCodes.Status401Unauthorized,
-                    new
-                    {
-                        reason = "MISSING_OR_INVALID_TOKEN"
-                    },
-                    context.HttpContext.RequestAborted);
+                    "UNAUTHORIZED",
+                    "Token user tidak valid");
+                await context.Response.WriteAsJsonAsync(error, cancellationToken: context.HttpContext.RequestAborted);
             },
             OnForbidden = async context =>
             {
-                if (context.HttpContext.Items.ContainsKey("security_auth_audit_written"))
+                if (!context.HttpContext.Items.ContainsKey("security_auth_audit_written"))
                 {
-                    return;
+                    context.HttpContext.Items["security_auth_audit_written"] = true;
+                    var audit = context.HttpContext.RequestServices.GetRequiredService<SecurityAuditService>();
+                    await audit.LogAsync(
+                        context.HttpContext,
+                        SecurityAuditEventTypes.AuthForbidden,
+                        SecurityAuditOutcomes.Denied,
+                        StatusCodes.Status403Forbidden,
+                        new
+                        {
+                            reason = "ROLE_OR_SCOPE_FORBIDDEN"
+                        },
+                        context.HttpContext.RequestAborted);
                 }
 
-                context.HttpContext.Items["security_auth_audit_written"] = true;
-                var audit = context.HttpContext.RequestServices.GetRequiredService<SecurityAuditService>();
-                await audit.LogAsync(
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                var error = ApiErrorHelper.BuildError(
                     context.HttpContext,
-                    SecurityAuditEventTypes.AuthForbidden,
-                    SecurityAuditOutcomes.Denied,
-                    StatusCodes.Status403Forbidden,
-                    new
-                    {
-                        reason = "ROLE_OR_SCOPE_FORBIDDEN"
-                    },
-                    context.HttpContext.RequestAborted);
+                    "FORBIDDEN",
+                    "Role tidak diizinkan");
+                await context.Response.WriteAsJsonAsync(error, cancellationToken: context.HttpContext.RequestAborted);
             }
         };
     });
@@ -366,7 +379,7 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
