@@ -11,6 +11,7 @@ namespace Cashflowpoly.Api.Security;
 /// </summary>
 public sealed class JwtTokenService
 {
+    public const string DemoAccountClaim = "is_demo";
     private readonly IOptions<JwtOptions> _options;
     private readonly JwtSigningKeyProvider _signingKeyProvider;
 
@@ -44,7 +45,8 @@ public sealed class JwtTokenService
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
             new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role.ToUpperInvariant())
+            new(ClaimTypes.Role, user.Role.ToUpperInvariant()),
+            new(DemoAccountClaim, user.IsDemo ? "true" : "false")
         };
 
         var descriptor = new JwtSecurityToken(

@@ -82,11 +82,32 @@ public sealed class JwtTokenServiceTests
         Assert.Equal(user.Username, token.Claims.First(c => c.Type == ClaimTypes.Name).Value);
         Assert.Equal(user.UserId.ToString(), token.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
         Assert.Equal("PLAYER", token.Claims.First(c => c.Type == ClaimTypes.Role).Value);
+        Assert.Equal("false", token.Claims.First(c => c.Type == JwtTokenService.DemoAccountClaim).Value);
         Assert.Equal("default", token.Header.Kid);
 
         var minExpected = beforeIssue.AddMinutes(15).AddSeconds(-2);
         var maxExpected = afterIssue.AddMinutes(15).AddSeconds(2);
         Assert.InRange(issued.ExpiresAt, minExpected, maxExpected);
+    }
+
+    [Fact]
+    public void IssueToken_MarksDemoAccountWithoutChangingTokenLifetime()
+    {
+        var options = new JwtOptions
+        {
+            Issuer = "Cashflowpoly.Test.Issuer",
+            Audience = "Cashflowpoly.Test.Audience",
+            SigningKey = new string('d', 32),
+            AccessTokenMinutes = 480
+        };
+        var sut = CreateSut(options);
+        var user = new AuthenticatedUserDb(Guid.NewGuid(), "demo", "Demo", "PLAYER", true, IsDemo: true);
+
+        var issued = sut.IssueToken(user);
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(issued.AccessToken);
+
+        Assert.Equal("true", token.Claims.First(c => c.Type == JwtTokenService.DemoAccountClaim).Value);
+        Assert.InRange(issued.ExpiresAt, DateTimeOffset.UtcNow.AddHours(7.9), DateTimeOffset.UtcNow.AddHours(8.1));
     }
 
     [Fact]

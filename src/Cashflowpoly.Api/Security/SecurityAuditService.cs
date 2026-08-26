@@ -19,6 +19,11 @@ public static class SecurityAuditEventTypes
     public const string AuthForbidden = "AUTH_FORBIDDEN";
     public const string AuthFailed = "AUTH_FAILED";
     public const string RateLimited = "RATE_LIMITED";
+    public const string SetupSaved = "SETUP_SAVED";
+    public const string SessionStarted = "SESSION_STARTED";
+    public const string SessionEnded = "SESSION_ENDED";
+    public const string RulesetChanged = "RULESET_CHANGED";
+    public const string DemoActivity = "DEMO_ACTIVITY";
 }
 
 /// <summary>

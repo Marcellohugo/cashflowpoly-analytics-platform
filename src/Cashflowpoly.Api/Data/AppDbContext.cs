@@ -322,6 +322,8 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.RawPayloadJson).HasColumnName("raw_payload_json").HasColumnType("jsonb");
             entity.Property(e => e.ErrorCode).HasColumnName("error_code").HasMaxLength(40);
             entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(240);
+            entity.Property(e => e.StatusCode).HasColumnName("status_code").HasDefaultValue(422);
+            entity.Property(e => e.TraceId).HasColumnName("trace_id").HasMaxLength(64).HasDefaultValue("legacy");
             entity.Property(e => e.DetailsJson).HasColumnName("details_json").HasColumnType("jsonb");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
 
@@ -419,6 +421,8 @@ public sealed class ValidationLogEf
     public string RawPayloadJson { get; set; } = "{}";
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
+    public int StatusCode { get; set; }
+    public string TraceId { get; set; } = "legacy";
     public string? DetailsJson { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

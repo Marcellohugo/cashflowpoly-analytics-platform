@@ -260,6 +260,22 @@ public sealed class SessionRepository
     }
 
     /// <summary>
+    /// Mengambil seluruh sesi, termasuk yang diarsipkan, untuk pekerjaan pemeliharaan terkontrol.
+    /// </summary>
+    public async Task<List<SessionDb>> ListAllSessionsForMaintenanceAsync(CancellationToken ct)
+    {
+        const string sql = """
+            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
+            from sessions
+            order by created_at
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var items = await conn.QueryAsync<SessionDb>(new CommandDefinition(sql, cancellationToken: ct));
+        return items.ToList();
+    }
+
+    /// <summary>
     /// Mengambil daftar sesi milik instruktur tertentu.
     /// </summary>
     public async Task<List<SessionDb>> ListSessionsByInstructorAsync(Guid instructorUserId, CancellationToken ct)

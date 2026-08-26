@@ -101,7 +101,8 @@ public sealed class AuthController : ControllerBase
             {
                 user_id = user.UserId,
                 username = user.Username,
-                role = user.Role
+                role = user.Role,
+                is_demo = user.IsDemo
             },
             ct);
         return Ok(new LoginResponse(user.UserId, user.Username, user.Role, displayName, issued.AccessToken, issued.ExpiresAt));

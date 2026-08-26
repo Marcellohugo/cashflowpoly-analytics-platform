@@ -3,7 +3,7 @@ name: cashflowpoly-analytics-platform
 
 services:
   db:
-    image: postgres:16
+    image: postgres:16.15
     container_name: cashflowpoly-db
     restart: unless-stopped
     environment:
@@ -23,6 +23,7 @@ services:
       - cashflowpoly-net
 
   api:
+    image: cashflowpoly-api:${RELEASE_SHA:-dev}
     build:
       context: ../..
       dockerfile: src/Cashflowpoly.Api/Dockerfile
@@ -42,10 +43,11 @@ services:
       AuthBootstrap__InstructorPassword: ${AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD:-}
       AuthBootstrap__PlayerUsername: ${AUTH_BOOTSTRAP_PLAYER_USERNAME:-}
       AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}
+      DatabaseMigrations__SeedSimulation: ${DATABASE_MIGRATIONS_SEED_SIMULATION:-false}
     ports:
       - "${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}"
     volumes:
-      - cashflowpoly_api_dpkeys:/root/.aspnet/DataProtection-Keys
+      - cashflowpoly_api_dpkeys:/home/app/.aspnet/DataProtection-Keys
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:${API_HTTP_PORT:-5041}/health/ready > /dev/null || exit 1"]
       interval: 10s
@@ -59,6 +61,7 @@ services:
       - cashflowpoly-net
 
   ui:
+    image: cashflowpoly-ui:${RELEASE_SHA:-dev}
     build:
       context: ../..
       dockerfile: src/Cashflowpoly.Ui/Dockerfile
@@ -72,7 +75,7 @@ services:
     ports:
       - "${UI_HTTP_PORT:-5203}:${UI_HTTP_PORT:-5203}"
     volumes:
-      - cashflowpoly_ui_dpkeys:/root/.aspnet/DataProtection-Keys
+      - cashflowpoly_ui_dpkeys:/home/app/.aspnet/DataProtection-Keys
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:${UI_HTTP_PORT:-5203}/health/ready > /dev/null || exit 1"]
       interval: 10s

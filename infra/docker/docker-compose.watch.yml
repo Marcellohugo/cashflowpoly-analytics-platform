@@ -18,8 +18,8 @@ services:
       DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
     volumes:
       - ../../:/src
-      - cashflowpoly_api_dpkeys:/root/.aspnet/DataProtection-Keys
-      - cashflowpoly_nuget:/root/.nuget/packages
+      - cashflowpoly_api_dpkeys:/home/app/.aspnet/DataProtection-Keys
+      - cashflowpoly_nuget:/home/app/.nuget/packages
       - cashflowpoly_api_bin:/src/src/Cashflowpoly.Api/bin
       - cashflowpoly_api_obj:/src/src/Cashflowpoly.Api/obj
 
@@ -46,8 +46,8 @@ services:
       DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
     volumes:
       - ../../:/src
-      - cashflowpoly_ui_dpkeys:/root/.aspnet/DataProtection-Keys
-      - cashflowpoly_nuget:/root/.nuget/packages
+      - cashflowpoly_ui_dpkeys:/home/app/.aspnet/DataProtection-Keys
+      - cashflowpoly_nuget:/home/app/.nuget/packages
       - cashflowpoly_ui_node_modules:/src/src/Cashflowpoly.Ui/node_modules
       - cashflowpoly_ui_bin:/src/src/Cashflowpoly.Ui/bin
       - cashflowpoly_ui_obj:/src/src/Cashflowpoly.Ui/obj

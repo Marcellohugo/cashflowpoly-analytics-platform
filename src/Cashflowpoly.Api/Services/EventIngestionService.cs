@@ -60,7 +60,6 @@ internal sealed class EventIngestionService : IEventIngestionService
     private readonly UserRepository _users;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IEventPayloadReader _payloadReader;
-    private readonly IEventValidationDetailsSerializer _validationSerializer;
     private readonly IEventRecordMapper _recordMapper;
     private readonly IEventRequestShapeValidator _shapeValidator;
     private readonly IEventCashflowProjectionBuilder _projectionBuilder;
@@ -83,7 +82,6 @@ internal sealed class EventIngestionService : IEventIngestionService
         UserRepository users,
         IHttpContextAccessor httpContextAccessor,
         IEventPayloadReader payloadReader,
-        IEventValidationDetailsSerializer validationSerializer,
         IEventRecordMapper recordMapper,
         IEventRequestShapeValidator shapeValidator,
         IEventCashflowProjectionBuilder projectionBuilder,
@@ -105,7 +103,6 @@ internal sealed class EventIngestionService : IEventIngestionService
         _users = users;
         _httpContextAccessor = httpContextAccessor;
         _payloadReader = payloadReader;
-        _validationSerializer = validationSerializer;
         _recordMapper = recordMapper;
         _shapeValidator = shapeValidator;
         _projectionBuilder = projectionBuilder;
@@ -135,10 +132,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                 enrichedRequest.SessionId,
                 enrichedRequest.EventId,
                 enrichedRequest.RulesetVersionId,
-                enrichedRequest.Payload.GetRawText(),
                 validation.Error?.ErrorCode,
                 validation.Error?.Message,
-                _validationSerializer.BuildValidationDetailsJson(enrichedRequest, validation.Error),
+                validation.StatusCode,
+                validation.Error?.TraceId ?? "unknown",
                 ct);
 
             return (null, validation.StatusCode, validation.Error);
@@ -152,14 +149,30 @@ internal sealed class EventIngestionService : IEventIngestionService
         catch (PostgresException ex) when (ex.SqlState == "23505")
         {
             var error = BuildError("DUPLICATE", "Event sudah ada");
-            await _events.InsertValidationLogAsync(enrichedRequest.SessionId, enrichedRequest.EventId, enrichedRequest.RulesetVersionId, enrichedRequest.Payload.GetRawText(), error.ErrorCode, error.Message,
-                _validationSerializer.BuildValidationDetailsJson(enrichedRequest, error), ct);
+            await _events.InsertValidationLogAsync(
+                enrichedRequest.SessionId,
+                enrichedRequest.EventId,
+                enrichedRequest.RulesetVersionId,
+                error.ErrorCode,
+                error.Message,
+                StatusCodes.Status409Conflict,
+                error.TraceId,
+                ct);
             return (null, StatusCodes.Status409Conflict, error);
         }
         catch (PostgresException ex) when (ex.SqlState == "23514")
         {
             _logger.LogWarning(ex, "Database rejected gameplay event {EventId} for session {SessionId}", enrichedRequest.EventId, enrichedRequest.SessionId);
             var error = BuildError("DOMAIN_RULE_VIOLATION", "Aktivitas ditolak karena melanggar aturan permainan");
+            await _events.InsertValidationLogAsync(
+                enrichedRequest.SessionId,
+                enrichedRequest.EventId,
+                enrichedRequest.RulesetVersionId,
+                error.ErrorCode,
+                error.Message,
+                StatusCodes.Status422UnprocessableEntity,
+                error.TraceId,
+                ct);
             return (null, StatusCodes.Status422UnprocessableEntity, error);
         }
     }
@@ -199,10 +212,10 @@ internal sealed class EventIngestionService : IEventIngestionService
                     enrichedRequest.SessionId,
                     enrichedRequest.EventId,
                     enrichedRequest.RulesetVersionId,
-                    enrichedRequest.Payload.GetRawText(),
                     validation.Error?.ErrorCode,
                     validation.Error?.Message,
-                    _validationSerializer.BuildValidationDetailsJson(enrichedRequest, validation.Error),
+                    validation.StatusCode,
+                    validation.Error?.TraceId ?? "unknown",
                     ct);
                 continue;
             }
@@ -216,13 +229,30 @@ internal sealed class EventIngestionService : IEventIngestionService
             {
                 failed.Add(new EventBatchFailed(enrichedRequest.EventId, "DUPLICATE"));
                 var dupError = BuildError("DUPLICATE", "Event sudah ada");
-                await _events.InsertValidationLogAsync(enrichedRequest.SessionId, enrichedRequest.EventId, enrichedRequest.RulesetVersionId, enrichedRequest.Payload.GetRawText(), dupError.ErrorCode, dupError.Message,
-                    _validationSerializer.BuildValidationDetailsJson(enrichedRequest, dupError), ct);
+                await _events.InsertValidationLogAsync(
+                    enrichedRequest.SessionId,
+                    enrichedRequest.EventId,
+                    enrichedRequest.RulesetVersionId,
+                    dupError.ErrorCode,
+                    dupError.Message,
+                    StatusCodes.Status409Conflict,
+                    dupError.TraceId,
+                    ct);
             }
             catch (PostgresException ex) when (ex.SqlState == "23514")
             {
                 _logger.LogWarning(ex, "Database rejected gameplay event {EventId} from batch for session {SessionId}", enrichedRequest.EventId, enrichedRequest.SessionId);
                 failed.Add(new EventBatchFailed(enrichedRequest.EventId, "DOMAIN_RULE_VIOLATION"));
+                var domainError = BuildError("DOMAIN_RULE_VIOLATION", "Aktivitas ditolak karena melanggar aturan permainan");
+                await _events.InsertValidationLogAsync(
+                    enrichedRequest.SessionId,
+                    enrichedRequest.EventId,
+                    enrichedRequest.RulesetVersionId,
+                    domainError.ErrorCode,
+                    domainError.Message,
+                    StatusCodes.Status422UnprocessableEntity,
+                    domainError.TraceId,
+                    ct);
             }
         }
 

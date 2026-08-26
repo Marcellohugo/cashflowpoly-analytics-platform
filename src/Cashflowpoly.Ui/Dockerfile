@@ -1,6 +1,6 @@
 # Fungsi file: Membangun aset frontend dan image production UI MVC secara multi-stage.
 # assets
-FROM node:20-alpine AS assets
+FROM node:20.19.5-alpine AS assets
 WORKDIR /src/src/Cashflowpoly.Ui
 
 COPY src/Cashflowpoly.Ui/package.json src/Cashflowpoly.Ui/package-lock.json ./
@@ -10,7 +10,7 @@ COPY src/Cashflowpoly.Ui/ ./
 RUN npm run tailwind:build
 
 # build
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.200 AS build
 WORKDIR /src
 
 COPY Cashflowpoly.sln ./
@@ -22,11 +22,14 @@ COPY --from=assets /src/src/Cashflowpoly.Ui/wwwroot/css/tailwind.css src/Cashflo
 RUN dotnet publish src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release -o /app/publish
 
 # runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.4 AS runtime
 WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=build /app/publish .
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /home/app/.aspnet/DataProtection-Keys \
+    && chown -R app:app /home/app/.aspnet
+COPY --from=build --chown=app:app /app/publish .
+USER app
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Cashflowpoly.Ui.dll"]

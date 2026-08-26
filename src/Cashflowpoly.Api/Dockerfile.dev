@@ -1,10 +1,16 @@
 # dev runtime
-FROM mcr.microsoft.com/dotnet/sdk:10.0
+FROM mcr.microsoft.com/dotnet/sdk:10.0.200
 
 WORKDIR /src
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /src/src/Cashflowpoly.Api/bin /src/src/Cashflowpoly.Api/obj /home/app/.nuget/packages /home/app/.aspnet/DataProtection-Keys \
+    && chown -R app:app /src /home/app
 
 ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
-    DOTNET_WATCH_SUPPRESS_EMOJIS=1
+    DOTNET_WATCH_SUPPRESS_EMOJIS=1 \
+    HOME=/home/app \
+    NUGET_PACKAGES=/home/app/.nuget/packages
+
+USER app

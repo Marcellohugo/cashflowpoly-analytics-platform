@@ -5,7 +5,7 @@ loglevel: debug
 
 ingress:
   - hostname: narafin.org
-    service: http://nginx:80
+    service: http://nginx:8080
     originRequest:
       noTLSVerify: true
       connectTimeout: 10s

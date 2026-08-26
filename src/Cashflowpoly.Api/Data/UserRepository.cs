@@ -7,7 +7,13 @@ namespace Cashflowpoly.Api.Data;
 /// <summary>
 /// Record data user yang berhasil diautentikasi: ID, username, display name, role, dan status aktif.
 /// </summary>
-public sealed record AuthenticatedUserDb(Guid UserId, string Username, string DisplayName, string Role, bool IsActive);
+public sealed record AuthenticatedUserDb(
+    Guid UserId,
+    string Username,
+    string DisplayName,
+    string Role,
+    bool IsActive,
+    bool IsDemo = false);
 
 /// <summary>
 /// Repository untuk autentikasi user aplikasi dan identitas player berbasis app_users.
@@ -24,7 +30,7 @@ public sealed class UserRepository
     public async Task<AuthenticatedUserDb?> AuthenticateAsync(string username, string password, CancellationToken ct)
     {
         const string sql = """
-            select user_id, username, display_name, role, is_active
+            select user_id, username, display_name, role, is_active, is_demo
             from app_users
             where username = @username
               and is_active = true
@@ -56,7 +62,7 @@ public sealed class UserRepository
         const string sql = """
             insert into app_users (user_id, username, display_name, password_hash, role, is_active, created_at)
             values (@userId, @username, @displayName, crypt(@password, gen_salt('bf', 10)), @role, true, now())
-            returning user_id, username, display_name, role, is_active
+            returning user_id, username, display_name, role, is_active, is_demo
             """;
 
         var userId = Guid.NewGuid();

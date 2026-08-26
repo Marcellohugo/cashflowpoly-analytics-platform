@@ -265,10 +265,10 @@ public sealed class EventRepository
         Guid sessionId,
         Guid eventId,
         Guid? rulesetVersionId,
-        string rawPayloadJson,
         string? errorCode,
         string? errorMessage,
-        string? detailsJson,
+        int statusCode,
+        string traceId,
         CancellationToken ct)
     {
         const string sql = """
@@ -280,6 +280,8 @@ public sealed class EventRepository
                 raw_payload_json,
                 error_code,
                 error_message,
+                status_code,
+                trace_id,
                 details_json,
                 created_at
             )
@@ -288,10 +290,12 @@ public sealed class EventRepository
                 @sessionId,
                 @rulesetVersionId,
                 @eventId,
-                @rawPayloadJson::jsonb,
+                '{}'::jsonb,
                 @errorCode,
                 @errorMessage,
-                @detailsJson::jsonb,
+                @statusCode,
+                @traceId,
+                '{}'::jsonb,
                 @createdAt
             )
             on conflict (session_id, event_id) do nothing
@@ -304,10 +308,10 @@ public sealed class EventRepository
             sessionId,
             eventId,
             rulesetVersionId,
-            rawPayloadJson = string.IsNullOrWhiteSpace(rawPayloadJson) ? "{}" : rawPayloadJson,
             errorCode,
             errorMessage,
-            detailsJson,
+            statusCode,
+            traceId = string.IsNullOrWhiteSpace(traceId) ? "unknown" : traceId,
             createdAt = DateTimeOffset.UtcNow
         }, cancellationToken: ct));
     }

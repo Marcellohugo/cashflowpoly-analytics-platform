@@ -24,6 +24,7 @@ using Cashflowpoly.Api.Infrastructure.Telemetry;
 var builder = WebApplication.CreateBuilder(args);
 var bypassOperationalRateLimit = builder.Environment.IsEnvironment("Testing");
 var migrateOnly = args.Any(argument => string.Equals(argument, "--migrate-only", StringComparison.OrdinalIgnoreCase));
+var recalculateAnalytics = args.Any(argument => string.Equals(argument, "--recalculate-analytics", StringComparison.OrdinalIgnoreCase));
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 Activity.DefaultIdFormat = ActivityIdFormat.W3C;
@@ -227,6 +228,7 @@ builder.Services.AddOpenTelemetry()
         .AddPrometheusExporter());
 var postgresDataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
 builder.Services.AddSingleton(postgresDataSource);
+builder.Services.AddHostedService<LogRetentionWorker>();
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseNpgsql(serviceProvider.GetRequiredService<Npgsql.NpgsqlDataSource>()));
 builder.Services.AddScoped<RulesetRepository>();
@@ -251,7 +253,6 @@ builder.Services.AddScoped<IEventPayloadReader, EventPayloadReader>();
 builder.Services.AddScoped<IGameplaySnapshotBuilder, GameplaySnapshotBuilder>();
 builder.Services.AddScoped<IEventCashflowProjectionBuilder, EventCashflowProjectionBuilder>();
 builder.Services.AddScoped<IEventRecordMapper, EventRecordMapper>();
-builder.Services.AddScoped<IEventValidationDetailsSerializer, EventValidationDetailsSerializer>();
 builder.Services.AddScoped<IEventRequestShapeValidator, EventRequestShapeValidator>();
 builder.Services.AddScoped<IEventSimpleActionValidator, EventSimpleActionValidator>();
 builder.Services.AddScoped<IEventTurnProgressValidator, EventTurnProgressValidator>();
@@ -295,6 +296,44 @@ using (var scope = app.Services.CreateScope())
         await SeedBootstrapUserAsync(seedConn, bootstrapOptions.InstructorUsername, bootstrapOptions.InstructorPassword, "INSTRUCTOR", CancellationToken.None);
         await SeedBootstrapUserAsync(seedConn, bootstrapOptions.PlayerUsername, bootstrapOptions.PlayerPassword, "PLAYER", CancellationToken.None);
     }
+}
+
+if (recalculateAnalytics)
+{
+    using var scope = app.Services.CreateScope();
+    var sessions = await scope.ServiceProvider.GetRequiredService<SessionRepository>()
+        .ListAllSessionsForMaintenanceAsync(CancellationToken.None);
+    var analytics = scope.ServiceProvider.GetRequiredService<Cashflowpoly.Api.Services.IAnalyticsService>();
+    var httpContextAccessor = scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+    var recalculationLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("AnalyticsRecalculation");
+
+    var recalculatedCount = 0;
+    foreach (var session in sessions.Where(item => item.InstructorUserId.HasValue))
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.NameIdentifier, session.InstructorUserId!.Value.ToString()),
+            new Claim(ClaimTypes.Role, "INSTRUCTOR")
+        ], "maintenance"));
+        httpContextAccessor.HttpContext = new DefaultHttpContext
+        {
+            User = principal,
+            TraceIdentifier = $"recalculate-{session.SessionId:N}"
+        };
+
+        var (_, statusCode, error) = await analytics.RecomputeAsync(session.SessionId, principal, CancellationToken.None);
+        if (statusCode != StatusCodes.Status200OK)
+        {
+            throw new InvalidOperationException(
+                $"Rekalkulasi analitik sesi {session.SessionId} gagal: {error?.ErrorCode ?? statusCode.ToString()}.");
+        }
+
+        recalculatedCount++;
+    }
+
+    recalculationLogger.LogInformation("Recalculated analytics for {SessionCount} sessions", recalculatedCount);
+    return;
 }
 
 var requestLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("RequestAudit");
@@ -392,6 +431,34 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode is < 200 or >= 300)
+    {
+        return;
+    }
+
+    var isDemo = string.Equals(
+        context.User.FindFirstValue(JwtTokenService.DemoAccountClaim),
+        "true",
+        StringComparison.OrdinalIgnoreCase);
+    var eventType = ResolveOperationalAuditEvent(context.Request.Method, context.Request.Path, isDemo);
+    if (eventType is null)
+    {
+        return;
+    }
+
+    var audit = context.RequestServices.GetRequiredService<SecurityAuditService>();
+    await audit.LogAsync(
+        context,
+        eventType,
+        SecurityAuditOutcomes.Success,
+        context.Response.StatusCode,
+        new { is_demo = isDemo },
+        CancellationToken.None);
+});
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
@@ -405,6 +472,41 @@ app.MapControllers().RequireRateLimiting("api");
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
+
+static string? ResolveOperationalAuditEvent(string method, PathString path, bool isDemo)
+{
+    var pathValue = path.Value ?? string.Empty;
+    var modifiesState = HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsDelete(method);
+    if (!modifiesState)
+    {
+        return null;
+    }
+
+    if (HttpMethods.IsPost(method) &&
+        pathValue.EndsWith("/setup", StringComparison.OrdinalIgnoreCase))
+    {
+        return SecurityAuditEventTypes.SetupSaved;
+    }
+
+    if (HttpMethods.IsPost(method) &&
+        pathValue.EndsWith("/start", StringComparison.OrdinalIgnoreCase))
+    {
+        return SecurityAuditEventTypes.SessionStarted;
+    }
+
+    if (HttpMethods.IsPost(method) &&
+        pathValue.EndsWith("/end", StringComparison.OrdinalIgnoreCase))
+    {
+        return SecurityAuditEventTypes.SessionEnded;
+    }
+
+    if (path.StartsWithSegments("/api/v1/rulesets", StringComparison.OrdinalIgnoreCase))
+    {
+        return SecurityAuditEventTypes.RulesetChanged;
+    }
+
+    return isDemo ? SecurityAuditEventTypes.DemoActivity : null;
+}
 
 static async Task SeedBootstrapUserAsync(
     Npgsql.NpgsqlConnection conn,
