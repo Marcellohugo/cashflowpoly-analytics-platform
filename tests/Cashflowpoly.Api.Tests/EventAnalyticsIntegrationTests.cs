@@ -1112,6 +1112,31 @@ public sealed class EventAnalyticsIntegrationTests
         }, instructorToken);
         Assert.Equal(HttpStatusCode.Created, riskResponse.StatusCode);
 
+        var unrelatedActionResponse = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = Guid.NewGuid(),
+            session_id = setup.SessionId,
+            user_id = setup.ActingUserId,
+            actor_type = "PLAYER",
+            timestamp = now.AddSeconds(2),
+            day_index = 1,
+            weekday = "MON",
+            turn_number = 1,
+            action_slot = 2,
+            sequence_number = sequence + 2,
+            action_type = "KerjaLepas",
+            ruleset_version_id = setup.RulesetVersionId,
+            payload = new { amount = 1 }
+        }, instructorToken);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, unrelatedActionResponse.StatusCode);
+        using (var unrelatedActionBody = await ReadJsonAsync(unrelatedActionResponse))
+        {
+            Assert.Contains(
+                "Selesaikan risiko pengeluaran pemain",
+                unrelatedActionBody.RootElement.GetProperty("message").GetString(),
+                StringComparison.Ordinal);
+        }
+
         var pendingTurnEnd = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
         {
             event_id = Guid.NewGuid(),

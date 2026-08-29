@@ -56,6 +56,18 @@ public sealed class ManualSimulationSeedIntegrationTests
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginBody.AccessToken);
 
+            foreach (var sessionId in new[]
+                     {
+                         Guid.Parse("91000000-0000-0000-0000-000000000001"),
+                         Guid.Parse("91000000-0000-0000-0000-000000000002")
+                     })
+            {
+                var recomputeResponse = await client.PostAsync(
+                    $"/api/v1/analytics/sessions/{sessionId}/recompute",
+                    content: null);
+                Assert.Equal(HttpStatusCode.OK, recomputeResponse.StatusCode);
+            }
+
             var seedMahirSessionId = Guid.Parse("91000000-0000-0000-0000-000000000002");
             var seedPlayer1UserId = Guid.Parse("90000000-0000-0000-0000-000000000011");
             var txResponse = await client.GetAsync($"/api/v1/analytics/sessions/{seedMahirSessionId}/transactions?userId={seedPlayer1UserId}");
@@ -73,6 +85,11 @@ public sealed class ManualSimulationSeedIntegrationTests
             Assert.True(gameplayBody.Economy.StartingCash > 0);
             Assert.True(gameplayBody.Economy.CashInTotal >= 0);
             Assert.True(gameplayBody.Progress.ActionsUsedTotal >= 0);
+            Assert.Equal(15, gameplayBody.RawJson!.Value.GetProperty("ingredients").GetProperty("ingredients_collected").GetInt32());
+            Assert.Equal(13, gameplayBody.RawJson.Value.GetProperty("ingredients").GetProperty("ingredients_used_total").GetInt32());
+            Assert.Equal(34, gameplayBody.RawJson.Value.GetProperty("ingredients").GetProperty("ingredient_investment_coins_total").GetInt32());
+            Assert.Equal(28.57, gameplayBody.DerivedJson!.Value.GetProperty("business_expense_share_percent").GetDouble(), 2);
+            Assert.Equal(68.13, gameplayBody.DerivedJson.Value.GetProperty("meal_order_profit_margin_percent").GetDouble(), 2);
         });
 
         await using var connection = new NpgsqlConnection(database.GetConnectionString());
@@ -458,30 +475,12 @@ public sealed class ManualSimulationSeedIntegrationTests
         Assert.Contains("RisikoKehidupan", mahirActions);
         Assert.Contains("BayarRisiko", mahirActions);
         Assert.Contains("Asuransi", mahirActions);
-        Assert.Contains("GunakanOpsiDarurat", mahirActions);
+        Assert.DoesNotContain("GunakanOpsiDarurat", mahirActions);
         Assert.DoesNotContain("AmbilKartuDariDeck", mahirActions);
         Assert.DoesNotContain("KartuDiambilDariPasar", mahirActions);
         Assert.DoesNotContain("KartuMasukDiscard", mahirActions);
         Assert.DoesNotContain("IsiUlangPasar", mahirActions);
         Assert.DoesNotContain("LewatiOrder", mahirActions);
-
-        var emergencyOptions = (await connection.QueryAsync<string>(
-            """
-            select upper(e.payload->>'option_type')
-            from sessions s
-            join events e on e.session_id = s.session_id
-            where s.session_name = @mahirSessionName
-              and e.action_type = 'GunakanOpsiDarurat'
-              and e.actor_type = 'PLAYER'
-              and e.action_slot = 0
-              and e.payload ? 'risk_event_id'
-            """,
-            new { mahirSessionName = SeedMahirSessionName }))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        Assert.Equal(
-            new[] { "SELL_NEED", "TAKE_SHARIA_LOAN" },
-            emergencyOptions.OrderBy(option => option));
 
         var relationalReadModelCounts = await connection.QuerySingleAsync<RelationalReadModelCountRow>(
             """
@@ -607,6 +606,46 @@ public sealed class ManualSimulationSeedIntegrationTests
                 mahirSessionName = SeedMahirSessionName
             });
         Assert.Equal(0, unmatchedInsuranceUseCount);
+
+        var delayedPersonalRiskResolutionCount = await connection.ExecuteScalarAsync<int>(
+            """
+            with personal_risks as (
+              select
+                risk_event.session_id,
+                risk_event.event_id,
+                risk_event.user_id,
+                risk_event.sequence_number
+              from sessions s
+              join events risk_event on risk_event.session_id = s.session_id
+              join ruleset_life_risks risk
+                on risk.ruleset_version_id = risk_event.ruleset_version_id
+               and lower(risk.risk_code) = lower(risk_event.payload->>'risk_id')
+              where s.session_name = @mahirSessionName
+                and risk_event.action_type = 'RisikoKehidupan'
+                and risk.effect_type = 'COIN_EFFECT'
+                and risk.direction = 'OUT'
+                and risk.target_scope = 'SELF'
+            ),
+            resolved_risks as (
+              select
+                risk.event_id,
+                risk.sequence_number as risk_sequence,
+                min(resolution.sequence_number) as resolution_sequence
+              from personal_risks risk
+              left join events resolution
+                on resolution.session_id = risk.session_id
+               and resolution.user_id = risk.user_id
+               and resolution.action_type in ('Asuransi', 'BayarRisiko', 'GunakanOpsiDarurat', 'PinjamanSyariah')
+               and resolution.payload->>'risk_event_id' = risk.event_id::text
+              group by risk.event_id, risk.sequence_number
+            )
+            select count(*)::int
+            from resolved_risks
+            where resolution_sequence is null
+               or resolution_sequence <> risk_sequence + 1
+            """,
+            new { mahirSessionName = SeedMahirSessionName });
+        Assert.Equal(0, delayedPersonalRiskResolutionCount);
 
         var insuredRiskNetCostCount = await connection.ExecuteScalarAsync<int>(
             """
@@ -790,6 +829,87 @@ public sealed class ManualSimulationSeedIntegrationTests
             Assert.True(row.RawSnapshotCount > 0, $"{row.SessionName}/{row.UserId} tidak punya snapshot gameplay raw.");
             Assert.True(row.DerivedSnapshotCount > 0, $"{row.SessionName}/{row.UserId} tidak punya snapshot gameplay derived.");
             Assert.Equal(0, row.EmptyPayloadCount);
+        });
+
+        var snapshotInvariants = (await connection.QueryAsync<SnapshotInvariantRow>(
+            """
+            with raw_snapshots as (
+                select
+                    s.session_name,
+                    sp.user_id,
+                    ms.metric_payload_json as raw
+                from sessions s
+                join session_participants sp on sp.session_id = s.session_id
+                join metric_snapshots ms
+                  on ms.session_id = sp.session_id
+                 and ms.user_id = sp.user_id
+                 and ms.session_player_id = sp.session_participant_id
+                 and ms.metric_name = 'gameplay.raw.variables'
+                where s.session_name in (@pemulaSessionName, @mahirSessionName)
+            )
+            select
+                session_name,
+                user_id,
+                (raw#>>'{ingredients,ingredients_collected}')::int
+                  - (raw#>>'{ingredients,ingredients_used_total}')::int
+                  - (raw#>>'{ingredients,ingredients_held_current}')::int
+                  - (raw#>>'{ingredients,ingredients_wasted}')::int as ingredient_difference,
+                (raw#>>'{gold,gold_cards_initial}')::int
+                  + (raw#>>'{gold,gold_cards_purchased}')::int
+                  - (raw#>>'{gold,gold_cards_sold}')::int
+                  - (raw#>>'{gold,gold_cards_held_end}')::int as gold_difference,
+                (raw#>>'{donations,donation_total_coins}')::int
+                  - coalesce((
+                      select sum((item->>'amount')::int)
+                      from jsonb_array_elements(raw#>'{donations,donation_amount_per_friday}') item
+                    ), 0)::int as donation_difference,
+                (raw#>>'{meal_orders,meal_order_income_total}')::int
+                  - coalesce((
+                      select sum((item#>>'{}')::int)
+                      from jsonb_array_elements(raw#>'{meal_orders,meal_order_income_per_order}') item
+                    ), 0)::int as order_income_difference,
+                (raw#>>'{ingredients,ingredients_used_total}')::int
+                  - coalesce((
+                      select sum((item#>>'{}')::int)
+                      from jsonb_array_elements(raw#>'{ingredients,ingredients_used_per_meal}') item
+                    ), 0)::int as ingredient_use_difference,
+                coalesce((raw#>>'{life_risk,life_risk_costs_total}')::int, 0)
+                  - coalesce((
+                      select sum((item#>>'{}')::int)
+                      from jsonb_array_elements(coalesce(raw#>'{life_risk,life_risk_costs_per_card}', '[]'::jsonb)) item
+                    ), 0)::int as risk_cost_difference,
+                (raw#>>'{meal_orders,meal_orders_claimed}')::int
+                  - jsonb_array_length(raw#>'{meal_orders,meal_order_income_per_order}') as order_count_difference,
+                (raw#>>'{coins,starting_coins}')::int
+                  + coalesce((
+                      select sum((item->>'amount')::int)
+                      from jsonb_array_elements(raw#>'{coins,coins_earned_per_turn}') item
+                    ), 0)::int
+                  - coalesce((
+                      select sum((item->>'amount')::int)
+                      from jsonb_array_elements(raw#>'{coins,coins_spent_per_turn}') item
+                    ), 0)::int
+                  - (raw#>>'{coins,coins_held_current}')::int as cash_difference
+            from raw_snapshots
+            order by session_name, user_id
+            """,
+            new
+            {
+                pemulaSessionName = SeedPemulaSessionName,
+                mahirSessionName = SeedMahirSessionName
+            })).ToList();
+
+        Assert.Equal(8, snapshotInvariants.Count);
+        Assert.All(snapshotInvariants, row =>
+        {
+            Assert.Equal(0, row.IngredientDifference);
+            Assert.Equal(0, row.GoldDifference);
+            Assert.Equal(0, row.DonationDifference);
+            Assert.Equal(0, row.OrderIncomeDifference);
+            Assert.Equal(0, row.IngredientUseDifference);
+            Assert.Equal(0, row.RiskCostDifference);
+            Assert.Equal(0, row.OrderCountDifference);
+            Assert.Equal(0, row.CashDifference);
         });
 
         await AssertScenarioReplayIsValidAsync(connection);
@@ -1811,6 +1931,20 @@ public sealed class ManualSimulationSeedIntegrationTests
         public int RawSnapshotCount { get; init; }
         public int DerivedSnapshotCount { get; init; }
         public int EmptyPayloadCount { get; init; }
+    }
+
+    private sealed class SnapshotInvariantRow
+    {
+        public string SessionName { get; init; } = string.Empty;
+        public Guid UserId { get; init; }
+        public int IngredientDifference { get; init; }
+        public int GoldDifference { get; init; }
+        public int DonationDifference { get; init; }
+        public int OrderIncomeDifference { get; init; }
+        public int IngredientUseDifference { get; init; }
+        public int RiskCostDifference { get; init; }
+        public int OrderCountDifference { get; init; }
+        public int CashDifference { get; init; }
     }
 
     private sealed class PlayerSetupProjectionRow

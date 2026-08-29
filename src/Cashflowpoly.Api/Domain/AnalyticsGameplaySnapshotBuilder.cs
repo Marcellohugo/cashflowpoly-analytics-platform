@@ -12,6 +12,7 @@ public sealed record AnalyticsGameplaySnapshot(string RawJson, string DerivedJso
 internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
 {
     private static readonly AnalyticsPayloadReader _payloadReader = new();
+    private static readonly EventPayloadReader _eventPayloadReader = new();
     private static readonly CashTimelineCalculator _cashTimeline = new();
     private static readonly DonationGameplayCalculator _donationCalc = new();
     private static readonly SavingGoalCalculator _savingGoalCalc = new();
@@ -37,7 +38,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var notesDerived = new List<string>();
 
         var cashTimeline = _cashTimeline.Compute(
-            playerEvents,
+            allEvents,
             playerProjections,
             config?.StartingCash ?? 0);
         var startingCoins = cashTimeline.StartingCoins;
@@ -90,7 +91,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             playerProjections,
             startingCoins,
             coinsNetEndGame,
-            cashInTotal);
+            cashInTotal,
+            config?.LifeRisks);
 
         var actionMetrics = _actionUsageCalc.Compute(
             playerEvents,
@@ -189,6 +191,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             },
             gold = new
             {
+                gold_cards_initial = goldMetrics.InitialGoldQty,
                 gold_cards_purchased = goldMetrics.GoldBuyQty,
                 gold_cards_sold = goldMetrics.GoldSellQty,
                 gold_cards_held_end = goldMetrics.GoldHeldEnd,
@@ -241,7 +244,10 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 coins_per_turn_progression = cashTimeline.CoinsProgression,
                 net_income_per_turn = cashTimeline.NetIncomePerTurn,
                 day_when_debt_introduced = playerEvents
-                    .Where(e => e.ActionType == "PinjamanSyariah")
+                    .Where(e => e.ActionType == GameActionCatalog.PinjamanSyariah ||
+                                e.ActionType == GameActionCatalog.SetupPinjamanAwal ||
+                                (e.ActionType == GameActionCatalog.RiskEmergencyUsed &&
+                                 _payloadReader.TryReadLoanTaken(e.Payload, out _, out _, out _)))
                     .Select(e => (int?)e.DayIndex)
                     .OrderBy(t => t)
                     .FirstOrDefault(),
@@ -373,7 +379,10 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
 
         if (string.Equals(config?.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase))
         {
-            var risksResolvedWithoutEmergency = Math.Max(0, riskLoanMetrics.RiskCardsDrawn - riskLoanMetrics.EmergencyOptionsUsed);
+            var risksResolvedWithoutEmergency = CountRisksResolvedWithoutEmergency(
+                playerEvents,
+                playerProjections,
+                config!.LifeRisks);
             var liquidAssets = Math.Max(0, coinsHeldCurrent) + Math.Max(0, coinsSaved);
             var attemptedGoalIds = savingGoalMetrics.SavingDepositsByGoal.Keys
                 .Concat(savingGoalMetrics.SavingGoalsAchieved)
@@ -381,9 +390,28 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             var attemptedGoalTargetTotal = config!.FinancialGoals
                 .Where(goal => attemptedGoalIds.Contains(goal.Id))
                 .Sum(goal => goal.HargaBeli);
+            var coinsCommittedToGoals = config.FinancialGoals
+                .Where(goal => attemptedGoalIds.Contains(goal.Id))
+                .Sum(goal =>
+                {
+                    if (savingGoalMetrics.SavingGoalsAchieved.Contains(goal.Id))
+                    {
+                        return goal.HargaBeli;
+                    }
+
+                    var balance = savingGoalMetrics.SavingBalancesByGoal.TryGetValue(goal.Id, out var saved)
+                        ? saved
+                        : 0;
+                    return Math.Min(goal.HargaBeli, Math.Max(0, balance));
+                });
             var savingsActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.Menabung);
             var financialGoalActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.TujuanFinansial);
-            var insuranceActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.Asuransi);
+            var insuranceActionCount = playerEvents.Count(e =>
+                e.ActorType == "PLAYER" &&
+                e.ActionType == GameActionCatalog.Asuransi &&
+                GameActionCatalog.GetPlayerActionSlotPolicy(
+                    e.ActionType,
+                    _eventPayloadReader.ReadPayload(string.IsNullOrWhiteSpace(e.Payload) ? "{}" : e.Payload)) == PlayerActionSlotPolicy.Consumes);
             var loanRepaymentActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.BayarPinjaman);
             var longTermActionCount = savingsActionCount + financialGoalActionCount + insuranceActionCount + loanRepaymentActionCount;
 
@@ -406,12 +434,12 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 liquid_assets = liquidAssets
             };
             derived["financial_goal_progress_percent"] = SafeRatio(
-                savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
+                coinsCommittedToGoals,
                 attemptedGoalTargetTotal,
                 true);
             derived["financial_goal_progress_components"] = new
             {
-                coins_committed_to_goals = savingGoalMetrics.FinancialGoalsCoinsTotalInvested,
+                coins_committed_to_goals = coinsCommittedToGoals,
                 attempted_goal_target_total = attemptedGoalTargetTotal
             };
             derived["long_term_action_share_percent"] = SafeRatio(
@@ -443,5 +471,64 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var rawJson = rawNode.ToJsonString();
         var derivedJson = JsonSerializer.Serialize(derived);
         return new AnalyticsGameplaySnapshot(rawJson, derivedJson);
+    }
+
+    private static int CountRisksResolvedWithoutEmergency(
+        IEnumerable<EventDb> playerEvents,
+        IEnumerable<CashflowProjectionDb> playerProjections,
+        IReadOnlyList<RulesetLifeRiskDto> lifeRisks)
+    {
+        var events = playerEvents.ToArray();
+        var projections = playerProjections.ToArray();
+        var emergencyRiskIds = events
+            .Where(item => item.ActionType == GameActionCatalog.RiskEmergencyUsed)
+            .Select(item => ReadReferencedRiskEventId(item.Payload))
+            .Where(item => item.HasValue)
+            .Select(item => item!.Value)
+            .ToHashSet();
+        var insuredRiskIds = events
+            .Where(item => item.ActionType == GameActionCatalog.Asuransi)
+            .Select(item => ReadReferencedRiskEventId(item.Payload))
+            .Where(item => item.HasValue)
+            .Select(item => item!.Value)
+            .ToHashSet();
+        var riskDefinitions = lifeRisks.ToDictionary(item => item.RiskCode, StringComparer.OrdinalIgnoreCase);
+
+        return events.Count(riskEvent =>
+        {
+            if (riskEvent.ActionType != GameActionCatalog.RisikoKehidupan || emergencyRiskIds.Contains(riskEvent.EventId))
+            {
+                return false;
+            }
+
+            if (insuredRiskIds.Contains(riskEvent.EventId))
+            {
+                return true;
+            }
+
+            var payload = _eventPayloadReader.ReadPayload(string.IsNullOrWhiteSpace(riskEvent.Payload) ? "{}" : riskEvent.Payload);
+            if (payload.TryGetProperty("risk_id", out var riskIdElement) &&
+                riskIdElement.ValueKind == JsonValueKind.String &&
+                riskDefinitions.TryGetValue(riskIdElement.GetString() ?? string.Empty, out var definition) &&
+                !definition.EffectType.Contains("COIN_EFFECT", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return projections.Any(projection =>
+                projection.Category == "RISK_LIFE" &&
+                (projection.EventId == riskEvent.EventId ||
+                 Guid.TryParse(projection.Reference, out var referencedId) && referencedId == riskEvent.EventId));
+        });
+    }
+
+    private static Guid? ReadReferencedRiskEventId(string payload)
+    {
+        var element = _eventPayloadReader.ReadPayload(string.IsNullOrWhiteSpace(payload) ? "{}" : payload);
+        return element.TryGetProperty("risk_event_id", out var idElement) &&
+               idElement.ValueKind == JsonValueKind.String &&
+               Guid.TryParse(idElement.GetString(), out var id)
+            ? id
+            : null;
     }
 }

@@ -29,6 +29,7 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
         IEnumerable<CashflowProjectionDb> playerProjections)
     {
         var activeNeeds = new List<NeedCard>();
+        var purchasedNeeds = new List<NeedCard>();
         var missions = new List<MissionAssignment>();
         var needCardsPurchased = 0;
 
@@ -37,7 +38,9 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             if (evt.ActionType == "Kebutuhan" &&
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
             {
-                activeNeeds.Add(new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload)));
+                var purchasedNeed = new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload));
+                activeNeeds.Add(purchasedNeed);
+                purchasedNeeds.Add(purchasedNeed);
                 needCardsPurchased++;
             }
 
@@ -66,7 +69,9 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             .Select(need => need.CardId)
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var tertiaryCardIds = activeNeeds
+        var purchasedPrimaryNeeds = purchasedNeeds.Count(need => need.Tier == NeedTier.Primary);
+        var purchasedSecondaryNeeds = purchasedNeeds.Count(need => need.Tier == NeedTier.Secondary);
+        var purchasedTertiaryCardIds = purchasedNeeds
             .Where(need => need.Tier == NeedTier.Tertiary)
             .Select(need => System.Text.RegularExpressions.Regex.Replace(need.CardId, "_[0-9]+$", ""))
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
@@ -87,14 +92,14 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
         if (missions.Count > 0)
         {
             specificTertiaryAcquired = missions.Any(m => !string.IsNullOrWhiteSpace(m.TargetTertiaryCardId) &&
-                                                        tertiaryCardIds.Contains(m.TargetTertiaryCardId));
+                                                        purchasedTertiaryCardIds.Contains(m.TargetTertiaryCardId));
 
-            var hasPrimary = primaryNeeds > 0;
-            var hasSecondary = secondaryNeeds > 0;
+            var hasPrimary = purchasedPrimaryNeeds > 0;
+            var hasSecondary = purchasedSecondaryNeeds > 0;
             collectionMissionComplete = missions.All(m =>
             {
                 var hasTarget = string.IsNullOrWhiteSpace(m.TargetTertiaryCardId) ||
-                                tertiaryCardIds.Contains(m.TargetTertiaryCardId);
+                                purchasedTertiaryCardIds.Contains(m.TargetTertiaryCardId);
                 var requirePrimary = !m.RequirePrimary || hasPrimary;
                 var requireSecondary = !m.RequireSecondary || hasSecondary;
                 return hasTarget && requirePrimary && requireSecondary;

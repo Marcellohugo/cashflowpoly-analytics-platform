@@ -103,6 +103,30 @@ public sealed class AnalyticsHappinessCalculatorTests
     }
 
     [Fact]
+    public void ComputeBreakdown_SoldNeedStillCountsAsMissionPurchaseButNotEndingHappiness()
+    {
+        var playerEvents = new List<EventDb>
+        {
+            BuildEvent("SetupMisiAwal", """{"mission_id":"mission-bike","target_tertiary_card_id":"tertiary-bike","penalty_points":10,"require_primary":true,"require_secondary":true}"""),
+            BuildEvent("Kebutuhan", """{"amount":2,"card_id":"primary-food","need_tier":"primer","points":1}"""),
+            BuildEvent("Kebutuhan", """{"amount":3,"card_id":"secondary-school","need_tier":"sekunder","points":2}"""),
+            BuildEvent("Kebutuhan", """{"amount":4,"card_id":"tertiary-bike","need_tier":"tersier","points":3}"""),
+            BuildEvent("GunakanOpsiDarurat", """{"option_type":"SELL_NEED","direction":"IN","amount":2,"card_id":"tertiary-bike"}""")
+        };
+
+        var breakdown = new HappinessCalculator().ComputeBreakdown(
+            playerEvents,
+            donationPoints: 0,
+            goldPoints: 0,
+            pensionPoints: 0);
+
+        Assert.Equal(3, breakdown.NeedPoints);
+        Assert.Equal(0, breakdown.NeedSetBonusPoints);
+        Assert.Equal(0, breakdown.MissionPenaltyPoints);
+        Assert.Equal(3, breakdown.Total);
+    }
+
+    [Fact]
     public void ComputeBreakdown_SuppressesSavingGoalPoints_WhenLoanIsUnpaid()
     {
         var playerEvents = new List<EventDb>

@@ -23,6 +23,7 @@ public sealed class AnalyticsGoldGameplayCalculatorTests
 
         var metrics = new GoldGameplayCalculator().Compute(events);
 
+        Assert.Equal(1, metrics.InitialGoldQty);
         Assert.Equal(5, metrics.GoldBuyQty);
         Assert.Equal(3, metrics.GoldSellQty);
         Assert.Equal(3, metrics.GoldHeldEnd);

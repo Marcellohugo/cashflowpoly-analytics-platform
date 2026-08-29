@@ -425,6 +425,16 @@ internal sealed class EventIngestionService : IEventIngestionService
             return dayValidation;
         }
 
+        if (request.UserId.HasValue &&
+            await _events.HasPendingLifeRiskAsync(request.SessionId, request.UserId.Value, ct) &&
+            !IsRiskResolutionAction(request))
+        {
+            return BuildOutcome(
+                StatusCodes.Status422UnprocessableEntity,
+                "DOMAIN_RULE_VIOLATION",
+                "Selesaikan risiko pengeluaran pemain sebelum mencatat aktivitas lain");
+        }
+
         var actionOrderValidation = await ValidateDailyActionOrderAsync(request, config!, ct);
         if (!actionOrderValidation.IsValid)
         {
@@ -438,7 +448,7 @@ internal sealed class EventIngestionService : IEventIngestionService
         }
 
         if (IsAction(request, GameActionCatalog.AkhirGiliran) &&
-            await _events.HasPendingLifeRiskAsync(request.SessionId, ct))
+            await _events.HasPendingLifeRiskAsync(request.SessionId, null, ct))
         {
             return BuildOutcome(
                 StatusCodes.Status422UnprocessableEntity,
@@ -2213,6 +2223,24 @@ internal sealed class EventIngestionService : IEventIngestionService
     private static bool IsAction(EventRequest request, string actionId)
     {
         return GameActionCatalog.Is(request.ActionType, request.Payload, actionId);
+    }
+
+    private bool IsRiskResolutionAction(EventRequest request)
+    {
+        if (IsAction(request, GameActionCatalog.BayarRisiko) ||
+            IsAction(request, GameActionCatalog.RiskEmergencyUsed))
+        {
+            return true;
+        }
+
+        if (IsAction(request, GameActionCatalog.Asuransi) &&
+            _payloadReader.TryReadInsuranceUsed(request.Payload, out _))
+        {
+            return true;
+        }
+
+        return IsAction(request, GameActionCatalog.PinjamanSyariah) &&
+               _payloadReader.TryGetString(request.Payload, "risk_event_id", out _);
     }
 
     private bool IsEventAction(EventDb evt, string actionId)

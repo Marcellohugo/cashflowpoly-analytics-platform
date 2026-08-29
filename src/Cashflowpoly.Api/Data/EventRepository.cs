@@ -531,7 +531,7 @@ public sealed class EventRepository
             new CommandDefinition(sql, new { sessionId, riskEventId }, cancellationToken: ct));
     }
 
-    internal async Task<bool> HasPendingLifeRiskAsync(Guid sessionId, CancellationToken ct)
+    internal async Task<bool> HasPendingLifeRiskAsync(Guid sessionId, Guid? userId, CancellationToken ct)
     {
         const string sql = """
             select exists (
@@ -541,6 +541,7 @@ public sealed class EventRepository
                   on risk.ruleset_version_id = risk_event.ruleset_version_id
                  and lower(risk.risk_code) = lower(risk_event.payload ->> 'risk_id')
                 where risk_event.session_id = @sessionId
+                  and (@userId is null or risk_event.user_id = @userId)
                   and risk_event.action_type = 'RisikoKehidupan'
                   and risk.effect_type = 'COIN_EFFECT'
                   and risk.direction = 'OUT'
@@ -557,7 +558,7 @@ public sealed class EventRepository
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.ExecuteScalarAsync<bool>(
-            new CommandDefinition(sql, new { sessionId }, cancellationToken: ct));
+            new CommandDefinition(sql, new { sessionId, userId }, cancellationToken: ct));
     }
 
     internal async Task<int?> GetOwnedNeedSaleAmountAsync(

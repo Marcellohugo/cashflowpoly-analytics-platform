@@ -6,7 +6,7 @@ namespace Cashflowpoly.Api.Domain;
 public interface ICashTimelineCalculator
 {
     AnalyticsCashTimeline Compute(
-        IReadOnlyCollection<EventDb> playerEvents,
+        IReadOnlyCollection<EventDb> sessionEvents,
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         int startingCoins);
 }
@@ -50,7 +50,8 @@ public interface IRiskLoanCalculator
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         int startingCoins,
         double coinsNetEndGame,
-        double totalIncome);
+        double totalIncome,
+        IReadOnlyCollection<Cashflowpoly.Api.Contracts.RulesetLifeRiskDto>? lifeRisks = null);
 }
 
 public interface IActionUsageCalculator

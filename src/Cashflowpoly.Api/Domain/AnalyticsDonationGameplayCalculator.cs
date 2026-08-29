@@ -36,6 +36,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
         double coinsNetEndGame)
     {
         var playerEventsList = playerEvents.ToList();
+        var allEventsList = allEvents.ToList();
         var donationByDay = playerEventsList
             .Where(e => e.ActionType == "JumatBerkah")
             .GroupBy(e => e.DayIndex)
@@ -46,23 +47,49 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
             .ToList();
         var donationTotal = donationByDay.Sum(item => item.Amount);
 
-        var donationRanks = playerEventsList
-            .Where(e => e.ActionType == "PoinPeringkatDonasi")
-            .GroupBy(e => e.DayIndex)
-            .Select(g =>
+        var playerId = playerEventsList.FirstOrDefault(e => e.UserId.HasValue)?.UserId;
+        var awardedRanksByDay = playerEventsList
+            .Where(e => e.ActionType == GameActionCatalog.DonationRankAwarded)
+            .Select(e => new
             {
-                var rank = 0;
-                foreach (var evt in g)
-                {
-                    if (_payloadReader.TryReadRankAwarded(evt.Payload, out var awardedRank, out _))
-                    {
-                        rank = awardedRank;
-                        break;
-                    }
-                }
-
-                return new AnalyticsDonationRankByDay(g.Key, rank == 0 ? null : rank);
+                e.DayIndex,
+                Rank = _payloadReader.TryReadRankAwarded(e.Payload, out var rank, out _) ? rank : 0
             })
+            .Where(item => item.Rank > 0)
+            .GroupBy(item => item.DayIndex)
+            .ToDictionary(group => group.Key, group => group.First().Rank);
+        var tieBreakers = allEventsList
+            .Where(e => e.UserId.HasValue && e.ActionType == GameActionCatalog.TieBreakerAssigned)
+            .GroupBy(e => e.UserId!.Value)
+            .ToDictionary(
+                group => group.Key,
+                group => _payloadReader.TryReadTieBreaker(group.OrderBy(e => e.SequenceNumber).Last().Payload, out var number)
+                    ? number
+                    : 0);
+        var donationRanks = allEventsList
+            .Where(e => e.UserId.HasValue && e.ActionType == "JumatBerkah")
+            .GroupBy(e => e.DayIndex)
+            .Select(group => new
+            {
+                DayIndex = group.Key,
+                RankedPlayers = group
+                    .GroupBy(e => e.UserId!.Value)
+                    .Select(playerGroup => new
+                    {
+                        PlayerId = playerGroup.Key,
+                        Amount = playerGroup.Sum(e => _payloadReader.TryReadAmount(e.Payload, out var amount) ? amount : 0),
+                        TieBreaker = tieBreakers.GetValueOrDefault(playerGroup.Key)
+                    })
+                    .OrderByDescending(item => item.Amount)
+                    .ThenByDescending(item => item.TieBreaker)
+                    .ToList()
+            })
+            .Where(group => playerId.HasValue && group.RankedPlayers.Any(item => item.PlayerId == playerId.Value))
+            .Select(group => new AnalyticsDonationRankByDay(
+                group.DayIndex,
+                awardedRanksByDay.GetValueOrDefault(
+                    group.DayIndex,
+                    group.RankedPlayers.FindIndex(item => item.PlayerId == playerId!.Value) + 1)))
             .OrderBy(item => item.DayIndex)
             .ToList();
 
@@ -77,7 +104,7 @@ internal sealed class DonationGameplayCalculator : IDonationGameplayCalculator
             : (double?)null;
         var donationRatio = SafeRatio(donationTotal, coinsNetEndGame);
         var donationAggressivenessPercent = SafeRatio(donationTotal, coinsNetEndGame, true);
-        var totalFridays = allEvents
+        var totalFridays = allEventsList
             .Where(e => string.Equals(e.Weekday, "FRI", StringComparison.OrdinalIgnoreCase))
             .Select(e => e.DayIndex)
             .Distinct()

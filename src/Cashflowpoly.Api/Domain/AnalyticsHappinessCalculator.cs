@@ -97,6 +97,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         RulesetConfig? config)
     {
         var activeNeeds = new List<NeedCard>();
+        var purchasedNeeds = new List<NeedCard>();
         var missions = new List<MissionAssignment>();
         var loans = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         double savingGoalPoints = 0;
@@ -106,7 +107,9 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             if (evt.ActionType == "Kebutuhan" &&
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out var points))
             {
-                activeNeeds.Add(new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload), points));
+                var purchasedNeed = new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload), points);
+                activeNeeds.Add(purchasedNeed);
+                purchasedNeeds.Add(purchasedNeed);
             }
 
             if (evt.ActionType == "GunakanOpsiDarurat" &&
@@ -152,7 +155,9 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         var primaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Primary);
         var secondaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Secondary);
         var tertiaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Tertiary);
-        var tertiaryCardIds = activeNeeds
+        var purchasedPrimaryCount = purchasedNeeds.Count(need => need.Tier == NeedTier.Primary);
+        var purchasedSecondaryCount = purchasedNeeds.Count(need => need.Tier == NeedTier.Secondary);
+        var purchasedTertiaryCardIds = purchasedNeeds
             .Where(need => need.Tier == NeedTier.Tertiary)
             .Select(need => System.Text.RegularExpressions.Regex.Replace(need.CardId, "_[0-9]+$", ""))
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
@@ -170,13 +175,13 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                        (tertiaryCount / sameBonus.RequiredCount);
         var needSetBonusPoints = mixedSets * differentBonus.Points + sameSets * sameBonus.Points;
 
-        var hasPrimary = primaryCount > 0;
-        var hasSecondary = secondaryCount > 0;
+        var hasPrimary = purchasedPrimaryCount > 0;
+        var hasSecondary = purchasedSecondaryCount > 0;
         var missionPenaltyPoints = 0d;
         foreach (var mission in missions)
         {
             var hasTargetTertiary = string.IsNullOrWhiteSpace(mission.TargetTertiaryCardId) ||
-                                    tertiaryCardIds.Contains(mission.TargetTertiaryCardId);
+                                    purchasedTertiaryCardIds.Contains(mission.TargetTertiaryCardId);
             var requiresPrimary = mission.RequirePrimary;
             var requiresSecondary = mission.RequireSecondary;
 

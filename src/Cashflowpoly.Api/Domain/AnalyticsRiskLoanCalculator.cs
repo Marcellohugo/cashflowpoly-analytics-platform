@@ -1,5 +1,6 @@
 // Fungsi file: Menjalankan aturan dan perhitungan domain permainan melalui AnalyticsRiskLoanCalculator.
 using Cashflowpoly.Api.Data;
+using Cashflowpoly.Api.Contracts;
 using static Cashflowpoly.Api.Domain.AnalyticsMath;
 
 namespace Cashflowpoly.Api.Domain;
@@ -36,17 +37,25 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
         IReadOnlyCollection<CashflowProjectionDb> playerProjections,
         int startingCoins,
         double coinsNetEndGame,
-        double totalIncome)
+        double totalIncome,
+        IReadOnlyCollection<RulesetLifeRiskDto>? lifeRisks = null)
     {
         var riskEvents = playerEvents.Where(e => e.ActionType == "RisikoKehidupan").ToList();
+        var riskDefinitions = (lifeRisks ?? [])
+            .ToDictionary(item => item.RiskCode, StringComparer.OrdinalIgnoreCase);
         var riskCostsPerCard = new List<int>();
         foreach (var riskEvent in riskEvents)
         {
-            var cost = playerProjections
-                .Where(p => p.Category == "RISK_LIFE" &&
-                            p.Direction == "OUT" &&
-                            (p.EventId == riskEvent.EventId || ReferencesRiskEvent(p.Reference, riskEvent.EventId)))
-                .Sum(p => p.Amount);
+            var cost = TryReadRiskId(riskEvent.Payload, out var riskId) &&
+                       riskDefinitions.TryGetValue(riskId, out var definition)
+                ? definition.Direction == "OUT" && definition.EffectType.Contains("COIN_EFFECT", StringComparison.OrdinalIgnoreCase)
+                    ? definition.Amount
+                    : 0
+                : playerProjections
+                    .Where(p => p.Category == "RISK_LIFE" &&
+                                p.Direction == "OUT" &&
+                                (p.EventId == riskEvent.EventId || ReferencesRiskEvent(p.Reference, riskEvent.EventId)))
+                    .Sum(p => p.Amount);
             riskCostsPerCard.Add(cost);
         }
 
@@ -103,6 +112,26 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
 
     private static bool ReferencesRiskEvent(string? reference, Guid riskEventId)
         => Guid.TryParse(reference, out var referencedEventId) && referencedEventId == riskEventId;
+
+    private static bool TryReadRiskId(string payload, out string riskId)
+    {
+        riskId = string.Empty;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(payload);
+            if (!document.RootElement.TryGetProperty("risk_id", out var riskIdElement))
+            {
+                return false;
+            }
+
+            riskId = riskIdElement.GetString() ?? string.Empty;
+            return riskId.Length > 0;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
+    }
 
     private Dictionary<string, LoanState> BuildLoanStates(IEnumerable<EventDb> playerEvents)
     {

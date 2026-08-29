@@ -77,6 +77,42 @@ public sealed class AnalyticsDonationGameplayCalculatorTests
         Assert.Null(metrics.DonationCommitmentScore);
     }
 
+    [Fact]
+    public void Compute_RanksEveryFridayUsingDonationThenHighestTieBreaker()
+    {
+        var playerId = Guid.NewGuid();
+        var secondPlayerId = Guid.NewGuid();
+        var thirdPlayerId = Guid.NewGuid();
+        var playerEvents = new[]
+        {
+            CreateEvent(playerId, "JumatBerkah", """{"amount":1}""", dayIndex: 5, weekday: "FRI"),
+            CreateEvent(playerId, "JumatBerkah", """{"amount":4}""", dayIndex: 12, weekday: "FRI")
+        };
+        var allEvents = playerEvents.Concat(new[]
+        {
+            CreateEvent(secondPlayerId, "JumatBerkah", """{"amount":3}""", dayIndex: 5, weekday: "FRI"),
+            CreateEvent(thirdPlayerId, "JumatBerkah", """{"amount":3}""", dayIndex: 5, weekday: "FRI"),
+            CreateEvent(secondPlayerId, "JumatBerkah", """{"amount":4}""", dayIndex: 12, weekday: "FRI"),
+            CreateEvent(playerId, "BagikanTieBreaker", """{"number":4}""", dayIndex: 0, weekday: "SUN"),
+            CreateEvent(secondPlayerId, "BagikanTieBreaker", """{"number":2}""", dayIndex: 0, weekday: "SUN"),
+            CreateEvent(thirdPlayerId, "BagikanTieBreaker", """{"number":3}""", dayIndex: 0, weekday: "SUN")
+        }).ToList();
+
+        var metrics = new DonationGameplayCalculator().Compute(playerEvents, allEvents, coinsNetEndGame: 20);
+
+        Assert.Collection(metrics.DonationRankPerFriday,
+            item =>
+            {
+                Assert.Equal(5, item.DayIndex);
+                Assert.Equal(3, item.Rank);
+            },
+            item =>
+            {
+                Assert.Equal(12, item.DayIndex);
+                Assert.Equal(1, item.Rank);
+            });
+    }
+
     private static EventDb CreateEvent(
         Guid playerId,
         string actionType,

@@ -4038,9 +4038,9 @@ scenario_event_seed_raw as (
           9,
           3,
           'PLAYER',
-          'BayarPinjaman',
-          'BayarPinjaman',
-          '{"loan_code":"loan_syariah_10","loan_id":"loan-setup-mahir-003","amount":10}' :: jsonb
+          'KerjaLepas',
+          'KerjaLepas',
+          '{"amount":1}' :: jsonb
         ),
         (
           'MAHIR',
@@ -4748,7 +4748,7 @@ scenario_event_seed_raw as (
           'PLAYER',
           'Menabung',
           'Menabung',
-          '{"goal_id":"tujuan_35","amount":8}' :: jsonb
+          '{"goal_id":"tujuan_35","amount":5}' :: jsonb
         ),
         (
           'MAHIR',
@@ -5687,12 +5687,32 @@ scenario_event_seed_raw as (
       payload
     )
 ),
-scenario_event_seed as (
+scenario_event_seed_base as (
   select
     raw.session_key,
     raw.ref_key,
     raw.day_index,
-    raw.event_order * 10 as event_order,
+    case
+      when raw.action_type = 'Asuransi'
+       and raw.ref_key is null then coalesce(
+        (
+          select risk_event.event_order * 10 - 1
+          from scenario_event_seed_raw risk_event
+          join scenario_event_seed_raw insurance_claim
+            on insurance_claim.session_key = risk_event.session_key
+           and insurance_claim.ref_key = risk_event.ref_key
+           and insurance_claim.action_type = 'Asuransi'
+          where risk_event.session_key = raw.session_key
+            and risk_event.player_no = raw.player_no
+            and risk_event.day_index = raw.day_index
+            and risk_event.event_order = raw.event_order - 1
+            and risk_event.action_type = 'RisikoKehidupan'
+          limit 1
+        ),
+        raw.event_order * 10
+      )
+      else raw.event_order * 10
+    end as event_order,
     raw.action_slot,
     raw.player_no,
     raw.actor_type,
@@ -5700,6 +5720,24 @@ scenario_event_seed as (
     raw.action_type,
     raw.payload
   from scenario_event_seed_raw raw
+  where not (
+    raw.ref_key is not null
+    and raw.action_type in ('Asuransi', 'GunakanOpsiDarurat', 'BayarRisiko')
+    and exists (
+      select 1
+      from scenario_event_seed_raw risk_raw
+      join session_context sc on sc.session_key = risk_raw.session_key
+      join ruleset_life_risks risk
+        on risk.ruleset_version_id = sc.ruleset_version_id
+       and lower(risk.risk_code) = lower(risk_raw.payload ->> 'risk_id')
+      where risk_raw.session_key = raw.session_key
+        and risk_raw.ref_key = raw.ref_key
+        and risk_raw.action_type = 'RisikoKehidupan'
+        and risk.effect_type = 'COIN_EFFECT'
+        and risk.direction = 'OUT'
+        and risk.target_scope = 'SELF'
+    )
+  )
 
   union all
 
@@ -5765,6 +5803,47 @@ scenario_event_seed as (
   from scenario_event_seed_raw raw
   where raw.actor_type = 'PLAYER'
     and raw.action_type in ('BahanMasakan', 'Kebutuhan', 'JualMasakan')
+),
+risk_resolution_seed as (
+  select
+    resolution.session_key,
+    resolution.ref_key,
+    risk_event.day_index,
+    risk_event.event_order * 10 + 1 as event_order,
+    0 as action_slot,
+    risk_event.player_no,
+    'PLAYER' :: text as actor_type,
+    case
+      when resolution.ref_key in ('mahir-risk-006', 'mahir-risk-013') then 'BayarRisiko'
+      else resolution.action_id
+    end as action_id,
+    case
+      when resolution.ref_key in ('mahir-risk-006', 'mahir-risk-013') then 'BayarRisiko'
+      else resolution.action_type
+    end as action_type,
+    case
+      when resolution.ref_key in ('mahir-risk-006', 'mahir-risk-013') then '{}' :: jsonb
+      else resolution.payload
+    end as payload
+  from scenario_event_seed_raw resolution
+  join scenario_event_seed_raw risk_event
+    on risk_event.session_key = resolution.session_key
+   and risk_event.ref_key = resolution.ref_key
+   and risk_event.action_type = 'RisikoKehidupan'
+  join session_context sc on sc.session_key = risk_event.session_key
+  join ruleset_life_risks risk
+    on risk.ruleset_version_id = sc.ruleset_version_id
+   and lower(risk.risk_code) = lower(risk_event.payload ->> 'risk_id')
+  where resolution.action_type in ('Asuransi', 'GunakanOpsiDarurat', 'BayarRisiko')
+    and resolution.ref_key is not null
+    and risk.effect_type = 'COIN_EFFECT'
+    and risk.direction = 'OUT'
+    and risk.target_scope = 'SELF'
+),
+scenario_event_seed as (
+  select * from scenario_event_seed_base
+  union all
+  select * from risk_resolution_seed
 ),
 setup_market_seed as (
   select
@@ -7086,7 +7165,16 @@ snapshot_rows as (
         'tertiary_needs_owned',
         tertiary_needs_owned,
         'collection_mission_complete',
-        tertiary_needs_owned > 0,
+        case
+          when mission_assigned_count = 0 then null
+          else exists (
+            select 1
+            from session_participant_collection_missions mission
+            where mission.session_id = player_metric_base.session_id
+              and mission.session_participant_id = player_metric_base.session_player_id
+              and mission.is_completed
+          )
+        end,
         'need_cards_coins_spent',
         need_cards_coins_spent
       ),
@@ -7509,6 +7597,11 @@ select
   last_event_id
 from
   numbered_snapshots
+-- Snapshot gameplay wajib dibentuk oleh AnalyticsService agar Seed 2 memakai
+-- kalkulator domain yang sama dengan API dan UI. CTE legacy di atas tidak
+-- menjadi sumber nilai dan sengaja tidak menulis snapshot.
+where
+  false
 order by
   snapshot_number;
 

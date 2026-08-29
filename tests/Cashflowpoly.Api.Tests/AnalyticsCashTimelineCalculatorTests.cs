@@ -31,14 +31,15 @@ public sealed class AnalyticsCashTimelineCalculatorTests
 
         Assert.Equal(20, timeline.StartingCoins);
         Assert.Equal(10, timeline.CashInTotal);
-        Assert.Equal(106, timeline.CashOutTotal);
-        Assert.Equal(-76, timeline.CoinsNetEndGame);
-        Assert.Equal(-76, timeline.CoinsHeldCurrent);
+        Assert.Equal(7, timeline.CashOutTotal);
+        Assert.Equal(23, timeline.CoinsNetEndGame);
+        Assert.Equal(23, timeline.CoinsHeldCurrent);
 
         Assert.Collection(timeline.CoinsSpentPerTurn,
             item =>
             {
                 Assert.Equal(1, item.ActionSlot);
+                Assert.Equal("TEST", item.CashflowCategory);
                 Assert.Equal(4, item.Amount);
             },
             item =>
@@ -58,6 +59,7 @@ public sealed class AnalyticsCashTimelineCalculatorTests
             item =>
             {
                 Assert.Equal(1, item.ActionSlot);
+                Assert.Equal("TEST", item.CashflowCategory);
                 Assert.Equal(6, item.Net);
             },
             item =>
@@ -77,6 +79,35 @@ public sealed class AnalyticsCashTimelineCalculatorTests
                 Assert.Equal(2, item.ActionSlot);
                 Assert.Equal(23, item.Coins);
             });
+    }
+
+    [Fact]
+    public void Compute_IncludesCashflowCausedByAnotherPlayersEvent()
+    {
+        var sessionId = Guid.NewGuid();
+        var playerId = Guid.NewGuid();
+        var otherPlayerId = Guid.NewGuid();
+        var ownEventId = Guid.NewGuid();
+        var sharedEventId = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            CreateEvent(ownEventId, sessionId, playerId, actionSlot: 1),
+            CreateEvent(sharedEventId, sessionId, otherPlayerId, actionSlot: 2)
+        };
+        events[1].SequenceNumber = 2;
+
+        var timeline = new CashTimelineCalculator().Compute(
+            events,
+            [
+                CreateProjection(ownEventId, sessionId, playerId, "IN", 5),
+                CreateProjection(sharedEventId, sessionId, playerId, "OUT", 3)
+            ],
+            startingCoins: 10);
+
+        Assert.Equal(12, timeline.CoinsNetEndGame);
+        Assert.Equal(12, timeline.CoinsProgression[^1].Coins);
+        Assert.Equal(2, timeline.CoinsProgression.Count);
+        Assert.Equal(3, timeline.CoinsSpentPerTurn.Single().Amount);
     }
 
     [Fact]

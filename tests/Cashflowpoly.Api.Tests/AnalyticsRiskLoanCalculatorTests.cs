@@ -1,6 +1,7 @@
 // Fungsi file: Memverifikasi perilaku API, database, atau domain melalui AnalyticsRiskLoanCalculatorTests.
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
+using Cashflowpoly.Api.Contracts;
 using Xunit;
 
 namespace Cashflowpoly.Api.Tests;
@@ -95,6 +96,36 @@ public sealed class AnalyticsRiskLoanCalculatorTests
         Assert.Equal(1, metrics.RiskAcceptanceRate);
         Assert.Equal(0, metrics.InsuranceCoverageRate);
         Assert.Equal(50, metrics.RiskAppetiteScore);
+    }
+
+    [Fact]
+    public void Compute_UsesCardNominalEvenWhenPaymentIsNotYetRecorded()
+    {
+        var playerId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var riskEvent = CreateEvent(
+            Guid.NewGuid(),
+            sessionId,
+            playerId,
+            "RisikoKehidupan",
+            """{"risk_id":"surgery"}""");
+
+        var metrics = new RiskLoanCalculator().Compute(
+            [riskEvent],
+            [],
+            startingCoins: 10,
+            coinsNetEndGame: 10,
+            totalIncome: 10,
+            [new RulesetLifeRiskDto
+            {
+                RiskCode = "surgery",
+                EffectType = "COIN_EFFECT",
+                Direction = "OUT",
+                Amount = 6
+            }]);
+
+        Assert.Equal([6], metrics.RiskCostsPerCard);
+        Assert.Equal(6, metrics.RiskCostsTotal);
     }
 
     private static EventDb CreateEvent(Guid eventId, Guid sessionId, Guid playerId, string actionType, string payload)

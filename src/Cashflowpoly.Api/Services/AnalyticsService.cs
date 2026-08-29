@@ -768,8 +768,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         }
 
         var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
-        var aliasesByPlayer = (await _players.ListSessionPlayersAsync(sessionId, ct))
-            .ToDictionary(player => player.UserId, player => player.DisplayName);
+        var sessionPlayersByUser = (await _players.ListSessionPlayersAsync(sessionId, ct))
+            .ToDictionary(player => player.UserId);
         foreach (var playerId in players)
         {
             var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
@@ -777,9 +777,21 @@ internal sealed class AnalyticsService : IAnalyticsService
                 hasHappiness ? breakdown : null,
                 playerConfig,
                 finalScores.FirstOrDefault(score => score.UserId == playerId),
-                aliasesByPlayer.GetValueOrDefault(playerId),
+                sessionPlayersByUser.GetValueOrDefault(playerId)?.DisplayName,
                 sessionEnded);
-            snapshots.AddRange(_metricSnapshotBuilder.BuildMetricSnapshots(sessionId, playerId, rulesetVersionId, computedAt, playerMetrics));
+            var playerSnapshots = _metricSnapshotBuilder.BuildMetricSnapshots(
+                sessionId,
+                playerId,
+                rulesetVersionId,
+                computedAt,
+                playerMetrics);
+            var sessionPlayerId = sessionPlayersByUser.GetValueOrDefault(playerId)?.SessionPlayerId;
+            foreach (var snapshot in playerSnapshots)
+            {
+                snapshot.SessionPlayerId = sessionPlayerId;
+            }
+
+            snapshots.AddRange(playerSnapshots);
         }
 
         if (snapshots.Count > 0)

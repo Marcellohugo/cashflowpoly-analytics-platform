@@ -4,6 +4,7 @@ using Cashflowpoly.Api.Data;
 namespace Cashflowpoly.Api.Domain;
 
 public sealed record AnalyticsGoldGameplayMetrics(
+    int InitialGoldQty,
     int GoldBuyQty,
     int GoldSellQty,
     int GoldHeldEnd,
@@ -83,6 +84,7 @@ internal sealed class GoldGameplayCalculator : IGoldGameplayCalculator
         }
 
         return new AnalyticsGoldGameplayMetrics(
+            initialGoldQty,
             goldBuyQty,
             goldSellQty,
             initialGoldQty + goldBuyQty - goldSellQty,

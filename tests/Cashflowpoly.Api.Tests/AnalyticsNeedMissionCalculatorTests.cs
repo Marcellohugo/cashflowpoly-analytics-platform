@@ -79,7 +79,7 @@ public sealed class AnalyticsNeedMissionCalculatorTests
     }
 
     [Fact]
-    public void Compute_ExcludesNeedSoldForEmergencyFromProfileAndMission()
+    public void Compute_ExcludesSoldNeedFromCurrentProfileButKeepsCompletedPurchaseMission()
     {
         var playerId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -100,8 +100,9 @@ public sealed class AnalyticsNeedMissionCalculatorTests
         Assert.Equal(1, metrics.SecondaryNeeds);
         Assert.Equal(0, metrics.TertiaryNeeds);
         Assert.False(metrics.HasBasicNeedProfile);
-        Assert.False(metrics.SpecificTertiaryAcquired);
-        Assert.False(metrics.CollectionMissionComplete);
+        Assert.True(metrics.SpecificTertiaryAcquired);
+        Assert.True(metrics.CollectionMissionComplete);
+        Assert.Equal(1, metrics.MissionAchievement);
     }
 
     private static EventDb CreateEvent(Guid playerId, Guid sessionId, string actionType, string payload)
