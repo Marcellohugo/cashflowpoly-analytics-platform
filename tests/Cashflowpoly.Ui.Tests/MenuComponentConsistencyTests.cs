@@ -6,6 +6,32 @@ namespace Cashflowpoly.Ui.Tests;
 
 public sealed class MenuComponentConsistencyTests
 {
+    [Theory]
+    [InlineData("Sessions", "Details.cshtml", "sessions.back_to_list")]
+    [InlineData("Players", "Details.cshtml", "players.detail.nav_back_players")]
+    [InlineData("Players", "Details.cshtml", "players.detail.nav_back_session")]
+    [InlineData("Rulesets", "Details.cshtml", "rulesets.back_to_list")]
+    [InlineData("Rulesets", "Create.cshtml", "rulesets.back_to_list")]
+    public void PageBackLinks_ShouldPrecedeTitleInResponsiveToolbar(string folder, string fileName, string labelKey)
+    {
+        var view = File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Views", folder, fileName));
+        var titlePosition = view.IndexOf("<h1", StringComparison.Ordinal);
+        var toolbarPosition = view.IndexOf("class=\"action-toolbar mb-4", StringComparison.Ordinal);
+        var backLinks = Regex.Matches(view, Regex.Escape($"Context.T(\"{labelKey}\")"));
+
+        Assert.True(toolbarPosition >= 0 && toolbarPosition < titlePosition);
+        Assert.NotEmpty(backLinks);
+        Assert.All(backLinks.Cast<Match>(), link => Assert.InRange(link.Index, toolbarPosition, titlePosition - 1));
+    }
+
+    [Fact]
+    public void SharedRulesetContent_ShouldNotDuplicatePageBackLinkInsideModalOrDetails()
+    {
+        var content = File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Views", "Shared", "_RulesetDetailContent.cshtml"));
+
+        Assert.DoesNotContain("rulesets.back_to_list", content, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void QuickstartToggle_ShouldReferenceItsControlledPanel()
     {
@@ -20,7 +46,7 @@ public sealed class MenuComponentConsistencyTests
     [InlineData("Sessions", "Index.cshtml", 2)]
     [InlineData("Sessions", "Details.cshtml", 3)]
     [InlineData("Players", "Index.cshtml", 3)]
-    [InlineData("Players", "Details.cshtml", 3)]
+    [InlineData("Players", "Details.cshtml", 2)]
     [InlineData("Rulesets", "Index.cshtml", 3)]
     [InlineData("Rulesets", "Create.cshtml", 5)]
     [InlineData("Rulesets", "Details.cshtml", 6)]

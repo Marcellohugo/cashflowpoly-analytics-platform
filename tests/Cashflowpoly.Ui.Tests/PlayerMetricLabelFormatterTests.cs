@@ -7,6 +7,27 @@ namespace Cashflowpoly.Ui.Tests;
 
 public sealed class PlayerMetricLabelFormatterTests
 {
+    [Theory]
+    [InlineData("id", "5", "recorded")]
+    [InlineData("id", "0", "zero")]
+    [InlineData("id", "-10", "recorded")]
+    [InlineData("id", "—", "unavailable")]
+    [InlineData("en", "5", "recorded")]
+    [InlineData("en", "—", "unavailable")]
+    public void DescribeMetric_UsesHappinessPointLabelAndUnitWithoutChangingTheValue(
+        string language, string value, string state)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            "pension_fund_happiness_points", value, false, true, "—",
+            key => UiText.Translate(language, key));
+
+        Assert.Equal(language == "id" ? "Poin Kebahagiaan Dana Pensiun" : "Pension Happiness Points", result.Label);
+        Assert.Equal(value, result.DisplayValue);
+        Assert.Equal(state, result.State);
+        Assert.Equal(state == "unavailable" ? string.Empty :
+            language == "id" ? "poin kebahagiaan" : "happiness points", result.Unit);
+    }
+
     [Fact]
     public void FormatMetricPathLabel_LocalizesKnownSegmentsAndArrayIndexes()
     {
@@ -18,7 +39,7 @@ public sealed class PlayerMetricLabelFormatterTests
     }
 
     [Theory]
-    [InlineData("CoinsSpentPerTurn[0].Amount", "Coins Spent per Turn - Item 1 - Amount")]
+    [InlineData("CoinsSpentPerTurn[0].Amount", "Outgoing Coins per Event - Item 1 - Amount")]
     [InlineData("ingredientTypesHeld.White Rice", "Ingredient Types Held - White Rice")]
     [InlineData("incomeDiversificationComponents.FreelanceIncome", "Income Diversification Components - Freelance Income")]
     public void FormatMetricPathLabel_NormalizesGameplayMetricKeysBeforeLocalization(string path, string expected)
@@ -26,16 +47,6 @@ public sealed class PlayerMetricLabelFormatterTests
         var label = PlayerMetricLabelFormatter.FormatMetricPathLabel(path, Translate);
 
         Assert.Equal(expected, label);
-    }
-
-    [Fact]
-    public void LocalizeTransactionDetail_FormatsOpeningCashAndCashflowCategories()
-    {
-        var opening = PlayerMetricLabelFormatter.LocalizeTransactionDetail("START - CASH (20)", Translate);
-        var outflow = PlayerMetricLabelFormatter.LocalizeTransactionDetail("OUT - GOLD_TRADE (12)", Translate);
-
-        Assert.Equal("Opening Cash (20)", opening);
-        Assert.Equal("Cash Out - Gold Trade (12)", outflow);
     }
 
     [Theory]
@@ -72,11 +83,47 @@ public sealed class PlayerMetricLabelFormatterTests
     }
 
     [Theory]
+    [InlineData("transaction_history.coins_in_event")]
+    [InlineData("transaction_history.coins_out_event")]
+    [InlineData("transaction_history.coin_change")]
+    [InlineData("transaction_history.coin_balance_after_event")]
+    public void DescribeMetric_UsesCoinUnitForComprehensiveTransactionColumns(string path)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            "10",
+            false,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal("players.support.unit.coins", result.Unit);
+    }
+
+    [Theory]
+    [InlineData("active_income_source_count", "players.support.unit.sources")]
+    [InlineData("income_main_actions", "players.support.unit.actions")]
+    [InlineData("loan_repayment_actions", "players.support.unit.actions")]
+    [InlineData("outstanding_loan", "players.support.unit.coins")]
+    [InlineData("attempted_goal_target_total", "players.support.unit.coins")]
+    [InlineData("risks_resolved_without_emergency", "players.support.unit.risk_events")]
+    public void DescribeMetric_UsesThePhysicalUnitOfDerivedInputs(string path, string expectedUnit)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            "3",
+            true,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal(expectedUnit, result.Unit);
+    }
+
+    [Theory]
     [InlineData("coins_saved", false, "savings")]
     [InlineData("cash_in_total", false, "income")]
     [InlineData("coins_donated", false, "donation")]
-    [InlineData("ingredients_wasted", false, "inventory")]
-    [InlineData("meal_orders_per_turn_average", false, "business_activity")]
     [InlineData("donation_events", false, "donation")]
     [InlineData("action_sequence[0].action_type", false, "timeline")]
     [InlineData("sharia_loans_unpaid_end", false, "debt")]
@@ -97,6 +144,32 @@ public sealed class PlayerMetricLabelFormatterTests
         Assert.Equal($"players.support.meaning.{expectedCategory}", result.Explanation);
         Assert.Equal($"players.support.guide.{expectedCategory}", result.Guidance);
         Assert.Equal($"players.support.recommendation.{expectedCategory}", result.Recommendation);
+    }
+
+    [Theory]
+    [InlineData("ingredients_used_per_meal", "ingredients_per_order")]
+    [InlineData("meal_order_income_per_order", "income_per_order")]
+    public void DescribeMetric_ExplainsPerOrderSeries(string path, string explanation)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path, "[2,3]", false, true, "Unavailable", key => key);
+
+        Assert.Equal($"players.support.meaning.{explanation}", result.Explanation);
+    }
+
+    [Fact]
+    public void DescribeMetric_ExplainsDiscardedIngredientsSeparatelyFromRemainingInventory()
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            "ingredients_wasted",
+            "2",
+            false,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal("players.support.meaning.ingredients_discarded", result.Explanation);
+        Assert.Equal("players.support.guide.inventory", result.Guidance);
     }
 
     [Theory]
@@ -225,6 +298,165 @@ public sealed class PlayerMetricLabelFormatterTests
         Assert.Empty(result.Unit);
     }
 
+    [Fact]
+    public void DescribeMetric_ExplainsWhatEmergencyActionsCount()
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            "emergency_options_used",
+            "1",
+            false,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal("players.support.meaning.emergency_actions", result.Explanation);
+    }
+
+    [Theory]
+    [InlineData("meal_orders_per_turn_average", "players.support.meaning.orders_per_active_day")]
+    [InlineData("gold_investment_net", "players.support.meaning.gold_cashflow")]
+    [InlineData("ingredient_cards_value_end", "players.support.meaning.pension_ingredient_value")]
+    [InlineData("life_risk_costs_per_card", "players.support.meaning.risk_nominal_cost")]
+    [InlineData("life_risk_costs_total", "players.support.meaning.risk_nominal_cost")]
+    public void DescribeMetric_UsesSpecificExplanationsForPotentiallyAmbiguousValues(
+        string path,
+        string expectedExplanation)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            "2",
+            false,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal(expectedExplanation, result.Explanation);
+    }
+
+    [Theory]
+    [InlineData("day_when_debt_introduced", "0", "players.support.value.preparation_loan")]
+    [InlineData("day_when_first_risk_hit", "2", "players.support.value.day_index")]
+    [InlineData("day_game_completion", "25", "players.support.value.day_index")]
+    public void DescribeMetric_FormatsGameDaysAsBoardPositions(
+        string path,
+        string value,
+        string expectedValueKey)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path,
+            value,
+            false,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.StartsWith(expectedValueKey, result.DisplayValue, StringComparison.Ordinal);
+        Assert.Equal("recorded", result.State);
+        Assert.Empty(result.Unit);
+    }
+
+    [Fact]
+    public void DescribeMetric_TreatsAMissingLoanDayAsNoRecordedLoan()
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            "day_when_debt_introduced",
+            "Unavailable",
+            false,
+            true,
+            "Unavailable",
+            key => key);
+
+        Assert.Equal("players.support.value.no_loan_recorded", result.DisplayValue);
+        Assert.Equal("recorded", result.State);
+        Assert.Empty(result.Unit);
+    }
+
+    [Theory]
+    [InlineData("id", "Donasi Setiap Jumat", "Jumlah Donasi", "koin")]
+    [InlineData("en", "Donations Each Friday", "Donation Amount", "coins")]
+    public void DescribeMetric_LocalizesCombinedDonationHistory(string language, string title, string amountLabel, string coins)
+    {
+        string Localize(string key) => UiText.Translate(language, key);
+        var history = PlayerMetricLabelFormatter.DescribeMetric(
+            "donation_history", "[{\"day_index\":5,\"amount\":1,\"rank\":4}]", false, true, "—", Localize);
+        var amount = PlayerMetricLabelFormatter.DescribeMetric(
+            "donation_history.amount", "1", false, true, "—", Localize);
+        var empty = PlayerMetricLabelFormatter.DescribeMetric(
+            "donation_history", "[]", false, true, "—", Localize);
+
+        Assert.Equal(title, history.Label);
+        Assert.StartsWith(title, history.Explanation, StringComparison.Ordinal);
+        Assert.Contains("Tie Breaker", history.Explanation, StringComparison.Ordinal);
+        Assert.Equal(amountLabel, Localize("players.details.donations.amount"));
+        Assert.Equal(coins, amount.Unit);
+        Assert.Equal("unavailable", empty.State);
+        Assert.Empty(empty.Unit);
+    }
+
+    [Theory]
+    [InlineData("id", "4", "ke-4", "recorded")]
+    [InlineData("id", "1", "ke-1", "recorded")]
+    [InlineData("en", "4", "Rank 4", "recorded")]
+    [InlineData("id", "—", "—", "unavailable")]
+    [InlineData("en", "—", "—", "unavailable")]
+    public void DescribeMetric_FormatsPensionRankAsAPosition(string language, string value, string expected, string state)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            "pension_fund_rank_per_game", value, false, true, "—", key => UiText.Translate(language, key));
+
+        Assert.Equal(expected, result.DisplayValue);
+        Assert.Equal(state, result.State);
+        Assert.Empty(result.Unit);
+    }
+
+    [Theory]
+    [InlineData("id", "financial_goals_completed", "1", "recorded", "Jumlah target finansial")]
+    [InlineData("id", "financial_goals_completed", "0", "zero", "Jumlah target finansial")]
+    [InlineData("en", "financial_goals_completed", "1", "recorded", "Number of financial goals")]
+    [InlineData("id", "coins_saved", "3", "recorded", "Koin yang masih tersimpan")]
+    [InlineData("en", "coins_saved", "3", "recorded", "Coins still saved")]
+    [InlineData("id", "sharia_loans_outstanding_coins", "0", "zero", "Koin pinjaman yang masih harus dikembalikan")]
+    [InlineData("id", "sharia_loans_outstanding_coins", "10", "recorded", "Koin pinjaman yang masih harus dikembalikan")]
+    [InlineData("en", "sharia_loans_outstanding_coins", "0", "zero", "Borrowed coins still to be repaid")]
+    [InlineData("id", "sharia_loans_outstanding_coins", "—", "unavailable", "Koin pinjaman yang masih harus dikembalikan")]
+    [InlineData("id", "coins_saved", "—", "unavailable", "Koin yang masih tersimpan")]
+    [InlineData("id", "financial_goals_completed", "—", "unavailable", "Jumlah target finansial")]
+    public void DescribeMetric_ExplainsEssentialGoalValuesWithoutChangingOrInventingData(
+        string language, string path, string value, string state, string explanation)
+    {
+        var result = PlayerMetricLabelFormatter.DescribeMetric(
+            path, value, false, true, "—", key => UiText.Translate(language, key));
+
+        Assert.Equal(value, result.DisplayValue);
+        Assert.Equal(state, result.State);
+        Assert.StartsWith(explanation, result.Explanation, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("id", true, "0")]
+    [InlineData("id", false, "3")]
+    [InlineData("en", true, "0")]
+    [InlineData("en", false, "3")]
+    [InlineData("id", true, "—")]
+    public void DescribeMetric_DistinguishesNeedCardsOwnedFromPurchases(string language, bool advanced, string value)
+    {
+        string Localize(string key) => UiText.Translate(language, key);
+        var owned = PlayerMetricLabelFormatter.DescribeMetric(
+            "need_cards_owned_current", value, false, advanced, "—", Localize);
+        var purchased = PlayerMetricLabelFormatter.DescribeMetric(
+            "need_cards_purchased", "1", false, advanced, "—", Localize);
+
+        Assert.Equal(value, owned.DisplayValue);
+        Assert.StartsWith(Localize("players.support.meaning.need_cards_owned"), owned.Explanation, StringComparison.Ordinal);
+        var saleNote = Localize("players.support.meaning.need_cards_sold_note");
+        if (advanced)
+            Assert.Contains(saleNote, owned.Explanation, StringComparison.Ordinal);
+        else
+            Assert.DoesNotContain(saleNote, owned.Explanation, StringComparison.Ordinal);
+        Assert.Equal("1", purchased.DisplayValue);
+        Assert.Equal(Localize("players.support.meaning.need_cards_purchased"), purchased.Explanation);
+    }
+
     private static string Translate(string key)
     {
         return key switch
@@ -235,7 +467,7 @@ public sealed class PlayerMetricLabelFormatterTests
             "common.value" => "Value",
             "players.raw.coins" => "Coins",
             "players.raw.coins_net_end_game" => "Ending Coins",
-            "players.raw.coins_spent_per_turn" => "Coins Spent per Turn",
+            "players.raw.coins_spent_per_turn" => "Outgoing Coins per Event",
             "players.raw.amount" => "Amount",
             "players.raw.ingredient_types_held" => "Ingredient Types Held",
             "players.raw.white_rice" => "White Rice",

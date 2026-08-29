@@ -221,9 +221,10 @@ public static class PlayerMetricJsonMapper
             }
 
             return new PlayerMetricCollectionTable(
-                new[] { "value" },
-                items.Select(item => (IReadOnlyList<string>)new[]
+                new[] { "item_index", "value" },
+                items.Select((item, index) => (IReadOnlyList<string>)new[]
                 {
+                    (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
                     FormatCollectionValue(item, trueText, falseText, nullText)
                 }).ToList());
         }
@@ -232,6 +233,214 @@ public static class PlayerMetricJsonMapper
             return null;
         }
     }
+
+    /// <summary>
+    /// Memasangkan jumlah dan peringkat donasi berdasarkan hari, bukan posisi array.
+    /// </summary>
+    public static string BuildDonationHistoryJson(string amountsRawValue, string ranksRawValue)
+    {
+        var donations = new SortedDictionary<int, Dictionary<string, object?>>();
+        foreach (var (rawValue, property) in new[] { (amountsRawValue, "amount"), (ranksRawValue, "rank") })
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(rawValue);
+                if (document.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var item in document.RootElement.EnumerateArray())
+                {
+                    if (item.ValueKind != JsonValueKind.Object
+                        || !item.TryGetProperty("day_index", out var dayValue)
+                        || dayValue.ValueKind != JsonValueKind.Number
+                        || !dayValue.TryGetInt32(out var day)
+                        || day <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (!donations.TryGetValue(day, out var values))
+                    {
+                        values = new Dictionary<string, object?>
+                        {
+                            ["day_index"] = day,
+                            ["amount"] = null,
+                            ["rank"] = null
+                        };
+                        donations[day] = values;
+                    }
+
+                    values[property] = ReadClonedProperty(item, property);
+                }
+            }
+            catch (JsonException)
+            {
+                // Seri yang tidak tersedia tidak menghilangkan data dari seri lainnya.
+            }
+        }
+
+        return JsonSerializer.Serialize(donations.Values);
+    }
+
+    /// <summary>
+    /// Menggabungkan transaksi, perubahan bersih, dan saldo menjadi satu riwayat
+    /// yang tersusun berdasarkan nomor urut kejadian.
+    /// </summary>
+    public static string? BuildTransactionHistoryJson(
+        string outgoingRawValue,
+        string incomingRawValue,
+        string netChangeRawValue,
+        string balanceRawValue)
+    {
+        var transactions = new Dictionary<long, Dictionary<string, object?>>();
+        AppendTransactionRows(outgoingRawValue, "amount", "coins_out_event", transactions);
+        AppendTransactionRows(incomingRawValue, "amount", "coins_in_event", transactions);
+        AppendTransactionRows(netChangeRawValue, "net", "coin_change", transactions);
+        AppendTransactionRows(balanceRawValue, "coins", "coin_balance_after_event", transactions);
+
+        return transactions.Count == 0
+            ? null
+            : JsonSerializer.Serialize(transactions
+                .OrderBy(item => item.Key)
+                .Select(item => item.Value));
+    }
+
+    /// <summary>
+    /// Menggabungkan urutan aksi dan ringkasan pengulangan per hari agar informasi
+    /// yang sama tidak ditampilkan dalam dua tabel terpisah.
+    /// </summary>
+    public static string? BuildActionUsageHistoryJson(
+        string actionSequenceRawValue,
+        string actionRepetitionRawValue)
+    {
+        var days = new SortedDictionary<int, Dictionary<string, object?>>();
+        AppendActionUsageRows(
+            actionSequenceRawValue,
+            ["actions"],
+            days);
+        AppendActionUsageRows(
+            actionRepetitionRawValue,
+            ["total_actions", "distinct_actions", "repeated_actions", "diversity_score"],
+            days);
+
+        return days.Count == 0
+            ? null
+            : JsonSerializer.Serialize(days.Values);
+    }
+
+    private static void AppendActionUsageRows(
+        string rawValue,
+        IReadOnlyList<string> propertyNames,
+        IDictionary<int, Dictionary<string, object?>> output)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(rawValue);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return;
+            }
+
+            foreach (var item in document.RootElement.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object))
+            {
+                if (!item.TryGetProperty("day_index", out var dayValue)
+                    || !dayValue.TryGetInt32(out var dayIndex)
+                    || dayIndex <= 0)
+                {
+                    continue;
+                }
+
+                if (!output.TryGetValue(dayIndex, out var values))
+                {
+                    values = new Dictionary<string, object?>
+                    {
+                        ["day_index"] = dayIndex,
+                        ["actions"] = null,
+                        ["total_actions"] = null,
+                        ["distinct_actions"] = null,
+                        ["repeated_actions"] = null,
+                        ["diversity_score"] = null
+                    };
+                    output[dayIndex] = values;
+                }
+
+                foreach (var propertyName in propertyNames)
+                {
+                    values[propertyName] = ReadClonedProperty(item, propertyName);
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Satu seri yang rusak tidak menghilangkan data valid dari seri lainnya.
+        }
+    }
+
+    private static void AppendTransactionRows(
+        string rawValue,
+        string sourceProperty,
+        string targetProperty,
+        IDictionary<long, Dictionary<string, object?>> output)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(rawValue);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return;
+            }
+
+            foreach (var item in document.RootElement.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object))
+            {
+                if (!item.TryGetProperty("sequence_number", out var sequenceValue)
+                    || !sequenceValue.TryGetInt64(out var sequenceNumber))
+                {
+                    continue;
+                }
+
+                if (!output.TryGetValue(sequenceNumber, out var values))
+                {
+                    values = new Dictionary<string, object?>
+                    {
+                        ["day_index"] = null,
+                        ["action_slot"] = null,
+                        ["sequence_number"] = sequenceNumber,
+                        ["cashflow_category"] = null,
+                        ["coins_in_event"] = 0,
+                        ["coins_out_event"] = 0,
+                        ["coin_change"] = null,
+                        ["coin_balance_after_event"] = null
+                    };
+                    output[sequenceNumber] = values;
+                }
+
+                SetContextValueIfMissing(values, item, "day_index");
+                SetContextValueIfMissing(values, item, "action_slot");
+                SetContextValueIfMissing(values, item, "cashflow_category");
+                values[targetProperty] = ReadClonedProperty(item, sourceProperty);
+            }
+        }
+        catch (JsonException)
+        {
+            // Satu seri yang rusak tidak menghalangi seri valid lainnya untuk ditampilkan.
+        }
+    }
+
+    private static void SetContextValueIfMissing(
+        IDictionary<string, object?> values,
+        JsonElement item,
+        string propertyName)
+    {
+        if (values[propertyName] is null)
+        {
+            values[propertyName] = ReadClonedProperty(item, propertyName);
+        }
+    }
+
+    private static object? ReadClonedProperty(JsonElement item, string propertyName) =>
+        item.TryGetProperty(propertyName, out var value) ? value.Clone() : null;
 
     private static string FormatCollectionValue(
         JsonElement element,

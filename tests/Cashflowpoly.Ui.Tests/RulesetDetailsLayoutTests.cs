@@ -1,10 +1,27 @@
 // Fungsi file: Memverifikasi perilaku, lokalisasi, atau tata letak UI melalui RulesetDetailsLayoutTests.
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Cashflowpoly.Ui.Tests;
 
 public sealed class RulesetDetailsLayoutTests
 {
+    [Fact]
+    public void RulesetModeCallout_ShouldKeepBadgeOnOneLineWhileDescriptionCanShrink()
+    {
+        var css = File.ReadAllText(Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "wwwroot", "css", "tailwind.input.css"));
+        var badgeRule = Regex.Match(css, @"\.ruleset-mode-badge,\s*\.ruleset-default-badge\s*\{(?<body>[^}]+)\}");
+        var descriptionRule = Regex.Match(css, @"\.ruleset-mode-callout p\s*\{(?<body>[^}]+)\}");
+
+        Assert.True(badgeRule.Success);
+        Assert.Contains("flex: 0 0 auto;", badgeRule.Groups["body"].Value, StringComparison.Ordinal);
+        Assert.Contains("min-width: max-content;", badgeRule.Groups["body"].Value, StringComparison.Ordinal);
+        Assert.Contains("white-space: nowrap;", badgeRule.Groups["body"].Value, StringComparison.Ordinal);
+        Assert.True(descriptionRule.Success);
+        Assert.Contains("min-width: 0;", descriptionRule.Groups["body"].Value, StringComparison.Ordinal);
+        Assert.Contains("flex: 1 1 auto;", descriptionRule.Groups["body"].Value, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void RulesetDetailsView_ShouldNotRenderComponentCatalogSection()
     {

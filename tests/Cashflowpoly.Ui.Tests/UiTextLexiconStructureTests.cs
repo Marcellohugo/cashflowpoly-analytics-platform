@@ -43,8 +43,14 @@ public sealed class UiTextLexiconStructureTests
             .Where(line => line.Contains("back_to", StringComparison.Ordinal) || line.Contains("nav_back_", StringComparison.Ordinal))
             .ToList();
 
-        Assert.Equal(11, backActionLines.Count);
-        Assert.All(backActionLines, line => Assert.Contains("@(\"<- \" + Context.T(", line, StringComparison.Ordinal));
+        Assert.Equal(10, backActionLines.Count);
+        Assert.All(backActionLines, line =>
+        {
+            var expectedPrefix = line.Contains("privacy.back_to_top", StringComparison.Ordinal)
+                ? "@(\"↑ \" + Context.T("
+                : "@(\"<- \" + Context.T(";
+            Assert.Contains(expectedPrefix, line, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
@@ -86,6 +92,28 @@ public sealed class UiTextLexiconStructureTests
         Assert.True(duplicateKeys.Count == 0, $"Key terjemahan ganda: {string.Join(", ", duplicateKeys)}");
         Assert.True(incompleteKeys.Count == 0, $"Terjemahan kosong: {string.Join(", ", incompleteKeys)}");
         Assert.True(placeholderMismatches.Count == 0, $"Placeholder ID/EN tidak sama: {string.Join(", ", placeholderMismatches)}");
+    }
+
+    [Fact]
+    public void ScoringTerms_UseHappinessPointsWithoutDuplicatingTheName()
+    {
+        var infrastructureRoot = Path.Combine(ResolveRepositoryRoot(), "src", "Cashflowpoly.Ui", "Infrastructure");
+        var entries = Directory
+            .EnumerateFiles(infrastructureRoot, "UiTextLexicon*.cs", SearchOption.TopDirectoryOnly)
+            .SelectMany(path => LexiconEntryRegex.Matches(File.ReadAllText(path)));
+
+        foreach (var entry in entries)
+        {
+            var id = entry.Groups["id"].Value;
+            var en = entry.Groups["en"].Value;
+            Assert.DoesNotMatch(@"(?i)\bpoin\b(?!\s+kebahagiaan\b)", id);
+            Assert.DoesNotMatch(@"(?i)\bpoin\s+kebahagiaan\s+kebahagiaan\b", id);
+            Assert.DoesNotMatch(@"(?i)\bhappiness\s+happiness\s+points?\b", en);
+            if (id.Contains("poin", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.DoesNotMatch(@"(?i)(?<!happiness )\bpoints?\b", en);
+            }
+        }
     }
 
     private static string ResolveRepositoryRoot()

@@ -348,19 +348,26 @@
             const buttons = [
                 `
                     <button type="button"
-                             class="session-journey-filter-btn ${selectedTimelineFilter === "all" ? "is-active" : ""}"
+                             class="session-journey-filter-btn session-journey-filter-btn--all ${selectedTimelineFilter === "all" ? "is-active" : ""}"
                              data-timeline-filter="all"
-                             aria-pressed="${selectedTimelineFilter === "all" ? "true" : "false"}">${escapeHtml(allPlayersLabel)}</button>
+                             aria-pressed="${selectedTimelineFilter === "all" ? "true" : "false"}">
+                        <span class="session-journey-filter-all-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        <span>${escapeHtml(allPlayersLabel)}</span>
+                    </button>
                 `
             ];
 
-            playerOptions.forEach((option) => {
+            playerOptions.forEach((option, playerIndex) => {
                 const filterKey = `player:${option.key}`;
+                const playerOrder = (playerIndex % 4) + 1;
                 buttons.push(`
                     <button type="button"
-                             class="session-journey-filter-btn ${selectedTimelineFilter === filterKey ? "is-active" : ""}"
+                             class="session-journey-filter-btn session-journey-filter-btn--player session-journey-filter-btn--turn-${playerOrder} ${selectedTimelineFilter === filterKey ? "is-active" : ""}"
                              data-timeline-filter="${escapeHtml(filterKey)}"
-                             aria-pressed="${selectedTimelineFilter === filterKey ? "true" : "false"}">${escapeHtml(option.label)}</button>
+                             aria-pressed="${selectedTimelineFilter === filterKey ? "true" : "false"}">
+                        <img class="session-journey-filter-avatar" src="/images/players/${playerOrder}.png" alt="" aria-hidden="true" />
+                        <span>${escapeHtml(option.label)}</span>
+                    </button>
                 `);
             });
 

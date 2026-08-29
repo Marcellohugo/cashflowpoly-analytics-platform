@@ -76,12 +76,6 @@
         <div class="metric-panel">
             <p class="text-sm font-semibold text-slate-800">@Context.T("rulesets.detail.empty_title")</p>
             <p class="mt-2 text-sm text-slate-600">@Context.T("rulesets.detail.empty_body")</p>
-            @if (!isEmbedded)
-            {
-                <div class="mt-4">
-                    <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@("<- " + Context.T("rulesets.back_to_list"))</a>
-                </div>
-            }
         </div>
     </div>
 }
@@ -123,7 +117,6 @@ else
         @if (!isEmbedded)
         {
             <div class="action-toolbar mt-4 ruleset-detail-toolbar">
-                <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@("<- " + Context.T("rulesets.back_to_list"))</a>
                 @if (isInstructor && !Model.IsReadOnly)
                 {
                     <a class="btn-ghost"

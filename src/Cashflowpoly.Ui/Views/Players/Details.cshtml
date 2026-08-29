@@ -8,11 +8,6 @@
     ViewData["Title"] = Context.T("players.detail_title");
     var isInstructor = Context.IsInstructor();
 
-    string LocalizeTransactionDetail(string rawDetail)
-    {
-        return PlayerMetricLabelFormatter.LocalizeTransactionDetail(rawDetail, Context.T);
-    }
-
     static int ResolvePlayerAvatarIndex(int turnOrder)
     {
         if (turnOrder <= 0)
@@ -25,6 +20,15 @@
 
     string FormatNumber(double value) => value.ToString("N0", CultureInfo.CurrentCulture);
     string FormatSignedNumber(double value) => value > 0 ? $"+{FormatNumber(value)}" : FormatNumber(value);
+    static int ResolveCardColumns(int count) => count switch
+    {
+        1 => 1,
+        2 or 4 or 8 => 2,
+        _ => 3
+    };
+    static bool IsCollectionValue(string value) =>
+        value.TrimStart().StartsWith("[", StringComparison.Ordinal)
+        || value.TrimStart().StartsWith("{", StringComparison.Ordinal);
     string FormatActionSlot(int slot) => slot switch
     {
         0 => Context.T("players.details.action_slot.free"),
@@ -62,6 +66,13 @@
                 .Select(action => PlayerMetricLabelFormatter.HumanizeMetricKey(action, Context.T)));
         }
 
+        if (column.Equals("cashflow_category", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Join(", ", value
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(category => PlayerMetricLabelFormatter.HumanizeTransactionCategory(category, Context.T)));
+        }
+
         return PlayerMetricLabelFormatter.DescribeMetric(
             $"{metricPath}.{column}",
             value,
@@ -72,8 +83,8 @@
     }
 
     static bool IsCollectionContextColumn(string column) =>
-        column is "action_slot" or "day_index" or "sequence_number" or "action_index"
-            or "action_type" or "actions" or "series" or "rank";
+        column is "item_index" or "action_slot" or "day_index" or "sequence_number" or "action_index"
+            or "action_type" or "actions" or "series" or "rank" or "cashflow_category";
 
     var cashflowJourney = Model.CashflowJourney;
     var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
@@ -136,19 +147,106 @@
         params string[] keys) =>
         isAdvancedMode ? rows.ToList() : ExcludeRows(rows, keys);
 
+    List<(string Path, string Value)> BuildCoinRows()
+    {
+        var coinRows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "coins");
+        var turnRows = ExcludeAdvancedRowsInBeginner(
+            PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "turns"),
+            "action_slot_when_debt_introduced",
+            "action_slot_when_first_risk_hit",
+            "day_when_debt_introduced",
+            "day_when_first_risk_hit");
+        // Waktu risiko pertama sudah dapat ditelusuri dari kelompok Risiko Kehidupan.
+        // Jangan tampilkan kartu ringkasan yang mengulang informasi tersebut.
+        turnRows = ExcludeRows(turnRows, "day_when_first_risk_hit", "action_slot_when_first_risk_hit");
+        var outgoing = coinRows.FirstOrDefault(row => row.Path == "coins_spent_per_turn").Value;
+        var incoming = coinRows.FirstOrDefault(row => row.Path == "coins_earned_per_turn").Value;
+        var netChange = turnRows.FirstOrDefault(row => row.Path == "net_income_per_turn").Value;
+        var balance = turnRows.FirstOrDefault(row => row.Path == "coins_per_turn_progression").Value;
+        var transactionHistory = PlayerMetricJsonMapper.BuildTransactionHistoryJson(
+            outgoing ?? "[]",
+            incoming ?? "[]",
+            netChange ?? "[]",
+            balance ?? "[]");
+        var result = ExcludeRows(
+            coinRows,
+            "coins_donated",
+            "coins_saved",
+            "coins_net_end_game",
+            "coins_spent_per_turn",
+            "coins_earned_per_turn");
+
+        if (!string.IsNullOrWhiteSpace(transactionHistory))
+        {
+            result.Add(("transaction_history", transactionHistory));
+        }
+
+        result.AddRange(ExcludeRows(
+            turnRows,
+            "coins_per_turn_progression",
+            "net_income_per_turn").OrderBy(row => row.Path switch
+        {
+            "day_when_debt_introduced" => 0,
+            "day_game_completion" => 1,
+            _ => 2
+        }));
+
+        return result;
+    }
+
+    List<(string Path, string Value)> BuildDonationRows()
+    {
+        var rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "donations");
+        if (rows.Count == 0)
+        {
+            return rows;
+        }
+
+        var amounts = rows.FirstOrDefault(row => row.Path == "donation_amount_per_friday").Value;
+        var ranks = rows.FirstOrDefault(row => row.Path == "donation_rank_per_friday").Value;
+        var result = ExcludeRows(rows, "donation_amount_per_friday", "donation_rank_per_friday");
+        result.Insert(0, ("donation_history", PlayerMetricJsonMapper.BuildDonationHistoryJson(
+            amounts ?? "[]", ranks ?? "[]")));
+        return result;
+    }
+
+    List<(string Path, string Value)> BuildActionRows()
+    {
+        var rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "actions");
+        var sequence = rows.FirstOrDefault(row => row.Path == "action_sequence").Value;
+        var repetitions = rows.FirstOrDefault(row => row.Path == "action_repetitions_per_turn").Value;
+        var result = ExcludeRows(rows, "actions_per_turn", "action_sequence", "action_repetitions_per_turn");
+        var history = PlayerMetricJsonMapper.BuildActionUsageHistoryJson(
+            sequence ?? "[]",
+            repetitions ?? "[]");
+        if (!string.IsNullOrWhiteSpace(history))
+        {
+            result.Insert(0, ("action_usage_history", history));
+        }
+
+        return result;
+    }
+
+    var ingredientRows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "ingredients");
+    var discardedIngredients = ingredientRows.FirstOrDefault(row => row.Path == "ingredients_wasted").Value;
+    var financialGoalRows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals");
+    var attemptedFinancialGoals = financialGoalRows.FirstOrDefault(row => row.Path == "financial_goals_attempted").Value;
+    var financialGoalSources = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals", "coins");
+    var financialGoalSummaryRows = new[] { "financial_goals_completed", "coins_saved", "sharia_loans_outstanding_coins" }
+        .Select(path => (Path: path, Value: financialGoalSources.FirstOrDefault(row => row.Path == path).Value ?? nullText))
+        .ToList();
     var rawSections = new[]
     {
-        new { Key = "coin-finance", TitleKey = "players.details.raw.coin_finance.title", DescriptionKey = "players.details.raw.coin_finance.desc", AdvancedOnly = false, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "coins"), "coins_donated", "coins_saved", "coins_net_end_game") },
-        new { Key = "ingredients", TitleKey = "players.details.raw.ingredients.title", DescriptionKey = "players.details.raw.ingredients.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "ingredients") },
+        new { Key = "coin-finance", TitleKey = "players.details.raw.coin_finance.title", DescriptionKey = isAdvancedMode ? "players.details.raw.coin_finance.desc" : "players.details.raw.coin_finance.beginner.desc", AdvancedOnly = false, Rows = BuildCoinRows() },
+        new { Key = "ingredients", TitleKey = "players.details.raw.ingredients.title", DescriptionKey = "players.details.raw.ingredients.desc", AdvancedOnly = false, Rows = ingredientRows.Where(row => row.Path != "ingredients_wasted" && row.Path.Split('.')[0] != "ingredient_types_held").ToList() },
         new { Key = "meal-orders", TitleKey = "players.details.raw.meal_orders.title", DescriptionKey = "players.details.raw.meal_orders.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "meal_orders") },
-        new { Key = "needs", TitleKey = "players.details.raw.needs.title", DescriptionKey = "players.details.raw.needs.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "needs") },
-        new { Key = "donations", TitleKey = "players.details.raw.donations.title", DescriptionKey = "players.details.raw.donations.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "donations") },
+        new { Key = "needs", TitleKey = "players.details.raw.needs.title", DescriptionKey = "players.details.raw.needs.desc", AdvancedOnly = false, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "needs"), "need_profile.basic_profile", "need_profile.collector_profile", "need_profile.specialist_profile") },
+        new { Key = "donations", TitleKey = "players.details.raw.donations.title", DescriptionKey = "players.details.raw.donations.desc", AdvancedOnly = false, Rows = BuildDonationRows() },
         new { Key = "gold", TitleKey = "players.details.raw.gold.title", DescriptionKey = "players.details.raw.gold.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "gold") },
         new { Key = "pension", TitleKey = "players.details.raw.pension.title", DescriptionKey = "players.details.raw.pension.desc", AdvancedOnly = false, Rows = ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "pension"), "leftover_coins_end_game") },
         new { Key = "life-risk", TitleKey = "players.details.raw.life_risk.title", DescriptionKey = "players.details.raw.life_risk.desc", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "life_risk") },
-        new { Key = "financial-goals", TitleKey = "players.details.raw.financial_goals.title", DescriptionKey = "players.details.raw.financial_goals.desc", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals") },
-        new { Key = "actions", TitleKey = "players.details.raw.actions.title", DescriptionKey = "players.details.raw.actions.desc", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "actions") },
-        new { Key = "turns", TitleKey = "players.details.raw.turns.title", DescriptionKey = isAdvancedMode ? "players.details.raw.turns.desc" : "players.details.raw.turns.beginner.desc", AdvancedOnly = false, Rows = ExcludeAdvancedRowsInBeginner(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "turns"), "action_slot_when_debt_introduced", "action_slot_when_first_risk_hit", "day_when_debt_introduced", "day_when_first_risk_hit") }
+        new { Key = "financial-goals", TitleKey = "players.details.raw.financial_goals.title", DescriptionKey = "players.details.raw.financial_goals.desc", AdvancedOnly = true, Rows = financialGoalSummaryRows },
+        new { Key = "actions", TitleKey = "players.details.raw.actions.title", DescriptionKey = "players.details.raw.actions.desc", AdvancedOnly = false, Rows = BuildActionRows() }
     }.Where(item => isAdvancedMode || !item.AdvancedOnly).ToList();
 
     var analysisSections = new[]
@@ -180,13 +278,25 @@
         derivedSummaryRows.FirstOrDefault(row => string.Equals(row.Path, key, StringComparison.OrdinalIgnoreCase)).Value
         ?? nullText;
     var netWorthMetric = PlayerMetricLabelFormatter.DescribeMetric("cash_growth_percent", ReadDerivedValue("cash_growth_percent"), true, isAdvancedMode, nullText, Context.T);
-    var actionEfficiencyMetric = PlayerMetricLabelFormatter.DescribeMetric("income_action_focus_percent", ReadDerivedValue("income_action_focus_percent"), true, isAdvancedMode, nullText, Context.T);
 
     var playerTurnOrder = Model.Summary?.PlayerOrder ?? 1;
     var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
 }
 
 <section class="section-shell player-detail-overhaul">
+    <div class="action-toolbar mb-4 player-detail-toolbar">
+        @if (isInstructor)
+        {
+            <a class="btn-ghost"
+               asp-controller="PlayerDirectory"
+               asp-action="Index">@("<- " + Context.T("players.detail.nav_back_players"))</a>
+        }
+        <a class="btn-ghost"
+           asp-controller="Sessions"
+           asp-action="Details"
+           asp-route-sessionId="@Model.SessionId">@("<- " + Context.T("players.detail.nav_back_session"))</a>
+    </div>
+
     <div class="player-detail-hero">
         <div class="player-detail-hero-copy">
             <h1 class="headline">@Context.T("players.detail_title")</h1>
@@ -205,19 +315,6 @@
         </div>
     </div>
 
-    <div class="action-toolbar mt-4 player-detail-toolbar">
-        @if (isInstructor)
-        {
-            <a class="btn-ghost"
-               asp-controller="PlayerDirectory"
-               asp-action="Index">@("<- " + Context.T("players.detail.nav_back_players"))</a>
-        }
-        <a class="btn-ghost"
-           asp-controller="Sessions"
-           asp-action="Details"
-           asp-route-sessionId="@Model.SessionId">@("<- " + Context.T("players.detail.nav_back_session"))</a>
-    </div>
-
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="mt-4 alert alert-error" aria-live="polite">
@@ -231,73 +328,6 @@
             @Model.GameplayErrorMessage
         </div>
     }
-
-    <details id="player-transaction-history" class="players-fusion-metrics player-detail-section mt-6 player-transactions-section data-toggle">
-        <summary class="players-fusion-head ruleset-section-head">
-            <p class="eyebrow">@Context.T("players.cashflow_journey.badge")</p>
-            <h2 class="ruleset-section-title">@Context.T("players.transaction_history")</h2>
-            <p class="ruleset-section-subtitle">@Context.T("players.cashflow_journey.subtitle")</p>
-        </summary>
-
-        <div class="mt-4 table-wrap">
-            <table class="w-full text-left text-sm mobile-card-table">
-                <thead class="table-head">
-                    <tr>
-                        <th class="px-4 py-3">@Context.T("common.time")</th>
-                        <th class="px-4 py-3">@Context.T("common.category")</th>
-                        <th class="px-4 py-3 text-center">@Context.T("common.direction")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.transaction_amount")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.running_balance")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model.Transactions == null || Model.Transactions.Count == 0)
-                {
-                    <tr>
-                        <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="5">@Context.T("players.no_transactions")</td>
-                    </tr>
-                }
-                else
-                {
-                    var runningBal = Model.CashflowJourney?.StartingCash ?? 20.0;
-                    foreach (var tx in Model.Transactions.OrderBy(t => t.Timestamp))
-                    {
-                        var isIncoming = string.Equals(tx.Direction, "IN", StringComparison.OrdinalIgnoreCase);
-                        if (isIncoming)
-                        {
-                            runningBal += tx.Amount;
-                        }
-                        else if (string.Equals(tx.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
-                        {
-                            runningBal -= tx.Amount;
-                        }
-                        var directionPillClass = isIncoming ? "status-active" : "status-retired";
-                        var amountClass = isIncoming ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold";
-                        var sign = isIncoming ? "+" : "-";
-
-                        <tr class="border-t border-slate-200">
-                            <td class="px-4 py-3 text-slate-700 font-mono text-xs" data-label="@Context.T("common.time")">
-                                @tx.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
-                            </td>
-                            <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.category")">
-                                @LocalizeTransactionDetail($"{tx.Direction} - {tx.Category} ({tx.Amount})")
-                            </td>
-                            <td class="px-4 py-3 text-center" data-label="@Context.T("common.direction")">
-                                <span class="status-pill @directionPillClass">@tx.Direction</span>
-                            </td>
-                            <td class="px-4 py-3 text-right @amountClass" data-label="@Context.T("common.transaction_amount")">
-                                @sign@tx.Amount.ToString("N0", CultureInfo.CurrentCulture)
-                            </td>
-                            <td class="px-4 py-3 text-right font-mono text-slate-900" data-label="@Context.T("common.running_balance")">
-                                @runningBal.ToString("N0", CultureInfo.CurrentCulture)
-                            </td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-    </details>
 
     <div id="player-statistics-dashboard" class="players-fusion-metrics player-detail-section player-stats-dashboard">
         <details id="player-statistics-summary" class="player-dashboard-accordion player-dashboard-accordion--summary" data-player-section-accordion data-accordion-key="summary" open aria-labelledby="player-statistics-summary-title">
@@ -319,10 +349,18 @@
                     <dl class="player-analysis-scorecard" aria-label="@Context.T("players.analysis.scorecard.title")">
                         <div><dt>@Context.T("players.cashflow_journey.ending_cash")</dt><dd>@FormatNumber(endingCash)</dd></div>
                         <div><dt>@Context.T("metric.cash_net")</dt><dd>@FormatSignedNumber(netCashflow)</dd></div>
+                        <div><dt>@netWorthMetric.Label</dt><dd>@netWorthMetric.DisplayValue@netWorthMetric.Unit</dd></div>
                         <div><dt>@Context.T("metric.happiness")</dt><dd>@FormatNumber(happinessPoints)</dd></div>
                         <div><dt>@Context.T("metric.fulfillment_diversity")</dt><dd>@(needCardsOwned == 0 ? Context.T("players.stats.need_balance.none") : fulfillmentDiversity.ToString("P0", CultureInfo.CurrentCulture))</dd></div>
-                        <div><dt>@netWorthMetric.Label</dt><dd>@netWorthMetric.DisplayValue@netWorthMetric.Unit</dd></div>
-                        <div><dt>@actionEfficiencyMetric.Label</dt><dd>@actionEfficiencyMetric.DisplayValue@actionEfficiencyMetric.Unit</dd></div>
+                        <div class="player-analysis-scorecard__mission">
+                            <dt>@Context.T("players.stats.mission.title")</dt>
+                            <dd>@Context.T(statSummary.CollectionMissionComplete switch
+                                {
+                                    true => "players.stats.mission.complete",
+                                    false => "players.stats.mission.incomplete",
+                                    _ => "players.stats.mission.unavailable"
+                                })</dd>
+                        </div>
                     </dl>
                 </section>
 
@@ -390,6 +428,7 @@
                                             var supportingRows = analysis.Rows
                                                 .Where(row => !row.Path.Equals(analysis.PrimaryKey, StringComparison.OrdinalIgnoreCase))
                                                 .ToList();
+                                            var supportingGridColumns = ResolveCardColumns(supportingRows.Count);
                                         }
                                         @if (string.IsNullOrWhiteSpace(primaryRow.Path))
                                         {
@@ -429,7 +468,7 @@
                                                 <summary>@Context.T("players.analysis.details")</summary>
                                                 @if (supportingRows.Count > 0)
                                                 {
-                                                    <dl class="player-analysis-card__metrics">
+                                                    <dl class="player-analysis-card__metrics player-analysis-card__metrics--columns-@supportingGridColumns">
                                                         @foreach (var row in supportingRows)
                                                         {
                                                             var metric = PlayerMetricLabelFormatter.DescribeMetric(
@@ -500,7 +539,47 @@
                     @for (var domainIndex = 0; domainIndex < rawSections.Count; domainIndex++)
                     {
                         var domain = rawSections[domainIndex];
-                        var domainGuides = domain.Rows
+                        var orderedDomainRows = domain.Key switch
+                        {
+                            "meal-orders" => domain.Rows.OrderBy(row => row.Path switch
+                            {
+                                "meal_orders_claimed" => 0,
+                                "meal_order_income_per_order" => 1,
+                                "meal_order_income_total" => 2,
+                                "meal_orders_per_turn_average" => 3,
+                                _ => 4
+                            }).ToList(),
+                            "donations" => domain.Rows.OrderBy(row => row.Path switch
+                            {
+                                "donation_history" => 0,
+                                "donation_total_coins" => 1,
+                                "donation_champion_cards_earned" => 2,
+                                "donation_happiness_points" => 3,
+                                _ => 4
+                            }).ToList(),
+                            "life-risk" => domain.Rows.OrderBy(row => row.Path switch
+                            {
+                                "life_risk_cards_drawn" => 0,
+                                "life_risk_costs_per_card" => 1,
+                                "life_risk_costs_total" => 2,
+                                _ => 3
+                            }).ToList(),
+                            "gold" => domain.Rows.OrderBy(row => row.Path switch
+                            {
+                                "gold_cards_initial" => 0,
+                                "gold_cards_purchased" => 1,
+                                "gold_cards_sold" => 2,
+                                "gold_cards_held_end" => 3,
+                                "gold_prices_per_purchase" => 4,
+                                "gold_price_per_sale" => 5,
+                                "gold_investment_coins_spent" => 6,
+                                "gold_investment_coins_earned" => 7,
+                                "gold_investment_net" => 8,
+                                _ => 9
+                            }).ToList(),
+                            _ => domain.Rows
+                        };
+                        var domainGuides = orderedDomainRows
                             .Select(row => PlayerMetricLabelFormatter.DescribeMetric(
                                 row.Path,
                                 row.Value,
@@ -516,6 +595,17 @@
                                 group.Key.Recommendation
                             })
                             .ToList();
+                        var scalarMetricCount = orderedDomainRows.Count(row => !IsCollectionValue(row.Value));
+                        var scalarGridColumns = ResolveCardColumns(scalarMetricCount);
+                        var scalarGridClass = $"player-metric-card-grid--columns-{scalarGridColumns}";
+                        var domainGridClass = domain.Key switch
+                        {
+                            "coin-finance" => "player-metric-card-grid--coin-finance",
+                            "meal-orders" => "player-metric-card-grid--meal-orders",
+                            "donations" => "player-metric-card-grid--donations",
+                            "gold" => "player-metric-card-grid--gold",
+                            _ => string.Empty
+                        };
                         <details class="player-evidence-domain" @(domainIndex == 0 ? "open" : null)>
                             <summary>
                                 <span class="player-evidence-domain__copy">
@@ -528,7 +618,7 @@
                                 }
                             </summary>
 
-                            @if (domainGuides.Count > 0)
+                            @if (domainGuides.Count > 0 && domain.Key != "financial-goals")
                             {
                                 <details class="player-evidence-domain__guide">
                                     <summary>@Context.T("players.stats.library.read_metric")</summary>
@@ -545,8 +635,8 @@
                                 </details>
                             }
 
-                            <div class="player-metric-card-grid">
-                                @foreach (var row in domain.Rows)
+                            <div class="player-metric-card-grid @scalarGridClass @domainGridClass">
+                                @foreach (var row in orderedDomainRows)
                                 {
                                     var metric = PlayerMetricLabelFormatter.DescribeMetric(
                                         row.Path,
@@ -555,15 +645,24 @@
                                         isAdvancedMode,
                                         nullText,
                                         Context.T);
-                                    var isCollectionValue = row.Value.TrimStart().StartsWith("[", StringComparison.Ordinal)
-                                        || row.Value.TrimStart().StartsWith("{", StringComparison.Ordinal);
+                                    var isCollectionValue = IsCollectionValue(row.Value);
+                                    var isIngredientOrderSeries = domain.Key == "ingredients" && row.Path == "ingredients_used_per_meal";
+                                    var isLifeRiskFeatured = domain.Key == "life-risk"
+                                        && row.Path is "life_risk_cards_drawn" or "life_risk_costs_total";
+                                    var isMealOrderPrimary = domain.Key == "meal-orders" && row.Path == "meal_orders_claimed";
+                                    var isMealOrderSummary = domain.Key == "meal-orders"
+                                        && row.Path is "meal_order_income_total" or "meal_orders_per_turn_average";
+                                    var isGoldOverview = domain.Key == "gold"
+                                        && row.Path is "gold_cards_initial" or "gold_cards_purchased" or "gold_cards_sold" or "gold_cards_held_end";
+                                    var isCoinOverview = domain.Key == "coin-finance"
+                                        && row.Path is "starting_coins" or "coins_held_current";
                                     var collectionTable = isCollectionValue
                                         ? PlayerMetricJsonMapper.BuildCollectionTable(row.Value, trueText, falseText, nullText)
                                         : null;
-                                    <article class="player-metric-card player-metric-card--@metric.State @(isCollectionValue ? "player-metric-card--series" : null)">
+                                    <article class="player-metric-card player-metric-card--@metric.State @(isCollectionValue ? "player-metric-card--series" : null) @(isLifeRiskFeatured ? "player-metric-card--featured" : null) @(isMealOrderPrimary ? "player-metric-card--meal-orders-primary" : null) @(isMealOrderSummary ? "player-metric-card--meal-orders-summary" : null) @(isGoldOverview ? "player-metric-card--gold-overview" : null) @(isCoinOverview ? "player-metric-card--coin-overview" : null)">
                                         <div class="player-metric-card__heading">
                                             <h5>@metric.Label</h5>
-                                            @if (metric.State != "recorded")
+                                            @if (metric.State != "recorded" && !(domain.Key == "financial-goals" && metric.State == "zero"))
                                             {
                                                 <span>@Context.T($"players.support.state.{metric.State}")</span>
                                             }
@@ -591,9 +690,17 @@
                                                         <tr>
                                                             @foreach (var column in collectionTable.Columns)
                                                             {
+                                                                var columnLabel = (row.Path, column) switch
+                                                                {
+                                                                    ("ingredients_used_per_meal" or "meal_order_income_per_order", "item_index") => Context.T("players.details.order_number"),
+                                                                    ("ingredients_used_per_meal", "value") => Context.T("players.details.ingredients.cards_used"),
+                                                                    ("meal_order_income_per_order", "value") => Context.T("players.details.meal_orders.income"),
+                                                                    ("donation_history", "amount") => Context.T("players.details.donations.amount"),
+                                                                    _ => PlayerMetricLabelFormatter.HumanizeMetricKey(column, Context.T)
+                                                                };
                                                                 <th scope="col">
-                                                                    @PlayerMetricLabelFormatter.HumanizeMetricKey(column, Context.T)
-                                                                    @if (!string.IsNullOrWhiteSpace(collectionUnits[column]))
+                                                                    @columnLabel
+                                                                    @if (!isIngredientOrderSeries && !string.IsNullOrWhiteSpace(collectionUnits[column]))
                                                                     {
                                                                         <small>(@collectionUnits[column])</small>
                                                                     }
@@ -626,7 +733,24 @@
                                                 }
                                             </p>
                                         }
-                                        <p class="player-metric-card__explanation">@metric.Explanation</p>
+                                        <p class="player-metric-card__explanation">
+                                            @if (domain.Key == "financial-goals" && row.Path == "financial_goals_completed"
+                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(attemptedFinancialGoals, out var attemptedCount)
+                                                && attemptedCount >= 0)
+                                            {
+                                                @string.Format(CultureInfo.CurrentCulture, Context.T("players.details.financial_goals.attempted_note"), FormatNumber(attemptedCount))
+                                            }
+                                            else
+                                            {
+                                                @metric.Explanation
+                                            }
+                                            @if (domain.Key == "ingredients" && row.Path == "ingredients_held_current"
+                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(discardedIngredients, out var discardedCount)
+                                                && discardedCount > 0)
+                                            {
+                                                @string.Format(CultureInfo.CurrentCulture, Context.T("players.details.ingredients.discarded_note"), FormatNumber(discardedCount))
+                                            }
+                                        </p>
                                     </article>
                                 }
                             </div>

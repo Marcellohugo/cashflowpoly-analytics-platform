@@ -1,7 +1,6 @@
 // Fungsi file: Menyediakan transformasi, lokalisasi, atau koneksi UI melalui PlayerMetricLabelFormatter.
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Cashflowpoly.Ui.Infrastructure;
 
@@ -249,10 +248,18 @@ public static class PlayerMetricLabelFormatter
         var unitKey = ResolveUnitKey(metricKey, leafMetricKey, normalizedPath);
         var unit = string.IsNullOrWhiteSpace(unitKey) ? string.Empty : translate(unitKey);
         var hasNumericValue = TryParseMetricNumber(rawValue, out var numericValue);
+        var noLoanRecorded = metricKey == "day_when_debt_introduced" &&
+                             isUnavailable &&
+                             isAdvancedMode;
+        var isGameDayMetric = IsGameDayMetric(metricKey);
         var state = isAdvancedOnly && !isAdvancedMode
             ? "not_applicable"
+            : noLoanRecorded
+                ? "recorded"
             : isUnavailable
                 ? "unavailable"
+                : hasNumericValue && isGameDayMetric
+                    ? "recorded"
                 : hasNumericValue && Math.Abs(numericValue) < 0.0000001
                     ? "zero"
                     : "recorded";
@@ -266,6 +273,31 @@ public static class PlayerMetricLabelFormatter
             : hasNumericValue
                 ? FormatDisplayNumber(displayNumericValue)
                 : rawValue;
+        if (noLoanRecorded)
+        {
+            displayValue = translate("players.support.value.no_loan_recorded");
+            unit = string.Empty;
+        }
+        else if (hasNumericValue && isGameDayMetric)
+        {
+            displayValue = numericValue <= 0
+                ? translate(metricKey == "day_when_debt_introduced"
+                    ? "players.support.value.preparation_loan"
+                    : "players.support.value.preparation")
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    translate("players.support.value.day_index"),
+                    FormatDisplayNumber(numericValue));
+            unit = string.Empty;
+        }
+        else if (metricKey == "pension_fund_rank_per_game" && hasNumericValue && numericValue > 0)
+        {
+            displayValue = string.Format(
+                CultureInfo.CurrentCulture,
+                translate("players.support.value.rank_position"),
+                FormatDisplayNumber(numericValue));
+            unit = string.Empty;
+        }
         if (state is "not_applicable" or "unavailable")
         {
             unit = string.Empty;
@@ -276,6 +308,10 @@ public static class PlayerMetricLabelFormatter
             CultureInfo.CurrentCulture,
             translate(explanationKey),
             label);
+        if (metricKey == "need_cards_owned_current" && isAdvancedMode)
+        {
+            explanation += " " + translate("players.support.meaning.need_cards_sold_note");
+        }
         var guidanceKey = state switch
         {
             "not_applicable" => "players.support.guide.not_applicable",
@@ -340,49 +376,6 @@ public static class PlayerMetricLabelFormatter
         }
 
         return HumanizeMetricKey(category.Trim().ToLowerInvariant(), translate);
-    }
-
-    /// <summary>
-    /// Melokalkan detail transaksi berformat "DIRECTION - CATEGORY (amount)".
-    /// </summary>
-    public static string LocalizeTransactionDetail(string rawDetail, Func<string, string> translate)
-    {
-        if (string.IsNullOrWhiteSpace(rawDetail))
-        {
-            return translate("players.details.transaction_label");
-        }
-
-        var text = rawDetail.Trim();
-        var match = Regex.Match(text, @"^(?<dir>[A-Za-z_]+)\s*-\s*(?<cat>.+?)(?:\s*\((?<amt>[^)]+)\))?$");
-        if (!match.Success)
-        {
-            return text;
-        }
-
-        var rawDirection = match.Groups["dir"].Value.Trim();
-        var rawCategory = match.Groups["cat"].Value.Trim();
-        var amountText = match.Groups["amt"].Success ? match.Groups["amt"].Value.Trim() : string.Empty;
-
-        if (rawDirection.Equals("START", StringComparison.OrdinalIgnoreCase))
-        {
-            return string.IsNullOrWhiteSpace(amountText)
-                ? translate("players.details.transaction.opening_cash")
-                : string.Format(
-                    CultureInfo.CurrentCulture,
-                    translate("players.details.transaction.opening_cash_with_amount"),
-                    amountText);
-        }
-
-        var directionText = rawDirection.Equals("IN", StringComparison.OrdinalIgnoreCase)
-            ? translate("players.details.transaction.cash_in")
-            : rawDirection.Equals("OUT", StringComparison.OrdinalIgnoreCase)
-                ? translate("players.details.transaction.cash_out")
-                : HumanizeMetricKey(rawDirection.ToLowerInvariant(), translate);
-        var categoryText = HumanizeTransactionCategory(rawCategory, translate);
-
-        return string.IsNullOrWhiteSpace(amountText)
-            ? $"{directionText} - {categoryText}"
-            : $"{directionText} - {categoryText} ({amountText})";
     }
 
     /// <summary>
@@ -565,17 +558,33 @@ public static class PlayerMetricLabelFormatter
             return "players.support.unit.day";
         }
 
-        if (metricKey is "n_active_income_sources")
+        if (metricKey is "n_active_income_sources" or "active_income_source_count")
         {
             return "players.support.unit.sources";
         }
 
-        if (metricKey is "income_producing_actions" or "all_player_actions" or
-                "savings_actions" or "financial_goal_actions" or "insurance_premium_actions" ||
-            leafMetricKey is "income_producing_actions" or "all_player_actions" or
-                "savings_actions" or "financial_goal_actions" or "insurance_premium_actions")
+        if (metricKey is "income_producing_actions" or "income_main_actions" or
+                "all_player_actions" or "total_main_actions" or
+                "savings_actions" or "saving_actions" or "financial_goal_actions" or
+                "insurance_premium_actions" or "insurance_actions" or "loan_repayment_actions" ||
+            leafMetricKey is "income_producing_actions" or "income_main_actions" or
+                "all_player_actions" or "total_main_actions" or
+                "savings_actions" or "saving_actions" or "financial_goal_actions" or
+                "insurance_premium_actions" or "insurance_actions" or "loan_repayment_actions")
         {
             return "players.support.unit.actions";
+        }
+
+        if (metricKey is "outstanding_loan" or "liquid_assets" or "attempted_goal_target_total" ||
+            leafMetricKey is "outstanding_loan" or "liquid_assets" or "attempted_goal_target_total")
+        {
+            return "players.support.unit.coins";
+        }
+
+        if (metricKey is "risks_resolved_without_emergency" or "life_risk_cards_drawn" ||
+            leafMetricKey is "risks_resolved_without_emergency" or "life_risk_cards_drawn")
+        {
+            return "players.support.unit.risk_events";
         }
 
         if (normalizedPath.Contains("financial_goals_balance_per_goal", StringComparison.OrdinalIgnoreCase))
@@ -589,6 +598,7 @@ public static class PlayerMetricLabelFormatter
         }
 
         var isMoney = metricKey.Contains("coin", StringComparison.OrdinalIgnoreCase) ||
+                      leafMetricKey.Contains("coin", StringComparison.OrdinalIgnoreCase) ||
                       metricKey.Contains("cash", StringComparison.OrdinalIgnoreCase) ||
                       metricKey.Contains("income", StringComparison.OrdinalIgnoreCase) ||
                       metricKey.Contains("expense", StringComparison.OrdinalIgnoreCase) ||
@@ -624,8 +634,95 @@ public static class PlayerMetricLabelFormatter
         return string.Empty;
     }
 
+    private static bool IsGameDayMetric(string metricKey) => metricKey is
+        "day_when_debt_introduced" or
+        "day_when_first_risk_hit" or
+        "day_game_completion" or
+        "latest_day_index";
+
     private static string ResolveExplanationKey(string metricKey, bool isDerived, string unitKey)
     {
+        var timelineExplanationKey = metricKey switch
+        {
+            "day_when_debt_introduced" => "players.support.meaning.first_loan_day",
+            "day_when_first_risk_hit" => "players.support.meaning.first_risk_day",
+            "day_game_completion" or "latest_day_index" => "players.support.meaning.last_activity_day",
+            _ => string.Empty
+        };
+        if (!string.IsNullOrWhiteSpace(timelineExplanationKey))
+        {
+            return timelineExplanationKey;
+        }
+
+        if (metricKey == "net_income_per_turn")
+        {
+            return "players.support.meaning.coin_change_event";
+        }
+
+        if (metricKey == "transaction_history")
+        {
+            return "players.support.meaning.transaction_history";
+        }
+
+        if (metricKey == "action_usage_history")
+        {
+            return "players.support.meaning.action_usage_history";
+        }
+
+        if (metricKey == "emergency_options_used")
+        {
+            return "players.support.meaning.emergency_actions";
+        }
+
+        var rawExplanationKey = metricKey switch
+        {
+            "ingredients_held_current" => "players.support.meaning.ingredients_remaining",
+            "ingredients_used_per_meal" => "players.support.meaning.ingredients_per_order",
+            "meal_orders_per_turn_average" => "players.support.meaning.orders_per_active_day",
+            "meal_order_income_per_order" => "players.support.meaning.income_per_order",
+            "ingredient_types_held" => "players.support.meaning.ingredient_types_remaining",
+            "ingredients_wasted" => "players.support.meaning.ingredients_discarded",
+            "gold_cards_purchased" => "players.support.meaning.gold_purchased",
+            "gold_cards_held_end" => "players.support.meaning.gold_remaining",
+            "gold_investment_net" => "players.support.meaning.gold_cashflow",
+            "ingredient_cards_value_end" => "players.support.meaning.pension_ingredient_value",
+            "life_risk_costs_per_card" or "life_risk_costs_total" => "players.support.meaning.risk_nominal_cost",
+            "donation_rank_per_friday" => "players.support.meaning.donation_rank",
+            "donation_history" => "players.support.meaning.donation_history",
+            "donation_happiness_points" or "donations_pts" => "players.support.meaning.donation_happiness",
+            "financial_goals_completed" => "players.support.meaning.completed_goals",
+            "sharia_loans_outstanding_coins" => "players.support.meaning.outstanding_loan",
+            "need_cards_purchased" => "players.support.meaning.need_cards_purchased",
+            "need_cards_owned_current" => "players.support.meaning.need_cards_owned",
+            "primary_needs_owned" or "secondary_needs_owned" or "tertiary_needs_owned" => "players.support.meaning.need_level_owned",
+            "specific_tertiary_need" => "players.support.meaning.mission_need_owned",
+            "collection_mission_complete" => "players.support.meaning.collection_mission",
+            "need_cards_coins_spent" => "players.support.meaning.need_purchase_cost",
+            "ingredients_collected" => "players.support.meaning.ingredients_collected",
+            "ingredients_used_total" => "players.support.meaning.ingredients_used_total",
+            "ingredients_used_per_meal_average" => "players.support.meaning.ingredients_used_average",
+            "ingredient_investment_coins_total" => "players.support.meaning.ingredient_purchase_cost",
+            "meal_orders_claimed" => "players.support.meaning.orders_completed",
+            "meal_order_income_total" => "players.support.meaning.order_income_total",
+            "gold_cards_initial" => "players.support.meaning.gold_initial",
+            "gold_cards_sold" => "players.support.meaning.gold_sold",
+            "gold_prices_per_purchase" => "players.support.meaning.gold_purchase_prices",
+            "gold_price_per_sale" => "players.support.meaning.gold_sale_prices",
+            "gold_investment_coins_spent" => "players.support.meaning.gold_purchase_cost",
+            "gold_investment_coins_earned" => "players.support.meaning.gold_sale_income",
+            "pension_fund_total" => "players.support.meaning.pension_total",
+            "pension_fund_rank_per_game" => "players.support.meaning.pension_rank",
+            "pension_fund_happiness_points" => "players.support.meaning.pension_happiness",
+            "life_risk_cards_drawn" => "players.support.meaning.risk_cards_drawn",
+            "life_risk_mitigated_with_insurance" => "players.support.meaning.risk_insured",
+            "insurance_payments_made" => "players.support.meaning.insurance_premium",
+            _ => string.Empty
+        };
+        if (!string.IsNullOrWhiteSpace(rawExplanationKey))
+        {
+            return rawExplanationKey;
+        }
+
         if (isDerived)
         {
             var derivedKey = metricKey switch
@@ -637,12 +734,15 @@ public static class PlayerMetricLabelFormatter
                 "meal_order_profit_margin_percent" or "business_profit_margin" or "business_efficiency_ratio" => "players.support.meaning.business",
                 "gold_roi_percentage" => "players.support.meaning.gold_return",
                 "risk_exposure_percentage" or "risk_cost_intensity" => "players.support.meaning.risk_impact",
-                "risk_readiness_percent" or "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "players.support.meaning.risk_protection",
+                "risk_readiness_percent" => "players.support.meaning.risk_readiness",
+                "risk_mitigation_effectiveness" or "insurance_activation_rate" or "insurance_coverage_rate" => "players.support.meaning.risk_protection",
                 "risk_appetite_score" or "risk_appetite_score_normalized" or "risk_acceptance_rate" => "players.support.meaning.risk_appetite",
-                "loan_burden_percent" or "debt_leverage_ratio" or "debt_ratio" or "loan_repayment_discipline" => "players.support.meaning.debt",
+                "loan_burden_percent" => "players.support.meaning.loan_burden",
+                "debt_leverage_ratio" or "debt_ratio" or "loan_repayment_discipline" => "players.support.meaning.debt",
                 "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" or "goal_setting_ambition" or "goal_attempt_rate" or "goal_investment_rate" => "players.support.meaning.goals",
                 "income_action_focus_percent" or "action_efficiency" or "action_efficiency_percent" or "action_diversity_score_avg" => "players.support.meaning.actions",
-                "ingredient_utilization_percent" or "meal_order_success_rate" => "players.support.meaning.orders",
+                "ingredient_utilization_percent" => "players.support.meaning.ingredient_utilization",
+                "meal_order_success_rate" => "players.support.meaning.orders",
                 "long_term_action_share_percent" or "planning_horizon" or "planning_horizon_percent" => "players.support.meaning.planning",
                 "need_fulfillment_diversity_percent" or "fulfillment_diversity" or "fulfillment_diversity_document_formula" or "p_primary" or "p_secondary" or "p_tertiary" => "players.support.meaning.need_balance",
                 "mission_achievement" => "players.support.meaning.needs",
@@ -716,9 +816,13 @@ public static class PlayerMetricLabelFormatter
                 "risk_appetite_score" or "risk_appetite_score_normalized" when numericValue < 25 => "players.support.guide.appetite_cautious",
                 "risk_appetite_score" or "risk_appetite_score_normalized" when numericValue <= 75 => "players.support.guide.appetite_balanced",
                 "risk_appetite_score" or "risk_appetite_score_normalized" => "players.support.guide.appetite_high",
+                "risk_readiness_percent" when numericValue >= 99.5 => "players.support.guide.risk_readiness_complete",
+                "risk_readiness_percent" when numericValue >= 50 => "players.support.guide.risk_readiness_most",
+                "risk_readiness_percent" => "players.support.guide.risk_readiness_limited",
                 "loan_burden_percent" or "debt_leverage_ratio" when numericValue > 75 => "players.support.guide.debt_high",
                 "loan_burden_percent" or "debt_leverage_ratio" when numericValue <= 25 => "players.support.guide.debt_low",
                 "loan_burden_percent" or "debt_leverage_ratio" => "players.support.guide.debt_moderate",
+                "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue >= 99.5 => "players.support.guide.goals_complete",
                 "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue >= 67 => "players.support.guide.goals_strong",
                 "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue < 34 => "players.support.guide.goals_limited",
                 "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" => "players.support.guide.goals_moderate",
@@ -727,9 +831,12 @@ public static class PlayerMetricLabelFormatter
                 "income_action_focus_percent" or "action_efficiency_percent" when numericValue > 60 => "players.support.guide.action_income",
                 "income_action_focus_percent" or "action_efficiency_percent" when numericValue < 40 => "players.support.guide.action_exploration",
                 "income_action_focus_percent" or "action_efficiency_percent" => "players.support.guide.action_balanced",
-                "ingredient_utilization_percent" or "meal_order_success_rate" when numericValue >= 80 => "players.support.guide.orders_strong",
-                "ingredient_utilization_percent" or "meal_order_success_rate" when numericValue < 60 => "players.support.guide.orders_review",
-                "ingredient_utilization_percent" or "meal_order_success_rate" => "players.support.guide.orders_moderate",
+                "ingredient_utilization_percent" when numericValue >= 80 => "players.support.guide.ingredient_use_high",
+                "ingredient_utilization_percent" when numericValue < 60 => "players.support.guide.ingredient_use_low",
+                "ingredient_utilization_percent" => "players.support.guide.ingredient_use_moderate",
+                "meal_order_success_rate" when numericValue >= 80 => "players.support.guide.orders_strong",
+                "meal_order_success_rate" when numericValue < 60 => "players.support.guide.orders_review",
+                "meal_order_success_rate" => "players.support.guide.orders_moderate",
                 "long_term_action_share_percent" or "planning_horizon_percent" when numericValue > 40 => "players.support.guide.planning_long",
                 "long_term_action_share_percent" or "planning_horizon_percent" when numericValue < 20 => "players.support.guide.planning_short",
                 "long_term_action_share_percent" or "planning_horizon_percent" => "players.support.guide.planning_balanced",

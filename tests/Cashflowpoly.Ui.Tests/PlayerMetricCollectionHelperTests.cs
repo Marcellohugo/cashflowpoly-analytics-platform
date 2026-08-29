@@ -122,7 +122,25 @@ public sealed class PlayerMetricCollectionHelperTests
         Assert.Equal("[1 − ((75 ÷ 100)² + (25 ÷ 100)²)] ÷ [1 − (1 ÷ 2)] × 100% = 75%", incomeDiversification);
         Assert.Equal("5 + 10 + 3 + 2 + 1 + 4 − 6 − 2 = 17 points", happiness);
         Assert.Equal("5 + 10 + 3 + 2 + 1 − 6 = 15 points", beginnerHappiness);
-        Assert.EndsWith("= N/A", unavailable, StringComparison.Ordinal);
+        Assert.Equal("N/A", unavailable);
+    }
+
+    [Fact]
+    public void BuildActualCalculation_PreservesEnoughPrecisionToExplainRoundedResult()
+    {
+        var calculation = PlayerMetricCollectionHelper.BuildActualCalculation(
+            "donation-commitment",
+            [
+                ("donation_stability_index", "29.28932188134524"),
+                ("donated_resource_share", "0.272727272727"),
+                ("friday_participation_rate", "1")
+            ],
+            "7.99",
+            "score",
+            "N/A",
+            CultureInfo.InvariantCulture);
+
+        Assert.Equal("min(100, max(0, 29.289322 × 0.272727 × 1)) = 7.99 score", calculation);
     }
 
     [Fact]

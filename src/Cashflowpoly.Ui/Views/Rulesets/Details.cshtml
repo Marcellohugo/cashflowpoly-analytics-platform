@@ -6,6 +6,10 @@
 }
 
 <section class="section-shell">
+    <div class="action-toolbar mb-4">
+        <a class="btn-ghost" asp-controller="Rulesets" asp-action="Index">@("<- " + Context.T("rulesets.back_to_list"))</a>
+    </div>
+
     <div class="page-intro">
         <div class="page-intro-main">
             <p class="eyebrow">@Context.T("rulesets.management")</p>

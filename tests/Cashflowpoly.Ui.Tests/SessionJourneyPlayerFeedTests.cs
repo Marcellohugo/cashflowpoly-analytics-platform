@@ -11,30 +11,45 @@ public sealed class SessionJourneyPlayerFeedTests
         var repoRoot = ResolveRepositoryRoot();
         var viewPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneySection.cshtml");
         var viewContent = File.ReadAllText(viewPath);
+        var css = File.ReadAllText(Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "wwwroot", "css", "tailwind.input.css"));
 
         Assert.Contains("session-journey-filter", viewContent);
         Assert.Contains("session-journey-feed", viewContent);
         Assert.Contains("sessions.timeline_mixed_subtitle", viewContent);
         Assert.Contains("sessions.timeline_filter_label", viewContent);
-        Assert.DoesNotContain("<span class=\"hint-chip\">@Context.T(\"sessions.timeline_filter_label\")</span>", viewContent, StringComparison.Ordinal);
+        Assert.Contains("session-journey-filter-label", viewContent, StringComparison.Ordinal);
+        Assert.Contains("session-journey-filter-all-mark", viewContent, StringComparison.Ordinal);
         Assert.Contains("sessions.timeline_filter_all", viewContent);
         Assert.Contains("sessions.timeline_filter_players", viewContent);
         Assert.Contains("sessions.timeline_filter_system", viewContent);
         Assert.Contains("sessions.timeline_active_players", viewContent);
+        Assert.Contains(".session-journey-filter-btn--turn-1", css, StringComparison.Ordinal);
+        Assert.Contains(".session-journey-filter-btn--turn-2", css, StringComparison.Ordinal);
+        Assert.Contains(".session-journey-filter-btn--turn-3", css, StringComparison.Ordinal);
+        Assert.Contains(".session-journey-filter-btn--turn-4", css, StringComparison.Ordinal);
+        Assert.Contains(".session-journey-filter-btn--player.is-active", css, StringComparison.Ordinal);
+        Assert.Contains(".session-journey-filter {", css, StringComparison.Ordinal);
+        Assert.Contains("justify-content: center;", css, StringComparison.Ordinal);
         Assert.DoesNotContain("session-board-track", viewContent);
         Assert.DoesNotContain("session-journey-legend", viewContent);
     }
 
     [Fact]
-    public void SessionDetails_ShouldStackJourneyInsightsOnMobile()
+    public void SessionDetails_ShouldSizeJourneyInsightsByCardCountAndStackOnMobile()
     {
         var repoRoot = ResolveRepositoryRoot();
         var viewPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "Details.cshtml");
         var viewContent = File.ReadAllText(viewPath);
 
         Assert.Contains("grid-template-columns: minmax(0, 1fr);", viewContent);
-        Assert.DoesNotContain("grid-template-columns: repeat(2, minmax(0, 1fr));", viewContent);
-        Assert.DoesNotContain(".session-journey-insight-card:last-child", viewContent);
+        Assert.Contains(".session-count-grid:has(> :nth-child(2):last-child)", viewContent);
+        Assert.Contains(".session-count-grid:has(> :nth-child(3):last-child)", viewContent);
+        Assert.Contains(".session-count-grid:has(> :nth-child(4):last-child)", viewContent);
+        Assert.Contains("grid-template-columns: repeat(3, minmax(0, 1fr));", viewContent);
+        Assert.Contains("ruleset-stats session-count-grid", viewContent);
+
+        var journeySectionPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Sessions", "_SessionJourneySection.cshtml");
+        Assert.Contains("session-journey-insight-grid session-count-grid", File.ReadAllText(journeySectionPath));
     }
 
     [Fact]
@@ -46,6 +61,8 @@ public sealed class SessionJourneyPlayerFeedTests
 
         Assert.Contains("session-journey-feed", scriptContent);
         Assert.Contains("selectedTimelineFilter", scriptContent);
+        Assert.Contains("session-journey-filter-avatar", scriptContent);
+        Assert.Contains("session-journey-filter-btn--turn-${playerOrder}", scriptContent);
         Assert.Contains("isImportantSystemEvent", scriptContent);
         Assert.Contains("umumkanjuaradonasi", scriptContent);
         Assert.Contains("actorBucket(item.actorType) === \"SYSTEM\"", scriptContent);

@@ -93,6 +93,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
 
         Assert.Contains("id=\"openRulesetModalBtn\"", sessionDetailView, StringComparison.Ordinal);
+        Assert.Contains("@Context.T(\"sessions.view_ruleset\")", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("id=\"rulesetModal\"", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("class=\"ruleset-modal-backdrop ruleset-modal--@modalModeCss\"", sessionDetailView, StringComparison.Ordinal);
         Assert.Contains("class=\"ruleset-modal-overlay\"", sessionDetailView, StringComparison.Ordinal);
@@ -185,7 +186,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.DoesNotContain("font-mono\">@Model.SessionId", view, StringComparison.Ordinal);
 
         var lexicon = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "UiTextLexicon.Players.cs"));
-        Assert.Contains("(\"Selisih Uang Masuk dan Keluar\", \"Income and Spending Difference\")", lexicon, StringComparison.Ordinal);
+        Assert.Contains("(\"Selisih Koin Masuk dan Keluar\", \"Incoming and Outgoing Coin Difference\")", lexicon, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -193,7 +194,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     {
         var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Details.cshtml"));
 
-        Assert.Contains("class=\"mt-3 ruleset-stats\"", view, StringComparison.Ordinal);
+        Assert.Contains("class=\"mt-3 ruleset-stats session-count-grid\"", view, StringComparison.Ordinal);
         Assert.Contains("class=\"mt-3 session-stats-grid\"", view, StringComparison.Ordinal);
         Assert.DoesNotContain("@Context.T(\"metric.violations\")", view, StringComparison.Ordinal);
         Assert.DoesNotContain("RulesViolationsCount", view, StringComparison.Ordinal);

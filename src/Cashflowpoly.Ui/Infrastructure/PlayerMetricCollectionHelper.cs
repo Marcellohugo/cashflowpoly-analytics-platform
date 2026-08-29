@@ -147,6 +147,11 @@ public static class PlayerMetricCollectionHelper
             .GroupBy(row => row.Path, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Value, StringComparer.OrdinalIgnoreCase);
 
+        if (string.Equals(resultValue, unavailableText, StringComparison.OrdinalIgnoreCase))
+        {
+            return unavailableText;
+        }
+
         string Value(string path, double scale = 1)
         {
             if (!values.TryGetValue(path, out var rawValue) ||
@@ -262,6 +267,6 @@ public static class PlayerMetricCollectionHelper
     {
         return Math.Abs(value - Math.Round(value)) < 0.0000001
             ? value.ToString("N0", culture)
-            : value.ToString("N2", culture);
+            : value.ToString("0.######", culture);
     }
 }

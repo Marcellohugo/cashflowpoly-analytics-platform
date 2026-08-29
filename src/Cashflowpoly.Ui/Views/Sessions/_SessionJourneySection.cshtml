@@ -26,7 +26,7 @@
         <div id="session-journey-error" class="mt-4 alert alert-warning hidden" aria-live="polite"></div>
     }
 
-    <div class="session-journey-insight-grid">
+    <div class="session-journey-insight-grid session-count-grid">
         <article class="session-journey-insight-card">
             <p class="session-journey-insight-label">@Context.T("sessions.timeline_day_turn")</p>
             <p id="session-journey-insight-day-turn" class="session-journey-insight-value">-</p>
@@ -38,14 +38,21 @@
     </div>
 
     <div class="session-journey-filter-shell">
+        <p class="session-journey-filter-label">
+            <span class="session-journey-filter-label-icon" aria-hidden="true">✦</span>
+            @Context.T("sessions.timeline_filter_label")
+        </p>
         <div id="session-journey-filter"
              class="session-journey-filter"
              role="toolbar"
              aria-label="@Context.T("sessions.timeline_filter_label")">
             <button type="button"
-                    class="session-journey-filter-btn is-active"
+                    class="session-journey-filter-btn session-journey-filter-btn--all is-active"
                     data-timeline-filter="all"
-                    aria-pressed="true">@Context.T("sessions.timeline_filter_all")</button>
+                    aria-pressed="true">
+                <span class="session-journey-filter-all-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span>@Context.T("sessions.timeline_filter_all")</span>
+            </button>
         </div>
     </div>
 

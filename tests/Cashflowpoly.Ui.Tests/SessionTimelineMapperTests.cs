@@ -130,6 +130,26 @@ public sealed class SessionTimelineMapperTests
         Assert.Null(item.PlayerId);
     }
 
+    [Theory]
+    [InlineData("id", "poin kebahagiaan")]
+    [InlineData("en", "happiness points")]
+    public void MapTimeline_UsesHappinessPointsForScoringDescriptions(string language, string expected)
+    {
+        var events = new List<EventRequest>
+        {
+            CreateEvent("Kebutuhan", """{"card_id":"buku_1","amount":2,"points":1}""", "MON"),
+            CreateEvent("TujuanFinansial", """{"goal_id":"goal_35","cost":35,"points":35}""", "MON", sequenceNumber: 2),
+            CreateEvent("PoinPeringkatDonasi", """{"rank":2,"points":5}""", "FRI", sequenceNumber: 3),
+            CreateEvent("PoinPeringkatPensiun", """{"rank":1,"points":5}""", "MON", sequenceNumber: 4),
+            CreateEvent("PoinEmas", """{"points":5}""", "MON", sequenceNumber: 5)
+        };
+
+        var timeline = SessionTimelineMapper.MapTimeline(events, language);
+
+        Assert.Equal(events.Count, timeline.Count);
+        Assert.All(timeline, item => Assert.Contains(expected, item.FlowDescription, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static EventRequest CreateEvent(
         string actionType,
         string payloadJson,

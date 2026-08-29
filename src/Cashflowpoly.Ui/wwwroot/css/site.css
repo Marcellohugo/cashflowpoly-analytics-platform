@@ -2154,20 +2154,6 @@ body > footer .footer-shell {
     content: " -";
 }
 
-.player-transactions-section.data-toggle > summary::after {
-    content: none;
-}
-
-.player-transactions-section.data-toggle > summary > .ruleset-section-title::after {
-    content: " +";
-    color: #1a8c82;
-    font-weight: 900;
-}
-
-.player-transactions-section.data-toggle[open] > summary > .ruleset-section-title::after {
-    content: " -";
-}
-
 .players-unified-metrics {
     border: 2px solid #95ded6;
     border-radius: 1rem;
@@ -3154,12 +3140,28 @@ body > footer .footer-shell {
 }
 
 .player-detail-overhaul .player-metric-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+    display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: 0.58rem;
     border-top: 1px solid #dce8ed;
     padding: 0.72rem;
+}
+
+.player-detail-overhaul .player-metric-card-grid>.player-metric-card {
+    flex: 1 1 min(250px, 100%);
+}
+
+.player-detail-overhaul .player-metric-card-grid--columns-1>.player-metric-card:where(:not(.player-metric-card--series, .player-metric-card--featured, .player-metric-card--meal-orders-primary, .player-metric-card--meal-orders-summary, .player-metric-card--gold-overview)) {
+    flex-basis: 100%;
+}
+
+.player-detail-overhaul .player-metric-card-grid--columns-2>.player-metric-card:where(:not(.player-metric-card--series, .player-metric-card--featured, .player-metric-card--meal-orders-primary, .player-metric-card--meal-orders-summary, .player-metric-card--gold-overview)) {
+    flex-basis: calc((100% - 0.58rem) / 2);
+}
+
+.player-detail-overhaul .player-metric-card-grid--columns-3>.player-metric-card:where(:not(.player-metric-card--series, .player-metric-card--featured, .player-metric-card--meal-orders-primary, .player-metric-card--meal-orders-summary, .player-metric-card--gold-overview)) {
+    flex-basis: calc((100% - 1.16rem) / 3);
 }
 
 .player-detail-overhaul .player-metric-card {
@@ -3382,7 +3384,7 @@ body > footer .footer-shell {
 
 .player-detail-overhaul .player-analysis-scorecard>div {
     display: grid;
-    align-content: center;
+    align-content: start;
     gap: 0.2rem;
     min-inline-size: 0;
     border-left: 1px solid rgba(95, 146, 166, 0.18);
@@ -3510,7 +3512,7 @@ body > footer .footer-shell {
     --analysis-wash: #edf8fb;
     min-inline-size: 0;
     border-radius: 1.15rem;
-    background: linear-gradient(135deg, var(--analysis-wash), #fff 44%);
+    background: var(--analysis-wash);
     padding: 1rem;
 }
 
@@ -3686,10 +3688,26 @@ body > footer .footer-shell {
 }
 
 .player-detail-overhaul .player-analysis-card__metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.42rem;
     margin: 0.58rem 0 0;
+}
+
+.player-detail-overhaul .player-analysis-card__metrics>.player-analysis-card__metric {
+    flex: 1 1 min(145px, 100%);
+}
+
+.player-detail-overhaul .player-analysis-card__metrics--columns-1>.player-analysis-card__metric {
+    flex-basis: 100%;
+}
+
+.player-detail-overhaul .player-analysis-card__metrics--columns-2>.player-analysis-card__metric {
+    flex-basis: calc((100% - 0.42rem) / 2);
+}
+
+.player-detail-overhaul .player-analysis-card__metrics--columns-3>.player-analysis-card__metric {
+    flex-basis: calc((100% - 0.84rem) / 3);
 }
 
 .player-detail-overhaul .player-analysis-card__metric {
@@ -3846,8 +3864,36 @@ body > footer .footer-shell {
     line-height: 1.4;
 }
 
-.player-detail-overhaul .player-metric-card--series {
-    grid-column: 1 / -1;
+.player-detail-overhaul .player-metric-card-grid>.player-metric-card--series {
+    flex: 1 0 100%;
+    inline-size: 100%;
+}
+
+.player-detail-overhaul .player-metric-card-grid>.player-metric-card--featured {
+    flex: 1 0 100%;
+    inline-size: 100%;
+}
+
+.player-detail-overhaul .player-metric-card-grid--coin-finance>.player-metric-card--coin-overview {
+    flex: 1 1 calc((100% - 0.58rem) / 2);
+    inline-size: auto;
+}
+
+.player-detail-overhaul .player-metric-card-grid--meal-orders>.player-metric-card--meal-orders-primary,
+.player-detail-overhaul .player-metric-card-grid--meal-orders>.player-metric-card--series {
+    flex: 1 0 100%;
+    inline-size: 100%;
+}
+
+.player-detail-overhaul .player-metric-card-grid--meal-orders>.player-metric-card--meal-orders-summary {
+    flex: 1 1 calc((100% - 0.58rem) / 2);
+    inline-size: auto;
+}
+
+.player-detail-overhaul .player-metric-card-grid--gold>.player-metric-card--gold-overview,
+.player-detail-overhaul .player-metric-card-grid--gold>.player-metric-card--series {
+    flex: 1 1 calc((100% - 0.58rem) / 2);
+    inline-size: auto;
 }
 
 .player-detail-overhaul .player-metric-series {
@@ -4362,6 +4408,10 @@ body > footer .footer-shell {
         border-left: 0;
     }
 
+    .player-detail-overhaul .player-analysis-scorecard>div:nth-child(even) {
+        border-left: 1px solid rgba(95, 146, 166, 0.18);
+    }
+
     .player-detail-overhaul .player-analysis-chapter {
         padding: 0.78rem;
     }
@@ -4370,8 +4420,8 @@ body > footer .footer-shell {
         grid-template-columns: 1fr;
     }
 
-    .player-detail-overhaul .player-analysis-card__metrics {
-        grid-template-columns: 1fr;
+    .player-detail-overhaul .player-analysis-card__metrics>.player-analysis-card__metric {
+        flex-basis: 100%;
     }
 
     .player-detail-overhaul .player-evidence-domain__mode {
@@ -4390,8 +4440,40 @@ body > footer .footer-shell {
         display: none;
     }
 
-    .player-detail-overhaul .player-metric-card-grid {
+    .player-detail-overhaul .player-metric-card-grid,
+    .player-detail-overhaul .player-metric-card-grid--columns-1,
+    .player-detail-overhaul .player-metric-card-grid--columns-2,
+    .player-detail-overhaul .player-metric-card-grid--columns-3 {
         padding: 0.58rem;
+    }
+
+    .player-detail-overhaul .player-metric-card-grid>.player-metric-card {
+        flex-basis: 100%;
+    }
+
+    .player-detail-overhaul .player-metric-card-grid--coin-finance>.player-metric-card--coin-overview,
+    .player-detail-overhaul .player-metric-card-grid--meal-orders>.player-metric-card--meal-orders-primary,
+    .player-detail-overhaul .player-metric-card-grid--meal-orders>.player-metric-card--series,
+    .player-detail-overhaul .player-metric-card-grid--meal-orders>.player-metric-card--meal-orders-summary,
+    .player-detail-overhaul .player-metric-card-grid--donations>.player-metric-card--series,
+    .player-detail-overhaul .player-metric-card-grid--gold>.player-metric-card--gold-overview,
+    .player-detail-overhaul .player-metric-card-grid--gold>.player-metric-card--series {
+        flex: 1 1 100%;
+        inline-size: 100%;
+    }
+
+    .player-detail-overhaul .player-metric-card-grid--columns-3.player-metric-card-grid--gold>.player-metric-card:not(.player-metric-card--series):not(.player-metric-card--featured):not(.player-metric-card--meal-orders-primary):not(.player-metric-card--meal-orders-summary):not(.player-metric-card--gold-overview) {
+        flex: 1 1 100%;
+        inline-size: 100%;
+    }
+
+    .player-detail-overhaul .player-metric-card-grid--columns-3.player-metric-card-grid--donations>.player-metric-card:not(.player-metric-card--series):not(.player-metric-card--featured):not(.player-metric-card--meal-orders-primary):not(.player-metric-card--meal-orders-summary):not(.player-metric-card--gold-overview) {
+        flex: 1 1 100%;
+        inline-size: 100%;
+    }
+
+    .player-detail-overhaul .player-metric-card-grid--columns-3.player-metric-card-grid--coin-finance>.player-metric-card:not(.player-metric-card--series):not(.player-metric-card--featured):not(.player-metric-card--meal-orders-primary):not(.player-metric-card--meal-orders-summary):not(.player-metric-card--gold-overview) {
+        flex: 1 1 100%;
     }
 }
 

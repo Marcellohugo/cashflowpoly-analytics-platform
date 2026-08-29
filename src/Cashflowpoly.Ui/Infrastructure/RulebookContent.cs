@@ -27,7 +27,7 @@ public static class RulebookContent
         {
             Title = L("Cashflowpoly - Entrepreneur Edition", "Cashflowpoly - Entrepreneur Edition"),
             Subtitle = L(
-                "Pegang halaman ini untuk setup, giliran, dan hitung poin.",
+                "Pegang halaman ini untuk setup, giliran, dan hitung poin kebahagiaan.",
                 "Use this page for setup, turn flow, and scoring."),
             Sections = new List<RulebookSectionViewModel>
             {
@@ -63,8 +63,8 @@ public static class RulebookContent
                     {
                         L("Dirikan tent card tujuan permainan.", "Place the game-goal tent card."),
                         L(
-                            "Susun papan 3 baris: poin (donasi, emas), penghasilan (kalender kerja, pesanan), pengeluaran (kebutuhan, bahan).",
-                            "Arrange the board in 3 rows: points (donation, gold), income (work calendar, orders), expense (needs, ingredients)."),
+                            "Susun papan 3 baris: poin kebahagiaan (donasi, emas), penghasilan (kalender kerja, pesanan), pengeluaran (kebutuhan, bahan).",
+                            "Arrange the board in 3 rows: happiness points (donation, gold), income (work calendar, orders), expense (needs, ingredients)."),
                         L(
                             "Letakkan kartu juara donasi dan juara dana pensiun pada papan donasi.",
                             "Place donation champion and pension champion cards on the donation board."),
@@ -174,8 +174,8 @@ public static class RulebookContent
                             "Save toward financial goals: place action token on saving board, deposit up to 15 coins per action, and claim goal card when amount is met."),
                         L("Bayar atau pinjam syariah: gunakan 1 token aksi untuk melunasi atau mengambil pinjaman.", "Repay or borrow sharia loan: use 1 action token to repay or take a loan."),
                         L(
-                            "Pinjaman belum lunas di akhir permainan membuat kartu tujuan keuangan hangus dan terkena penalti poin.",
-                            "Unpaid loan at end game invalidates financial-goal cards and applies point penalty.")
+                            "Pinjaman belum lunas di akhir permainan membuat kartu tujuan keuangan hangus dan terkena penalti poin kebahagiaan.",
+                            "Unpaid loan at end game invalidates financial-goal cards and applies happiness point penalty.")
                     }
                 },
                 new()
@@ -185,7 +185,7 @@ public static class RulebookContent
                     Points = new List<string>
                     {
                         L("Peduli donasi (Jumat): semua pemain donasi tertutup minimal 1 koin, buka bersamaan, lalu tentukan peringkat.", "Donation care (Friday): all players make hidden donations (minimum 1 coin), reveal simultaneously, then rank results."),
-                        L("Poin donasi: juara 1 = 7 poin, juara 2 = 5 poin, juara 3 = 2 poin.", "Donation points: rank 1 = 7 points, rank 2 = 5 points, rank 3 = 2 points."),
+                        L("Poin Kebahagiaan donasi: juara 1 = 7 poin kebahagiaan, juara 2 = 5 poin kebahagiaan, juara 3 = 2 poin kebahagiaan.", "Donation happiness points: rank 1 = 7 happiness points, rank 2 = 5 happiness points, rank 3 = 2 happiness points."),
                         L("Jika donasi sama, gunakan angka tie breaker terbesar.", "If donations tie, use highest tie-breaker number."),
                         L("Investasi emas (Sabtu): buka kartu harga emas, lalu pemain bebas beli atau jual emas sesuai harga aktif.", "Gold investment (Saturday): reveal gold price card, then players may freely buy/sell gold at active price."),
                         L("Pada hari Sabtu, setiap pemain memilih membeli atau menjual satu kali. Jumlah kartu emas dalam transaksi itu tidak dibatasi.", "On Saturday, each player chooses to buy or sell once. The number of gold cards in that transaction is unlimited.")
@@ -210,14 +210,14 @@ public static class RulebookContent
                     Description = L("Komponen skor, penalti, dan aturan tie breaker.", "Scoring components, penalties, and tie-breaker rules."),
                     Points = new List<string>
                     {
-                        L("Jumlahkan seluruh poin kartu aneka kebutuhan.", "Sum all points from needs cards."),
-                        L("Tambahkan bonus set kebutuhan secara mandiri: 3 jenis berbeda = +4 poin dan setiap 3 jenis sama = +2 poin.", "Count each needs-set pattern independently: 3 different types = +4 points and each 3 same types = +2 points."),
-                        L("Tambahkan poin juara donasi dan poin investasi emas.", "Add donation champion points and gold investment points."),
-                        L("Tambahkan poin juara dana pensiun berdasarkan sisa koin akhir.", "Add pension champion points based on remaining end-game coins."),
-                        L("Tambahkan poin kartu tujuan keuangan pada mode mahir hanya jika pinjaman lunas.", "Add financial-goal card points in advanced mode only if loans are repaid."),
-                        L("Kurangi penalti misi koleksi gagal sebesar 10 poin.", "Subtract 10 points for failed collection mission."),
-                        L("Kurangi penalti pinjaman syariah belum lunas sebesar 15 poin.", "Subtract 15 points for unpaid sharia loans."),
-                        L("Jika total poin sama, pemenang ditentukan oleh angka tie breaker terbesar.", "If total points tie, winner is determined by highest tie-breaker number.")
+                        L("Jumlahkan seluruh poin kebahagiaan kartu aneka kebutuhan.", "Sum all happiness points from needs cards."),
+                        L("Tambahkan bonus set kebutuhan secara mandiri: 3 jenis berbeda = +4 poin kebahagiaan dan setiap 3 jenis sama = +2 poin kebahagiaan.", "Count each needs-set pattern independently: 3 different types = +4 happiness points and each 3 same types = +2 happiness points."),
+                        L("Tambahkan poin kebahagiaan juara donasi dan poin kebahagiaan investasi emas.", "Add donation champion happiness points and gold investment happiness points."),
+                        L("Tambahkan poin kebahagiaan juara dana pensiun berdasarkan sisa koin akhir.", "Add pension champion happiness points based on remaining end-game coins."),
+                        L("Tambahkan poin kebahagiaan kartu tujuan keuangan pada mode mahir hanya jika pinjaman lunas.", "Add financial-goal card happiness points in advanced mode only if loans are repaid."),
+                        L("Kurangi penalti misi koleksi gagal sebesar 10 poin kebahagiaan.", "Subtract 10 happiness points for failed collection mission."),
+                        L("Kurangi penalti pinjaman syariah belum lunas sebesar 15 poin kebahagiaan.", "Subtract 15 happiness points for unpaid sharia loans."),
+                        L("Jika total poin kebahagiaan sama, pemenang ditentukan oleh angka tie breaker terbesar.", "If total happiness points tie, winner is determined by highest tie-breaker number.")
                     }
                 },
                 new()
@@ -247,48 +247,48 @@ public static class RulebookContent
             {
                 new()
                 {
-                    Category = L("Poin Kebutuhan", "Need Points"),
-                    Rule = L("Jumlah poin seluruh kartu aneka kebutuhan.", "Total points from all needs cards.")
+                    Category = L("Poin Kebahagiaan Kebutuhan", "Need Happiness Points"),
+                    Rule = L("Jumlah poin kebahagiaan seluruh kartu aneka kebutuhan.", "Total happiness points from all needs cards.")
                 },
                 new()
                 {
                     Category = L("Bonus Set Kebutuhan", "Need Set Bonus"),
-                    Rule = L("Hitung mandiri: 3 jenis berbeda = +4 poin; setiap 3 jenis sama = +2 poin.", "Count independently: 3 different types = +4 points; each 3 same types = +2 points.")
+                    Rule = L("Hitung mandiri: 3 jenis berbeda = +4 poin kebahagiaan; setiap 3 jenis sama = +2 poin kebahagiaan.", "Count independently: 3 different types = +4 happiness points; each 3 same types = +2 happiness points.")
                 },
                 new()
                 {
-                    Category = L("Poin Juara Donasi", "Donation Champion Points"),
-                    Rule = L("Akumulasi poin dari kartu juara donasi.", "Accumulated points from donation champion card.")
+                    Category = L("Poin Kebahagiaan Juara Donasi", "Donation Champion Happiness Points"),
+                    Rule = L("Akumulasi poin kebahagiaan dari kartu juara donasi.", "Accumulated happiness points from donation champion card.")
                 },
                 new()
                 {
-                    Category = L("Poin Investasi Emas", "Gold Investment Points"),
+                    Category = L("Poin Kebahagiaan Investasi Emas", "Gold Investment Happiness Points"),
                     Rule = L("1 emas = 3, 2 emas = 5, 3 emas = 8, 4 emas = 12.", "1 gold = 3, 2 gold = 5, 3 gold = 8, 4 gold = 12.")
                 },
                 new()
                 {
-                    Category = L("Poin Juara Dana Pensiun", "Pension Champion Points"),
+                    Category = L("Poin Kebahagiaan Juara Dana Pensiun", "Pension Champion Happiness Points"),
                     Rule = L("Hitung dari sisa koin akhir, sisa bahan masakan, dan sisa tabungan; juara 1 = +5, juara 2 = +3, juara 3 = +1.", "Count ending cash, leftover ingredient cards, and remaining savings; rank 1 = +5, rank 2 = +3, rank 3 = +1.")
                 },
                 new()
                 {
-                    Category = L("Poin Tujuan Keuangan", "Financial Goal Points"),
+                    Category = L("Poin Kebahagiaan Tujuan Keuangan", "Financial Goal Happiness Points"),
                     Rule = L("Hanya dihitung di mode mahir bila seluruh pinjaman syariah sudah lunas.", "Count only in advanced mode when every sharia loan is fully repaid.")
                 },
                 new()
                 {
                     Category = L("Minus Misi Koleksi", "Collection Mission Penalty"),
-                    Rule = L("Minus 10 poin bila misi koleksi tidak terpenuhi.", "Subtract 10 points when the collection mission is not completed.")
+                    Rule = L("Minus 10 poin kebahagiaan bila misi koleksi tidak terpenuhi.", "Subtract 10 happiness points when the collection mission is not completed.")
                 },
                 new()
                 {
                     Category = L("Minus Pinjaman Syariah", "Sharia Loan Penalty"),
-                    Rule = L("Penalti tetap -15 poin untuk pinjaman yang belum lunas.", "Fixed -15 point penalty for unpaid loans.")
+                    Rule = L("Penalti tetap -15 poin kebahagiaan untuk pinjaman yang belum lunas.", "Fixed -15 happiness point penalty for unpaid loans.")
                 },
                 new()
                 {
                     Category = L("Tie Breaker", "Tie Breaker"),
-                    Rule = L("Jika total poin sama, pemenang ditentukan oleh angka terbesar pada kartu tie breaker pemain.", "If total points are tied, the player with the highest tie-breaker card number wins.")
+                    Rule = L("Jika total poin kebahagiaan sama, pemenang ditentukan oleh angka terbesar pada kartu tie breaker pemain.", "If total happiness points are tied, the player with the highest tie-breaker card number wins.")
                 }
             }
         };

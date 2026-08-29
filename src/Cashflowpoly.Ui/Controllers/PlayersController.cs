@@ -129,7 +129,6 @@ public sealed class PlayersController : Controller
             PlayerDisplayName = playerDisplayName,
             Summary = summary,
             StatSummary = statSummary,
-            Transactions = transactions,
             CashflowJourney = cashflowJourney,
             GameplayRaw = gameplay?.RawJson,
             GameplayDerived = gameplay?.DerivedJson,

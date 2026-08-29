@@ -432,12 +432,12 @@ public static class SessionTimelineMapper
             : L(language, "nominal tidak diketahui", "unknown amount");
         var pointsText = TryGetNumber(payload, "points", out var points)
             ? FormatNumber(points)
-            : L(language, "poin tidak diketahui", "unknown points");
+            : L(language, "poin kebahagiaan tidak diketahui", "unknown happiness points");
 
         return L(
             language,
-            $"Membeli {needTypeId} {cardId} (biaya {amountText}, poin {pointsText}).",
-            $"Purchased {needTypeEn} card {cardId} (cost {amountText}, points {pointsText}).");
+            $"Membeli {needTypeId} {cardId} (biaya {amountText}, poin kebahagiaan {pointsText}).",
+            $"Purchased {needTypeEn} card {cardId} (cost {amountText}, happiness points {pointsText}).");
     }
 
     private static string ResolveNeedLabel(JsonElement payload, string language)
@@ -501,15 +501,15 @@ public static class SessionTimelineMapper
 
         var pointsText = TryGetNumber(payload, "points", out var points)
             ? FormatNumber(points)
-            : L(language, "poin tidak diketahui", "unknown points");
+            : L(language, "poin kebahagiaan tidak diketahui", "unknown happiness points");
         var costText = TryGetNumber(payload, "cost", out var cost)
             ? FormatNumber(cost)
             : L(language, "biaya tidak diketahui", "unknown cost");
 
         return L(
             language,
-            $"Target tabungan {goalId} tercapai (poin {pointsText}, biaya {costText}).",
-            $"Saving goal {goalId} was achieved (points {pointsText}, cost {costText}).");
+            $"Target tabungan {goalId} tercapai (poin kebahagiaan {pointsText}, biaya {costText}).",
+            $"Saving goal {goalId} was achieved (happiness points {pointsText}, cost {costText}).");
     }
 
     /// <summary>
@@ -680,8 +680,8 @@ public static class SessionTimelineMapper
 
         return L(
             language,
-            $"Mendapat peringkat {rank} pada kategori {topicId} (poin {FormatNumber(points)}).",
-            $"Received rank {rank} in {topicEn} category (points {FormatNumber(points)}).");
+            $"Mendapat peringkat {rank} pada kategori {topicId} (poin kebahagiaan {FormatNumber(points)}).",
+            $"Received rank {rank} in {topicEn} category (happiness points {FormatNumber(points)}).");
     }
 
     private static string DescribeDonationWinnersAnnouncement(JsonElement payload, string language)
@@ -742,8 +742,8 @@ public static class SessionTimelineMapper
 
         return L(
             language,
-            $"Mendapat bonus poin {topicId} sebesar {FormatNumber(points)}.",
-            $"Received {topicEn} bonus points of {FormatNumber(points)}.");
+            $"Mendapat bonus poin kebahagiaan {topicId} sebesar {FormatNumber(points)}.",
+            $"Received {topicEn} bonus happiness points of {FormatNumber(points)}.");
     }
 
     /// <summary>
@@ -863,7 +863,7 @@ public static class SessionTimelineMapper
             "option_type" => L(language, "opsi", "option"),
             "premium" => L(language, "premi", "premium"),
             "rank" => L(language, "peringkat", "rank"),
-            "points" => L(language, "poin", "points"),
+            "points" => L(language, "poin kebahagiaan", "happiness points"),
             _ => key
         };
     }

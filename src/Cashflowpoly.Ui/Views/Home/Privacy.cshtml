@@ -40,13 +40,13 @@
             TitleEn = "Set up the table",
             PointsId = new[]
             {
-                "Susun papan poin, penghasilan, lalu pengeluaran seperti urutan di PDF.",
+                "Susun papan poin kebahagiaan, penghasilan, lalu pengeluaran seperti urutan di PDF.",
                 "Buka 5 kartu pesanan, 5 kebutuhan primer, dan 5 bahan masakan.",
                 "Mode mahir menambah papan tabungan tujuan keuangan, risiko kehidupan, serta asuransi dan bank syariah."
             },
             PointsEn = new[]
             {
-                "Arrange point, income, and expense boards in the same order shown in the PDF.",
+                "Arrange happiness point, income, and expense boards in the same order shown in the PDF.",
                 "Open 5 order cards, 5 primary-needs cards, and 5 ingredient cards.",
                 "Advanced mode adds financial-goal savings, life risk, and insurance plus sharia bank boards."
             }
@@ -74,17 +74,17 @@
         {
             StepId = "Langkah 4",
             StepEn = "Step 4",
-            TitleId = "Tutup sesi dengan poin",
+            TitleId = "Tutup sesi dengan poin kebahagiaan",
             TitleEn = "Close the session with scoring",
             PointsId = new[]
             {
                 "Jumlahkan kebutuhan, bonus set, donasi, emas, dan dana pensiun.",
                 "Tambahkan tujuan keuangan hanya bila pinjaman syariah sudah lunas.",
-                "Jika total poin sama, pakai angka tie breaker terbesar."
+                "Jika total poin kebahagiaan sama, pakai angka tie breaker terbesar."
             },
             PointsEn = new[]
             {
-                "Add up needs, set bonus, donation, gold, and pension points.",
+                "Add up needs, set bonus, donation, gold, and pension happiness points.",
                 "Add financial goals only when all sharia loans are fully repaid.",
                 "If totals are tied, use the highest tie-breaker number."
             }
@@ -255,14 +255,14 @@
                 "Klaim pesanan sekaligus menarik 1 kartu risiko kehidupan.",
                 "Aktifkan asuransi dengan 1 token aksi dan bayar premi 1 koin.",
                 "Menabung tujuan keuangan maksimal 15 koin per aksi.",
-                "Pinjaman yang belum lunas menghanguskan poin tujuan keuangan."
+                "Pinjaman yang belum lunas menghanguskan poin kebahagiaan tujuan keuangan."
             },
             PointsEn = new[]
             {
                 "Claiming an order also draws 1 life-risk card.",
                 "Activate insurance with 1 action token and a 1-coin premium.",
                 "Financial-goal savings are capped at 15 coins per action.",
-                "Unpaid loans void financial-goal points."
+                "Unpaid loans void financial-goal happiness points."
             }
         },
         new
@@ -309,8 +309,8 @@
     {
         new
         {
-            TitleId = "Jumlahkan poin dasar",
-            TitleEn = "Count base points",
+            TitleId = "Jumlahkan poin kebahagiaan dasar",
+            TitleEn = "Count base happiness points",
             DescId = "Mulai dari seluruh kartu kebutuhan yang dimiliki pemain.",
             DescEn = "Start from every needs card the player owns."
         },
@@ -319,7 +319,7 @@
             TitleId = "Tambahkan bonus",
             TitleEn = "Add bonuses",
             DescId = "Masukkan bonus set, donasi, emas, dan dana pensiun.",
-            DescEn = "Add set bonuses, donation, gold, and pension points."
+            DescEn = "Add set bonuses, donation, gold, and pension happiness points."
         },
         new
         {
@@ -358,7 +358,7 @@
         <a href="#rb-stage-setup">@L("Setup", "Setup")</a>
         <a href="#rb-stage-turn">@L("Main", "Play")</a>
         <a href="#rb-reference">@L("Referensi", "Reference")</a>
-        <a href="#rb-scoring">@L("Poin", "Scoring")</a>
+        <a href="#rb-scoring">@L("Poin Kebahagiaan", "Scoring")</a>
     </div>
 
     <div class="rulebook-page-grid">
@@ -369,7 +369,7 @@
                         <p class="eyebrow">@L("Panduan ringkas", "Quick guide")</p>
                         <h2 class="rulebook-heading">@L("Panduan ringkas untuk mulai main", "Quick guide to start playing")</h2>
                     </div>
-                    <a class="rulebook-top-link" href="#rb-top">@("<- " + Context.T("privacy.back_to_top"))</a>
+                    <a class="rulebook-top-link" href="#rb-top">@("↑ " + Context.T("privacy.back_to_top"))</a>
                 </div>
                 <p class="rulebook-surface-lead">@L("Baca bagian ini dari kiri ke kanan bila Anda baru menyiapkan sesi. Setelah itu, cukup lompat ke gambar atau referensi cepat di bawah.", "Read this section from left to right when you are setting up a session for the first time. After that, jump straight to the visuals or quick reference below.")</p>
 
@@ -396,7 +396,7 @@
                         <p class="eyebrow">@L("Visual setup dan flow", "Setup and flow visuals")</p>
                         <h2 class="rulebook-heading">@L("Gambar besar untuk titik yang paling sering dicek", "Large visuals for the points you check most often")</h2>
                     </div>
-                    <a class="rulebook-top-link" href="#rb-top">@("<- " + Context.T("privacy.back_to_top"))</a>
+                    <a class="rulebook-top-link" href="#rb-top">@("↑ " + Context.T("privacy.back_to_top"))</a>
                 </div>
                 <p class="rulebook-surface-lead">@L("Setiap gambar hanya ditemani catatan inti. Tidak ada paragraf panjang supaya Anda bisa cepat melihat meja dan lanjut bermain.", "Each visual comes with only the key notes. No long paragraphs, so you can inspect the board quickly and keep the session moving.")</p>
 
@@ -426,7 +426,7 @@
                         <p class="eyebrow">@L("Referensi cepat", "Quick reference")</p>
                         <h2 class="rulebook-heading">@L("Referensi cepat saat bermain", "Quick reference during play")</h2>
                     </div>
-                    <a class="rulebook-top-link" href="#rb-top">@("<- " + Context.T("privacy.back_to_top"))</a>
+                    <a class="rulebook-top-link" href="#rb-top">@("↑ " + Context.T("privacy.back_to_top"))</a>
                 </div>
                 <p class="rulebook-surface-lead">@L("Bagian ini dipakai seperti cheat sheet. Buka saat giliran berjalan dan Anda butuh jawaban singkat, bukan penjelasan panjang.", "Use this section like a cheat sheet. Open it while turns are running and you need a short answer, not a long explanation.")</p>
 
@@ -451,11 +451,11 @@
                 <div class="rulebook-section-head">
                     <div>
                         <p class="eyebrow">@L("Perhitungan akhir", "Final scoring")</p>
-                        <h2 class="rulebook-heading">@L("Hitung poin tanpa bolak-balik halaman", "Score without jumping between pages")</h2>
+                        <h2 class="rulebook-heading">@L("Hitung poin kebahagiaan tanpa bolak-balik halaman", "Score without jumping between pages")</h2>
                     </div>
-                    <a class="rulebook-top-link" href="#rb-top">@("<- " + Context.T("privacy.back_to_top"))</a>
+                    <a class="rulebook-top-link" href="#rb-top">@("↑ " + Context.T("privacy.back_to_top"))</a>
                 </div>
-                <p class="rulebook-surface-lead">@L("Urutan di bawah mengikuti logika perhitungan poin pada PDF: hitung, tambah, cek syarat mode mahir, lalu kurangi penalti.", "The order below follows the scoring logic from the PDF: count, add, check advanced-mode conditions, then subtract penalties.")</p>
+                <p class="rulebook-surface-lead">@L("Urutan di bawah mengikuti logika perhitungan poin kebahagiaan pada PDF: hitung, tambah, cek syarat mode mahir, lalu kurangi penalti.", "The order below follows the scoring logic from the PDF: count, add, check advanced-mode conditions, then subtract penalties.")</p>
 
                 <div class="rulebook-score-visual">
                     <img class="rulebook-stage-shot" src="~/images/rulebook/perhitungan-poin.jpg" asp-append-version="true" alt='@L("Perhitungan poin kebahagiaan", "Happiness point calculation")' loading="lazy" />

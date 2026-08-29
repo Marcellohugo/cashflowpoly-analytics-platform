@@ -9,6 +9,35 @@ namespace Cashflowpoly.Ui.Tests;
 
 public sealed class PlayerStatSummaryBuilderTests
 {
+    [Theory]
+    [InlineData("{\"needs\":{\"collection_mission_complete\":true}}", true)]
+    [InlineData("{\"needs\":{\"collection_mission_complete\":false}}", false)]
+    [InlineData("{\"needs\":{\"collection_mission_complete\":null}}", null)]
+    [InlineData("{\"needs\":{\"collection_mission_complete\":\"true\"}}", null)]
+    [InlineData("{\"needs\":{}}", null)]
+    [InlineData("{\"needs\":null}", null)]
+    [InlineData("{}", null)]
+    [InlineData("null", null)]
+    public void Build_UsesExplicitMissionResultWithoutTreatingMissingDataAsIncomplete(string rawJson, bool? expected)
+    {
+        var gameplay = BuildGameplay(8, 30, 0.9, false) with
+        {
+            RawJson = JsonSerializer.Deserialize<JsonElement>(rawJson)
+        };
+
+        var summary = PlayerStatSummaryBuilder.Build(gameplay, null, null, Translate);
+
+        Assert.Equal(expected, summary.CollectionMissionComplete);
+    }
+
+    [Fact]
+    public void Build_MissingGameplayHasUnknownMissionResult()
+    {
+        var summary = PlayerStatSummaryBuilder.Build(null, null, null, Translate);
+
+        Assert.Null(summary.CollectionMissionComplete);
+    }
+
     [Fact]
     public void Build_AddsRiskInsightWhenCashflowIsNegative()
     {

@@ -81,11 +81,26 @@ public static class PlayerStatSummaryBuilder
 
         return new PlayerStatSummaryViewModel
         {
+            CollectionMissionComplete = ReadCollectionMissionComplete(gameplay?.RawJson),
             Insights = insights
                 .OrderBy(item => item.Tone == "danger" ? 0 : item.Tone == "warning" ? 1 : item.Tone == "neutral" ? 2 : 3)
                 .Take(3)
                 .ToList()
         };
+    }
+
+    private static bool? ReadCollectionMissionComplete(JsonElement? rawJson)
+    {
+        if (rawJson is not { ValueKind: JsonValueKind.Object } raw ||
+            !raw.TryGetProperty("needs", out var needs) ||
+            needs.ValueKind != JsonValueKind.Object ||
+            !needs.TryGetProperty("collection_mission_complete", out var complete) ||
+            complete.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+        {
+            return null;
+        }
+
+        return complete.GetBoolean();
     }
 
     private static int? ReadNeedCardsOwned(JsonElement? rawJson)

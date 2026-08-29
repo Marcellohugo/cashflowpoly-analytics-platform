@@ -58,7 +58,7 @@ public sealed class SessionTimelineEventViewModel
 }
 
 /// <summary>
-/// ViewModel halaman detail pemain yang memuat ringkasan analitik, riwayat transaksi, metrik gameplay, dan statistik perjalanan arus kas.
+/// ViewModel halaman detail pemain yang memuat ringkasan analitik, metrik gameplay, dan statistik perjalanan arus kas.
 /// </summary>
 public sealed class PlayerDetailViewModel
 {
@@ -67,10 +67,6 @@ public sealed class PlayerDetailViewModel
     public string? PlayerDisplayName { get; init; }
     public AnalyticsByPlayerItem? Summary { get; init; }
     public PlayerStatSummaryViewModel? StatSummary { get; init; }
-    /// <summary>
-    /// Daftar riwayat transaksi keuangan pemain dalam sesi ini.
-    /// </summary>
-    public List<TransactionHistoryItem> Transactions { get; init; } = new();
     public JsonElement? GameplayRaw { get; init; }
     public JsonElement? GameplayDerived { get; init; }
     public DateTimeOffset? GameplayComputedAt { get; init; }
@@ -84,6 +80,7 @@ public sealed class PlayerDetailViewModel
 /// </summary>
 public sealed class PlayerStatSummaryViewModel
 {
+    public bool? CollectionMissionComplete { get; init; }
     public List<PlayerInstructorInsightViewModel> Insights { get; init; } = new();
 }
 
