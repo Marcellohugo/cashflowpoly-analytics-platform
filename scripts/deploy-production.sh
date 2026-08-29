@@ -141,7 +141,7 @@ rollback_images() {
       -f "${PREVIOUS_DIR}/infra/docker/docker-compose.prod.yml"
       --profile tunnel
     )
-    "${previous_compose[@]}" up -d --no-build db api ui nginx cloudflared || true
+    "${previous_compose[@]}" up -d --no-build --force-recreate db api ui nginx cloudflared || true
   fi
 
   exit "${failed_status}"
@@ -157,11 +157,11 @@ if [[ -n "${PREVIOUS_DIR}" ]]; then
   touch "${PREVIOUS_DIR}/infra/nginx/maintenance/enabled"
 fi
 
-"${COMPOSE[@]}" up -d db
+"${COMPOSE[@]}" up -d --no-recreate db
 wait_for_container_health cashflowpoly-db 45
 "${COMPOSE[@]}" run --rm --no-deps api --migrate-only
 "${COMPOSE[@]}" run --rm --no-deps api --recalculate-analytics
-"${COMPOSE[@]}" up -d --no-build api ui nginx cloudflared
+"${COMPOSE[@]}" up -d --no-build --force-recreate api ui nginx cloudflared
 
 wait_for_container_health cashflowpoly-api 45
 wait_for_container_health cashflowpoly-ui 45
