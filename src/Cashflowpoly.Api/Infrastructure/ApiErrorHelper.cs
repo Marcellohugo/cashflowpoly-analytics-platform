@@ -128,6 +128,7 @@ internal static class ApiErrorHelper
         ["Premium harus > 0"] = "Premium must be greater than 0",
         ["Query mode tidak valid"] = "Invalid mode query",
         ["Query version tidak valid"] = "Invalid version query",
+        ["Request tidak valid"] = "Invalid request",
         ["Risiko hanya dapat diambil setelah klaim pesanan"] = "Risk can only be drawn after an order claim",
         ["Risk event bukan milik pemain"] = "Risk event does not belong to the player",
         ["Risk event id tidak valid"] = "Invalid risk event id",

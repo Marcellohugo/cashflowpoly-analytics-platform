@@ -19,9 +19,9 @@ README ini adalah pintu masuk utama untuk menjalankan, memakai, mengintegrasikan
 - [Pengembangan tanpa Docker](#pengembangan-tanpa-docker)
 - [Konfigurasi](#konfigurasi)
 - [Dokumentasi teknis terpisah](#dokumentasi-teknis-terpisah)
-  - [Dokumentasi REST API](README-API.md)
-  - [Dokumentasi database](README-DATABASE.md)
-  - [Catatan keputusan final](CATATAN-KEPUTUSAN-FINAL.md)
+  - [Kontrak REST API dan event](docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md)
+  - [Arsitektur database dan model data](docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md)
+  - [Keputusan produk dan arsitektur](docs/01-Spesifikasi/01-06-keputusan-produk-dan-arsitektur.md)
 - [Pengujian dan pemeriksaan kualitas](#pengujian-dan-pemeriksaan-kualitas)
 - [Deployment produksi](#deployment-produksi)
 - [Observabilitas dan troubleshooting](#observabilitas-dan-troubleshooting)
@@ -151,9 +151,6 @@ cashflowpoly-analytics-platform/
 │   ├── Cashflowpoly.Api.Tests/
 │   └── Cashflowpoly.Ui.Tests/
 ├── Cashflowpoly.sln
-├── README-API.md
-├── README-DATABASE.md
-├── CATATAN-KEPUTUSAN-FINAL.md
 └── README.md
 ```
 
@@ -162,8 +159,8 @@ File yang menjadi acuan implementasi:
 - schema canonical: [`database/00_create_schema.sql`](database/00_create_schema.sql);
 - komponen/ruleset default: [`database/01_seed_default_rulesets_components.sql`](database/01_seed_default_rulesets_components.sql);
 - simulasi lokal: [`database/02_seed_simulation_sessions_events.sql`](database/02_seed_simulation_sessions_events.sql);
-- kontrak payload event: [`docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`](docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md);
-- model data: [`docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md`](docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md);
+- kontrak payload event: [`docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md`](docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md);
+- model data: [`docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md`](docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md);
 - definisi metrik: [`docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md`](docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md).
 
 ## Menjalankan proyek dengan Docker
@@ -512,11 +509,12 @@ Saat rotasi key, pertahankan key lama pada key ring sampai semua token lama keda
 
 ## Dokumentasi teknis terpisah
 
-Dokumentasi teknis rinci ditempatkan pada README terpisah di root proyek:
+Dokumentasi teknis rinci memiliki satu sumber kanonis di folder `docs`:
 
-- [README-API.md](README-API.md) — autentikasi, seluruh endpoint, kontrak request/response, event, ruleset, analitika, error, dan Postman.
-- [README-DATABASE.md](README-DATABASE.md) — relasi, seluruh tabel dan view, migrasi berurutan, constraint, trigger, seed, query inspeksi, reset development, dan risiko operasi tanpa backup.
-- [CATATAN-KEPUTUSAN-FINAL.md](CATATAN-KEPUTUSAN-FINAL.md) — keputusan produk, gameplay, setup fisik, analitik, UI, infrastruktur, deployment, reset data, dan hal-hal yang sengaja tidak dipilih.
+- [Kontrak REST API dan Event Permainan](docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md) — autentikasi, endpoint, request/response, event, ruleset, analitika, error, OpenAPI, dan Postman.
+- [Arsitektur Database dan Model Data](docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md) — relasi, tabel/view, migrasi, constraint, trigger, seed, query, reset development, dan risiko operasi.
+- [Keputusan Produk dan Arsitektur](docs/01-Spesifikasi/01-06-keputusan-produk-dan-arsitektur.md) — alasan keputusan gameplay, setup fisik, analitik, UI, infrastruktur, dan rilis.
+- [Riwayat Perbaikan Modular dan Status Rilis](docs/03-Pengujian/03-04-riwayat-perbaikan-modular-dan-status-rilis.md) — masalah awal, perubahan per modul, bukti selesai, dan risiko yang diterima.
 
 API aktif memakai prefix `/api/v1`. Database kosong memakai baseline SQL lalu migrasi berurutan yang dicatat bersama checksum pada `schema_history`; instance runtime biasa tidak menjalankan migrasi. Ringkasan setup tetap berada di README utama; detail kontrak dipelihara pada kedua dokumen di atas.
 
@@ -758,14 +756,14 @@ Checklist minimum:
 
 ### Perancangan dan pengujian
 
-- [Database dan model data](docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md)
-- [Kontrak API dan event](docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md)
+- [Arsitektur database dan model data](docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md)
+- [Kontrak REST API dan event permainan](docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md)
 - [Definisi dan agregasi metrik](docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md)
 - [Antarmuka dan ViewModel MVC](docs/02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md)
 - [Rencana dan kasus uji](docs/03-Pengujian/03-01-pengujian-rencana-dan-kasus-uji.md)
 - [Laporan hasil baseline](docs/03-Pengujian/03-02-pengujian-laporan-hasil-baseline.md)
 - [Status kesesuaian implementasi](docs/03-Pengujian/03-03-pengujian-status-kesesuaian-implementasi.md)
-- [Tahapan dan roadmap](docs/03-Pengujian/03-04-pengujian-tahapan-dan-roadmap-implementasi.md)
+- [Riwayat perbaikan modular dan status rilis](docs/03-Pengujian/03-04-riwayat-perbaikan-modular-dan-status-rilis.md)
 
 ## Kontribusi
 

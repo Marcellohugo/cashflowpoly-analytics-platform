@@ -1,6 +1,6 @@
-# Manifest Fungsi File
+# Manifest Fungsi File Repositori
 
-Baseline manifest: 26 Agustus 2026 (setelah penyelarasan rulebook dan gerbang rilis).
+Baseline manifest: 30 Agustus 2026 (setelah audit source code dan konsolidasi dokumentasi).
 
 Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususnya setelah dilakukan penyederhanaan struktur berkas dokumentasi di bawah folder `docs/`.
 
@@ -8,8 +8,6 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | Path | Kategori | Fungsi |
 |---|---|---|
 | `README.md` | Root | Entry point dokumentasi repository, setup, endpoint utama, dan tautan dokumen desain. |
-| `README-API.md` | Root | Dokumentasi kontrak API v1, autentikasi, setup, event, pagination, error, dan Postman. |
-| `README-DATABASE.md` | Root | Dokumentasi schema, relasi, migrasi berurutan, seed, operasi, dan batas rollback database. |
 | `Cashflowpoly.sln` | Root | Solution .NET untuk API, UI, dan test project. |
 | `.gitattributes` | Root | Aturan atribut Git lintas platform. |
 | `.gitignore` | Root | Daftar file/folder yang tidak dilacak Git. |
@@ -50,7 +48,8 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `docs/README.md` | Dokumen | Indeks panduan utama navigasi berkas dokumentasi. |
 | `docs/00-ringkasan-rulebook-cashflowpoly.md` | Dokumen | Ringkasan rulebook Cashflowpoly untuk referensi cepat. |
 | `docs/01-ringkasan-proposal-tugas-akhir.md` | Dokumen | Ringkasan proposal tugas akhir dan konteks akademik. |
-| `docs/file-function-manifest.md` | Dokumen | Manifest fungsi file repository (dokumen ini). |
+| `docs/02-peta-alur-sistem-end-to-end.md` | Dokumen | Peta alur lintas rulebook, ruleset, sesi, event, database, analitika, UI, pengujian, dan deployment. |
+| `docs/03-manifest-fungsi-file-repositori.md` | Dokumen | Manifest fungsi file repository (dokumen ini). |
 | `docs/00-Panduan/00-01-panduan-setup-lingkungan.md` | Panduan | Setup Windows, .NET, PostgreSQL, JWT, dan pembagian tanggung jawab modul. |
 | `docs/00-Panduan/00-02-panduan-manual-pengguna-dashboard.md`| Panduan | Manual navigasi halaman dashboard Web analitik untuk Instruktur/Player. |
 | `docs/00-Panduan/00-03-panduan-menjalankan-sistem.md` | Panduan | Cara menjalankan API/UI secara lokal dan troubleshoot awal. |
@@ -61,14 +60,15 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md` | Spesifikasi | Integrasi IDN, parameter NFR, logging keamanan, dan audit. |
 | `docs/01-Spesifikasi/01-04-spesifikasi-diagram-uml.md` | Spesifikasi | Daftar diagram UML (Use Case, Sequence, Class Diagram). |
 | `docs/01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md` | Spesifikasi | Skenario simulasi pemula/mahir dan skenario operasional daur hidup sesi API. |
-| `docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md` | Perancangan | Kamus data PostgreSQL, skema relasional, dan catatan keputusan normalisasi. |
-| `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md` | Perancangan | Kontrak event, endpoint API, request/response, dan status code. |
+| `docs/01-Spesifikasi/01-06-keputusan-produk-dan-arsitektur.md` | Spesifikasi | Alasan keputusan final produk, gameplay, setup, analitik, UI, keamanan, infrastruktur, dan rilis. |
+| `docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md` | Perancangan | Arsitektur PostgreSQL, kamus data, relasi, view, constraint, trigger, migrasi, seed, dan runbook schema. |
+| `docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md` | Perancangan | Autentikasi, header, error, endpoint API, payload event, ruleset, analitika, OpenAPI, dan Postman. |
 | `docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md` | Perancangan | Formula kalkulasi metrik analitik dashboard dan metrik turunan gameplay fisik. |
 | `docs/02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md` | Perancangan | Desain mock-up visual UI MVC, ViewModel, dan pemetaan call API. |
 | `docs/03-Pengujian/03-01-pengujian-rencana-dan-kasus-uji.md` | Pengujian | Rencana pengujian fungsional unit testing, integration, dan smoke test. |
 | `docs/03-Pengujian/03-02-pengujian-laporan-hasil-baseline.md` | Pengujian | Laporan hasil eksekusi pengujian baseline sistem. |
 | `docs/03-Pengujian/03-03-pengujian-status-kesesuaian-implementasi.md`| Pengujian | Checklist status kesesuaian implementasi kode terhadap spesifikasi. |
-| `docs/03-Pengujian/03-04-pengujian-tahapan-dan-roadmap-implementasi.md`| Pengujian | Tahapan pentahapan pengerjaan (roadmap) dan checklist Definition of Done. |
+| `docs/03-Pengujian/03-04-riwayat-perbaikan-modular-dan-status-rilis.md`| Pengujian | Masalah awal, perbaikan per modul, bukti selesai, kontrak final, status rilis, dan risiko yang diterima. |
 | `docs/Img/RuleBook/*.png` | Aset dokumen | Scan/gambar halaman rulebook untuk lampiran dokumen. |
 
 *(Bagian file src/ dan tests/ tidak berubah, silakan lihat rincian lengkapnya pada repositori kode).*

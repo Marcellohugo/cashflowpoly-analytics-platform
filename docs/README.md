@@ -1,6 +1,6 @@
 # Indeks Dokumentasi Cashflowpoly Analytics Platform
 
-Status sinkronisasi terakhir: **20 Agustus 2026**, baseline schema **3.0.13**. Kontrak payload/event aktif berada pada `02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`; skrip `database/00_create_schema.sql` tetap menjadi acuan teknis terakhir bila ada perbedaan.
+Status sinkronisasi terakhir: **30 Agustus 2026**, baseline schema **3.0.13**. Setiap topik di bawah memiliki satu dokumen kanonis; README root hanya menjadi pintu masuk. Source code/OpenAPI dan schema beserta migrasinya tetap menjadi acuan teknis terakhir bila ada perbedaan.
 
 Selamat datang di direktori dokumentasi proyek. Seluruh dokumen disusun berdasarkan kategori numerik terurut untuk mempermudah pemahaman arsitektur sistem informasi dari aspek panduan, spesifikasi, rancangan, hingga pengujian.
 
@@ -23,11 +23,12 @@ Selamat datang di direktori dokumentasi proyek. Seluruh dokumen disusun berdasar
 - [01-03-spesifikasi-integrasi-dan-keamanan.md](01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md): Mekanisme integrasi Klien Game/IDN, non-fungsional requirement (NFR), audit trail, dan log keamanan.
 - [01-04-spesifikasi-diagram-uml.md](01-Spesifikasi/01-04-spesifikasi-diagram-uml.md): Kebutuhan Diagram UML sistem (Use Case, Sequence, Class Diagram).
 - [01-05-spesifikasi-skenario-simulasi.md](01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md): Skenario simulasi permainan pemula/mahir serta skenario operasional daur hidup sesi API.
+- [01-06-keputusan-produk-dan-arsitektur.md](01-Spesifikasi/01-06-keputusan-produk-dan-arsitektur.md): Alasan keputusan final gameplay, setup fisik, analitik, UI, keamanan, infrastruktur, dan rilis.
 
 ### 02. Perancangan Sistem (`02-Perancangan/`)
 *Desain basis data, formula kalkulasi metrik, dan desain mockup antarmuka MVC.*
-- [02-01-rancangan-database-dan-model-data.md](02-Perancangan/02-01-rancangan-database-dan-model-data.md): Kamus data PostgreSQL, skema relasional, indeks, dan riwayat keputusan normalisasi.
-- [02-02-rancangan-kontrak-api-dan-event.md](02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md): Kontrak payload API endpoint `/api/v1/...` dan skema event.
+- [02-01-arsitektur-database-dan-model-data.md](02-Perancangan/02-01-arsitektur-database-dan-model-data.md): Arsitektur PostgreSQL, kamus data, relasi, view, constraint, trigger, migrasi, seed, dan runbook perubahan schema.
+- [02-02-kontrak-rest-api-dan-event-permainan.md](02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md): Autentikasi, header, error, seluruh endpoint `/api/v1`, payload event, ruleset, analitika, OpenAPI, dan Postman.
 - [02-03-rancangan-definisi-dan-agregasi-metrik.md](02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md): Formula metrik analitik dasar dashboard, variabel fisik permainan, dan rumus metrik turunan.
 - [02-04-rancangan-antarmuka-dan-viewmodel-mvc.md](02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md): Desain mockup layout UI MVC, ViewModel C#, dan mapping call API ke UI.
 
@@ -36,10 +37,12 @@ Selamat datang di direktori dokumentasi proyek. Seluruh dokumen disusun berdasar
 - [03-01-pengujian-rencana-dan-kasus-uji.md](03-Pengujian/03-01-pengujian-rencana-dan-kasus-uji.md): Rencana pengujian fungsional unit test, integrasi, dan RBAC.
 - [03-02-pengujian-laporan-hasil-baseline.md](03-Pengujian/03-02-pengujian-laporan-hasil-baseline.md): Laporan hasil pengujian baseline sistem.
 - [03-03-pengujian-status-kesesuaian-implementasi.md](03-Pengujian/03-03-pengujian-status-kesesuaian-implementasi.md): Checklist pelacakan implementasi terhadap target spesifikasi.
-- [03-04-pengujian-tahapan-dan-roadmap-implementasi.md](03-Pengujian/03-04-pengujian-tahapan-dan-roadmap-implementasi.md): Milestone pengerjaan dan checklist Definition of Done (DoD).
+- [03-04-riwayat-perbaikan-modular-dan-status-rilis.md](03-Pengujian/03-04-riwayat-perbaikan-modular-dan-status-rilis.md): Masalah awal, perbaikan per modul, bukti selesai, kontrak final, dan risiko yang diterima.
 
 ---
 
 ## 📚 Dokumen Root Lainnya
 - [00-ringkasan-rulebook-cashflowpoly.md](00-ringkasan-rulebook-cashflowpoly.md): Ringkasan rulebook Cashflowpoly untuk referensi cepat.
 - [01-ringkasan-proposal-tugas-akhir.md](01-ringkasan-proposal-tugas-akhir.md): Ringkasan proposal tugas akhir dan konteks akademik.
+- [02-peta-alur-sistem-end-to-end.md](02-peta-alur-sistem-end-to-end.md): Peta alur terpadu dari permainan fisik hingga API, database, analitika, UI, pengujian, dan deployment.
+- [03-manifest-fungsi-file-repositori.md](03-manifest-fungsi-file-repositori.md): Daftar fungsi file dan keluarga file aktif agar tanggung jawab setiap sumber mudah ditemukan.

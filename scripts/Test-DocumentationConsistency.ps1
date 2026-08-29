@@ -41,8 +41,8 @@ function Assert-ExcludesText {
 }
 
 $readme = Read-RepositoryFile "README.md"
-$apiReadme = Read-RepositoryFile "README-API.md"
-$databaseReadme = Read-RepositoryFile "README-DATABASE.md"
+$apiReadme = Read-RepositoryFile "docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md"
+$databaseReadme = Read-RepositoryFile "docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md"
 $metricDesign = Read-RepositoryFile "docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md"
 $postmanPath = Join-Path $repositoryRoot "postman/Cashflowpoly.postman_collection.json"
 $environmentPath = Join-Path $repositoryRoot "postman/Cashflowpoly.local.postman_environment.json"
@@ -59,7 +59,7 @@ foreach ($contract in @(
     "has_more",
     "transaction_id"
 )) {
-    Assert-ContainsText -Content $apiReadme -Expected $contract -Source "README-API.md"
+    Assert-ContainsText -Content $apiReadme -Expected $contract -Source "dokumen kontrak REST API"
 }
 
 foreach ($metric in @(
@@ -81,11 +81,11 @@ foreach ($metric in @(
 }
 
 Assert-ContainsText -Content $readme -Expected "IDN" -Source "README.md"
-Assert-ContainsText -Content $databaseReadme -Expected "schema_history" -Source "README-DATABASE.md"
-Assert-ContainsText -Content $databaseReadme -Expected "session_setup_revisions" -Source "README-DATABASE.md"
+Assert-ContainsText -Content $databaseReadme -Expected "schema_history" -Source "dokumen arsitektur database"
+Assert-ContainsText -Content $databaseReadme -Expected "session_setup_revisions" -Source "dokumen arsitektur database"
 Assert-ContainsText -Content $postmanText -Expected "/events?limit=50" -Source "Postman collection"
 Assert-ContainsText -Content $postmanText -Expected "/transactions?userId={{playerUserId}}&limit=50" -Source "Postman collection"
 Assert-ExcludesText -Content $postmanText -Forbidden "LewatiOrder" -Source "Postman collection"
 Assert-ExcludesText -Content $postmanText -Forbidden "fromSeq" -Source "Postman collection"
 
-Write-Output "Dokumentasi konsisten: README, API, database, definisi metrik, dan Postman valid."
+Write-Output "Dokumentasi konsisten: README, kontrak API, arsitektur database, definisi metrik, dan Postman valid."

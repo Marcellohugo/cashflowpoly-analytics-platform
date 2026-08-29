@@ -1,8 +1,10 @@
-# Alur Lengkap Project Cashflowpoly Analytics Platform
+# Peta Alur Sistem Cashflowpoly dari Ujung ke Ujung
 
 Dokumen ini adalah peta alur menyeluruh untuk memahami project Cashflowpoly Analytics Platform dari ujung ke ujung: rulebook fisik, ruleset, setup sesi, event gameplay, validasi, database, projection, analitika, UI, pengujian, dan deployment.
 
-**Tanggal ringkasan: 20 Agustus 2026. Baseline schema: 3.0.13.**
+**Tanggal pembaruan: 30 Agustus 2026. Baseline schema: 3.0.13.**
+
+Dokumen ini memberi gambaran lintas modul. Detail teknis tidak diulang di sini; setiap bagian menunjuk ke dokumen kanonis pada indeks `docs/README.md`.
 
 ## 1. Ringkasan Besar
 
@@ -29,7 +31,7 @@ Rulebook -> Ruleset -> Session -> Players -> Setup Cards -> Events -> Validation
 | Rulebook ringkas | docs/00-ringkasan-rulebook-cashflowpoly.md | Referensi aturan permainan fisik. |
 | Kartu fisik digital | src/Cashflowpoly.Ui/wwwroot/images/component | Gambar komponen kartu permainan. |
 | Manifest kartu | src/Cashflowpoly.Ui/wwwroot/images/component/component-image-manifest.csv | Pemetaan gambar asli ke nama komponen. |
-| Tabel komponen gambar | docs/component-rulebook-image-table.md | Tabel audit komponen berdasarkan gambar. |
+| Manifest gambar komponen | src/Cashflowpoly.Ui/wwwroot/images/component/component-image-manifest.csv | Pemetaan nama file gambar ke komponen permainan. |
 | Schema DB | database/00_create_schema.sql | DDL kanonis PostgreSQL. |
 | Seed ruleset | database/01_seed_default_rulesets_components.sql | Ruleset default, action catalog, komponen gameplay. |
 | Seed simulasi | database/02_seed_simulation_sessions_events.sql | Data contoh sesi dan event manual; hanya dijalankan oleh mode migrasi ketika flag Seed 2 aktif. |
@@ -690,7 +692,7 @@ src/Cashflowpoly.Ui/wwwroot/images/component
 - Gambar kartu final dengan nama semantik.
 - Folder _raw untuk foto asli.
 - component-image-manifest.csv untuk mapping raw -> final.
-- Tabel audit di docs/component-rulebook-image-table.md.
+- Manifest gambar pada src/Cashflowpoly.Ui/wwwroot/images/component/component-image-manifest.csv.
 
 **Kelompok gambar:**
 
@@ -872,7 +874,7 @@ dotnet test Cashflowpoly.sln --no-restore
 - Simpan foto asli di _raw.
 - Nama final harus semantik.
 - Update component-image-manifest.csv.
-- Update docs/component-rulebook-image-table.md.
+- Perbarui src/Cashflowpoly.Ui/wwwroot/images/component/component-image-manifest.csv bila pemetaan gambar berubah.
 - Jangan mengubah seed image path kecuali memang diminta.
 
 ## 27. Invariant yang Tidak Boleh Dilanggar
@@ -919,11 +921,11 @@ dotnet test Cashflowpoly.sln --no-restore
 | docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md | Ruleset dan validasi. |
 | docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md | Integrasi IDN, auth, NFR. |
 | docs/01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md | Skenario simulasi. |
-| docs/02-Perancangan/02-01-rancangan-database-dan-model-data.md | Model data. |
-| docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md | Kontrak API/event. |
+| docs/02-Perancangan/02-01-arsitektur-database-dan-model-data.md | Arsitektur database dan model data. |
+| docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md | Kontrak REST API dan event permainan. |
 | docs/02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md | Metrik dan formula. |
 | docs/02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md | UI MVC dan ViewModel. |
-| docs/component-rulebook-image-table.md | Komponen kartu berdasarkan gambar. |
+| src/Cashflowpoly.Ui/wwwroot/images/component/component-image-manifest.csv | Pemetaan gambar komponen. |
 
 ## 30. Checklist Audit End-to-End
 

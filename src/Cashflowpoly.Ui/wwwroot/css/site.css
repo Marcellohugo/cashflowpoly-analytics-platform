@@ -3144,7 +3144,6 @@ body > footer .footer-shell {
     flex-wrap: wrap;
     align-items: stretch;
     gap: 0.58rem;
-    border-top: 1px solid #dce8ed;
     padding: 0.72rem;
 }
 
@@ -3913,6 +3912,15 @@ body > footer .footer-shell {
     inline-size: 100%;
     min-inline-size: 24rem;
     border-collapse: collapse;
+}
+
+.player-detail-overhaul .player-metric-card-grid--coin-finance .player-metric-card--series table {
+    min-inline-size: 64rem;
+}
+
+.player-detail-overhaul .player-metric-card-grid--coin-finance .player-metric-card--series th:first-child,
+.player-detail-overhaul .player-metric-card-grid--coin-finance .player-metric-card--series td:first-child {
+    white-space: nowrap;
 }
 
 .player-detail-overhaul .player-metric-series th,

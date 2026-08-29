@@ -13,7 +13,7 @@
 Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres belajar. Instruktur menjalankan setup sesi, pemilihan *ruleset*, penambahan Player, start/end sesi, dan input keputusan Player melalui Klien Game/IDN. API memvalidasi dan menyimpan data tersebut, sedangkan Web Analitik membaca hasilnya untuk menampilkan metrik pembelajaran dan capaian misi.
 
 Dokumen ini dipakai bersama:
-- `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md` untuk kontrak endpoint/payload.
+- `docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md` untuk kontrak endpoint/payload.
 - `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md` untuk lifecycle ruleset.
 - `docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md` untuk detail integrasi IDN, retry/idempotency, keamanan, dan NFR operasional.
 

@@ -13,8 +13,8 @@
 Dokumen ini disusun sebagai rujukan logis untuk memahami alur kerja pengguna (Instruktur & Player), istilah identitas yang digunakan sistem, aturan validasi *ruleset*, batasan hak akses data pemain (*Player scope*), serta hubungan otorisasi di dalam sistem.
 
 Dokumen ini menjadi penghubung antara:
-- Kontrak Teknis API: [02-02-rancangan-kontrak-api-dan-event.md](../02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md)
-- Struktur Skema DB: [02-01-rancangan-database-dan-model-data.md](../02-Perancangan/02-01-rancangan-database-dan-model-data.md)
+- Kontrak Teknis API: [Kontrak REST API dan Event Permainan](../02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md)
+- Struktur Skema DB: [Arsitektur Database dan Model Data](../02-Perancangan/02-01-arsitektur-database-dan-model-data.md)
 - Desain Antarmuka MVC: [02-04-rancangan-antarmuka-dan-viewmodel-mvc.md](../02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md)
 
 ---
@@ -74,7 +74,7 @@ Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
 *   **Audit Keamanan & Metrik Observabilitas**: Hanya dapat diakses oleh peran `INSTRUCTOR` atau administrator sistem.
 
 > [!TIP]
-> Detail pemetaan endpoint API secara teknis beserta kode respons HTTP yang dikembalikan dapat dilihat pada dokumen [02-02-rancangan-kontrak-api-dan-event.md](../02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md).
+> Detail pemetaan endpoint API beserta kode respons HTTP dapat dilihat pada dokumen [Kontrak REST API dan Event Permainan](../02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md).
 
 ---
 

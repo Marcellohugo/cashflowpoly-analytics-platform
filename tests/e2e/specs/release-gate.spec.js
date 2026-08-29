@@ -157,6 +157,11 @@ test("koin dan keuangan menampilkan satu tabel transaksi komprehensif", async ({
 
   const cards = coinDomain.locator(".player-metric-card");
   await expect(cards).toHaveCount(5);
+  const transactionCard = cards.nth(2);
+  const firstTransactionDay = transactionCard.locator("tbody tr").first().locator("td").first();
+  expect(await transactionCard.evaluate(card => getComputedStyle(card.parentElement).borderTopWidth)).toBe("0px");
+  expect(await firstTransactionDay.evaluate(cell => getComputedStyle(cell).whiteSpace)).toBe("nowrap");
+  expect(await firstTransactionDay.evaluate(cell => cell.scrollWidth <= cell.clientWidth)).toBeTruthy();
   const layout = await cards.evaluateAll(items => items.map(item => {
     const box = item.getBoundingClientRect();
     return {

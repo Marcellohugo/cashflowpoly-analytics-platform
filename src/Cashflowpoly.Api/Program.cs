@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading.RateLimiting;
 using Dapper;
 using Cashflowpoly.Api.Infrastructure;
+using Cashflowpoly.Api.Contracts;
 using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Security;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -69,7 +71,36 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         }
     }
 });
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var details = context.ModelState
+                .SelectMany(entry => entry.Value?.Errors.Select(error => new ErrorDetail(
+                    string.IsNullOrWhiteSpace(entry.Key)
+                        ? "request"
+                        : entry.Key.TrimStart('$', '.'),
+                    error.Exception is not null
+                        ? "INVALID_FORMAT"
+                        : error.ErrorMessage.Contains("required", StringComparison.OrdinalIgnoreCase)
+                            ? "REQUIRED"
+                            : "INVALID_VALUE")) ?? [])
+                .Distinct()
+                .ToArray();
+
+            if (details.Length == 0)
+            {
+                details = [new ErrorDetail("request", "INVALID_VALUE")];
+            }
+
+            return new BadRequestObjectResult(ApiErrorHelper.BuildError(
+                context.HttpContext,
+                "VALIDATION_ERROR",
+                "Request tidak valid",
+                details));
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])

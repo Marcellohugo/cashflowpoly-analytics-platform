@@ -1,6 +1,10 @@
-# Catatan Keputusan Final Cashflowpoly
+# Keputusan Produk dan Arsitektur Cashflowpoly
 
-Dokumen ini mencatat keputusan yang telah dipilih selama penyelarasan Cashflowpoly. Catatan ini menjadi rujukan singkat ketika ada perbedaan antara implementasi, dokumentasi, data Seed 2, dan aturan permainan. Rincian teknis per modul tetap berada di [RENCANA-PERBAIKAN-MODULAR.md](RENCANA-PERBAIKAN-MODULAR.md).
+Status: **final dan aktif**, diperbarui 30 Agustus 2026.
+
+Dokumen ini mencatat alasan keputusan lintas produk dan arsitektur. Gunakan dokumen ini untuk menjawab **mengapa** sistem dibangun seperti sekarang; detail kontrak API, schema database, metrik, dan hasil pengujian tetap berada pada dokumen khususnya agar informasi teknis tidak diduplikasi. Riwayat penerapan tiap modul berada pada [Riwayat Perbaikan Modular dan Status Rilis](../03-Pengujian/03-04-riwayat-perbaikan-modular-dan-status-rilis.md).
+
+Jika keputusan di sini bertentangan dengan source code aktif, perbedaan tersebut harus diperlakukan sebagai masalah dokumentasi atau implementasi dan diselesaikan pada commit yang sama—bukan dipilih diam-diam salah satunya.
 
 ## 1. Arah produk dan sumber kebenaran
 
@@ -127,7 +131,7 @@ Data permainan lengkap, variabel nol yang sah, status belum ada data, jejak akti
 - Pagination cursor hanya diterapkan pada event dan transaksi dengan `items`, `next_cursor`, serta `has_more`.
 - Migrasi database memakai urutan versi dan checksum; migration yang sudah diterapkan tidak boleh diedit.
 - Setup memiliki riwayat revisi dan status `EDITABLE`/`LOCKED`.
-- `README.md`, `README-API.md`, `README-DATABASE.md`, OpenAPI, Postman, dan dokumen `docs` harus memakai kontrak serta istilah yang sama.
+- `README.md`, dokumen kontrak API, dokumen arsitektur database, OpenAPI, Postman, dan seluruh dokumen `docs` harus memakai kontrak serta istilah yang sama.
 - Dokumentasi harus menjelaskan alur IDN, privasi misi, mode Pemula/Mahir, data legacy, pagination, Seed 2, deployment, dan batasan backup.
 
 ## 7. Keputusan akun, legal, dan metadata

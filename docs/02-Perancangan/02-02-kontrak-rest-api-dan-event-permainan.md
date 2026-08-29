@@ -1,21 +1,61 @@
-# Rancangan Kontrak API dan Event
-## Sistem Informasi Dasbor Analitika Cashflowpoly
+# Kontrak REST API dan Event Permainan
+## Cashflowpoly Analytics Platform
 
 ### Dokumen
-- Nama dokumen: Rancangan Kontrak API dan Event
-- Versi: 2.1
-- Tanggal: 11 Juli 2026
+- Nama dokumen: Kontrak REST API dan Event Permainan
+- Versi: 3.0
+- Tanggal pembaruan: 30 Agustus 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
 
+## Cara Menggunakan Dokumen Ini
+
+Dokumen ini adalah satu-satunya acuan Markdown untuk integrasi REST API dan event permainan. Gunakan bagian berikut sesuai kebutuhan:
+
+- **Integrasi cepat:** baca ringkasan akses, autentikasi, header, dan konvensi respons di bawah.
+- **Implementasi Klien Game/IDN:** baca model event pada bagian 3, katalog payload pada bagian 4, lalu endpoint pada bagian 5–10.
+- **Penanganan kegagalan:** gunakan struktur error pada bagian 3.2 dan status HTTP pada bagian 11.
+- **Pengujian kontrak:** cocokkan dokumen dengan OpenAPI runtime, Postman, dan checklist bagian 12.
+
+Urutan sumber kebenaran ketika ditemukan perbedaan adalah:
+
+1. controller, DTO, validator, dan katalog domain pada source code;
+2. OpenAPI yang dihasilkan aplikasi pada environment Development;
+3. schema kanonis beserta migrasi database;
+4. dokumen ini.
+
+### Akses cepat
+
+| Kebutuhan | Nilai |
+|---|---|
+| Base URL lokal | `http://localhost:5041/api/v1` |
+| Base URL produksi | `https://<DOMAIN>/api/v1` |
+| Swagger UI | `/swagger`, hanya pada `Development` |
+| OpenAPI JSON | `/swagger/v1/swagger.json`, hanya pada `Development` |
+| Format data | JSON UTF-8; nama field umumnya `snake_case` |
+| Autentikasi | `Authorization: Bearer <access_token>` |
+
+Endpoint selain login, registrasi, landing page, health check, dan metrik internal memerlukan JWT. Registrasi publik hanya dapat membuat akun `PLAYER`; resource milik sesi/ruleset tetap dibatasi berdasarkan pemilik atau partisipasi, bukan hanya berdasarkan role.
+
+Header yang perlu dipahami klien:
+
+| Header | Arah | Fungsi |
+|---|---|---|
+| `Authorization` | request | JWT Bearer untuk endpoint terlindungi |
+| `Content-Type: application/json` | request | Wajib untuk body JSON |
+| `Accept-Language: id` atau `en` | request | Memilih bahasa pesan; default Indonesia |
+| `X-Client-Request-Id` | request | Korelasi request dari klien |
+| `X-Trace-Id` | response | ID penelusuran server untuk diagnosis |
+
+Batas request default adalah 10 request/menit untuk autentikasi, 240 request/menit untuk event, dan 300 request/menit untuk endpoint lain. Respons `429` harus ditangani dengan *backoff*; jangan mengirim ulang batch identik secara paralel.
+
+Respons sukses dikembalikan langsung sebagai DTO tanpa envelope `data`. Daftar umum memakai `items`; histori event dan transaksi memakai `items`, `next_cursor`, serta `has_more`. UUID harus berbentuk string kanonis dan timestamp harus ISO-8601 dengan offset, idealnya UTC (`Z`).
+
 ## 1. Tujuan Dokumen
 Dokumen ini disusun untuk menetapkan spesifikasi event sebagai format data utama pencatatan permainan serta menetapkan kontrak REST API untuk menerima, memvalidasi, menyimpan, dan menyediakan data analitika serta lifecycle sesi/ruleset/Player yang dipakai Klien Game/IDN. Dokumen ini menjadi acuan implementasi back-end, integrasi Klien Game/IDN, Web Analitik MVC, serta pengujian fungsional.
 
-Jika ada konflik detail antara dokumen ini dan dokumen lain, prioritas acuan:
-1. `docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md`
-2. dokumen ini (`02-02`)
-3. dokumen pengujian (`03-01`)
+Kontrak API dikonsolidasikan di sini agar tidak dipelihara pada dua tempat.
 
 ---
 
@@ -1481,3 +1521,20 @@ Dokumen ini konsisten jika:
 2. Setiap endpoint memiliki request/response dan status code.
 3. Setiap validasi domain dapat ditelusuri ke aturan ruleset atau aturan permainan.
 4. Setiap endpoint yang dipakai UI memiliki kebutuhan data yang tersedia.
+
+## 13. OpenAPI dan Postman
+
+OpenAPI runtime adalah cara tercepat untuk memeriksa signature aktual endpoint. Postman menyediakan alur integrasi yang dapat dijalankan berurutan:
+
+- collection: `postman/Cashflowpoly.postman_collection.json`;
+- environment lokal: `postman/Cashflowpoly.local.postman_environment.json`.
+
+Alur minimum yang direkomendasikan adalah login Instruktur, pilih atau buat ruleset aktif, buat sesi, tambahkan Player, validasi dan simpan setup, mulai sesi, kirim event, akhiri sesi, lalu baca analitika. Simpan `sessionId`, `rulesetVersionId`, `playerUserId`, `nextSequenceNumber`, dan cursor respons ke environment; jangan menyalin ID dari seed secara permanen ke request.
+
+Sebelum merilis perubahan kontrak:
+
+1. bangun aplikasi dan periksa OpenAPI;
+2. jalankan `scripts/Test-DocumentationConsistency.ps1`;
+3. pastikan contoh Postman memakai path dan query aktif;
+4. pastikan semua respons error, termasuk kegagalan model binding, memakai `error_code`, `message`, `details`, dan `trace_id`;
+5. perbarui dokumen ini pada commit yang sama dengan perubahan DTO/controller.

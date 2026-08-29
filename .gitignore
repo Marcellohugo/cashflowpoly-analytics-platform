@@ -25,6 +25,9 @@
 # Docker persistent volumes / data
 /postgres-data/
 
+# Local research documents, diagrams, screenshots, and generated evidence
+/artifacts/
+
 # ── Visual Studio / .NET ─────────────────────────────
 
 # User-specific files
@@ -84,7 +87,6 @@ BenchmarkDotNet.Artifacts/
 # .NET
 project.lock.json
 project.fragment.lock.json
-artifacts/
 
 # Tye
 .tye/

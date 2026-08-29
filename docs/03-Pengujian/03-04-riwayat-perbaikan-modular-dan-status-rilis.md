@@ -1,4 +1,8 @@
-# Catatan Pelaksanaan Rencana Perbaikan Modular Cashflowpoly
+# Riwayat Perbaikan Modular dan Status Rilis
+
+Status: **seluruh modul utama diterapkan**, diperbarui 30 Agustus 2026.
+
+Dokumen ini menjelaskan masalah awal, perubahan yang diterapkan, bukti selesai, serta risiko yang masih diterima. Bagian `Commit` mencatat kelompok perubahan historis dan bukan perintah yang harus dijalankan ulang. Rencana yang belum diterapkan harus ditambahkan sebagai bagian baru dengan status dan kriteria selesai yang jelas.
 
 ## Ringkasan keputusan final
 
@@ -25,7 +29,7 @@ Perubahan besar sulit dibedakan dari regresi dan belum mempunyai baseline terpad
 
 ### Diperbaiki menjadi
 
-- Perubahan dipindahkan aman ke branch `codex/project-alignment`.
+- Perubahan dikerjakan pada branch penyelarasan terpisah sebelum digabungkan ke `prod`.
 - Characterization test melindungi login, ruleset, sesi, peserta, setup, start/end, event, transaksi, proyeksi, analitik, dan hak akses.
 - Dataset Seed 2 Pemula/Mahir serta kontrak utama dapat dibandingkan otomatis.
 
@@ -241,7 +245,7 @@ README, desain database, Postman, dan dokumen implementasi masih menyebut setup/
 
 ### Diperbaiki menjadi
 
-- README utama memuat alur penggunaan lengkap; `README-API.md` dan `README-DATABASE.md` menjadi dokumentasi root terpisah.
+- README utama memuat orientasi dan alur penggunaan; kontrak API serta arsitektur database menjadi dokumen kanonis pada `docs/02-Perancangan`.
 - OpenAPI runtime, DTO, Postman, migrasi, dan seluruh `docs` diselaraskan.
 - Alur IDN didokumentasikan: login, ruleset, sesi, peserta, validasi setup, simpan/revisi, start, event, end.
 - Dokumentasi meliputi Pemula/Mahir, pagination, error, privasi misi, setup revision, data legacy, sebelas kelompok variabel, tiga belas metrik, deployment manual, tunnel, tanpa backup, dan risiko rollback schema.
@@ -272,11 +276,35 @@ Satu skrip lokal menjalankan:
 - build/config Docker;
 - performa 100 akun, 20 sesi aktif, 20 pengguna bersamaan, API umum p95 <500 ms, analitik p95 <2 detik.
 
-Setiap modul diuji, dibuatkan Conventional Commit, dan didorong ke `origin/codex/project-alignment`. Setelah semua lulus, branch di-merge ke `prod`, `prod` didorong, lalu deployment manual memasang commit terbaru dan memverifikasi login, Seed 2, sesi, setup, analitik, ruleset, legal, health, dan `narafin.org`.
+Setiap modul diuji dan dibuatkan Conventional Commit. Setelah semua gerbang lulus, perubahan digabungkan ke `prod`, didorong ke origin, lalu deployment manual memasang commit terbaru dan memverifikasi login, Seed 2, sesi, setup, analitik, ruleset, legal, health, dan `narafin.org`.
 
 ### Commit
 
 `test: add release e2e contract and performance gates`
+
+---
+
+## Modul 11 - Audit Source Code dan Konsolidasi Dokumentasi
+
+### Sebelumnya
+
+Respons kegagalan model binding otomatis masih memakai format bawaan ASP.NET dan berbeda dari kontrak error publik. Dokumentasi API/database juga dipelihara ganda pada root dan `docs`, sedangkan rancangan Bab IV serta dokumen biner ikut dilacak Git.
+
+### Diperbaiki menjadi
+
+- respons model binding memakai `error_code`, `message`, `details`, dan `trace_id`, termasuk terjemahan Inggris;
+- audit independen berbasis source code memeriksa logika domain, seluruh operasi OpenAPI, database, RBAC, keamanan, UI desktop/mobile, dan runtime Docker;
+- kontrak API, arsitektur database, keputusan, serta riwayat perbaikan masing-masing memiliki satu dokumen kanonis di `docs`;
+- rancangan Bab IV, Word, draw.io, screenshot, PDF hasil render, dan bukti visual ditempatkan pada `artifacts` lokal yang tidak dilacak Git.
+
+### Bukti selesai
+
+- build Release bersih tanpa warning/error;
+- 142 dari 142 pemeriksaan logika source lulus;
+- 132 dari 132 pemeriksaan HTTP lulus untuk 36 operasi Swagger;
+- constraint dan relasi database tervalidasi tanpa data yatim;
+- UI desktop/mobile serta bahasa Indonesia/Inggris tidak menghasilkan error console atau overflow halaman;
+- pemeriksaan konsistensi dokumentasi dan tautan lokal lulus.
 
 ---
 

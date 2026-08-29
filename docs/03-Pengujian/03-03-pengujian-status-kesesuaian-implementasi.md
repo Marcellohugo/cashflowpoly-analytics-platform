@@ -14,7 +14,7 @@ Dokumen ini memetakan kesesuaian implementasi terhadap dokumen spesifikasi aktif
 
 Acuan utama:
 - `docs/01-Spesifikasi/01-01-spesifikasi-kebutuhan-sistem.md`
-- `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`
+- `docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md`
 - `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md`
 - `docs/01-Spesifikasi/01-03-spesifikasi-integrasi-dan-keamanan.md`
 

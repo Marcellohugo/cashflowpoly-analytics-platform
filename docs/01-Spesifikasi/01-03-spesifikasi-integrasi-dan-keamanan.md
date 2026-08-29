@@ -11,7 +11,7 @@
 
 ## 1. Tujuan
 Dokumen ini menetapkan kontrak integrasi API antara aplikasi IDN dan backend Cashflowpoly agar implementasi lintas tim tidak ambigu. Dokumen ini melengkapi:
-- `docs/02-Perancangan/02-02-rancangan-kontrak-api-dan-event.md`
+- `docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md`
 - `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md`
 
 ---

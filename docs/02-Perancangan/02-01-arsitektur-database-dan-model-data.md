@@ -1,10 +1,10 @@
-# Rancangan Model Data dan Basis Data (PostgreSQL)
-## Sistem Informasi Dasbor Analitika & Manajemen Ruleset Cashflowpoly
+# Arsitektur Database dan Model Data PostgreSQL
+## Cashflowpoly Analytics Platform
 
 ### Dokumen
-- Nama dokumen: Rancangan Model Data dan Basis Data
-- Versi: 2.1
-- Tanggal: 11 Juli 2026
+- Nama dokumen: Arsitektur Database dan Model Data PostgreSQL
+- Versi: 3.0
+- Tanggal pembaruan: 30 Agustus 2026
 - Penyusun: Marco Marcello Hugo
 
 > Baseline kanonis schema berada pada `database/00_create_schema.sql`, kemudian
@@ -18,6 +18,25 @@
 
 ---
 
+## Cara Menggunakan Dokumen Ini
+
+Dokumen ini adalah satu-satunya acuan Markdown untuk desain dan operasi database. Gunakan bagian berikut sesuai kebutuhan:
+
+- **Orientasi:** prinsip, alur data, dan relasi inti pada bagian 1–4.
+- **Implementasi:** katalog tabel dan projection pada bagian 5–11.
+- **Pembuatan query:** strategi dashboard pada bagian 12.
+- **Perubahan schema:** aturan integritas, seed, migrasi, dan checklist pada bagian 13–18.
+
+Urutan sumber kebenaran ketika ditemukan perbedaan adalah:
+
+1. `database/00_create_schema.sql`;
+2. migrasi immutable berurutan pada `database/migrations`;
+3. metadata aktual `schema_history` pada database;
+4. mapping persistence pada source code;
+5. dokumen ini.
+
+Baseline aktif adalah schema **`3.0.13`**. API memakai Dapper/Npgsql untuk akses data utama dan mapping EF Core untuk model yang membutuhkannya. Migrasi hanya dijalankan melalui mode `--migrate-only`, bukan otomatis oleh setiap instance API.
+
 ## 1. Tujuan Dokumen
 Dokumen ini mendefinisikan model data PostgreSQL untuk:
 1. akun pengguna dan peserta sesi,
@@ -29,6 +48,8 @@ Dokumen ini mendefinisikan model data PostgreSQL untuk:
 Sistem tidak memakai ORM sebagai sumber desain schema. Aplikasi memakai EF Core
 mapping untuk akses data, tetapi struktur database tetap didefinisikan oleh
 skrip SQL baseline.
+
+Desain dan runbook database dikonsolidasikan di sini agar tidak dipelihara pada dua tempat.
 
 ---
 
@@ -654,3 +675,41 @@ Untuk merapikan model data dan meminimalkan permukaan validasi, beberapa konsep 
 - Seluruh tabel `ruleset_*` wajib memuat `ruleset_version_id` untuk mencegah percampuran definisi aturan antarversi.
 - Foreign Key (FK) event menggunakan gabungan scope komposit `(session_id, event_id)` karena nilai ID event unik per sesi permainan.
 - Seluruh data pemeringkatan (*ranking*) dashboard dihitung secara dinamis melalui query analitik, bukan disimpan dalam tabel status baru yang redundan.
+
+## 17. View, Function, dan Trigger
+
+View yang disediakan schema kanonis:
+
+| View | Fungsi |
+|---|---|
+| `ruleset_catalog_items` | Menyatukan aset ruleset ke bentuk katalog yang konsisten |
+| `ruleset_catalog_item_requirements` | Menyatukan kebutuhan item/pesanan untuk query katalog |
+| `ruleset_collection_mission_requirement_items` | Menyajikan syarat misi beserta item referensinya |
+
+Function dan trigger menjaga `updated_at`, sinkronisasi jumlah peserta, role dan batas pemain, mode serta ruleset sesi, slot aksi, scope event, side effect projection, batas inventaris, konsistensi cashflow/saldo, tipe aset requirement, dan provenance. Trigger adalah lapisan integritas terakhir—integrasi tetap harus menulis melalui REST API agar authorization, rate limit, audit, kontrak error, dan transaksi domain tetap berjalan.
+
+## 18. Runbook Perubahan dan Pemulihan Development
+
+Urutan inisialisasi yang benar:
+
+1. tunggu PostgreSQL sehat;
+2. jalankan image API dengan `--migrate-only`;
+3. pasang baseline untuk database kosong, kemudian seluruh migrasi berurutan;
+4. verifikasi checksum pada `schema_history`;
+5. jalankan Seed 2 hanya bila `DatabaseMigrations__SeedSimulation=true`;
+6. jalankan `--recalculate-analytics` setelah Seed 2;
+7. mulai instance API biasa tanpa hak mengubah schema.
+
+Saat mengubah schema, tambahkan `VNNN__nama_perubahan.sql` baru dan jangan mengedit migrasi yang sudah diterapkan. Gunakan pola *expand/contract*, sinkronkan persistence/DTO/seed/dokumentasi, lalu uji database kosong, upgrade database lama, idempotensi, dan penolakan checksum yang berubah.
+
+Reset development yang menghapus seluruh volume:
+
+```powershell
+docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml down -v
+docker compose --env-file config/env/.env.dev -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.watch.yml up -d --build
+```
+
+> [!CAUTION]
+> `down -v` menghapus seluruh data PostgreSQL pada project Compose tersebut. Perintah ini hanya untuk development dan tidak boleh dipakai pada production.
+
+Proyek tidak menyediakan backup otomatis, restore test, atau rollback schema. Rollback deployment hanya mengembalikan image aplikasi; kehilangan VPS, kesalahan operator, atau migrasi yang merusak data dapat menyebabkan kehilangan permanen. Risiko ini harus dinilai ulang sebelum sistem menyimpan data yang wajib dipertahankan.
