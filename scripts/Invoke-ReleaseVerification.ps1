@@ -81,6 +81,10 @@ try {
                 dotnet run --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj --no-launch-profile -- --migrate-only
         }
         Remove-Item Env:DATABASE_MIGRATIONS_SEED_SIMULATION -ErrorAction SilentlyContinue
+        Invoke-Checked "Rekalkulasi snapshot analitik Seed 2" {
+            docker compose --env-file $resolvedEnvironmentFile @composeFiles run --rm --no-deps api `
+                dotnet run --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj --no-launch-profile -- --recalculate-analytics
+        }
         Invoke-Checked "Jalankan aplikasi lokal" {
             docker compose --env-file $resolvedEnvironmentFile @composeFiles up -d db api ui
         }
