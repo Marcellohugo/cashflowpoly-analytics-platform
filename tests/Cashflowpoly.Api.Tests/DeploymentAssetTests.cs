@@ -176,6 +176,8 @@ public sealed class DeploymentAssetTests
         Assert.Contains("Host: ${DOMAIN_HOST}", script, StringComparison.Ordinal);
         Assert.Contains("rollback_images", script, StringComparison.Ordinal);
         Assert.Contains("PREVIOUS_SHA", script, StringComparison.Ordinal);
+        Assert.Contains("COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-cashflowpoly-analytics-platform}", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("--project-name cashflowpoly\n", script, StringComparison.Ordinal);
         Assert.Contains("MaxRetentionSec=30day", script, StringComparison.Ordinal);
         Assert.DoesNotContain("pg_dump", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("pg_restore", script, StringComparison.OrdinalIgnoreCase);

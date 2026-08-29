@@ -138,7 +138,7 @@ Skrip deployment melakukan langkah berikut:
 ## 8. Verifikasi setelah deployment
 
 ```bash
-docker compose --project-name cashflowpoly \
+docker compose --project-name cashflowpoly-analytics-platform \
   --env-file /opt/cashflowpoly/shared/.env.prod \
   -f /opt/cashflowpoly/current/infra/docker/docker-compose.yml \
   -f /opt/cashflowpoly/current/infra/docker/docker-compose.prod.yml \
@@ -183,7 +183,7 @@ Karena risiko tersebut diterima oleh keputusan proyek, setiap migrasi wajib:
 /opt/cashflowpoly/repository/scripts/deploy-production.sh
 
 # Status service
-docker compose --project-name cashflowpoly ps
+docker compose --project-name cashflowpoly-analytics-platform ps
 
 # Log aplikasi
 journalctl CONTAINER_NAME=cashflowpoly-api --since today

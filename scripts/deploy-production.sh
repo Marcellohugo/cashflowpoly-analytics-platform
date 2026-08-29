@@ -13,6 +13,7 @@ RELEASES_DIR=${RELEASES_DIR:-${APP_ROOT}/releases}
 ENV_FILE=${ENV_FILE:-${APP_ROOT}/shared/.env.prod}
 LOCK_FILE=${LOCK_FILE:-/var/lock/cashflowpoly-deploy.lock}
 BRANCH=${BRANCH:-prod}
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-cashflowpoly-analytics-platform}
 
 mkdir -p "${APP_ROOT}" "${RELEASES_DIR}" "$(dirname "${ENV_FILE}")"
 APP_ROOT_RESOLVED=$(realpath "${APP_ROOT}")
@@ -85,7 +86,7 @@ export RELEASE_SHA
 export DATABASE_MIGRATIONS_SEED_SIMULATION=true
 COMPOSE=(
   docker compose
-  --project-name cashflowpoly
+  --project-name "${COMPOSE_PROJECT_NAME}"
   --env-file "${ENV_FILE}"
   -f "${RELEASE_DIR}/infra/docker/docker-compose.yml"
   -f "${RELEASE_DIR}/infra/docker/docker-compose.prod.yml"
@@ -134,7 +135,7 @@ rollback_images() {
     export RELEASE_SHA=${PREVIOUS_SHA}
     local previous_compose=(
       docker compose
-      --project-name cashflowpoly
+      --project-name "${COMPOSE_PROJECT_NAME}"
       --env-file "${ENV_FILE}"
       -f "${PREVIOUS_DIR}/infra/docker/docker-compose.yml"
       -f "${PREVIOUS_DIR}/infra/docker/docker-compose.prod.yml"
