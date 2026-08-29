@@ -129,6 +129,6 @@ Mode aplikasi `--recalculate-analytics` membangun ulang snapshot seluruh sesi da
 - mengabaikan event legacy yang tidak lagi sah;
 - tidak memakai `validation_logs` sebagai input domain;
 - menghasilkan output deterministik untuk dataset yang sama;
-- mengganti snapshot turunan dengan hasil formula terbaru.
+- menulis snapshot terbaru dengan hasil formula kanonis; snapshot lama tetap menjadi jejak historis dan tidak dipilih sebagai nilai terbaru.
 
 Nama variabel baru tidak boleh ditambahkan hanya di UI. Perubahan formula harus memperbarui builder backend, DTO/JSON, test, README API, dokumen ini, dan Postman pada commit yang sama.

@@ -507,3 +507,6 @@ $RECYCLE.BIN/
 
 # Scratch directory
 /scratch/
+
+# Generated document, browser, and diagram verification artifacts
+/tmp/

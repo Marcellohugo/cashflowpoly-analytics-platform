@@ -24,7 +24,7 @@ Sistem menguji tiga area.
    Sistem menguji urutan event, idempotensi, keterikatan event ke sesi dan *ruleset*, serta konsistensi proyeksi dan metrik.
 
 3. **Validasi dasbor analitika (UI MVC)**  
-   Sistem menguji kesesuaian nilai yang UI tampilkan dengan data pada tabel `metric_snapshots` dan `event_cashflow_projections`.
+   Sistem menguji kesesuaian nilai UI dengan respons API yang dibentuk dari `events`, `event_cashflow_projections`, dan ruleset aktif, lalu memeriksa bahwa `metric_snapshots` hasil rekalkulasi membawa nilai yang sama.
 
 ---
 

@@ -281,11 +281,24 @@ Pilih salah satu pendekatan berikut.
 
 ### Opsi A — Seed 2 untuk demo development
 
-Seed 2 menyediakan dua sesi deterministik (`PEMULA` dan `MAHIR`) beserta event dan akun demo. Jalankan setelah database/API pertama kali berhasil start:
+Seed 2 menyediakan dua sesi deterministik (`PEMULA` dan `MAHIR`) beserta event dan akun demo. Jalankan melalui proses migrasi lalu bentuk snapshot analitik menggunakan kalkulator domain API yang sama dengan halaman analitika:
 
 ```powershell
-Get-Content -Raw database/02_seed_simulation_sessions_events.sql |
-  docker exec -i cashflowpoly-dev-db sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+$env:DATABASE_MIGRATIONS_SEED_SIMULATION = 'true'
+docker compose --env-file config/env/.env.dev `
+  -f infra/docker/docker-compose.yml `
+  -f infra/docker/docker-compose.watch.yml `
+  run --rm api `
+  dotnet run --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj `
+  --no-launch-profile -- --migrate-only
+Remove-Item Env:DATABASE_MIGRATIONS_SEED_SIMULATION
+
+docker compose --env-file config/env/.env.dev `
+  -f infra/docker/docker-compose.yml `
+  -f infra/docker/docker-compose.watch.yml `
+  run --rm --no-deps api `
+  dotnet run --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj `
+  --no-launch-profile -- --recalculate-analytics
 ```
 
 Akun demo lokal:
@@ -298,7 +311,7 @@ Akun demo lokal:
 | Player | `hugo` | `SeedLocal!2026` |
 | Player | `manalu` | `SeedLocal!2026` |
 
-Seed ini hanya untuk development/demo. Jangan memakai password tersebut di production. Seed 2 mengganti data pada scope demo deterministiknya, bukan menjadi mekanisme migrasi production.
+Seed ini hanya untuk development/demo. Jangan memakai password tersebut di production. Seed 2 mengganti data pada scope demo deterministiknya, bukan menjadi mekanisme migrasi production. Jangan menjalankan file SQL Seed 2 sendirian tanpa langkah rekalkulasi karena `metric_snapshots` sengaja hanya dibentuk oleh mesin analitik API.
 
 ### Opsi B — Bootstrap Instruktur pertama
 

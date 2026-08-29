@@ -32,7 +32,7 @@ Rulebook -> Ruleset -> Session -> Players -> Setup Cards -> Events -> Validation
 | Tabel komponen gambar | docs/component-rulebook-image-table.md | Tabel audit komponen berdasarkan gambar. |
 | Schema DB | database/00_create_schema.sql | DDL kanonis PostgreSQL. |
 | Seed ruleset | database/01_seed_default_rulesets_components.sql | Ruleset default, action catalog, komponen gameplay. |
-| Seed simulasi | database/02_seed_simulation_sessions_events.sql | Data contoh sesi dan event manual. Tidak auto-bootstrap. |
+| Seed simulasi | database/02_seed_simulation_sessions_events.sql | Data contoh sesi dan event manual; hanya dijalankan oleh mode migrasi ketika flag Seed 2 aktif. |
 | API | src/Cashflowpoly.Api | REST API, auth, validasi event, projection, analytics. |
 | UI | src/Cashflowpoly.Ui | Web Analitik MVC/Razor. |
 | Tests | tests/Cashflowpoly.Api.Tests, tests/Cashflowpoly.Ui.Tests | Unit/integration/regression tests. |
@@ -114,7 +114,7 @@ Snapshots --> Dashboard[Web Analitik MVC]
 - /swagger hanya development.
 
 **Catatan:**
-- database/02_seed_simulation_sessions_events.sql tidak dijalankan otomatis oleh startup.
+- database/02_seed_simulation_sessions_events.sql hanya dijalankan oleh mode migrasi ketika `DatabaseMigrations__SeedSimulation=true`, lalu wajib diikuti `--recalculate-analytics`.
 - Jika schema tidak didukung terdeteksi, startup meminta reset database.
 - File SQL dicari dari konfigurasi DatabaseBootstrap:SqlDirectory, artifacts/runtime-sql, atau folder database.
 

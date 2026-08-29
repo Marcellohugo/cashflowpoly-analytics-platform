@@ -269,10 +269,20 @@ $env:DATABASE_MIGRATIONS_SEED_SIMULATION = 'true'
 docker compose --env-file config/env/.env.dev `
   -f infra/docker/docker-compose.yml `
   -f infra/docker/docker-compose.watch.yml `
-  run --rm api --migrate-only
+  run --rm api `
+  dotnet run --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj `
+  --no-launch-profile -- --migrate-only
+Remove-Item Env:DATABASE_MIGRATIONS_SEED_SIMULATION
+
+docker compose --env-file config/env/.env.dev `
+  -f infra/docker/docker-compose.yml `
+  -f infra/docker/docker-compose.watch.yml `
+  run --rm --no-deps api `
+  dotnet run --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj `
+  --no-launch-profile -- --recalculate-analytics
 ```
 
-Seed 2 bersifat idempoten: memastikan akun/data contoh tersedia dan bertanda demo tanpa menghapus akun, sesi, event, atau analitik lain.
+Seed 2 bersifat idempoten: memastikan akun/data contoh tersedia dan bertanda demo tanpa menghapus akun, sesi, event, atau analitik lain. Snapshot analitik tidak dihitung oleh SQL Seed 2; mode `--recalculate-analytics` membentuknya dari event dan ruleset melalui kalkulator domain yang sama dengan API dan UI.
 
 ## Keputusan tanpa backup dan restore
 

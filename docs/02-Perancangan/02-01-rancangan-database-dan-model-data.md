@@ -437,8 +437,8 @@ Kolom penting:
 
 ### 10.3 `metric_snapshots`
 Fungsi:
-- menyimpan hasil metrik numeric atau JSON,
-- menjadi sumber utama dashboard.
+- menyimpan cache hasil metrik numeric atau JSON yang dapat dibangun ulang,
+- menyediakan jejak hasil rekalkulasi dan fallback untuk sesi tanpa konteks ruleset aktif.
 
 Kolom penting:
 - `metric_snapshot_id`
@@ -580,7 +580,7 @@ Kolom penting:
 | Daftar Player sesi | `session_participants`, `app_users`, `metric_snapshots`. |
 | Histori event | `events` berdasarkan `session_id` dan `sequence_number`. |
 | Histori transaksi | `event_cashflow_projections` berdasarkan `session_id` dan opsional `user_id`. |
-| Gameplay Player | `metric_snapshots` berdasarkan `session_id`, `user_id`, dan metric gameplay. |
+| Gameplay Player | `events`, `event_cashflow_projections`, dan ruleset aktif; `metric_snapshots` menjadi cache yang dapat dibangun ulang. |
 | Ruleset detail | `rulesets`, `ruleset_versions`, dan tabel `ruleset_*`. |
 | Audit keamanan | `security_audit_logs`. |
 
@@ -599,14 +599,14 @@ Kolom penting:
 ---
 
 ## 14. Seed dan Bootstrap
-Startup API memastikan:
-1. `database/00_create_schema.sql` terpasang,
-2. `database/01_seed_default_rulesets_components.sql` terpasang.
+Mode migrasi API memastikan:
+1. baseline dan seluruh migrasi berurutan terpasang,
+2. ruleset default tersedia.
 
 Data simulasi manual berada pada:
 - `database/02_seed_simulation_sessions_events.sql`
 
-File simulasi tidak di-bootstrap otomatis saat startup API.
+File simulasi hanya dijalankan ketika `DatabaseMigrations__SeedSimulation=true` pada mode migrasi. Setelah itu, `--recalculate-analytics` wajib dijalankan agar snapshot Seed 2 dibentuk oleh kalkulator domain API, bukan oleh rumus SQL terpisah.
 
 ---
 
@@ -619,7 +619,7 @@ Model data dianggap sinkron dengan implementasi jika:
 5. payload ruleset API memakai `definition`,
 6. event invalid masuk `validation_logs`,
 7. asset reference event masuk `event_asset_references`,
-8. dashboard membaca projection dan `metric_snapshots`, bukan menghitung ulang dari UI.
+8. UI tidak menghitung metrik sendiri: API membentuk nilai dari event, projection, dan ruleset aktif; hasil rekalkulasi disimpan sebagai `metric_snapshots` yang dapat dibangun ulang.
 
 ---
 
