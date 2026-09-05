@@ -274,7 +274,7 @@ Satu skrip lokal menjalankan:
 - E2E Chromium desktop dan ponsel;
 - konsistensi dokumentasi;
 - build/config Docker;
-- performa 100 akun, 20 sesi aktif, 20 pengguna bersamaan, API umum p95 <500 ms, analitik p95 <2 detik.
+- performa kebutuhan resmi: 100 akun, 20 sesi aktif dengan 2.000 event per sesi, 20 pengguna bersamaan, 200 permintaan per endpoint, P95 ingest event 251,9 ms (batas <=500 ms), dan P95 analitika sesi 458,4 ms (batas <=1.500 ms). Beban sintetis tiap sesi mencakup 64 aksi kerja lepas/pembelian bahan dan 1.936 transaksi sistem terkait dua pemain beserta proyeksi; POST terukur memakai CatatTransaksi.
 
 Setiap modul diuji dan dibuatkan Conventional Commit. Setelah semua gerbang lulus, perubahan digabungkan ke `prod`, didorong ke origin, lalu deployment manual memasang commit terbaru dan memverifikasi login, Seed 2, sesi, setup, analitik, ruleset, legal, health, dan `narafin.org`.
 

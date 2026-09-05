@@ -97,7 +97,7 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 ### 5.2 Standar Format Data
 - **Koin / Uang**: Ditampilkan dengan pemisah ribuan (contoh: `10,000`).
 - **Persentase / Rasio**: Ditampilkan dalam skala 0-100 dengan pembulatan dua digit desimal (contoh: `85.50%`).
-- **Placeholder Data Kosong**: Jika data bernilai null/empty, wajib digantikan placeholder aman seperti `-` atau `N/A`, bukan dibiarkan kosong.
+- **Status Data Kosong**: Jika data bernilai `null` atau tidak tersedia, UI wajib menampilkan keterangan eksplisit seperti **Belum ada data** atau **Belum dapat dihitung**. Nilai tersebut tidak boleh diubah menjadi angka nol atau status `false` karena dapat memicu kesimpulan yang salah.
 
 ### 5.3 Detail Pemain
 - Urutan utama halaman adalah **Ringkasan Statistik Pemain**, **Cerita di Balik Hasil Pemain**, lalu **Data Permainan Lengkap**.

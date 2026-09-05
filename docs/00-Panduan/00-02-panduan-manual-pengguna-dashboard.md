@@ -13,7 +13,7 @@
 Dokumen ini disusun untuk memandu pengguna (Instruktur dan Player) dalam berinteraksi dengan antarmuka Web Analitika MVC (Razor Views). Dokumen ini berfokus pada navigasi menu dashboard, cara membaca grafik, visualisasi metrik literasi keuangan, serta pengelolaan ruleset.
 
 > [!NOTE]
-> Panduan ini khusus untuk penggunaan **Web Dashboard MVC**. Untuk instruksi pengiriman event permainan dari Game Client/IDN atau simulator, silakan merujuk ke spesifikasi simulasi di [01-05-spesifikasi-skenario-simulasi.md](../01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md).
+> Panduan ini khusus untuk penggunaan **Web Dashboard MVC**. Untuk instruksi pengiriman event permainan dari Game Client/IDN atau perangkat uji, silakan merujuk ke spesifikasi skenario terkontrol di [01-05-spesifikasi-skenario-simulasi.md](../01-Spesifikasi/01-05-spesifikasi-skenario-simulasi.md).
 
 ---
 
@@ -104,7 +104,7 @@ Tempat Instruktur mengonfigurasi aturan permainan yang akan diikat pada sesi:
     2. Cek apakah alamat backend di `src/Cashflowpoly.Ui/appsettings.Development.json` (bagian `ApiBaseUrl`) sudah sesuai dengan alamat listen backend API.
 
 ### 5.2 Kesalahan: Dasbor tidak menampilkan data analitika terbaru
-*   **Gejala**: Event permainan sudah dikirim oleh simulator/Game Client, tetapi metrik di dasbor belum berubah.
+*   **Gejala**: Event permainan sudah dikirim oleh Game Client/IDN atau perangkat uji, tetapi metrik di dasbor belum berubah.
 *   **Penyebab**: Event tertolak karena masalah urutan (*out of sequence*) atau kegagalan sinkronisasi DB.
 *   **Solusi**:
     1. Periksa tabel log validasi untuk melihat apakah event yang dikirim ditolak oleh API.

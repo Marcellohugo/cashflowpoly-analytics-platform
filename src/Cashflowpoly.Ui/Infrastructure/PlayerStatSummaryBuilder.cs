@@ -18,15 +18,15 @@ public static class PlayerStatSummaryBuilder
     {
         var insights = new List<PlayerInstructorInsightViewModel>();
 
-        var netCashflow = analyticsSummary is not null
+        double? netCashflow = analyticsSummary is not null
             ? analyticsSummary.CashInTotal - analyticsSummary.CashOutTotal
-            : cashflowJourney?.NetCashflow ?? gameplay?.Economy.CashflowNetTotal ?? 0d;
-        var happiness = analyticsSummary?.HappinessPointsTotal ?? gameplay?.Score.HappinessPointsTotal ?? 0d;
-        var fulfillmentDiversity = analyticsSummary?.FulfillmentDiversity ?? gameplay?.Needs.FulfillmentDiversity ?? 0d;
+            : cashflowJourney?.NetCashflow ?? gameplay?.Economy.CashflowNetTotal;
+        double? happiness = analyticsSummary?.HappinessPointsTotal ?? gameplay?.Score.HappinessPointsTotal;
+        double? fulfillmentDiversity = analyticsSummary?.FulfillmentDiversity ?? gameplay?.Needs.FulfillmentDiversity;
         var needCardsOwned = ReadNeedCardsOwned(gameplay?.RawJson);
-        var hasUnpaidLoan = analyticsSummary?.HasUnpaidLoan ?? gameplay?.Score.HasUnpaidLoan ?? false;
+        bool? hasUnpaidLoan = analyticsSummary?.HasUnpaidLoan ?? gameplay?.Score.HasUnpaidLoan;
 
-        if (netCashflow < 0)
+        if (netCashflow is < 0)
         {
             insights.Add(Insight(
                 "cashflow_negative",
@@ -35,7 +35,7 @@ public static class PlayerStatSummaryBuilder
                 "warning"));
         }
 
-        if (hasUnpaidLoan)
+        if (hasUnpaidLoan == true)
         {
             insights.Add(Insight(
                 "loan_unpaid",
@@ -44,7 +44,7 @@ public static class PlayerStatSummaryBuilder
                 "danger"));
         }
 
-        if (happiness < 20)
+        if (happiness is < 20)
         {
             insights.Add(Insight(
                 "happiness_low",
@@ -61,7 +61,7 @@ public static class PlayerStatSummaryBuilder
                 translate("players.stats.insight.need_cards_missing.desc"),
                 "warning"));
         }
-        else if (fulfillmentDiversity < 0.4)
+        else if (fulfillmentDiversity is < 0.4)
         {
             insights.Add(Insight(
                 "need_diversity_low",
@@ -70,7 +70,21 @@ public static class PlayerStatSummaryBuilder
                 "warning"));
         }
 
-        if (insights.Count == 0)
+        var hasCompleteEvaluationData =
+            netCashflow.HasValue &&
+            happiness.HasValue &&
+            fulfillmentDiversity.HasValue &&
+            hasUnpaidLoan.HasValue;
+
+        if (insights.Count == 0 && !hasCompleteEvaluationData)
+        {
+            insights.Add(Insight(
+                "data_unavailable",
+                translate("players.stats.insight.data_unavailable.title"),
+                translate("players.stats.insight.data_unavailable.desc"),
+                "neutral"));
+        }
+        else if (insights.Count == 0)
         {
             insights.Add(Insight(
                 "stable_profile",

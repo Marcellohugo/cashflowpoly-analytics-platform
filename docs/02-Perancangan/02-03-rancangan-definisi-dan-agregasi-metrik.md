@@ -51,6 +51,8 @@ Analitik historis dibangun ulang dengan versi ruleset yang terkunci pada sesi. P
 
 Payload `raw_json` pada endpoint gameplay mengelompokkan variabel menjadi sebelas kelompok berikut.
 
+Dasbor menyajikan data tersebut dalam sepuluh kelompok antarmuka. Kelompok `turns` tidak dihilangkan; isinya digabungkan ke kelompok Koin dan Keuangan serta Penggunaan Aksi agar penyajian tidak redundan. Seluruh perhitungan indikator domain tetap dilakukan oleh API, sedangkan UI memetakan DTO, menggabungkan data hanya untuk kebutuhan penyajian, dan memformat tampilannya.
+
 | Kelompok | Contoh variabel | Asal data |
 |---|---|---|
 | `coins` | `starting_coins`, `coins_held_current`, `coins_net_end_game`, `total_cash_in`, `total_cash_out`, sumber pendapatan | Setup, ruleset, proyeksi arus kas |

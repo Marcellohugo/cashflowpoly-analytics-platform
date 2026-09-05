@@ -47,7 +47,7 @@ Rulebook -> Ruleset -> Session -> Players -> Setup Cards -> Events -> Validation
 | Guest | Login/register, melihat rulebook publik | Tidak bisa baca data sesi. |
 | INSTRUCTOR | Membuat ruleset, membuat sesi via API/IDN, menambah player, mulai/akhir sesi, kirim event, melihat semua analitika sesi miliknya | Tidak boleh mengubah ruleset default atau ruleset yang sudah terkunci sesi. |
 | PLAYER | Melihat sesi yang ia ikuti, melihat metrik dan transaksi dirinya sendiri, mengirim event untuk dirinya sendiri jika client mengizinkan | Tidak bisa melihat data player lain, audit security, atau mutasi ruleset/sesi. |
-| Sistem/Simulator | Mengirim event setup, event ranking, event akhir sesi, seed simulasi | Harus tetap membawa ruleset_version_id dan sequence yang valid. |
+| Sistem/Perangkat Uji | Mengirim event setup, event ranking, event akhir sesi; perangkat uji meniru permintaan Klien Game/IDN | Harus tetap membawa ruleset_version_id dan sequence yang valid. |
 
 **Identitas penting:**
 
@@ -68,7 +68,7 @@ Browser UI MVC
 -> HttpClient Bearer Token
 -> Cashflowpoly.Api
 -> PostgreSQL
-Klien Game/IDN atau Simulator
+Klien Game/IDN atau perangkat uji
 -> REST API /api/v1/events
 -> Validasi + Projection
 -> PostgreSQL
@@ -84,7 +84,7 @@ Rulebook[Rulebook Fisik] --> Seed01[Seed Ruleset Default]
 Seed01 --> Ruleset[Ruleset Version]
 Ruleset --> Session[Sesi Mengunci Ruleset]
 Session --> Participants[Session Participants]
-Participants --> GameClient[Klien Game/IDN atau Simulator]
+Participants --> GameClient[Klien Game/IDN atau perangkat uji]
 GameClient --> EventsApi[POST /api/v1/events]
 EventsApi --> Validators[Validasi Shape, Auth, Scope, Sequence, Domain]
 Validators --> Events[(events)]

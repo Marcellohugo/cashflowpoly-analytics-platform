@@ -3,8 +3,8 @@
 
 ### Dokumen
 - Nama dokumen: Status Kesesuaian Implementasi
-- Versi: 2.3
-- Tanggal: 19 Agustus 2026
+- Versi: 2.4
+- Tanggal: 5 September 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -24,7 +24,7 @@ Acuan utama:
 | Area | Status | Catatan |
 |---|---|---|
 | Ingest event + validasi domain | Sesuai | Kebijakan slot terpusat, revisi setup fisik tervalidasi, privasi misi, tanpa state deck/pasar virtual, pasangan pesanan-risiko berbasis UUID, risiko pribadi `OUT` pending, penyelesaian tunai/asuransi/darurat atomik, donasi tunggal dan tersegel, holding emas, serta pinjaman per-instance dijaga API dan database. |
-| Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. |
+| Snapshot metrik dan analitika sesi/pemain | Sesuai | Endpoint analitika sesi, transaksi, gameplay snapshot tersedia; endpoint GET analitika bersifat read-only. Ringkasan pemain mempertahankan perbedaan antara angka nol yang sah dan data yang tidak tersedia sehingga data kosong tidak memicu peringatan palsu. |
 | API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
 | UI dashboard (home/sessions/players/rulesets/rulebook/analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route redirect. |
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, dan registrasi publik dibatasi untuk `PLAYER`. |
@@ -33,22 +33,23 @@ Acuan utama:
 | Dokumen uji + smoke + Postman sinkron Bearer | Sesuai | Koleksi Postman mewajibkan login Instruktur berhasil, menguji penolakan registrasi publik Instruktur, dan tidak menganggap respons autentikasi gagal sebagai hasil lulus. |
 | Observability operasional | Sesuai | Endpoint ringkas `GET /api/v1/observability/metrics/summary` tersedia untuk role `INSTRUCTOR` dan menunjuk ke endpoint Prometheus `GET /metrics`; trace ID diseragamkan pada header/log. |
 | Hardening keamanan produksi (baseline) | Sesuai | Rotasi JWT multi-key berbasis `kid` + window aktivasi/retire, dukungan secret env/file untuk integrasi vault/secret manager, dan audit log keamanan persisten tersedia. |
-| Baseline uji performa | Sesuai | Baseline performa dapat diulang memakai skenario request berulang ke endpoint ingest event dan analytics sesi, lalu dicatat pada laporan pengujian. |
+| Uji performa kebutuhan resmi | Sesuai pada beban terkontrol | `ReleasePerformanceIntegrationTests` menyiapkan 100 akun, 20 sesi × 2.000 event, dan 20 klien serentak. Setiap sesi memuat 64 aksi kerja lepas/pembelian bahan dan 1.936 transaksi sistem terkait dua pemain, disertai proyeksi arus kas. Dari 200 permintaan per endpoint, P95 `POST /api/v1/events` (CatatTransaksi) tercatat 251,9 ms (batas <= 500 ms) dan P95 `GET /api/v1/analytics/sessions/{sessionId}` tercatat 458,4 ms (batas <= 1.500 ms). Beban sintetis ini tidak mencakup seluruh variasi gameplay atau jaringan produksi. |
 
 ---
 
 ## 3. Bukti Verifikasi Terakhir
-Verifikasi lokal pada 19 Agustus 2026:
+Verifikasi lokal pada 5 September 2026:
 
 | Pemeriksaan | Hasil |
 |---|---|
 | `dotnet build Cashflowpoly.sln -c Release --no-restore --nologo -warnaserror` | Lulus, 0 warning, 0 error |
-| Test UI | 188/188 lulus |
-| Test API | 304/304 lulus |
-| Total test solution | 492/492 lulus |
+| Test UI | 317/317 lulus |
+| Test API | 338/338 nonperforma dan 1/1 performa lulus |
+| Total test solution | 656/656 lulus |
+| End-to-end Chromium desktop dan ponsel | 34/34 lulus; total keseluruhan 690/690 |
 | Seed simulasi Pemula + Mahir | Lulus schema, login, analitika, proyeksi, snapshot, dan replay |
 | Render konfigurasi Docker Compose Development dan Production | Lulus |
-| Audit paket NuGet transitif dan npm runtime | Tidak ditemukan kerentanan yang dilaporkan sumber audit |
+| Audit dependensi | NuGet lulus; npm melaporkan satu advisori low pada dependensi transitif postcss-selector-parser, di bawah ambang kegagalan high pada gerbang rilis |
 | Health API/UI (`/health/live` dan `/health/ready`) | Seluruh endpoint mengembalikan HTTP 200 |
 | Validasi JSON koleksi dan environment Postman | Lulus |
 

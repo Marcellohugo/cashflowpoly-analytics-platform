@@ -648,10 +648,10 @@ Fitur dinyatakan selesai jika:
 6. Tidak ada bug blocker (`S1`) pada modul terdampak.
 
 ### 14.4 Baseline uji performa dan evidence formal
-1. Jalankan `ReleasePerformanceIntegrationTests` yang menyiapkan 100 akun, 20 sesi aktif, 20 pengguna bersamaan, serta request berulang ke endpoint umum dan analitik.
+1. Jalankan `ReleasePerformanceIntegrationTests` yang menyiapkan sedikitnya 100 akun, 20 sesi aktif, 2.000 event per sesi, 20 pengguna bersamaan, serta permintaan berulang ke endpoint ingest event dan analitika sesi.
 2. Verifikasi target minimum:
-   - P95 API umum < 500 ms,
-   - P95 analitik < 2 detik,
+   - P95 `POST /api/v1/events` <= 500 ms,
+   - P95 `GET /api/v1/analytics/sessions/{sessionId}` <= 1.500 ms pada sesi berisi 2.000 event,
    - error rate 0% pada skenario baseline.
 3. Simpan artefak pada media dokumentasi pengujian yang dipakai:
    - output build/test,

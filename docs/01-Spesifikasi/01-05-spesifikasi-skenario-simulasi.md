@@ -671,7 +671,7 @@ Bagian ini menjelaskan skenario teknis daur hidup (*lifecycle*) sesi permainan d
 ### 7.4 Skenario Ingestion Event Gameplay
 - **Tujuan**: Mengirim event transaksi dan aksi permainan secara real-time.
 - **Langkah**:
-  1. Game Client/Simulator memanggil `POST /api/v1/events` (atau `/events/batch`) setiap kali ada keputusan pemain.
+  1. Klien Game/IDN memanggil `POST /api/v1/events` (atau `/events/batch`) setiap kali ada keputusan pemain. Dalam pengujian, permintaan tersebut ditiru oleh perangkat uji dan dataset simulasi.
   2. API memverifikasi token pengirim, urutan `sequence_number`, kecocokan `ruleset_version_id`, dan keunikan kombinasi `session_id + event_id` (idempotensi).
   3. Event yang valid disimpan ke PostgreSQL dan memperbarui proyeksi state secara asinkron.
 - **Hasil**: Respons status sukses (`200 OK`) dan data state pemain ter-update.

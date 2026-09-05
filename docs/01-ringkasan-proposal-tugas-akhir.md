@@ -47,13 +47,13 @@ Evaluasi sistem mencakup uji fungsional endpoint API, uji integrasi alur pemrose
 
 ### 1.2 Rumusan Masalah
 
-1. Bagaimana merancang arsitektur back‑end berbasis RESTful API yang menerima, memvalidasi, dan menyimpan *event* permainan Cashflowpoly dari IDN atau simulator, serta menjaga konsistensi *state* permainan?  
+1. Bagaimana merancang arsitektur backend berbasis RESTful API yang menerima, memvalidasi, dan menyimpan *event* permainan Cashflowpoly dari Klien Game/IDN, serta menjaga konsistensi *state* permainan?
 2. Bagaimana mengembangkan modul manajemen *ruleset* berbasis konfigurasi dinamis yang memungkinkan instruktur mengelola parameter permainan tanpa mengubah aturan inti?  
 3. Bagaimana merancang mekanisme pengolahan dan agregasi data dari log *event* menjadi metrik literasi finansial dan capaian misi serta menampilkannya melalui dasbor analitika berbasis web?
 
 ### 1.3 Tujuan
 
-1. Merancang arsitektur RESTful API untuk integrasi *event* permainan dengan IDN/simulator dan penyimpanan data yang konsisten.  
+1. Merancang arsitektur RESTful API untuk integrasi *event* permainan dengan Klien Game/IDN dan penyimpanan data yang konsisten.
 2. Mengembangkan modul manajemen *ruleset* yang mendukung pembuatan, pembaruan, penghapusan, dan aktivasi *ruleset* tanpa modifikasi kode sumber.  
 3. Merancang dan mengimplementasikan mekanisme agregasi data event menjadi metrik pembelajaran terukur serta membangun dasbor analitika yang menyediakan histori keputusan, filter, dan pengelompokan berdasarkan *ruleset* dan sesi permainan.
 
@@ -62,8 +62,8 @@ Evaluasi sistem mencakup uji fungsional endpoint API, uji integrasi alur pemrose
 - Sistem berfokus pada back‑end (RESTful API + basis data) dan dasbor web.  
 - Penelitian tidak mengembangkan aplikasi klien baru (mobile/desktop) dan tidak merancang konten naratif IDN.  
 - Modul *ruleset* hanya mengelola parameter konfigurasi, bukan mengubah aturan inti Cashflowpoly.  
-- Sistem menerima data dalam bentuk *event* terstruktur dari IDN/simulator, tanpa sensor atau pemrosesan citra.  
-- Pengujian integrasi menggunakan IDN (bila tersedia) atau simulator pengirim *event*.  
+- Sistem menerima data dalam bentuk *event* terstruktur dari Klien Game/IDN, tanpa sensor atau pemrosesan citra.
+- Pengujian integrasi menggunakan perangkat uji dan dataset simulasi yang meniru permintaan Klien Game/IDN; integrasi langsung dengan perangkat IDN fisik berada di luar evaluasi ini.
 - Aktor sistem terbatas pada instruktur dan pemain dengan hak akses berbeda.  
 - Dasbor menampilkan metrik literasi finansial, capaian misi, dan indikator proses; sistem tidak melakukan analitik prediktif atau asesmen psikologis.
 
@@ -138,7 +138,7 @@ Penelitian ini mengisi kesenjangan dengan:
 
 ### 3.4 Metode Perancangan dan Pemodelan
 
-- **Arsitektur sistem:** integrasi IDN/simulator → RESTful API → basis data → dasbor analitika.  
+- **Arsitektur sistem:** integrasi Klien Game/IDN → RESTful API → basis data → dasbor analitika.
 - **Pemodelan data:** ERD dan skema relasional untuk entitas pemain, sesi, *event*, *ruleset*, dan metrik.  
 - **Spesifikasi RESTful API:** daftar endpoint, skema request/response, kode status, dan validasi input.  
 - **Desain modul *ruleset*:** struktur konfigurasi, versioning, dan relasi dengan sesi permainan.  
@@ -147,7 +147,7 @@ Penelitian ini mengisi kesenjangan dengan:
 ### 3.5 Metode Pengujian Sistem
 
 - **Pengujian fungsional API (black‑box):** memeriksa struktur payload, validasi input, dan kode status.  
-- **Pengujian integrasi:** mengirim *event* melalui IDN/simulator, memeriksa konsistensi *state* dan penerapan *ruleset* aktif.  
+- **Pengujian integrasi:** mengirim *event* melalui perangkat uji yang meniru Klien Game/IDN, lalu memeriksa konsistensi *state* dan penerapan *ruleset* aktif.
 - **Validasi dasbor:** membandingkan metrik dan visualisasi dengan data di basis data.
 
 ---
@@ -205,7 +205,7 @@ Penelitian ini mengisi kesenjangan dengan:
    - Mengimplementasikan tampilan, komponen visual, serta logika agregasi metrik.  
 
 7. **Pengujian fungsional dan integrasi**  
-   - Menjalankan skenario pengujian API, integrasi *event* dengan simulator, dan validasi dasbor.  
+   - Menjalankan skenario pengujian API, integrasi *event* menggunakan perangkat uji dan dataset simulasi, serta verifikasi dasbor.
 
 8. **Dokumentasi teknis dan penulisan laporan**  
    - Menyusun dokumentasi sistem dan laporan tugas akhir lengkap.
@@ -215,4 +215,3 @@ Penelitian ini mengisi kesenjangan dengan:
 ## 6. Penutup
 
 Dokumen ringkasan ini merangkum isi Proposal Tugas Akhir “Rancang Bangun Dasbor Analitika dan Sistem Informasi Manajemen Ruleset untuk Gim Papan Cashflowpoly”. Dokumen ini dapat ditempatkan pada direktori `docs/` repositori sebagai referensi cepat bagi pembaca teknis maupun non‑teknis mengenai konteks penelitian, tujuan, metodologi, dan artefak yang akan dikembangkan.
-

@@ -36,6 +36,9 @@ public sealed class PlayerStatSummaryBuilderTests
         var summary = PlayerStatSummaryBuilder.Build(null, null, null, Translate);
 
         Assert.Null(summary.CollectionMissionComplete);
+        Assert.Single(summary.Insights);
+        Assert.Equal("data_unavailable", summary.Insights[0].Key);
+        Assert.DoesNotContain(summary.Insights, item => item.Key is "cashflow_negative" or "loan_unpaid" or "happiness_low" or "need_diversity_low");
     }
 
     [Fact]

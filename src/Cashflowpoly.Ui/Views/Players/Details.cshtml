@@ -88,11 +88,14 @@
 
     var cashflowJourney = Model.CashflowJourney;
     var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
-    var totalCashIn = Model.Summary?.CashInTotal ?? cashflowJourney?.TotalCashIn ?? 0d;
-    var totalCashOut = Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut ?? 0d;
-    var netCashflow = totalCashIn - totalCashOut;
-    var endingCash = (cashflowJourney?.StartingCash ?? 0d) + netCashflow;
-    var fulfillmentDiversity = Model.Summary?.FulfillmentDiversity ?? 0d;
+    var nullText = Context.T("players.support.value.unavailable");
+    double? totalCashIn = Model.Summary?.CashInTotal ?? cashflowJourney?.TotalCashIn;
+    double? totalCashOut = Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut;
+    double? netCashflow = totalCashIn.HasValue && totalCashOut.HasValue
+        ? totalCashIn.Value - totalCashOut.Value
+        : null;
+    double? endingCash = cashflowJourney?.StartingCash + netCashflow;
+    double? fulfillmentDiversity = Model.Summary?.FulfillmentDiversity;
     var needCardsOwned = Model.GameplayRaw.HasValue
         && Model.GameplayRaw.Value.ValueKind == JsonValueKind.Object
         && Model.GameplayRaw.Value.TryGetProperty("needs", out var gameplayNeeds)
@@ -101,21 +104,22 @@
         && ownedNeedCards.TryGetInt32(out var ownedNeedCardCount)
             ? ownedNeedCardCount
             : (int?)null;
-    var happinessPoints = Model.Summary?.HappinessPointsTotal ?? 0d;
-    var hasUnpaidLoan = Model.Summary?.HasUnpaidLoan ?? false;
-    var overallTone = hasUnpaidLoan
+    double? happinessPoints = Model.Summary?.HappinessPointsTotal;
+    bool? hasUnpaidLoan = Model.Summary?.HasUnpaidLoan;
+    var hasCompleteEvaluationData = endingCash.HasValue && netCashflow.HasValue && fulfillmentDiversity.HasValue
+        && happinessPoints.HasValue && hasUnpaidLoan.HasValue;
+    var overallTone = hasUnpaidLoan == true
         ? "danger"
-        : netCashflow < 0 || fulfillmentDiversity < 0.4 || happinessPoints < 20
+        : netCashflow is < 0 || fulfillmentDiversity is < 0.4 || happinessPoints is < 20
             ? "warning"
-            : netCashflow > 0 && fulfillmentDiversity >= 0.7 && happinessPoints >= 60
+            : hasCompleteEvaluationData && netCashflow is > 0 && fulfillmentDiversity is >= 0.7 && happinessPoints is >= 60
                 ? "positive"
-                : "neutral";
+                : hasCompleteEvaluationData ? "neutral" : "unavailable";
     var overallStatusKey = $"players.stats.status.{overallTone}";
     var overallDescriptionKey = $"players.stats.status.{overallTone}.desc";
 
     var trueText = Context.T("players.support.value.yes");
     var falseText = Context.T("players.support.value.no");
-    var nullText = Context.T("players.support.value.unavailable");
     var rawGroupMap = PlayerMetricJsonMapper
         .BuildMetricVariableGroups(Model.GameplayRaw, trueText, falseText, nullText)
         .ToDictionary(group => group.GroupKey, group => group.Rows, StringComparer.OrdinalIgnoreCase);
@@ -347,11 +351,11 @@
                         <p>@Context.T(overallDescriptionKey)</p>
                     </div>
                     <dl class="player-analysis-scorecard" aria-label="@Context.T("players.analysis.scorecard.title")">
-                        <div><dt>@Context.T("players.cashflow_journey.ending_cash")</dt><dd>@FormatNumber(endingCash)</dd></div>
-                        <div><dt>@Context.T("metric.cash_net")</dt><dd>@FormatSignedNumber(netCashflow)</dd></div>
+                        <div><dt>@Context.T("players.cashflow_journey.ending_cash")</dt><dd>@(endingCash.HasValue ? FormatNumber(endingCash.Value) : nullText)</dd></div>
+                        <div><dt>@Context.T("metric.cash_net")</dt><dd>@(netCashflow.HasValue ? FormatSignedNumber(netCashflow.Value) : nullText)</dd></div>
                         <div><dt>@netWorthMetric.Label</dt><dd>@netWorthMetric.DisplayValue@netWorthMetric.Unit</dd></div>
-                        <div><dt>@Context.T("metric.happiness")</dt><dd>@FormatNumber(happinessPoints)</dd></div>
-                        <div><dt>@Context.T("metric.fulfillment_diversity")</dt><dd>@(needCardsOwned == 0 ? Context.T("players.stats.need_balance.none") : fulfillmentDiversity.ToString("P0", CultureInfo.CurrentCulture))</dd></div>
+                        <div><dt>@Context.T("metric.happiness")</dt><dd>@(happinessPoints.HasValue ? FormatNumber(happinessPoints.Value) : nullText)</dd></div>
+                        <div><dt>@Context.T("metric.fulfillment_diversity")</dt><dd>@(needCardsOwned == 0 ? Context.T("players.stats.need_balance.none") : fulfillmentDiversity.HasValue ? fulfillmentDiversity.Value.ToString("P0", CultureInfo.CurrentCulture) : nullText)</dd></div>
                         <div class="player-analysis-scorecard__mission">
                             <dt>@Context.T("players.stats.mission.title")</dt>
                             <dd>@Context.T(statSummary.CollectionMissionComplete switch

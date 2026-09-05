@@ -10,7 +10,7 @@
 ---
 
 ## 1. Tujuan Sistem
-Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres belajar. Instruktur menjalankan setup sesi, pemilihan *ruleset*, penambahan Player, start/end sesi, dan input keputusan Player melalui Klien Game/IDN. API memvalidasi dan menyimpan data tersebut, sedangkan Web Analitik membaca hasilnya untuk menampilkan metrik pembelajaran dan capaian misi.
+Sistem ini dirancang untuk mencatat event permainan Cashflowpoly dan menyajikan analitika berbasis data guna mendukung pemantauan progres permainan serta pola keputusan pemain. Instruktur menjalankan setup sesi, pemilihan *ruleset*, penambahan Player, start/end sesi, dan input keputusan Player melalui Klien Game/IDN. API memvalidasi dan menyimpan data tersebut, sedangkan Web Analitik membaca hasilnya untuk menampilkan indikator perilaku finansial berbasis aktivitas permainan dan capaian misi.
 
 Dokumen ini dipakai bersama:
 - `docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md` untuk kontrak endpoint/payload.
@@ -29,7 +29,7 @@ Ruang lingkup pengembangan mencakup:
 
 ### 2.2 Batasan ruang lingkup
 Batasan ruang lingkup:
-1. Tidak membangun klien permainan (IDN); repository ini menyediakan API dan Web Analitik yang menerima/membaca data dari klien IDN atau simulator.
+1. Tidak membangun klien permainan (IDN); repository ini menyediakan API dan Web Analitik yang menerima/membaca data dari Klien Game/IDN. Evaluasi integrasi memakai perangkat uji dan dataset simulasi yang meniru kontrak permintaan IDN.
 2. Tidak melakukan pengenalan citra atau input otomatis dari media fisik.
 3. Tidak menggantikan proses permainan manual, namun mendukung pencatatan dan analisis berbasis event.
 
@@ -65,7 +65,7 @@ Dalam rancangan ini, aturan permainan yang berdampak pada pencatatan dan validas
 Aktor sistem terdiri dari:
 1. Instruktur
 2. Pemain
-3. Klien Game/IDN atau simulator
+3. Klien Game/IDN; pada evaluasi teknis perannya ditiru oleh perangkat uji dan dataset simulasi
 
 ---
 
@@ -90,7 +90,7 @@ Kebutuhan pemain dirangkum sebagai berikut:
 Kebutuhan fungsional berikut dirumuskan agar dapat diuji.
 
 ### 7.1 Penerimaan event dan validasi (REST API)
-- FR-API-01 Sistem menerima event dari klien IDN atau simulator melalui RESTful API.
+- FR-API-01 Sistem menerima event dari Klien Game/IDN melalui RESTful API; pengujian integrasinya menggunakan perangkat uji dan dataset simulasi yang meniru permintaan klien tersebut.
 - FR-API-02 Sistem memvalidasi struktur payload, tipe data, dan field wajib pada event.
 - FR-API-03 Sistem memvalidasi aturan domain yang relevan pada event, seperti batas kepemilikan, batas transaksi, dan prasyarat aksi.
 - FR-API-04 Sistem menerapkan idempotensi dengan menolak event duplikat pada kombinasi `session_id` dan `event_id`.
