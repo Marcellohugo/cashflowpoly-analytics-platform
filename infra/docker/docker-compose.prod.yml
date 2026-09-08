@@ -11,102 +11,192 @@
 # - Environment diset Production
 # - Port internal API & UI tidak di-expose langsung
 
+# Penjelasan: Membuka daftar layanan yang akan digabung, dibangun, atau dijalankan oleh Docker Compose. Nilai/deklarasi: services:.
 services:
+  # Penjelasan: Mendefinisikan layanan REST API, atau menamai dependensi api yang harus siap sebelum layanan pemanggil dimulai. Nilai/deklarasi: api:.
   api:
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Memilih profil environment ASP.NET Core sehingga aplikasi menggunakan konfigurasi dan kebijakan Development/Production yang sesuai. Nilai/deklarasi: ASPNETCORE_ENVIRONMENT: Production.
       ASPNETCORE_ENVIRONMENT: Production
+      # Penjelasan: Menyusun connection string API ke host db pada port internal PostgreSQL 5432, memakai nama database serta kredensial hasil interpolasi. Nilai/deklarasi: ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi untuk production}.
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi untuk production}
+      # Penjelasan: Memasok rahasia tanda tangan JWT dari environment; API memakainya untuk menandatangani dan memverifikasi token autentikasi. Nilai/deklarasi: Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY wajib diisi untuk production}.
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY wajib diisi untuk production}
+      # Penjelasan: Membatasi nama Host yang diterima middleware host filtering kepada nama layanan, localhost, dan domain deployment yang diberikan. Nilai/deklarasi: AllowedHosts: api;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}.
       AllowedHosts: api;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}
+      # Penjelasan: Menetapkan entri jaringan tepercaya pertama untuk pemrosesan forwarded headers pada jaringan container yang dinyatakan. Nilai/deklarasi: Networking__TrustedNetworks__0: 172.16.0.0/12.
       Networking__TrustedNetworks__0: 172.16.0.0/12
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports: !override [].
     ports: !override []
+    # Penjelasan: Membuka opsi keamanan container yang diterapkan Docker pada proses layanan. Nilai/deklarasi: security_opt:.
     security_opt:
+      # Penjelasan: Menambahkan anggota daftar no-new-privileges:true. Opsi ini mencegah proses memperoleh privilege tambahan melalui eksekusi program.
       - no-new-privileges:true
+    # Penjelasan: Mengatur pengiriman log container melalui driver dan opsi yang dinyatakan di dalam blok. Nilai/deklarasi: logging:.
     logging:
+      # Penjelasan: Memilih driver network atau logging sesuai blok induk. bridge dipakai jaringan internal, sedangkan pilihan LOG_DRIVER mengatur tujuan log container. Nilai/deklarasi: driver: ${LOG_DRIVER:-journald}.
       driver: ${LOG_DRIVER:-journald}
+      # Penjelasan: Membuka opsi khusus driver logging yang dipilih, seperti tag identitas layanan pada journald. Nilai/deklarasi: options:.
       options:
+        # Penjelasan: Memberi label layanan pada entri log agar log dari API, UI, database, Nginx, dan tunnel dapat dibedakan. Nilai/deklarasi: tag: cashflowpoly-api.
         tag: cashflowpoly-api
     # Hapus port mapping langsung, semua traffic lewat Nginx
 
+  # Penjelasan: Mendefinisikan layanan MVC Web Analitik, atau dependensi ui yang readiness-nya diperlukan layanan reverse proxy. Nilai/deklarasi: ui:.
   ui:
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Memilih profil environment ASP.NET Core sehingga aplikasi menggunakan konfigurasi dan kebijakan Development/Production yang sesuai. Nilai/deklarasi: ASPNETCORE_ENVIRONMENT: Production.
       ASPNETCORE_ENVIRONMENT: Production
+      # Penjelasan: Membatasi nama Host yang diterima middleware host filtering kepada nama layanan, localhost, dan domain deployment yang diberikan. Nilai/deklarasi: AllowedHosts: ui;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}.
       AllowedHosts: ui;localhost;${DOMAIN:?DOMAIN wajib diisi untuk production}
+      # Penjelasan: Memasok domain aplikasi untuk pembentukan alamat situs. Pada produksi, ekspansi wajib menolak domain yang kosong. Nilai/deklarasi: DOMAIN: ${DOMAIN:?DOMAIN wajib diisi untuk production}.
       DOMAIN: ${DOMAIN:?DOMAIN wajib diisi untuk production}
+      # Penjelasan: Menetapkan entri jaringan tepercaya pertama untuk pemrosesan forwarded headers pada jaringan container yang dinyatakan. Nilai/deklarasi: Networking__TrustedNetworks__0: 172.16.0.0/12.
       Networking__TrustedNetworks__0: 172.16.0.0/12
+      # Penjelasan: Mengaktifkan kewajiban HTTPS pada UI walaupun hop proxy internal menggunakan HTTP; forwarded headers memberi informasi skema publik. Nilai/deklarasi: Security__RequireHttps: ”true”.
       Security__RequireHttps: "true"
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports: !override [].
     ports: !override []
+    # Penjelasan: Membuka opsi keamanan container yang diterapkan Docker pada proses layanan. Nilai/deklarasi: security_opt:.
     security_opt:
+      # Penjelasan: Menambahkan anggota daftar no-new-privileges:true. Opsi ini mencegah proses memperoleh privilege tambahan melalui eksekusi program.
       - no-new-privileges:true
+    # Penjelasan: Mengatur pengiriman log container melalui driver dan opsi yang dinyatakan di dalam blok. Nilai/deklarasi: logging:.
     logging:
+      # Penjelasan: Memilih driver network atau logging sesuai blok induk. bridge dipakai jaringan internal, sedangkan pilihan LOG_DRIVER mengatur tujuan log container. Nilai/deklarasi: driver: ${LOG_DRIVER:-journald}.
       driver: ${LOG_DRIVER:-journald}
+      # Penjelasan: Membuka opsi khusus driver logging yang dipilih, seperti tag identitas layanan pada journald. Nilai/deklarasi: options:.
       options:
+        # Penjelasan: Memberi label layanan pada entri log agar log dari API, UI, database, Nginx, dan tunnel dapat dibedakan. Nilai/deklarasi: tag: cashflowpoly-ui.
         tag: cashflowpoly-ui
 
+  # Penjelasan: Mendefinisikan layanan PostgreSQL, atau menamai dependensi db pada bagian depends_on sesuai tingkat indentasi. Nilai/deklarasi: db:.
   db:
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Memasok password PostgreSQL. Ekspansi :? pada produksi menolak konfigurasi yang tidak memberi nilai; nilai fallback hanya berlaku jika dituliskan. Nilai/deklarasi: POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi untuk production}.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi untuk production}
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports: !override [].
     ports: !override []
+    # Penjelasan: Mengatur pengiriman log container melalui driver dan opsi yang dinyatakan di dalam blok. Nilai/deklarasi: logging:.
     logging:
+      # Penjelasan: Memilih driver network atau logging sesuai blok induk. bridge dipakai jaringan internal, sedangkan pilihan LOG_DRIVER mengatur tujuan log container. Nilai/deklarasi: driver: ${LOG_DRIVER:-journald}.
       driver: ${LOG_DRIVER:-journald}
+      # Penjelasan: Membuka opsi khusus driver logging yang dipilih, seperti tag identitas layanan pada journald. Nilai/deklarasi: options:.
       options:
+        # Penjelasan: Memberi label layanan pada entri log agar log dari API, UI, database, Nginx, dan tunnel dapat dibedakan. Nilai/deklarasi: tag: cashflowpoly-db.
         tag: cashflowpoly-db
     # Database tidak di-expose ke luar di production
 
+  # Penjelasan: Mendefinisikan reverse proxy Nginx, atau dependensi nginx yang menjadi origin layanan tunnel. Nilai/deklarasi: nginx:.
   nginx:
+    # Penjelasan: Memilih nama dan tag image container. Tag RELEASE_SHA bila ada menghubungkan image aplikasi dengan commit rilis, dengan dev sebagai default lokal. Nilai/deklarasi: image: nginxinc/nginx-unprivileged:1.31.3-alpine.
     image: nginxinc/nginx-unprivileged:1.31.3-alpine
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-nginx.
     container_name: cashflowpoly-nginx
+    # Penjelasan: Mengatur restart unless-stopped: Docker berusaha menyalakan kembali layanan yang berhenti kecuali container sengaja dihentikan operator. Nilai/deklarasi: restart: unless-stopped.
     restart: unless-stopped
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports:.
     ports:
+      # Penjelasan: Menambahkan anggota daftar ”127.0.0.1:80:8080”. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - "127.0.0.1:80:8080"
+    # Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
     volumes:
+      # Penjelasan: Menambahkan anggota daftar ../../infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - ../../infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Penjelasan: Menambahkan anggota daftar ../../infra/nginx/maintenance:/var/www/maintenance:ro. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - ../../infra/nginx/maintenance:/var/www/maintenance:ro
+    # Penjelasan: Menetapkan ketergantungan startup layanan; kondisi service_healthy meminta layanan tujuan lolos health check terlebih dahulu. Nilai/deklarasi: depends_on:.
     depends_on:
+      # Penjelasan: Mendefinisikan layanan MVC Web Analitik, atau dependensi ui yang readiness-nya diperlukan layanan reverse proxy. Nilai/deklarasi: ui:.
       ui:
+        # Penjelasan: Menetapkan service_healthy sebagai syarat dependensi sehingga startup menunggu kesiapan layanan, bukan hanya keberadaan proses. Nilai/deklarasi: condition: service_healthy.
         condition: service_healthy
+      # Penjelasan: Mendefinisikan layanan REST API, atau menamai dependensi api yang harus siap sebelum layanan pemanggil dimulai. Nilai/deklarasi: api:.
       api:
+        # Penjelasan: Menetapkan service_healthy sebagai syarat dependensi sehingga startup menunggu kesiapan layanan, bukan hanya keberadaan proses. Nilai/deklarasi: condition: service_healthy.
         condition: service_healthy
+    # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - cashflowpoly-net
     # Allow the non-root nginx process to bind the internal privileged port
     # required by the existing Cloudflare Tunnel ingress configuration.
+    # Penjelasan: Menambahkan capability Linux secara terbatas kepada proses container sesuai kebutuhan bind port. Nilai/deklarasi: cap_add:.
     cap_add:
+      # Penjelasan: Menambahkan anggota daftar NET_BIND_SERVICE. Capability ini mengizinkan proses non-root bind port internal di bawah 1024.
       - NET_BIND_SERVICE
+    # Penjelasan: Membuka opsi keamanan container yang diterapkan Docker pada proses layanan. Nilai/deklarasi: security_opt:.
     security_opt:
+      # Penjelasan: Menambahkan anggota daftar no-new-privileges:true. Opsi ini mencegah proses memperoleh privilege tambahan melalui eksekusi program.
       - no-new-privileges:true
+    # Penjelasan: Membuka perintah dan jadwal health check yang dipakai Docker menilai kesiapan layanan. Nilai/deklarasi: healthcheck:.
     healthcheck:
+      # Penjelasan: Menentukan perintah health check. CMD menjalankan argumen langsung; CMD-SHELL menjalankannya melalui shell sehingga pengalihan dan operator || dapat dipakai. Nilai/deklarasi: test: [”CMD-SHELL”, ”wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1”].
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1"]
+      # Penjelasan: Mengatur jarak antarhealth check container dalam satuan waktu yang disebut pada nilai. Nilai/deklarasi: interval: 15s.
       interval: 15s
+      # Penjelasan: Membatasi lama satu health check sebelum percobaan dinilai gagal. Nilai/deklarasi: timeout: 5s.
       timeout: 5s
+      # Penjelasan: Menentukan jumlah kegagalan health check berturut-turut sebelum Docker menandai container unhealthy. Nilai/deklarasi: retries: 5.
       retries: 5
+    # Penjelasan: Mengatur pengiriman log container melalui driver dan opsi yang dinyatakan di dalam blok. Nilai/deklarasi: logging:.
     logging:
+      # Penjelasan: Memilih driver network atau logging sesuai blok induk. bridge dipakai jaringan internal, sedangkan pilihan LOG_DRIVER mengatur tujuan log container. Nilai/deklarasi: driver: ${LOG_DRIVER:-journald}.
       driver: ${LOG_DRIVER:-journald}
+      # Penjelasan: Membuka opsi khusus driver logging yang dipilih, seperti tag identitas layanan pada journald. Nilai/deklarasi: options:.
       options:
+        # Penjelasan: Memberi label layanan pada entri log agar log dari API, UI, database, Nginx, dan tunnel dapat dibedakan. Nilai/deklarasi: tag: cashflowpoly-nginx.
         tag: cashflowpoly-nginx
 
   # Cloudflare Named Tunnel menyediakan terminasi HTTPS untuk template production ini.
+  # Penjelasan: Mendefinisikan proses cloudflared yang menyambungkan akses publik HTTPS ke origin internal Nginx. Nilai/deklarasi: cloudflared:.
   cloudflared:
+    # Penjelasan: Memilih nama dan tag image container. Tag RELEASE_SHA bila ada menghubungkan image aplikasi dengan commit rilis, dengan dev sebagai default lokal. Nilai/deklarasi: image: cloudflare/cloudflared:2026.8.1.
     image: cloudflare/cloudflared:2026.8.1
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-tunnel.
     container_name: cashflowpoly-tunnel
+    # Penjelasan: Mengatur restart unless-stopped: Docker berusaha menyalakan kembali layanan yang berhenti kecuali container sengaja dihentikan operator. Nilai/deklarasi: restart: unless-stopped.
     restart: unless-stopped
+    # Penjelasan: Membatasi aktivasi cloudflared pada profil tunnel; layanan ikut dijalankan ketika profil itu diaktifkan. Nilai/deklarasi: profiles: [”tunnel”].
     profiles: ["tunnel"]
+    # Penjelasan: Mengganti perintah default image dengan watcher pengembangan atau klien tunnel. Nilai > adalah folded scalar, sedangkan | mempertahankan baris skrip. Nilai/deklarasi: command: tunnel --no-autoupdate --protocol http2 run --url http://nginx:8080 --token ${CLOUDFLARE_TUNNEL_TOKEN}.
     command: tunnel --no-autoupdate --protocol http2 run --url http://nginx:8080 --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Menambahkan anggota daftar TUNNEL_LOGLEVEL=info. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - TUNNEL_LOGLEVEL=info
+    # Penjelasan: Menetapkan ketergantungan startup layanan; kondisi service_healthy meminta layanan tujuan lolos health check terlebih dahulu. Nilai/deklarasi: depends_on:.
     depends_on:
+      # Penjelasan: Mendefinisikan reverse proxy Nginx, atau dependensi nginx yang menjadi origin layanan tunnel. Nilai/deklarasi: nginx:.
       nginx:
+        # Penjelasan: Menetapkan service_healthy sebagai syarat dependensi sehingga startup menunggu kesiapan layanan, bukan hanya keberadaan proses. Nilai/deklarasi: condition: service_healthy.
         condition: service_healthy
+    # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - cashflowpoly-net
+    # Penjelasan: Membuka opsi keamanan container yang diterapkan Docker pada proses layanan. Nilai/deklarasi: security_opt:.
     security_opt:
+      # Penjelasan: Menambahkan anggota daftar no-new-privileges:true. Opsi ini mencegah proses memperoleh privilege tambahan melalui eksekusi program.
       - no-new-privileges:true
+    # Penjelasan: Membuka perintah dan jadwal health check yang dipakai Docker menilai kesiapan layanan. Nilai/deklarasi: healthcheck:.
     healthcheck:
+      # Penjelasan: Menentukan perintah health check. CMD menjalankan argumen langsung; CMD-SHELL menjalankannya melalui shell sehingga pengalihan dan operator || dapat dipakai. Nilai/deklarasi: test: [”CMD”, ”cloudflared”, ”version”].
       test: ["CMD", "cloudflared", "version"]
+      # Penjelasan: Mengatur jarak antarhealth check container dalam satuan waktu yang disebut pada nilai. Nilai/deklarasi: interval: 30s.
       interval: 30s
+      # Penjelasan: Membatasi lama satu health check sebelum percobaan dinilai gagal. Nilai/deklarasi: timeout: 5s.
       timeout: 5s
+      # Penjelasan: Menentukan jumlah kegagalan health check berturut-turut sebelum Docker menandai container unhealthy. Nilai/deklarasi: retries: 3.
       retries: 3
+    # Penjelasan: Mengatur pengiriman log container melalui driver dan opsi yang dinyatakan di dalam blok. Nilai/deklarasi: logging:.
     logging:
+      # Penjelasan: Memilih driver network atau logging sesuai blok induk. bridge dipakai jaringan internal, sedangkan pilihan LOG_DRIVER mengatur tujuan log container. Nilai/deklarasi: driver: ${LOG_DRIVER:-journald}.
       driver: ${LOG_DRIVER:-journald}
+      # Penjelasan: Membuka opsi khusus driver logging yang dipilih, seperti tag identitas layanan pada journald. Nilai/deklarasi: options:.
       options:
+        # Penjelasan: Memberi label layanan pada entri log agar log dari API, UI, database, Nginx, dan tunnel dapat dibedakan. Nilai/deklarasi: tag: cashflowpoly-tunnel.
         tag: cashflowpoly-tunnel

@@ -1,57 +1,107 @@
 <!-- Fungsi file: Mengatur konfigurasi build, dependency, dan properti proyek API. -->
+<!-- Uraian baris: Memulai proyek MSBuild dengan SDK Microsoft.NET.Sdk.Web. SDK menyediakan target build standar untuk aplikasi web ASP.NET Core, termasuk pemrosesan aset web. -->
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <!-- Uraian baris: Memulai kelompok properti MSBuild; nilai di dalamnya mengatur target framework, aturan compiler, atau identitas proyek test. -->
   <PropertyGroup>
+    <!-- Uraian baris: Menetapkan target runtime .NET 10 (net10.0) sehingga kompilasi dan pemilihan paket memakai API framework tersebut. -->
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Uraian baris: Mengaktifkan analisis nullable reference types; compiler membedakan referensi yang dapat bernilai null dan membantu menemukan dereferensi yang tidak aman. -->
     <Nullable>enable</Nullable>
+    <!-- Uraian baris: Mengaktifkan impor namespace umum dari SDK agar setiap file C# tidak perlu mengulangi using standar. -->
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- Jadikan warning sebagai gate kualitas -->
+    <!-- Uraian baris: Mengubah warning compiler menjadi kegagalan build; peringatan harus dibereskan sebelum proyek dinyatakan berhasil dikompilasi. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  <!-- Uraian baris: Menutup elemen PropertyGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </PropertyGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\00_create_schema.sql sebagai item Content. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; aturan penyalinan pada elemen anak menentukan ketersediaannya setelah build/publish. -->
     <Content Include="..\..\database\00_create_schema.sql" Link="database\00_create_schema.sql">
+      <!-- Uraian baris: Menyalin SQL ke direktori hasil build hanya bila lebih baru (PreserveNewest), sehingga executable lokal/test dapat menemukan skrip bootstrap. -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Uraian baris: Menyertakan SQL dalam hasil publish dengan kebijakan PreserveNewest, agar image produksi dapat menjalankan migrasi tanpa bergantung pada checkout sumber. -->
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <!-- Uraian baris: Menutup elemen Content sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </Content>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\01_seed_default_rulesets_components.sql sebagai item Content. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; aturan penyalinan pada elemen anak menentukan ketersediaannya setelah build/publish. -->
     <Content Include="..\..\database\01_seed_default_rulesets_components.sql" Link="database\01_seed_default_rulesets_components.sql">
+      <!-- Uraian baris: Menyalin SQL ke direktori hasil build hanya bila lebih baru (PreserveNewest), sehingga executable lokal/test dapat menemukan skrip bootstrap. -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Uraian baris: Menyertakan SQL dalam hasil publish dengan kebijakan PreserveNewest, agar image produksi dapat menjalankan migrasi tanpa bergantung pada checkout sumber. -->
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <!-- Uraian baris: Menutup elemen Content sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </Content>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\02_seed_simulation_sessions_events.sql sebagai item Content. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; aturan penyalinan pada elemen anak menentukan ketersediaannya setelah build/publish. -->
     <Content Include="..\..\database\02_seed_simulation_sessions_events.sql" Link="database\02_seed_simulation_sessions_events.sql">
+      <!-- Uraian baris: Menyalin SQL ke direktori hasil build hanya bila lebih baru (PreserveNewest), sehingga executable lokal/test dapat menemukan skrip bootstrap. -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Uraian baris: Menyertakan SQL dalam hasil publish dengan kebijakan PreserveNewest, agar image produksi dapat menjalankan migrasi tanpa bergantung pada checkout sumber. -->
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <!-- Uraian baris: Menutup elemen Content sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </Content>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\migrations\**\*.sql sebagai item Content. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; aturan penyalinan pada elemen anak menentukan ketersediaannya setelah build/publish. -->
     <Content Include="..\..\database\migrations\**\*.sql" Link="database\migrations\%(RecursiveDir)%(Filename)%(Extension)">
+      <!-- Uraian baris: Menyalin SQL ke direktori hasil build hanya bila lebih baru (PreserveNewest), sehingga executable lokal/test dapat menemukan skrip bootstrap. -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Uraian baris: Menyertakan SQL dalam hasil publish dengan kebijakan PreserveNewest, agar image produksi dapat menjalankan migrasi tanpa bergantung pada checkout sumber. -->
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <!-- Uraian baris: Menutup elemen Content sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </Content>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\artifacts\runtime-sql\00_create_schema.sql sebagai item Content. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; Condition memuat item hanya jika berkas sumber tersedia. -->
     <Content Include="..\..\artifacts\runtime-sql\00_create_schema.sql" Link="artifacts\runtime-sql\00_create_schema.sql" Condition="Exists('..\..\artifacts\runtime-sql\00_create_schema.sql')">
+      <!-- Uraian baris: Menyalin SQL ke direktori hasil build hanya bila lebih baru (PreserveNewest), sehingga executable lokal/test dapat menemukan skrip bootstrap. -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Uraian baris: Menyertakan SQL dalam hasil publish dengan kebijakan PreserveNewest, agar image produksi dapat menjalankan migrasi tanpa bergantung pada checkout sumber. -->
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <!-- Uraian baris: Menutup elemen Content sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </Content>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\artifacts\runtime-sql\01_seed_default_rulesets_components.sql sebagai item Content. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; Condition memuat item hanya jika berkas sumber tersedia. -->
     <Content Include="..\..\artifacts\runtime-sql\01_seed_default_rulesets_components.sql" Link="artifacts\runtime-sql\01_seed_default_rulesets_components.sql" Condition="Exists('..\..\artifacts\runtime-sql\01_seed_default_rulesets_components.sql')">
+      <!-- Uraian baris: Menyalin SQL ke direktori hasil build hanya bila lebih baru (PreserveNewest), sehingga executable lokal/test dapat menemukan skrip bootstrap. -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <!-- Uraian baris: Menyertakan SQL dalam hasil publish dengan kebijakan PreserveNewest, agar image produksi dapat menjalankan migrasi tanpa bergantung pada checkout sumber. -->
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <!-- Uraian baris: Menutup elemen Content sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </Content>
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Mereferensikan Dapper versi 2.1.79 untuk pemetaan hasil SQL langsung ke objek C# pada lapisan repository. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Dapper" Version="2.1.79" />
+    <!-- Uraian baris: Mereferensikan Microsoft.AspNetCore.Authentication.JwtBearer versi 10.0.11 untuk validasi JWT Bearer pada permintaan HTTP API. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore versi 10.0.11 untuk model dan pemetaan database pada AppDbContext. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore.Design versi 10.0.11 untuk layanan desain EF Core untuk alat pengembangan. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+      <!-- Uraian baris: Memilih kategori aset paket EF Design yang tersedia dalam proyek: runtime, build, native, contentfiles, analyzers, dan buildtransitive. -->
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <!-- Uraian baris: Menahan semua aset paket desain agar tidak diteruskan sebagai dependensi transitif kepada proyek yang mereferensikan proyek ini. -->
       <PrivateAssets>all</PrivateAssets>
+    <!-- Uraian baris: Menutup elemen PackageReference sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
     </PackageReference>
+    <!-- Uraian baris: Mereferensikan Microsoft.OpenApi versi 2.7.5 untuk tipe dokumen kontrak OpenAPI. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <!-- Uraian baris: Mereferensikan Npgsql versi 10.0.3 untuk driver PostgreSQL untuk koneksi dan perintah SQL .NET. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Npgsql" Version="10.0.3" />
+    <!-- Uraian baris: Mereferensikan Npgsql.EntityFrameworkCore.PostgreSQL versi 10.0.3 untuk provider PostgreSQL untuk model Entity Framework Core. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <!-- Uraian baris: Mereferensikan Swashbuckle.AspNetCore versi 10.2.3 untuk pembuatan dokumentasi Swagger/OpenAPI dari endpoint ASP.NET Core. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <!-- Uraian baris: Mereferensikan OpenTelemetry.Extensions.Hosting versi 1.17.0 untuk registrasi layanan telemetri dalam host ASP.NET Core. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <!-- Uraian baris: Mereferensikan OpenTelemetry.Instrumentation.AspNetCore versi 1.17.0 untuk instrumentasi request HTTP ASP.NET Core. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <!-- Uraian baris: Mereferensikan OpenTelemetry.Exporter.Prometheus.AspNetCore versi 1.17.0-beta.1 untuk ekspor metrik aplikasi dalam format yang dapat dikumpulkan Prometheus. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.17.0-beta.1" />
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+<!-- Uraian baris: Menutup elemen Project sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
 </Project>

@@ -1,4 +1,661 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Sessions/_SessionJourneyScript.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Sessions/_SessionJourneyScript.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.SessionDetailViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Mengimpor namespace `System.Text.Json` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 4: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 5: Menyimpan `journeyRuleset` dengan membaca `Model.ActiveRulesetDetail?.Ruleset?.Definition` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 6: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `? Model.ActiveRulesetDetail?.Components?.Definition;`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 7: Menyimpan `journeyFinishDay` dengan mengevaluasi `Math.Max(1, journeyRuleset?.Settings.FinishDay ?? 25)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 8: Menyimpan `fridayEnabled` dengan mengevaluasi `journeyRuleset?.PlayerOrdering.FridayEnabled ?? true`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 9: Menyimpan `saturdayEnabled` dengan mengevaluasi `journeyRuleset?.PlayerOrdering.SaturdayEnabled ?? true`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 10: Menyimpan `sundayEnabled` dengan mengevaluasi `journeyRuleset?.PlayerOrdering.SundayEnabled ?? true`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 11: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 13: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript.
+Baris sumber 14: Mendefinisikan fungsi atau pemetaan `(() → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 15: Menyimpan `filterEl` dengan mengambil elemen DOM ber-ID `”session-journey-filter”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 16: Menyimpan `feedEl` dengan mengambil elemen DOM ber-ID `”session-journey-feed”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 17: Menyimpan `errorEl` dengan mengambil elemen DOM ber-ID `”session-journey-error”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 18: Menyimpan `syncedEl` dengan mengambil elemen DOM ber-ID `”session-journey-synced”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 19: Menyimpan `insightDayTurnEl` dengan mengambil elemen DOM ber-ID `”session-journey-insight-day-turn”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 20: Menyimpan `insightPlayerEl` dengan mengambil elemen DOM ber-ID `”session-journey-insight-player”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 22: Memeriksa kondisi `!filterEl || !feedEl || !errorEl || !syncedEl`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 23: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 24: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 26: Menyimpan `timelineUrl` dengan menggunakan literal `”@Url.Action(”Timeline”, ”Sessions”, new ｛ sessionId ＝ Model.SessionId ｝)”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 27: Menyimpan `activeLanguage` dengan menserialisasi `UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey)))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 28: Menyimpan `browserLocale` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”en-US” : ”id-ID”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 29: Menyimpan `emptyMessage` dengan menserialisasi `Context.T(”sessions.journey.no_events”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 30: Menyimpan `playerEmptyMessage` dengan menserialisasi `Context.T(”sessions.timeline_player_empty”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 31: Menyimpan `filteredEmptyMessage` dengan menserialisasi `Context.T(”sessions.timeline_filtered_empty”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 32: Menyimpan `realtimeStatusTemplate` dengan menserialisasi `Context.T(”sessions.journey.realtime_status”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 33: Menyimpan `realtimeNetworkMessage` dengan menserialisasi `Context.T(”sessions.journey.realtime_network”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 34: Menyimpan `activityFallbackLabel` dengan menserialisasi `Context.T(”sessions.activity_default”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 35: Menyimpan `allPlayersLabel` dengan menserialisasi `Context.T(”sessions.timeline_filter_all”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 36: Menyimpan `playersFilterLabel` dengan menserialisasi `Context.T(”sessions.timeline_filter_players”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 37: Menyimpan `systemFilterLabel` dengan menserialisasi `Context.T(”sessions.timeline_filter_system”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 38: Menyimpan `playerFallbackLabel` dengan menserialisasi `Context.T(”sessions.actor.player”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 39: Menyimpan `systemFallbackLabel` dengan menserialisasi `Context.T(”sessions.actor.system”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 40: Menyimpan `instructorFallbackLabel` dengan menserialisasi `Context.T(”sessions.actor.instructor”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 41: Menyimpan `otherFallbackLabel` dengan menserialisasi `Context.T(”sessions.actor.other”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 42: Menyimpan `dayLabel` dengan menserialisasi `Context.T(”sessions.day_label”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 43: Menyimpan `actionSlotLabel` dengan menserialisasi `Context.T(”sessions.turn_label”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 44: Menyimpan `playerLookupRaw` dengan menserialisasi `Model.PlayerDisplayNames)` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 45: Menyimpan `initialTimelineRaw` dengan menserialisasi `Model.Timeline)` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 46: Menyimpan `finishDay` dengan membaca nilai `@journeyFinishDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 47: Menyimpan `finishMarkerDay` dengan menghitung ekspresi `finishDay + 1` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 48: Menyimpan `fridayEnabled` dengan menserialisasi `fridayEnabled)` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 49: Menyimpan `saturdayEnabled` dengan menserialisasi `saturdayEnabled)` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 50: Menyimpan `sundayEnabled` dengan menserialisasi `sundayEnabled)` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 51: Menyimpan `pollIntervalMs` dengan menggunakan konstanta numerik `10000` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 53: Menyimpan `playerLookup` dengan membangun objek lookup dari pasangan kunci dan nilai sehingga data dapat diakses langsung melalui nama kunci.
+Baris sumber 54: Mendefinisikan fungsi atau pemetaan `Object.entries(playerLookupRaw ?? ｛｝).map(([key, value]) → [String(key).toLowerCase(), value])`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 55: Menutup daftar argumen yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 56: Menyimpan `timeline` dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 57: Menyimpan `timelineCursor` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 58: Menyimpan `pollingTimerId` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 59: Menyimpan `lastSequence` dengan menggunakan konstanta numerik `0` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 60: Menyimpan `selectedTimelineFilter` dengan menggunakan literal `”all”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 61: Menyimpan `selectedDay` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 63: Menyimpan `hasOwn` dengan memanggil `(obj, key) → Object.prototype.hasOwnProperty.call(obj, key)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 64: Menyimpan `toNumber` dengan membaca nilai `(value, fallback ＝ 0) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 65: Menyimpan `numericValue` dengan memanggil `Number(value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 66: Mengembalikan hasil kepada pemanggil dengan memastikan `numericValue` merupakan angka berhingga sehingga NaN dan Infinity tidak masuk perhitungan atau grafik; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 67: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 68: Menyimpan `displayDayNumber` dengan mengambil nilai terbesar dari `0, toNumber(dayIndex, 0)` untuk menjaga hasil tidak di bawah batas minimum. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 69: Menyimpan `dayPositionLabel` dengan membaca nilai `(dayIndex) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 70: Menyimpan `dayNumber` dengan memanggil `displayDayNumber(dayIndex)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 71: Mengembalikan hasil kepada pemanggil dengan memilih nilai melalui kondisi ternary `dayNumber ＝＝＝ 0 ? ”GO” : `$｛dayLabel｝ $｛dayNumber｝``; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 72: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 73: Menyimpan `readValue` dengan membaca nilai `(obj, camelKey, pascalKey) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 74: Memeriksa kondisi `!obj || typeof obj !＝＝ ”object”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 75: Mengembalikan hasil kepada pemanggil dengan membaca nilai `undefined` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 76: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 78: Memeriksa kondisi `hasOwn(obj, camelKey)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 79: Mengembalikan hasil kepada pemanggil dengan membaca nilai `obj[camelKey]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 80: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 82: Memeriksa kondisi `hasOwn(obj, pascalKey)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 83: Mengembalikan hasil kepada pemanggil dengan membaca nilai `obj[pascalKey]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 84: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 86: Mengembalikan hasil kepada pemanggil dengan membaca nilai `undefined` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 87: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 88: Menyimpan `escapeHtml` dengan membaca nilai `(text) →` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 89: Melakukan operasi dengan mengevaluasi `String(text ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 90: Melanjutkan rantai operasi dengan mengganti seluruh kemunculan pola sesuai `”&”, ”&amp;”`; pada escapeHtml langkah ini menjaga teks tidak ditafsirkan sebagai markup; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 91: Melanjutkan rantai operasi dengan mengganti seluruh kemunculan pola sesuai `”‹”, ”&lt;”`; pada escapeHtml langkah ini menjaga teks tidak ditafsirkan sebagai markup; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 92: Melanjutkan rantai operasi dengan mengganti seluruh kemunculan pola sesuai `”›”, ”&gt;”`; pada escapeHtml langkah ini menjaga teks tidak ditafsirkan sebagai markup; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 93: Melanjutkan rantai operasi dengan mengganti seluruh kemunculan pola sesuai `”\””, ”&quot;”`; pada escapeHtml langkah ini menjaga teks tidak ditafsirkan sebagai markup; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 94: Melanjutkan rantai operasi dengan mengganti seluruh kemunculan pola sesuai `”'”, ”&#39;”`; pada escapeHtml langkah ini menjaga teks tidak ditafsirkan sebagai markup; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 95: Menyimpan `actorBucket` dengan membaca nilai `(actorType) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 96: Menyimpan `normalized` dengan menormalkan string menjadi huruf besar untuk menyamakan representasi kode atau kategori.
+Baris sumber 97: Mengembalikan hasil kepada pemanggil dengan membaca nilai `normalized ＝＝＝ ”PLAYER” || normalized ＝＝＝ ”SYSTEM” || normalized ＝＝＝ ”INSTRUCTOR”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 98: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `normalized`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 99: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `”OTHER”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 100: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 101: Menyimpan `flowBucket` dengan membaca nilai `(actionType) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 102: Menyimpan `normalized` dengan menormalkan string menjadi huruf kecil sehingga pencocokan kunci tidak bergantung kapitalisasi masukan.
+Baris sumber 103: Memeriksa kondisi `normalized.startsWith(”setup.”)) return ”setup”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 104: Memeriksa kondisi `normalized.startsWith(”day.”)) return ”day”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 105: Memeriksa kondisi `normalized.startsWith(”risk.”)) return ”risk”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 106: Memeriksa kondisi `normalized.startsWith(”loan.”)) return ”loan”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 107: Memeriksa kondisi `normalized.startsWith(”saving.”)) return ”saving”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 108: Memeriksa kondisi `normalized.startsWith(”mission.”)) return ”mission”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 109: Memeriksa kondisi `normalized.includes(”order”)) return ”order”;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 110: Mengembalikan hasil kepada pemanggil dengan menggunakan literal `”generic”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 111: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 112: Menyimpan `actorLabel` dengan membaca nilai `(item) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 113: Memeriksa kondisi `item.playerDisplayName`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 114: Mengembalikan hasil kepada pemanggil dengan membaca nilai `item.playerDisplayName` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 115: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 117: Menyimpan `lookupName` dengan menormalkan string menjadi huruf kecil sehingga pencocokan kunci tidak bergantung kapitalisasi masukan.
+Baris sumber 118: Memeriksa kondisi `lookupName`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 119: Mengembalikan hasil kepada pemanggil dengan membaca nilai `lookupName` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 120: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 122: Melakukan operasi dengan memanggil `switch (actorBucket(item.actorType)) ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 123: Melakukan operasi dengan membaca nilai `case ”SYSTEM”:` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 124: Mengembalikan hasil kepada pemanggil dengan membaca nilai `systemFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 125: Melakukan operasi dengan membaca nilai `case ”INSTRUCTOR”:` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 126: Mengembalikan hasil kepada pemanggil dengan membaca nilai `instructorFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 127: Melakukan operasi dengan membaca nilai `case ”PLAYER”:` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 128: Mengembalikan hasil kepada pemanggil dengan membaca nilai `playerFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 129: Melakukan operasi dengan membaca nilai `default:` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 130: Mengembalikan hasil kepada pemanggil dengan membaca nilai `otherFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 131: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 132: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 133: Menyimpan `actionLabel` dengan membaca nilai `(item) → item.flowLabel || item.actionType || activityFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 134: Menyimpan `actionSlotLabelText` dengan membaca nilai `(item) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 135: Menyimpan `mappedLabel` dengan menghapus spasi pada awal dan akhir string sebelum nilai diperiksa atau ditampilkan.
+Baris sumber 136: Mengembalikan hasil kepada pemanggil dengan membaca nilai `mappedLabel || `$｛actionSlotLabel｝ $｛item.actionSlot｝`` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 137: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 138: Menyimpan `dayActivityLabel` dengan membaca nilai `(item) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 139: Menyimpan `actorType` dengan memanggil `actorBucket(item.actorType)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 140: Mengembalikan hasil kepada pemanggil dengan membaca nilai `actorType ＝＝＝ ”PLAYER”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 141: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu ``$｛dayPositionLabel(item.dayIndex)｝ | $｛actionSlotLabelText(item)｝``; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 142: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu ``$｛dayPositionLabel(item.dayIndex)｝ | $｛actorLabel(item)｝`;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 143: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 144: Menyimpan `actionSlotRole` dengan menghapus spasi pada awal dan akhir string sebelum nilai diperiksa atau ditampilkan. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 145: Menyimpan `isPrimaryTimelineItem` dengan membaca nilai `(item) →` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 146: Melakukan operasi dengan memanggil `actorBucket(item.actorType) !＝＝ ”PLAYER” ||` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 147: Melakukan operasi dengan memanggil `actionSlotRole(item) ＝＝＝ ”action”` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 148: Menyimpan `relatedEventKey` dengan membaca nilai `(item) →` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 149: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``$｛resolvePlayerKey(item)｝|$｛displayDayNumber(item.dayIndex)｝|$｛item.actionSlot｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 150: Menyimpan `buildFeedTimeline` dengan membaca nilai `(visibleTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 151: Menyimpan `primaryByKey` dengan membuat instance `Map` dengan masukan `tanpa argumen`.
+Baris sumber 152: Melakukan operasi dengan membaca nilai `visibleTimeline` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 153: Melanjutkan rantai operasi dengan menyaring koleksi menggunakan predikat `isPrimaryTimelineItem)`; hanya elemen yang memenuhi kondisi masuk hasil; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 154: Mendefinisikan fungsi atau pemetaan `.forEach((item) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 155: Memeriksa kondisi `actorBucket(item.actorType) ＝＝＝ ”PLAYER”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 156: Melakukan operasi dengan memanggil `primaryByKey.set(relatedEventKey(item), item)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 157: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 158: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 160: Menyimpan `feedTimeline` dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 161: Menyimpan `primaryCopies` dengan membuat instance `Map` dengan masukan `tanpa argumen`.
+Baris sumber 162: Menyimpan `pendingRelatedEvents` dengan membuat instance `Map` dengan masukan `tanpa argumen`.
+Baris sumber 164: Mendefinisikan fungsi atau pemetaan `visibleTimeline.forEach((item) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 165: Memeriksa kondisi `isPrimaryTimelineItem(item)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 166: Menyimpan `copy` dengan membaca nilai `｛ ...item, relatedEvents: [] ｝` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 167: Menyimpan `pendingItems` dengan memanggil `pendingRelatedEvents.get(item.sequenceNumber)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 168: Memeriksa kondisi `Array.isArray(pendingItems)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 169: Melakukan operasi dengan menambahkan `...pendingItems)` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 170: Melakukan operasi dengan memanggil `pendingRelatedEvents.delete(item.sequenceNumber)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 171: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 173: Melakukan operasi dengan menambahkan `copy)` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 174: Melakukan operasi dengan memanggil `primaryCopies.set(item.sequenceNumber, copy)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 175: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 176: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 178: Menyimpan `primaryItem` dengan memanggil `primaryByKey.get(relatedEventKey(item))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 179: Memeriksa kondisi `!primaryItem`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 180: Melakukan operasi dengan menambahkan `｛ ...item, relatedEvents: [] ｝)` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 181: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 182: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 184: Menyimpan `primaryCopy` dengan memanggil `primaryCopies.get(primaryItem.sequenceNumber)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 185: Memeriksa kondisi `primaryCopy`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 186: Melakukan operasi dengan menambahkan `item)` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 187: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 188: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 190: Menyimpan `pendingItems` dengan memanggil `pendingRelatedEvents.get(primaryItem.sequenceNumber) || []` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 191: Melakukan operasi dengan menambahkan `item)` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 192: Melakukan operasi dengan memanggil `pendingRelatedEvents.set(primaryItem.sequenceNumber, pendingItems)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 193: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 195: Mengembalikan hasil kepada pemanggil dengan membaca nilai `feedTimeline` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 196: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 197: Menyimpan `normalizeTimeline` dengan membaca nilai `(rawTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 198: Memeriksa kondisi `!Array.isArray(rawTimeline)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 199: Mengembalikan hasil kepada pemanggil dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 200: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 202: Mengembalikan hasil kepada pemanggil dengan membaca nilai `rawTimeline` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 203: Mendefinisikan fungsi atau pemetaan `.map((item) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 204: Menyimpan `sequenceNumber` dengan memanggil `toNumber(readValue(item, ”sequenceNumber”, ”SequenceNumber”), 0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 205: Mengembalikan hasil kepada pemanggil dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 206: Mengisi properti `timestamp` pada objek atau konfigurasi dengan memanggil `readValue(item, ”timestamp”, ”Timestamp”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 207: Melakukan operasi dengan membaca nilai `sequenceNumber` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 208: Mengisi properti `dayIndex` pada objek atau konfigurasi dengan memanggil `toNumber(readValue(item, ”dayIndex”, ”DayIndex”), 0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 209: Mengisi properti `weekday` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”weekday”, ”Weekday”) ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 210: Mengisi properti `actionSlot` pada objek atau konfigurasi dengan mengambil nilai terbesar dari `0, toNumber(readValue(item, ”actionSlot”, ”ActionSlot”), 0)` untuk menjaga hasil tidak di bawah batas minimum; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 211: Mengisi properti `actorType` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”actorType”, ”ActorType”) ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 212: Mengisi properti `playerId` pada objek atau konfigurasi dengan memanggil `readValue(item, ”playerId”, ”PlayerId”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 213: Mengisi properti `playerDisplayName` pada objek atau konfigurasi dengan memanggil `readValue(item, ”playerDisplayName”, ”PlayerDisplayName”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 214: Mengisi properti `actionType` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”actionType”, ”ActionType”) ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 215: Mengisi properti `actionSlotRole` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”actionSlotRole”, ”ActionSlotRole”) ?? ”action”)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 216: Mengisi properti `actionSlotLabel` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”actionSlotLabel”, ”ActionSlotLabel”) ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 217: Mengisi properti `flowLabel` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”flowLabel”, ”FlowLabel”) ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 218: Mengisi properti `flowDescription` pada objek atau konfigurasi dengan mengevaluasi `String(readValue(item, ”flowDescription”, ”FlowDescription”) ?? ””)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 219: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 220: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 221: Mendefinisikan fungsi atau pemetaan `.filter((item) → item.sequenceNumber › 0)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 222: Mendefinisikan fungsi atau pemetaan `.sort((a, b) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 223: Memeriksa kondisi `a.sequenceNumber !＝＝ b.sequenceNumber`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 224: Mengembalikan hasil kepada pemanggil dengan menghitung ekspresi `a.sequenceNumber - b.sequenceNumber` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 225: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 227: Mengembalikan hasil kepada pemanggil dengan mengevaluasi `String(a.timestamp ?? ””).localeCompare(String(b.timestamp ?? ””))`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 228: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 229: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 230: Menyimpan `resolvePlayerKey` dengan membaca nilai `(item) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 231: Menyimpan `playerId` dengan menghapus spasi pada awal dan akhir string sebelum nilai diperiksa atau ditampilkan.
+Baris sumber 232: Memeriksa kondisi `playerId`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 233: Mengembalikan hasil kepada pemanggil dengan membaca nilai `playerId` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 234: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 236: Menyimpan `normalizedLabel` dengan menghapus spasi pada awal dan akhir string sebelum nilai diperiksa atau ditampilkan.
+Baris sumber 237: Mengembalikan hasil kepada pemanggil dengan memilih nilai melalui kondisi ternary `normalizedLabel ? `name:$｛normalizedLabel｝` : ”player”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 238: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 239: Menyimpan `formatDateTime` dengan membaca nilai `(rawValue) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 240: Menyimpan `dt` dengan membuat instance `Date` dengan masukan `rawValue`.
+Baris sumber 241: Memeriksa kondisi `Number.isNaN(dt.getTime())`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 242: Mengembalikan hasil kepada pemanggil dengan menggunakan literal `”-”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 243: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 245: Mengembalikan hasil kepada pemanggil dengan memformat nilai dengan aturan lokal dan opsi `browserLocale, ｛`; pemisah ribuan dan desimal mengikuti locale yang dipilih; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 246: Mengisi properti `day` pada objek atau konfigurasi dengan menggunakan literal `”2-digit”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 247: Mengisi properti `month` pada objek atau konfigurasi dengan menggunakan literal `”2-digit”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 248: Mengisi properti `year` pada objek atau konfigurasi dengan menggunakan literal `”numeric”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 249: Mengisi properti `hour` pada objek atau konfigurasi dengan menggunakan literal `”2-digit”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 250: Mengisi properti `minute` pada objek atau konfigurasi dengan menggunakan literal `”2-digit”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 251: Mengisi properti `second` pada objek atau konfigurasi dengan menggunakan literal `”2-digit”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 252: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 253: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 254: Menyimpan `isVisiblePlayerEvent` dengan membaca nilai `(item) →` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 255: Melakukan operasi dengan memanggil `actorBucket(item.actorType) ＝＝＝ ”PLAYER” &&` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 256: Melakukan operasi dengan membaca nilai `item.actionType !＝＝ ”AkhirGiliran”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 257: Menyimpan `isImportantSystemEvent` dengan membaca nilai `(item) →` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 258: Melakukan operasi dengan memanggil `actorBucket(item.actorType) ＝＝＝ ”SYSTEM” &&` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 259: Melakukan operasi dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 260: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal `”umumkanjuaradonasi”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 261: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal `”hariminggulibur”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 262: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal `”mulaisesi”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 263: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal `”akhirisesi”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 264: Melakukan operasi dengan menormalkan string menjadi huruf kecil sehingga pencocokan kunci tidak bergantung kapitalisasi masukan.
+Baris sumber 265: Menyimpan `isVisibleTimelineEvent` dengan membaca nilai `(item) →` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 266: Melakukan operasi dengan memanggil `isVisiblePlayerEvent(item) ||` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 267: Melakukan operasi dengan memanggil `isImportantSystemEvent(item)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 268: Menyimpan `getVisibleBaseTimeline` dengan menyaring koleksi menggunakan predikat `isVisibleTimelineEvent)`; hanya elemen yang memenuhi kondisi masuk hasil. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 269: Menyimpan `buildPlayerOptions` dengan membaca nilai `(playerTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 270: Menyimpan `seen` dengan membuat instance `Set` dengan masukan `tanpa argumen`.
+Baris sumber 271: Menyimpan `options` dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 273: Mendefinisikan fungsi atau pemetaan `playerTimeline.forEach((item) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 274: Menyimpan `key` dengan memanggil `resolvePlayerKey(item)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 275: Memeriksa kondisi `seen.has(key)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 276: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 277: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 279: Melakukan operasi dengan memanggil `seen.add(key)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 280: Melakukan operasi dengan menambahkan `｛` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 281: Melakukan operasi dengan membaca nilai `key` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 282: Mengisi properti `label` pada objek atau konfigurasi dengan memanggil `actorLabel(item)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 283: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 284: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 286: Mengembalikan hasil kepada pemanggil dengan membaca nilai `options` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 287: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 288: Menyimpan `getVisibleTimeline` dengan membaca nilai `(baseTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 289: Memeriksa kondisi `selectedTimelineFilter ＝＝＝ ”all”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 290: Mengembalikan hasil kepada pemanggil dengan membaca nilai `baseTimeline` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 291: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 293: Memeriksa kondisi `selectedTimelineFilter ＝＝＝ ”players”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 294: Mengembalikan hasil kepada pemanggil dengan menyaring koleksi menggunakan predikat `isVisiblePlayerEvent)`; hanya elemen yang memenuhi kondisi masuk hasil; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 295: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 297: Memeriksa kondisi `selectedTimelineFilter ＝＝＝ ”system”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 298: Mengembalikan hasil kepada pemanggil dengan menyaring koleksi menggunakan predikat `isImportantSystemEvent)`; hanya elemen yang memenuhi kondisi masuk hasil; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 299: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 301: Memeriksa kondisi `selectedTimelineFilter.startsWith(”player:”)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 302: Menyimpan `selectedPlayerKey` dengan memanggil `selectedTimelineFilter.substring(”player:”.length)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 303: Mengembalikan hasil kepada pemanggil dengan menyaring koleksi menggunakan predikat `(item) → isVisiblePlayerEvent(item) && resolvePlayerKey(item) ＝＝＝ selectedPlayerKey)`; hanya elemen yang memenuhi kondisi masuk hasil; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 304: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 306: Mengembalikan hasil kepada pemanggil dengan membaca nilai `baseTimeline` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 307: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 308: Menyimpan `bindFilterInteractions` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 309: Mendefinisikan fungsi atau pemetaan `filterEl.querySelectorAll(”[data-timeline-filter]”).forEach((button) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 310: Mendefinisikan fungsi atau pemetaan `button.addEventListener(”click”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 311: Menyimpan `nextFilter` dengan membaca atribut `”data-timeline-filter”` sebagai string; nilainya menjadi masukan konfigurasi interaksi.
+Baris sumber 312: Memeriksa kondisi `nextFilter ＝＝＝ selectedTimelineFilter`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 313: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 314: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 316: Memperbarui `selectedTimelineFilter` dengan membaca nilai `nextFilter` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 317: Melakukan operasi dengan memanggil `renderAll()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 318: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 319: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 320: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 321: Menyimpan `setError` dengan membaca nilai `(message) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 322: Memeriksa kondisi `!message`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 323: Memperbarui `errorEl.textContent` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 324: Melakukan operasi dengan menambahkan kelas `”hidden”` sehingga aturan CSS terkait diaktifkan pada elemen.
+Baris sumber 325: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 326: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 328: Memperbarui `errorEl.textContent` dengan membaca nilai `message` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 329: Melakukan operasi dengan menghapus kelas `”hidden”` sehingga status visual terkait dinonaktifkan.
+Baris sumber 330: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 331: Menyimpan `mergeTimeline` dengan membaca nilai `(incoming) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 332: Memeriksa kondisi `!Array.isArray(incoming) || incoming.length ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 333: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 334: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 336: Menyimpan `map` dengan mentransformasikan setiap anggota koleksi dengan `(item) → [item.sequenceNumber, item]))` untuk membentuk array hasil yang urutannya mengikuti sumber. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 337: Mendefinisikan fungsi atau pemetaan `incoming.forEach((item) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 338: Melakukan operasi dengan memanggil `map.set(item.sequenceNumber, item)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 339: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 340: Memperbarui `timeline` dengan mengubah `map.values()).sort((a, b) → a.sequenceNumber - b.sequenceNumber` menjadi array agar dapat difilter, dipetakan, dan diiterasi dengan metode array.
+Baris sumber 341: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 342: Menyimpan `renderFilters` dengan membaca nilai `(playerOptions) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 343: Memeriksa kondisi `selectedTimelineFilter.startsWith(”player:”) &&`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 344: Mendefinisikan fungsi atau pemetaan `!playerOptions.some((option) → `player:$｛option.key｝` ＝＝＝ selectedTimelineFilter)) ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 345: Memperbarui `selectedTimelineFilter` dengan menggunakan literal `”all”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 346: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 348: Menyimpan `buttons` dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 349: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 349: Baris sumber 350: Melakukan operasi dengan membaca nilai `‹button type＝”button”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 349: Baris sumber 351: Memperbarui `class` dengan menggunakan literal `”session-journey-filter-btn session-journey-filter-btn--all $｛selectedTimelineFilter ＝＝＝ ”all” ? ”is-active” : ””｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 349: Baris sumber 352: Memperbarui `data-timeline-filter` dengan menggunakan literal `”all”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 349: Baris sumber 353: Memperbarui `aria-pressed` dengan menggunakan literal `”$｛selectedTimelineFilter ＝＝＝ ”all” ? ”true” : ”false”｝”›` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 349: Baris sumber 354: Melakukan operasi dengan menghitung ekspresi `‹span class＝”session-journey-filter-all-mark” aria-hidden＝”true”›‹i›‹/i›‹i›‹/i›‹i›‹/i›‹i›‹/i›‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 349: Baris sumber 355: Melakukan operasi dengan memanggil `‹span›$｛escapeHtml(allPlayersLabel)｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 349: Baris sumber 356: Melakukan operasi dengan menghitung ekspresi `‹/button›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 349: Baris sumber 357: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 358: Menutup koleksi array yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 360: Mendefinisikan fungsi atau pemetaan `playerOptions.forEach((option, playerIndex) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 361: Menyimpan `filterKey` dengan menggunakan literal ``player:$｛option.key｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 362: Menyimpan `playerOrder` dengan menghitung ekspresi `(playerIndex % 4) + 1` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 363: Melakukan operasi dengan menambahkan ``` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 363: Baris sumber 364: Melakukan operasi dengan membaca nilai `‹button type＝”button”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 363: Baris sumber 365: Memperbarui `class` dengan menggunakan literal `”session-journey-filter-btn session-journey-filter-btn--player session-journey-filter-btn--turn-$｛playerOrder｝ $｛selectedTimelineFilter ＝＝＝ filterKey ? ”is-active” : ””｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 363: Baris sumber 366: Memperbarui `data-timeline-filter` dengan menggunakan literal `”$｛escapeHtml(filterKey)｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 363: Baris sumber 367: Memperbarui `aria-pressed` dengan menggunakan literal `”$｛selectedTimelineFilter ＝＝＝ filterKey ? ”true” : ”false”｝”›` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 363: Baris sumber 368: Melakukan operasi dengan menghitung ekspresi `‹img class＝”session-journey-filter-avatar” src＝”/images/players/$｛playerOrder｝.png” alt＝”” aria-hidden＝”true” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 363: Baris sumber 369: Melakukan operasi dengan memanggil `‹span›$｛escapeHtml(option.label)｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 363: Baris sumber 370: Melakukan operasi dengan menghitung ekspresi `‹/button›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 363: Baris sumber 371: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``)` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 372: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 374: Memperbarui `filterEl.innerHTML` dengan menggabungkan elemen array menjadi satu string dengan pemisah `””`.
+Baris sumber 375: Melakukan operasi dengan memanggil `bindFilterInteractions()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 376: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 377: Menyimpan `renderRelatedEvents` dengan membaca nilai `(item) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 378: Menyimpan `relatedEvents` dengan memilih nilai melalui kondisi ternary `Array.isArray(item.relatedEvents) ? item.relatedEvents : []`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 379: Memeriksa kondisi `relatedEvents.length ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 380: Mengembalikan hasil kepada pemanggil dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 381: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 383: Mengembalikan hasil kepada pemanggil dengan menggunakan literal ``` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 383: Baris sumber 384: Melakukan operasi dengan membaca nilai `‹ul class＝”session-journey-feed-related”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 383: Baris sumber 385: Mendefinisikan fungsi atau pemetaan `$｛relatedEvents.map((relatedItem) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 383: Baris sumber 386: Menyimpan `relatedDetailLabel` dengan membaca nilai `relatedItem.flowDescription || activityFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 383: Baris sumber 387: Mengembalikan hasil kepada pemanggil dengan menggunakan literal ``` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 388: Melakukan operasi dengan membaca nilai `‹li class＝”session-journey-feed-related-item”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 389: Melakukan operasi dengan membaca nilai `‹div class＝”session-journey-feed-related-head”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 390: Melakukan operasi dengan memanggil `‹span class＝”session-journey-feed-related-badge”›$｛escapeHtml(dayActivityLabel(relatedItem))｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 391: Melakukan operasi dengan memanggil `‹span class＝”session-journey-feed-related-time”›$｛escapeHtml(formatDateTime(relatedItem.timestamp))｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 392: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 393: Melakukan operasi dengan memanggil `‹p class＝”session-journey-feed-related-title”›$｛escapeHtml(actionLabel(relatedItem))｝‹/p›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 394: Melakukan operasi dengan memanggil `‹p class＝”session-journey-feed-related-detail”›$｛escapeHtml(relatedDetailLabel)｝‹/p›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 395: Melakukan operasi dengan menghitung ekspresi `‹/li›`` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 395: Baris sumber 396: Melakukan operasi dengan menggabungkan elemen array menjadi satu string dengan pemisah `””`.
+Baris sumber 395: Baris sumber 397: Melakukan operasi dengan menghitung ekspresi `‹/ul›`` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 398: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 399: Menyimpan `renderJourneyFeed` dengan membaca nilai `(baseTimeline, feedTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 400: Memeriksa kondisi `baseTimeline.length ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 401: Memperbarui `feedEl.innerHTML` dengan menggunakan literal ``‹li class＝”session-journey-empty”›$｛escapeHtml(timeline.length ＝＝＝ 0 ? emptyMessage : playerEmptyMessage)｝‹/li›`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 402: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 403: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 405: Memeriksa kondisi `feedTimeline.length ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 406: Memperbarui `feedEl.innerHTML` dengan menggunakan literal ``‹li class＝”session-journey-empty”›$｛escapeHtml(filteredEmptyMessage)｝‹/li›`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 407: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 408: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 410: Memperbarui `feedEl.innerHTML` dengan mentransformasikan setiap anggota koleksi dengan `(item) → ｛` untuk membentuk array hasil yang urutannya mengikuti sumber.
+Baris sumber 411: Menyimpan `actorType` dengan memanggil `actorBucket(item.actorType)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 412: Menyimpan `dayTurnLabel` dengan memanggil `dayActivityLabel(item)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 413: Menyimpan `detailLabel` dengan membaca nilai `item.flowDescription || activityFallbackLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 414: Mengembalikan hasil kepada pemanggil dengan menggunakan literal ``` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 414: Baris sumber 415: Melakukan operasi dengan memilih nilai melalui kondisi ternary `‹li class＝”session-journey-feed-item $｛actorType ＝＝＝ ”SYSTEM” ? ”session-journey-feed-item-system” : ””｝”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 414: Baris sumber 416: Memperbarui `data-player-key` dengan menggunakan literal `”$｛escapeHtml(resolvePlayerKey(item))｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 414: Baris sumber 417: Memperbarui `data-actor` dengan menormalkan string menjadi huruf kecil sehingga pencocokan kunci tidak bergantung kapitalisasi masukan.
+Baris sumber 414: Baris sumber 418: Memperbarui `data-flow` dengan menggunakan literal `”$｛escapeHtml(flowBucket(item.actionType))｝”›` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 414: Baris sumber 419: Melakukan operasi dengan membaca nilai `‹div class＝”session-journey-feed-head”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 414: Baris sumber 420: Melakukan operasi dengan membaca nilai `‹div class＝”session-journey-feed-player”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 414: Baris sumber 421: Melakukan operasi dengan memanggil `‹p class＝”session-journey-feed-player-name”›$｛escapeHtml(actorLabel(item))｝‹/p›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 422: Melakukan operasi dengan memanggil `‹span class＝”session-journey-feed-dayturn”›$｛escapeHtml(dayTurnLabel)｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 423: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 414: Baris sumber 424: Melakukan operasi dengan memanggil `‹span class＝”session-journey-feed-time”›$｛escapeHtml(formatDateTime(item.timestamp))｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 425: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 414: Baris sumber 426: Melakukan operasi dengan memanggil `‹p class＝”session-journey-feed-title”›$｛escapeHtml(actionLabel(item))｝‹/p›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 427: Melakukan operasi dengan memanggil `‹p class＝”session-journey-feed-subtitle”›$｛escapeHtml(item.weekday || ”-”)｝‹/p›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 428: Melakukan operasi dengan memanggil `‹p class＝”session-journey-feed-detail”›$｛escapeHtml(detailLabel)｝‹/p›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 429: Melakukan operasi dengan memanggil `$｛renderRelatedEvents(item)｝` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 414: Baris sumber 430: Melakukan operasi dengan menghitung ekspresi `‹/li›`` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 431: Melakukan operasi dengan menggabungkan elemen array menjadi satu string dengan pemisah `””`.
+Baris sumber 432: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 433: Menyimpan `renderJourneyInsights` dengan membaca nilai `(visibleTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 434: Memeriksa kondisi `!insightDayTurnEl || !insightPlayerEl`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 435: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 436: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 439: Menyimpan `baseTimeline` dengan memanggil `getVisibleBaseTimeline()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 440: Menyimpan `latestPlayerItem` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 441: Mengulang blok dengan pengaturan `let i ＝ baseTimeline.length - 1; i ›＝ 0; i--`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 442: Memeriksa kondisi `actorBucket(baseTimeline[i].actorType) ＝＝＝ ”PLAYER”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 443: Memperbarui `latestPlayerItem` dengan membaca nilai `baseTimeline[i]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 444: Menghentikan loop atau cabang switch terdekat agar eksekusi dilanjutkan setelah blok tersebut.
+Baris sumber 445: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 446: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 448: Memeriksa kondisi `latestPlayerItem`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 449: Memperbarui `insightDayTurnEl.textContent` dengan menggunakan literal ``$｛dayPositionLabel(latestPlayerItem.dayIndex)｝ | $｛latestPlayerItem.flowDescription || actionLabel(latestPlayerItem)｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 450: Memperbarui `insightPlayerEl.textContent` dengan memanggil `actorLabel(latestPlayerItem)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 451: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 452: Memperbarui `insightDayTurnEl.textContent` dengan menggunakan literal `”-”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 453: Memperbarui `insightPlayerEl.textContent` dengan menggunakan literal `”-”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 454: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 455: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 456: Menyimpan `getEventsGroupedByDay` dengan membaca nilai `(visibleTimeline) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 457: Menyimpan `map` dengan membuat instance `Map` dengan masukan `tanpa argumen`.
+Baris sumber 458: Mendefinisikan fungsi atau pemetaan `visibleTimeline.forEach((item) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 459: Menyimpan `day` dengan memanggil `toNumber(item.dayIndex, 0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 460: Memeriksa kondisi `!map.has(day)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 461: Melakukan operasi dengan memanggil `map.set(day, [])` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 462: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 463: Melakukan operasi dengan menambahkan `item)` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 464: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 465: Mengembalikan hasil kepada pemanggil dengan membaca nilai `map` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 466: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 468: Menyimpan `renderCalendar` dengan membaca nilai `(eventsByDay) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 469: Menyimpan `calendarGridEl` dengan mengambil elemen DOM ber-ID `”work-calendar-grid”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 470: Memeriksa kondisi `!calendarGridEl) return;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 472: Menyimpan `activeDays` dengan mengubah `eventsByDay.keys()` menjadi array agar dapat difilter, dipetakan, dan diiterasi dengan metode array.
+Baris sumber 473: Menyimpan `cellsHtml` dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 476: Menyimpan `goActive` dengan memanggil `selectedTimelineFilter ＝＝＝ ”all” || eventsByDay.has(0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 477: Menyimpan `goSelected` dengan membaca nilai `selectedDay ＝＝＝ 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 478: Melakukan operasi dengan menambahkan ``` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 478: Baris sumber 479: Melakukan operasi dengan memilih nilai melalui kondisi ternary `‹div class＝”work-calendar-cell work-calendar-cell--go $｛goActive ? 'is-active-day' : ''｝ $｛goSelected ? 'is-selected-day' : ''｝”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 478: Baris sumber 480: Memperbarui `data-day` dengan menggunakan literal `”0”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 478: Baris sumber 481: Memperbarui `role` dengan menggunakan literal `”button”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 478: Baris sumber 482: Memperbarui `tabindex` dengan menggunakan literal `”$｛goActive ? ”0” : ”-1”｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 478: Baris sumber 483: Memperbarui `aria-disabled` dengan menggunakan literal `”$｛goActive ? ”false” : ”true”｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 478: Baris sumber 484: Memperbarui `aria-label` dengan menggunakan literal `”GO”›` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 478: Baris sumber 485: Melakukan operasi dengan menghitung ekspresi `‹span class＝”go-title”›$｛'GO'｝‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 478: Baris sumber 486: Melakukan operasi dengan menghitung ekspresi `‹span class＝”go-arrow”›➡️‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 478: Baris sumber 487: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 478: Baris sumber 488: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``)` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 491: Mengulang blok dengan pengaturan `let d ＝ 1; d ‹＝ finishDay; d++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 492: Menyimpan `hasEvents` dengan memanggil `selectedTimelineFilter ＝＝＝ ”all” || eventsByDay.has(d)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 493: Menyimpan `isSelected` dengan membaca nilai `selectedDay ＝＝＝ d` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 494: Menyimpan `cellClass` dengan menggunakan literal `”work-calendar-cell”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 495: Menyimpan `label` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 497: Memeriksa kondisi `sundayEnabled && d % 7 ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 498: Memperbarui `cellClass` dengan menggunakan literal `” work-calendar-cell--rest”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 499: Memperbarui `label` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Rest” : ”Libur”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 500: Memeriksa kondisi `fridayEnabled && d % 7 ＝＝＝ 5`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 501: Memperbarui `cellClass` dengan menggunakan literal `” work-calendar-cell--charity”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 502: Memperbarui `label` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Charity” : ”Peduli Donasi”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 503: Memeriksa kondisi `saturdayEnabled && d % 7 ＝＝＝ 6`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 504: Memperbarui `cellClass` dengan menggunakan literal `” work-calendar-cell--gold”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 505: Memperbarui `label` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Gold Trade” : ”Investasi Emas”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 506: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 507: Memperbarui `cellClass` dengan menggunakan literal `” work-calendar-cell--work”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 508: Memperbarui `label` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Work” : ”Kerja”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 509: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 511: Memeriksa kondisi `hasEvents`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 512: Memperbarui `cellClass` dengan menggunakan literal `” is-active-day”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 513: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 514: Memeriksa kondisi `isSelected`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 515: Memperbarui `cellClass` dengan menggunakan literal `” is-selected-day”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 516: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 518: Melakukan operasi dengan menambahkan ``` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 518: Baris sumber 519: Melakukan operasi dengan membaca nilai `‹div class＝”$｛cellClass｝”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 518: Baris sumber 520: Memperbarui `data-day` dengan menggunakan literal `”$｛d｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 518: Baris sumber 521: Memperbarui `role` dengan menggunakan literal `”button”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 518: Baris sumber 522: Memperbarui `tabindex` dengan menggunakan literal `”$｛hasEvents ? ”0” : ”-1”｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 518: Baris sumber 523: Memperbarui `aria-disabled` dengan menggunakan literal `”$｛hasEvents ? ”false” : ”true”｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 518: Baris sumber 524: Memperbarui `aria-label` dengan menggunakan literal `”$｛escapeHtml(`$｛dayLabel｝ $｛d｝`)｝”›` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 518: Baris sumber 525: Melakukan operasi dengan menghitung ekspresi `‹span class＝”work-calendar-cell__number”›$｛d｝‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 518: Baris sumber 526: Melakukan operasi dengan memanggil `‹span class＝”work-calendar-cell__label”›$｛escapeHtml(label)｝‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 518: Baris sumber 527: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 518: Baris sumber 528: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``)` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 529: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 531: Menyimpan `finishActive` dengan memeriksa apakah setidaknya satu elemen memenuhi `day → day ›＝ finishMarkerDay)`; pemeriksaan berhenti saat ada kecocokan. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 532: Menyimpan `finishSelected` dengan membaca nilai `selectedDay ›＝ finishMarkerDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 533: Menyimpan `finishClass` dengan menggunakan literal `”work-calendar-cell work-calendar-cell--finish”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 534: Memeriksa kondisi `finishActive`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 535: Memperbarui `finishClass` dengan menggunakan literal `” is-active-day”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 536: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 537: Memeriksa kondisi `finishSelected`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 538: Memperbarui `finishClass` dengan menggunakan literal `” is-selected-day”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 539: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 541: Menyimpan `finishLabel` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”FINISH” : ”SELESAI”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 542: Melakukan operasi dengan menambahkan ``` ke akhir array untuk membentuk kumpulan data atau markup dalam urutan yang benar.
+Baris sumber 542: Baris sumber 543: Melakukan operasi dengan membaca nilai `‹div class＝”$｛finishClass｝”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 542: Baris sumber 544: Memperbarui `data-day` dengan menggunakan literal `”$｛finishMarkerDay｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 542: Baris sumber 545: Memperbarui `role` dengan menggunakan literal `”button”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 542: Baris sumber 546: Memperbarui `tabindex` dengan menggunakan literal `”$｛finishActive ? ”0” : ”-1”｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 542: Baris sumber 547: Memperbarui `aria-disabled` dengan menggunakan literal `”$｛finishActive ? ”false” : ”true”｝”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 542: Baris sumber 548: Memperbarui `aria-label` dengan menggunakan literal `”$｛escapeHtml(finishLabel)｝”›` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 542: Baris sumber 549: Melakukan operasi dengan memanggil `‹span class＝”finish-text”›$｛escapeHtml(finishLabel)｝ 🏁‹/span›` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 542: Baris sumber 550: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 542: Baris sumber 551: Memasok nilai argumen atau anggota koleksi dengan menggunakan literal ``)` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; posisi baris ini menentukan parameter atau urutan elemen.
+Baris sumber 553: Memperbarui `calendarGridEl.innerHTML` dengan menggabungkan elemen array menjadi satu string dengan pemisah `””`.
+Baris sumber 556: Mendefinisikan fungsi atau pemetaan `calendarGridEl.querySelectorAll(”.work-calendar-cell”).forEach(cell → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 557: Mendefinisikan fungsi atau pemetaan `cell.addEventListener(”click”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 558: Menyimpan `clickedDay` dengan membaca atribut `”data-day”), 10` sebagai string; nilainya menjadi masukan konfigurasi interaksi.
+Baris sumber 559: Memeriksa kondisi `cell.classList.contains(”is-active-day”)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 560: Memperbarui `selectedDay` dengan membaca nilai `clickedDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 561: Melakukan operasi dengan memanggil `renderAll()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 562: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 563: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 564: Mendefinisikan fungsi atau pemetaan `cell.addEventListener(”keydown”, (e) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 565: Memeriksa kondisi `e.key ＝＝＝ ”Enter” || e.key ＝＝＝ ” ”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 566: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
+Baris sumber 567: Melakukan operasi dengan memanggil `cell.click()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 568: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 569: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 570: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 571: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 573: Menyimpan `getDayTitleAndDesc` dengan membaca nilai `(dayNum) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 574: Menyimpan `title` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 575: Menyimpan `desc` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 577: Memeriksa kondisi `dayNum ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 578: Memperbarui `title` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”GO Day” : ”Hari GO”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 579: Memperbarui `desc` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Starting line of the game board.” : ”Garis start papan permainan.”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 580: Memeriksa kondisi `dayNum ›＝ finishMarkerDay`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 581: Memperbarui `title` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Finish” : ”Selesai”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 582: Memperbarui `desc` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Game completed. Final results and rankings calculated.” : ”Permainan selesai. Hasil akhir dan peringkat dihitung.”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 583: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 584: Memeriksa kondisi `sundayEnabled && dayNum % 7 ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 585: Memperbarui `title` dengan menggunakan literal ``$｛dayLabel｝ $｛dayNum｝ - $｛activeLanguage ＝＝＝ ”en” ? ”Rest Day” : ”Hari Libur”｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 586: Memperbarui `desc` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Rest day. No work is performed, players recover and plan.” : ”Hari libur. Tidak ada aktivitas bekerja, waktu untuk istirahat dan menyusun strategi.”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 587: Memeriksa kondisi `fridayEnabled && dayNum % 7 ＝＝＝ 5`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 588: Memperbarui `title` dengan menggunakan literal ``$｛dayLabel｝ $｛dayNum｝ - $｛activeLanguage ＝＝＝ ”en” ? ”Charity Day” : ”Peduli Donasi”｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 589: Memperbarui `desc` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Charity day. Players can donate to support social causes.” : ”Hari Peduli Donasi. Pemain dapat berdonasi untuk mendukung kepedulian sosial.”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 590: Memeriksa kondisi `saturdayEnabled && dayNum % 7 ＝＝＝ 6`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 591: Memperbarui `title` dengan menggunakan literal ``$｛dayLabel｝ $｛dayNum｝ - $｛activeLanguage ＝＝＝ ”en” ? ”Gold Trade” : ”Investasi Emas”｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 592: Memperbarui `desc` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Gold Trade day. Perfect time for gold investment and transactions.” : ”Hari Investasi Emas. Waktu yang tepat untuk transaksi dan investasi emas.”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 593: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 594: Memperbarui `title` dengan menggunakan literal ``$｛dayLabel｝ $｛dayNum｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 595: Memperbarui `desc` dengan memilih nilai melalui kondisi ternary `activeLanguage ＝＝＝ ”en” ? ”Standard work day. Focus on completing tasks and earning income.” : ”Hari kerja standar. Fokus menyelesaikan pekerjaan dan mengumpulkan pendapatan.”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 596: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 597: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 599: Mengembalikan hasil kepada pemanggil dengan membaca nilai `｛ title, desc ｝` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 600: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 602: Menyimpan `renderAll` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 603: Menyimpan `baseTimeline` dengan memanggil `getVisibleBaseTimeline()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 604: Menyimpan `playerOptions` dengan menyaring koleksi menggunakan predikat `isVisiblePlayerEvent))`; hanya elemen yang memenuhi kondisi masuk hasil.
+Baris sumber 605: Menyimpan `visibleTimeline` dengan memanggil `getVisibleTimeline(baseTimeline)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 606: Menyimpan `feedTimeline` dengan memanggil `buildFeedTimeline(visibleTimeline)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 609: Menyimpan `eventsByDay` dengan memanggil `getEventsGroupedByDay(visibleTimeline)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 610: Menyimpan `activeDays` dengan mengubah `eventsByDay.keys()).sort((a, b) → a - b` menjadi array agar dapat difilter, dipetakan, dan diiterasi dengan metode array. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 613: Memeriksa kondisi `activeDays.length › 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 614: Menyimpan `selectedDayIsAvailable` dengan membaca nilai `selectedTimelineFilter ＝＝＝ ”all”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 615: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `selectedDay !＝＝ null && selectedDay ›＝ 0 && selectedDay ‹＝ finishMarkerDay`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 616: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `activeDays.some(day → (selectedDay ＝＝＝ finishMarkerDay ? day ›＝ finishMarkerDay : day ＝＝＝ selectedDay));`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 617: Memeriksa kondisi `!selectedDayIsAvailable`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 618: Memperbarui `selectedDay` dengan menghitung ekspresi `activeDays[activeDays.length - 1]` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 619: Memeriksa kondisi `selectedDay › finishMarkerDay`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 620: Memperbarui `selectedDay` dengan membaca nilai `finishMarkerDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 621: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 622: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 623: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 624: Memperbarui `selectedDay` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 625: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 627: Melakukan operasi dengan memanggil `renderFilters(playerOptions)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 628: Melakukan operasi dengan memanggil `renderJourneyInsights(feedTimeline)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 629: Melakukan operasi dengan memanggil `renderCalendar(eventsByDay)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 632: Menyimpan `dayPanelEl` dengan mengambil elemen DOM ber-ID `”session-journey-day-panel”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 633: Menyimpan `dayTitleTextEl` dengan mengambil elemen DOM ber-ID `”session-journey-day-title-text”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 634: Menyimpan `dayEventCountEl` dengan mengambil elemen DOM ber-ID `”session-journey-day-event-count”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 635: Menyimpan `dayDescEl` dengan mengambil elemen DOM ber-ID `”session-journey-day-desc”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 637: Memeriksa kondisi `dayPanelEl`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 638: Memeriksa kondisi `selectedDay !＝＝ null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 639: Menyimpan `dayEvents` dengan menyaring koleksi menggunakan predikat `item → ｛`; hanya elemen yang memenuhi kondisi masuk hasil. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 640: Menyimpan `day` dengan memanggil `toNumber(item.dayIndex, 0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 641: Memeriksa kondisi `selectedDay ＝＝＝ finishMarkerDay`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 642: Mengembalikan hasil kepada pemanggil dengan membaca nilai `day ›＝ finishMarkerDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 643: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 644: Mengembalikan hasil kepada pemanggil dengan membaca nilai `day ＝＝＝ selectedDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 645: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 647: Menyimpan `dayFeedTimeline` dengan menyaring koleksi menggunakan predikat `item → ｛`; hanya elemen yang memenuhi kondisi masuk hasil. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 648: Menyimpan `day` dengan memanggil `toNumber(item.dayIndex, 0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 649: Memeriksa kondisi `selectedDay ＝＝＝ finishMarkerDay`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 650: Mengembalikan hasil kepada pemanggil dengan membaca nilai `day ›＝ finishMarkerDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 651: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 652: Mengembalikan hasil kepada pemanggil dengan membaca nilai `day ＝＝＝ selectedDay` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 653: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 655: Melakukan operasi dengan menghapus kelas `”hidden”` sehingga status visual terkait dinonaktifkan.
+Baris sumber 657: Melakukan operasi dengan memanggil `const ｛ title, desc ｝ ＝ getDayTitleAndDesc(selectedDay)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 658: Memeriksa kondisi `dayTitleTextEl) dayTitleTextEl.textContent ＝ title;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 659: Memeriksa kondisi `dayEventCountEl) dayEventCountEl.textContent ＝ dayFeedTimeline.length;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 660: Memeriksa kondisi `dayDescEl) dayDescEl.textContent ＝ desc;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 662: Memeriksa kondisi `dayEvents.length › 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 663: Melakukan operasi dengan memanggil `renderJourneyFeed(dayEvents, dayFeedTimeline)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 664: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 665: Memperbarui `feedEl.innerHTML` dengan menggunakan literal ``‹li class＝”session-journey-empty”›$｛escapeHtml(emptyMessage)｝‹/li›`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 666: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 667: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 668: Melakukan operasi dengan menambahkan kelas `”hidden”` sehingga aturan CSS terkait diaktifkan pada elemen.
+Baris sumber 669: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 670: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 675: Memperbarui `lastSequence` dengan membaca nilai `timeline.length › 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 676: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Math.max(...timeline.map((item) → item.sequenceNumber))`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 677: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `0;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 678: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 679: Menyimpan `syncTimeline` dengan membaca nilai `async () → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 680: Memulai bagian yang dapat gagal, misalnya parsing atau permintaan data; kesalahan diteruskan ke catch yang menyertainya.
+Baris sumber 681: Menyimpan `cursorQuery` dengan memilih nilai melalui kondisi ternary `timelineCursor ? `&cursor＝$｛encodeURIComponent(timelineCursor)｝` : ””`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 682: Menyimpan `response` dengan memulai permintaan HTTP ``$｛timelineUrl｝?limit＝100$｛cursorQuery｝`, ｛` dari browser untuk mengambil data terbaru.
+Baris sumber 683: Mengisi properti `method` pada objek atau konfigurasi dengan menggunakan literal `”GET”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 684: Mengisi properti `headers` pada objek atau konfigurasi dengan menghitung ekspresi `｛ ”Accept”: ”application/json” ｝` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 685: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 687: Memeriksa kondisi `response.redirected && response.url.includes(”/auth/login”)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 688: Melakukan operasi dengan memanggil `window.location.assign(response.url)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 689: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 690: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 692: Memeriksa kondisi `!response.ok`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 693: Melakukan operasi dengan mengganti bagian teks berdasarkan pola dan pengganti `”｛status｝”, `$｛response.status｝`)`.
+Baris sumber 694: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 695: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 697: Menyimpan `data` dengan menunggu operasi asinkron `response.json()` selesai sebelum memakai hasilnya.
+Baris sumber 698: Menyimpan `incomingTimeline` dengan membaca `normalizeTimeline(data?.timeline)` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 699: Memperbarui `timelineCursor` dengan membaca `data?.nextCursor || timelineCursor` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 700: Melakukan operasi dengan memanggil `mergeTimeline(incomingTimeline)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 701: Melakukan operasi dengan memanggil `renderAll()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 702: Melakukan operasi dengan membaca `setError(data?.errorMessage || ””)` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 703: Memperbarui `syncedEl.textContent` dengan membuat instance `Date` dengan masukan `).toISOString()`.
+Baris sumber 704: Menangani kesalahan melalui catch `｛`; alur ini menyediakan pemulihan atau pesan kesalahan ketika operasi pada try gagal.
+Baris sumber 705: Melakukan operasi dengan memanggil `setError(realtimeNetworkMessage)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 706: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 707: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 708: Menyimpan `startPolling` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 709: Memeriksa kondisi `pollingTimerId !＝＝ null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 710: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 711: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 713: Melakukan operasi dengan memanggil `syncTimeline()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 714: Memperbarui `pollingTimerId` dengan menjadwalkan callback `syncTimeline, pollIntervalMs)` berulang pada interval yang ditentukan untuk pembaruan data.
+Baris sumber 715: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 716: Menyimpan `stopPolling` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 717: Memeriksa kondisi `pollingTimerId ＝＝＝ null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 718: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 719: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 721: Melakukan operasi dengan memanggil `clearInterval(pollingTimerId)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 722: Memperbarui `pollingTimerId` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 723: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 724: Menyimpan `handleVisibility` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 725: Memeriksa kondisi `document.visibilityState ＝＝＝ ”visible”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 726: Melakukan operasi dengan memanggil `startPolling()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 727: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 728: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 730: Melakukan operasi dengan memanggil `stopPolling()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 731: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 733: Memperbarui `timeline` dengan memanggil `normalizeTimeline(initialTimelineRaw)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 734: Melakukan operasi dengan memanggil `renderAll()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 735: Melakukan operasi dengan mendaftarkan penangan event `”visibilitychange”, handleVisibility)`; fungsi callback akan dijalankan browser ketika event tersebut terjadi.
+Baris sumber 736: Melakukan operasi dengan memanggil `handleVisibility()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 737: Melakukan operasi dengan membaca nilai `｝)()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 738: Menutup elemen `script` (skrip browser atau referensi berkas JavaScript) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+*@
 @model Cashflowpoly.Ui.Models.SessionDetailViewModel
 @using System.Text.Json
 @{

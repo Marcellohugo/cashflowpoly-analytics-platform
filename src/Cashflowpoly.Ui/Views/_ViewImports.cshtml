@@ -1,4 +1,9 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian _ViewImports.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian _ViewImports.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Mengimpor namespace `Cashflowpoly.Ui` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 3: Mengimpor namespace `Cashflowpoly.Ui.Models` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 4: Mengaktifkan tag helper `*, Microsoft.AspNetCore.Mvc.TagHelpers`; atribut asp-* pada elemen HTML kemudian diproses server menjadi URL, validasi, atau versi aset.
+Baris sumber 5: Mengimpor namespace `Cashflowpoly.Ui.Infrastructure` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+*@
 @using Cashflowpoly.Ui
 @using Cashflowpoly.Ui.Models
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

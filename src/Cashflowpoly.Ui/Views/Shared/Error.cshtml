@@ -1,4 +1,34 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Shared/Error.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Shared/Error.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `ErrorViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 4: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `error.title` sesuai bahasa sesi pengguna.
+Baris sumber 5: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 7: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 8: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 9: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro-main` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 10: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow text-rose-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `error.notice` menurut bahasa sesi.
+Baris sumber 11: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `error.message` menurut bahasa sesi.
+Baris sumber 12: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subhead` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `error.submessage` menurut bahasa sesi.
+Baris sumber 13: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 14: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 16: Memeriksa kondisi `Model.ShowRequestId`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 17: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 18: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 19: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Teks dinamis dibaca dari kunci terjemahan `error.request_id` menurut bahasa sesi. Nilai `@Model.RequestId` berasal dari model yang disusun controller.
+Baris sumber 20: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 21: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 22: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 24: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell mt-6` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 25: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `class` bernilai `headline text-2xl` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `error.dev_mode` menurut bahasa sesi.
+Baris sumber 26: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subhead` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 27: Menyisipkan hasil ekspresi Razor `@Context.T(”error.dev_desc”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 28: Menutup elemen `p` (paragraf atau label penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 29: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-sm text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 30: Menyisipkan hasil ekspresi Razor `@Context.T(”error.dev_warning”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 31: Menyisipkan hasil ekspresi Razor `@Context.T(”error.dev_hint”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 32: Menutup elemen `p` (paragraf atau label penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 33: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+*@
 @model ErrorViewModel
 @{
     ViewData["Title"] = Context.T("error.title");

@@ -1,4 +1,532 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Sessions/Details.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Sessions/Details.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.SessionDetailViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 4: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `sessions.detail_title` sesuai bahasa sesi pengguna.
+Baris sumber 5: Menyimpan `isInstructor` dengan memeriksa peran instruktur pada sesi HTTP untuk menentukan kontrol tampilan yang tersedia.
+Baris sumber 6: Menyimpan `playerDisplayNames` dengan membaca nilai `Model.PlayerDisplayNames` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 7: Menyimpan `fallbackPlayerNames` dengan membaca nilai `new Dictionary‹Guid, string›()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 8: Menyimpan `fallbackPlayerIndex` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 9: Menyimpan `knownPlayerIds` dengan mengevaluasi `(Model.Analytics?.ByPlayer.Select(item → item.UserId) ?? Enumerable.Empty‹Guid›())`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 10: Mendefinisikan fungsi atau pemetaan `.Concat(Model.Timeline.Where(item → item.PlayerId.HasValue).Select(item → item.PlayerId!.Value))`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 11: Melanjutkan rantai operasi dengan memanggil `value.Distinct()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 12: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 14: Mengiterasi `var playerId in knownPlayerIds`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 15: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 16: Memeriksa kondisi `playerDisplayNames.TryGetValue(playerId, out var displayName) && !string.IsNullOrWhiteSpace(displayName)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 17: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 18: Menyediakan teks atau fragmen konten `continue;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 19: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 21: Memperbarui `fallbackPlayerNames[playerId]` dengan mengambil teks terjemahan berkunci `common.player` sesuai bahasa sesi pengguna.
+Baris sumber 22: Menyediakan teks atau fragmen konten `fallbackPlayerIndex++;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 23: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 25: Mendefinisikan fungsi `ResolvePlayerName` dengan parameter `Guid playerId`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 26: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 27: Memeriksa kondisi `playerDisplayNames.TryGetValue(playerId, out var displayName) && !string.IsNullOrWhiteSpace(displayName)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 28: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 29: Mengembalikan hasil kepada pemanggil dengan membaca nilai `displayName` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 30: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 32: Memeriksa kondisi `fallbackPlayerNames.TryGetValue(playerId, out var fallbackName)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 33: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 34: Mengembalikan hasil kepada pemanggil dengan membaca nilai `fallbackName` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 35: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 37: Mengembalikan hasil kepada pemanggil dengan mengambil teks terjemahan berkunci `common.player` sesuai bahasa sesi pengguna; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 38: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 40: Mendefinisikan fungsi `ResolvePlayerAvatarIndex` dengan parameter `int turnOrder`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 41: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 42: Memeriksa kondisi `turnOrder ‹＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 43: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 44: Mengembalikan hasil kepada pemanggil dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 45: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 47: Mengembalikan hasil kepada pemanggil dengan menghitung ekspresi `((turnOrder - 1) % 4) + 1` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 48: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 50: Mendefinisikan fungsi `ResolvePlayerAvatarPath` dengan parameter `int turnOrder`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 52: Mendefinisikan fungsi `F` dengan parameter `double value`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 53: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 55: Mendefinisikan section Razor `Head ｛`; layout merender bagian ini pada lokasi RenderSectionAsync yang sesuai.
+Baris sumber 56: Membentuk elemen `style` sebagai aturan CSS lokal tampilan.
+Baris sumber 57: Melanjutkan rantai operasi dengan membaca nilai `value.session-journey-title ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 58: Menyediakan teks atau fragmen konten `max-width: 18ch;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 59: Menyediakan teks atau fragmen konten `line-height: 1.15;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 60: Menyediakan teks atau fragmen konten `text-wrap: balance;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 61: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 63: Melanjutkan rantai operasi dengan membaca nilai `value.session-count-grid ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 64: Menyediakan teks atau fragmen konten `margin-top: 0.8rem;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 65: Mengisi properti `display` pada objek atau konfigurasi dengan membaca nilai `grid` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 66: Mengisi properti `gap` pada objek atau konfigurasi dengan membaca nilai `0.65rem` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 67: Menyediakan teks atau fragmen konten `grid-template-columns: minmax(0, 1fr);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 68: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 70: Melanjutkan rantai operasi dengan memanggil `value.session-count-grid:has(› :nth-child(2):last-child) ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 71: Menyediakan teks atau fragmen konten `grid-template-columns: repeat(2, minmax(0, 1fr));` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 72: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 74: Melanjutkan rantai operasi dengan memanggil `value.session-count-grid:has(› :nth-child(3):last-child) ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 75: Menyediakan teks atau fragmen konten `grid-template-columns: repeat(3, minmax(0, 1fr));` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 76: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 78: Melanjutkan rantai operasi dengan memanggil `value.session-count-grid:has(› :nth-child(4):last-child) ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 79: Menyediakan teks atau fragmen konten `grid-template-columns: repeat(2, minmax(0, 1fr));` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 80: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 82: Melanjutkan rantai operasi dengan membaca nilai `value.session-journey-insight-card ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 83: Mengisi properti `border` pada objek atau konfigurasi dengan membaca nilai `1px solid #a8e5de` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 84: Menyediakan teks atau fragmen konten `border-radius: 0.85rem;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 85: Mengisi properti `background` pada objek atau konfigurasi dengan memanggil `rgba(255, 255, 255, 0.9)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 86: Mengisi properti `padding` pada objek atau konfigurasi dengan membaca nilai `0.62rem 0.7rem` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 87: Menyediakan teks atau fragmen konten `min-width: 0;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 88: Menyediakan teks atau fragmen konten `min-height: 4.45rem;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 89: Mengisi properti `display` pada objek atau konfigurasi dengan membaca nilai `grid` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 90: Menyediakan teks atau fragmen konten `align-content: start;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 91: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 93: Melanjutkan rantai operasi dengan membaca nilai `value.session-journey-insight-label ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 94: Mengisi properti `margin` pada objek atau konfigurasi dengan menggunakan konstanta numerik `0` sebagai nilai awal atau parameter perhitungan; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 95: Menyediakan teks atau fragmen konten `font-size: 0.68rem;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 96: Menyediakan teks atau fragmen konten `letter-spacing: 0.07em;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 97: Menyediakan teks atau fragmen konten `text-transform: uppercase;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 98: Mengisi properti `color` pada objek atau konfigurasi dengan membaca nilai `#547286` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 99: Menyediakan teks atau fragmen konten `font-weight: 800;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 100: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 102: Melanjutkan rantai operasi dengan membaca nilai `value.session-journey-insight-value ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 103: Mengisi properti `margin` pada objek atau konfigurasi dengan membaca nilai `0.32rem 0 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 104: Mengisi properti `color` pada objek atau konfigurasi dengan membaca nilai `#15394f` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 105: Menyediakan teks atau fragmen konten `font-size: 0.92rem;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 106: Menyediakan teks atau fragmen konten `font-weight: 800;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 107: Menyediakan teks atau fragmen konten `line-height: 1.25;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 108: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 110: Melanjutkan rantai operasi dengan membaca nilai `value.session-ruleset-card ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 111: Mengisi properti `display` pada objek atau konfigurasi dengan membaca nilai `flex` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 112: Menyediakan teks atau fragmen konten `align-items: center;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 113: Menyediakan teks atau fragmen konten `justify-content: space-between;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 114: Mengisi properti `gap` pada objek atau konfigurasi dengan membaca nilai `1.5rem` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 115: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 117: Melanjutkan rantai operasi dengan membaca nilai `value.session-ruleset-content ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 118: Menyediakan teks atau fragmen konten `min-width: 0;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 119: Mengisi properti `flex` pada objek atau konfigurasi dengan membaca nilai `1 1 auto` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 120: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 122: Melanjutkan rantai operasi dengan membaca nilai `value.session-ruleset-action ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 123: Menyediakan teks atau fragmen konten `margin-top: 0 !important;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 124: Menyediakan teks atau fragmen konten `flex-shrink: 0;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 125: Mengisi properti `display` pada objek atau konfigurasi dengan membaca nilai `flex` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 126: Menyediakan teks atau fragmen konten `align-items: center;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 127: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 129: Melakukan operasi dengan membaca nilai `@@media (max-width: 640px) ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 130: Melanjutkan rantai operasi dengan membaca nilai `value.session-journey-title ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 131: Menyediakan teks atau fragmen konten `max-width: none;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 132: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 134: Melanjutkan rantai operasi dengan membaca nilai `value.session-count-grid` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 135: Melanjutkan rantai operasi dengan memanggil `value.session-count-grid:has(› :nth-child(2):last-child)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 136: Melanjutkan rantai operasi dengan memanggil `value.session-count-grid:has(› :nth-child(3):last-child)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 137: Melanjutkan rantai operasi dengan memanggil `value.session-count-grid:has(› :nth-child(4):last-child) ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 138: Menyediakan teks atau fragmen konten `grid-template-columns: minmax(0, 1fr);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 139: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 141: Melanjutkan rantai operasi dengan membaca nilai `value.session-ruleset-card ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 142: Menyediakan teks atau fragmen konten `flex-direction: column;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 143: Menyediakan teks atau fragmen konten `align-items: flex-start;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 144: Mengisi properti `gap` pada objek atau konfigurasi dengan membaca nilai `1rem` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 145: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 147: Melanjutkan rantai operasi dengan membaca nilai `value.session-ruleset-action ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 148: Mengisi properti `width` pada objek atau konfigurasi dengan menghitung ekspresi `100%` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 149: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 151: Melanjutkan rantai operasi dengan membaca nilai `value.session-ruleset-action .btn-ghost ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 152: Mengisi properti `width` pada objek atau konfigurasi dengan menghitung ekspresi `100%` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 153: Menyediakan teks atau fragmen konten `text-align: center;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 154: Menyediakan teks atau fragmen konten `justify-content: center;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 155: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 156: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 157: Menutup elemen `style` (aturan CSS lokal tampilan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 158: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 160: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell session-detail-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 161: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `action-toolbar mb-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 162: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-ghost”` menjadi teks yang terlihat pada komponen.
+Baris sumber 162: Baris sumber 163: Melengkapi atribut `asp-controller` pada `a` dengan `”Sessions”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 162: Baris sumber 164: Melengkapi atribut `asp-action` pada `a` dengan `”Index”›@(”‹- ” + Context.T(”sessions.navigasi kembali ke_list”))‹/a›`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 165: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 167: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-hero` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 168: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 169: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow text-emerald-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.analytics_title` menurut bahasa sesi.
+Baris sumber 170: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.detail_title` menurut bahasa sesi.
+Baris sumber 171: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 172: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-hero-meta` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 173: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.SessionStatus)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 174: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 175: Menyimpan `sessionStatusClass` dengan memanggil `string.Equals(Model.SessionStatus, ”STARTED”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 176: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”status-active”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 177: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `string.Equals(Model.SessionStatus, ”CREATED”, StringComparison.OrdinalIgnoreCase)`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 178: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”status-draft”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 179: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `”status-retired”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 180: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 181: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 182: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 183: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 185: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.ErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 186: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 187: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-error` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 188: Menyisipkan hasil ekspresi Razor `@Model.ErrorMessage` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 189: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 190: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 192: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `session-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 193: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `mt-3 data-toggle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 194: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Teks dinamis dibaca dari kunci terjemahan `analytics.tips.instructor`, `analytics.tips.player` menurut bahasa sesi.
+Baris sumber 195: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 metric-panel` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 196: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 197: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 198: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 199: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `analytics.tip_key.input`, `analytics.tip.input` menurut bahasa sesi.
+Baris sumber 200: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `analytics.tip_key.interpretation`, `analytics.tip.interpretation` menurut bahasa sesi.
+Baris sumber 201: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `analytics.tip_key.followup`, `analytics.tip.followup` menurut bahasa sesi.
+Baris sumber 202: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 203: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 204: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 205: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `analytics.tip_key.select_session`, `analytics.tip.select_session` menurut bahasa sesi.
+Baris sumber 206: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `analytics.tip_key.focus_score`, `analytics.tip.focus_score` menurut bahasa sesi.
+Baris sumber 207: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `analytics.tip_key.risk_control`, `analytics.tip.risk_control` menurut bahasa sesi.
+Baris sumber 208: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 209: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 210: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 211: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 212: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 214: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `session-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 215: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 216: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.active_ruleset.title` menurut bahasa sesi.
+Baris sumber 217: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.detail.ruleset_subtitle` menurut bahasa sesi.
+Baris sumber 218: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 219: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 metric-panel session-ruleset-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 220: Memeriksa kondisi `Model.Analytics?.RulesetId.HasValue ＝＝ true`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 221: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 222: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `session-ruleset-content` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 223: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `class` bernilai `text-xl font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 224: Menyisipkan hasil ekspresi Razor `@(string.IsNullOrWhiteSpace(Model.Analytics.RulesetName) ? Context.T(”common.ruleset”) : Model.Analytics.RulesetName)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 225: Menutup elemen `h2` (judul bagian tingkat dua) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 226: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-sm text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.active_ruleset.subtitle` menurut bahasa sesi.
+Baris sumber 227: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 228: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `session-ruleset-action action-toolbar` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 229: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `type` bernilai `button` menentukan jenis kontrol atau tipe konten. Isi `‹button type＝”button”` menjadi teks yang terlihat pada komponen.
+Baris sumber 229: Baris sumber 230: Melengkapi atribut `class` pada `button` dengan `”btn-ghost”`; kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 229: Baris sumber 231: Melengkapi atribut `id` pada `button` dengan `”openRulesetModalBtn”`; identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 229: Baris sumber 232: Melengkapi atribut `aria-haspopup` pada `button` dengan `”dialog”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 229: Baris sumber 233: Melengkapi atribut `aria-controls` pada `button` dengan `”rulesetModal”›@Context.T(”sessions.view_ruleset”)‹/button›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 234: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 235: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 236: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 237: Membuka ruang lingkup blok untuk `button`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 238: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-sm text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.active_ruleset.empty` menurut bahasa sesi.
+Baris sumber 239: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 240: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 241: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 243: Memeriksa kondisi `Model.Analytics?.RulesetId.HasValue ＝＝ true`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 244: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 245: Menyimpan `rulesetDetailModel` dengan mengevaluasi `Model.ActiveRulesetDetail ?? new Cashflowpoly.Ui.Models.RulesetDetailViewModel()`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 246: Menyimpan `rulesetDetail` dengan membaca nilai `rulesetDetailModel.Ruleset` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 247: Menyimpan `isAdvancedModal` dengan mengevaluasi `string.Equals(rulesetDetail?.Mode ?? rulesetDetail?.Definition?.Mode, ”MAHIR”, StringComparison.OrdinalIgnoreCase)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 248: Menyimpan `modalModeCss` dengan memilih nilai melalui kondisi ternary `isAdvancedModal ? ”advanced” : ”beginner”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 250: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `id` bernilai `rulesetModal` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Isi `‹div id＝”rulesetModal”` menjadi teks yang terlihat pada komponen.
+Baris sumber 250: Baris sumber 251: Melengkapi atribut `class` pada `div` dengan `”ruleset-modal-backdrop ruleset-modal--@modalModeCss”`; kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 250: Baris sumber 252: Melengkapi atribut `data-ruleset-mode` pada `div` dengan `”@modalModeCss”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 250: Baris sumber 253: Melengkapi atribut `role` pada `div` dengan `”dialog”`; peran semantik yang diumumkan kepada teknologi bantu.
+Baris sumber 250: Baris sumber 254: Melengkapi atribut `aria-modal` pada `div` dengan `”true”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 250: Baris sumber 255: Melengkapi atribut `aria-labelledby` pada `div` dengan `”rulesetModalTitle”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 250: Baris sumber 256: Melengkapi atribut `aria-hidden` pada `div` dengan `”true”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 250: Baris sumber 257: Melengkapi atribut `style` pada `div` dengan `”display: none;”›`; deklarasi gaya langsung pada elemen.
+Baris sumber 258: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-modal-overlay` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `id` bernilai `rulesetModalOverlay` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 259: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-modal-container` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `role` bernilai `document` menentukan peran semantik yang diumumkan kepada teknologi bantu.
+Baris sumber 260: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-modal-header` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 261: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 262: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.active_ruleset.title` menurut bahasa sesi.
+Baris sumber 263: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `id` bernilai `rulesetModalTitle` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `text-xl font-bold text-slate-900 mt-1` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.detail_title` menurut bahasa sesi.
+Baris sumber 264: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 265: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `type` bernilai `button` menentukan jenis kontrol atau tipe konten. Isi `‹button type＝”button”` menjadi teks yang terlihat pada komponen.
+Baris sumber 265: Baris sumber 266: Melengkapi atribut `class` pada `button` dengan `”ruleset-modal-close”`; kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 265: Baris sumber 267: Melengkapi atribut `id` pada `button` dengan `”closeRulesetModalBtn”`; identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 265: Baris sumber 268: Melengkapi atribut `aria-label` pada `button` dengan `”@Context.T(”common.close”)”›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 269: Membentuk elemen `svg` sebagai kanvas grafik vektor SVG.
+Baris sumber 270: Membentuk elemen `line` sebagai garis SVG.
+Baris sumber 271: Membentuk elemen `line` sebagai garis SVG.
+Baris sumber 272: Menutup elemen `svg` (kanvas grafik vektor SVG) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 273: Menutup elemen `button` (kontrol interaksi yang dapat diaktifkan pengguna) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 274: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 275: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-modal-body` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `id` bernilai `rulesetModalBody` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 276: Menghasilkan bagian tampilan melalui `@await Html.PartialAsync(`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 277: Menyediakan teks atau fragmen konten `”_RulesetDetailContent”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 278: Menyediakan teks atau fragmen konten `rulesetDetailModel,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 279: Menyediakan teks atau fragmen konten `new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData)` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 280: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 281: Menyediakan teks atau fragmen konten `[”RulesetDetailEmbedded”] ＝ true` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 282: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 283: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 284: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 285: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 286: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 288: Memeriksa kondisi `Model.Analytics is not null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 289: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 290: Menyimpan `rankedPlayers` dengan membaca nilai `Model.Analytics.ByPlayer` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 291: Mendefinisikan fungsi atau pemetaan `.OrderByDescending(item → item.HappinessPointsTotal)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 292: Mendefinisikan fungsi atau pemetaan `.ThenByDescending(item → item.CashInTotal - item.CashOutTotal)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 293: Mendefinisikan fungsi atau pemetaan `.ThenBy(item → item.PlayerOrder › 0 ? item.PlayerOrder : int.MaxValue)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 294: Mendefinisikan fungsi atau pemetaan `.ThenBy(item → item.UserId)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 295: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 296: Menyimpan `orderedPlayers` dengan membaca nilai `Model.Analytics.ByPlayer` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 297: Mendefinisikan fungsi atau pemetaan `.OrderBy(item → item.PlayerOrder › 0 ? item.PlayerOrder : int.MaxValue)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 298: Mendefinisikan fungsi atau pemetaan `.ThenBy(item → item.UserId)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 299: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 300: Menyimpan `playerRankLookup` dengan membaca nilai `rankedPlayers` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 301: Mendefinisikan fungsi atau pemetaan `.Select((item, index) → new ｛ item.UserId, Rank ＝ index + 1 ｝)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 302: Mendefinisikan fungsi atau pemetaan `.ToDictionary(item → item.UserId, item → item.Rank);`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 303: Menyimpan `currentPlayerSummary` dengan memilih nilai melalui kondisi ternary `isInstructor ? null : orderedPlayers.FirstOrDefault()`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 304: Menyimpan `happinessScoreRows` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 305: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 306: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 1, Label ＝ Context.T(”sessions.score.need_points”), IsDeduction ＝ false, Values ＝ orderedPlayers.Select(item → item.NeedPointsTotal).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 307: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 2, Label ＝ Context.T(”sessions.score.need_bonus”), IsDeduction ＝ false, Values ＝ orderedPlayers.Select(item → item.NeedSetBonusPoints).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 308: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 3, Label ＝ Context.T(”sessions.score.mission_penalty”), IsDeduction ＝ true, Values ＝ orderedPlayers.Select(item → -item.MissionPenaltyTotal).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 309: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 4, Label ＝ Context.T(”sessions.score.donation_points”), IsDeduction ＝ false, Values ＝ orderedPlayers.Select(item → item.DonationPointsTotal).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 310: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 5, Label ＝ Context.T(”sessions.score.pension_points”), IsDeduction ＝ false, Values ＝ orderedPlayers.Select(item → item.PensionPointsTotal).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 311: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 6, Label ＝ Context.T(”sessions.score.financial_goal”), IsDeduction ＝ false, Values ＝ orderedPlayers.Select(item → item.SavingGoalPointsTotal).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 312: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 7, Label ＝ Context.T(”sessions.score.loan_penalty”), IsDeduction ＝ true, Values ＝ orderedPlayers.Select(item → -item.LoanPenaltyTotal).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 313: Mendefinisikan fungsi atau pemetaan `new ｛ Number ＝ 8, Label ＝ Context.T(”sessions.score.gold_points”), IsDeduction ＝ false, Values ＝ orderedPlayers.Select(item → item.GoldPointsTotal).ToList() ｝`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 314: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 315: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `session-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 316: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 317: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 318: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 319: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 320: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 321: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 322: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 ruleset-stats session-count-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 323: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 324: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.total_event` menurut bahasa sesi.
+Baris sumber 325: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Analytics.Summary.EventCount` berasal dari model yang disusun controller.
+Baris sumber 326: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 327: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 328: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.cash_in` menurut bahasa sesi.
+Baris sumber 329: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-emerald-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Analytics.Summary.CashInTotal` berasal dari model yang disusun controller.
+Baris sumber 330: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 331: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 332: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.cash_out` menurut bahasa sesi.
+Baris sumber 333: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-rose-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Analytics.Summary.CashOutTotal` berasal dari model yang disusun controller.
+Baris sumber 334: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 335: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 336: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.net_cashflow` menurut bahasa sesi.
+Baris sumber 337: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Analytics.Summary.CashflowNetTotal` berasal dari model yang disusun controller.
+Baris sumber 338: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 339: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 340: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 341: Memeriksa kondisi `currentPlayerSummary is not null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 342: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 343: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 session-stats-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 344: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 345: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.cash_in` menurut bahasa sesi.
+Baris sumber 346: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-emerald-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 347: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 348: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 349: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.cash_out` menurut bahasa sesi.
+Baris sumber 350: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-rose-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 351: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 352: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 353: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.net_cashflow` menurut bahasa sesi.
+Baris sumber 354: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 355: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 356: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 357: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.happiness` menurut bahasa sesi.
+Baris sumber 358: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 359: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 360: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `stat-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 361: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `metric.fulfillment_diversity` menurut bahasa sesi.
+Baris sumber 362: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-2xl font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 363: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 364: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 365: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 367: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head mt-6` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 368: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 369: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 370: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 372: Memeriksa kondisi `orderedPlayers.Count ＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 373: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 374: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `state.no_player_data` menurut bahasa sesi.
+Baris sumber 375: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 376: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 377: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 378: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 table-wrap happiness-score-sheet happiness-score-desktop` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `role` bernilai `region` menentukan peran semantik yang diumumkan kepada teknologi bantu.
+Baris sumber 379: Membentuk elemen `table` sebagai tabel data dengan susunan baris dan kolom. Atribut `class` bernilai `happiness-score-table text-sm` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 380: Membentuk elemen `colgroup` sebagai komponen markup pada tampilan.
+Baris sumber 381: Membentuk elemen `col` sebagai komponen markup pada tampilan. Atribut `class` bernilai `happiness-score-label-column` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 382: Mengulang blok dengan pengaturan `var playerIndex ＝ 0; playerIndex ‹ orderedPlayers.Count; playerIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 383: Membuka ruang lingkup blok untuk `col`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 384: Membentuk elemen `col` sebagai komponen markup pada tampilan. Atribut `class` bernilai `happiness-score-player-column` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 385: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 386: Menutup elemen `colgroup` (komponen HTML) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 387: Membentuk elemen `thead` sebagai kelompok header tabel.
+Baris sumber 388: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 389: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `happiness-score-label happiness-score-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 390: Menyisipkan hasil ekspresi Razor `@Context.T(”sessions.score.elements_title”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 391: Menutup elemen `th` (sel header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 392: Mengulang blok dengan pengaturan `var playerIndex ＝ 0; playerIndex ‹ orderedPlayers.Count; playerIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 393: Membuka ruang lingkup blok untuk `th`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 394: Menyimpan `item` dengan membaca nilai `orderedPlayers[playerIndex]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 395: Menyimpan `turnOrder` dengan memilih nilai melalui kondisi ternary `item.PlayerOrder › 0 ? item.PlayerOrder : playerIndex + 1`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 396: Menyimpan `rank` dengan memanggil `playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 397: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `resolvedRank`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 398: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `0;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 399: Membentuk elemen `th` sebagai sel header tabel.
+Baris sumber 400: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `happiness-score-player-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 401: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif.
+Baris sumber 401: Baris sumber 402: Melengkapi atribut `alt` pada `img` dengan `”@($”｛Context.T(”common.turn_order”)｝ ｛turnOrder｝”)” /›`; teks alternatif gambar ketika gambar tidak terlihat atau dibaca pembaca layar.
+Baris sumber 403: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `happiness-score-player-name` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 404: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `happiness-score-player-meta` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 405: Menyisipkan hasil ekspresi Razor `@Context.T(”common.turn_order”) @turnOrder · @Context.T(”common.rank”) @(rank › 0 ? rank : ”-”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 406: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 407: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `table-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”table-link”` menjadi teks yang terlihat pada komponen.
+Baris sumber 407: Baris sumber 408: Melengkapi atribut `asp-controller` pada `a` dengan `”Players” asp-action＝”Details” asp-route-sessionId＝”@Model.SessionId”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 407: Baris sumber 409: Melengkapi atribut `asp-route-playerId` pada `a` dengan `”@item.UserId”›@Context.T(”sessions.view_analytics”)‹/a›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 410: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 411: Menutup elemen `th` (sel header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 412: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 413: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 414: Menutup elemen `thead` (kelompok header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 415: Membentuk elemen `tbody` sebagai kelompok baris isi tabel.
+Baris sumber 416: Mengiterasi `var scoreRow in happinessScoreRows`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 417: Membuka ruang lingkup blok untuk `tbody`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 418: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 419: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `happiness-score-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 420: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `happiness-score-label-content` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 421: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `happiness-score-number` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 422: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 423: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 424: Menutup elemen `th` (sel header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 425: Mengulang blok dengan pengaturan `var playerIndex ＝ 0; playerIndex ‹ orderedPlayers.Count; playerIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 426: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 427: Menyimpan `item` dengan membaca nilai `orderedPlayers[playerIndex]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 428: Menyimpan `turnOrder` dengan memilih nilai melalui kondisi ternary `item.PlayerOrder › 0 ? item.PlayerOrder : playerIndex + 1`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 429: Membentuk elemen `td` sebagai sel nilai dalam tabel.
+Baris sumber 430: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 431: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 432: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 433: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 434: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 435: Menutup elemen `tbody` (kelompok baris isi tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 436: Membentuk elemen `tfoot` sebagai komponen markup pada tampilan.
+Baris sumber 437: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 438: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `happiness-score-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.score.total` menurut bahasa sesi.
+Baris sumber 439: Mengulang blok dengan pengaturan `var playerIndex ＝ 0; playerIndex ‹ orderedPlayers.Count; playerIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 440: Membuka ruang lingkup blok untuk `th`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 441: Menyimpan `item` dengan membaca nilai `orderedPlayers[playerIndex]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 442: Menyimpan `turnOrder` dengan memilih nilai melalui kondisi ternary `item.PlayerOrder › 0 ? item.PlayerOrder : playerIndex + 1`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 443: Membentuk elemen `td` sebagai sel nilai dalam tabel.
+Baris sumber 444: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 445: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 446: Menutup elemen `tfoot` (komponen HTML) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 447: Menutup elemen `table` (tabel data dengan susunan baris dan kolom) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 448: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 450: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `happiness-score-mobile` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 451: Mengulang blok dengan pengaturan `var playerIndex ＝ 0; playerIndex ‹ orderedPlayers.Count; playerIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 452: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 453: Menyimpan `item` dengan membaca nilai `orderedPlayers[playerIndex]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 454: Menyimpan `turnOrder` dengan memilih nilai melalui kondisi ternary `item.PlayerOrder › 0 ? item.PlayerOrder : playerIndex + 1`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 455: Menyimpan `rank` dengan memanggil `playerRankLookup.TryGetValue(item.UserId, out var resolvedRank)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 456: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `resolvedRank`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 457: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `0;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 458: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri.
+Baris sumber 459: Membentuk elemen `header` sebagai bagian kepala halaman atau komponen.
+Baris sumber 460: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif.
+Baris sumber 460: Baris sumber 461: Melengkapi atribut `alt` pada `img` dengan `”@($”｛Context.T(”common.turn_order”)｝ ｛turnOrder｝”)” /›`; teks alternatif gambar ketika gambar tidak terlihat atau dibaca pembaca layar.
+Baris sumber 462: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 463: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga.
+Baris sumber 464: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `common.turn_order`, `common.rank` menurut bahasa sesi.
+Baris sumber 465: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `table-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”table-link”` menjadi teks yang terlihat pada komponen.
+Baris sumber 465: Baris sumber 466: Melengkapi atribut `asp-controller` pada `a` dengan `”Players” asp-action＝”Details” asp-route-sessionId＝”@Model.SessionId”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 465: Baris sumber 467: Melengkapi atribut `asp-route-playerId` pada `a` dengan `”@item.UserId”›@Context.T(”sessions.view_analytics”)‹/a›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 468: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 469: Menutup elemen `header` (bagian kepala halaman atau komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 470: Membentuk elemen `dl` sebagai daftar pasangan istilah dan penjelasan.
+Baris sumber 471: Mengiterasi `var scoreRow in happinessScoreRows`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 472: Membuka ruang lingkup blok untuk `dl`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 473: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 474: Membentuk elemen `dt` sebagai istilah dalam daftar definisi.
+Baris sumber 475: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `happiness-score-number` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 476: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 477: Menutup elemen `dt` (istilah dalam daftar definisi) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 478: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 479: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 480: Menutup elemen `dd` (penjelasan bagi istilah pada daftar definisi) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 481: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 482: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 483: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `happiness-score-mobile-total` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 484: Membentuk elemen `dt` sebagai istilah dalam daftar definisi. Teks dinamis dibaca dari kunci terjemahan `sessions.score.total` menurut bahasa sesi.
+Baris sumber 485: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 486: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 487: Menutup elemen `dl` (daftar pasangan istilah dan penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 488: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 489: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 490: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 491: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 492: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 494: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 495: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 496: Membuka ruang lingkup blok untuk `dd`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 497: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `session-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 498: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 499: Menyisipkan hasil ekspresi Razor `@Context.T(”sessions.detail.empty_analytics”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 500: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 501: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 502: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 504: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `session-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 505: Menghasilkan bagian tampilan melalui `@await Html.PartialAsync(”_SessionJourneySection”, Model)`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 506: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 507: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 509: Mendefinisikan section Razor `Scripts ｛`; layout merender bagian ini pada lokasi RenderSectionAsync yang sesuai.
+Baris sumber 510: Menghasilkan bagian tampilan melalui `@await Html.PartialAsync(”_SessionJourneyScript”, Model)`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 511: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript.
+Baris sumber 512: Mendefinisikan fungsi atau pemetaan `(() → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 513: Menyimpan `openBtn` dengan mengambil elemen DOM ber-ID `'openRulesetModalBtn'` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 514: Menyimpan `closeBtn` dengan mengambil elemen DOM ber-ID `'closeRulesetModalBtn'` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 515: Menyimpan `modal` dengan mengambil elemen DOM ber-ID `'rulesetModal'` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 516: Menyimpan `overlay` dengan mengambil elemen DOM ber-ID `'rulesetModalOverlay'` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 517: Menyimpan `focusableSelector` dengan menggunakan literal `'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex＝”-1”])'` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 518: Menyimpan `previousBodyOverflow` dengan membaca nilai `document.body.style.overflow` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 520: Memeriksa kondisi `!openBtn || !modal) return;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 521: Melakukan operasi dengan menempatkan node `modal` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
+Baris sumber 523: Melakukan operasi dengan memanggil `function openModal() ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 524: Melakukan operasi dengan menambahkan kelas `'is-open'` sehingga aturan CSS terkait diaktifkan pada elemen.
+Baris sumber 525: Memperbarui `modal.style.display` dengan menggunakan literal `'flex'` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 526: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `'aria-hidden', 'false'`; atribut mengendalikan presentasi atau aksesibilitas komponen.
+Baris sumber 527: Memperbarui `document.body.style.overflow` dengan menggunakan literal `'hidden'` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 528: Memeriksa kondisi `closeBtn) closeBtn.focus();`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 529: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 531: Melakukan operasi dengan memanggil `function closeModal() ｛` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 532: Melakukan operasi dengan menghapus kelas `'is-open'` sehingga status visual terkait dinonaktifkan.
+Baris sumber 533: Memperbarui `modal.style.display` dengan menggunakan literal `'none'` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 534: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `'aria-hidden', 'true'`; atribut mengendalikan presentasi atau aksesibilitas komponen.
+Baris sumber 535: Memperbarui `document.body.style.overflow` dengan membaca nilai `previousBodyOverflow` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 536: Melakukan operasi dengan memanggil `openBtn.focus()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 537: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 539: Mendefinisikan fungsi atau pemetaan `openBtn.addEventListener('click', (e) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 540: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
+Baris sumber 541: Melakukan operasi dengan memanggil `openModal()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 542: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 544: Memeriksa kondisi `closeBtn`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 545: Melakukan operasi dengan mendaftarkan penangan event `'click', closeModal)`; fungsi callback akan dijalankan browser ketika event tersebut terjadi.
+Baris sumber 546: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 548: Memeriksa kondisi `overlay`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 549: Melakukan operasi dengan mendaftarkan penangan event `'click', closeModal)`; fungsi callback akan dijalankan browser ketika event tersebut terjadi.
+Baris sumber 550: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 552: Mendefinisikan fungsi atau pemetaan `document.addEventListener('keydown', (e) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 553: Memeriksa kondisi `!modal.classList.contains('is-open')) return;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 555: Memeriksa kondisi `e.key ＝＝＝ 'Escape'`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 556: Melakukan operasi dengan memanggil `closeModal()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 557: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 558: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 560: Memeriksa kondisi `e.key ＝＝＝ 'Tab'`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 561: Menyimpan `focusable` dengan mencari semua turunan elemen yang sesuai dengan selector `focusableSelector)`.
+Baris sumber 562: Menyimpan `first` dengan membaca nilai `focusable[0]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 563: Menyimpan `last` dengan menghitung ekspresi `focusable[focusable.length - 1]` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 564: Memeriksa kondisi `!first || !last) return;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 566: Memeriksa kondisi `e.shiftKey && document.activeElement ＝＝＝ first`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 567: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
+Baris sumber 568: Melakukan operasi dengan memanggil `last.focus()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 569: Memeriksa kondisi `!e.shiftKey && document.activeElement ＝＝＝ last`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 570: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
+Baris sumber 571: Melakukan operasi dengan memanggil `first.focus()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 572: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 573: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 574: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 575: Melakukan operasi dengan membaca nilai `｝)()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 576: Menutup elemen `script` (skrip browser atau referensi berkas JavaScript) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 577: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+*@
 @model Cashflowpoly.Ui.Models.SessionDetailViewModel
 @{
     ViewData["Title"] = Context.T("sessions.detail_title");

@@ -1,98 +1,190 @@
 # Fungsi file: Mendefinisikan orkestrasi layanan utama aplikasi pada lingkungan kontainer.
+# Penjelasan: Menetapkan nama proyek Compose sebagai identitas kelompok resource. Nama ini membedakan lingkungan development dari layanan deployment utama. Nilai/deklarasi: name: cashflowpoly-analytics-platform.
 name: cashflowpoly-analytics-platform
 
+# Penjelasan: Membuka daftar layanan yang akan digabung, dibangun, atau dijalankan oleh Docker Compose. Nilai/deklarasi: services:.
 services:
+  # Penjelasan: Mendefinisikan layanan PostgreSQL, atau menamai dependensi db pada bagian depends_on sesuai tingkat indentasi. Nilai/deklarasi: db:.
   db:
+    # Penjelasan: Memilih nama dan tag image container. Tag RELEASE_SHA bila ada menghubungkan image aplikasi dengan commit rilis, dengan dev sebagai default lokal. Nilai/deklarasi: image: postgres:16.15.
     image: postgres:16.15
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-db.
     container_name: cashflowpoly-db
+    # Penjelasan: Mengatur restart unless-stopped: Docker berusaha menyalakan kembali layanan yang berhenti kecuali container sengaja dihentikan operator. Nilai/deklarasi: restart: unless-stopped.
     restart: unless-stopped
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Menentukan database PostgreSQL untuk inisialisasi image. Ekspansi :- memakai nilai fallback bila environment kosong atau belum diisi. Nilai/deklarasi: POSTGRES_DB: ${POSTGRES_DB:-cashflowpoly}.
       POSTGRES_DB: ${POSTGRES_DB:-cashflowpoly}
+      # Penjelasan: Menentukan akun PostgreSQL yang digunakan saat inisialisasi cluster dan pada health check koneksi. Nilai/deklarasi: POSTGRES_USER: ${POSTGRES_USER:-cashflowpoly}.
       POSTGRES_USER: ${POSTGRES_USER:-cashflowpoly}
+      # Penjelasan: Memasok password PostgreSQL. Ekspansi :? pada produksi menolak konfigurasi yang tidak memberi nilai; nilai fallback hanya berlaku jika dituliskan. Nilai/deklarasi: POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cashflowpoly}.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cashflowpoly}
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports:.
     ports:
+      # Penjelasan: Menambahkan anggota daftar ”${POSTGRES_PORT:-5432}:5432”. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - "${POSTGRES_PORT:-5432}:5432"
+    # Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
     volumes:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_pgdata:/var/lib/postgresql/data. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_pgdata:/var/lib/postgresql/data
+    # Penjelasan: Membuka perintah dan jadwal health check yang dipakai Docker menilai kesiapan layanan. Nilai/deklarasi: healthcheck:.
     healthcheck:
+      # Penjelasan: Menentukan perintah health check. CMD menjalankan argumen langsung; CMD-SHELL menjalankannya melalui shell sehingga pengalihan dan operator || dapat dipakai. Nilai/deklarasi: test: [”CMD-SHELL”, ”pg_isready -U ${POSTGRES_USER:-cashflowpoly} -d ${POSTGRES_DB:-cashflowpoly}”].
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cashflowpoly} -d ${POSTGRES_DB:-cashflowpoly}"]
+      # Penjelasan: Mengatur jarak antarhealth check container dalam satuan waktu yang disebut pada nilai. Nilai/deklarasi: interval: 5s.
       interval: 5s
+      # Penjelasan: Membatasi lama satu health check sebelum percobaan dinilai gagal. Nilai/deklarasi: timeout: 5s.
       timeout: 5s
+      # Penjelasan: Menentukan jumlah kegagalan health check berturut-turut sebelum Docker menandai container unhealthy. Nilai/deklarasi: retries: 20.
       retries: 20
+    # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - cashflowpoly-net
 
+  # Penjelasan: Mendefinisikan layanan REST API, atau menamai dependensi api yang harus siap sebelum layanan pemanggil dimulai. Nilai/deklarasi: api:.
   api:
+    # Penjelasan: Memilih nama dan tag image container. Tag RELEASE_SHA bila ada menghubungkan image aplikasi dengan commit rilis, dengan dev sebagai default lokal. Nilai/deklarasi: image: cashflowpoly-api:${RELEASE_SHA:-dev}.
     image: cashflowpoly-api:${RELEASE_SHA:-dev}
+    # Penjelasan: Membuka konfigurasi build image aplikasi dari checkout sumber lokal. Nilai/deklarasi: build:.
     build:
+      # Penjelasan: Memilih root konteks build relatif terhadap file Compose; berkas pada konteks ini dapat dirujuk instruksi COPY Dockerfile. Nilai/deklarasi: context: ../...
       context: ../..
+      # Penjelasan: Memilih Dockerfile API/UI atau varian development yang akan dipakai dalam build layanan ini. Nilai/deklarasi: dockerfile: src/Cashflowpoly.Api/Dockerfile.
       dockerfile: src/Cashflowpoly.Api/Dockerfile
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-api.
     container_name: cashflowpoly-api
+    # Penjelasan: Mengatur restart unless-stopped: Docker berusaha menyalakan kembali layanan yang berhenti kecuali container sengaja dihentikan operator. Nilai/deklarasi: restart: unless-stopped.
     restart: unless-stopped
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Memilih profil environment ASP.NET Core sehingga aplikasi menggunakan konfigurasi dan kebijakan Development/Production yang sesuai. Nilai/deklarasi: ASPNETCORE_ENVIRONMENT: ${API_ASPNETCORE_ENVIRONMENT:-Development}.
       ASPNETCORE_ENVIRONMENT: ${API_ASPNETCORE_ENVIRONMENT:-Development}
+      # Penjelasan: Menetapkan alamat bind HTTP aplikasi di dalam container; tanda + menerima koneksi pada semua interface container di port yang ditentukan. Nilai/deklarasi: ASPNETCORE_URLS: http://+:${API_HTTP_PORT:-5041}.
       ASPNETCORE_URLS: http://+:${API_HTTP_PORT:-5041}
+      # Penjelasan: Menyusun connection string API ke host db pada port internal PostgreSQL 5432, memakai nama database serta kredensial hasil interpolasi. Nilai/deklarasi: ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:-cashflowpoly}.
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-cashflowpoly};Username=${POSTGRES_USER:-cashflowpoly};Password=${POSTGRES_PASSWORD:-cashflowpoly}
+      # Penjelasan: Memasok rahasia tanda tangan JWT dari environment; API memakainya untuk menandatangani dan memverifikasi token autentikasi. Nilai/deklarasi: Jwt__SigningKey: ${JWT_SIGNING_KEY}.
       Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      # Penjelasan: Memberikan jalur opsional file satu kunci JWT; nilai kosong berarti konfigurasi tidak menetapkan sumber file ini. Nilai/deklarasi: Jwt__SigningKeyFile: ${JWT_SIGNING_KEY_FILE:-}.
       Jwt__SigningKeyFile: ${JWT_SIGNING_KEY_FILE:-}
+      # Penjelasan: Memberikan jalur opsional file kumpulan kunci JWT untuk validasi token saat rotasi kunci. Nilai/deklarasi: Jwt__SigningKeysFile: ${JWT_SIGNING_KEYS_FILE:-}.
       Jwt__SigningKeysFile: ${JWT_SIGNING_KEYS_FILE:-}
+      # Penjelasan: Memasok kumpulan kunci JWT dalam JSON dari environment untuk dukungan beberapa identitas kunci. Nilai/deklarasi: Jwt__SigningKeysJson: ${JWT_SIGNING_KEYS_JSON:-}.
       Jwt__SigningKeysJson: ${JWT_SIGNING_KEYS_JSON:-}
+      # Penjelasan: Memilih identitas kid kunci JWT aktif yang digunakan saat menerbitkan token baru. Nilai/deklarasi: Jwt__ActiveKeyId: ${JWT_ACTIVE_KEY_ID:-default}.
       Jwt__ActiveKeyId: ${JWT_ACTIVE_KEY_ID:-default}
+      # Penjelasan: Menentukan apakah bootstrap akun awal diminta pada startup; default false mencegah pembuatan akun melalui konfigurasi bootstrap yang belum diaktifkan. Nilai/deklarasi: AuthBootstrap__SeedDefaultUsers: ${AUTH_BOOTSTRAP_SEED_DEFAULT_USERS:-false}.
       AuthBootstrap__SeedDefaultUsers: ${AUTH_BOOTSTRAP_SEED_DEFAULT_USERS:-false}
+      # Penjelasan: Memasok nama akun Instruktur awal ketika bootstrap diaktifkan, dengan string kosong sebagai nilai default. Nilai/deklarasi: AuthBootstrap__InstructorUsername: ${AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME:-}.
       AuthBootstrap__InstructorUsername: ${AUTH_BOOTSTRAP_INSTRUCTOR_USERNAME:-}
+      # Penjelasan: Memasok password akun Instruktur awal yang harus berpasangan dengan username bootstrap. Nilai/deklarasi: AuthBootstrap__InstructorPassword: ${AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD:-}.
       AuthBootstrap__InstructorPassword: ${AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD:-}
+      # Penjelasan: Memasok nama akun Player awal yang opsional; nilai ini terpisah dari identitas peserta di dalam sesi permainan. Nilai/deklarasi: AuthBootstrap__PlayerUsername: ${AUTH_BOOTSTRAP_PLAYER_USERNAME:-}.
       AuthBootstrap__PlayerUsername: ${AUTH_BOOTSTRAP_PLAYER_USERNAME:-}
+      # Penjelasan: Memasok password untuk pasangan akun Player bootstrap ketika diperlukan. Nilai/deklarasi: AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}.
       AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}
+      # Penjelasan: Menentukan pemuatan data simulasi oleh initializer; nilai environment diwariskan ke konfigurasi DatabaseMigrations:SeedSimulation. Nilai/deklarasi: DatabaseMigrations__SeedSimulation: ${DATABASE_MIGRATIONS_SEED_SIMULATION:-false}.
       DatabaseMigrations__SeedSimulation: ${DATABASE_MIGRATIONS_SEED_SIMULATION:-false}
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports:.
     ports:
+      # Penjelasan: Menambahkan anggota daftar ”${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}”. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - "${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}"
+    # Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
     volumes:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_api_dpkeys:/home/app/.aspnet/DataProtection-Keys. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_api_dpkeys:/home/app/.aspnet/DataProtection-Keys
+    # Penjelasan: Membuka perintah dan jadwal health check yang dipakai Docker menilai kesiapan layanan. Nilai/deklarasi: healthcheck:.
     healthcheck:
+      # Penjelasan: Menentukan perintah health check. CMD menjalankan argumen langsung; CMD-SHELL menjalankannya melalui shell sehingga pengalihan dan operator || dapat dipakai. Nilai/deklarasi: test: [”CMD-SHELL”, ”curl --fail --silent http://localhost:${API_HTTP_PORT:-5041}/health/ready > /dev/null || exit 1”].
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:${API_HTTP_PORT:-5041}/health/ready > /dev/null || exit 1"]
+      # Penjelasan: Mengatur jarak antarhealth check container dalam satuan waktu yang disebut pada nilai. Nilai/deklarasi: interval: 10s.
       interval: 10s
+      # Penjelasan: Membatasi lama satu health check sebelum percobaan dinilai gagal. Nilai/deklarasi: timeout: 5s.
       timeout: 5s
+      # Penjelasan: Menentukan jumlah kegagalan health check berturut-turut sebelum Docker menandai container unhealthy. Nilai/deklarasi: retries: 12.
       retries: 12
+      # Penjelasan: Memberikan masa toleransi startup sebelum kegagalan health check dihitung terhadap batas retries. Nilai/deklarasi: start_period: 20s.
       start_period: 20s
+    # Penjelasan: Menetapkan ketergantungan startup layanan; kondisi service_healthy meminta layanan tujuan lolos health check terlebih dahulu. Nilai/deklarasi: depends_on:.
     depends_on:
+      # Penjelasan: Mendefinisikan layanan PostgreSQL, atau menamai dependensi db pada bagian depends_on sesuai tingkat indentasi. Nilai/deklarasi: db:.
       db:
+        # Penjelasan: Menetapkan service_healthy sebagai syarat dependensi sehingga startup menunggu kesiapan layanan, bukan hanya keberadaan proses. Nilai/deklarasi: condition: service_healthy.
         condition: service_healthy
+    # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - cashflowpoly-net
 
+  # Penjelasan: Mendefinisikan layanan MVC Web Analitik, atau dependensi ui yang readiness-nya diperlukan layanan reverse proxy. Nilai/deklarasi: ui:.
   ui:
+    # Penjelasan: Memilih nama dan tag image container. Tag RELEASE_SHA bila ada menghubungkan image aplikasi dengan commit rilis, dengan dev sebagai default lokal. Nilai/deklarasi: image: cashflowpoly-ui:${RELEASE_SHA:-dev}.
     image: cashflowpoly-ui:${RELEASE_SHA:-dev}
+    # Penjelasan: Membuka konfigurasi build image aplikasi dari checkout sumber lokal. Nilai/deklarasi: build:.
     build:
+      # Penjelasan: Memilih root konteks build relatif terhadap file Compose; berkas pada konteks ini dapat dirujuk instruksi COPY Dockerfile. Nilai/deklarasi: context: ../...
       context: ../..
+      # Penjelasan: Memilih Dockerfile API/UI atau varian development yang akan dipakai dalam build layanan ini. Nilai/deklarasi: dockerfile: src/Cashflowpoly.Ui/Dockerfile.
       dockerfile: src/Cashflowpoly.Ui/Dockerfile
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-ui.
     container_name: cashflowpoly-ui
+    # Penjelasan: Mengatur restart unless-stopped: Docker berusaha menyalakan kembali layanan yang berhenti kecuali container sengaja dihentikan operator. Nilai/deklarasi: restart: unless-stopped.
     restart: unless-stopped
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Memilih profil environment ASP.NET Core sehingga aplikasi menggunakan konfigurasi dan kebijakan Development/Production yang sesuai. Nilai/deklarasi: ASPNETCORE_ENVIRONMENT: ${UI_ASPNETCORE_ENVIRONMENT:-Development}.
       ASPNETCORE_ENVIRONMENT: ${UI_ASPNETCORE_ENVIRONMENT:-Development}
+      # Penjelasan: Menetapkan alamat bind HTTP aplikasi di dalam container; tanda + menerima koneksi pada semua interface container di port yang ditentukan. Nilai/deklarasi: ASPNETCORE_URLS: http://+:${UI_HTTP_PORT:-5203}.
       ASPNETCORE_URLS: http://+:${UI_HTTP_PORT:-5203}
+      # Penjelasan: Menentukan URL API internal yang dihubungi HttpClient server UI melalui DNS layanan Docker, bukan alamat browser pengguna. Nilai/deklarasi: ApiBaseUrl: http://api:${API_HTTP_PORT:-5041}.
       ApiBaseUrl: http://api:${API_HTTP_PORT:-5041}
+      # Penjelasan: Memasok domain aplikasi untuk pembentukan alamat situs. Pada produksi, ekspansi wajib menolak domain yang kosong. Nilai/deklarasi: DOMAIN: ${DOMAIN:-http://localhost:5203}.
       DOMAIN: ${DOMAIN:-http://localhost:5203}
+    # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports:.
     ports:
+      # Penjelasan: Menambahkan anggota daftar ”${UI_HTTP_PORT:-5203}:${UI_HTTP_PORT:-5203}”. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - "${UI_HTTP_PORT:-5203}:${UI_HTTP_PORT:-5203}"
+    # Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
     volumes:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_ui_dpkeys:/home/app/.aspnet/DataProtection-Keys. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_ui_dpkeys:/home/app/.aspnet/DataProtection-Keys
+    # Penjelasan: Membuka perintah dan jadwal health check yang dipakai Docker menilai kesiapan layanan. Nilai/deklarasi: healthcheck:.
     healthcheck:
+      # Penjelasan: Menentukan perintah health check. CMD menjalankan argumen langsung; CMD-SHELL menjalankannya melalui shell sehingga pengalihan dan operator || dapat dipakai. Nilai/deklarasi: test: [”CMD-SHELL”, ”curl --fail --silent http://localhost:${UI_HTTP_PORT:-5203}/health/ready > /dev/null || exit 1”].
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:${UI_HTTP_PORT:-5203}/health/ready > /dev/null || exit 1"]
+      # Penjelasan: Mengatur jarak antarhealth check container dalam satuan waktu yang disebut pada nilai. Nilai/deklarasi: interval: 10s.
       interval: 10s
+      # Penjelasan: Membatasi lama satu health check sebelum percobaan dinilai gagal. Nilai/deklarasi: timeout: 5s.
       timeout: 5s
+      # Penjelasan: Menentukan jumlah kegagalan health check berturut-turut sebelum Docker menandai container unhealthy. Nilai/deklarasi: retries: 12.
       retries: 12
+      # Penjelasan: Memberikan masa toleransi startup sebelum kegagalan health check dihitung terhadap batas retries. Nilai/deklarasi: start_period: 20s.
       start_period: 20s
+    # Penjelasan: Menetapkan ketergantungan startup layanan; kondisi service_healthy meminta layanan tujuan lolos health check terlebih dahulu. Nilai/deklarasi: depends_on:.
     depends_on:
+      # Penjelasan: Mendefinisikan layanan REST API, atau menamai dependensi api yang harus siap sebelum layanan pemanggil dimulai. Nilai/deklarasi: api:.
       api:
+        # Penjelasan: Menetapkan service_healthy sebagai syarat dependensi sehingga startup menunggu kesiapan layanan, bukan hanya keberadaan proses. Nilai/deklarasi: condition: service_healthy.
         condition: service_healthy
+    # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - cashflowpoly-net
 
+# Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
 volumes:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_pgdata; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_pgdata:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_api_dpkeys; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_api_dpkeys:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_ui_dpkeys; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_ui_dpkeys:
 
+# Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
 networks:
+  # Penjelasan: Menamai jaringan bersama tempat layanan berkomunikasi melalui DNS nama layanan. Nilai/deklarasi: cashflowpoly-net:.
   cashflowpoly-net:
+    # Penjelasan: Memilih driver network atau logging sesuai blok induk. bridge dipakai jaringan internal, sedangkan pilihan LOG_DRIVER mengatur tujuan log container. Nilai/deklarasi: driver: bridge.
     driver: bridge

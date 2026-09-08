@@ -1,12 +1,22 @@
 # Fungsi file: Mengatur konfigurasi tunnel Cloudflare untuk publikasi layanan internal.
+# Penjelasan: Menetapkan identitas Cloudflare Named Tunnel yang dikaitkan dengan file kredensial dan aturan ingress di bawahnya. Nilai/deklarasi: tunnel: c3d4164e-e1c9-4de3-a4c3-c30a6e157a04.
 tunnel: c3d4164e-e1c9-4de3-a4c3-c30a6e157a04
+# Penjelasan: Menentukan lokasi file kredensial tunnel di container; cloudflared membaca identitas autentikasi dari jalur ini. Nilai/deklarasi: credentials-file: /etc/cloudflared/credentials.json.
 credentials-file: /etc/cloudflared/credentials.json
+# Penjelasan: Memilih tingkat detail log cloudflared; debug menampilkan informasi diagnosis lebih rinci daripada info. Nilai/deklarasi: loglevel: debug.
 loglevel: debug
 
+# Penjelasan: Membuka daftar aturan pemetaan hostname publik ke layanan origin, dievaluasi menurut urutan deklarasi. Nilai/deklarasi: ingress:.
 ingress:
+  # Penjelasan: Mencocokkan hostname publik pada permintaan tunnel dengan domain yang tertulis. Nilai/deklarasi: - hostname: narafin.org.
   - hostname: narafin.org
+    # Penjelasan: Menetapkan origin HTTP internal atau respons http_status:404. Aturan terakhir tanpa hostname menjadi fallback untuk permintaan yang tidak cocok. Nilai/deklarasi: service: http://nginx:8080.
     service: http://nginx:8080
+    # Penjelasan: Membuka opsi koneksi cloudflared ke layanan origin untuk aturan ingress ini. Nilai/deklarasi: originRequest:.
     originRequest:
+      # Penjelasan: Menonaktifkan verifikasi sertifikat origin bila koneksi origin menggunakan TLS; pada origin HTTP ini tidak melakukan pemeriksaan sertifikat. Nilai/deklarasi: noTLSVerify: true.
       noTLSVerify: true
+      # Penjelasan: Membatasi waktu pembentukan koneksi ke origin hingga durasi yang diberikan. Nilai/deklarasi: connectTimeout: 10s.
       connectTimeout: 10s
+  # Penjelasan: Menetapkan origin HTTP internal atau respons http_status:404. Aturan terakhir tanpa hostname menjadi fallback untuk permintaan yang tidak cocok. Nilai/deklarasi: - service: http_status:404.
   - service: http_status:404

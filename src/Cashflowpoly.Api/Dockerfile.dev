@@ -1,16 +1,28 @@
 # dev runtime
+# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/sdk:10.0.200. Image SDK menyediakan compiler dan watcher untuk menjalankan kode saat pengembangan.
 FROM mcr.microsoft.com/dotnet/sdk:10.0.200
 
+# Uraian baris: Menetapkan direktori kerja /src di dalam image; jalur relatif pada COPY, RUN, dan proses berikutnya diinterpretasikan dari lokasi ini.
 WORKDIR /src
+# Uraian baris: Bagian 1 dari 5 baris instruksi berikut. Memperbarui indeks paket Debian sebelum instalasi utilitas pada instruksi RUN yang sama; backslash meneruskan perintah ke baris sesudahnya.
+# Uraian baris: Bagian 2 dari 5 baris instruksi berikut. Memasang curl untuk permintaan HTTP health check tanpa paket rekomendasi tambahan; operator && meneruskan eksekusi hanya jika langkah sebelumnya berhasil.
+# Uraian baris: Bagian 3 dari 5 baris instruksi berikut. Menghapus indeks paket sementara setelah instalasi agar tidak ikut memperbesar image; path ini milik filesystem image saat build.
+# Uraian baris: Bagian 4 dari 5 baris instruksi berikut. Membuat direktori yang disebutkan untuk output build, cache paket, atau kunci Data Protection. Opsi -p juga membuat direktori induk yang belum tersedia.
+# Uraian baris: Bagian 5 dari 5 baris instruksi berikut. Memberikan kepemilikan direktori kerja/cache/kunci kepada app:app secara rekursif agar proses non-root dapat menulis ke lokasi yang diperlukan.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /src/src/Cashflowpoly.Api/bin /src/src/Cashflowpoly.Api/obj /home/app/.nuget/packages /home/app/.aspnet/DataProtection-Keys \
     && chown -R app:app /src /home/app
 
+# Uraian baris: Bagian 1 dari 4 baris instruksi berikut. Mengaktifkan polling file watcher melalui environment image; cara ini mendeteksi perubahan sumber pada bind mount development.
+# Uraian baris: Bagian 2 dari 4 baris instruksi berikut. Menonaktifkan emoji pada output dotnet watch agar log container tetap mudah dibaca sebagai teks.
+# Uraian baris: Bagian 3 dari 4 baris instruksi berikut. Menetapkan home pengguna proses pada /home/app agar tool menaruh konfigurasi dan cache pada direktori yang dimiliki app.
+# Uraian baris: Bagian 4 dari 4 baris instruksi berikut. Mengatur lokasi cache paket NuGet pada home app sehingga restore oleh proses non-root tidak memerlukan direktori milik root.
 ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
     DOTNET_WATCH_SUPPRESS_EMOJIS=1 \
     HOME=/home/app \
     NUGET_PACKAGES=/home/app/.nuget/packages
 
+# Uraian baris: Mengalihkan pengguna default container ke app; instruksi/proses selanjutnya berjalan dengan hak pengguna tersebut.
 USER app

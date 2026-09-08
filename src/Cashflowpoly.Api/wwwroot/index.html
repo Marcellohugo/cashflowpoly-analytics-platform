@@ -1,5 +1,275 @@
 <!DOCTYPE html>
-<html lang="id">
+<!-- Penjelasan setiap baris HTML/CSS/JavaScript asli (nomor sebelum blok ini ditambahkan).
+Baris sumber 1: Mendeklarasikan tipe dokumen `html` agar browser memproses halaman menggunakan mode standar HTML.
+Baris sumber 2: Membentuk elemen `html` sebagai akar dokumen HTML.
+Baris sumber 3: Membentuk elemen `head` sebagai metadata dan referensi aset halaman.
+Baris sumber 4: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 5: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `viewport` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 6: Menyediakan elemen `link` sebagai referensi stylesheet atau sumber eksternal. Atribut `type` bernilai `image/x-icon` menentukan jenis kontrol atau tipe konten. Atribut `href` bernilai `/api-assets/cashflowpoly-favicon.ico` menentukan alamat tujuan tautan.
+Baris sumber 7: Membentuk elemen `title` sebagai judul tab browser. Isi `Cashflowpoly API` menjadi teks yang terlihat pada komponen.
+Baris sumber 8: Membuka stylesheet lokal untuk layout, warna, tipografi, dan responsivitas halaman.
+Baris sumber 9: Membuka aturan selector atau kondisi media :root {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 10: Menetapkan properti CSS - -bg-1 dengan nilai #061227;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 11: Menetapkan properti CSS - -bg-2 dengan nilai #0d3159;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 12: Menetapkan properti CSS - -ink dengan nilai #e8f2ff;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 13: Menetapkan properti CSS - -muted dengan nilai #9bc0e8;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 14: Menetapkan properti CSS - -accent dengan nilai #ff9d4d;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 15: Menetapkan properti CSS - -accent-2 dengan nilai #35d0ff;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 16: Menetapkan properti CSS - -card dengan nilai rgba(255, 255, 255, 0.08);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 17: Menetapkan properti CSS - -border dengan nilai rgba(255, 255, 255, 0.18);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 18: Menetapkan properti CSS - -title-font dengan nilai ”Space Grotesk”, ”Avenir Next”, ”Segoe UI”, sans-serif;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 19: Menetapkan properti CSS - -body-font dengan nilai ”Manrope”, ”Segoe UI”, sans-serif;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 20: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 22: Membuka aturan selector atau kondisi media * {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 23: Menetapkan properti CSS box-sizing dengan nilai border-box;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 24: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 26: Membuka aturan selector atau kondisi media body {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 27: Menetapkan properti CSS margin dengan nilai 0;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 28: Menetapkan properti CSS min-height dengan nilai 100vh;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 29: Menetapkan properti CSS min-height dengan nilai 100svh;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 30: Menetapkan properti CSS display dengan nilai grid;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 31: Menetapkan properti CSS place-items dengan nilai center;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 32: Menetapkan properti CSS padding dengan nilai clamp(10px, 2.4vw, 24px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 33: Menetapkan properti CSS background dengan nilai . Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 34: Melanjutkan nilai atau selector CSS radial-gradient(900px 500px at 8% 10%, rgba(255, 157, 77, 0.23), transparent 60%),; urutan bagian menentukan urutan fungsi, lapisan latar, atau sasaran gaya.
+Baris sumber 35: Melanjutkan nilai atau selector CSS radial-gradient(850px 450px at 90% 0%, rgba(53, 208, 255, 0.24), transparent 55%),; urutan bagian menentukan urutan fungsi, lapisan latar, atau sasaran gaya.
+Baris sumber 36: Melanjutkan nilai atau selector CSS linear-gradient(140deg, var(- -bg-1), var(- -bg-2));; urutan bagian menentukan urutan fungsi, lapisan latar, atau sasaran gaya.
+Baris sumber 37: Menetapkan properti CSS color dengan nilai var(- -ink);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 38: Menetapkan properti CSS font-family dengan nilai var(- -body-font);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 39: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 41: Membuka aturan selector atau kondisi media .hero {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 42: Menetapkan properti CSS width dengan nilai min(980px, 100%);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 43: Menetapkan properti CSS background dengan nilai var(- -card);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 44: Menetapkan properti CSS border dengan nilai 1px solid var(- -border);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 45: Menetapkan properti CSS border-radius dengan nilai clamp(16px, 2.4vw, 24px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 46: Menetapkan properti CSS backdrop-filter dengan nilai blur(8px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 47: Menetapkan properti CSS box-shadow dengan nilai 0 20px 60px rgba(4, 15, 30, 0.45);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 48: Menetapkan properti CSS overflow dengan nilai hidden;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 49: Menetapkan properti CSS display dengan nilai grid;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 50: Menetapkan properti CSS grid-template-columns dengan nilai 1.05fr 0.95fr;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 51: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 53: Membuka aturan selector atau kondisi media .left {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 54: Menetapkan properti CSS padding dengan nilai clamp(24px, 6vw, 56px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 55: Menetapkan properti CSS position dengan nilai relative;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 56: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 58: Membuka aturan selector atau kondisi media .lang-switch {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 59: Menetapkan properti CSS position dengan nilai absolute;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 60: Menetapkan properti CSS right dengan nilai clamp(16px, 2vw, 22px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 61: Menetapkan properti CSS top dengan nilai clamp(16px, 2vw, 22px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 62: Menetapkan properti CSS display dengan nilai inline-flex;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 63: Menetapkan properti CSS gap dengan nilai 6px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 64: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 66: Membuka aturan selector atau kondisi media .lang-button {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 67: Menetapkan properti CSS border dengan nilai 1px solid rgba(255, 255, 255, 0.28);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 68: Menetapkan properti CSS border-radius dengan nilai 999px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 69: Menetapkan properti CSS min-width dengan nilai 44px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 70: Menetapkan properti CSS padding dengan nilai 6px 10px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 71: Menetapkan properti CSS background dengan nilai rgba(255, 255, 255, 0.08);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 72: Menetapkan properti CSS color dengan nilai var(- -ink);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 73: Menetapkan properti CSS font-size dengan nilai 0.75rem;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 74: Menetapkan properti CSS font-weight dengan nilai 700;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 75: Menetapkan properti CSS cursor dengan nilai pointer;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 76: Menetapkan properti CSS transition dengan nilai transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 77: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 79: Membuka aturan selector atau kondisi media .lang-button:hover {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 80: Menetapkan properti CSS transform dengan nilai translateY(-1px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 81: Menetapkan properti CSS opacity dengan nilai 0.92;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 82: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 84: Membuka aturan selector atau kondisi media .lang-button.is-active {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 85: Menetapkan properti CSS background dengan nilai rgba(53, 208, 255, 0.18);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 86: Menetapkan properti CSS border-color dengan nilai rgba(53, 208, 255, 0.6);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 87: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 89: Membuka aturan selector atau kondisi media .badge {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 90: Menetapkan properti CSS display dengan nilai inline-block;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 91: Menetapkan properti CSS border-radius dengan nilai 999px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 92: Menetapkan properti CSS border dengan nilai 1px solid rgba(255, 255, 255, 0.26);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 93: Menetapkan properti CSS padding dengan nilai 7px 14px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 94: Menetapkan properti CSS letter-spacing dengan nilai 0.08em;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 95: Menetapkan properti CSS text-transform dengan nilai uppercase;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 96: Menetapkan properti CSS font-size dengan nilai 0.74rem;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 97: Menetapkan properti CSS font-weight dengan nilai 700;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 98: Menetapkan properti CSS color dengan nilai var(- -muted);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 99: Menetapkan properti CSS margin-bottom dengan nilai 14px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 100: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 102: Membuka aturan selector atau kondisi media h1 {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 103: Menetapkan properti CSS margin dengan nilai 0;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 104: Menetapkan properti CSS font-family dengan nilai var(- -title-font);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 105: Menetapkan properti CSS font-size dengan nilai clamp(2rem, 6vw, 4rem);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 106: Menetapkan properti CSS line-height dengan nilai 0.98;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 107: Menetapkan properti CSS letter-spacing dengan nilai 0.01em;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 108: Menetapkan properti CSS text-wrap dengan nilai balance;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 109: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 111: Membuka aturan selector atau kondisi media .subtitle {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 112: Menetapkan properti CSS margin dengan nilai 18px 0 24px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 113: Menetapkan properti CSS max-width dengan nilai 470px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 114: Menetapkan properti CSS color dengan nilai #c1daf6;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 115: Menetapkan properti CSS font-size dengan nilai clamp(0.95rem, 1.5vw, 1.1rem);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 116: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 118: Membuka aturan selector atau kondisi media .chips {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 119: Menetapkan properti CSS display dengan nilai flex;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 120: Menetapkan properti CSS flex-wrap dengan nilai wrap;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 121: Menetapkan properti CSS gap dengan nilai 8px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 122: Menetapkan properti CSS margin-bottom dengan nilai 26px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 123: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 125: Membuka aturan selector atau kondisi media .chip {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 126: Menetapkan properti CSS padding dengan nilai 7px 12px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 127: Menetapkan properti CSS border-radius dengan nilai 999px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 128: Menetapkan properti CSS font-size dengan nilai 0.82rem;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 129: Menetapkan properti CSS font-weight dengan nilai 700;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 130: Menetapkan properti CSS background dengan nilai rgba(255, 255, 255, 0.11);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 131: Menetapkan properti CSS border dengan nilai 1px solid rgba(255, 255, 255, 0.2);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 132: Menetapkan properti CSS color dengan nilai #dcf0ff;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 133: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 135: Membuka aturan selector atau kondisi media .right {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 136: Menetapkan properti CSS position dengan nilai relative;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 137: Menetapkan properti CSS display dengan nilai grid;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 138: Menetapkan properti CSS place-items dengan nilai center;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 139: Menetapkan properti CSS padding dengan nilai clamp(14px, 3vw, 24px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 140: Menetapkan properti CSS min-height dengan nilai clamp(220px, 38vw, 360px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 141: Menetapkan properti CSS background dengan nilai linear-gradient(170deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.11));. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 142: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 144: Membuka aturan selector atau kondisi media .art {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 145: Menetapkan properti CSS width dengan nilai min(430px, 100%);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 146: Menetapkan properti CSS height dengan nilai auto;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 147: Menetapkan properti CSS border-radius dengan nilai 16px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 148: Menetapkan properti CSS border dengan nilai 1px solid rgba(255, 255, 255, 0.22);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 149: Menetapkan properti CSS filter dengan nilai drop-shadow(0 15px 25px rgba(1, 10, 22, 0.5));. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 150: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 152: Membuka aturan selector atau kondisi media @media (max-width: 920px) {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 153: Membuka aturan selector atau kondisi media .hero {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 154: Menetapkan properti CSS grid-template-columns dengan nilai 1fr;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 155: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 157: Membuka aturan selector atau kondisi media .right {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 158: Menetapkan properti CSS min-height dengan nilai clamp(200px, 50vw, 280px);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 159: Menetapkan properti CSS padding-top dengan nilai 0;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 160: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 161: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 163: Membuka aturan selector atau kondisi media @media (max-width: 680px) {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 164: Membuka aturan selector atau kondisi media body {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 165: Menetapkan properti CSS place-items dengan nilai start center;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 166: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 168: Membuka aturan selector atau kondisi media .left {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 169: Menetapkan properti CSS padding dengan nilai 20px 16px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 170: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 172: Membuka aturan selector atau kondisi media .lang-switch {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 173: Menetapkan properti CSS right dengan nilai 12px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 174: Menetapkan properti CSS top dengan nilai 12px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 175: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 177: Membuka aturan selector atau kondisi media .badge {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 178: Menetapkan properti CSS margin-bottom dengan nilai 10px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 179: Menetapkan properti CSS padding dengan nilai 6px 11px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 180: Menetapkan properti CSS font-size dengan nilai 0.68rem;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 181: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 183: Membuka aturan selector atau kondisi media h1 {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 184: Menetapkan properti CSS font-size dengan nilai clamp(1.7rem, 10vw, 2.6rem);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 185: Menetapkan properti CSS line-height dengan nilai 1.03;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 186: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 188: Membuka aturan selector atau kondisi media .subtitle {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 189: Menetapkan properti CSS margin dengan nilai 12px 0 18px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 190: Menetapkan properti CSS font-size dengan nilai 0.94rem;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 191: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 193: Membuka aturan selector atau kondisi media .chips {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 194: Menetapkan properti CSS margin-bottom dengan nilai 18px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 195: Menetapkan properti CSS gap dengan nilai 6px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 196: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 198: Membuka aturan selector atau kondisi media .chip {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 199: Menetapkan properti CSS font-size dengan nilai 0.76rem;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 200: Menetapkan properti CSS padding dengan nilai 6px 9px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 201: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 203: Membuka aturan selector atau kondisi media .right {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 204: Menetapkan properti CSS padding dengan nilai 10px 14px 14px;. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 205: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 207: Membuka aturan selector atau kondisi media .art {; deklarasi di dalamnya berlaku pada elemen/ukuran layar yang cocok.
+Baris sumber 208: Menetapkan properti CSS width dengan nilai min(360px, 100%);. Properti ini berlaku pada selector pembungkus untuk mengatur tampilan elemen yang cocok.
+Baris sumber 209: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 210: Menutup blok CSS untuk selector atau kondisi media yang sedang aktif.
+Baris sumber 211: Menutup stylesheet lokal; teks setelah tag ini kembali diproses sebagai markup HTML.
+Baris sumber 212: Menutup elemen `head` (metadata dan referensi aset halaman) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 213: Membentuk elemen `body` sebagai konten halaman yang ditampilkan browser.
+Baris sumber 214: Membentuk elemen `main` sebagai area konten utama untuk navigasi aksesibilitas. Atribut `class` bernilai `hero` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 215: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `left` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 216: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `lang-switch` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `role` bernilai `group` menentukan peran semantik yang diumumkan kepada teknologi bantu.
+Baris sumber 217: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `type` bernilai `button` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `lang-button js-lang` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `ID` menjadi teks yang terlihat pada komponen.
+Baris sumber 218: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `type` bernilai `button` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `lang-button js-lang` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `EN` menjadi teks yang terlihat pada komponen.
+Baris sumber 219: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 220: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `badge` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 221: Membentuk elemen `h1` sebagai judul utama halaman.
+Baris sumber 222: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 223: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `chips` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 224: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 225: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 226: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 227: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 228: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 230: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `right` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 231: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif. Isi `<img` menjadi teks yang terlihat pada komponen.
+Baris sumber 232: Melengkapi atribut `class` pada `halaman statis` dengan `”art”`; kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 233: Melengkapi atribut `src` pada `halaman statis` dengan `”/api-assets/cashflowpoly.jpg”`; lokasi sumber aset.
+Baris sumber 234: Melengkapi atribut `alt` pada `halaman statis` dengan `”Cashflowpoly board illustration”`; teks alternatif gambar ketika gambar tidak terlihat atau dibaca pembaca layar.
+Baris sumber 235: Melengkapi atribut `data-alt-id` pada `halaman statis` dengan `”Ilustrasi papan Cashflowpoly”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 236: Melengkapi atribut `data-alt-en` pada `halaman statis` dengan `”Cashflowpoly board illustration”>`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 237: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 238: Menutup elemen `main` (area konten utama untuk navigasi aksesibilitas) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 240: Membuka JavaScript halaman yang dijalankan browser setelah tag script diproses.
+Baris sumber 241: Mendefinisikan fungsi atau pemetaan `(() => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 242: Menyimpan `lexicon` dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya.
+Baris sumber 243: Mengisi properti `id` pada objek atau konfigurasi dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 244: Mengisi properti `badge` pada objek atau konfigurasi dengan menggunakan literal `”Layanan Backend”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 245: Mengisi properti `title` pada objek atau konfigurasi dengan menggunakan literal `”Cashflowpoly API”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 246: Mengisi properti `subtitle` pada objek atau konfigurasi dengan menggunakan literal `”Layanan API untuk autentikasi, event ingestion, manajemen ruleset, sesi permainan, dan perhitungan analitika Cashflowpoly.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 247: Mengisi properti `chip_api` pada objek atau konfigurasi dengan menggunakan literal `”REST /api/v1”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 248: Mengisi properti `chip_jwt` pada objek atau konfigurasi dengan menggunakan literal `”Autentikasi JWT”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 249: Mengisi properti `chip_rate` pada objek atau konfigurasi dengan menggunakan literal `”Rate Limit Aktif”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 250: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 251: Mengisi properti `en` pada objek atau konfigurasi dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 252: Mengisi properti `badge` pada objek atau konfigurasi dengan menggunakan literal `”Backend Service”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 253: Mengisi properti `title` pada objek atau konfigurasi dengan menggunakan literal `”Cashflowpoly API”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 254: Mengisi properti `subtitle` pada objek atau konfigurasi dengan menggunakan literal `”API service for authentication, event ingestion, ruleset management, gameplay sessions, and Cashflowpoly analytics computation.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 255: Mengisi properti `chip_api` pada objek atau konfigurasi dengan menggunakan literal `”REST /api/v1”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 256: Mengisi properti `chip_jwt` pada objek atau konfigurasi dengan menggunakan literal `”JWT Authentication”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 257: Mengisi properti `chip_rate` pada objek atau konfigurasi dengan menggunakan literal `”Rate Limit Enabled”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 258: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 259: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 261: Menyimpan `buttons` dengan mencari seluruh elemen DOM yang cocok dengan selector `”.js-lang”)`; daftar ini menjadi sasaran perilaku antarmuka.
+Baris sumber 262: Menyimpan `image` dengan mencari elemen DOM pertama yang sesuai dengan `”.art”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 264: Menyimpan `detectInitialLanguage` dengan membaca nilai `() => {` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 265: Menyimpan `lang` dengan membaca nilai `navigator.languages && navigator.languages.length > 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 266: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `navigator.languages[0]`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 267: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `navigator.language || ”id”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 268: Mengembalikan hasil kepada pemanggil dengan menormalkan string menjadi huruf kecil sehingga pencocokan kunci tidak bergantung kapitalisasi masukan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 269: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 271: Menyimpan `render` dengan membaca nilai `(lang) => {` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 272: Menyimpan `activeLanguage` dengan memilih nilai melalui kondisi ternary `lang === ”en” ? ”en” : ”id”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 273: Menyimpan `dictionary` dengan membaca nilai `lexicon[activeLanguage]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 275: Memperbarui `document.documentElement.lang` dengan membaca nilai `activeLanguage` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 276: Mendefinisikan fungsi atau pemetaan `Object.entries(dictionary).forEach(([key, value]) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 277: Mendefinisikan fungsi atau pemetaan `document.querySelectorAll(`[data-t=”${key}”]`).forEach((node) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 278: Memperbarui `node.textContent` dengan membaca nilai `value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 279: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 280: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 282: Memeriksa kondisi `image`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 283: Memperbarui `image.alt` dengan membaca nilai `activeLanguage === ”en”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 284: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `image.dataset.altEn`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 285: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `image.dataset.altId;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 286: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 288: Mendefinisikan fungsi atau pemetaan `buttons.forEach((button) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 289: Menyimpan `isActive` dengan membaca nilai `button.dataset.lang === activeLanguage` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 290: Melakukan operasi dengan membalik keberadaan kelas `”is-active”, isActive` dan menghasilkan status aktif setelah perubahan.
+Baris sumber 291: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `”aria-pressed”, isActive ? ”true” : ”false”`; atribut mengendalikan presentasi atau aksesibilitas komponen.
+Baris sumber 292: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 293: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 295: Menyimpan `initialLanguage` dengan memanggil `detectInitialLanguage()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 296: Melakukan operasi dengan memanggil `render(initialLanguage)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 298: Mendefinisikan fungsi atau pemetaan `buttons.forEach((button) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 299: Mendefinisikan fungsi atau pemetaan `button.addEventListener(”click”, () => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 300: Melakukan operasi dengan memanggil `render(button.dataset.lang || ”id”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 301: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 302: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 303: Melakukan operasi dengan membaca nilai `})()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 304: Menutup skrip sehingga elemen dokumen berikutnya kembali diproses sebagai HTML.
+Baris sumber 305: Menutup elemen `body` (konten halaman yang ditampilkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 306: Menutup elemen `html` (akar dokumen HTML) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+--><html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

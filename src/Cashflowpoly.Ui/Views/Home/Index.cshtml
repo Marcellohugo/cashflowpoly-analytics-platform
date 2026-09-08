@@ -1,4 +1,266 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Home/Index.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Home/Index.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.HomeIndexViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Mengimpor namespace `System.Text.Json` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 4: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 5: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `nav.home` sesuai bahasa sesi pengguna.
+Baris sumber 6: Memperbarui `ViewData[”MetaDescription”]` dengan mengambil teks terjemahan berkunci `home.meta_desc` sesuai bahasa sesi pengguna.
+Baris sumber 7: Memperbarui `ViewData[”MetaKeywords”]` dengan mengambil teks terjemahan berkunci `home.meta_keywords` sesuai bahasa sesi pengguna.
+Baris sumber 8: Menyimpan `isInstructor` dengan memeriksa peran instruktur pada sesi HTTP untuk menentukan kontrol tampilan yang tersedia.
+Baris sumber 9: Menyimpan `heroBadge` dengan mengambil teks terjemahan berkunci `home.badge` sesuai bahasa sesi pengguna.
+Baris sumber 10: Menyimpan `heroTitle` dengan membaca nilai `isInstructor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 11: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”home.title”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 12: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”home.player_title”);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 13: Menyimpan `heroSubtitle` dengan membaca nilai `isInstructor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 14: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”home.subtitle”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 15: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”home.player_subtitle”);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 16: Menyimpan `primaryCtaController` dengan menggunakan literal `”Sessions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 17: Menyimpan `primaryCtaText` dengan mengambil teks terjemahan berkunci `home.cta.sessions` sesuai bahasa sesi pengguna.
+Baris sumber 18: Menyimpan `secondaryCtaController` dengan memilih nilai melalui kondisi ternary `isInstructor ? ”Rulesets” : ”Sessions”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 19: Menyimpan `secondaryCtaText` dengan membaca nilai `isInstructor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 20: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”home.cta.open_ruleset”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 21: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”home.cta.session_ruleset”);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 22: Menyimpan `totalSessionsLabel` dengan mengambil teks terjemahan berkunci `home.total_sessions` sesuai bahasa sesi pengguna.
+Baris sumber 23: Menyimpan `totalPlayersLabel` dengan mengambil teks terjemahan berkunci `home.players_monitored` sesuai bahasa sesi pengguna.
+Baris sumber 24: Menyimpan `hasWorkspaceData` dengan membaca nilai `Model.TotalSessions › 0 || Model.TotalPlayers › 0 || (isInstructor && Model.TotalRulesets › 0)` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 25: Menyimpan `activeSessionPercent` dengan membaca nilai `Model.TotalSessions › 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 26: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Math.Clamp((int)Math.Round(Model.ActiveSessions * 100d / Model.TotalSessions), 0, 100)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 27: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `0;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 28: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 30: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri.
+Baris sumber 31: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-command` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 32: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-command-main` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 33: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-command-intro` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 34: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-command-badge` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 35: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-command-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 36: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline home-command-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 37: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subhead home-command-subhead` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 38: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 39: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-command-actions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 40: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-primary` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 41: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 42: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 43: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 45: Membentuk elemen `aside` sebagai informasi pendamping konten utama. Atribut `class` bernilai `home-live-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.active_sessions` menurut bahasa sesi.
+Baris sumber 46: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-live-header` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 47: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-live-indicator` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 48: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Teks dinamis dibaca dari kunci terjemahan `home.active_sessions` menurut bahasa sesi.
+Baris sumber 49: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 50: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `id` bernilai `home-session-ring` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Isi `‹div id＝”home-session-ring”` menjadi teks yang terlihat pada komponen.
+Baris sumber 50: Baris sumber 51: Melengkapi atribut `class` pada `div` dengan `”home-session-ring”`; kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 50: Baris sumber 52: Melengkapi atribut `style` pada `div` dengan `”--home-active-progress: @(activeSessionPercent)%”`; deklarasi gaya langsung pada elemen.
+Baris sumber 50: Baris sumber 53: Melengkapi atribut `role` pada `div` dengan `”img”`; peran semantik yang diumumkan kepada teknologi bantu.
+Baris sumber 50: Baris sumber 54: Melengkapi atribut `aria-label` pada `div` dengan `”@Model.ActiveSessions / @Model.TotalSessions @Context.T(”home.active_sessions”)”›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 55: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-session-ring-core` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 56: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-active-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.ActiveSessions` berasal dari model yang disusun controller.
+Baris sumber 57: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `id` bernilai `home-active-total-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalSessions` berasal dari model yang disusun controller.
+Baris sumber 58: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 59: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 60: Menutup elemen `aside` (informasi pendamping konten utama) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 61: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 63: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.ErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 64: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 65: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `id` bernilai `home-realtime-error` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `alert alert-warning text-xs` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 66: Menyisipkan hasil ekspresi Razor `@Model.ErrorMessage` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 67: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 68: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 69: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 70: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 71: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `id` bernilai `home-realtime-error` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `hidden alert alert-warning text-xs` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 72: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 74: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 75: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `home-stat-card home-stat-card-sessions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 76: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 77: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalSessions` berasal dari model yang disusun controller.
+Baris sumber 78: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-accent` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 79: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 80: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `home-stat-card home-stat-card-players` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 81: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 82: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-players` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalPlayers` berasal dari model yang disusun controller.
+Baris sumber 83: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-accent` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 84: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 85: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 86: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 87: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `home-stat-card home-stat-card-rulesets` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 88: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.ruleset_active` menurut bahasa sesi.
+Baris sumber 89: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-rulesets` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalRulesets` berasal dari model yang disusun controller.
+Baris sumber 90: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-accent` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 91: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 92: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 93: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 95: Memeriksa kondisi `!hasWorkspaceData`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 96: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 97: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-empty-state` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 98: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `home-empty-state-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.empty_workspace.title` menurut bahasa sesi.
+Baris sumber 99: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `home-empty-state-body` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 100: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”home.empty_workspace.instructor”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 101: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”home.empty_workspace.player”))‹/p›`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 102: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 103: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 105: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 106: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 108: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 109: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 110: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `home-guide-shell mt-6 data-toggle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 111: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 112: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-guide-summary-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 113: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.guide.title` menurut bahasa sesi.
+Baris sumber 114: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-guide-summary-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 115: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.guide.subtitle` menurut bahasa sesi.
+Baris sumber 116: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-guide-toggle-marker` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 117: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 118: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 119: Menutup elemen `summary` (pemicu buka/tutup untuk elemen details) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 121: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-6 tips-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 122: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 123: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.guide.sessions.title` menurut bahasa sesi.
+Baris sumber 124: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.guide.sessions.desc` menurut bahasa sesi.
+Baris sumber 125: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `Sessions` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.guide.sessions.link` menurut bahasa sesi.
+Baris sumber 126: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 127: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 128: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.title` menurut bahasa sesi.
+Baris sumber 129: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.desc` menurut bahasa sesi.
+Baris sumber 130: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `PlayerDirectory` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.link` menurut bahasa sesi.
+Baris sumber 131: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 132: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 133: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.guide.ruleset.title` menurut bahasa sesi.
+Baris sumber 134: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.guide.ruleset.desc` menurut bahasa sesi.
+Baris sumber 135: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `Rulesets` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.guide.ruleset.link` menurut bahasa sesi.
+Baris sumber 136: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 137: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 139: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `mt-3 data-toggle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 140: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Teks dinamis dibaca dari kunci terjemahan `home.quick_flow.title` menurut bahasa sesi.
+Baris sumber 141: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 metric-panel` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 142: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 143: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `home.quick_flow.step1` menurut bahasa sesi.
+Baris sumber 144: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `home.quick_flow.step2` menurut bahasa sesi.
+Baris sumber 145: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `home.quick_flow.step3` menurut bahasa sesi.
+Baris sumber 146: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `home.quick_flow.step4` menurut bahasa sesi.
+Baris sumber 147: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `home.quick_flow.step5` menurut bahasa sesi.
+Baris sumber 148: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 149: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 150: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 151: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 152: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 153: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 154: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 155: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `home-guide-shell mt-6 player-guide data-toggle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 156: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 157: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-guide-summary-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 158: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.title` menurut bahasa sesi.
+Baris sumber 159: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-guide-summary-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 160: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.subtitle` menurut bahasa sesi.
+Baris sumber 161: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-guide-toggle-marker` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 162: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 163: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 164: Menutup elemen `summary` (pemicu buka/tutup untuk elemen details) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 166: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-6 tips-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 167: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 168: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.analytics.title` menurut bahasa sesi.
+Baris sumber 169: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.analytics.desc` menurut bahasa sesi.
+Baris sumber 170: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `Sessions` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.analytics.link` menurut bahasa sesi.
+Baris sumber 171: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 172: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 173: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.ruleset.title` menurut bahasa sesi.
+Baris sumber 174: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.ruleset.desc` menurut bahasa sesi.
+Baris sumber 175: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `Sessions` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.ruleset.link` menurut bahasa sesi.
+Baris sumber 176: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 177: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 178: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.rulebook.title` menurut bahasa sesi.
+Baris sumber 179: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.rulebook.desc` menurut bahasa sesi.
+Baris sumber 180: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `href` bernilai `/rulebook` menentukan alamat tujuan tautan. Teks dinamis dibaca dari kunci terjemahan `home.player_guide.rulebook.link` menurut bahasa sesi.
+Baris sumber 181: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 182: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 183: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 184: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 186: Mendefinisikan section Razor `Scripts ｛`; layout merender bagian ini pada lokasi RenderSectionAsync yang sesuai.
+Baris sumber 187: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript.
+Baris sumber 188: Mendefinisikan fungsi atau pemetaan `(() → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 189: Menyimpan `totalSessionsEl` dengan mengambil elemen DOM ber-ID `”home-total-sessions”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 190: Menyimpan `activeSessionsEl` dengan mengambil elemen DOM ber-ID `”home-active-sessions”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 191: Menyimpan `activeTotalSessionsEl` dengan mengambil elemen DOM ber-ID `”home-active-total-sessions”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 192: Menyimpan `sessionRingEl` dengan mengambil elemen DOM ber-ID `”home-session-ring”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 193: Menyimpan `totalPlayersEl` dengan mengambil elemen DOM ber-ID `”home-total-players”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 194: Menyimpan `totalRulesetsEl` dengan mengambil elemen DOM ber-ID `”home-total-rulesets”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 195: Menyimpan `realtimeErrorEl` dengan mengambil elemen DOM ber-ID `”home-realtime-error”` agar data atau event dapat dihubungkan ke komponen yang tepat.
+Baris sumber 196: Menyimpan `activeSessionsLabel` dengan menserialisasi `Context.T(”home.active_sessions”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 197: Menyimpan `realtimeStatusTemplate` dengan menserialisasi `Context.T(”home.error.realtime_status”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 198: Menyimpan `realtimeNetworkMessage` dengan menserialisasi `Context.T(”home.error.realtime_network”))` di server menjadi literal JSON agar nilai C# diteruskan ke JavaScript dengan escaping yang benar.
+Baris sumber 199: Menyimpan `realtimePollIntervalMs` dengan menggunakan konstanta numerik `30000` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 200: Menyimpan `realtimeTimerId` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 202: Menyimpan `setError` dengan membaca nilai `(message) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 203: Memeriksa kondisi `!realtimeErrorEl) return;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 204: Memeriksa kondisi `!message`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 205: Memperbarui `realtimeErrorEl.textContent` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 206: Melakukan operasi dengan menambahkan kelas `”hidden”` sehingga aturan CSS terkait diaktifkan pada elemen.
+Baris sumber 207: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 208: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 210: Memperbarui `realtimeErrorEl.textContent` dengan membaca nilai `message` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 211: Melakukan operasi dengan menghapus kelas `”hidden”` sehingga status visual terkait dinonaktifkan.
+Baris sumber 212: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 214: Menyimpan `syncRealtimeStats` dengan membaca nilai `async () → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 215: Memulai bagian yang dapat gagal, misalnya parsing atau permintaan data; kesalahan diteruskan ke catch yang menyertainya.
+Baris sumber 216: Menyimpan `response` dengan memulai permintaan HTTP `”@Url.Action(”RealtimeStats”, ”Home”)”, ｛` dari browser untuk mengambil data terbaru.
+Baris sumber 217: Mengisi properti `method` pada objek atau konfigurasi dengan menggunakan literal `”GET”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 218: Mengisi properti `headers` pada objek atau konfigurasi dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 219: Mengisi properti `”Accept”` pada objek atau konfigurasi dengan menggunakan literal `”application/json”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
+Baris sumber 220: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 221: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 223: Memeriksa kondisi `response.redirected && response.url.includes(”/auth/login”)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 224: Melakukan operasi dengan memanggil `window.location.assign(response.url)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 225: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 226: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 228: Memeriksa kondisi `!response.ok`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 229: Melakukan operasi dengan mengganti bagian teks berdasarkan pola dan pengganti `”｛status｝”, `$｛response.status｝`)`.
+Baris sumber 230: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 231: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 233: Menyimpan `data` dengan menunggu operasi asinkron `response.json()` selesai sebelum memakai hasilnya.
+Baris sumber 234: Menyimpan `totalSessions` dengan mengevaluasi `Number(data.totalSessions ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 235: Menyimpan `activeSessions` dengan mengevaluasi `Number(data.activeSessions ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 236: Menyimpan `totalPlayers` dengan mengevaluasi `Number(data.totalPlayers ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 237: Menyimpan `totalRulesets` dengan mengevaluasi `Number(data.totalRulesets ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 238: Menyimpan `activePercentage` dengan membaca nilai `totalSessions › 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 239: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Math.min(100, Math.max(0, Math.round(activeSessions * 100 / totalSessions)))`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 240: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `0;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 242: Memeriksa kondisi `totalSessionsEl) totalSessionsEl.textContent ＝ `$｛totalSessions｝`;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 243: Memeriksa kondisi `activeSessionsEl) activeSessionsEl.textContent ＝ `$｛activeSessions｝`;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 244: Memeriksa kondisi `activeTotalSessionsEl) activeTotalSessionsEl.textContent ＝ `/ $｛totalSessions｝`;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 245: Memeriksa kondisi `sessionRingEl`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 246: Melakukan operasi dengan menetapkan properti CSS `”--home-active-progress”, `$｛activePercentage｝%`` pada elemen, termasuk variabel kustom untuk waktu animasi.
+Baris sumber 247: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `”aria-label”, `$｛activeSessions｝ / $｛totalSessions｝ $｛activeSessionsLabel｝``; atribut mengendalikan presentasi atau aksesibilitas komponen.
+Baris sumber 248: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 249: Memeriksa kondisi `totalPlayersEl) totalPlayersEl.textContent ＝ `$｛totalPlayers｝`;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 250: Memeriksa kondisi `totalRulesetsEl) totalRulesetsEl.textContent ＝ `$｛totalRulesets｝`;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 252: Melakukan operasi dengan memanggil `setError(data.errorMessage)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 253: Menangani kesalahan melalui catch `｛`; alur ini menyediakan pemulihan atau pesan kesalahan ketika operasi pada try gagal.
+Baris sumber 254: Melakukan operasi dengan memanggil `setError(realtimeNetworkMessage)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 255: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 256: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 258: Menyimpan `stopRealtimeSync` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 259: Memeriksa kondisi `realtimeTimerId !＝＝ null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 260: Melakukan operasi dengan memanggil `clearInterval(realtimeTimerId)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 261: Memperbarui `realtimeTimerId` dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia.
+Baris sumber 262: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 263: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 265: Menyimpan `startRealtimeSync` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 266: Memeriksa kondisi `realtimeTimerId !＝＝ null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 267: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 268: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 270: Melakukan operasi dengan memanggil `syncRealtimeStats()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 271: Memperbarui `realtimeTimerId` dengan menjadwalkan callback `syncRealtimeStats, realtimePollIntervalMs)` berulang pada interval yang ditentukan untuk pembaruan data.
+Baris sumber 272: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 274: Menyimpan `handleVisibilityChange` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 275: Memeriksa kondisi `document.visibilityState ＝＝＝ ”visible”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 276: Melakukan operasi dengan memanggil `startRealtimeSync()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 277: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 278: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 280: Melakukan operasi dengan memanggil `stopRealtimeSync()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 281: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 283: Melakukan operasi dengan mendaftarkan penangan event `”visibilitychange”, handleVisibilityChange)`; fungsi callback akan dijalankan browser ketika event tersebut terjadi.
+Baris sumber 284: Melakukan operasi dengan memanggil `handleVisibilityChange()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 285: Melakukan operasi dengan membaca nilai `｝)()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 286: Menutup elemen `script` (skrip browser atau referensi berkas JavaScript) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 287: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+*@
 @model Cashflowpoly.Ui.Models.HomeIndexViewModel
 @using System.Text.Json
 @{

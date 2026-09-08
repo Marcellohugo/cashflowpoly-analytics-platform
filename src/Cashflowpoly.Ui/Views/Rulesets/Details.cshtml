@@ -1,4 +1,31 @@
-@* Fungsi file: Menampilkan halaman rincian set aturan dengan isi yang sama seperti popup sesi. *@
+@* Fungsi file: Menampilkan halaman rincian set aturan dengan isi yang sama seperti popup sesi.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.RulesetDetailViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 4: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 5: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `rulesets.detail_title` sesuai bahasa sesi pengguna.
+Baris sumber 6: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 8: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 9: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `action-toolbar mb-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 10: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-controller` bernilai `Rulesets` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `rulesets.navigasi kembali ke_list` menurut bahasa sesi.
+Baris sumber 11: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 13: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 14: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro-main` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 15: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.management` menurut bahasa sesi.
+Baris sumber 16: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.detail_title` menurut bahasa sesi.
+Baris sumber 17: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 18: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 20: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.ErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 21: Membuka ruang lingkup blok untuk `h1`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 22: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-error` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.ErrorMessage` berasal dari model yang disusun controller.
+Baris sumber 23: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 24: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.InfoMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 25: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 26: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.InfoMessage` berasal dari model yang disusun controller.
+Baris sumber 27: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 29: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 30: Menghasilkan bagian tampilan melalui `@await Html.PartialAsync(”_RulesetDetailContent”, Model)`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 31: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 32: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+*@
 @model Cashflowpoly.Ui.Models.RulesetDetailViewModel
 
 @{

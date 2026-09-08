@@ -1,4 +1,288 @@
-@* Fungsi file: Menjadi satu-satunya sumber markup rincian set aturan untuk halaman rincian dan popup sesi. *@
+@* Fungsi file: Menjadi satu-satunya sumber markup rincian set aturan untuk halaman rincian dan popup sesi.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.RulesetDetailViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Mengimpor namespace `System.Text.Json` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 5: Menyisipkan hasil ekspresi Razor `@functions ｛` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 6: Menyediakan teks atau fragmen konten `private static JsonElement? GetPath(JsonElement root, params string[] path)` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 7: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 8: Menyimpan `cursor` dengan membaca nilai `root` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 9: Mengiterasi `var segment in path`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 10: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 11: Memeriksa kondisi `cursor.ValueKind !＝ JsonValueKind.Object || !cursor.TryGetProperty(segment, out var next)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 12: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 13: Mengembalikan hasil kepada pemanggil dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 14: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 16: Memperbarui `cursor` dengan membaca nilai `next` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 17: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 19: Mengembalikan hasil kepada pemanggil dengan membaca nilai `cursor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 20: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 22: Menyediakan teks atau fragmen konten `private static string AsText(JsonElement? value, string fallback ＝ ”-”)` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 23: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 24: Memeriksa kondisi `!value.HasValue`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 25: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 26: Mengembalikan hasil kepada pemanggil dengan membaca nilai `fallback` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 27: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 29: Menyimpan `v` dengan membaca nilai `value.Value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 30: Mengembalikan hasil kepada pemanggil dengan membaca nilai `v.ValueKind switch` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 31: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 32: Mendefinisikan fungsi atau pemetaan `JsonValueKind.String → v.GetString() ?? fallback,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 33: Mendefinisikan fungsi atau pemetaan `JsonValueKind.Number → v.ToString(),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 34: Mendefinisikan fungsi atau pemetaan `JsonValueKind.True → ”true”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 35: Mendefinisikan fungsi atau pemetaan `JsonValueKind.False → ”false”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 36: Mendefinisikan fungsi atau pemetaan `_ → v.ToString()`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 37: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 38: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 40: Menyediakan teks atau fragmen konten `private static int AsInt(JsonElement? value, int fallback ＝ 0)` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 41: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 42: Memeriksa kondisi `!value.HasValue || value.Value.ValueKind !＝ JsonValueKind.Number`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 43: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 44: Mengembalikan hasil kepada pemanggil dengan membaca nilai `fallback` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 45: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 47: Mengembalikan hasil kepada pemanggil dengan memilih nilai melalui kondisi ternary `value.Value.TryGetInt32(out var number) ? number : fallback`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 48: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 50: Menyediakan teks atau fragmen konten `private static bool AsBool(JsonElement? value, bool fallback ＝ false)` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 51: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 52: Memeriksa kondisi `!value.HasValue`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 53: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 54: Mengembalikan hasil kepada pemanggil dengan membaca nilai `fallback` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 55: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 57: Mengembalikan hasil kepada pemanggil dengan membaca nilai `value.Value.ValueKind switch` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 58: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 59: Mendefinisikan fungsi atau pemetaan `JsonValueKind.True → true,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 60: Mendefinisikan fungsi atau pemetaan `JsonValueKind.False → false,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 61: Mendefinisikan fungsi atau pemetaan `_ → fallback`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 62: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 63: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 64: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 66: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 67: Menyimpan `isEmbedded` dengan mengevaluasi `ViewData[”RulesetDetailEmbedded”] as bool? ?? false`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 68: Menyimpan `isInstructor` dengan memeriksa peran instruktur pada sesi HTTP untuk menentukan kontrol tampilan yang tersedia.
+Baris sumber 69: Menyimpan `showVersionActions` dengan membaca nilai `isInstructor && !Model.IsReadOnly && !isEmbedded` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 70: Menyimpan `idPrefix` dengan memilih nilai melalui kondisi ternary `isEmbedded ? ”session-ruleset-detail” : ”ruleset-detail”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 71: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 73: Memeriksa kondisi `Model.Ruleset is null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 74: Membuka ruang lingkup blok untuk `tampilan _RulesetDetailContent.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 75: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-unified` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 76: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-panel` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 77: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-sm font-semibold text-slate-800` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.detail.empty_title` menurut bahasa sesi.
+Baris sumber 78: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-sm text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.detail.empty_body` menurut bahasa sesi.
+Baris sumber 79: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 80: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 81: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 82: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 83: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 84: Menyimpan `hasConfig` dengan membaca nilai `Model.CompatibilityDefinitionJson.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 85: Melanjutkan syarat logika dengan `&& Model.CompatibilityDefinitionJson.Value.ValueKind ＝＝ JsonValueKind.Object;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 86: Menyimpan `cfg` dengan memilih nilai melalui kondisi ternary `hasConfig ? Model.CompatibilityDefinitionJson!.Value : default`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 87: Menyimpan `modeRaw` dengan mengevaluasi `Model.Ruleset.Mode ?? (hasConfig ? AsText(GetPath(cfg, ”mode”), ”PEMULA”) : ”PEMULA”)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 88: Menyimpan `isAdvancedMode` dengan memanggil `string.Equals(modeRaw, ”MAHIR”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 89: Menyimpan `modeCode` dengan memilih nilai melalui kondisi ternary `isAdvancedMode ? ”MAHIR” : ”PEMULA”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 90: Menyimpan `modeCss` dengan memilih nilai melalui kondisi ternary `isAdvancedMode ? ”advanced” : ”beginner”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 91: Menyimpan `modeDescriptionKey` dengan memilih nilai melalui kondisi ternary `isAdvancedMode ? ”rulesets.quick_guide_advanced” : ”rulesets.quick_guide_beginner”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 92: Menyimpan `displayDescription` dengan membaca nilai `Model.Ruleset.IsDefault || Model.IsDefaultCatalogSource` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 93: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(isAdvancedMode ? ”rulesets.default_description_advanced” : ”rulesets.default_description_beginner”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 94: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Model.Ruleset.Description;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 96: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-unified ruleset-detail-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 97: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 98: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-title-block` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 99: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-mode-callout` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 100: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 101: Membentuk elemen `p` sebagai paragraf atau label penjelasan.
+Baris sumber 102: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 103: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-sm text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.name` menurut bahasa sesi.
+Baris sumber 104: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-lg font-semibold text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Ruleset.Name` berasal dari model yang disusun controller.
+Baris sumber 105: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `mt-2 text-sm text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.description` menurut bahasa sesi.
+Baris sumber 106: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-sm text-slate-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 107: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 108: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-detail-meta` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 109: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `status-pill status-active` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.status.available` menurut bahasa sesi.
+Baris sumber 110: Memeriksa kondisi `Model.IsDefaultCatalogSource`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 111: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 112: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `hint-chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.detail.source_default_catalog` menurut bahasa sesi.
+Baris sumber 113: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 114: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 115: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 117: Memeriksa kondisi `!isEmbedded`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 118: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 119: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `action-toolbar mt-4 ruleset-detail-toolbar` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 120: Memeriksa kondisi `isInstructor && !Model.IsReadOnly`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 121: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 122: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-ghost”` menjadi teks yang terlihat pada komponen.
+Baris sumber 122: Baris sumber 123: Melengkapi atribut `asp-controller` pada `a` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 122: Baris sumber 124: Melengkapi atribut `asp-action` pada `a` dengan `”Edit”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 122: Baris sumber 125: Melengkapi atribut `asp-route-rulesetId` pada `a` dengan `”@Model.Ruleset.RulesetId”›@Context.T(”rulesets.edit”)‹/a›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 126: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Isi `‹form method＝”post”` menjadi teks yang terlihat pada komponen. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 126: Baris sumber 127: Melengkapi atribut `asp-controller` pada `form` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 126: Baris sumber 128: Melengkapi atribut `asp-action` pada `form` dengan `”Delete”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 126: Baris sumber 129: Melengkapi atribut `asp-route-rulesetId` pada `form` dengan `”@Model.Ruleset.RulesetId”`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 130: Memperbarui `onsubmit` dengan mengambil teks terjemahan berkunci `rulesets.delete_confirm` sesuai bahasa sesi pengguna.
+Baris sumber 131: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 132: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-primary` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.delete` menurut bahasa sesi.
+Baris sumber 133: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 134: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 135: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 136: Membuka ruang lingkup blok untuk `button`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 137: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `hint-chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.readonly_hint` menurut bahasa sesi.
+Baris sumber 138: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 139: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 140: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 142: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `ruleset-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 143: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 144: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.version_history` menurut bahasa sesi.
+Baris sumber 145: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.version_history_subtitle` menurut bahasa sesi.
+Baris sumber 146: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 147: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 table-wrap` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 148: Membentuk elemen `table` sebagai tabel data dengan susunan baris dan kolom. Atribut `class` bernilai `w-full text-left text-sm` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 149: Membentuk elemen `thead` sebagai kelompok header tabel. Atribut `class` bernilai `table-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 150: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 151: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.version` menurut bahasa sesi.
+Baris sumber 152: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.status` menurut bahasa sesi.
+Baris sumber 153: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.created` menurut bahasa sesi.
+Baris sumber 154: Memeriksa kondisi `showVersionActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 155: Membuka ruang lingkup blok untuk `th`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 156: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.action` menurut bahasa sesi.
+Baris sumber 157: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 158: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 159: Menutup elemen `thead` (kelompok header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 160: Membentuk elemen `tbody` sebagai kelompok baris isi tabel.
+Baris sumber 161: Memeriksa kondisi `Model.Ruleset.Versions.Count ＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 162: Membuka ruang lingkup blok untuk `tbody`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 163: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 164: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-4 text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `state.no_versions` menurut bahasa sesi.
+Baris sumber 165: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 166: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 167: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 168: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 169: Mengiterasi `var version in Model.Ruleset.Versions.OrderByDescending(v → v.Version)`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 170: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 171: Menyimpan `statusClass` dengan memanggil `string.Equals(version.Status, ”ACTIVE”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 172: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”status-active”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 173: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `string.Equals(version.Status, ”DRAFT”, StringComparison.OrdinalIgnoreCase)`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 174: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”status-draft”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 175: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `”status-retired”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 176: Membentuk elemen `tr` sebagai satu baris tabel. Atribut `class` bernilai `border-t border-slate-200` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 177: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 font-medium text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 178: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 179: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-slate-600` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 180: Memeriksa kondisi `showVersionActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 181: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 182: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 183: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `inline-flex items-center gap-2` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 184: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Isi `‹form method＝”post”` menjadi teks yang terlihat pada komponen. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 184: Baris sumber 185: Melengkapi atribut `asp-controller` pada `form` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 184: Baris sumber 186: Melengkapi atribut `asp-action` pada `form` dengan `”ActivateVersion”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 184: Baris sumber 187: Melengkapi atribut `asp-route-rulesetId` pada `form` dengan `”@Model.Ruleset.RulesetId”`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 184: Baris sumber 188: Melengkapi atribut `asp-route-version` pada `form` dengan `”@version.Version”›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 189: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 190: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-ghost btn-compact` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.set_active` menurut bahasa sesi.
+Baris sumber 191: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 192: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Isi `‹form method＝”post”` menjadi teks yang terlihat pada komponen. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 192: Baris sumber 193: Melengkapi atribut `asp-controller` pada `form` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 192: Baris sumber 194: Melengkapi atribut `asp-action` pada `form` dengan `”DeleteVersion”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 192: Baris sumber 195: Melengkapi atribut `asp-route-rulesetId` pada `form` dengan `”@Model.Ruleset.RulesetId”`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 192: Baris sumber 196: Melengkapi atribut `asp-route-version` pada `form` dengan `”@version.Version”`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 197: Memperbarui `onsubmit` dengan mengambil teks terjemahan berkunci `rulesets.delete_version_confirm` sesuai bahasa sesi pengguna.
+Baris sumber 198: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 199: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-ghost btn-compact` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.delete_version` menurut bahasa sesi.
+Baris sumber 200: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 201: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 202: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 203: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 204: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 205: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 206: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 207: Menutup elemen `tbody` (kelompok baris isi tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 208: Menutup elemen `table` (tabel data dengan susunan baris dan kolom) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 209: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 210: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 212: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `ruleset-detail-section mt-5` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 213: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 214: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.config_summary` menurut bahasa sesi.
+Baris sumber 215: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.config_summary_subtitle` menurut bahasa sesi.
+Baris sumber 216: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 217: Memeriksa kondisi `!hasConfig`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 218: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 219: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-2 alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.config_unavailable` menurut bahasa sesi.
+Baris sumber 220: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 221: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 222: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 223: Menyimpan `modeLabel` dengan memanggil `Context.TRulesetMode(modeRaw)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 224: Menyimpan `playerOrderingRaw` dengan memanggil `AsText(GetPath(cfg, ”player_ordering”), ”PLAYER_ORDER”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 225: Menyimpan `playerOrderingLabel` dengan memanggil `playerOrderingRaw.ToUpperInvariant() switch` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 226: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 227: Mendefinisikan fungsi atau pemetaan `”EVENT_SEQUENCE” → Context.T(”rulesets.form.player_ordering_event_sequence”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 228: Mendefinisikan fungsi atau pemetaan `”PLAYER_ID” → Context.T(”rulesets.form.player_ordering_player_id”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 229: Mendefinisikan fungsi atau pemetaan `”USERNAME” → Context.T(”rulesets.form.player_ordering_username”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 230: Mendefinisikan fungsi atau pemetaan `_ → Context.T(”rulesets.form.player_ordering_player_order”)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 231: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 232: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 space-y-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 233: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `alert alert-info text-sm text-slate-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.config_read_guide` menurut bahasa sesi.
+Baris sumber 235: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-form-section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 236: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 237: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.core_setup` menurut bahasa sesi.
+Baris sumber 238: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.help.core_setup` menurut bahasa sesi.
+Baris sumber 239: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 240: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `grid gap-3 md:grid-cols-2 mt-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 241: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `text` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.mode` menurut bahasa sesi.
+Baris sumber 242: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.actions_per_turn` menurut bahasa sesi.
+Baris sumber 243: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.starting_cash` menurut bahasa sesi.
+Baris sumber 244: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `text` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.player_ordering` menurut bahasa sesi.
+Baris sumber 245: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.freelance_income` menurut bahasa sesi.
+Baris sumber 246: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 247: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 249: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-form-section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 250: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 251: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.weekday_features` menurut bahasa sesi.
+Baris sumber 252: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.help.weekday_features` menurut bahasa sesi.
+Baris sumber 253: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 254: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `grid gap-3 md:grid-cols-3 mt-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 255: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.friday_donation` menurut bahasa sesi.
+Baris sumber 256: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.saturday_gold_trade` menurut bahasa sesi.
+Baris sumber 257: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.sunday_rest` menurut bahasa sesi.
+Baris sumber 258: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 259: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 261: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-form-section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 262: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 263: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.constraints` menurut bahasa sesi.
+Baris sumber 264: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.help.constraints` menurut bahasa sesi.
+Baris sumber 265: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 266: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `grid gap-3 md:grid-cols-2 mt-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 267: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.cash_min` menurut bahasa sesi.
+Baris sumber 268: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.max_ingredient_total` menurut bahasa sesi.
+Baris sumber 269: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.max_same_ingredient` menurut bahasa sesi.
+Baris sumber 270: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 271: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 273: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-form-section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 274: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 275: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.economy_and_donation` menurut bahasa sesi.
+Baris sumber 276: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.help.economy_and_donation` menurut bahasa sesi.
+Baris sumber 277: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 278: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `grid gap-3 md:grid-cols-2 mt-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 279: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.donation_min` menurut bahasa sesi.
+Baris sumber 280: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `number` menentukan jenis kontrol atau tipe konten. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.donation_max` menurut bahasa sesi.
+Baris sumber 281: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.gold_buy` menurut bahasa sesi.
+Baris sumber 282: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.gold_sell` menurut bahasa sesi.
+Baris sumber 283: Memeriksa kondisi `isAdvancedMode`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 284: Membuka ruang lingkup blok untuk `label`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 285: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-advanced-feature-grid ruleset-advanced-feature-grid--active md:col-span-2` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 286: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-advanced-feature-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 287: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-mode-badge ruleset-mode-badge--advanced` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.mode_advanced` menurut bahasa sesi.
+Baris sumber 288: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.advanced_features_hint` menurut bahasa sesi.
+Baris sumber 289: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 290: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `grid gap-3 md:grid-cols-3 mt-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 291: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.loan_enabled` menurut bahasa sesi.
+Baris sumber 292: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.insurance_enabled` menurut bahasa sesi.
+Baris sumber 293: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.saving_goal_enabled` menurut bahasa sesi.
+Baris sumber 294: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 295: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 296: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 297: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 298: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 299: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 300: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 301: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 302: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 303: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+*@
 @model Cashflowpoly.Ui.Models.RulesetDetailViewModel
 @using System.Text.Json
 

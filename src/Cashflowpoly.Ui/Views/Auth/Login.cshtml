@@ -1,4 +1,113 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Auth/Login.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Auth/Login.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.LoginViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Mengimpor namespace `Microsoft.AspNetCore.Http` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 5: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 6: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `auth.title` sesuai bahasa sesi pengguna.
+Baris sumber 7: Memperbarui `ViewData[”MetaDescription”]` dengan mengambil teks terjemahan berkunci `login.meta_desc` sesuai bahasa sesi pengguna.
+Baris sumber 8: Memperbarui `ViewData[”MetaKeywords”]` dengan mengambil teks terjemahan berkunci `login.meta_keywords` sesuai bahasa sesi pengguna.
+Baris sumber 9: Memperbarui `ViewData[”HideFooter”]` dengan mengaktifkan flag Boolean dengan nilai true.
+Baris sumber 10: Memperbarui `ViewData[”HideHeader”]` dengan mengaktifkan flag Boolean dengan nilai true.
+Baris sumber 11: Menyimpan `activeLanguage` dengan memanggil `UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 12: Menyimpan `isEnglish` dengan memanggil `string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 13: Menyimpan `returnUrl` dengan membaca nilai `$”｛Context.Request.Path｝｛Context.Request.QueryString｝”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 14: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 16: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-split-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 17: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `auth-split-card auth-mode-login` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 18: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-split-left` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 19: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-content-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 20: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `auth-kicker` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 21: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `auth-heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `id` bernilai `auth-login-heading` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 22: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `auth-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 23: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 25: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `class` bernilai `auth-form` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Atribut `asp-controller` bernilai `Auth` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Login` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 26: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 27: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `hidden` menentukan jenis kontrol atau tipe konten. Atribut `asp-for` bernilai `ReturnUrl` menentukan properti model yang diikat ke kontrol formulir.
+Baris sumber 29: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-field` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 30: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `auth-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 31: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `class` bernilai `auth-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹input class＝”auth-input”` menjadi teks yang terlihat pada komponen.
+Baris sumber 31: Baris sumber 32: Melengkapi atribut `id` pada `input` dengan `”login-username”`; identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 31: Baris sumber 33: Melengkapi atribut `asp-for` pada `input` dengan `”Username”`; properti model yang diikat ke kontrol formulir.
+Baris sumber 31: Baris sumber 40: Melengkapi atribut `required` pada `input` dengan ``; kewajiban pengisian kontrol pada validasi browser.
+Baris sumber 31: Baris sumber 41: Melengkapi atribut `placeholder` pada `input` dengan `”@Context.T(”auth.username”)” /›`; contoh atau petunjuk masukan sebelum pengguna mengetik.
+Baris sumber 34: Memperbarui `autocomplete` dengan menggunakan literal `”username”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 35: Memperbarui `autocapitalize` dengan menggunakan literal `”none”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 36: Memperbarui `autocorrect` dengan menggunakan literal `”off”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 37: Memperbarui `spellcheck` dengan menggunakan literal `”false”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 38: Memperbarui `inputmode` dengan menggunakan literal `”text”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 39: Memperbarui `enterkeyhint` dengan menggunakan literal `”next”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 42: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 44: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-field` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 45: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `auth-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 46: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-password-control` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 47: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `class` bernilai `auth-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹input class＝”auth-input”` menjadi teks yang terlihat pada komponen.
+Baris sumber 47: Baris sumber 48: Melengkapi atribut `id` pada `input` dengan `”login-password”`; identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 47: Baris sumber 49: Melengkapi atribut `asp-for` pada `input` dengan `”Password”`; properti model yang diikat ke kontrol formulir.
+Baris sumber 47: Baris sumber 50: Melengkapi atribut `type` pada `input` dengan `”password”`; jenis kontrol atau tipe konten.
+Baris sumber 47: Baris sumber 53: Melengkapi atribut `required` pada `input` dengan ``; kewajiban pengisian kontrol pada validasi browser.
+Baris sumber 47: Baris sumber 54: Melengkapi atribut `placeholder` pada `input` dengan `”********” /›`; contoh atau petunjuk masukan sebelum pengguna mengetik.
+Baris sumber 51: Memperbarui `autocomplete` dengan menggunakan literal `”current-password”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 52: Memperbarui `enterkeyhint` dengan menggunakan literal `”go”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 55: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `auth-password-toggle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹button class＝”auth-password-toggle”` menjadi teks yang terlihat pada komponen.
+Baris sumber 55: Baris sumber 56: Melengkapi atribut `type` pada `button` dengan `”button”`; jenis kontrol atau tipe konten.
+Baris sumber 55: Baris sumber 57: Melengkapi atribut `aria-controls` pada `button` dengan `”login-password”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 55: Baris sumber 58: Melengkapi atribut `aria-pressed` pada `button` dengan `”false”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 55: Baris sumber 59: Melengkapi atribut `aria-label` pada `button` dengan `”@Context.T(”auth.show_password”)”`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 55: Baris sumber 60: Melengkapi atribut `title` pada `button` dengan `”@Context.T(”auth.show_password”)”`; informasi singkat tambahan yang tersedia pada elemen.
+Baris sumber 55: Baris sumber 61: Melengkapi atribut `data-password-toggle` pada `button` dengan ``; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 55: Baris sumber 62: Melengkapi atribut `data-show-label` pada `button` dengan `”@Context.T(”auth.show_password”)”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 55: Baris sumber 63: Melengkapi atribut `data-hide-label` pada `button` dengan `”@Context.T(”auth.hide_password”)”›`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 64: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `auth-password-eye` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 65: Menutup elemen `button` (kontrol interaksi yang dapat diaktifkan pengguna) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 66: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 67: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 69: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.ErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 70: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 71: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `alert alert-error` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 72: Menyisipkan hasil ekspresi Razor `@Model.ErrorMessage` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 73: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 74: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 76: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `auth-login-btn` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten.
+Baris sumber 78: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `auth-register-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 79: Menyisipkan hasil ekspresi Razor `@Context.T(key: ”auth.no_account”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 80: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `js-auth-switch` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-controller` bernilai `Auth` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Register` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Nilai `@Model.ReturnUrl` berasal dari model yang disusun controller. Atribut asp-route-* memasok parameter route sehingga URL menunjuk data sesi, pemain, atau ruleset yang sesuai.
+Baris sumber 81: Menutup elemen `p` (paragraf atau label penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 82: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 84: Membentuk elemen `ul` sebagai daftar tanpa penomoran. Atribut `class` bernilai `auth-login-notes` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 85: Membentuk elemen `li` sebagai satu anggota daftar. Teks dinamis dibaca dari kunci terjemahan `auth.login_note.quick_access` menurut bahasa sesi.
+Baris sumber 86: Membentuk elemen `li` sebagai satu anggota daftar. Teks dinamis dibaca dari kunci terjemahan `auth.login_note.realtime_monitoring` menurut bahasa sesi.
+Baris sumber 87: Membentuk elemen `li` sebagai satu anggota daftar. Teks dinamis dibaca dari kunci terjemahan `auth.login_note.centralized_ruleset` menurut bahasa sesi.
+Baris sumber 88: Menutup elemen `ul` (daftar tanpa penomoran) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 89: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 91: Membentuk elemen `aside` sebagai informasi pendamping konten utama. Atribut `class` bernilai `auth-split-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 92: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-panel-lang-corner` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 93: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-panel-lang` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `role` bernilai `group` menentukan peran semantik yang diumumkan kepada teknologi bantu. Teks dinamis dibaca dari kunci terjemahan `lang.label` menurut bahasa sesi.
+Baris sumber 94: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Atribut `asp-controller` bernilai `Language` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Set` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 95: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 96: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `hidden` menentukan jenis kontrol atau tipe konten. Atribut `name` bernilai `language` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 97: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `hidden` menentukan jenis kontrol atau tipe konten. Atribut `name` bernilai `returnUrl` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 98: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `lang.code.id` menurut bahasa sesi.
+Baris sumber 99: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 100: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Atribut `asp-controller` bernilai `Language` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Set` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 101: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 102: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `hidden` menentukan jenis kontrol atau tipe konten. Atribut `name` bernilai `language` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 103: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `hidden` menentukan jenis kontrol atau tipe konten. Atribut `name` bernilai `returnUrl` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 104: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `lang.code.en` menurut bahasa sesi.
+Baris sumber 105: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 106: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 107: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 108: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `auth-panel-brand` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-controller` bernilai `Home` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 109: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif. Atribut `class` bernilai `auth-panel-brand-mark` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `src` bernilai `~/images/images.jpg` menentukan lokasi sumber aset. Atribut `asp-append-version` bernilai `true` menentukan izin tag helper menambahkan versi/hash aset agar cache diperbarui ketika berkas berubah. Teks dinamis dibaca dari kunci terjemahan `layout.logo_alt` menurut bahasa sesi.
+Baris sumber 110: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `auth-panel-brand-text` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `layout.brand_name` menurut bahasa sesi.
+Baris sumber 111: Menutup elemen `a` (tautan navigasi ke halaman atau sasaran lain) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 112: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `auth-panel-content` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 113: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `auth.register_panel_title` menurut bahasa sesi.
+Baris sumber 114: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `auth.register_panel_desc` menurut bahasa sesi.
+Baris sumber 115: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 116: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `auth-signup-cta js-auth-switch` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-controller` bernilai `Auth` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Register` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `auth.register_panel_cta` menurut bahasa sesi. Nilai `@Model.ReturnUrl` berasal dari model yang disusun controller. Atribut asp-route-* memasok parameter route sehingga URL menunjuk data sesi, pemain, atau ruleset yang sesuai.
+Baris sumber 117: Menutup elemen `aside` (informasi pendamping konten utama) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 118: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 119: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+*@
 @model Cashflowpoly.Ui.Models.LoginViewModel
 @using Microsoft.AspNetCore.Http
 

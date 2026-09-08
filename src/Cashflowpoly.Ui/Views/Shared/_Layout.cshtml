@@ -1,4 +1,357 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Shared/_Layout.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Shared/_Layout.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Mengimpor namespace `Cashflowpoly.Ui.Models` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 3: Mengimpor namespace `Cashflowpoly.Ui.Infrastructure` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 4: Mengimpor namespace `Microsoft.AspNetCore.Http` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 5: Mengimpor namespace `System.Security.Claims` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 6: Menyisipkan hasil ekspresi Razor `@inject IConfiguration Configuration` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 7: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 8: Menyimpan `activeRole` dengan membaca `Context.User.FindFirst(ClaimTypes.Role)?.Value` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 9: Menyimpan `activeDisplayName` dengan membaca `Context.User.FindFirst(AuthConstants.DisplayNameClaim)?.Value` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 10: Menyimpan `activeUsername` dengan membaca `Context.User.FindFirst(ClaimTypes.Name)?.Value` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 11: Menyimpan `isLoggedIn` dengan membaca `Context.User.Identity?.IsAuthenticated ＝＝ true` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 12: Menyimpan `isInstructor` dengan memeriksa peran instruktur pada sesi HTTP untuk menentukan kontrol tampilan yang tersedia.
+Baris sumber 13: Menyimpan `roleThemeClass` dengan membaca nilai `isLoggedIn` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 14: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `(isInstructor ? ”role-instructor” : ”role-player”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 15: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `”role-guest”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 16: Menyimpan `returnUrl` dengan membaca nilai `$”｛Context.Request.Path｝｛Context.Request.QueryString｝”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 17: Menyimpan `activeLanguage` dengan memanggil `UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 18: Menyimpan `isEnglish` dengan memanggil `string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 19: Menyimpan `languageCode` dengan mengambil teks terjemahan berkunci `lang.code.en` sesuai bahasa sesi pengguna.
+Baris sumber 20: Menyimpan `currentController` dengan mengubah nilai C# menjadi teks dengan format `) ?? string.Empty` sebelum dirender.
+Baris sumber 21: Menyimpan `currentAction` dengan mengubah nilai C# menjadi teks dengan format `) ?? string.Empty` sebelum dirender.
+Baris sumber 22: Menyimpan `isAuthPage` dengan memanggil `string.Equals(currentController, ”Auth”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 23: Menyimpan `isRulebookSection` dengan memanggil `string.Equals(currentController, ”Home”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 24: Melanjutkan syarat logika dengan `&& string.Equals(currentAction, ”Rulebook”, StringComparison.OrdinalIgnoreCase);`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 25: Menyimpan `isLegalSection` dengan memanggil `string.Equals(currentController, ”Home”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 26: Melanjutkan syarat logika dengan `&& (string.Equals(currentAction, ”Privacy”, StringComparison.OrdinalIgnoreCase)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 27: Melanjutkan syarat logika dengan `|| string.Equals(currentAction, ”Terms”, StringComparison.OrdinalIgnoreCase));`; OR cukup membutuhkan salah satu syarat benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 28: Menyimpan `isHomeSection` dengan memanggil `string.Equals(currentController, ”Home”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 29: Melanjutkan syarat logika dengan `&& !isRulebookSection`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 30: Melanjutkan syarat logika dengan `&& !isLegalSection;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 31: Menyimpan `isSessionsSection` dengan memanggil `string.Equals(currentController, ”Sessions”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 32: Menyimpan `isSessionListPage` dengan memanggil `isSessionsSection && string.Equals(currentAction, ”Index”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 33: Menyimpan `isSessionDetailPage` dengan memanggil `isSessionsSection && string.Equals(currentAction, ”Details”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 34: Menyimpan `isPlayersSection` dengan memanggil `string.Equals(currentController, ”PlayerDirectory”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 35: Melanjutkan syarat logika dengan `|| string.Equals(currentController, ”Players”, StringComparison.OrdinalIgnoreCase);`; OR cukup membutuhkan salah satu syarat benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 36: Menyimpan `isRulesetsSection` dengan memanggil `string.Equals(currentController, ”Rulesets”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 37: Mendefinisikan fungsi atau pemetaan `Func‹bool, string› navClass ＝ isActive → isActive ? ”nav-link is-active” : ”nav-link”;`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 38: Menyimpan `hideFooter` dengan mengevaluasi `ViewData[”HideFooter”] as bool? ?? false`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 39: Menyimpan `hideHeader` dengan mengevaluasi `ViewData[”HideHeader”] as bool? ?? false`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 40: Menyimpan `brandName` dengan mengambil teks terjemahan berkunci `layout.brand_name` sesuai bahasa sesi pengguna.
+Baris sumber 41: Menyimpan `activeRoleLabel` dengan memanggil `string.Equals(activeRole, AuthConstants.InstructorRole, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 42: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”auth.role_instructor”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 43: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `string.Equals(activeRole, AuthConstants.PlayerRole, StringComparison.OrdinalIgnoreCase)`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 44: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”auth.role_player”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 45: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `activeRole;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 46: Menyimpan `showQuickStartGuide` dengan membaca nilai `isLoggedIn && !isAuthPage && !isLegalSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 47: Menyimpan `quickStartTitle` dengan membaca nilai `isInstructor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 48: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”layout.quickstart.instructor.title”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 49: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”layout.quickstart.player.title”);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 50: Menyimpan `quickStartSubtitle` dengan membaca nilai `isInstructor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 51: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”layout.quickstart.instructor.subtitle”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 52: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”layout.quickstart.player.subtitle”);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 53: Menyimpan `quickStartSteps` dengan membaca nilai `isInstructor` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 54: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `new[]`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 55: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 56: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 57: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 58: Memperbarui `Number` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 59: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step1.title` sesuai bahasa sesi pengguna.
+Baris sumber 60: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step1.desc` sesuai bahasa sesi pengguna.
+Baris sumber 61: Memperbarui `Controller` dengan menggunakan literal `”Rulesets”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 62: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 63: Memperbarui `IsCurrent` dengan membaca nilai `isRulesetsSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 64: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 65: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 66: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 67: Memperbarui `Number` dengan menggunakan konstanta numerik `2` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 68: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step2.title` sesuai bahasa sesi pengguna.
+Baris sumber 69: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step2.desc` sesuai bahasa sesi pengguna.
+Baris sumber 70: Memperbarui `Controller` dengan menggunakan literal `”Sessions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 71: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 72: Memperbarui `IsCurrent` dengan membaca nilai `isSessionsSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 73: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 74: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 75: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 76: Memperbarui `Number` dengan menggunakan konstanta numerik `3` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 77: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step3.title` sesuai bahasa sesi pengguna.
+Baris sumber 78: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step3.desc` sesuai bahasa sesi pengguna.
+Baris sumber 79: Memperbarui `Controller` dengan menggunakan literal `”PlayerDirectory”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 80: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 81: Memperbarui `IsCurrent` dengan membaca nilai `isPlayersSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 82: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 83: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 84: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 85: Memperbarui `Number` dengan menggunakan konstanta numerik `4` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 86: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step4.title` sesuai bahasa sesi pengguna.
+Baris sumber 87: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step4.desc` sesuai bahasa sesi pengguna.
+Baris sumber 88: Memperbarui `Controller` dengan menggunakan literal `”Home”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 89: Memperbarui `Action` dengan menggunakan literal `”Rulebook”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 90: Memperbarui `IsCurrent` dengan membaca nilai `isRulebookSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 91: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 92: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 93: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `new[]`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 94: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 95: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 96: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 97: Memperbarui `Number` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 98: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step1.title` sesuai bahasa sesi pengguna.
+Baris sumber 99: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step1.desc` sesuai bahasa sesi pengguna.
+Baris sumber 100: Memperbarui `Controller` dengan menggunakan literal `”Sessions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 101: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 102: Memperbarui `IsCurrent` dengan membaca nilai `isSessionListPage` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 103: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 104: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 105: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 106: Memperbarui `Number` dengan menggunakan konstanta numerik `2` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 107: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step2.title` sesuai bahasa sesi pengguna.
+Baris sumber 108: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step2.desc` sesuai bahasa sesi pengguna.
+Baris sumber 109: Memperbarui `Controller` dengan menggunakan literal `”Sessions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 110: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 111: Memperbarui `IsCurrent` dengan membaca nilai `isSessionDetailPage` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 112: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 113: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 114: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 115: Memperbarui `Number` dengan menggunakan konstanta numerik `3` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 116: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step3.title` sesuai bahasa sesi pengguna.
+Baris sumber 117: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step3.desc` sesuai bahasa sesi pengguna.
+Baris sumber 118: Memperbarui `Controller` dengan menggunakan literal `”Sessions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 119: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 120: Memperbarui `IsCurrent` dengan membaca nilai `isSessionDetailPage` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 121: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 122: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 123: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 124: Memperbarui `Number` dengan menggunakan konstanta numerik `4` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 125: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step4.title` sesuai bahasa sesi pengguna.
+Baris sumber 126: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.player.step4.desc` sesuai bahasa sesi pengguna.
+Baris sumber 127: Memperbarui `Controller` dengan menggunakan literal `”Home”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 128: Memperbarui `Action` dengan menggunakan literal `”Rulebook”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 129: Memperbarui `IsCurrent` dengan membaca nilai `isRulebookSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 130: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 131: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 132: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 133: Mendeklarasikan tipe dokumen `html` agar browser memproses halaman menggunakan mode standar HTML.
+Baris sumber 134: Membentuk elemen `html` sebagai akar dokumen HTML.
+Baris sumber 135: Membentuk elemen `head` sebagai metadata dan referensi aset halaman.
+Baris sumber 136: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 137: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `viewport` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 138: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 139: Menyimpan `pageTitle` dengan mengubah nilai C# menjadi teks dengan format `)) ? ”Narafin” : $”Narafin | ｛ViewData[”Title”]｝”` sebelum dirender.
+Baris sumber 140: Menyimpan `metaDesc` dengan mengambil teks terjemahan berkunci `layout.meta_description` sesuai bahasa sesi pengguna.
+Baris sumber 141: Menyimpan `metaKeywords` dengan mengambil teks terjemahan berkunci `layout.meta_keywords` sesuai bahasa sesi pengguna.
+Baris sumber 142: Menyimpan `robotsValue` dengan membaca nilai `isRulebookSection || isLegalSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 143: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”index, follow”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 144: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `isAuthPage`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 145: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”noindex, follow”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 146: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `”noindex, nofollow”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 147: Menyimpan `baseUrl` dengan memanggil `SiteUrlResolver.ResolveBaseUrl(Configuration, Context.Request)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 148: Menyimpan `currentUrl` dengan memanggil `SiteUrlResolver.BuildAbsoluteUrl(baseUrl, Context.Request.Path)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 149: Menyimpan `ogImageUrl` dengan memanggil `SiteUrlResolver.BuildAbsoluteUrl(baseUrl, ”/images/images.jpg”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 150: Menyimpan `ogLocale` dengan memilih nilai melalui kondisi ternary `isEnglish ? ”en_US” : ”id_ID”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 151: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 152: Membentuk elemen `title` sebagai judul tab browser.
+Baris sumber 153: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `description` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 154: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `keywords` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 155: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `robots` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 156: Menyediakan elemen `link` sebagai referensi stylesheet atau sumber eksternal.
+Baris sumber 157: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `category` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 158: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau. Atribut `name` bernilai `category` menentukan nama field yang dikirim atau nama metadata.
+Baris sumber 161: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 162: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 163: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 164: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 165: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 166: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 167: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 170: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 171: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 172: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 173: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 174: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 175: Menyediakan elemen `meta` sebagai metadata dokumen bagi browser atau layanan pratinjau.
+Baris sumber 176: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript. Atribut `type` bernilai `importmap` menentukan jenis kontrol atau tipe konten.
+Baris sumber 177: Melakukan operasi dengan menghitung ekspresi `‹link rel＝”icon” type＝”image/x-icon” href＝”~/images/cashflowpoly-favicon.ico” asp-append-version＝”true” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 178: Melakukan operasi dengan menghitung ekspresi `‹link rel＝”stylesheet” href＝”~/css/tailwind.css” asp-append-version＝”true” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 179: Melakukan operasi dengan menghitung ekspresi `‹link rel＝”stylesheet” href＝”~/css/site.css” asp-append-version＝”true” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 180: Menghasilkan bagian tampilan melalui `@await RenderSectionAsync(”Head”, required: false)`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 181: Melakukan operasi dengan menghitung ekspresi `‹/head›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 182: Melakukan operasi dengan membaca nilai `‹body class＝”@roleThemeClass”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 183: Melakukan operasi dengan mengambil teks terjemahan berkunci `layout.skip_to_content` sesuai bahasa sesi pengguna.
+Baris sumber 184: Memeriksa kondisi `!hideHeader`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 185: Membuka ruang lingkup blok untuk `a`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 186: Melakukan operasi dengan menghitung ekspresi `‹header class＝”sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur”›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 187: Melakukan operasi dengan memilih nilai melalui kondisi ternary `‹nav class＝”nav-shell @(isLoggedIn ? ”nav-shell-auth” : ”nav-shell-guest”) @(isAuthPage ? ”nav-auth-page” : string.Empty)”›`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 188: Melakukan operasi dengan membaca nilai `‹a class＝”nav-brand flex items-center gap-3 text-lg font-semibold text-slate-900” asp-area＝”” asp-controller＝”Home” asp-action＝”Index”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 189: Melakukan operasi dengan mengambil teks terjemahan berkunci `layout.logo_alt` sesuai bahasa sesi pengguna.
+Baris sumber 190: Melakukan operasi dengan membaca nilai `‹div class＝”leading-tight”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 191: Melakukan operasi dengan menghitung ekspresi `‹span class＝”brand-title”›@brandName‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 192: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 193: Melakukan operasi dengan menghitung ekspresi `‹/a›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 194: Memeriksa kondisi `!isAuthPage`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 195: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 196: Melakukan operasi dengan membaca nilai `‹button class＝”nav-mobile-toggle js-nav-toggle”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 197: Memperbarui `type` dengan menggunakan literal `”button”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 198: Memperbarui `aria-expanded` dengan menggunakan literal `”false”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 199: Memperbarui `aria-controls` dengan menggunakan literal `”primary-nav-links”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 200: Memperbarui `aria-label` dengan mengambil teks terjemahan berkunci `layout.toggle_nav` sesuai bahasa sesi pengguna.
+Baris sumber 201: Melakukan operasi dengan menghitung ekspresi `‹span class＝”nav-mobile-toggle-line”›‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 202: Melakukan operasi dengan menghitung ekspresi `‹span class＝”nav-mobile-toggle-line”›‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 203: Melakukan operasi dengan menghitung ekspresi `‹span class＝”nav-mobile-toggle-line”›‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 204: Melakukan operasi dengan menghitung ekspresi `‹/button›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 205: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 206: Memeriksa kondisi `isLoggedIn`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 207: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 208: Melakukan operasi dengan membaca nilai `‹div id＝”primary-nav-links” class＝”nav-pill nav-center”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 209: Melakukan operasi dengan mengambil teks terjemahan berkunci `nav.home` sesuai bahasa sesi pengguna.
+Baris sumber 210: Melakukan operasi dengan mengambil teks terjemahan berkunci `nav.sessions` sesuai bahasa sesi pengguna.
+Baris sumber 211: Melakukan operasi dengan mengambil teks terjemahan berkunci `nav.players` sesuai bahasa sesi pengguna.
+Baris sumber 212: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 213: Membuka ruang lingkup blok untuk `a`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 214: Melakukan operasi dengan mengambil teks terjemahan berkunci `nav.ruleset` sesuai bahasa sesi pengguna.
+Baris sumber 215: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 216: Melakukan operasi dengan mengambil teks terjemahan berkunci `nav.privacy` sesuai bahasa sesi pengguna.
+Baris sumber 217: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 219: Melakukan operasi dengan membaca nilai `‹div class＝”nav-pill nav-right”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 220: Melakukan operasi dengan membaca nilai `‹div class＝”nav-right-cluster”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 221: Melakukan operasi dengan membaca nilai `‹details class＝”nav-dropdown nav-dropdown-lang”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 222: Melakukan operasi dengan mengambil teks terjemahan berkunci `lang.label` sesuai bahasa sesi pengguna.
+Baris sumber 223: Melakukan operasi dengan menghitung ekspresi `‹span›@languageCode‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 224: Melakukan operasi dengan menghitung ekspresi `‹span class＝”nav-caret”›&#9662;‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 225: Melakukan operasi dengan menghitung ekspresi `‹/summary›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 226: Melakukan operasi dengan membaca nilai `‹div class＝”nav-menu lang-menu”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 227: Melakukan operasi dengan membaca nilai `‹form method＝”post” asp-controller＝”Language” asp-action＝”Set”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 228: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 229: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”language” value＝”@AuthConstants.LanguageId” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 230: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”returnUrl” value＝”@returnUrl” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 231: Melakukan operasi dengan mengambil teks terjemahan berkunci `lang.option.id` sesuai bahasa sesi pengguna.
+Baris sumber 232: Melakukan operasi dengan menghitung ekspresi `‹/form›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 233: Melakukan operasi dengan membaca nilai `‹form method＝”post” asp-controller＝”Language” asp-action＝”Set”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 234: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 235: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”language” value＝”@AuthConstants.LanguageEn” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 236: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”returnUrl” value＝”@returnUrl” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 237: Melakukan operasi dengan mengambil teks terjemahan berkunci `lang.option.en` sesuai bahasa sesi pengguna.
+Baris sumber 238: Melakukan operasi dengan menghitung ekspresi `‹/form›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 239: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 240: Melakukan operasi dengan menghitung ekspresi `‹/details›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 242: Melakukan operasi dengan membaca nilai `‹details class＝”nav-dropdown nav-dropdown-profile”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 243: Melakukan operasi dengan membaca nilai `‹summary class＝”nav-avatar-trigger” title＝”@activeUsername” aria-label＝”@activeUsername”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 244: Melakukan operasi dengan mengambil teks terjemahan berkunci `layout.profile_alt` sesuai bahasa sesi pengguna.
+Baris sumber 245: Melakukan operasi dengan menghitung ekspresi `‹/summary›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 246: Melakukan operasi dengan membaca nilai `‹div class＝”nav-menu profile-menu”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 247: Melakukan operasi dengan membaca nilai `‹div class＝”profile-meta”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 248: Melakukan operasi dengan memilih nilai melalui kondisi ternary `‹div class＝”profile-name”›@(string.IsNullOrWhiteSpace(activeDisplayName) ? activeUsername : activeDisplayName)‹/div›`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 249: Melakukan operasi dengan mengambil teks terjemahan berkunci `auth.username` sesuai bahasa sesi pengguna.
+Baris sumber 250: Melakukan operasi dengan mengambil teks terjemahan berkunci `profile.role` sesuai bahasa sesi pengguna.
+Baris sumber 251: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 252: Melakukan operasi dengan membaca nilai `‹form method＝”post” asp-controller＝”Auth” asp-action＝”Logout”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 253: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 254: Melakukan operasi dengan mengambil teks terjemahan berkunci `auth.logout` sesuai bahasa sesi pengguna.
+Baris sumber 255: Melakukan operasi dengan menghitung ekspresi `‹/form›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 256: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 257: Melakukan operasi dengan menghitung ekspresi `‹/details›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 258: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 259: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 260: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 261: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 262: Membuka ruang lingkup blok untuk `button`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 263: Melakukan operasi dengan membaca nilai `‹div id＝”primary-nav-links” class＝”nav-pill nav-right”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 264: Melakukan operasi dengan membaca nilai `‹div class＝”nav-right-cluster”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 265: Melakukan operasi dengan membaca nilai `‹details class＝”nav-dropdown nav-dropdown-lang”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 266: Melakukan operasi dengan mengambil teks terjemahan berkunci `lang.label` sesuai bahasa sesi pengguna.
+Baris sumber 267: Melakukan operasi dengan menghitung ekspresi `‹span›@languageCode‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 268: Melakukan operasi dengan menghitung ekspresi `‹span class＝”nav-caret”›&#9662;‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 269: Melakukan operasi dengan menghitung ekspresi `‹/summary›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 270: Melakukan operasi dengan membaca nilai `‹div class＝”nav-menu lang-menu”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 271: Melakukan operasi dengan membaca nilai `‹form method＝”post” asp-controller＝”Language” asp-action＝”Set”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 272: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 273: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”language” value＝”@AuthConstants.LanguageId” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 274: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”returnUrl” value＝”@returnUrl” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 275: Melakukan operasi dengan mengambil teks terjemahan berkunci `lang.option.id` sesuai bahasa sesi pengguna.
+Baris sumber 276: Melakukan operasi dengan menghitung ekspresi `‹/form›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 277: Melakukan operasi dengan membaca nilai `‹form method＝”post” asp-controller＝”Language” asp-action＝”Set”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 278: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 279: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”language” value＝”@AuthConstants.LanguageEn” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 280: Melakukan operasi dengan menghitung ekspresi `‹input type＝”hidden” name＝”returnUrl” value＝”@returnUrl” /›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 281: Melakukan operasi dengan mengambil teks terjemahan berkunci `lang.option.en` sesuai bahasa sesi pengguna.
+Baris sumber 282: Melakukan operasi dengan menghitung ekspresi `‹/form›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 283: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 284: Melakukan operasi dengan menghitung ekspresi `‹/details›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 285: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 286: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 287: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 288: Melakukan operasi dengan menghitung ekspresi `‹/nav›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 289: Melakukan operasi dengan menghitung ekspresi `‹/header›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 290: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 291: Melakukan operasi dengan membaca nilai `‹div class＝”page-shell”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 292: Memeriksa kondisi `showQuickStartGuide`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 293: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 294: Melakukan operasi dengan membaca nilai `‹aside class＝”section-shell quickstart-shell is-collapsed”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 295: Melakukan operasi dengan membaca nilai `data-quickstart` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 296: Memperbarui `aria-label` dengan mengambil teks terjemahan berkunci `layout.quickstart.aria` sesuai bahasa sesi pengguna.
+Baris sumber 297: Melakukan operasi dengan membaca nilai `‹div class＝”quickstart-head”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 298: Melakukan operasi dengan membaca nilai `‹div›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 299: Melakukan operasi dengan mengambil teks terjemahan berkunci `layout.quickstart.kicker` sesuai bahasa sesi pengguna.
+Baris sumber 300: Melakukan operasi dengan menghitung ekspresi `‹h2 class＝”quickstart-title”›@quickStartTitle‹/h2›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 301: Melakukan operasi dengan menghitung ekspresi `‹p class＝”subhead”›@quickStartSubtitle‹/p›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 302: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 303: Melakukan operasi dengan membaca nilai `‹button class＝”btn-ghost btn-compact quickstart-toggle”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 304: Memperbarui `type` dengan menggunakan literal `”button”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 305: Melakukan operasi dengan membaca nilai `data-quickstart-toggle` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 306: Memperbarui `aria-expanded` dengan menggunakan literal `”false”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 307: Memperbarui `aria-controls` dengan menggunakan literal `”quickstart-guide-body”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 308: Memperbarui `data-expanded-label` dengan mengambil teks terjemahan berkunci `layout.quickstart.hide` sesuai bahasa sesi pengguna.
+Baris sumber 309: Memperbarui `data-collapsed-label` dengan mengambil teks terjemahan berkunci `layout.quickstart.show` sesuai bahasa sesi pengguna.
+Baris sumber 310: Menyisipkan hasil ekspresi Razor `@Context.T(”layout.quickstart.show”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 311: Melakukan operasi dengan menghitung ekspresi `‹/button›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 312: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 313: Melakukan operasi dengan membaca nilai `‹div id＝”quickstart-guide-body” class＝”quickstart-body” data-quickstart-body hidden›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 314: Melakukan operasi dengan membaca nilai `‹ol class＝”quickstart-steps”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 315: Mengiterasi `var step in quickStartSteps`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 316: Membuka ruang lingkup blok untuk `ol`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 317: Melakukan operasi dengan memilih nilai melalui kondisi ternary `‹li class＝”quickstart-step @(step.IsCurrent ? ”is-current” : string.Empty)”›`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 318: Melakukan operasi dengan menghitung ekspresi `‹span class＝”quickstart-step-index”›@step.Number‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 319: Melakukan operasi dengan membaca nilai `‹div class＝”quickstart-step-content”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 320: Melakukan operasi dengan menghitung ekspresi `‹p class＝”quickstart-step-title”›@step.Title‹/p›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 321: Melakukan operasi dengan menghitung ekspresi `‹p class＝”quickstart-step-desc”›@step.Description‹/p›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 322: Memeriksa kondisi `step.IsCurrent`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 323: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 324: Melakukan operasi dengan mengambil teks terjemahan berkunci `layout.quickstart.current` sesuai bahasa sesi pengguna.
+Baris sumber 325: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 326: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 327: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 328: Melakukan operasi dengan membaca nilai `‹a class＝”quickstart-step-link”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 329: Memperbarui `asp-controller` dengan menggunakan literal `”@step.Controller”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 330: Memperbarui `asp-action` dengan mengambil teks terjemahan berkunci `layout.quickstart.open_menu` sesuai bahasa sesi pengguna.
+Baris sumber 331: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 332: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 333: Melakukan operasi dengan menghitung ekspresi `‹/li›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 334: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 335: Melakukan operasi dengan menghitung ekspresi `‹/ol›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 336: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 337: Melakukan operasi dengan menghitung ekspresi `‹/aside›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 338: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 339: Melakukan operasi dengan membaca nilai `‹main id＝”content” role＝”main” class＝”space-y-6”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 340: Menghasilkan bagian tampilan melalui `@RenderBody()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 341: Melakukan operasi dengan menghitung ekspresi `‹/main›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 342: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 344: Memeriksa kondisi `!hideFooter`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 345: Membuka ruang lingkup blok untuk `main`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 346: Melakukan operasi dengan menghitung ekspresi `‹footer class＝”border-t border-white/70”›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 347: Melakukan operasi dengan membaca nilai `‹div class＝”footer-shell”›` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 348: Melakukan operasi dengan menghitung ekspresi `‹span›&copy; @DateTime.Now.Year - @brandName‹/span›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 349: Melakukan operasi dengan mengambil teks terjemahan berkunci `footer.legal_navigation` sesuai bahasa sesi pengguna.
+Baris sumber 350: Melakukan operasi dengan mengambil teks terjemahan berkunci `footer.privacy` sesuai bahasa sesi pengguna.
+Baris sumber 351: Melakukan operasi dengan mengambil teks terjemahan berkunci `footer.terms` sesuai bahasa sesi pengguna.
+Baris sumber 352: Melakukan operasi dengan mengambil teks terjemahan berkunci `footer.rulebook_copyright` sesuai bahasa sesi pengguna.
+Baris sumber 353: Melakukan operasi dengan menghitung ekspresi `‹/nav›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 354: Melakukan operasi dengan menghitung ekspresi `‹/div›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 355: Melakukan operasi dengan menghitung ekspresi `‹/footer›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 356: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 357: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript. Atribut `src` bernilai `~/js/site.js` menentukan lokasi sumber aset. Atribut `asp-append-version` bernilai `true` menentukan izin tag helper menambahkan versi/hash aset agar cache diperbarui ketika berkas berubah.
+Baris sumber 358: Menghasilkan bagian tampilan melalui `@await RenderSectionAsync(”Scripts”, required: false)`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 359: Melakukan operasi dengan menghitung ekspresi `‹/body›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 360: Melakukan operasi dengan menghitung ekspresi `‹/html›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+*@
 @using Cashflowpoly.Ui.Models
 @using Cashflowpoly.Ui.Infrastructure
 @using Microsoft.AspNetCore.Http

@@ -1,11 +1,18 @@
 # Fungsi file: Menyediakan koleksi request HTTP manual untuk pengujian endpoint API.
+# Uraian baris: Alamat dasar API lokal yang menggantikan placeholder api_host pada semua request.
 @api_host = http://localhost:5041
+# Uraian baris: Nama akun contoh untuk registrasi/login; perubahan nilainya diterapkan pada payload melalui interpolasi HTTP client.
 @auth_username = instructor_demo_20260215
+# Uraian baris: Password akun contoh yang dikirim pada payload registrasi/login; nilainya bukan JWT.
 @auth_password = DevPassw0rd!2026
+# Uraian baris: Peran yang diminta pada contoh registrasi; keberhasilan tetap ditentukan kebijakan izin registrasi API.
 @auth_role = INSTRUCTOR
+# Uraian baris: Nama tampilan untuk akun registrasi, terpisah dari username login.
 @auth_display_name = Instructor Demo
 
 ### Health check (harus 200 sebelum test auth)
+# Uraian baris: Request berikut, baris relatif 1: Meminta pembacaan data tanpa payload JSON ke {{api_host}}/health/ready. Placeholder host/akun diisi oleh HTTP client sebelum pengiriman.
+# Uraian baris: Request berikut, baris relatif 2: Header Accept menyatakan format respons yang dapat diterima client: text/plain.
 GET {{api_host}}/health/ready
 Accept: text/plain
 
@@ -13,6 +20,15 @@ Accept: text/plain
 
 ### Register (jalankan sekali; jika 409 berarti user sudah ada)
 # Jika 409 lalu login 401, ganti suffix username di @auth_username lalu jalankan register ulang.
+# Uraian baris: Request berikut, baris relatif 1: Mengirim payload JSON untuk operasi autentikasi ke {{api_host}}/api/v1/auth/register. Placeholder host/akun diisi oleh HTTP client sebelum pengiriman.
+# Uraian baris: Request berikut, baris relatif 2: Header Accept menyatakan format respons yang dapat diterima client: application/json.
+# Uraian baris: Request berikut, baris relatif 3: Header Content-Type menandai body sebagai application/json agar model binding API membaca field objek dengan benar.
+# Uraian baris: Request berikut, baris relatif 5: Membuka objek JSON body; komentar sengaja berada sebelum request supaya JSON yang dikirim tetap valid.
+# Uraian baris: Request berikut, baris relatif 6: Mengisi field JSON username dari variabel auth_username. Field ini dipakai kontrak autentikasi untuk mengenali nama akun.
+# Uraian baris: Request berikut, baris relatif 7: Mengisi field JSON password dari variabel auth_password. Field ini dipakai kontrak autentikasi untuk memverifikasi/mendaftarkan kredensial akun.
+# Uraian baris: Request berikut, baris relatif 8: Mengisi field JSON role dari variabel auth_role. Field ini dipakai kontrak autentikasi untuk meminta peran saat registrasi.
+# Uraian baris: Request berikut, baris relatif 9: Mengisi field JSON display_name dari variabel auth_display_name. Field ini dipakai kontrak autentikasi untuk menyimpan nama yang ditampilkan.
+# Uraian baris: Request berikut, baris relatif 10: Menutup objek JSON body; tidak ada field tambahan setelah tanda penutup ini.
 POST {{api_host}}/api/v1/auth/register
 Accept: application/json
 Content-Type: application/json
@@ -26,6 +42,13 @@ Content-Type: application/json
 
 ###
 
+# Uraian baris: Request berikut, baris relatif 1: Mengirim payload JSON untuk operasi autentikasi ke {{api_host}}/api/v1/auth/login. Placeholder host/akun diisi oleh HTTP client sebelum pengiriman.
+# Uraian baris: Request berikut, baris relatif 2: Header Accept menyatakan format respons yang dapat diterima client: application/json.
+# Uraian baris: Request berikut, baris relatif 3: Header Content-Type menandai body sebagai application/json agar model binding API membaca field objek dengan benar.
+# Uraian baris: Request berikut, baris relatif 5: Membuka objek JSON body; komentar sengaja berada sebelum request supaya JSON yang dikirim tetap valid.
+# Uraian baris: Request berikut, baris relatif 6: Mengisi field JSON username dari variabel auth_username. Field ini dipakai kontrak autentikasi untuk mengenali nama akun.
+# Uraian baris: Request berikut, baris relatif 7: Mengisi field JSON password dari variabel auth_password. Field ini dipakai kontrak autentikasi untuk memverifikasi/mendaftarkan kredensial akun.
+# Uraian baris: Request berikut, baris relatif 8: Menutup objek JSON body; tidak ada field tambahan setelah tanda penutup ini.
 # @name login
 POST {{api_host}}/api/v1/auth/login
 Accept: application/json
@@ -38,12 +61,18 @@ Content-Type: application/json
 
 ###
 
+# Uraian baris: Request berikut, baris relatif 1: Meminta pembacaan data tanpa payload JSON ke {{api_host}}/api/v1/sessions. Placeholder host/akun diisi oleh HTTP client sebelum pengiriman.
+# Uraian baris: Request berikut, baris relatif 2: Header Accept menyatakan format respons yang dapat diterima client: application/json.
+# Uraian baris: Request berikut, baris relatif 3: Mengambil access_token dari respons request bernama login dan mengirimkannya sebagai Bearer token untuk pemeriksaan identitas serta hak akses.
 GET {{api_host}}/api/v1/sessions
 Accept: application/json
 Authorization: Bearer {{login.response.body.$.access_token}}
 
 ###
 
+# Uraian baris: Request berikut, baris relatif 1: Meminta pembacaan data tanpa payload JSON ke {{api_host}}/api/v1/game-components?mode=PEMULA. Placeholder host/akun diisi oleh HTTP client sebelum pengiriman.
+# Uraian baris: Request berikut, baris relatif 2: Header Accept menyatakan format respons yang dapat diterima client: application/json.
+# Uraian baris: Request berikut, baris relatif 3: Mengambil access_token dari respons request bernama login dan mengirimkannya sebagai Bearer token untuk pemeriksaan identitas serta hak akses.
 GET {{api_host}}/api/v1/game-components?mode=PEMULA
 Accept: application/json
 Authorization: Bearer {{login.response.body.$.access_token}}

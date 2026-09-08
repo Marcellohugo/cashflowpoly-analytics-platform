@@ -1,4 +1,754 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Players/Details.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Players/Details.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Mengimpor namespace `System.Globalization` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 3: Mengimpor namespace `System.Text.Json` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 4: Mengimpor namespace `Cashflowpoly.Ui.Infrastructure` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 5: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.PlayerDetailViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 7: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 8: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `players.detail_title` sesuai bahasa sesi pengguna.
+Baris sumber 9: Menyimpan `isInstructor` dengan memeriksa peran instruktur pada sesi HTTP untuk menentukan kontrol tampilan yang tersedia.
+Baris sumber 11: Mendefinisikan fungsi `ResolvePlayerAvatarIndex` dengan parameter `int turnOrder`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 12: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 13: Memeriksa kondisi `turnOrder ‹＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 14: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 15: Mengembalikan hasil kepada pemanggil dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 16: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 18: Mengembalikan hasil kepada pemanggil dengan menghitung ekspresi `((turnOrder - 1) % 4) + 1` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 19: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 21: Mendefinisikan fungsi `FormatNumber` dengan parameter `double value`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 22: Mendefinisikan fungsi `FormatSignedNumber` dengan parameter `double value`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 23: Mendefinisikan fungsi `ResolveCardColumns` dengan parameter `int count`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 24: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 25: Mendefinisikan fungsi atau pemetaan `1 → 1,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 26: Mendefinisikan fungsi atau pemetaan `2 or 4 or 8 → 2,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 27: Mendefinisikan fungsi atau pemetaan `_ → 3`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 28: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 29: Mendefinisikan fungsi `IsCollectionValue` dengan parameter `string value`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 30: Melakukan operasi dengan memanggil `value.TrimStart().StartsWith(”[”, StringComparison.Ordinal)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 31: Melanjutkan syarat logika dengan `|| value.TrimStart().StartsWith(”｛”, StringComparison.Ordinal);`; OR cukup membutuhkan salah satu syarat benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 32: Mendefinisikan fungsi `FormatActionSlot` dengan parameter `int slot`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 33: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 34: Mendefinisikan fungsi atau pemetaan `0 → Context.T(”players.details.action_slot.free”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 35: Mendefinisikan fungsi atau pemetaan `1 → Context.T(”players.details.action_slot.first”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 36: Mendefinisikan fungsi atau pemetaan `2 → Context.T(”players.details.action_slot.second”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 37: Mendefinisikan fungsi atau pemetaan `_ → string.Format(CultureInfo.CurrentCulture, Context.T(”players.details.action_slot.numbered”), slot)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 38: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 40: Mendefinisikan fungsi `FormatCollectionCell` dengan parameter `string metricPath, string column, string value, bool advancedMode, string unavailableText`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 41: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 42: Memeriksa kondisi `column.Equals(”action_slot”, StringComparison.OrdinalIgnoreCase`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 43: Melanjutkan syarat logika dengan `&& int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var actionSlot))`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 44: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 45: Mengembalikan hasil kepada pemanggil dengan memanggil `FormatActionSlot(actionSlot)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 46: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 48: Memeriksa kondisi `column.Equals(”day_index”, StringComparison.OrdinalIgnoreCase`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 49: Melanjutkan syarat logika dengan `&& int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dayIndex))`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 50: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 51: Mengembalikan hasil kepada pemanggil dengan membaca nilai `dayIndex ＝＝ 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 52: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”players.details.day.setup”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 53: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `dayIndex.ToString(CultureInfo.CurrentCulture);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 54: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 56: Memeriksa kondisi `column.Equals(”series”, StringComparison.OrdinalIgnoreCase`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 57: Melanjutkan syarat logika dengan `|| column.Equals(”action_type”, StringComparison.OrdinalIgnoreCase))`; OR cukup membutuhkan salah satu syarat benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 58: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 59: Mengembalikan hasil kepada pemanggil dengan memanggil `PlayerMetricLabelFormatter.HumanizeMetricKey(value, Context.T)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 60: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 62: Memeriksa kondisi `column.Equals(”actions”, StringComparison.OrdinalIgnoreCase)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 63: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 64: Mengembalikan hasil kepada pemanggil dengan memanggil `string.Join(”, ”, value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 65: Melanjutkan rantai operasi dengan memanggil `value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 66: Mendefinisikan fungsi atau pemetaan `.Select(action → PlayerMetricLabelFormatter.HumanizeMetricKey(action, Context.T)));`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 67: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 69: Memeriksa kondisi `column.Equals(”cashflow_category”, StringComparison.OrdinalIgnoreCase)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 70: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 71: Mengembalikan hasil kepada pemanggil dengan memanggil `string.Join(”, ”, value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 72: Melanjutkan rantai operasi dengan memanggil `value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 73: Mendefinisikan fungsi atau pemetaan `.Select(category → PlayerMetricLabelFormatter.HumanizeTransactionCategory(category, Context.T)));`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 74: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 76: Mengembalikan hasil kepada pemanggil dengan memanggil `PlayerMetricLabelFormatter.DescribeMetric(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 77: Menyediakan teks atau fragmen konten `$”｛metricPath｝.｛column｝”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 78: Menyediakan teks atau fragmen konten `value,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 79: Menyediakan teks atau fragmen konten `false,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 80: Menyediakan teks atau fragmen konten `advancedMode,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 81: Menyediakan teks atau fragmen konten `unavailableText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 82: Melakukan operasi dengan membaca nilai `Context.T).DisplayValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 83: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 85: Mendefinisikan fungsi `IsCollectionContextColumn` dengan parameter `string column`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 86: Menyediakan teks atau fragmen konten `column is ”item_index” or ”action_slot” or ”day_index” or ”sequence_number” or ”action_index”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 87: Menyediakan teks atau fragmen konten `or ”action_type” or ”actions” or ”series” or ”rank” or ”cashflow_category”;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 89: Menyimpan `cashflowJourney` dengan membaca nilai `Model.CashflowJourney` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 90: Menyimpan `statSummary` dengan membuat instance `PlayerStatSummaryViewModel` dengan masukan `tanpa argumen`.
+Baris sumber 91: Menyimpan `nullText` dengan mengambil teks terjemahan berkunci `players.support.value.unavailable` sesuai bahasa sesi pengguna.
+Baris sumber 92: Menyimpan `totalCashIn` dengan mengevaluasi `Model.Summary?.CashInTotal ?? cashflowJourney?.TotalCashIn`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 93: Menyimpan `totalCashOut` dengan mengevaluasi `Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 94: Menyimpan `netCashflow` dengan membaca nilai `totalCashIn.HasValue && totalCashOut.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 95: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `totalCashIn.Value - totalCashOut.Value`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 96: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `null;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 97: Menyimpan `endingCash` dengan membaca `cashflowJourney?.StartingCash + netCashflow` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 98: Menyimpan `fulfillmentDiversity` dengan membaca `Model.Summary?.FulfillmentDiversity` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 99: Menyimpan `needCardsOwned` dengan membaca nilai `Model.GameplayRaw.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 100: Melanjutkan syarat logika dengan `&& Model.GameplayRaw.Value.ValueKind ＝＝ JsonValueKind.Object`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 101: Melanjutkan syarat logika dengan `&& Model.GameplayRaw.Value.TryGetProperty(”needs”, out var gameplayNeeds)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 102: Melanjutkan syarat logika dengan `&& gameplayNeeds.ValueKind ＝＝ JsonValueKind.Object`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 103: Melanjutkan syarat logika dengan `&& gameplayNeeds.TryGetProperty(”need_cards_owned_current”, out var ownedNeedCards)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 104: Melanjutkan syarat logika dengan `&& ownedNeedCards.TryGetInt32(out var ownedNeedCardCount)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 105: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `ownedNeedCardCount`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 106: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `(int?)null;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 107: Menyimpan `happinessPoints` dengan membaca `Model.Summary?.HappinessPointsTotal` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 108: Menyediakan teks atau fragmen konten `bool? hasUnpaidLoan ＝ Model.Summary?.HasUnpaidLoan;` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 109: Menyimpan `hasCompleteEvaluationData` dengan membaca nilai `endingCash.HasValue && netCashflow.HasValue && fulfillmentDiversity.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 110: Melanjutkan syarat logika dengan `&& happinessPoints.HasValue && hasUnpaidLoan.HasValue;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 111: Menyimpan `overallTone` dengan membaca nilai `hasUnpaidLoan ＝＝ true` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 112: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”danger”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 113: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `netCashflow is ‹ 0 || fulfillmentDiversity is ‹ 0.4 || happinessPoints is ‹ 20`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 114: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”warning”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 115: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `hasCompleteEvaluationData && netCashflow is › 0 && fulfillmentDiversity is ›＝ 0.7 && happinessPoints is ›＝ 60`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 116: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”positive”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 117: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `hasCompleteEvaluationData ? ”neutral” : ”unavailable”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 118: Menyimpan `overallStatusKey` dengan membaca nilai `$”players.stats.status.｛overallTone｝”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 119: Menyimpan `overallDescriptionKey` dengan membaca nilai `$”players.stats.status.｛overallTone｝.desc”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 121: Menyimpan `trueText` dengan mengambil teks terjemahan berkunci `players.support.value.yes` sesuai bahasa sesi pengguna.
+Baris sumber 122: Menyimpan `falseText` dengan mengambil teks terjemahan berkunci `players.support.value.no` sesuai bahasa sesi pengguna.
+Baris sumber 123: Menyimpan `rawGroupMap` dengan membaca nilai `PlayerMetricJsonMapper` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 124: Melanjutkan rantai operasi dengan memanggil `value.BuildMetricVariableGroups(Model.GameplayRaw, trueText, falseText, nullText)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 125: Mendefinisikan fungsi atau pemetaan `.ToDictionary(group → group.GroupKey, group → group.Rows, StringComparer.OrdinalIgnoreCase);`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 126: Menyimpan `derivedGroupMap` dengan membaca nilai `PlayerMetricJsonMapper` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 127: Melanjutkan rantai operasi dengan memanggil `value.BuildMetricGroups(Model.GameplayDerived, trueText, falseText, nullText)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 128: Mendefinisikan fungsi atau pemetaan `.ToDictionary(group → group.GroupKey, group → group.Rows, StringComparer.OrdinalIgnoreCase);`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 129: Menyimpan `derivedSummaryRows` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”summary”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 130: Menyimpan `isAdvancedMode` dengan membaca nilai `Model.GameplayRaw.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 131: Melanjutkan syarat logika dengan `&& Model.GameplayRaw.Value.ValueKind ＝＝ JsonValueKind.Object`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 132: Melanjutkan syarat logika dengan `&& Model.GameplayRaw.Value.TryGetProperty(”metadata”, out var gameplayMetadata)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 133: Melanjutkan syarat logika dengan `&& gameplayMetadata.ValueKind ＝＝ JsonValueKind.Object`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 134: Melanjutkan syarat logika dengan `&& gameplayMetadata.TryGetProperty(”game_mode”, out var gameplayMode)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 135: Melanjutkan syarat logika dengan `&& string.Equals(gameplayMode.GetString(), ”advanced”, StringComparison.OrdinalIgnoreCase);`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 137: Melakukan operasi dengan memanggil `List‹(string Path, string Value)› SelectDerived(params string[] keys)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 138: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 139: Mengembalikan hasil kepada pemanggil dengan membaca nilai `derivedSummaryRows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 140: Mendefinisikan fungsi atau pemetaan `.Where(row → keys.Contains(row.Path, StringComparer.OrdinalIgnoreCase))`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 141: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 142: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 144: Melakukan operasi dengan memanggil `List‹(string Path, string Value)› ExcludeRows(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 145: Melakukan operasi dengan membaca nilai `IEnumerable‹(string Path, string Value)› rows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 146: Mendefinisikan fungsi atau pemetaan `params string[] keys) →`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 147: Mendefinisikan fungsi atau pemetaan `rows.Where(row → !keys.Contains(row.Path, StringComparer.OrdinalIgnoreCase)).ToList();`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 149: Melakukan operasi dengan memanggil `List‹(string Path, string Value)› ExcludeAdvancedRowsInBeginner(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 150: Melakukan operasi dengan membaca nilai `IEnumerable‹(string Path, string Value)› rows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 151: Mendefinisikan fungsi atau pemetaan `params string[] keys) →`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 152: Menyediakan teks atau fragmen konten `isAdvancedMode ? rows.ToList() : ExcludeRows(rows, keys);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 154: Melakukan operasi dengan memanggil `List‹(string Path, string Value)› BuildCoinRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 155: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 156: Menyimpan `coinRows` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”coins”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 157: Menyimpan `turnRows` dengan memanggil `ExcludeAdvancedRowsInBeginner(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 158: Melakukan operasi dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”turns”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 159: Menyediakan teks atau fragmen konten `”action_slot_when_debt_introduced”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 160: Menyediakan teks atau fragmen konten `”action_slot_when_first_risk_hit”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 161: Menyediakan teks atau fragmen konten `”day_when_debt_introduced”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 162: Menyediakan teks atau fragmen konten `”day_when_first_risk_hit”);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 165: Memperbarui `turnRows` dengan memanggil `ExcludeRows(turnRows, ”day_when_first_risk_hit”, ”action_slot_when_first_risk_hit”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 166: Menyimpan `outgoing` dengan memanggil `coinRows.FirstOrDefault(row → row.Path ＝＝ ”coins_spent_per_turn”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 167: Menyimpan `incoming` dengan memanggil `coinRows.FirstOrDefault(row → row.Path ＝＝ ”coins_earned_per_turn”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 168: Menyimpan `netChange` dengan memanggil `turnRows.FirstOrDefault(row → row.Path ＝＝ ”net_income_per_turn”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 169: Menyimpan `balance` dengan memanggil `turnRows.FirstOrDefault(row → row.Path ＝＝ ”coins_per_turn_progression”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 170: Menyimpan `transactionHistory` dengan memanggil `PlayerMetricJsonMapper.BuildTransactionHistoryJson(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 171: Menyediakan teks atau fragmen konten `outgoing ?? ”[]”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 172: Menyediakan teks atau fragmen konten `incoming ?? ”[]”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 173: Menyediakan teks atau fragmen konten `netChange ?? ”[]”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 174: Menyediakan teks atau fragmen konten `balance ?? ”[]”);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 175: Menyimpan `result` dengan memanggil `ExcludeRows(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 176: Menyediakan teks atau fragmen konten `coinRows,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 177: Menyediakan teks atau fragmen konten `”coins_donated”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 178: Menyediakan teks atau fragmen konten `”coins_saved”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 179: Menyediakan teks atau fragmen konten `”coins_net_end_game”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 180: Menyediakan teks atau fragmen konten `”coins_spent_per_turn”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 181: Menyediakan teks atau fragmen konten `”coins_earned_per_turn”);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 183: Memeriksa kondisi `!string.IsNullOrWhiteSpace(transactionHistory)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 184: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 185: Melakukan operasi dengan memanggil `result.Add((”transaction_history”, transactionHistory))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 186: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 188: Melakukan operasi dengan memanggil `result.AddRange(ExcludeRows(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 189: Menyediakan teks atau fragmen konten `turnRows,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 190: Menyediakan teks atau fragmen konten `”coins_per_turn_progression”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 191: Mendefinisikan fungsi atau pemetaan `”net_income_per_turn”).OrderBy(row → row.Path switch`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 192: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 193: Mendefinisikan fungsi atau pemetaan `”day_when_debt_introduced” → 0,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 194: Mendefinisikan fungsi atau pemetaan `”day_game_completion” → 1,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 195: Mendefinisikan fungsi atau pemetaan `_ → 2`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 196: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 198: Mengembalikan hasil kepada pemanggil dengan membaca nilai `result` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 199: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 201: Melakukan operasi dengan memanggil `List‹(string Path, string Value)› BuildDonationRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 202: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 203: Menyimpan `rows` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”donations”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 204: Memeriksa kondisi `rows.Count ＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 205: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 206: Mengembalikan hasil kepada pemanggil dengan membaca nilai `rows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 207: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 209: Menyimpan `amounts` dengan memanggil `rows.FirstOrDefault(row → row.Path ＝＝ ”donation_amount_per_friday”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 210: Menyimpan `ranks` dengan memanggil `rows.FirstOrDefault(row → row.Path ＝＝ ”donation_rank_per_friday”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 211: Menyimpan `result` dengan memanggil `ExcludeRows(rows, ”donation_amount_per_friday”, ”donation_rank_per_friday”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 212: Melakukan operasi dengan memanggil `result.Insert(0, (”donation_history”, PlayerMetricJsonMapper.BuildDonationHistoryJson(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 213: Menyediakan teks atau fragmen konten `amounts ?? ”[]”, ranks ?? ”[]”)));` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 214: Mengembalikan hasil kepada pemanggil dengan membaca nilai `result` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 215: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 217: Melakukan operasi dengan memanggil `List‹(string Path, string Value)› BuildActionRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 218: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 219: Menyimpan `rows` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”actions”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 220: Menyimpan `sequence` dengan memanggil `rows.FirstOrDefault(row → row.Path ＝＝ ”action_sequence”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 221: Menyimpan `repetitions` dengan memanggil `rows.FirstOrDefault(row → row.Path ＝＝ ”action_repetitions_per_turn”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 222: Menyimpan `result` dengan memanggil `ExcludeRows(rows, ”actions_per_turn”, ”action_sequence”, ”action_repetitions_per_turn”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 223: Menyimpan `history` dengan memanggil `PlayerMetricJsonMapper.BuildActionUsageHistoryJson(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 224: Menyediakan teks atau fragmen konten `sequence ?? ”[]”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 225: Menyediakan teks atau fragmen konten `repetitions ?? ”[]”);` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 226: Memeriksa kondisi `!string.IsNullOrWhiteSpace(history)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 227: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 228: Melakukan operasi dengan memanggil `result.Insert(0, (”action_usage_history”, history))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 229: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 231: Mengembalikan hasil kepada pemanggil dengan membaca nilai `result` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 232: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 234: Menyimpan `ingredientRows` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”ingredients”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 235: Menyimpan `discardedIngredients` dengan memanggil `ingredientRows.FirstOrDefault(row → row.Path ＝＝ ”ingredients_wasted”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 236: Menyimpan `financialGoalRows` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”financial_goals”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 237: Menyimpan `attemptedFinancialGoals` dengan memanggil `financialGoalRows.FirstOrDefault(row → row.Path ＝＝ ”financial_goals_attempted”).Value` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 238: Menyimpan `financialGoalSources` dengan memanggil `PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”financial_goals”, ”coins”)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 239: Menyimpan `financialGoalSummaryRows` dengan membaca nilai `new[] ｛ ”financial_goals_completed”, ”coins_saved”, ”sharia_loans_outstanding_coins” ｝` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 240: Mendefinisikan fungsi atau pemetaan `.Select(path → (Path: path, Value: financialGoalSources.FirstOrDefault(row → row.Path ＝＝ path).Value ?? nullText))`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 241: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 242: Menyimpan `rawSections` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 243: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 244: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”coin-finance”, TitleKey ＝ ”players.details.raw.coin_finance.title”, DescriptionKey ＝ isAdvancedMode ? ”players.details.raw.coin_finance.desc” : ”players.details.raw.coin_finance.beginner.desc”, AdvancedOnly ＝ false, Rows ＝ BuildCoinRows() ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 245: Mendefinisikan fungsi atau pemetaan `new ｛ Key ＝ ”ingredients”, TitleKey ＝ ”players.details.raw.ingredients.title”, DescriptionKey ＝ ”players.details.raw.ingredients.desc”, AdvancedOnly ＝ false, Rows ＝ ingredientRows.Where(row → row.Path !＝ ”ingredients_wasted” && row.Path.Split('.')[0] !＝ ”ingredient_types_held”).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 246: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”meal-orders”, TitleKey ＝ ”players.details.raw.meal_orders.title”, DescriptionKey ＝ ”players.details.raw.meal_orders.desc”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”meal_orders”) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 247: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”needs”, TitleKey ＝ ”players.details.raw.needs.title”, DescriptionKey ＝ ”players.details.raw.needs.desc”, AdvancedOnly ＝ false, Rows ＝ ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”needs”), ”need_profile.basic_profile”, ”need_profile.collector_profile”, ”need_profile.specialist_profile”) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 248: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”donations”, TitleKey ＝ ”players.details.raw.donations.title”, DescriptionKey ＝ ”players.details.raw.donations.desc”, AdvancedOnly ＝ false, Rows ＝ BuildDonationRows() ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 249: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”gold”, TitleKey ＝ ”players.details.raw.gold.title”, DescriptionKey ＝ ”players.details.raw.gold.desc”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”gold”) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 250: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”pension”, TitleKey ＝ ”players.details.raw.pension.title”, DescriptionKey ＝ ”players.details.raw.pension.desc”, AdvancedOnly ＝ false, Rows ＝ ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”pension”), ”leftover_coins_end_game”) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 251: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”life-risk”, TitleKey ＝ ”players.details.raw.life_risk.title”, DescriptionKey ＝ ”players.details.raw.life_risk.desc”, AdvancedOnly ＝ true, Rows ＝ PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, ”life_risk”) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 252: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”financial-goals”, TitleKey ＝ ”players.details.raw.financial_goals.title”, DescriptionKey ＝ ”players.details.raw.financial_goals.desc”, AdvancedOnly ＝ true, Rows ＝ financialGoalSummaryRows ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 253: Menyediakan teks atau fragmen konten `new ｛ Key ＝ ”actions”, TitleKey ＝ ”players.details.raw.actions.title”, DescriptionKey ＝ ”players.details.raw.actions.desc”, AdvancedOnly ＝ false, Rows ＝ BuildActionRows() ｝` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 254: Mendefinisikan fungsi atau pemetaan `｝.Where(item → isAdvancedMode || !item.AdvancedOnly).ToList();`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 256: Menyimpan `analysisSections` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 257: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 258: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”money”, Key ＝ ”net-worth”, PrimaryKey ＝ ”cash_growth_percent”, TitleKey ＝ ”players.analysis.net_worth.title”, DescriptionKey ＝ ”players.analysis.net_worth.desc”, FormulaKey ＝ ”players.support.formula.net_worth”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”cash_growth_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”cash_growth_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 259: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”money”, Key ＝ ”income-diversification”, PrimaryKey ＝ ”income_diversification_index”, TitleKey ＝ ”players.analysis.income_diversification.title”, DescriptionKey ＝ ”players.analysis.income_diversification.desc”, FormulaKey ＝ ”players.support.formula.income_diversification_index”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”income_diversification_index”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”income_diversification_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 260: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”money”, Key ＝ ”expense-efficiency”, PrimaryKey ＝ ”business_expense_share_percent”, TitleKey ＝ ”players.analysis.expense_efficiency.title”, DescriptionKey ＝ ”players.analysis.expense_efficiency.desc”, FormulaKey ＝ ”players.support.formula.expense_efficiency”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”business_expense_share_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”business_expense_share_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 261: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”money”, Key ＝ ”business-margin”, PrimaryKey ＝ ”meal_order_profit_margin_percent”, TitleKey ＝ ”players.analysis.business_margin.title”, DescriptionKey ＝ ”players.analysis.business_margin.desc”, FormulaKey ＝ ”players.support.formula.business_margin”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”meal_order_profit_margin_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”meal_order_profit_margin_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 262: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”future”, Key ＝ ”risk-appetite”, PrimaryKey ＝ ”risk_readiness_percent”, TitleKey ＝ ”players.analysis.risk_appetite.title”, DescriptionKey ＝ ”players.analysis.risk_appetite.desc”, FormulaKey ＝ ”players.support.formula.risk_appetite”, AdvancedOnly ＝ true, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”risk_readiness_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”risk_readiness_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 263: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”future”, Key ＝ ”debt-discipline”, PrimaryKey ＝ ”loan_burden_percent”, TitleKey ＝ ”players.analysis.debt_discipline.title”, DescriptionKey ＝ ”players.analysis.debt_discipline.desc”, FormulaKey ＝ ”players.support.formula.debt_leverage”, AdvancedOnly ＝ true, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”loan_burden_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”loan_burden_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 264: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”future”, Key ＝ ”goal-ambition”, PrimaryKey ＝ ”financial_goal_progress_percent”, TitleKey ＝ ”players.analysis.goal_ambition.title”, DescriptionKey ＝ ”players.analysis.goal_ambition.desc”, FormulaKey ＝ ”players.support.formula.goal_ambition_index”, AdvancedOnly ＝ true, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”financial_goal_progress_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”financial_goal_progress_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 265: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”play”, Key ＝ ”action-efficiency”, PrimaryKey ＝ ”income_action_focus_percent”, TitleKey ＝ ”players.analysis.action_efficiency.title”, DescriptionKey ＝ ”players.analysis.action_efficiency.desc”, FormulaKey ＝ ”players.support.formula.action_efficiency”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”income_action_focus_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”income_action_focus_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 266: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”play”, Key ＝ ”meal-success”, PrimaryKey ＝ ”ingredient_utilization_percent”, TitleKey ＝ ”players.analysis.meal_success.title”, DescriptionKey ＝ ”players.analysis.meal_success.desc”, FormulaKey ＝ ”players.support.formula.order_success”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”ingredient_utilization_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”ingredient_utilization_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 267: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”play”, Key ＝ ”planning-horizon”, PrimaryKey ＝ ”long_term_action_share_percent”, TitleKey ＝ ”players.analysis.planning_horizon.title”, DescriptionKey ＝ ”players.analysis.planning_horizon.desc”, FormulaKey ＝ ”players.support.formula.planning”, AdvancedOnly ＝ true, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”long_term_action_share_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”long_term_action_share_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 268: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”wellbeing”, Key ＝ ”fulfillment-diversity”, PrimaryKey ＝ ”need_fulfillment_diversity_percent”, TitleKey ＝ ”players.analysis.fulfillment_diversity.title”, DescriptionKey ＝ ”players.analysis.fulfillment_diversity.desc”, FormulaKey ＝ ”players.support.formula.fulfillment”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”need_fulfillment_diversity_percent”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”need_fulfillment_diversity_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 269: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”wellbeing”, Key ＝ ”donation-commitment”, PrimaryKey ＝ ”donation_commitment_score”, TitleKey ＝ ”players.analysis.donation_commitment.title”, DescriptionKey ＝ ”players.analysis.donation_commitment.desc”, FormulaKey ＝ ”players.support.formula.donation_commitment”, AdvancedOnly ＝ false, Rows ＝ PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived(”donation_commitment_score”), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”donation_commitment_components”)) ｝,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 270: Menyediakan teks atau fragmen konten `new ｛ Chapter ＝ ”wellbeing”, Key ＝ ”happiness-portfolio”, PrimaryKey ＝ ”total_happiness_points”, TitleKey ＝ ”players.analysis.happiness_portfolio.title”, DescriptionKey ＝ isAdvancedMode ? ”players.analysis.happiness_portfolio.desc” : ”players.analysis.happiness_portfolio.beginner.desc”, FormulaKey ＝ isAdvancedMode ? ”players.support.formula.happiness_portfolio” : ”players.support.formula.happiness_portfolio.beginner”, AdvancedOnly ＝ false, Rows ＝ ExcludeAdvancedRowsInBeginner(PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, ”happiness_points_composition”), ”financial_goal_points”, ”loan_penalty_points”) ｝` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 271: Mendefinisikan fungsi atau pemetaan `｝.Where(item → isAdvancedMode || !item.AdvancedOnly).ToList();`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 272: Menyimpan `analysisChapters` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 273: Membuka ruang lingkup blok untuk `tampilan Details.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 274: Mendefinisikan fungsi atau pemetaan `new ｛ Key ＝ ”money”, TitleKey ＝ ”players.analysis.chapter.money.title”, DescriptionKey ＝ ”players.analysis.chapter.money.desc”, AdvancedOnly ＝ false, Items ＝ analysisSections.Where(item → item.Chapter ＝＝ ”money”).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 275: Mendefinisikan fungsi atau pemetaan `new ｛ Key ＝ ”future”, TitleKey ＝ ”players.analysis.chapter.future.title”, DescriptionKey ＝ ”players.analysis.chapter.future.desc”, AdvancedOnly ＝ true, Items ＝ analysisSections.Where(item → item.Chapter ＝＝ ”future”).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 276: Mendefinisikan fungsi atau pemetaan `new ｛ Key ＝ ”play”, TitleKey ＝ ”players.analysis.chapter.play.title”, DescriptionKey ＝ ”players.analysis.chapter.play.desc”, AdvancedOnly ＝ false, Items ＝ analysisSections.Where(item → item.Chapter ＝＝ ”play”).ToList() ｝,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 277: Mendefinisikan fungsi atau pemetaan `new ｛ Key ＝ ”wellbeing”, TitleKey ＝ ”players.analysis.chapter.wellbeing.title”, DescriptionKey ＝ ”players.analysis.chapter.wellbeing.desc”, AdvancedOnly ＝ false, Items ＝ analysisSections.Where(item → item.Chapter ＝＝ ”wellbeing”).ToList() ｝`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 278: Mendefinisikan fungsi atau pemetaan `｝.Where(chapter → chapter.Items.Count › 0).ToList();`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 280: Menyimpan `hasRawMetrics` dengan memanggil `rawSections.Any(section → section.Rows.Count › 0)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 281: Mendefinisikan fungsi `ReadDerivedValue` dengan parameter `string key`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 282: Mendefinisikan fungsi atau pemetaan `derivedSummaryRows.FirstOrDefault(row → string.Equals(row.Path, key, StringComparison.OrdinalIgnoreCase)).Value`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 283: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `? nullText;`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 284: Menyimpan `netWorthMetric` dengan memanggil `PlayerMetricLabelFormatter.DescribeMetric(”cash_growth_percent”, ReadDerivedValue(”cash_growth_percent”), true, isAdvancedMode, nullText, Context.T)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 286: Menyimpan `playerTurnOrder` dengan mengevaluasi `Model.Summary?.PlayerOrder ?? 1`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 287: Menyimpan `playerAvatarPath` dengan memanggil `$”/images/players/｛ResolvePlayerAvatarIndex(playerTurnOrder)｝.png”` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 288: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 290: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell player-detail-overhaul` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 291: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `action-toolbar mb-4 player-detail-toolbar` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 292: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 293: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 294: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-ghost”` menjadi teks yang terlihat pada komponen.
+Baris sumber 294: Baris sumber 295: Melengkapi atribut `asp-controller` pada `a` dengan `”PlayerDirectory”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 294: Baris sumber 296: Melengkapi atribut `asp-action` pada `a` dengan `”Index”›@(”‹- ” + Context.T(”players.detail.navigasi kembali players”))‹/a›`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 297: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 298: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-ghost”` menjadi teks yang terlihat pada komponen.
+Baris sumber 298: Baris sumber 299: Melengkapi atribut `asp-controller` pada `a` dengan `”Sessions”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 298: Baris sumber 300: Melengkapi atribut `asp-action` pada `a` dengan `”Details”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 298: Baris sumber 301: Melengkapi atribut `asp-route-sessionId` pada `a` dengan `”@Model.SessionId”›@(”‹- ” + Context.T(”players.detail.navigasi kembali session”))‹/a›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 302: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 304: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-detail-hero` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 305: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-detail-hero-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 306: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.detail_title` menurut bahasa sesi.
+Baris sumber 307: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-detail-hero-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.detail.subtitle` menurut bahasa sesi.
+Baris sumber 308: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 309: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-profile-identity` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 310: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-profile-avatar-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 311: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif. Atribut `class` bernilai `player-profile-avatar` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹img class＝”player-profile-avatar”` menjadi teks yang terlihat pada komponen.
+Baris sumber 311: Baris sumber 312: Melengkapi atribut `src` pada `img` dengan `”@playerAvatarPath”`; lokasi sumber aset.
+Baris sumber 311: Baris sumber 313: Melengkapi atribut `alt` pada `img` dengan `”@($”｛Context.T(”common.turn_order”)｝ ｛playerTurnOrder｝”)” /›`; teks alternatif gambar ketika gambar tidak terlihat atau dibaca pembaca layar.
+Baris sumber 314: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 315: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-profile-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 316: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-profile-turn` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.turn_order` menurut bahasa sesi.
+Baris sumber 317: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-detail-name` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.player` menurut bahasa sesi.
+Baris sumber 318: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 319: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 320: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 322: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.ErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 323: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 324: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-error` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 325: Menyisipkan hasil ekspresi Razor `@Model.ErrorMessage` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 326: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 327: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 329: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.GameplayErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 330: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 331: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-warning` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 332: Menyisipkan hasil ekspresi Razor `@Model.GameplayErrorMessage` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 333: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 334: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 336: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `id` bernilai `player-statistics-dashboard` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `players-fusion-metrics player-detail-section player-stats-dashboard` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 337: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `id` bernilai `player-statistics-summary` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `player-dashboard-accordion player-dashboard-accordion--summary` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 338: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Atribut `class` bernilai `players-fusion-head ruleset-section-head player-stats-hero` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 339: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 340: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.stats.badge` menurut bahasa sesi.
+Baris sumber 341: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `id` bernilai `player-statistics-summary-title` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.stats.title` menurut bahasa sesi.
+Baris sumber 342: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.stats.subtitle` menurut bahasa sesi.
+Baris sumber 343: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 344: Menutup elemen `summary` (pemicu buka/tutup untuk elemen details) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 346: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-dashboard-accordion__body` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 347: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri.
+Baris sumber 348: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-analysis-overview__verdict` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 349: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-stats-verdict__eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.stats.verdict.title` menurut bahasa sesi.
+Baris sumber 350: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Atribut `id` bernilai `player-analysis-overview-title` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 351: Membentuk elemen `p` sebagai paragraf atau label penjelasan.
+Baris sumber 352: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 353: Membentuk elemen `dl` sebagai daftar pasangan istilah dan penjelasan. Atribut `class` bernilai `player-analysis-scorecard` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.analysis.scorecard.title` menurut bahasa sesi.
+Baris sumber 354: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Teks dinamis dibaca dari kunci terjemahan `players.cashflow_journey.ending_cash` menurut bahasa sesi.
+Baris sumber 355: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Teks dinamis dibaca dari kunci terjemahan `metric.cash_net` menurut bahasa sesi.
+Baris sumber 356: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 357: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Teks dinamis dibaca dari kunci terjemahan `metric.happiness` menurut bahasa sesi.
+Baris sumber 358: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Teks dinamis dibaca dari kunci terjemahan `metric.fulfillment_diversity`, `players.stats.need_balance.none` menurut bahasa sesi.
+Baris sumber 359: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-analysis-scorecard__mission` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 360: Membentuk elemen `dt` sebagai istilah dalam daftar definisi. Teks dinamis dibaca dari kunci terjemahan `players.stats.mission.title` menurut bahasa sesi.
+Baris sumber 361: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 362: Membuka ruang lingkup blok untuk `dd`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 363: Mendefinisikan fungsi atau pemetaan `true → ”players.stats.mission.complete”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 364: Mendefinisikan fungsi atau pemetaan `false → ”players.stats.mission.incomplete”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 365: Mendefinisikan fungsi atau pemetaan `_ → ”players.stats.mission.unavailable”`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 366: Melakukan operasi dengan menghitung ekspresi `｝)‹/dd›` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 367: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 368: Menutup elemen `dl` (daftar pasangan istilah dan penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 369: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 371: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `player-stats-actions-section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 372: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-stats-section-heading ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 373: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Atribut `id` bernilai `player-stats-insights-title` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.stats.insights_title` menurut bahasa sesi.
+Baris sumber 374: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.stats.insights_desc` menurut bahasa sesi.
+Baris sumber 375: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 376: Membentuk elemen `ul` sebagai daftar tanpa penomoran. Atribut `class` bernilai `player-stats-actions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 377: Mengiterasi `var insight in statSummary.Insights.Take(3)`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 378: Membuka ruang lingkup blok untuk `ul`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 379: Membentuk elemen `li` sebagai satu anggota daftar.
+Baris sumber 380: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-stat-action__signal` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 381: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 382: Membentuk elemen `h4` sebagai judul detail tingkat empat.
+Baris sumber 383: Membentuk elemen `p` sebagai paragraf atau label penjelasan.
+Baris sumber 384: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 385: Menutup elemen `li` (satu anggota daftar) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 386: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 387: Menutup elemen `ul` (daftar tanpa penomoran) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 388: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 389: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 390: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 392: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `id` bernilai `player-analysis-atlas` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `player-analysis-atlas player-dashboard-accordion` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 393: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Atribut `class` bernilai `player-analysis-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 394: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 395: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.analysis.badge` menurut bahasa sesi.
+Baris sumber 396: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Atribut `id` bernilai `player-analysis-atlas-title` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Teks dinamis dibaca dari kunci terjemahan `players.analysis.title` menurut bahasa sesi.
+Baris sumber 397: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `players.analysis.desc` menurut bahasa sesi.
+Baris sumber 398: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 399: Menutup elemen `summary` (pemicu buka/tutup untuk elemen details) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 401: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-analysis-chapters` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 402: Mengiterasi `var chapter in analysisChapters`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 403: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 404: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri.
+Baris sumber 405: Membentuk elemen `header` sebagai bagian kepala halaman atau komponen. Atribut `class` bernilai `player-analysis-chapter__head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 406: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 407: Membentuk elemen `h4` sebagai judul detail tingkat empat.
+Baris sumber 408: Membentuk elemen `p` sebagai paragraf atau label penjelasan.
+Baris sumber 409: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 410: Memeriksa kondisi `chapter.AdvancedOnly`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 411: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 412: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-analysis-card__mode` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.support.mode.advanced` menurut bahasa sesi.
+Baris sumber 413: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 414: Menutup elemen `header` (bagian kepala halaman atau komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 415: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-analysis-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 416: Mengiterasi `var analysis in chapter.Items`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 417: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 418: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri.
+Baris sumber 419: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-analysis-card__body` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 420: Membentuk elemen `header` sebagai bagian kepala halaman atau komponen. Atribut `class` bernilai `player-analysis-card__heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 421: Membentuk elemen `h5` sebagai komponen markup pada tampilan.
+Baris sumber 422: Memeriksa kondisi `analysis.AdvancedOnly && !chapter.AdvancedOnly`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 423: Membuka ruang lingkup blok untuk `h5`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 424: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-analysis-card__mode` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.support.mode.advanced` menurut bahasa sesi.
+Baris sumber 425: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 426: Menutup elemen `header` (bagian kepala halaman atau komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 427: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-analysis-card__description` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 429: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 430: Menyimpan `primaryRow` dengan memanggil `analysis.Rows.FirstOrDefault(row →` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 431: Melakukan operasi dengan memanggil `row.Path.Equals(analysis.PrimaryKey, StringComparison.OrdinalIgnoreCase))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 432: Menyimpan `supportingRows` dengan membaca nilai `analysis.Rows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 433: Mendefinisikan fungsi atau pemetaan `.Where(row → !row.Path.Equals(analysis.PrimaryKey, StringComparison.OrdinalIgnoreCase))`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 434: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 435: Menyimpan `supportingGridColumns` dengan memanggil `ResolveCardColumns(supportingRows.Count)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 436: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 437: Memeriksa kondisi `string.IsNullOrWhiteSpace(primaryRow.Path)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 438: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 439: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-analysis-card__empty` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 440: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 441: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 442: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 443: Menyimpan `primaryMetric` dengan memanggil `PlayerMetricLabelFormatter.DescribeMetric(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 444: Melakukan operasi dengan membaca nilai `primaryRow.Path` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 445: Melakukan operasi dengan membaca nilai `primaryRow.Value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 446: Menyediakan teks atau fragmen konten `true,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 447: Menyediakan teks atau fragmen konten `isAdvancedMode,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 448: Menyediakan teks atau fragmen konten `nullText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 449: Melakukan operasi dengan membaca nilai `Context.T)` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 450: Menyimpan `calculationKey` dengan membaca nilai `analysis.Key ＝＝ ”happiness-portfolio” && !isAdvancedMode` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 451: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”happiness-portfolio-beginner”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 452: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `analysis.Key;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 453: Menyimpan `sourceKey` dengan membaca nilai `analysis.Key ＝＝ ”happiness-portfolio” && !isAdvancedMode` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 454: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”players.analysis.source.happiness-portfolio.beginner”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 455: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `$”players.analysis.source.｛analysis.Key｝”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 456: Menyimpan `actualCalculation` dengan memanggil `PlayerMetricCollectionHelper.BuildActualCalculation(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 457: Menyediakan teks atau fragmen konten `calculationKey,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 458: Melakukan operasi dengan membaca nilai `analysis.Rows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 459: Melakukan operasi dengan membaca nilai `primaryMetric.DisplayValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 460: Melakukan operasi dengan membaca nilai `primaryMetric.Unit` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 461: Menyediakan teks atau fragmen konten `nullText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 462: Melakukan operasi dengan membaca nilai `CultureInfo.CurrentCulture)` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 463: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-analysis-card__takeaway` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 464: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 465: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 466: Membentuk elemen `strong` sebagai teks dengan penekanan kuat.
+Baris sumber 467: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 468: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `players.analysis.reading` menurut bahasa sesi.
+Baris sumber 469: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 471: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `player-analysis-card__method` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 472: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Teks dinamis dibaca dari kunci terjemahan `players.analysis.details` menurut bahasa sesi.
+Baris sumber 473: Memeriksa kondisi `supportingRows.Count › 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 474: Membuka ruang lingkup blok untuk `summary`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 475: Membentuk elemen `dl` sebagai daftar pasangan istilah dan penjelasan.
+Baris sumber 476: Mengiterasi `var row in supportingRows`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 477: Membuka ruang lingkup blok untuk `dl`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 478: Menyimpan `metric` dengan memanggil `PlayerMetricLabelFormatter.DescribeMetric(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 479: Melakukan operasi dengan membaca nilai `row.Path` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 480: Melakukan operasi dengan membaca nilai `row.Value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 481: Menyediakan teks atau fragmen konten `true,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 482: Menyediakan teks atau fragmen konten `isAdvancedMode,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 483: Menyediakan teks atau fragmen konten `nullText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 484: Melakukan operasi dengan membaca nilai `Context.T)` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 485: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 486: Membentuk elemen `dt` sebagai istilah dalam daftar definisi.
+Baris sumber 487: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 488: Membentuk elemen `strong` sebagai teks dengan penekanan kuat.
+Baris sumber 489: Memeriksa kondisi `!string.IsNullOrWhiteSpace(metric.Unit)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 490: Membuka ruang lingkup blok untuk `strong`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 491: Membentuk elemen `small` sebagai teks pendamping berukuran lebih kecil.
+Baris sumber 492: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 493: Menutup elemen `dd` (penjelasan bagi istilah pada daftar definisi) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 494: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 495: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 496: Menutup elemen `dl` (daftar pasangan istilah dan penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 497: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 498: Membentuk elemen `dl` sebagai daftar pasangan istilah dan penjelasan. Atribut `class` bernilai `player-analysis-card__method-notes` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 499: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 500: Membentuk elemen `dt` sebagai istilah dalam daftar definisi. Teks dinamis dibaca dari kunci terjemahan `players.support.field.source` menurut bahasa sesi.
+Baris sumber 501: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 502: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 503: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 504: Membentuk elemen `dt` sebagai istilah dalam daftar definisi. Teks dinamis dibaca dari kunci terjemahan `players.support.field.formula` menurut bahasa sesi.
+Baris sumber 505: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 506: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 507: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 508: Membentuk elemen `dt` sebagai istilah dalam daftar definisi. Teks dinamis dibaca dari kunci terjemahan `players.support.field.actual_calculation` menurut bahasa sesi.
+Baris sumber 509: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 510: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 511: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 512: Membentuk elemen `dt` sebagai istilah dalam daftar definisi. Teks dinamis dibaca dari kunci terjemahan `players.support.field.recommendation` menurut bahasa sesi.
+Baris sumber 513: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 514: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 515: Menutup elemen `dl` (daftar pasangan istilah dan penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 516: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 517: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 518: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 519: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 520: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 521: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 522: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 523: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 524: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 525: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 527: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `id` bernilai `player-evidence-library` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `player-evidence-library player-dashboard-accordion` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 528: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Atribut `class` bernilai `player-analysis-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 529: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 530: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.evidence.badge` menurut bahasa sesi.
+Baris sumber 531: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Atribut `id` bernilai `player-evidence-library-title` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Teks dinamis dibaca dari kunci terjemahan `players.evidence.title` menurut bahasa sesi.
+Baris sumber 532: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `players.evidence.desc` menurut bahasa sesi.
+Baris sumber 533: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 534: Menutup elemen `summary` (pemicu buka/tutup untuk elemen details) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 536: Memeriksa kondisi `!hasRawMetrics`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 537: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 538: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.detail.empty_analytics` menurut bahasa sesi.
+Baris sumber 539: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 540: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 541: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 542: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-evidence-domain-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 543: Mengulang blok dengan pengaturan `var domainIndex ＝ 0; domainIndex ‹ rawSections.Count; domainIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 544: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 545: Menyimpan `domain` dengan membaca nilai `rawSections[domainIndex]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 546: Menyimpan `orderedDomainRows` dengan membaca nilai `domain.Key switch` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 547: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 548: Mendefinisikan fungsi atau pemetaan `”meal-orders” → domain.Rows.OrderBy(row → row.Path switch`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 549: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 550: Mendefinisikan fungsi atau pemetaan `”meal_orders_claimed” → 0,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 551: Mendefinisikan fungsi atau pemetaan `”meal_order_income_per_order” → 1,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 552: Mendefinisikan fungsi atau pemetaan `”meal_order_income_total” → 2,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 553: Mendefinisikan fungsi atau pemetaan `”meal_orders_per_turn_average” → 3,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 554: Mendefinisikan fungsi atau pemetaan `_ → 4`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 555: Melakukan operasi dengan memanggil `｝).ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 556: Mendefinisikan fungsi atau pemetaan `”donations” → domain.Rows.OrderBy(row → row.Path switch`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 557: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 558: Mendefinisikan fungsi atau pemetaan `”donation_history” → 0,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 559: Mendefinisikan fungsi atau pemetaan `”donation_total_coins” → 1,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 560: Mendefinisikan fungsi atau pemetaan `”donation_champion_cards_earned” → 2,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 561: Mendefinisikan fungsi atau pemetaan `”donation_happiness_points” → 3,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 562: Mendefinisikan fungsi atau pemetaan `_ → 4`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 563: Melakukan operasi dengan memanggil `｝).ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 564: Mendefinisikan fungsi atau pemetaan `”life-risk” → domain.Rows.OrderBy(row → row.Path switch`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 565: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 566: Mendefinisikan fungsi atau pemetaan `”life_risk_cards_drawn” → 0,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 567: Mendefinisikan fungsi atau pemetaan `”life_risk_costs_per_card” → 1,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 568: Mendefinisikan fungsi atau pemetaan `”life_risk_costs_total” → 2,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 569: Mendefinisikan fungsi atau pemetaan `_ → 3`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 570: Melakukan operasi dengan memanggil `｝).ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 571: Mendefinisikan fungsi atau pemetaan `”gold” → domain.Rows.OrderBy(row → row.Path switch`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 572: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 573: Mendefinisikan fungsi atau pemetaan `”gold_cards_initial” → 0,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 574: Mendefinisikan fungsi atau pemetaan `”gold_cards_purchased” → 1,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 575: Mendefinisikan fungsi atau pemetaan `”gold_cards_sold” → 2,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 576: Mendefinisikan fungsi atau pemetaan `”gold_cards_held_end” → 3,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 577: Mendefinisikan fungsi atau pemetaan `”gold_prices_per_purchase” → 4,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 578: Mendefinisikan fungsi atau pemetaan `”gold_price_per_sale” → 5,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 579: Mendefinisikan fungsi atau pemetaan `”gold_investment_coins_spent” → 6,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 580: Mendefinisikan fungsi atau pemetaan `”gold_investment_coins_earned” → 7,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 581: Mendefinisikan fungsi atau pemetaan `”gold_investment_net” → 8,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 582: Mendefinisikan fungsi atau pemetaan `_ → 9`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 583: Melakukan operasi dengan memanggil `｝).ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 584: Mendefinisikan fungsi atau pemetaan `_ → domain.Rows`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 585: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 586: Menyimpan `domainGuides` dengan membaca nilai `orderedDomainRows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 587: Mendefinisikan fungsi atau pemetaan `.Select(row → PlayerMetricLabelFormatter.DescribeMetric(`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 588: Melakukan operasi dengan membaca nilai `row.Path` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 589: Melakukan operasi dengan membaca nilai `row.Value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 590: Menyediakan teks atau fragmen konten `false,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 591: Menyediakan teks atau fragmen konten `isAdvancedMode,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 592: Menyediakan teks atau fragmen konten `nullText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 593: Melakukan operasi dengan membaca nilai `Context.T))` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 594: Mendefinisikan fungsi atau pemetaan `.GroupBy(metric → (metric.Guidance, metric.Recommendation))`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 595: Mendefinisikan fungsi atau pemetaan `.Select(group → new`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 596: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 597: Memperbarui `Labels` dengan memanggil `string.Join(”, ”, group.Select(metric → metric.Label).Distinct(StringComparer.CurrentCultureIgnoreCase))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 598: Melakukan operasi dengan membaca nilai `group.Key.Guidance` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 599: Melakukan operasi dengan membaca nilai `group.Key.Recommendation` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 600: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 601: Melanjutkan rantai operasi dengan memanggil `value.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 602: Menyimpan `scalarMetricCount` dengan memanggil `orderedDomainRows.Count(row → !IsCollectionValue(row.Value))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 603: Menyimpan `scalarGridColumns` dengan memanggil `ResolveCardColumns(scalarMetricCount)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 604: Menyimpan `scalarGridClass` dengan membaca nilai `$”player-metric-card-grid--columns-｛scalarGridColumns｝”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 605: Menyimpan `domainGridClass` dengan membaca nilai `domain.Key switch` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 606: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 607: Mendefinisikan fungsi atau pemetaan `”coin-finance” → ”player-metric-card-grid--coin-finance”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 608: Mendefinisikan fungsi atau pemetaan `”meal-orders” → ”player-metric-card-grid--meal-orders”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 609: Mendefinisikan fungsi atau pemetaan `”donations” → ”player-metric-card-grid--donations”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 610: Mendefinisikan fungsi atau pemetaan `”gold” → ”player-metric-card-grid--gold”,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 611: Mendefinisikan fungsi atau pemetaan `_ → string.Empty`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 612: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 613: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `player-evidence-domain` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 614: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details.
+Baris sumber 615: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-evidence-domain__copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 616: Membentuk elemen `strong` sebagai teks dengan penekanan kuat.
+Baris sumber 617: Membentuk elemen `small` sebagai teks pendamping berukuran lebih kecil.
+Baris sumber 618: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 619: Memeriksa kondisi `domain.AdvancedOnly`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 620: Membuka ruang lingkup blok untuk `small`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 621: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `player-evidence-domain__mode` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.support.mode.advanced` menurut bahasa sesi.
+Baris sumber 622: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 623: Menutup elemen `summary` (pemicu buka/tutup untuk elemen details) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 625: Memeriksa kondisi `domainGuides.Count › 0 && domain.Key !＝ ”financial-goals”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 626: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 627: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `player-evidence-domain__guide` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 628: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Teks dinamis dibaca dari kunci terjemahan `players.stats.library.read_metric` menurut bahasa sesi.
+Baris sumber 629: Membentuk elemen `dl` sebagai daftar pasangan istilah dan penjelasan.
+Baris sumber 630: Mengiterasi `var guide in domainGuides`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 631: Membuka ruang lingkup blok untuk `dl`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 632: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 633: Membentuk elemen `dt` sebagai istilah dalam daftar definisi.
+Baris sumber 634: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi.
+Baris sumber 635: Membentuk elemen `dd` sebagai penjelasan bagi istilah pada daftar definisi. Atribut `class` bernilai `player-evidence-domain__recommendation` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `players.support.field.recommendation` menurut bahasa sesi.
+Baris sumber 636: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 637: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 638: Menutup elemen `dl` (daftar pasangan istilah dan penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 639: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 640: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 642: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 643: Mengiterasi `var row in orderedDomainRows`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 644: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 645: Menyimpan `metric` dengan memanggil `PlayerMetricLabelFormatter.DescribeMetric(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 646: Melakukan operasi dengan membaca nilai `row.Path` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 647: Melakukan operasi dengan membaca nilai `row.Value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 648: Menyediakan teks atau fragmen konten `false,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 649: Menyediakan teks atau fragmen konten `isAdvancedMode,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 650: Menyediakan teks atau fragmen konten `nullText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 651: Melakukan operasi dengan membaca nilai `Context.T)` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 652: Menyimpan `isCollectionValue` dengan memanggil `IsCollectionValue(row.Value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 653: Menyimpan `isIngredientOrderSeries` dengan membaca nilai `domain.Key ＝＝ ”ingredients” && row.Path ＝＝ ”ingredients_used_per_meal”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 654: Menyimpan `isLifeRiskFeatured` dengan membaca nilai `domain.Key ＝＝ ”life-risk”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 655: Melanjutkan syarat logika dengan `&& row.Path is ”life_risk_cards_drawn” or ”life_risk_costs_total”;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 656: Menyimpan `isMealOrderPrimary` dengan membaca nilai `domain.Key ＝＝ ”meal-orders” && row.Path ＝＝ ”meal_orders_claimed”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 657: Menyimpan `isMealOrderSummary` dengan membaca nilai `domain.Key ＝＝ ”meal-orders”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 658: Melanjutkan syarat logika dengan `&& row.Path is ”meal_order_income_total” or ”meal_orders_per_turn_average”;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 659: Menyimpan `isGoldOverview` dengan membaca nilai `domain.Key ＝＝ ”gold”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 660: Melanjutkan syarat logika dengan `&& row.Path is ”gold_cards_initial” or ”gold_cards_purchased” or ”gold_cards_sold” or ”gold_cards_held_end”;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 661: Menyimpan `isCoinOverview` dengan membaca nilai `domain.Key ＝＝ ”coin-finance”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 662: Melanjutkan syarat logika dengan `&& row.Path is ”starting_coins” or ”coins_held_current”;`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 663: Menyimpan `collectionTable` dengan membaca nilai `isCollectionValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 664: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `PlayerMetricJsonMapper.BuildCollectionTable(row.Value, trueText, falseText, nullText)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 665: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `null;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 666: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri.
+Baris sumber 667: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-metric-card__heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 668: Membentuk elemen `h5` sebagai komponen markup pada tampilan.
+Baris sumber 669: Memeriksa kondisi `metric.State !＝ ”recorded” && !(domain.Key ＝＝ ”financial-goals” && metric.State ＝＝ ”zero”)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 670: Membuka ruang lingkup blok untuk `h5`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 671: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 672: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 673: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 674: Memeriksa kondisi `collectionTable is not null`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 675: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 676: Menyimpan `collectionUnits` dengan memanggil `collectionTable.Columns.ToDictionary(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 677: Mendefinisikan fungsi atau pemetaan `column → column,`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 678: Mendefinisikan fungsi atau pemetaan `column → IsCollectionContextColumn(column)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 679: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `string.Empty`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 680: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `PlayerMetricLabelFormatter.DescribeMetric(`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 681: Menyediakan teks atau fragmen konten `$”｛row.Path｝.｛column｝”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 682: Menyediakan teks atau fragmen konten `”0”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 683: Menyediakan teks atau fragmen konten `false,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 684: Menyediakan teks atau fragmen konten `isAdvancedMode,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 685: Menyediakan teks atau fragmen konten `nullText,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 686: Melakukan operasi dengan membaca nilai `Context.T).Unit` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 687: Melakukan operasi dengan membaca nilai `StringComparer.OrdinalIgnoreCase)` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 688: Menyimpan `seriesRows` dengan memanggil `collectionTable.Rows.ToList()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 689: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `player-metric-series` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `role` bernilai `region` menentukan peran semantik yang diumumkan kepada teknologi bantu.
+Baris sumber 690: Memeriksa kondisi `seriesRows.Count › 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 691: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 692: Membentuk elemen `table` sebagai tabel data dengan susunan baris dan kolom.
+Baris sumber 693: Membentuk elemen `thead` sebagai kelompok header tabel.
+Baris sumber 694: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 695: Mengiterasi `var column in collectionTable.Columns`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 696: Membuka ruang lingkup blok untuk `tr`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 697: Menyimpan `columnLabel` dengan membaca nilai `(row.Path, column) switch` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 698: Membuka ruang lingkup blok untuk `tr`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 699: Mendefinisikan fungsi atau pemetaan `(”ingredients_used_per_meal” or ”meal_order_income_per_order”, ”item_index”) → Context.T(”players.details.order_number”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 700: Mendefinisikan fungsi atau pemetaan `(”ingredients_used_per_meal”, ”value”) → Context.T(”players.details.ingredients.cards_used”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 701: Mendefinisikan fungsi atau pemetaan `(”meal_order_income_per_order”, ”value”) → Context.T(”players.details.meal_orders.income”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 702: Mendefinisikan fungsi atau pemetaan `(”donation_history”, ”amount”) → Context.T(”players.details.donations.amount”),`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 703: Mendefinisikan fungsi atau pemetaan `_ → PlayerMetricLabelFormatter.HumanizeMetricKey(column, Context.T)`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 704: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 705: Membentuk elemen `th` sebagai sel header tabel.
+Baris sumber 706: Menyisipkan hasil ekspresi Razor `@columnLabel` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 707: Memeriksa kondisi `!isIngredientOrderSeries && !string.IsNullOrWhiteSpace(collectionUnits[column])`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 708: Membuka ruang lingkup blok untuk `th`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 709: Membentuk elemen `small` sebagai teks pendamping berukuran lebih kecil.
+Baris sumber 710: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 711: Menutup elemen `th` (sel header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 712: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 713: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 714: Menutup elemen `thead` (kelompok header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 715: Membentuk elemen `tbody` sebagai kelompok baris isi tabel.
+Baris sumber 716: Mengiterasi `var seriesRow in seriesRows`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 717: Membuka ruang lingkup blok untuk `tbody`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 718: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 719: Mengulang blok dengan pengaturan `var cellIndex ＝ 0; cellIndex ‹ seriesRow.Count; cellIndex++`; inisialisasi, syarat kelanjutan, dan perubahan indeks mengendalikan jumlah iterasi.
+Baris sumber 720: Membuka ruang lingkup blok untuk `tr`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 721: Membentuk elemen `td` sebagai sel nilai dalam tabel.
+Baris sumber 722: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 723: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 724: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 725: Menutup elemen `tbody` (kelompok baris isi tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 726: Menutup elemen `table` (tabel data dengan susunan baris dan kolom) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 727: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 728: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 729: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 730: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 731: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 732: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-metric-card__value` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 733: Membentuk elemen `strong` sebagai teks dengan penekanan kuat.
+Baris sumber 734: Memeriksa kondisi `!string.IsNullOrWhiteSpace(metric.Unit)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 735: Membuka ruang lingkup blok untuk `strong`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 736: Membentuk elemen `small` sebagai teks pendamping berukuran lebih kecil.
+Baris sumber 737: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 738: Menutup elemen `p` (paragraf atau label penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 739: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 740: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `player-metric-card__explanation` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 741: Memeriksa kondisi `domain.Key ＝＝ ”financial-goals” && row.Path ＝＝ ”financial_goals_completed”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 742: Melanjutkan syarat logika dengan `&& PlayerMetricLabelFormatter.TryParseMetricNumber(attemptedFinancialGoals, out var attemptedCount)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 743: Melanjutkan syarat logika dengan `&& attemptedCount ›＝ 0)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 744: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 745: Menyisipkan hasil ekspresi Razor `@string.Format(CultureInfo.CurrentCulture, Context.T(”players.details.financial_goals.attempted_note”), FormatNumber(attemptedCount))` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 746: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 747: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 748: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 749: Menyisipkan hasil ekspresi Razor `@metric.Explanation` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 750: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 751: Memeriksa kondisi `domain.Key ＝＝ ”ingredients” && row.Path ＝＝ ”ingredients_held_current”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 752: Melanjutkan syarat logika dengan `&& PlayerMetricLabelFormatter.TryParseMetricNumber(discardedIngredients, out var discardedCount)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 753: Melanjutkan syarat logika dengan `&& discardedCount › 0)`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
+Baris sumber 754: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 755: Menyisipkan hasil ekspresi Razor `@string.Format(CultureInfo.CurrentCulture, Context.T(”players.details.ingredients.discarded_note”), FormatNumber(discardedCount))` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 756: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 757: Menutup elemen `p` (paragraf atau label penjelasan) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 758: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 759: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 760: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 761: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 762: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 763: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 764: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 765: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 766: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 767: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 769: Mendefinisikan section Razor `Scripts ｛`; layout merender bagian ini pada lokasi RenderSectionAsync yang sesuai.
+Baris sumber 770: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript.
+Baris sumber 771: Mendefinisikan fungsi atau pemetaan `(() → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 772: Menyimpan `storageKey` dengan menggunakan literal `”cashflowpoly.player-section-accordions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 773: Menyimpan `accordions` dengan mencari seluruh elemen DOM yang cocok dengan selector `”[data-player-section-accordion]”)`; daftar ini menjadi sasaran perilaku antarmuka.
+Baris sumber 774: Menyimpan `savedState` dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya.
+Baris sumber 776: Memulai bagian yang dapat gagal, misalnya parsing atau permintaan data; kesalahan diteruskan ke catch yang menyertainya.
+Baris sumber 777: Memperbarui `savedState` dengan mendeserialisasi string JSON `localStorage.getItem(storageKey) ?? ”｛｝”` menjadi objek JavaScript; JSON tidak valid akan masuk penanganan kesalahan.
+Baris sumber 778: Menangani kesalahan melalui catch `｛`; alur ini menyediakan pemulihan atau pesan kesalahan ketika operasi pada try gagal.
+Baris sumber 779: Memperbarui `savedState` dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya.
+Baris sumber 780: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 782: Mendefinisikan fungsi atau pemetaan `accordions.forEach((accordion) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 783: Menyimpan `key` dengan membaca nilai `accordion.dataset.accordionKey` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 784: Memeriksa kondisi `key && Object.prototype.hasOwnProperty.call(savedState, key)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 785: Memperbarui `accordion.open` dengan membaca nilai `savedState[key] ＝＝＝ true` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 786: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 788: Mendefinisikan fungsi atau pemetaan `accordion.addEventListener(”toggle”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 789: Memeriksa kondisi `!key) return;`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 790: Memperbarui `savedState[key]` dengan membaca nilai `accordion.open` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 791: Memulai bagian yang dapat gagal, misalnya parsing atau permintaan data; kesalahan diteruskan ke catch yang menyertainya.
+Baris sumber 792: Melakukan operasi dengan mengubah `savedState)` menjadi teks JSON yang dapat disimpan atau dikirim.
+Baris sumber 793: Menangani kesalahan melalui catch `｛`; alur ini menyediakan pemulihan atau pesan kesalahan ketika operasi pada try gagal.
+Baris sumber 795: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 796: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 797: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 798: Melakukan operasi dengan membaca nilai `｝)()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 799: Menutup elemen `script` (skrip browser atau referensi berkas JavaScript) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 800: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+*@
 @using System.Globalization
 @using System.Text.Json
 @using Cashflowpoly.Ui.Infrastructure
@@ -37,12 +787,18 @@
         _ => string.Format(CultureInfo.CurrentCulture, Context.T("players.details.action_slot.numbered"), slot)
     };
 
-    string FormatCollectionCell(string metricPath, string column, string value, bool advancedMode, string unavailableText)
+    string FormatCollectionCell(string metricPath, string column, string value, bool advancedMode, string unavailableText, bool isSetup)
     {
+        if (column.Equals("action_pattern", StringComparison.OrdinalIgnoreCase))
+        {
+            return value is "none" or "single" or "repeated" or "different"
+                ? Context.T($"players.action_pattern.{value}")
+                : unavailableText;
+        }
         if (column.Equals("action_slot", StringComparison.OrdinalIgnoreCase)
             && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var actionSlot))
         {
-            return FormatActionSlot(actionSlot);
+            return isSetup && actionSlot == 0 ? Context.T("players.details.action_slot.setup") : FormatActionSlot(actionSlot);
         }
 
         if (column.Equals("day_index", StringComparison.OrdinalIgnoreCase)
@@ -84,7 +840,7 @@
 
     static bool IsCollectionContextColumn(string column) =>
         column is "item_index" or "action_slot" or "day_index" or "sequence_number" or "action_index"
-            or "action_type" or "actions" or "series" or "rank" or "cashflow_category";
+            or "action_type" or "actions" or "action_pattern" or "series" or "rank" or "cashflow_category";
 
     var cashflowJourney = Model.CashflowJourney;
     var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
@@ -261,13 +1017,13 @@
         new { Chapter = "money", Key = "business-margin", PrimaryKey = "meal_order_profit_margin_percent", TitleKey = "players.analysis.business_margin.title", DescriptionKey = "players.analysis.business_margin.desc", FormulaKey = "players.support.formula.business_margin", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("meal_order_profit_margin_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "meal_order_profit_margin_components")) },
         new { Chapter = "future", Key = "risk-appetite", PrimaryKey = "risk_readiness_percent", TitleKey = "players.analysis.risk_appetite.title", DescriptionKey = "players.analysis.risk_appetite.desc", FormulaKey = "players.support.formula.risk_appetite", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("risk_readiness_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "risk_readiness_components")) },
         new { Chapter = "future", Key = "debt-discipline", PrimaryKey = "loan_burden_percent", TitleKey = "players.analysis.debt_discipline.title", DescriptionKey = "players.analysis.debt_discipline.desc", FormulaKey = "players.support.formula.debt_leverage", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("loan_burden_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "loan_burden_components")) },
-        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "financial_goal_progress_percent", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_ambition_index", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("financial_goal_progress_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "financial_goal_progress_components")) },
+        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "financial_goals_completed", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_purchases", AdvancedOnly = true, Rows = financialGoalRows.Where(row => row.Path is "financial_goals_completed" or "financial_goals_purchase_cost_total" or "financial_goals_incomplete_coins_wasted").ToList() },
         new { Chapter = "play", Key = "action-efficiency", PrimaryKey = "income_action_focus_percent", TitleKey = "players.analysis.action_efficiency.title", DescriptionKey = "players.analysis.action_efficiency.desc", FormulaKey = "players.support.formula.action_efficiency", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("income_action_focus_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "income_action_focus_components")) },
         new { Chapter = "play", Key = "meal-success", PrimaryKey = "ingredient_utilization_percent", TitleKey = "players.analysis.meal_success.title", DescriptionKey = "players.analysis.meal_success.desc", FormulaKey = "players.support.formula.order_success", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("ingredient_utilization_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "ingredient_utilization_components")) },
-        new { Chapter = "play", Key = "planning-horizon", PrimaryKey = "long_term_action_share_percent", TitleKey = "players.analysis.planning_horizon.title", DescriptionKey = "players.analysis.planning_horizon.desc", FormulaKey = "players.support.formula.planning", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("long_term_action_share_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "long_term_action_share_components")) },
+        new { Chapter = "play", Key = "planning-horizon", PrimaryKey = "long_term_action_share_percent", TitleKey = "players.analysis.planning_horizon.title", DescriptionKey = "players.analysis.planning_horizon.desc", FormulaKey = "players.support.formula.planning", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("long_term_action_share_percent"), ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "long_term_action_share_components"), "saving_actions", "financial_goal_actions")) },
         new { Chapter = "wellbeing", Key = "fulfillment-diversity", PrimaryKey = "need_fulfillment_diversity_percent", TitleKey = "players.analysis.fulfillment_diversity.title", DescriptionKey = "players.analysis.fulfillment_diversity.desc", FormulaKey = "players.support.formula.fulfillment", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("need_fulfillment_diversity_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "need_fulfillment_diversity_components")) },
         new { Chapter = "wellbeing", Key = "donation-commitment", PrimaryKey = "donation_commitment_score", TitleKey = "players.analysis.donation_commitment.title", DescriptionKey = "players.analysis.donation_commitment.desc", FormulaKey = "players.support.formula.donation_commitment", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("donation_commitment_score"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "donation_commitment_components")) },
-        new { Chapter = "wellbeing", Key = "happiness-portfolio", PrimaryKey = "total_happiness_points", TitleKey = "players.analysis.happiness_portfolio.title", DescriptionKey = isAdvancedMode ? "players.analysis.happiness_portfolio.desc" : "players.analysis.happiness_portfolio.beginner.desc", FormulaKey = isAdvancedMode ? "players.support.formula.happiness_portfolio" : "players.support.formula.happiness_portfolio.beginner", AdvancedOnly = false, Rows = ExcludeAdvancedRowsInBeginner(PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "happiness_points_composition"), "financial_goal_points", "loan_penalty_points") }
+        new { Chapter = "wellbeing", Key = "happiness-portfolio", PrimaryKey = "happiness_source_diversity_percent", TitleKey = "players.analysis.happiness_portfolio.title", DescriptionKey = isAdvancedMode ? "players.analysis.happiness_portfolio.desc" : "players.analysis.happiness_portfolio.beginner.desc", FormulaKey = isAdvancedMode ? "players.support.formula.happiness_portfolio" : "players.support.formula.happiness_portfolio.beginner", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("happiness_source_diversity_percent"), ExcludeAdvancedRowsInBeginner(PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "happiness_points_composition"), "financial_goal_points", "loan_penalty_points")) }
     }.Where(item => isAdvancedMode || !item.AdvancedOnly).ToList();
     var analysisChapters = new[]
     {
@@ -465,8 +1221,29 @@
                                                     <span>@primaryMetric.Label</span>
                                                     <strong>@primaryMetric.DisplayValue<small>@primaryMetric.Unit</small></strong>
                                                 </div>
-                                                <p><strong>@Context.T("players.analysis.reading")</strong> @primaryMetric.Guidance</p>
+                                                <p>
+                                                    <strong>@Context.T("players.analysis.reading")</strong>
+                                                    @if (analysis.Key == "goal-ambition" && primaryMetric.State is "recorded" or "zero")
+                                                    {
+                                                        var purchaseCost = PlayerMetricLabelFormatter.DescribeMetric(
+                                                            "financial_goals_purchase_cost_total",
+                                                            analysis.Rows.FirstOrDefault(row => row.Path == "financial_goals_purchase_cost_total").Value ?? nullText,
+                                                            false, isAdvancedMode, nullText, Context.T);
+                                                        @string.Format(CultureInfo.CurrentCulture, Context.T("players.analysis.goal_purchases.result"), purchaseCost.DisplayValue)
+                                                    }
+                                                    else
+                                                    {
+                                                        @primaryMetric.Guidance
+                                                    }
+                                                </p>
                                             </div>
+
+                                            @if (analysis.Key == "goal-ambition"
+                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(primaryRow.Value, out var purchasedGoalCount) && purchasedGoalCount > 0
+                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(financialGoalRows.FirstOrDefault(row => row.Path == "sharia_loans_outstanding_coins").Value, out var outstandingGoalLoan) && outstandingGoalLoan > 0)
+                                            {
+                                                <p class="player-analysis-card__description">@Context.T("players.analysis.goal_purchases.unpaid_loan")</p>
+                                            }
 
                                             <details class="player-analysis-card__method">
                                                 <summary>@Context.T("players.analysis.details")</summary>
@@ -715,10 +1492,12 @@
                                                     <tbody>
                                                         @foreach (var seriesRow in seriesRows)
                                                         {
+                                                            var isSetup = collectionTable.Columns.Zip(seriesRow)
+                                                                .Any(cell => cell.First == "day_index" && cell.Second == "0");
                                                             <tr>
                                                                 @for (var cellIndex = 0; cellIndex < seriesRow.Count; cellIndex++)
                                                                 {
-                                                                    <td>@FormatCollectionCell(row.Path, collectionTable.Columns[cellIndex], seriesRow[cellIndex], isAdvancedMode, nullText)</td>
+                                                                    <td>@FormatCollectionCell(row.Path, collectionTable.Columns[cellIndex], seriesRow[cellIndex], isAdvancedMode, nullText, isSetup)</td>
                                                                 }
                                                             </tr>
                                                         }

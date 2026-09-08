@@ -1,4 +1,486 @@
-@* Fungsi file: Merender halaman Buku Aturan Cashflowpoly dalam format handbook ringkas untuk dibaca dan dipakai saat bermain. *@
+@* Fungsi file: Merender halaman Buku Aturan Cashflowpoly dalam format handbook ringkas untuk dibaca dan dipakai saat bermain.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.RulebookPageViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 3: Mengimpor namespace `Microsoft.AspNetCore.Http` agar tipe di dalamnya dapat dipakai tanpa nama lengkap.
+Baris sumber 4: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 5: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `rulebook.title` sesuai bahasa sesi pengguna.
+Baris sumber 6: Memperbarui `ViewData[”MetaDescription”]` dengan mengambil teks terjemahan berkunci `rulebook.meta_desc` sesuai bahasa sesi pengguna.
+Baris sumber 7: Memperbarui `ViewData[”MetaKeywords”]` dengan mengambil teks terjemahan berkunci `rulebook.meta_keywords` sesuai bahasa sesi pengguna.
+Baris sumber 8: Menyimpan `scoring` dengan mengevaluasi `Model.Scoring ?? new System.Collections.Generic.List‹Cashflowpoly.Ui.Models.RulebookScoreItemViewModel›()`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 9: Menyimpan `activeLanguage` dengan memanggil `UiText.NormalizeLanguage(Context.Session.GetString(AuthConstants.SessionLanguageKey))` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 10: Menyimpan `isEnglish` dengan memanggil `string.Equals(activeLanguage, AuthConstants.LanguageEn, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 12: Mendefinisikan fungsi `L` dengan parameter `string id, string en`. Badan fungsi menentukan transformasi/perhitungan nilai tampilan dan baru dijalankan ketika dipanggil.
+Baris sumber 14: Menyimpan `guideSteps` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 15: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 16: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 17: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 18: Memperbarui `StepId` dengan menggunakan literal `”Langkah 1”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 19: Memperbarui `StepEn` dengan menggunakan literal `”Step 1”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 20: Memperbarui `TitleId` dengan menggunakan literal `”Tentukan mode dulu”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 21: Memperbarui `TitleEn` dengan menggunakan literal `”Pick the mode first”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 22: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 23: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 24: Menyediakan teks atau fragmen konten `”Pilih mode pemula bila ingin fokus pada bahan, pesanan, kebutuhan, dan emas.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 25: Menyediakan teks atau fragmen konten `”Pilih mode mahir bila ingin menambah risiko kehidupan, asuransi, tabungan, dan pinjaman syariah.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 26: Menyediakan teks atau fragmen konten `”Pisahkan komponen yang belum dipakai agar meja tetap rapi.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 27: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 28: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 29: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 30: Menyediakan teks atau fragmen konten `”Choose beginner mode to focus on ingredients, orders, needs, and gold.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 31: Menyediakan teks atau fragmen konten `”Choose advanced mode to add life risk, insurance, savings, and sharia loans.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 32: Menyediakan teks atau fragmen konten `”Set unused components aside so the table stays clean.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 33: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 34: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 35: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 36: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 37: Memperbarui `StepId` dengan menggunakan literal `”Langkah 2”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 38: Memperbarui `StepEn` dengan menggunakan literal `”Step 2”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 39: Memperbarui `TitleId` dengan menggunakan literal `”Siapkan meja permainan”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 40: Memperbarui `TitleEn` dengan menggunakan literal `”Set up the table”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 41: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 42: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 43: Menyediakan teks atau fragmen konten `”Susun papan poin kebahagiaan, penghasilan, lalu pengeluaran seperti urutan di PDF.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 44: Menyediakan teks atau fragmen konten `”Buka 5 kartu pesanan, 5 kebutuhan primer, dan 5 bahan masakan.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 45: Menyediakan teks atau fragmen konten `”Mode mahir menambah papan tabungan tujuan keuangan, risiko kehidupan, serta asuransi dan bank syariah.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 46: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 47: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 48: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 49: Menyediakan teks atau fragmen konten `”Arrange happiness point, income, and expense boards in the same order shown in the PDF.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 50: Menyediakan teks atau fragmen konten `”Open 5 order cards, 5 primary-needs cards, and 5 ingredient cards.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 51: Menyediakan teks atau fragmen konten `”Advanced mode adds financial-goal savings, life risk, and insurance plus sharia bank boards.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 52: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 53: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 54: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 55: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 56: Memperbarui `StepId` dengan menggunakan literal `”Langkah 3”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 57: Memperbarui `StepEn` dengan menggunakan literal `”Step 3”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 58: Memperbarui `TitleId` dengan menggunakan literal `”Jalankan giliran”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 59: Memperbarui `TitleEn` dengan menggunakan literal `”Run the turns”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 60: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 61: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 62: Menyediakan teks atau fragmen konten `”Tentukan pemain pertama dengan kartu tie breaker, lalu setiap pemain menerima 2 token aksi.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 63: Menyediakan teks atau fragmen konten `”Satu giliran ＝ tepat 2 aksi, boleh sama atau berbeda.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 64: Menyediakan teks atau fragmen konten `”Setelah semua pemain selesai, Mr. Cashflowpoly maju satu tanggal dan semua token aksi kembali ke pemain.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 65: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 66: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 67: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 68: Menyediakan teks atau fragmen konten `”Use the tie-breaker card to choose the first player, then give each player 2 action tokens.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 69: Menyediakan teks atau fragmen konten `”One turn means exactly 2 actions, either the same or different.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 70: Menyediakan teks atau fragmen konten `”After everyone finishes, Mr. Cashflowpoly moves forward one date and all action tokens return to the players.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 71: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 72: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 73: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 74: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 75: Memperbarui `StepId` dengan menggunakan literal `”Langkah 4”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 76: Memperbarui `StepEn` dengan menggunakan literal `”Step 4”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 77: Memperbarui `TitleId` dengan menggunakan literal `”Tutup sesi dengan poin kebahagiaan”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 78: Memperbarui `TitleEn` dengan menggunakan literal `”Close the session with scoring”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 79: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 80: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 81: Menyediakan teks atau fragmen konten `”Jumlahkan kebutuhan, bonus set, donasi, emas, dan dana pensiun.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 82: Menyediakan teks atau fragmen konten `”Tambahkan tujuan keuangan hanya bila pinjaman syariah sudah lunas.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 83: Menyediakan teks atau fragmen konten `”Jika total poin kebahagiaan sama, pakai angka tie breaker terbesar.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 84: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 85: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 86: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 87: Menyediakan teks atau fragmen konten `”Add up needs, set bonus, donation, gold, and pension happiness points.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 88: Menyediakan teks atau fragmen konten `”Add financial goals only when all sharia loans are fully repaid.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 89: Menyediakan teks atau fragmen konten `”If totals are tied, use the highest tie-breaker number.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 90: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 91: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 92: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 94: Menyimpan `visualPanels` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 95: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 96: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 97: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 98: Memperbarui `Id` dengan menggunakan literal `”rb-stage-setup”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 99: Memperbarui `PageId` dengan menggunakan literal `”Hal. 5”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 100: Memperbarui `PageEn` dengan menggunakan literal `”Pg. 5”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 101: Memperbarui `TitleId` dengan menggunakan literal `”Setup mode pemula”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 102: Memperbarui `TitleEn` dengan menggunakan literal `”Beginner mode setup”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 103: Memperbarui `Image` dengan menggunakan literal `”~/images/rulebook/setup-mode-pemula.jpg”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 104: Memperbarui `AltId` dengan menggunakan literal `”Setup mode pemula”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 105: Memperbarui `AltEn` dengan menggunakan literal `”Beginner mode setup”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 106: Memperbarui `NotesId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 107: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 108: Menyediakan teks atau fragmen konten `”Baris atas dipakai untuk poin kebahagiaan, baris tengah untuk penghasilan, dan baris bawah untuk pengeluaran.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 109: Menyediakan teks atau fragmen konten `”Periksa aturan slot bahan: tidak boleh ada 3 kartu bahan sejenis di slot terbuka.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 110: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 111: Memperbarui `NotesEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 112: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 113: Menyediakan teks atau fragmen konten `”The top row is for happiness points, the middle row for income, and the bottom row for expenses.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 114: Menyediakan teks atau fragmen konten `”Check the ingredient-slot rule: no 3 identical ingredient cards may stay open at once.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 115: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 116: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 117: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 118: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 119: Memperbarui `Id` dengan menggunakan literal `”rb-stage-advanced”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 120: Memperbarui `PageId` dengan menggunakan literal `”Hal. 7”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 121: Memperbarui `PageEn` dengan menggunakan literal `”Pg. 7”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 122: Memperbarui `TitleId` dengan menggunakan literal `”Tambahan untuk mode mahir”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 123: Memperbarui `TitleEn` dengan menggunakan literal `”Advanced mode additions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 124: Memperbarui `Image` dengan menggunakan literal `”~/images/rulebook/setup-mode-mahir.jpg”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 125: Memperbarui `AltId` dengan menggunakan literal `”Setup mode mahir”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 126: Memperbarui `AltEn` dengan menggunakan literal `”Advanced mode setup”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 127: Memperbarui `NotesId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 128: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 129: Menyediakan teks atau fragmen konten `”Mode mahir tetap memakai setup dasar mode pemula.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 130: Menyediakan teks atau fragmen konten `”Tambahan pentingnya ada di tabungan tujuan keuangan, risiko kehidupan, dan asuransi serta bank syariah.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 131: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 132: Memperbarui `NotesEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 133: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 134: Menyediakan teks atau fragmen konten `”Advanced mode still starts from the beginner setup.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 135: Menyediakan teks atau fragmen konten `”The key additions are financial-goal savings, life risk, and insurance plus sharia bank boards.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 136: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 137: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 138: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 139: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 140: Memperbarui `Id` dengan menggunakan literal `”rb-stage-player”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 141: Memperbarui `PageId` dengan menggunakan literal `”Hal. 11”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 142: Memperbarui `PageEn` dengan menggunakan literal `”Pg. 11”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 143: Memperbarui `TitleId` dengan menggunakan literal `”Alur giliran sampai finish”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 144: Memperbarui `TitleEn` dengan menggunakan literal `”Turn flow until finish”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 145: Memperbarui `Image` dengan menggunakan literal `”~/images/rulebook/alur-giliran.jpg”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 146: Memperbarui `AltId` dengan menggunakan literal `”Alur giliran permainan”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 147: Memperbarui `AltEn` dengan menggunakan literal `”Gameplay turn flow”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 148: Memperbarui `NotesId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 149: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 150: Menyediakan teks atau fragmen konten `”Setiap pemain memakai tepat 2 token aksi per hari saat gilirannya.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 151: Menyediakan teks atau fragmen konten `”Jumat dipakai peduli donasi, Sabtu dipakai investasi emas, dan Minggu langsung dilewati.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 152: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 153: Memperbarui `NotesEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 154: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 155: Menyediakan teks atau fragmen konten `”Each player spends exactly 2 action tokens per day when their turn is active.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 156: Menyediakan teks atau fragmen konten `”Friday is for donation care, Saturday is for gold investment, and Sunday is skipped.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 157: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 158: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 159: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 160: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 161: Memperbarui `Id` dengan menggunakan literal `”rb-stage-turn”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 162: Memperbarui `PageId` dengan menggunakan literal `”Hal. 13-17”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 163: Memperbarui `PageEn` dengan menggunakan literal `”Pg. 13-17”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 164: Memperbarui `TitleId` dengan menggunakan literal `”Aksi utama mode pemula”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 165: Memperbarui `TitleEn` dengan menggunakan literal `”Core beginner-mode actions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 166: Memperbarui `Image` dengan menggunakan literal `”~/images/rulebook/aksi-kebutuhan-freelance.jpg”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 167: Memperbarui `AltId` dengan menggunakan literal `”Aksi kebutuhan dan kerja lepas”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 168: Memperbarui `AltEn` dengan menggunakan literal `”Needs and freelance actions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 169: Memperbarui `NotesId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 170: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 171: Menyediakan teks atau fragmen konten `”Empat aksi utamanya adalah beli bahan, klaim pesanan, beli kebutuhan, dan kerja lepas.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 172: Menyediakan teks atau fragmen konten `”Slot kartu kosong baru diisi ulang setelah pemain selesai menjalankan 2 aksi.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 173: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 174: Memperbarui `NotesEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 175: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 176: Menyediakan teks atau fragmen konten `”The four core actions are buying ingredients, claiming orders, buying needs, and freelance work.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 177: Menyediakan teks atau fragmen konten `”Empty card slots refill only after the player finishes 2 actions.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 178: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 179: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 180: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 181: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 182: Memperbarui `Id` dengan menggunakan literal `”rb-stage-special”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 183: Memperbarui `PageId` dengan menggunakan literal `”Hal. 19-23”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 184: Memperbarui `PageEn` dengan menggunakan literal `”Pg. 19-23”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 185: Memperbarui `TitleId` dengan menggunakan literal `”Mode mahir dan hari khusus”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 186: Memperbarui `TitleEn` dengan menggunakan literal `”Advanced mode and special days”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 187: Memperbarui `Image` dengan menggunakan literal `”~/images/rulebook/aksi-risiko-asuransi.jpg”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 188: Memperbarui `AltId` dengan menggunakan literal `”Risiko dan asuransi”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 189: Memperbarui `AltEn` dengan menggunakan literal `”Risk and insurance”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 190: Memperbarui `NotesId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 191: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 192: Menyediakan teks atau fragmen konten `”Di mode mahir, klaim pesanan memicu kartu risiko kehidupan.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 193: Menyediakan teks atau fragmen konten `”Jika biaya risiko terlalu besar, pemain bisa memakai asuransi aktif, menjual aset, atau mengambil pinjaman syariah.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 194: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 195: Memperbarui `NotesEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 196: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 197: Menyediakan teks atau fragmen konten `”In advanced mode, claiming an order also triggers a life-risk card.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 198: Menyediakan teks atau fragmen konten `”If the risk cost is too high, the player may use active insurance, sell assets, or take a sharia loan.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 199: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 200: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 201: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 202: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 203: Memperbarui `Id` dengan menggunakan literal `”rb-stage-friday”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 204: Memperbarui `PageId` dengan menggunakan literal `”Hal. 23”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 205: Memperbarui `PageEn` dengan menggunakan literal `”Pg. 23”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 206: Memperbarui `TitleId` dengan menggunakan literal `”Donasi Jumat dan emas Sabtu”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 207: Memperbarui `TitleEn` dengan menggunakan literal `”Friday donations and Saturday gold”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 208: Memperbarui `Image` dengan menggunakan literal `”~/images/rulebook/aksi-donasi-emas.jpg”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 209: Memperbarui `AltId` dengan menggunakan literal `”Donasi dan investasi emas”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 210: Memperbarui `AltEn` dengan menggunakan literal `”Donation and gold investment”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 211: Memperbarui `NotesId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 212: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 213: Menyediakan teks atau fragmen konten `”Donasi Jumat dilakukan tertutup lalu dibuka bersama untuk menentukan peringkat.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 214: Menyediakan teks atau fragmen konten `”Harga emas Sabtu ditentukan oleh kartu harga emas yang dibuka pada hari itu.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 215: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 216: Memperbarui `NotesEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 217: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 218: Menyediakan teks atau fragmen konten `”Friday donations are made in secret and revealed together to determine the ranking.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 219: Menyediakan teks atau fragmen konten `”Saturday gold price follows the gold-price card opened that day.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 220: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 221: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 222: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 224: Menyimpan `referenceCards` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 225: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 226: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 227: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 228: Memperbarui `TitleId` dengan menggunakan literal `”Mode pemula”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 229: Memperbarui `TitleEn` dengan menggunakan literal `”Beginner mode”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 230: Memperbarui `EyebrowId` dengan menggunakan literal `”Aksi inti”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 231: Memperbarui `EyebrowEn` dengan menggunakan literal `”Core actions”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 232: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 233: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 234: Menyediakan teks atau fragmen konten `”Beli 1 bahan dan bayar sesuai harga kartu.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 235: Menyediakan teks atau fragmen konten `”Klaim 1 pesanan dengan menyerahkan bahan yang diminta.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 236: Menyediakan teks atau fragmen konten `”Beli kebutuhan primer dulu sebelum masuk ke sekunder atau tersier.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 237: Menyediakan teks atau fragmen konten `”Kerja lepas memberi 1 koin dari bank.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 238: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 239: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 240: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 241: Menyediakan teks atau fragmen konten `”Buy 1 ingredient and pay the card price.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 242: Menyediakan teks atau fragmen konten `”Claim 1 order by submitting the required ingredients.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 243: Menyediakan teks atau fragmen konten `”Buy a primary need before moving to secondary or tertiary needs.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 244: Menyediakan teks atau fragmen konten `”Freelance work gives 1 coin from the bank.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 245: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 246: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 247: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 248: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 249: Memperbarui `TitleId` dengan menggunakan literal `”Mode mahir”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 250: Memperbarui `TitleEn` dengan menggunakan literal `”Advanced mode”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 251: Memperbarui `EyebrowId` dengan menggunakan literal `”Tambahan aturan”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 252: Memperbarui `EyebrowEn` dengan menggunakan literal `”Extra rules”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 253: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 254: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 255: Menyediakan teks atau fragmen konten `”Klaim pesanan sekaligus menarik 1 kartu risiko kehidupan.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 256: Menyediakan teks atau fragmen konten `”Aktifkan asuransi dengan 1 token aksi dan bayar premi 1 koin.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 257: Menyediakan teks atau fragmen konten `”Menabung tujuan keuangan maksimal 15 koin per aksi.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 258: Menyediakan teks atau fragmen konten `”Pinjaman yang belum lunas menghanguskan poin kebahagiaan tujuan keuangan.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 259: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 260: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 261: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 262: Menyediakan teks atau fragmen konten `”Claiming an order also draws 1 life-risk card.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 263: Menyediakan teks atau fragmen konten `”Activate insurance with 1 action token and a 1-coin premium.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 264: Menyediakan teks atau fragmen konten `”Financial-goal savings are capped at 15 coins per action.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 265: Menyediakan teks atau fragmen konten `”Unpaid loans void financial-goal happiness points.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 266: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 267: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 268: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 269: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 270: Memperbarui `TitleId` dengan menggunakan literal `”Hari khusus”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 271: Memperbarui `TitleEn` dengan menggunakan literal `”Special days”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 272: Memperbarui `EyebrowId` dengan menggunakan literal `”Tanpa token aksi”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 273: Memperbarui `EyebrowEn` dengan menggunakan literal `”No action tokens”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 274: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 275: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 276: Menyediakan teks atau fragmen konten `”Jumat: semua pemain donasi tertutup, lalu ditentukan juara 1, 2, dan 3.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 277: Menyediakan teks atau fragmen konten `”Sabtu: buka harga emas, lalu pemain bebas beli atau jual emas.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 278: Menyediakan teks atau fragmen konten `”Minggu: tidak ada aksi, langsung lanjut ke hari berikutnya.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 279: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 280: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 281: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 282: Menyediakan teks atau fragmen konten `”Friday: all players donate in secret, then ranks 1, 2, and 3 are assigned.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 283: Menyediakan teks atau fragmen konten `”Saturday: reveal the gold price, then players may buy or sell gold.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 284: Menyediakan teks atau fragmen konten `”Sunday: no action happens and play moves to the next day.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 285: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 286: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 287: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 288: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 289: Memperbarui `TitleId` dengan menggunakan literal `”Catatan arus kas”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 290: Memperbarui `TitleEn` dengan menggunakan literal `”Cashflow notes”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 291: Memperbarui `EyebrowId` dengan menggunakan literal `”Opsional”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 292: Memperbarui `EyebrowEn` dengan menggunakan literal `”Optional”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 293: Memperbarui `PointsId` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 294: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 295: Menyediakan teks atau fragmen konten `”Catat pemasukan di kolom (+) dan pengeluaran di kolom (-).”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 296: Menyediakan teks atau fragmen konten `”Donasi Jumat dan transaksi emas Sabtu tetap masuk ke catatan kas.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 297: Menyediakan teks atau fragmen konten `”Di akhir sesi, hitung saldo awal, total pemasukan, total pengeluaran, lalu saldo akhir.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 298: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 299: Memperbarui `PointsEn` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 300: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 301: Menyediakan teks atau fragmen konten `”Record income in the (+) column and expenses in the (-) column.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 302: Menyediakan teks atau fragmen konten `”Friday donations and Saturday gold transactions still belong in the cashflow notes.”,` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 303: Menyediakan teks atau fragmen konten `”At the end of the session, calculate starting balance, total income, total expense, and ending balance.”` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 304: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 305: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 306: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 308: Menyimpan `scoreFlow` dengan membaca nilai `new[]` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 309: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 310: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 311: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 312: Memperbarui `TitleId` dengan menggunakan literal `”Jumlahkan poin kebahagiaan dasar”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 313: Memperbarui `TitleEn` dengan menggunakan literal `”Count base happiness points”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 314: Memperbarui `DescId` dengan menggunakan literal `”Mulai dari seluruh kartu kebutuhan yang dimiliki pemain.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 315: Memperbarui `DescEn` dengan menggunakan literal `”Start from every needs card the player owns.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 316: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 317: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 318: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 319: Memperbarui `TitleId` dengan menggunakan literal `”Tambahkan bonus”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 320: Memperbarui `TitleEn` dengan menggunakan literal `”Add bonuses”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 321: Memperbarui `DescId` dengan menggunakan literal `”Masukkan bonus set, donasi, emas, dan dana pensiun.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 322: Memperbarui `DescEn` dengan menggunakan literal `”Add set bonuses, donation, gold, and pension happiness points.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 323: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 324: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 325: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 326: Memperbarui `TitleId` dengan menggunakan literal `”Cek mode mahir”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 327: Memperbarui `TitleEn` dengan menggunakan literal `”Check advanced mode”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 328: Memperbarui `DescId` dengan menggunakan literal `”Tujuan keuangan hanya dihitung bila pinjaman syariah lunas.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 329: Memperbarui `DescEn` dengan menggunakan literal `”Financial goals count only when sharia loans are fully repaid.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 330: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 331: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 332: Membuka ruang lingkup blok untuk `tampilan Privacy.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 333: Memperbarui `TitleId` dengan menggunakan literal `”Kurangi penalti”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 334: Memperbarui `TitleEn` dengan menggunakan literal `”Subtract penalties”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 335: Memperbarui `DescId` dengan menggunakan literal `”Kurangi misi koleksi gagal dan pinjaman yang belum lunas.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 336: Memperbarui `DescEn` dengan menggunakan literal `”Subtract failed collection missions and unpaid loans.”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 337: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 338: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 339: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 341: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell rulebook-page` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `id` bernilai `rb-top` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan.
+Baris sumber 342: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro rulebook-hero` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 343: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro-main` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 344: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 345: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 346: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.Subtitle)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 347: Membuka ruang lingkup blok untuk `h1`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 348: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subhead` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Subtitle` berasal dari model yang disusun controller.
+Baris sumber 349: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 350: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 351: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro-actions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 352: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `hint-chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 353: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 354: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 356: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-flow-map` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 357: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `href` bernilai `#rb-guide` menentukan alamat tujuan tautan.
+Baris sumber 358: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `href` bernilai `#rb-stage-setup` menentukan alamat tujuan tautan.
+Baris sumber 359: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `href` bernilai `#rb-stage-turn` menentukan alamat tujuan tautan.
+Baris sumber 360: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `href` bernilai `#rb-reference` menentukan alamat tujuan tautan.
+Baris sumber 361: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `href` bernilai `#rb-scoring` menentukan alamat tujuan tautan.
+Baris sumber 362: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 364: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-page-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 365: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-main` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 366: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `id` bernilai `rb-guide` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `rulebook-surface rulebook-anchor-target` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 367: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 368: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 369: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 370: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `class` bernilai `rulebook-heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 371: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 372: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `rulebook-top-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `href` bernilai `#rb-top` menentukan alamat tujuan tautan. Teks dinamis dibaca dari kunci terjemahan `privacy.navigasi kembali ke_top` menurut bahasa sesi.
+Baris sumber 373: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 374: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `rulebook-surface-lead` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 376: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-guide-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 377: Mengiterasi `var step in guideSteps`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 378: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 379: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `rulebook-guide-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 380: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `rulebook-kicker` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 381: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga.
+Baris sumber 382: Membentuk elemen `ul` sebagai daftar tanpa penomoran. Atribut `class` bernilai `rulebook-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 383: Mengiterasi `var point in isEnglish ? step.PointsEn : step.PointsId`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 384: Membuka ruang lingkup blok untuk `ul`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 385: Membentuk elemen `li` sebagai satu anggota daftar.
+Baris sumber 386: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 387: Menutup elemen `ul` (daftar tanpa penomoran) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 388: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 389: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 390: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 391: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 393: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `id` bernilai `rb-visual` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `rulebook-surface` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 394: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 395: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 396: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 397: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `class` bernilai `rulebook-heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 398: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 399: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `rulebook-top-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `href` bernilai `#rb-top` menentukan alamat tujuan tautan. Teks dinamis dibaca dari kunci terjemahan `privacy.navigasi kembali ke_top` menurut bahasa sesi.
+Baris sumber 400: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 401: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `rulebook-surface-lead` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 403: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-visual-stack` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 404: Mengiterasi `var panel in visualPanels`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 405: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 406: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `rulebook-visual-panel rulebook-anchor-target` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 407: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif. Atribut `class` bernilai `rulebook-stage-shot` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `asp-append-version` bernilai `true` menentukan izin tag helper menambahkan versi/hash aset agar cache diperbarui ketika berkas berubah.
+Baris sumber 408: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-visual-copy` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 409: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 410: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga.
+Baris sumber 411: Membentuk elemen `ul` sebagai daftar tanpa penomoran. Atribut `class` bernilai `rulebook-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 412: Mengiterasi `var note in isEnglish ? panel.NotesEn : panel.NotesId`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 413: Membuka ruang lingkup blok untuk `ul`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 414: Membentuk elemen `li` sebagai satu anggota daftar.
+Baris sumber 415: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 416: Menutup elemen `ul` (daftar tanpa penomoran) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 417: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 418: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 419: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 420: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 421: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 423: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `id` bernilai `rb-reference` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `rulebook-surface rulebook-anchor-target` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 424: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 425: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 426: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 427: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `class` bernilai `rulebook-heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 428: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 429: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `rulebook-top-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `href` bernilai `#rb-top` menentukan alamat tujuan tautan. Teks dinamis dibaca dari kunci terjemahan `privacy.navigasi kembali ke_top` menurut bahasa sesi.
+Baris sumber 430: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 431: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `rulebook-surface-lead` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 433: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-reference-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 434: Mengiterasi `var card in referenceCards`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 435: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 436: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `rulebook-reference-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 437: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `rulebook-kicker` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 438: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga.
+Baris sumber 439: Membentuk elemen `ul` sebagai daftar tanpa penomoran. Atribut `class` bernilai `rulebook-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 440: Mengiterasi `var point in isEnglish ? card.PointsEn : card.PointsId`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 441: Membuka ruang lingkup blok untuk `ul`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 442: Membentuk elemen `li` sebagai satu anggota daftar.
+Baris sumber 443: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 444: Menutup elemen `ul` (daftar tanpa penomoran) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 445: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 446: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 447: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 448: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 450: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `id` bernilai `rb-scoring` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `rulebook-surface rulebook-anchor-target` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 451: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 452: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 453: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 454: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Atribut `class` bernilai `rulebook-heading` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 455: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 456: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `rulebook-top-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `href` bernilai `#rb-top` menentukan alamat tujuan tautan. Teks dinamis dibaca dari kunci terjemahan `privacy.navigasi kembali ke_top` menurut bahasa sesi.
+Baris sumber 457: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 458: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `rulebook-surface-lead` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 460: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-score-visual` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 461: Menyediakan elemen `img` sebagai gambar dengan sumber dan teks alternatif. Atribut `class` bernilai `rulebook-stage-shot` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `src` bernilai `~/images/rulebook/perhitungan-poin.jpg` menentukan lokasi sumber aset. Atribut `asp-append-version` bernilai `true` menentukan izin tag helper menambahkan versi/hash aset agar cache diperbarui ketika berkas berubah.
+Baris sumber 462: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 464: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-score-flow` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 465: Mengiterasi `var item in scoreFlow`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 466: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 467: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `rulebook-score-step` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 468: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga.
+Baris sumber 469: Membentuk elemen `p` sebagai paragraf atau label penjelasan.
+Baris sumber 470: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 471: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 472: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 474: Memeriksa kondisi `scoring.Count ＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 475: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 476: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 477: Menyisipkan hasil ekspresi Razor `@Context.T(”privacy.empty_scoring”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 478: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 479: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 480: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 481: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 482: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `rulebook-score-grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 483: Mengiterasi `var item in scoring`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 484: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 485: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `rulebook-score-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 486: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga.
+Baris sumber 487: Membentuk elemen `p` sebagai paragraf atau label penjelasan.
+Baris sumber 488: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 489: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 490: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 491: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 492: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 494: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `id` bernilai `rulebook-copyright` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `rulebook-surface rulebook-copyright rulebook-anchor-target` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 495: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `privacy.copyright_title` menurut bahasa sesi.
+Baris sumber 496: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `privacy.copyright_desc` menurut bahasa sesi.
+Baris sumber 497: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 498: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 499: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 500: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+*@
 @model Cashflowpoly.Ui.Models.RulebookPageViewModel
 @using Microsoft.AspNetCore.Http
 @{

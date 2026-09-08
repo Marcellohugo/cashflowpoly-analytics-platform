@@ -1,12 +1,20 @@
 <!-- Fungsi file: Mengatur konfigurasi build, dependency, dan properti proyek UI MVC. -->
+<!-- Uraian baris: Memulai proyek MSBuild dengan SDK Microsoft.NET.Sdk.Web. SDK menyediakan target build standar untuk aplikasi web ASP.NET Core, termasuk pemrosesan aset web. -->
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <!-- Uraian baris: Memulai kelompok properti MSBuild; nilai di dalamnya mengatur target framework, aturan compiler, atau identitas proyek test. -->
   <PropertyGroup>
+    <!-- Uraian baris: Menetapkan target runtime .NET 10 (net10.0) sehingga kompilasi dan pemilihan paket memakai API framework tersebut. -->
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Uraian baris: Mengaktifkan analisis nullable reference types; compiler membedakan referensi yang dapat bernilai null dan membantu menemukan dereferensi yang tidak aman. -->
     <Nullable>enable</Nullable>
+    <!-- Uraian baris: Mengaktifkan impor namespace umum dari SDK agar setiap file C# tidak perlu mengulangi using standar. -->
     <ImplicitUsings>enable</ImplicitUsings>
 
+    <!-- Uraian baris: Mengubah warning compiler menjadi kegagalan build; peringatan harus dibereskan sebelum proyek dinyatakan berhasil dikompilasi. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  <!-- Uraian baris: Menutup elemen PropertyGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </PropertyGroup>
 
+<!-- Uraian baris: Menutup elemen Project sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
 </Project>

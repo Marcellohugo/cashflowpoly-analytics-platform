@@ -27,6 +27,7 @@
 
 # Local research documents, diagrams, screenshots, and generated evidence
 /artifacts/
+/.codex-artifacts/
 
 # ── Visual Studio / .NET ─────────────────────────────
 

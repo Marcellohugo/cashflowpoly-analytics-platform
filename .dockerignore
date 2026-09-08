@@ -1,6 +1,11 @@
 .git
 .vs
 .vscode
+.codex-artifacts/
+artifacts/
+scratch/
+tmp/
+tests/e2e/test-results/
 
 .env
 .env.dev

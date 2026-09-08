@@ -1,4 +1,485 @@
-@* Fungsi file: Merender tampilan Razor untuk bagian Rulesets/Index.cshtml beserta interaksi presentasinya. *@
+@* Fungsi file: Merender tampilan Razor untuk bagian Rulesets/Index.cshtml beserta interaksi presentasinya.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Menetapkan model tampilan bertipe `Cashflowpoly.Ui.Models.RulesetListViewModel`; Razor memeriksa akses properti Model saat kompilasi dan controller memasok instance model saat rendering.
+Baris sumber 4: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 5: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `nav.ruleset` sesuai bahasa sesi pengguna.
+Baris sumber 6: Menyimpan `isInstructor` dengan memeriksa peran instruktur pada sesi HTTP untuk menentukan kontrol tampilan yang tersedia.
+Baris sumber 7: Menyimpan `hasMutableRulesets` dengan memanggil `Model.Items.Any(item → !item.IsDefault && !item.IsLockedBySession)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 8: Menyimpan `showMutationActions` dengan membaca nilai `isInstructor && hasMutableRulesets` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 9: Menyimpan `tableColumnCount` dengan memilih nilai melalui kondisi ternary `showMutationActions ? 7 : 5`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 10: Menyimpan `flashError` dengan membaca nilai `ViewData[”ruleset_error”] as string` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 11: Menyimpan `flashInfo` dengan membaca nilai `ViewData[”ruleset_info”] as string` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 12: Melakukan operasi dengan membaca nilai `const string DefaultCatalogSource ＝ ”default-catalog”` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 13: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 15: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell w-full` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 16: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 17: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro-main` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 18: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.management` menurut bahasa sesi.
+Baris sumber 19: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `class` bernilai `headline` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.title` menurut bahasa sesi.
+Baris sumber 20: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subhead` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.subtitle` menurut bahasa sesi.
+Baris sumber 21: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 22: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `page-intro-actions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 23: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 24: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 25: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-primary` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-primary”` menjadi teks yang terlihat pada komponen.
+Baris sumber 25: Baris sumber 26: Melengkapi atribut `asp-controller` pada `a` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 25: Baris sumber 27: Melengkapi atribut `asp-action` pada `a` dengan `”Create”›@Context.T(”rulesets.create”)‹/a›`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 28: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 29: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 30: Membuka ruang lingkup blok untuk `a`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 31: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `hint-chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.readonly_hint` menurut bahasa sesi.
+Baris sumber 32: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 33: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 34: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 36: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-6 ruleset-unified ruleset-index-shell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 37: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `ruleset-index-section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 38: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head ruleset-section-head-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 39: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 40: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.index.summary_title` menurut bahasa sesi.
+Baris sumber 41: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.unified_subtitle` menurut bahasa sesi.
+Baris sumber 42: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 43: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-index-count-block` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 44: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `text-xs uppercase text-slate-500` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.total_rulesets` menurut bahasa sesi.
+Baris sumber 45: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-index-count` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Nilai `@Model.Items.Count` berasal dari model yang disusun controller.
+Baris sumber 46: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 47: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 48: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 50: Memeriksa kondisi `!string.IsNullOrWhiteSpace(Model.ErrorMessage)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 51: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 52: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-error` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 53: Menyisipkan hasil ekspresi Razor `@Model.ErrorMessage` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 54: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 55: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 56: Memeriksa kondisi `!string.IsNullOrWhiteSpace(flashError)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 57: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 58: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-error` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 59: Menyisipkan hasil ekspresi Razor `@flashError` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 60: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 61: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 63: Memeriksa kondisi `!string.IsNullOrWhiteSpace(flashInfo)`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 64: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 65: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 alert alert-info` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 66: Menyisipkan hasil ekspresi Razor `@flashInfo` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 67: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 68: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 70: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `ruleset-index-section mt-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 71: Membentuk elemen `details` sebagai kontainer yang dapat diperluas dan diciutkan browser. Atribut `class` bernilai `mt-3 data-toggle` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 72: Membentuk elemen `summary` sebagai pemicu buka/tutup untuk elemen details. Teks dinamis dibaca dari kunci terjemahan `rulesets.tips.title` menurut bahasa sesi.
+Baris sumber 73: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 metric-panel` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 74: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-list` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 75: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `rulesets.tip.create` menurut bahasa sesi.
+Baris sumber 76: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `rulesets.tip.versioning` menurut bahasa sesi.
+Baris sumber 77: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `metric-row` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-key` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `metric-value` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `sessions.step`, `rulesets.tip.safety` menurut bahasa sesi.
+Baris sumber 78: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 79: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 80: Menutup elemen `details` (kontainer yang dapat diperluas dan diciutkan browser) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 82: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 84: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `ruleset-index-section mt-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 85: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 86: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.quick_tools` menurut bahasa sesi.
+Baris sumber 87: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.index.quick_tools_help` menurut bahasa sesi.
+Baris sumber 88: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 89: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 ruleset-quick-tools` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 90: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-quick-tools-controls` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 91: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-field` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 92: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.search` menurut bahasa sesi.
+Baris sumber 93: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `id` bernilai `ruleset-search` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Isi `‹input id＝”ruleset-search”` menjadi teks yang terlihat pada komponen.
+Baris sumber 93: Baris sumber 94: Melengkapi atribut `class` pada `input` dengan `”form-input”`; kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 93: Baris sumber 95: Melengkapi atribut `type` pada `input` dengan `”search”`; jenis kontrol atau tipe konten.
+Baris sumber 93: Baris sumber 96: Melengkapi atribut `placeholder` pada `input` dengan `”@Context.T(”rulesets.search_placeholder”)”`; contoh atau petunjuk masukan sebelum pengguna mengetik.
+Baris sumber 97: Memperbarui `autocomplete` dengan menggunakan literal `”off”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 98: Melengkapi atribut `data-ruleset-search` pada `input` dengan `/›`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 99: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 100: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-field` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 101: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.sort` menurut bahasa sesi.
+Baris sumber 102: Membentuk elemen `select` sebagai kontrol pemilihan satu opsi. Atribut `id` bernilai `ruleset-sort` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 103: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Teks dinamis dibaca dari kunci terjemahan `rulesets.sort.name_asc` menurut bahasa sesi.
+Baris sumber 104: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Teks dinamis dibaca dari kunci terjemahan `rulesets.sort.name_desc` menurut bahasa sesi.
+Baris sumber 105: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Teks dinamis dibaca dari kunci terjemahan `rulesets.sort.version_desc` menurut bahasa sesi.
+Baris sumber 106: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Teks dinamis dibaca dari kunci terjemahan `rulesets.sort.version_asc` menurut bahasa sesi.
+Baris sumber 107: Menutup elemen `select` (kontrol pemilihan satu opsi) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 108: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 109: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `form-field` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 110: Membentuk elemen `label` sebagai label untuk menjelaskan kontrol formulir. Atribut `class` bernilai `form-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.page_size` menurut bahasa sesi.
+Baris sumber 111: Membentuk elemen `select` sebagai kontrol pemilihan satu opsi. Atribut `id` bernilai `ruleset-page-size` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Atribut `class` bernilai `form-input` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 112: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Isi `5` menjadi teks yang terlihat pada komponen.
+Baris sumber 113: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Isi `10` menjadi teks yang terlihat pada komponen.
+Baris sumber 114: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Isi `25` menjadi teks yang terlihat pada komponen.
+Baris sumber 115: Membentuk elemen `option` sebagai salah satu nilai pilihan pada select. Isi `50` menjadi teks yang terlihat pada komponen.
+Baris sumber 116: Menutup elemen `select` (kontrol pemilihan satu opsi) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 117: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 118: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-ghost ruleset-quick-reset` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹button class＝”btn-ghost ruleset-quick-reset”` menjadi teks yang terlihat pada komponen.
+Baris sumber 118: Baris sumber 119: Melengkapi atribut `type` pada `button` dengan `”button”`; jenis kontrol atau tipe konten.
+Baris sumber 120: Melengkapi atribut `data-ruleset-reset` pada `button` dengan `›@Context.T(”rulesets.clear_filter”)‹/button›`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 121: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 122: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 123: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 125: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `ruleset-index-section mt-4` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 126: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-section-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 127: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-title` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.index.list_title` menurut bahasa sesi.
+Baris sumber 128: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `ruleset-section-subtitle` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.index.list_subtitle` menurut bahasa sesi.
+Baris sumber 129: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 131: Memeriksa kondisi `showMutationActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 132: Membuka ruang lingkup blok untuk `p`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 133: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `id` bernilai `ruleset-bulk-form` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Isi `‹form id＝”ruleset-bulk-form”` menjadi teks yang terlihat pada komponen. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 133: Baris sumber 134: Melengkapi atribut `method` pada `form` dengan `”post”`; metode HTTP ketika formulir dikirim.
+Baris sumber 133: Baris sumber 135: Melengkapi atribut `asp-controller` pada `form` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 133: Baris sumber 136: Melengkapi atribut `asp-action` pada `form` dengan `”BulkDelete”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 137: Memperbarui `onsubmit` dengan mengambil teks terjemahan berkunci `rulesets.bulk_delete_confirm` sesuai bahasa sesi pengguna.
+Baris sumber 138: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 139: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
+Baris sumber 140: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 141: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 flex flex-wrap items-center justify-between gap-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 142: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `hint-chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 143: Menyisipkan hasil ekspresi Razor `@Context.T(”rulesets.selected_count”): ‹span data-ruleset-selected-count›0‹/span›` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 144: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 145: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-ghost btn-compact` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹button class＝”btn-ghost btn-compact”` menjadi teks yang terlihat pada komponen.
+Baris sumber 145: Baris sumber 146: Melengkapi atribut `type` pada `button` dengan `”submit”`; jenis kontrol atau tipe konten.
+Baris sumber 145: Baris sumber 148: Melengkapi atribut `data-ruleset-bulk-delete` pada `button` dengan ``; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 147: Memperbarui `form` dengan menggunakan literal `”ruleset-bulk-form”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 149: Melengkapi atribut `disabled` pada `button` dengan `›@Context.T(”rulesets.bulk_delete”)‹/button›`; status kontrol yang tidak menerima masukan.
+Baris sumber 150: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 151: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 153: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-4 table-wrap` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 154: Membentuk elemen `table` sebagai tabel data dengan susunan baris dan kolom. Atribut `class` bernilai `w-full text-left text-sm mobile-card-table` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 155: Membentuk elemen `thead` sebagai kelompok header tabel. Atribut `class` bernilai `table-head` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 156: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 157: Memeriksa kondisi `showMutationActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 158: Membuka ruang lingkup blok untuk `tr`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 159: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 160: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Isi `‹input type＝”checkbox”` menjadi teks yang terlihat pada komponen.
+Baris sumber 160: Baris sumber 161: Melengkapi atribut `data-ruleset-select-all` pada `input` dengan ``; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 160: Baris sumber 162: Melengkapi atribut `aria-label` pada `input` dengan `”@Context.T(”rulesets.select_all”)” /›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 163: Menutup elemen `th` (sel header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 164: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 165: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.name` menurut bahasa sesi.
+Baris sumber 166: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.mode` menurut bahasa sesi.
+Baris sumber 167: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.latest_version` menurut bahasa sesi.
+Baris sumber 168: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.status` menurut bahasa sesi.
+Baris sumber 169: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.detail` menurut bahasa sesi.
+Baris sumber 170: Memeriksa kondisi `showMutationActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 171: Membuka ruang lingkup blok untuk `th`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 172: Membentuk elemen `th` sebagai sel header tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.action` menurut bahasa sesi.
+Baris sumber 173: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 174: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 175: Menutup elemen `thead` (kelompok header tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 176: Membentuk elemen `tbody` sebagai kelompok baris isi tabel.
+Baris sumber 177: Memeriksa kondisi `Model.Items.Count ＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 178: Membuka ruang lingkup blok untuk `tbody`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 179: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 180: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-4 text-slate-500 mobile-card-empty` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 181: Menyisipkan hasil ekspresi Razor `@Context.T(”state.no_rulesets”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 182: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 183: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 184: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 185: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 186: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 187: Mengiterasi `var item in Model.Items`; setiap anggota koleksi mendapat pemrosesan atau markup yang sama dengan nilai item masing-masing.
+Baris sumber 188: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 189: Menyimpan `isAdvancedMode` dengan memanggil `string.Equals(item.Mode, ”MAHIR”, StringComparison.OrdinalIgnoreCase) ||` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 190: Menyediakan teks atau fragmen konten `(string.IsNullOrWhiteSpace(item.Mode) && item.Name.Contains(”Mahir”, StringComparison.OrdinalIgnoreCase));` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
+Baris sumber 191: Menyimpan `modeCode` dengan memilih nilai melalui kondisi ternary `isAdvancedMode ? ”MAHIR” : ”PEMULA”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 192: Menyimpan `modeCss` dengan memilih nilai melalui kondisi ternary `isAdvancedMode ? ”advanced” : ”beginner”`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 193: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 193: Baris sumber 194: Melengkapi atribut `data-ruleset-row` pada `tr` dengan ``; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 193: Baris sumber 195: Melengkapi atribut `data-name` pada `tr` dengan `”@item.Name.ToLowerInvariant()”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 193: Baris sumber 196: Melengkapi atribut `data-mode` pada `tr` dengan `”@modeCode.ToLowerInvariant()”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 193: Baris sumber 197: Melengkapi atribut `data-ruleset-id` pada `tr` dengan `”@item.RulesetId.ToString().ToLowerInvariant()”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 193: Baris sumber 198: Melengkapi atribut `data-status` pada `tr` dengan `”@((item.Status ?? ”UNKNOWN”).ToLowerInvariant())”`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 193: Baris sumber 199: Melengkapi atribut `data-latest-version` pada `tr` dengan `”@item.LatestVersion”›`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 200: Memeriksa kondisi `showMutationActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 201: Membuka ruang lingkup blok untuk `tr`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 202: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.action` menurut bahasa sesi.
+Baris sumber 203: Memeriksa kondisi `!item.IsDefault && !item.IsLockedBySession`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 204: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 205: Menyediakan elemen `input` sebagai kontrol masukan satu nilai. Atribut `type` bernilai `checkbox` menentukan jenis kontrol atau tipe konten. Isi `‹input type＝”checkbox”` menjadi teks yang terlihat pada komponen.
+Baris sumber 205: Baris sumber 206: Melengkapi atribut `value` pada `input` dengan `”@item.RulesetId”`; nilai awal atau nilai yang dikirim oleh kontrol.
+Baris sumber 205: Baris sumber 207: Melengkapi atribut `data-ruleset-row-checkbox` pada `input` dengan ``; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 205: Baris sumber 208: Melengkapi atribut `aria-label` pada `input` dengan `”@($”｛Context.T(”rulesets.select_one”)｝ ｛item.Name｝”)” /›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 209: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 210: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 211: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 212: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 font-medium text-slate-900` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.name` menurut bahasa sesi.
+Baris sumber 213: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-name-cell` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 214: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 215: Memeriksa kondisi `item.IsDefault`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 216: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 217: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `ruleset-default-badge` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.default_badge` menurut bahasa sesi.
+Baris sumber 218: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 219: Menutup elemen `span` (wadah teks inline tanpa memulai blok baru) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 220: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 221: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `rulesets.form.mode` menurut bahasa sesi.
+Baris sumber 222: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 223: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 224: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-right text-slate-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `class` bernilai `version-pill` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.latest_version` menurut bahasa sesi.
+Baris sumber 225: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-right text-slate-700` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.status` menurut bahasa sesi.
+Baris sumber 226: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 227: Menyimpan `statusClass` dengan memanggil `string.Equals(item.Status, ”ACTIVE”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 228: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”status-active”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 229: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `string.Equals(item.Status, ”DRAFT”, StringComparison.OrdinalIgnoreCase)`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 230: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `”status-draft”`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 231: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `”status-retired”;`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 232: Menyimpan `statusLabel` dengan memanggil `string.Equals(item.Status, ”ACTIVE”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 233: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”rulesets.usage_status.active”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 234: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `string.Equals(item.Status, ”DRAFT”, StringComparison.OrdinalIgnoreCase)`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 235: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Context.T(”rulesets.usage_status.draft”)`; nilai ini menjadi keluaran ekspresi pilihan.
+Baris sumber 236: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Context.T(”rulesets.usage_status.unknown”);`; nilai cadangan ini melengkapi ekspresi pilihan.
+Baris sumber 237: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 238: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru.
+Baris sumber 239: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 240: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.detail` menurut bahasa sesi.
+Baris sumber 241: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 242: Menyimpan `source` dengan memilih nilai melalui kondisi ternary `item.IsDefault ? DefaultCatalogSource : null`; cabang setelah ? dipakai ketika kondisi benar dan cabang setelah : ketika salah.
+Baris sumber 243: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 244: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `table-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”table-link”` menjadi teks yang terlihat pada komponen.
+Baris sumber 244: Baris sumber 245: Melengkapi atribut `asp-controller` pada `a` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 244: Baris sumber 246: Melengkapi atribut `asp-action` pada `a` dengan `”Details”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 244: Baris sumber 247: Melengkapi atribut `asp-route-rulesetId` pada `a` dengan `”@item.RulesetId”`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 244: Baris sumber 248: Melengkapi atribut `asp-route-source` pada `a` dengan `”@source”›@Context.T(”common.view”)‹/a›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 249: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 250: Memeriksa kondisi `showMutationActions`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 251: Membuka ruang lingkup blok untuk `a`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 252: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-3 text-right` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `common.action` menurut bahasa sesi.
+Baris sumber 253: Memeriksa kondisi `!item.IsDefault && !item.IsLockedBySession`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 254: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 255: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `ruleset-row-actions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 256: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `table-link` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”table-link”` menjadi teks yang terlihat pada komponen.
+Baris sumber 256: Baris sumber 257: Melengkapi atribut `asp-controller` pada `a` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 256: Baris sumber 258: Melengkapi atribut `asp-action` pada `a` dengan `”Edit”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 256: Baris sumber 259: Melengkapi atribut `asp-route-rulesetId` pada `a` dengan `”@item.RulesetId”›@Context.T(”rulesets.edit”)‹/a›`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 260: Membentuk elemen `form` sebagai kelompok kontrol masukan yang dikirim ke endpoint server. Atribut `method` bernilai `post` menentukan metode HTTP ketika formulir dikirim. Isi `‹form method＝”post”` menjadi teks yang terlihat pada komponen. Ketika dikirim, nama dan nilai kontrol di dalamnya digunakan model binding pada server.
+Baris sumber 260: Baris sumber 261: Melengkapi atribut `asp-controller` pada `form` dengan `”Rulesets”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 260: Baris sumber 262: Melengkapi atribut `asp-action` pada `form` dengan `”Delete”`; nama action tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 260: Baris sumber 263: Melengkapi atribut `asp-route-rulesetId` pada `form` dengan `”@item.RulesetId”`; tag helper menggunakan nilai ini sebagai parameter route URL.
+Baris sumber 264: Memperbarui `onsubmit` dengan mengambil teks terjemahan berkunci `rulesets.delete_confirm` sesuai bahasa sesi pengguna.
+Baris sumber 265: Menghasilkan bagian tampilan melalui `@Html.AntiForgeryToken()`; Razor menjalankan helper di server dan menyisipkan hasil pada posisi markup ini.
+Baris sumber 266: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `ruleset-action-btn` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Atribut `type` bernilai `submit` menentukan jenis kontrol atau tipe konten. Teks dinamis dibaca dari kunci terjemahan `rulesets.delete` menurut bahasa sesi.
+Baris sumber 267: Menutup elemen `form` (kelompok kontrol masukan yang dikirim ke endpoint server) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 268: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 269: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 270: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 271: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 272: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 273: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 274: Membentuk elemen `tr` sebagai satu baris tabel.
+Baris sumber 275: Membentuk elemen `td` sebagai sel nilai dalam tabel. Atribut `class` bernilai `px-4 py-4 text-slate-500 mobile-card-empty` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 276: Menyisipkan hasil ekspresi Razor `@Context.T(”rulesets.no_filtered”)` ke HTML; nilai teks standar di-encode oleh Razor kecuali helper secara eksplisit menghasilkan HTML.
+Baris sumber 277: Menutup elemen `td` (sel nilai dalam tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 278: Menutup elemen `tr` (satu baris tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 279: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 280: Menutup elemen `tbody` (kelompok baris isi tabel) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 281: Menutup elemen `table` (tabel data dengan susunan baris dan kolom) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 282: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 284: Memeriksa kondisi `Model.Items.Count › 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 285: Membuka ruang lingkup blok untuk `td`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
+Baris sumber 286: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `mt-3 ruleset-pagination` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 287: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-ghost btn-compact` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹button class＝”btn-ghost btn-compact”` menjadi teks yang terlihat pada komponen.
+Baris sumber 287: Baris sumber 288: Melengkapi atribut `type` pada `button` dengan `”button”`; jenis kontrol atau tipe konten.
+Baris sumber 289: Melengkapi atribut `data-ruleset-prev` pada `button` dengan `›@Context.T(”rulesets.pagination_prev”)‹/button›`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 290: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `hint-chip` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 291: Membentuk elemen `button` sebagai kontrol interaksi yang dapat diaktifkan pengguna. Atribut `class` bernilai `btn-ghost btn-compact` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹button class＝”btn-ghost btn-compact”` menjadi teks yang terlihat pada komponen.
+Baris sumber 291: Baris sumber 292: Melengkapi atribut `type` pada `button` dengan `”button”`; jenis kontrol atau tipe konten.
+Baris sumber 293: Melengkapi atribut `data-ruleset-next` pada `button` dengan `›@Context.T(”rulesets.pagination_next”)‹/button›`; atribut data menyimpan konfigurasi atau selector penghubung antara markup dan JavaScript.
+Baris sumber 294: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 295: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 296: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 297: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 298: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 300: Mendefinisikan section Razor `Scripts ｛`; layout merender bagian ini pada lokasi RenderSectionAsync yang sesuai.
+Baris sumber 301: Membentuk elemen `script` sebagai skrip browser atau referensi berkas JavaScript.
+Baris sumber 302: Mendefinisikan fungsi atau pemetaan `(() → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 303: Menyimpan `searchInput` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-search]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 304: Menyimpan `sortSelect` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-sort]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 305: Menyimpan `pageSizeSelect` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-page-size]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 306: Menyimpan `resetButton` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-reset]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 307: Menyimpan `prevButton` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-prev]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 308: Menyimpan `nextButton` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-next]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 309: Menyimpan `pageInfo` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-page-info]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 310: Menyimpan `tbody` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-tbody]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 311: Menyimpan `selectAllCheckbox` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-select-all]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 312: Menyimpan `selectedCount` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-selected-count]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 313: Menyimpan `bulkDeleteButton` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-bulk-delete]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 314: Menyimpan `bulkInputsHost` dengan mencari elemen DOM pertama yang sesuai dengan `”[data-ruleset-bulk-hidden-inputs]”`; hasil dapat null bila komponen tidak ada pada halaman.
+Baris sumber 315: Memeriksa kondisi `!searchInput || !sortSelect || !pageSizeSelect || !resetButton || !tbody`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 316: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 317: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 319: Menyimpan `rows` dengan mencari semua turunan elemen yang sesuai dengan selector `”[data-ruleset-row]”)`.
+Baris sumber 320: Menyimpan `emptyFilterRow` dengan mencari turunan pertama dengan selector `”[data-empty-filter-row]”`; pemanggil memeriksa ketersediaannya sebelum mengubah tampilan.
+Baris sumber 321: Menyimpan `selectedRulesetIds` dengan membuat instance `Set` dengan masukan `tanpa argumen`.
+Baris sumber 322: Menyimpan `currentPageRows` dengan menyiapkan array sebagai wadah koleksi; elemen berikutnya akan mengisi urutan data.
+Baris sumber 323: Menyimpan `currentPage` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 325: Memeriksa kondisi `rows.length ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 326: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 327: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 329: Menyimpan `getSortValue` dengan membaca nilai `(row, mode) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 330: Menyimpan `name` dengan mengevaluasi `row.dataset.name ?? ””`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 331: Menyimpan `version` dengan mengevaluasi `Number.parseInt(row.dataset.latestVersion ?? ”0”, 10)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 332: Memeriksa kondisi `mode ＝＝＝ ”name_desc”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 333: Mengembalikan hasil kepada pemanggil dengan membaca nilai `｛ key: name, order: -1 ｝` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 334: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 336: Memeriksa kondisi `mode ＝＝＝ ”version_desc”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 337: Mengembalikan hasil kepada pemanggil dengan memastikan `version` merupakan angka berhingga sehingga NaN dan Infinity tidak masuk perhitungan atau grafik; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 338: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 340: Memeriksa kondisi `mode ＝＝＝ ”version_asc”`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 341: Mengembalikan hasil kepada pemanggil dengan memastikan `version` merupakan angka berhingga sehingga NaN dan Infinity tidak masuk perhitungan atau grafik; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 342: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 344: Mengembalikan hasil kepada pemanggil dengan membaca nilai `｛ key: name, order: 1 ｝` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 345: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 347: Menyimpan `sortRows` dengan membaca nilai `(targetRows, mode) → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 348: Mendefinisikan fungsi atau pemetaan `targetRows.sort((a, b) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 349: Menyimpan `left` dengan memanggil `getSortValue(a, mode)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 350: Menyimpan `right` dengan memanggil `getSortValue(b, mode)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 351: Memeriksa kondisi `left.key ‹ right.key`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 352: Mengembalikan hasil kepada pemanggil dengan menghitung ekspresi `-1 * left.order` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 353: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 355: Memeriksa kondisi `left.key › right.key`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 356: Mengembalikan hasil kepada pemanggil dengan menghitung ekspresi `1 * left.order` dengan urutan operator untuk memperoleh nilai turunan dari data masukan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 357: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 359: Mengembalikan hasil kepada pemanggil dengan menggunakan konstanta numerik `0` sebagai nilai awal atau parameter perhitungan; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 360: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 361: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 363: Menyimpan `refreshBulkSelectionState` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 364: Menyimpan `visibleCheckboxes` dengan membaca nilai `currentPageRows` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 365: Mendefinisikan fungsi atau pemetaan `.map((row) → row.querySelector(”[data-ruleset-row-checkbox]”))`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 366: Melanjutkan rantai operasi dengan menyaring koleksi menggunakan predikat `Boolean)`; hanya elemen yang memenuhi kondisi masuk hasil; hasil tahap sebelumnya menjadi sumber tahap ini.
+Baris sumber 368: Mendefinisikan fungsi atau pemetaan `visibleCheckboxes.forEach((checkbox) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 369: Memperbarui `checkbox.checked` dengan memanggil `selectedRulesetIds.has(checkbox.value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 370: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 372: Memeriksa kondisi `selectAllCheckbox`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 373: Memperbarui `selectAllCheckbox.checked` dengan membaca nilai `visibleCheckboxes.length › 0 &&` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 374: Mendefinisikan fungsi atau pemetaan `visibleCheckboxes.every((checkbox) → checkbox.checked);`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 375: Memperbarui `selectAllCheckbox.indeterminate` dengan memeriksa apakah setidaknya satu elemen memenuhi `(checkbox) → checkbox.checked) &&`; pemeriksaan berhenti saat ada kecocokan.
+Baris sumber 376: Melakukan operasi dengan membaca nilai `!selectAllCheckbox.checked` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 377: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 379: Memeriksa kondisi `selectedCount`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 380: Memperbarui `selectedCount.textContent` dengan menggunakan literal ``$｛selectedRulesetIds.size｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 381: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 383: Memeriksa kondisi `bulkDeleteButton`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 384: Memperbarui `bulkDeleteButton.disabled` dengan membaca nilai `selectedRulesetIds.size ＝＝＝ 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 385: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 387: Memeriksa kondisi `bulkInputsHost`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 388: Memperbarui `bulkInputsHost.innerHTML` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 389: Mendefinisikan fungsi atau pemetaan `Array.from(selectedRulesetIds).forEach((rulesetId) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 390: Menyimpan `input` dengan membuat elemen HTML `”input”` yang selanjutnya diberi isi, kelas, dan ditempelkan ke dokumen.
+Baris sumber 391: Memperbarui `input.type` dengan menggunakan literal `”hidden”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 392: Memperbarui `input.name` dengan menggunakan literal `”rulesetIds”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 393: Memperbarui `input.value` dengan membaca nilai `rulesetId` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 394: Melakukan operasi dengan menempatkan node `input` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
+Baris sumber 395: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 396: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 397: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 399: Menyimpan `refreshRows` dengan membaca nilai `() → ｛` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 400: Menyimpan `query` dengan menghapus spasi pada awal dan akhir string sebelum nilai diperiksa atau ditampilkan.
+Baris sumber 401: Menyimpan `mode` dengan membaca nilai `sortSelect.value` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 402: Menyimpan `filteredRows` dengan menyaring koleksi menggunakan predikat `(row) → ｛`; hanya elemen yang memenuhi kondisi masuk hasil. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
+Baris sumber 403: Menyimpan `haystack` dengan menggunakan literal ``$｛row.dataset.name ?? ””｝ $｛row.dataset.mode ?? ””｝ $｛row.dataset.rulesetId ?? ””｝ v$｛row.dataset.latestVersion ?? ””｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 404: Mengembalikan hasil kepada pemanggil dengan memanggil `query.length ＝＝＝ 0 || haystack.includes(query)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; eksekusi fungsi berakhir setelah nilai dihitung.
+Baris sumber 405: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 406: Menyimpan `pageSize` dengan memanggil `Number.parseInt(pageSizeSelect.value, 10)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 407: Menyimpan `resolvedPageSize` dengan memastikan `pageSize` merupakan angka berhingga sehingga NaN dan Infinity tidak masuk perhitungan atau grafik.
+Baris sumber 409: Melakukan operasi dengan memanggil `sortRows(filteredRows, mode)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 411: Menyimpan `totalPages` dengan mengambil nilai terbesar dari `1, Math.ceil(filteredRows.length / resolvedPageSize)` untuk menjaga hasil tidak di bawah batas minimum.
+Baris sumber 412: Memperbarui `currentPage` dengan mengambil nilai terkecil dari `Math.max(currentPage, 1), totalPages` untuk membatasi hasil pada batas atas yang ditentukan.
+Baris sumber 414: Menyimpan `startIndex` dengan menghitung ekspresi `(currentPage - 1) * resolvedPageSize` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 415: Menyimpan `endIndex` dengan menghitung ekspresi `startIndex + resolvedPageSize` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
+Baris sumber 416: Memperbarui `currentPageRows` dengan memanggil `filteredRows.slice(startIndex, endIndex)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 418: Mendefinisikan fungsi atau pemetaan `rows.forEach((row) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 419: Memperbarui `row.hidden` dengan mengaktifkan flag Boolean dengan nilai true.
+Baris sumber 420: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 422: Mendefinisikan fungsi atau pemetaan `filteredRows.forEach((row, index) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 423: Menyimpan `isCurrentPage` dengan membaca nilai `index ›＝ startIndex && index ‹ endIndex` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 424: Memperbarui `row.hidden` dengan membaca nilai `!isCurrentPage` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 425: Melakukan operasi dengan menempatkan node `row` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
+Baris sumber 426: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 428: Memeriksa kondisi `emptyFilterRow`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 429: Memperbarui `emptyFilterRow.hidden` dengan membaca nilai `filteredRows.length › 0 || query.length ＝＝＝ 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 430: Memeriksa kondisi `!emptyFilterRow.hidden`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 431: Melakukan operasi dengan menempatkan node `emptyFilterRow` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
+Baris sumber 432: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 433: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 435: Memeriksa kondisi `pageInfo`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 436: Memeriksa kondisi `filteredRows.length ＝＝＝ 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 437: Memperbarui `pageInfo.textContent` dengan menggunakan literal `”0/0”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 438: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 439: Memperbarui `pageInfo.textContent` dengan menggunakan literal ``$｛currentPage｝/$｛totalPages｝`` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 440: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 441: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 443: Memeriksa kondisi `prevButton`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 444: Memperbarui `prevButton.disabled` dengan membaca nilai `filteredRows.length ＝＝＝ 0 || currentPage ‹＝ 1` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 445: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 447: Memeriksa kondisi `nextButton`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 448: Memperbarui `nextButton.disabled` dengan membaca nilai `filteredRows.length ＝＝＝ 0 || currentPage ›＝ totalPages` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 449: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 451: Melakukan operasi dengan memanggil `refreshBulkSelectionState()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 452: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 454: Mendefinisikan fungsi atau pemetaan `searchInput.addEventListener(”input”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 455: Memperbarui `currentPage` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 456: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 457: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 459: Mendefinisikan fungsi atau pemetaan `sortSelect.addEventListener(”change”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 460: Memperbarui `currentPage` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 461: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 462: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 464: Mendefinisikan fungsi atau pemetaan `pageSizeSelect.addEventListener(”change”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 465: Memperbarui `currentPage` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 466: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 467: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 469: Mendefinisikan fungsi atau pemetaan `resetButton.addEventListener(”click”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 470: Memperbarui `searchInput.value` dengan menggunakan literal `””` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 471: Memperbarui `sortSelect.value` dengan menggunakan literal `”name_asc”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 472: Memperbarui `pageSizeSelect.value` dengan menggunakan literal `”10”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 473: Memperbarui `currentPage` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan.
+Baris sumber 474: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 475: Melakukan operasi dengan memanggil `searchInput.focus()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 476: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 478: Memeriksa kondisi `prevButton`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 479: Mendefinisikan fungsi atau pemetaan `prevButton.addEventListener(”click”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 480: Memperbarui `currentPage` dengan mengambil nilai terbesar dari `currentPage - 1, 1` untuk menjaga hasil tidak di bawah batas minimum.
+Baris sumber 481: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 482: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 483: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 485: Memeriksa kondisi `nextButton`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 486: Mendefinisikan fungsi atau pemetaan `nextButton.addEventListener(”click”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 487: Memperbarui `currentPage` dengan menggunakan konstanta numerik `1` sebagai nilai awal atau parameter perhitungan; operator `+＝` menggabungkan nilai baru dengan nilai yang sudah tersimpan.
+Baris sumber 488: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 489: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 490: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 492: Memeriksa kondisi `selectAllCheckbox`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 493: Mendefinisikan fungsi atau pemetaan `selectAllCheckbox.addEventListener(”change”, () → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 494: Menyimpan `isChecked` dengan membaca nilai `selectAllCheckbox.checked` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 495: Mendefinisikan fungsi atau pemetaan `currentPageRows.forEach((row) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 496: Menyimpan `checkbox` dengan mencari turunan pertama dengan selector `”[data-ruleset-row-checkbox]”`; pemanggil memeriksa ketersediaannya sebelum mengubah tampilan.
+Baris sumber 497: Memeriksa kondisi `!checkbox`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 498: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 499: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 501: Memeriksa kondisi `isChecked`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 502: Melakukan operasi dengan memanggil `selectedRulesetIds.add(checkbox.value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 503: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 504: Melakukan operasi dengan memanggil `selectedRulesetIds.delete(checkbox.value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 505: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 506: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 507: Melakukan operasi dengan memanggil `refreshBulkSelectionState()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 508: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 509: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 511: Mendefinisikan fungsi atau pemetaan `rows.forEach((row) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 512: Menyimpan `checkbox` dengan mencari turunan pertama dengan selector `”[data-ruleset-row-checkbox]”`; pemanggil memeriksa ketersediaannya sebelum mengubah tampilan.
+Baris sumber 513: Memeriksa kondisi `!checkbox`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 514: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
+Baris sumber 515: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 517: Mendefinisikan fungsi atau pemetaan `checkbox.addEventListener(”change”, (event) → ｛`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
+Baris sumber 518: Menyimpan `target` dengan membaca nilai `event.target` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 519: Memeriksa kondisi `target.checked`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
+Baris sumber 520: Melakukan operasi dengan memanggil `selectedRulesetIds.add(target.value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 521: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
+Baris sumber 522: Melakukan operasi dengan memanggil `selectedRulesetIds.delete(target.value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 523: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 524: Melakukan operasi dengan memanggil `refreshBulkSelectionState()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 525: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 526: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+Baris sumber 528: Melakukan operasi dengan memanggil `refreshRows()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 529: Melakukan operasi dengan membaca nilai `｝)()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 530: Menutup elemen `script` (skrip browser atau referensi berkas JavaScript) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 531: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+*@
 @model Cashflowpoly.Ui.Models.RulesetListViewModel
 
 @{

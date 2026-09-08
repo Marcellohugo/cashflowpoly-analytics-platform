@@ -1,36 +1,74 @@
 # Fungsi file: Menambahkan mode development auto-redeploy dengan dotnet watch.
+# Penjelasan: Menetapkan nama proyek Compose sebagai identitas kelompok resource. Nama ini membedakan lingkungan development dari layanan deployment utama. Nilai/deklarasi: name: cashflowpoly-dev.
 name: cashflowpoly-dev
 
+# Penjelasan: Membuka daftar layanan yang akan digabung, dibangun, atau dijalankan oleh Docker Compose. Nilai/deklarasi: services:.
 services:
+  # Penjelasan: Mendefinisikan layanan PostgreSQL, atau menamai dependensi db pada bagian depends_on sesuai tingkat indentasi. Nilai/deklarasi: db:.
   db:
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-dev-db.
     container_name: cashflowpoly-dev-db
 
+  # Penjelasan: Mendefinisikan layanan REST API, atau menamai dependensi api yang harus siap sebelum layanan pemanggil dimulai. Nilai/deklarasi: api:.
   api:
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-dev-api.
     container_name: cashflowpoly-dev-api
+    # Penjelasan: Membuka konfigurasi build image aplikasi dari checkout sumber lokal. Nilai/deklarasi: build:.
     build:
+      # Penjelasan: Memilih root konteks build relatif terhadap file Compose; berkas pada konteks ini dapat dirujuk instruksi COPY Dockerfile. Nilai/deklarasi: context: ../...
       context: ../..
+      # Penjelasan: Memilih Dockerfile API/UI atau varian development yang akan dipakai dalam build layanan ini. Nilai/deklarasi: dockerfile: src/Cashflowpoly.Api/Dockerfile.dev.
       dockerfile: src/Cashflowpoly.Api/Dockerfile.dev
+    # Penjelasan: Bagian 1 dari 2 baris deklarasi berikut: Mengganti perintah default image dengan watcher pengembangan atau klien tunnel. Nilai > adalah folded scalar, sedangkan | mempertahankan baris skrip. Nilai/deklarasi: command: >.
+    # Penjelasan: Bagian 2 dari 2 baris deklarasi berikut: Menjalankan dotnet watch noninteraktif pada proyek yang disebut sehingga perubahan sumber memicu hot reload/restart; no-launch-profile memakai environment container.
     command: >
       dotnet watch --non-interactive --project src/Cashflowpoly.Api/Cashflowpoly.Api.csproj run --no-launch-profile
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Mengaktifkan pemeriksaan perubahan berkas dengan polling agar dotnet watch dapat mendeteksi perubahan pada bind mount. Nilai/deklarasi: DOTNET_USE_POLLING_FILE_WATCHER: ”1”.
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      # Penjelasan: Menghilangkan emoji dari log dotnet watch agar keluaran container mudah dibaca sebagai teks. Nilai/deklarasi: DOTNET_WATCH_SUPPRESS_EMOJIS: ”1”.
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+      # Penjelasan: Meminta watcher me-restart aplikasi saat perubahan sumber tidak dapat diterapkan melalui hot reload. Nilai/deklarasi: DOTNET_WATCH_RESTART_ON_RUDE_EDIT: ”true”.
       DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
+    # Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
     volumes:
+      # Penjelasan: Menambahkan anggota daftar ../../:/src. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - ../../:/src
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_api_dpkeys:/home/app/.aspnet/DataProtection-Keys. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_api_dpkeys:/home/app/.aspnet/DataProtection-Keys
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_nuget:/home/app/.nuget/packages. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_nuget:/home/app/.nuget/packages
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_api_bin:/src/src/Cashflowpoly.Api/bin. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_api_bin:/src/src/Cashflowpoly.Api/bin
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_api_obj:/src/src/Cashflowpoly.Api/obj. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_api_obj:/src/src/Cashflowpoly.Api/obj
 
+  # Penjelasan: Mendefinisikan layanan MVC Web Analitik, atau dependensi ui yang readiness-nya diperlukan layanan reverse proxy. Nilai/deklarasi: ui:.
   ui:
+    # Penjelasan: Menetapkan nama container eksplisit agar skrip health check dan operator dapat merujuk layanan dengan nama yang stabil. Nilai/deklarasi: container_name: cashflowpoly-dev-ui.
     container_name: cashflowpoly-dev-ui
+    # Penjelasan: Membuka konfigurasi build image aplikasi dari checkout sumber lokal. Nilai/deklarasi: build:.
     build:
+      # Penjelasan: Memilih root konteks build relatif terhadap file Compose; berkas pada konteks ini dapat dirujuk instruksi COPY Dockerfile. Nilai/deklarasi: context: ../...
       context: ../..
+      # Penjelasan: Memilih Dockerfile API/UI atau varian development yang akan dipakai dalam build layanan ini. Nilai/deklarasi: dockerfile: src/Cashflowpoly.Ui/Dockerfile.dev.
       dockerfile: src/Cashflowpoly.Ui/Dockerfile.dev
+    # Penjelasan: Mengganti perintah default image dengan watcher pengembangan atau klien tunnel. Nilai > adalah folded scalar, sedangkan | mempertahankan baris skrip. Nilai/deklarasi: command:.
     command:
+      # Penjelasan: Menambahkan anggota daftar /bin/sh. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - /bin/sh
+      # Penjelasan: Menambahkan anggota daftar -lc. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
       - -lc
+      # Penjelasan: Bagian 1 dari 9 baris deklarasi berikut: Menambahkan anggota daftar |. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
+      # Penjelasan: Bagian 2 dari 9 baris deklarasi berikut: Skrip shell watcher berhenti bila perintah gagal atau variabel belum terdefinisi digunakan; ini mencegah tahap watch diteruskan dari instalasi yang gagal.
+      # Penjelasan: Bagian 3 dari 9 baris deklarasi berikut: Mengubah direktori kerja shell ke /src/src/Cashflowpoly.Ui sebelum menjalankan npm atau dotnet pada root proyek yang sesuai.
+      # Penjelasan: Bagian 4 dari 9 baris deklarasi berikut: Memasang dependensi UI berdasarkan lockfile sebelum watcher dijalankan; no-audit dan no-fund menekan keluaran tambahan proses instalasi.
+      # Penjelasan: Bagian 5 dari 9 baris deklarasi berikut: Menjalankan watcher Tailwind di latar belakang menggunakan & agar perubahan CSS diproses bersamaan dengan dotnet watch.
+      # Penjelasan: Bagian 6 dari 9 baris deklarasi berikut: Menyimpan PID proses watcher latar belakang dari $! agar trap dapat menghentikan proses yang tepat saat container keluar.
+      # Penjelasan: Bagian 7 dari 9 baris deklarasi berikut: Mendaftarkan pembersihan watcher pada INT, TERM, dan EXIT. $$ lolos dari interpolasi Compose menjadi $ pada shell; kill -0 memeriksa proses sebelum kill/wait dijalankan.
+      # Penjelasan: Bagian 8 dari 9 baris deklarasi berikut: Mengubah direktori kerja shell ke /src sebelum menjalankan npm atau dotnet pada root proyek yang sesuai.
+      # Penjelasan: Bagian 9 dari 9 baris deklarasi berikut: Menjalankan dotnet watch noninteraktif pada proyek yang disebut sehingga perubahan sumber memicu hot reload/restart; no-launch-profile memakai environment container.
       - |
           set -eu
           cd /src/src/Cashflowpoly.Ui
@@ -40,22 +78,40 @@ services:
           trap 'if kill -0 "$$tailwind_pid" 2>/dev/null; then kill "$$tailwind_pid" 2>/dev/null || true; wait "$$tailwind_pid" 2>/dev/null || true; fi' INT TERM EXIT
           cd /src
           dotnet watch --non-interactive --project src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj run --no-launch-profile
+    # Penjelasan: Membuka variabel environment container. ASP.NET Core membaca pemisah __ sebagai tingkat hierarki konfigurasi. Nilai/deklarasi: environment:.
     environment:
+      # Penjelasan: Mengaktifkan pemeriksaan perubahan berkas dengan polling agar dotnet watch dapat mendeteksi perubahan pada bind mount. Nilai/deklarasi: DOTNET_USE_POLLING_FILE_WATCHER: ”1”.
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      # Penjelasan: Menghilangkan emoji dari log dotnet watch agar keluaran container mudah dibaca sebagai teks. Nilai/deklarasi: DOTNET_WATCH_SUPPRESS_EMOJIS: ”1”.
       DOTNET_WATCH_SUPPRESS_EMOJIS: "1"
+      # Penjelasan: Meminta watcher me-restart aplikasi saat perubahan sumber tidak dapat diterapkan melalui hot reload. Nilai/deklarasi: DOTNET_WATCH_RESTART_ON_RUDE_EDIT: ”true”.
       DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
+    # Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
     volumes:
+      # Penjelasan: Menambahkan anggota daftar ../../:/src. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - ../../:/src
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_ui_dpkeys:/home/app/.aspnet/DataProtection-Keys. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_ui_dpkeys:/home/app/.aspnet/DataProtection-Keys
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_nuget:/home/app/.nuget/packages. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_nuget:/home/app/.nuget/packages
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_ui_node_modules:/src/src/Cashflowpoly.Ui/node_modules. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_ui_node_modules:/src/src/Cashflowpoly.Ui/node_modules
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_ui_bin:/src/src/Cashflowpoly.Ui/bin. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_ui_bin:/src/src/Cashflowpoly.Ui/bin
+      # Penjelasan: Menambahkan anggota daftar cashflowpoly_ui_obj:/src/src/Cashflowpoly.Ui/obj. Pemetaan kiri adalah sumber volume/path/host, kanan adalah target container; :ro bila ada membatasi mount menjadi baca-saja.
       - cashflowpoly_ui_obj:/src/src/Cashflowpoly.Ui/obj
 
+# Penjelasan: Mendefinisikan mount untuk layanan atau deklarasi named volume global, sesuai indentasi; volume menjaga data/cache tetap tersedia saat container diganti. Nilai/deklarasi: volumes:.
 volumes:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_nuget; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_nuget:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_ui_node_modules; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_ui_node_modules:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_api_bin; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_api_bin:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_api_obj; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_api_obj:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_ui_bin; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_ui_bin:
+  # Penjelasan: Mendeklarasikan named volume cashflowpoly_ui_obj; Docker menyimpan isinya terpisah dari filesystem sementara container untuk data, cache dependensi, output build, atau kunci proteksi.
   cashflowpoly_ui_obj:

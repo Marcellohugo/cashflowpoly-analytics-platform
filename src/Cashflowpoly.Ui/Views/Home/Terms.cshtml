@@ -1,4 +1,48 @@
-@* Fungsi file: Menjelaskan ketentuan penggunaan proyek akademik Cashflowpoly. *@
+@* Fungsi file: Menjelaskan ketentuan penggunaan proyek akademik Cashflowpoly.  Penjelasan rinci per baris. Nomor berikut mengacu kode asli setelah blok komentar ini (header Fungsi file dihitung sebagai baris 1). Komentar server-side tidak dikirim ke browser.
+Baris sumber 2: Membuka blok C# Razor untuk menghitung data tampilan di server sebelum markup halaman dikirim kepada browser.
+Baris sumber 3: Memperbarui `ViewData[”Title”]` dengan mengambil teks terjemahan berkunci `terms.title` sesuai bahasa sesi pengguna.
+Baris sumber 4: Memperbarui `ViewData[”MetaDescription”]` dengan mengambil teks terjemahan berkunci `terms.meta_desc` sesuai bahasa sesi pengguna.
+Baris sumber 5: Memperbarui `ViewData[”MetaKeywords”]` dengan mengambil teks terjemahan berkunci `terms.meta_keywords` sesuai bahasa sesi pengguna.
+Baris sumber 6: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+Baris sumber 8: Membentuk elemen `section` sebagai bagian halaman dengan topik konten tersendiri. Atribut `class` bernilai `section-shell legal-page` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 9: Membentuk elemen `header` sebagai bagian kepala halaman atau komponen. Atribut `class` bernilai `legal-page__header` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 10: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `eyebrow` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `terms.kicker` menurut bahasa sesi.
+Baris sumber 11: Membentuk elemen `h1` sebagai judul utama halaman. Atribut `id` bernilai `terms-title` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Teks dinamis dibaca dari kunci terjemahan `terms.title` menurut bahasa sesi.
+Baris sumber 12: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `subhead` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `terms.intro` menurut bahasa sesi.
+Baris sumber 13: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Atribut `class` bernilai `legal-page__notice` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `legal.academic_notice` menurut bahasa sesi.
+Baris sumber 14: Menutup elemen `header` (bagian kepala halaman atau komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 16: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `legal-page__grid` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 17: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 18: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.purpose.title` menurut bahasa sesi.
+Baris sumber 19: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.purpose.desc` menurut bahasa sesi.
+Baris sumber 20: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 21: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 22: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.roles.title` menurut bahasa sesi.
+Baris sumber 23: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.roles.desc` menurut bahasa sesi.
+Baris sumber 24: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 25: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 26: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.account.title` menurut bahasa sesi.
+Baris sumber 27: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.account.desc` menurut bahasa sesi.
+Baris sumber 28: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 29: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 30: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.demo.title` menurut bahasa sesi.
+Baris sumber 31: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.demo.desc` menurut bahasa sesi.
+Baris sumber 32: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 33: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 34: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.use.title` menurut bahasa sesi.
+Baris sumber 35: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.use.desc` menurut bahasa sesi.
+Baris sumber 36: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 37: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 38: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.guarantee.title` menurut bahasa sesi.
+Baris sumber 39: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.guarantee.desc` menurut bahasa sesi.
+Baris sumber 40: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 41: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `legal-page__section legal-page__section--wide` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
+Baris sumber 42: Membentuk elemen `h2` sebagai judul bagian tingkat dua. Teks dinamis dibaca dari kunci terjemahan `terms.termination.title` menurut bahasa sesi.
+Baris sumber 43: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `terms.termination.desc` menurut bahasa sesi.
+Baris sumber 44: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 45: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+Baris sumber 46: Menutup elemen `section` (bagian halaman dengan topik konten tersendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
+*@
 @{
     ViewData["Title"] = Context.T("terms.title");
     ViewData["MetaDescription"] = Context.T("terms.meta_desc");

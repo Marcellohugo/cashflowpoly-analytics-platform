@@ -1,22 +1,39 @@
 <!-- Fungsi file: Menguji perilaku dan kontrak komponen pada domain Cashflowpoly.Ui.Tests. -->
+<!-- Uraian baris: Memulai proyek MSBuild dengan SDK Microsoft.NET.Sdk. SDK menyediakan target build standar; proyek ini menjalankan pengujian terhadap aplikasi. -->
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Uraian baris: Memulai kelompok properti MSBuild; nilai di dalamnya mengatur target framework, aturan compiler, atau identitas proyek test. -->
   <PropertyGroup>
+    <!-- Uraian baris: Menetapkan target runtime .NET 10 (net10.0) sehingga kompilasi dan pemilihan paket memakai API framework tersebut. -->
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Uraian baris: Mengaktifkan impor namespace umum dari SDK agar setiap file C# tidak perlu mengulangi using standar. -->
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Uraian baris: Mengaktifkan analisis nullable reference types; compiler membedakan referensi yang dapat bernilai null dan membantu menemukan dereferensi yang tidak aman. -->
     <Nullable>enable</Nullable>
+    <!-- Uraian baris: Menonaktifkan pengemasan proyek test sebagai paket NuGet karena artefak ini ditujukan untuk verifikasi. -->
     <IsPackable>false</IsPackable>
+    <!-- Uraian baris: Menandai proyek sebagai proyek test sehingga SDK dan runner dapat menemukan serta menjalankan skenario pengujian. -->
     <IsTestProject>true</IsTestProject>
+  <!-- Uraian baris: Menutup elemen PropertyGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </PropertyGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Mereferensikan Microsoft.NET.Test.Sdk versi 18.8.1 untuk integrasi proyek pengujian dengan runner dotnet test. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <!-- Uraian baris: Mereferensikan xunit.v3 versi 3.2.2 untuk framework xUnit, atribut skenario, dan assertion pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <!-- Uraian baris: Mereferensikan xunit.runner.visualstudio versi 3.1.5 untuk adapter penemuan serta eksekusi test xUnit oleh Visual Studio dan VSTest. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Menghubungkan proyek pengujian dengan ..\..\src\Cashflowpoly.Ui\Cashflowpoly.Ui.csproj. MSBuild membangun referensi ini terlebih dahulu agar test dapat menggunakan tipe dan perilaku aplikasi. -->
     <ProjectReference Include="..\..\src\Cashflowpoly.Ui\Cashflowpoly.Ui.csproj" />
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+<!-- Uraian baris: Menutup elemen Project sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
 </Project>

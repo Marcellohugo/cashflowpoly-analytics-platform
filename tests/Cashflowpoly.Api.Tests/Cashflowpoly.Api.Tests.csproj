@@ -1,35 +1,63 @@
 <!-- Fungsi file: Menguji perilaku dan kontrak komponen pada domain Cashflowpoly.Api.Tests. -->
+<!-- Uraian baris: Memulai proyek MSBuild dengan SDK Microsoft.NET.Sdk. SDK menyediakan target build standar; proyek ini menjalankan pengujian terhadap aplikasi. -->
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Uraian baris: Memulai kelompok properti MSBuild; nilai di dalamnya mengatur target framework, aturan compiler, atau identitas proyek test. -->
   <PropertyGroup>
+    <!-- Uraian baris: Menetapkan target runtime .NET 10 (net10.0) sehingga kompilasi dan pemilihan paket memakai API framework tersebut. -->
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Uraian baris: Mengaktifkan impor namespace umum dari SDK agar setiap file C# tidak perlu mengulangi using standar. -->
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Uraian baris: Mengaktifkan analisis nullable reference types; compiler membedakan referensi yang dapat bernilai null dan membantu menemukan dereferensi yang tidak aman. -->
     <Nullable>enable</Nullable>
+    <!-- Uraian baris: Menonaktifkan pengemasan proyek test sebagai paket NuGet karena artefak ini ditujukan untuk verifikasi. -->
     <IsPackable>false</IsPackable>
+    <!-- Uraian baris: Menandai proyek sebagai proyek test sehingga SDK dan runner dapat menemukan serta menjalankan skenario pengujian. -->
     <IsTestProject>true</IsTestProject>
     <!-- Fixture integrasi mengelola lifecycle dan pembatalan container secara terpusat. -->
+    <!-- Uraian baris: Mempertahankan daftar warning yang sudah ada dan menambahkan pengecualian xUnit1051; fixture integrasi mengelola lifecycle serta pembatalan container secara terpusat. -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  <!-- Uraian baris: Menutup elemen PropertyGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </PropertyGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Mereferensikan Microsoft.AspNetCore.Mvc.Testing versi 10.0.11 untuk host aplikasi dalam memori untuk integration test HTTP. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
+    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore.Relational versi 10.0.11 untuk API EF Core untuk database relasional dalam pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+    <!-- Uraian baris: Mereferensikan Microsoft.NET.Test.Sdk versi 18.8.1 untuk integrasi proyek pengujian dengan runner dotnet test. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <!-- Uraian baris: Mereferensikan SSH.NET versi 2026.0.0 untuk klien SSH yang digunakan dukungan lingkungan pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <!-- Uraian baris: Mereferensikan Testcontainers.PostgreSql versi 4.13.0 untuk pengelolaan PostgreSQL container sementara pada integration test. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.13.0" />
+    <!-- Uraian baris: Mereferensikan xunit.v3 versi 3.2.2 untuk framework xUnit, atribut skenario, dan assertion pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <!-- Uraian baris: Mereferensikan xunit.runner.visualstudio versi 3.1.5 untuk adapter penemuan serta eksekusi test xUnit oleh Visual Studio dan VSTest. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Menghubungkan proyek pengujian dengan ..\..\src\Cashflowpoly.Api\Cashflowpoly.Api.csproj. MSBuild membangun referensi ini terlebih dahulu agar test dapat menggunakan tipe dan perilaku aplikasi. -->
     <ProjectReference Include="..\..\src\Cashflowpoly.Api\Cashflowpoly.Api.csproj" />
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+  <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\00_create_schema.sql sebagai item None. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; PreserveNewest menyalin file ke output pengujian saat sumber lebih baru. -->
     <None Include="..\..\database\00_create_schema.sql" Link="database\00_create_schema.sql" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\01_seed_default_rulesets_components.sql sebagai item None. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; PreserveNewest menyalin file ke output pengujian saat sumber lebih baru. -->
     <None Include="..\..\database\01_seed_default_rulesets_components.sql" Link="database\01_seed_default_rulesets_components.sql" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\02_seed_simulation_sessions_events.sql sebagai item None. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; PreserveNewest menyalin file ke output pengujian saat sumber lebih baru. -->
     <None Include="..\..\database\02_seed_simulation_sessions_events.sql" Link="database\02_seed_simulation_sessions_events.sql" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Uraian baris: Mendaftarkan berkas SQL ..\..\database\migrations\**\*.sql sebagai item None. Link menempatkannya pada struktur relatif yang diharapkan initializer/fixture; PreserveNewest menyalin file ke output pengujian saat sumber lebih baru. -->
     <None Include="..\..\database\migrations\**\*.sql" Link="database\migrations\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  <!-- Uraian baris: Menutup elemen ItemGroup sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
   </ItemGroup>
 
+<!-- Uraian baris: Menutup elemen Project sehingga pengaturan berikutnya kembali ke tingkat XML induknya; struktur ini membatasi cakupan properti atau metadata item sebelumnya. -->
 </Project>
