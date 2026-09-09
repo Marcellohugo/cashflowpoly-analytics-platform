@@ -65,7 +65,7 @@ Sistem menyimpan data *ruleset* melalui dua entitas:
 
 ### 3.2 Kebijakan versi
 Sistem menerapkan kebijakan berikut:
-1. Sistem membuat versi baru setiap kali instruktur mengubah konfigurasi.
+1. Sistem membuat versi baru setiap kali instruktur mengubah konfigurasi. Perubahan nama/deskripsi atau penyimpanan ulang konfigurasi terbaru tidak membuat versi baru.
 2. Sistem menyimpan `ruleset_version_id` pada setiap event.
 3. Sistem mengizinkan satu versi `ACTIVE` per ruleset; sesi mengunci satu
    `ruleset_version_id` saat dibuat.
@@ -73,8 +73,9 @@ Sistem menerapkan kebijakan berikut:
 5. Sistem melarang penghapusan versi `ACTIVE`; instruktur harus mengaktifkan
    versi lain terlebih dahulu.
 6. Ruleset default bersifat read-only dan tidak dapat diedit/dihapus.
-7. Ruleset yang sudah dipakai sesi dikembalikan sebagai
-   `is_locked_by_session=true` dan tidak dapat dihapus.
+7. Ruleset yang sudah terhubung ke sesi dikembalikan sebagai
+   `is_locked_by_session=true` sejak sesi berstatus `CREATED`, termasuk histori sesi. Ruleset tersebut tidak dapat diedit, dihapus, diaktifkan versinya, atau dihapus versinya.
+8. Detail UI menampilkan konfigurasi versi terbaru yang disimpan, atau versi histori yang dipilih secara eksplisit. Versi baru tetap `DRAFT` sampai diaktifkan.
 
 ### 3.3 Lifecycle ruleset
 Lifecycle ditetapkan eksplisit sebagai berikut.

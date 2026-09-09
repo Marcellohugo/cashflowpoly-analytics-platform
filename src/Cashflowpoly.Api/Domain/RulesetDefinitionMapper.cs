@@ -140,6 +140,8 @@ public static class RulesetDefinitionMapper
             // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam FromConfigJson.
             },
             // Memperbarui `Ingredients` menggunakan memanggil `ReadIngredients` dengan `componentCatalog` dalam FromConfigJson.
+            Actions = root.TryGetProperty("actions", out var actions) && actions.ValueKind == JsonValueKind.Array
+                ? actions.Deserialize<List<RulesetActionDto>>() ?? [] : [],
             Ingredients = ReadIngredients(componentCatalog),
             // Memperbarui `Orders` menggunakan memanggil `ReadOrders` dengan `componentCatalog` dalam FromConfigJson.
             Orders = ReadOrders(componentCatalog),
@@ -192,6 +194,7 @@ public static class RulesetDefinitionMapper
         {
             // Memperbarui `[”mode”]` menggunakan `definition.Mode` (mode permainan yang menentukan kelompok aturan yang digunakan) dalam ToConfigJson.
             ["mode"] = definition.Mode,
+            ["actions"] = JsonSerializer.SerializeToNode(definition.Actions),
             // Memperbarui `[”actions_per_turn”]` menggunakan `definition.Settings.ActionsPerTurn` (nilai aksi per giliran) dalam ToConfigJson.
             ["actions_per_turn"] = definition.Settings.ActionsPerTurn,
             // Memperbarui `[”starting_cash”]` menggunakan `definition.Settings.StartingCash` (nilai starting uang tunai) dalam ToConfigJson.

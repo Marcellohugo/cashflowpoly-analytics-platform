@@ -34,6 +34,21 @@ public sealed class AuthRbacRulesetIntegrationTests
     private readonly HttpClient _client;
 
     [Fact]
+    public async Task Ruleset_WithMissingNarrativeAction_ReturnsValidationError()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var instructor = await RegisterAsync($"missing_action_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+        var definition = BuildRulesetDefinition(startingCash: 20);
+        definition.Actions.Clear();
+        using var response = await SendJsonAsync(HttpMethod.Post, "/api/v1/rulesets",
+            new { name = "Missing referenced action", definition }, instructor.AccessToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.NotNull(error);
+        Assert.Equal("VALIDATION_ERROR", error.ErrorCode);
+    }
+
+    [Fact]
     public async Task PlayerDirectory_InMySessions_OnlyIncludesDistinctParticipantsOfCurrentInstructor()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -512,7 +527,22 @@ public sealed class AuthRbacRulesetIntegrationTests
             instructorLogin.AccessToken);
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`HttpStatusCode.Conflict`,
         // `duplicateConfigUpdate.StatusCode`); pengujian gagal jika keduanya berbeda dalam Auth_Rbac_And_RulesetFlow_Work_EndToEnd.
-        Assert.Equal(HttpStatusCode.Conflict, duplicateConfigUpdate.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, duplicateConfigUpdate.StatusCode);
+        var renamed = await duplicateConfigUpdate.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.Equal(createdRuleset, renamed);
+
+        using var renamedDetailResponse = await SendJsonAsync(HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}", null, instructorLogin.AccessToken);
+        var renamedDetail = await renamedDetailResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(renamedDetail);
+        Assert.Equal(duplicateConfigUpdatePayload.name, renamedDetail.Name);
+        Assert.Equal(duplicateConfigUpdatePayload.description, renamedDetail.Description);
+        Assert.Single(renamedDetail.Versions);
+
+        using var repeatedSave = await SendJsonAsync(HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}", duplicateConfigUpdatePayload, instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, repeatedSave.StatusCode);
+        Assert.Equal(createdRuleset, await repeatedSave.Content.ReadFromJsonAsync<CreateRulesetResponse>());
 
         // Menyiapkan variabel lokal `updateRulesetPayload` untuk nilai update aturan payload dengan objek anonim yang mengelompokkan name, description,
         // definition sebagai satu nilai. Tipe variabel disimpulkan dari ekspresi nilai awal.
@@ -643,6 +673,18 @@ public sealed class AuthRbacRulesetIntegrationTests
         // Menjalankan pemeriksaan bahwa `updatedRulesetV3.Version > updatedRuleset.Version` bernilai benar; pengujian gagal jika kondisi tidak terpenuhi
         // dalam Auth_Rbac_And_RulesetFlow_Work_EndToEnd.
         Assert.True(updatedRulesetV3.Version > updatedRuleset.Version);
+
+        // Reusing an older configuration still reports a conflict and rolls back metadata changes.
+        using var olderConfigResponse = await SendJsonAsync(HttpMethod.Put,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}", duplicateConfigUpdatePayload, instructorLogin.AccessToken);
+        Assert.Equal(HttpStatusCode.Conflict, olderConfigResponse.StatusCode);
+        using var afterConflictResponse = await SendJsonAsync(HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}", null, instructorLogin.AccessToken);
+        var afterConflict = await afterConflictResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(afterConflict);
+        Assert.Equal(updateRulesetPayloadV3.name, afterConflict.Name);
+        Assert.Equal(updateRulesetPayloadV3.description, afterConflict.Description);
+        Assert.Equal(3, afterConflict.Versions.Count);
 
         // Menyiapkan variabel lokal `playerDeleteVersion` untuk nilai pemain delete versi dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
         // `HttpMethod.Delete`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{updatedRulesetV3.Version}”`, `null`, `playerLogin.AccessToken`;
@@ -1135,111 +1177,51 @@ public sealed class AuthRbacRulesetIntegrationTests
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
-    // Mendefinisikan metode `CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable` dengan hasil bertipe `Task`; operasi ini menangani custom aturan
-    // used only berdasarkan created sesi remains mutable. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian
-    // melalui Task.
-    public async Task CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable()
-    // Membuka scope metode CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-    // CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
+    public async Task CustomRuleset_UsedByCreatedSession_IsReadonly()
     {
-        // Menyiapkan variabel lokal `suffix` untuk nilai suffix dengan `Guid.NewGuid().ToString(”N”)[..8]`, yaitu elemen koleksi yang dipilih melalui
-        // indeks atau kunci tersebut. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        // Menyiapkan variabel lokal `instructor` untuk nilai instruktur dengan hasil operasi asinkron memanggil `RegisterAsync` dengan
-        // `$”it_created_guard_{suffix}”`, `”IntegrationInstructorPass!123”`, `”INSTRUCTOR”`; await menunggu hasil tanpa memblokir thread selama operasi
-        // belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var instructor = await RegisterAsync($"it_created_guard_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
-        // Menyiapkan variabel lokal `createdRuleset` untuk nilai created aturan dengan hasil operasi asinkron memanggil `CreateRulesetAsync` dengan
-        // `instructor.AccessToken`, `suffix`, `41`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan
-        // dari ekspresi nilai awal.
         var createdRuleset = await CreateRulesetAsync(instructor.AccessToken, suffix, startingCash: 41);
-        // Menjalankan hasil operasi asinkron memanggil `CreateSessionAsync` dengan `instructor.AccessToken`, `suffix`, `createdRuleset.RulesetVersionId`;
-        // await menunggu hasil tanpa memblokir thread selama operasi belum selesai dalam CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
         await CreateSessionAsync(instructor.AccessToken, suffix, createdRuleset.RulesetVersionId);
 
-        // Menyiapkan variabel lokal `detailBeforeUpdate` untuk nilai detail before update dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
-        // `HttpMethod.Get`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`, `null`, `instructor.AccessToken`; await menunggu hasil tanpa memblokir thread
-        // selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var detailBeforeUpdate = await SendJsonAsync(
-            // Meneruskan `HttpMethod.Get` (nilai get) sebagai argumen ke `SendJsonAsync`.
-            HttpMethod.Get,
-            // Meneruskan teks interpolasi `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`; nilai ekspresi di dalam kurung kurawal disisipkan saat program
-            // berjalan sebagai argumen ke `SendJsonAsync`.
+        using var detailResponse = await SendJsonAsync(HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}", null, instructor.AccessToken);
+        var detail = await detailResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(detail);
+        Assert.False(detail.IsDefault);
+        Assert.True(detail.IsLockedBySession);
+
+        using var listResponse = await SendJsonAsync(HttpMethod.Get,
+            "/api/v1/rulesets", null, instructor.AccessToken);
+        var list = await listResponse.Content.ReadFromJsonAsync<RulesetListResponse>();
+        Assert.NotNull(list);
+        Assert.True(Assert.Single(list.Items, item => item.RulesetId == createdRuleset.RulesetId).IsLockedBySession);
+
+        using var updateResponse = await SendJsonAsync(HttpMethod.Put,
             $"/api/v1/rulesets/{createdRuleset.RulesetId}",
-            // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen bernama `body`.
-            body: null,
-            // Meneruskan `instructor.AccessToken` (nilai akses token) sebagai argumen ke `SendJsonAsync`.
+            new { name = "Should not change", definition = BuildRulesetDefinition(startingCash: 42) },
             instructor.AccessToken);
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`HttpStatusCode.OK`,
-        // `detailBeforeUpdate.StatusCode`); pengujian gagal jika keduanya berbeda dalam CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-        Assert.Equal(HttpStatusCode.OK, detailBeforeUpdate.StatusCode);
-        // Membatasi masa pakai `var detailDocument = JsonDocument.Parse(await detailBeforeUpdate.Content.ReadAsStringAsync())` pada blok using; sumber daya
-        // dilepas ketika blok berakhir melalui Dispose.
-        using (var detailDocument = JsonDocument.Parse(await detailBeforeUpdate.Content.ReadAsStringAsync()))
-        // Membuka scope scope pemakaian sumber daya using; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
+        await AssertDomainRuleViolationAsync(updateResponse);
+
+        foreach (var (method, path) in new[]
         {
-            // Menjalankan pemeriksaan bahwa `detailDocument.RootElement.GetProperty(”is_default”).GetBoolean()` bernilai salah; pengujian gagal jika kondisi
-            // justru terpenuhi dalam CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-            Assert.False(detailDocument.RootElement.GetProperty("is_default").GetBoolean());
-            // Menjalankan pemeriksaan bahwa `detailDocument.RootElement.GetProperty(”is_locked_by_session”).GetBoolean()` bernilai salah; pengujian gagal jika
-            // kondisi justru terpenuhi dalam CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-            Assert.False(detailDocument.RootElement.GetProperty("is_locked_by_session").GetBoolean());
-        // Menutup scope scope pemakaian sumber daya using; bagian berikut berada di luar batas blok tersebut dalam
-        // CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
+            (HttpMethod.Post, $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/1/activate"),
+            (HttpMethod.Delete, $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/1"),
+            (HttpMethod.Delete, $"/api/v1/rulesets/{createdRuleset.RulesetId}")
+        })
+        {
+            using var response = await SendJsonAsync(method, path, null, instructor.AccessToken);
+            await AssertDomainRuleViolationAsync(response);
         }
 
-        // Menyiapkan variabel lokal `updateResponse` untuk nilai update respons dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
-        // `HttpMethod.Put`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`, `new { name = $”Ruleset CREATED Mutable {suffix} V2”, description = ”CREATED
-        // sessions do not lock rulesets”, definition = BuildRulesetDefinition(startingCash: 42) }`, `instructor.AccessToken`; await menunggu hasil tanpa
-        // memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var updateResponse = await SendJsonAsync(
-            // Meneruskan `HttpMethod.Put` (nilai put) sebagai argumen ke `SendJsonAsync`.
-            HttpMethod.Put,
-            // Meneruskan teks interpolasi `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`; nilai ekspresi di dalam kurung kurawal disisipkan saat program
-            // berjalan sebagai argumen ke `SendJsonAsync`.
-            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
-            // Meneruskan objek anonim yang mengelompokkan name, description, definition sebagai satu nilai sebagai argumen ke `SendJsonAsync`.
-            new
-            // Membuka scope objek anonim yang mengelompokkan beberapa nilai; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-            // CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-            {
-                // Meneruskan objek anonim yang mengelompokkan name, description, definition sebagai satu nilai sebagai argumen ke `SendJsonAsync`.
-                name = $"Ruleset CREATED Mutable {suffix} V2",
-                // Meneruskan objek anonim yang mengelompokkan name, description, definition sebagai satu nilai sebagai argumen ke `SendJsonAsync`.
-                description = "CREATED sessions do not lock rulesets",
-                // Meneruskan nilai literal `42` sebagai argumen bernama `startingCash`.
-                definition = BuildRulesetDefinition(startingCash: 42)
-            // Menutup scope objek anonim yang mengelompokkan beberapa nilai; bagian berikut berada di luar batas blok tersebut dalam
-            // CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-            },
-            // Meneruskan `instructor.AccessToken` (nilai akses token) sebagai argumen ke `SendJsonAsync`.
-            instructor.AccessToken);
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`HttpStatusCode.OK`,
-        // `updateResponse.StatusCode`); pengujian gagal jika keduanya berbeda dalam CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
-
-        // Menyiapkan variabel lokal `deleteResponse` untuk nilai delete respons dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
-        // `HttpMethod.Delete`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`, `null`, `instructor.AccessToken`; await menunggu hasil tanpa memblokir
-        // thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var deleteResponse = await SendJsonAsync(
-            // Meneruskan `HttpMethod.Delete` (nilai delete) sebagai argumen ke `SendJsonAsync`.
-            HttpMethod.Delete,
-            // Meneruskan teks interpolasi `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`; nilai ekspresi di dalam kurung kurawal disisipkan saat program
-            // berjalan sebagai argumen ke `SendJsonAsync`.
-            $"/api/v1/rulesets/{createdRuleset.RulesetId}",
-            // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen bernama `body`.
-            body: null,
-            // Meneruskan `instructor.AccessToken` (nilai akses token) sebagai argumen ke `SendJsonAsync`.
-            instructor.AccessToken);
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`HttpStatusCode.NoContent`,
-        // `deleteResponse.StatusCode`); pengujian gagal jika keduanya berbeda dalam CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
-        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
-    // Menutup scope metode CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable; bagian berikut berada di luar batas blok tersebut dalam
-    // CustomRuleset_UsedOnlyByCreatedSession_RemainsMutable.
+        using var unchangedResponse = await SendJsonAsync(HttpMethod.Get,
+            $"/api/v1/rulesets/{createdRuleset.RulesetId}", null, instructor.AccessToken);
+        var unchanged = await unchangedResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(unchanged);
+        Assert.Equal(detail.Name, unchanged.Name);
+        Assert.Single(unchanged.Versions);
     }
 
-    // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `CustomRuleset_UsedByStartedOrEndedSession_IsReadonly` dengan hasil bertipe `Task`; operasi ini menangani custom aturan
     // used berdasarkan started atau ended sesi berstatus readonly. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan

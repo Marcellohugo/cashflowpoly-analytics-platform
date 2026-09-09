@@ -56,6 +56,59 @@ const test = base.extend({
 // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
 });
 
+for (const mode of ["PEMULA", "MAHIR"]) {
+test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan konfigurasi terbaru`, async ({ page, request }) => {
+  const apiUrl = process.env.E2E_API_URL || "http://localhost:5041";
+  const auth = await request.post(`${apiUrl}/api/v1/auth/login`, { data: { username, password } });
+  expect(auth.ok()).toBeTruthy();
+  const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
+  const name = `E2E ruleset ${mode} ${Date.now()}`;
+  let rulesetId;
+  try {
+    await page.goto("/rulesets/create");
+    await page.locator(`input[name="cfg-mode"][value="${mode}"]`).check();
+    await page.locator("#ruleset-name").fill(name);
+    await page.locator("#cfg-cash").fill("23");
+    await page.locator("form[data-ruleset-create-form] button[type=submit]").click();
+    await expect(page).toHaveURL(/\/rulesets$/);
+    const list = await request.get(`${apiUrl}/api/v1/rulesets`, { headers });
+    const created = (await list.json()).items.find(item => item.name === name);
+    expect(created).toBeTruthy();
+    rulesetId = created.ruleset_id;
+    const original = await (await request.get(`${apiUrl}/api/v1/rulesets/${rulesetId}`, { headers })).json();
+
+    for (let save = 0; save < 2; save += 1) {
+      await page.goto(`/rulesets/${rulesetId}/edit`);
+      await expect(page.locator("#cfg-cash")).toHaveValue("23");
+      await page.locator("#ruleset-name").fill(`${name} renamed`);
+      await page.locator("#ruleset-description").fill("Description updated without changing configuration");
+      await page.locator("form[data-ruleset-create-form] button[type=submit]").click();
+      await expect(page).toHaveURL(new RegExp(`/rulesets/${rulesetId}$`));
+      await expect(page.locator(".ruleset-title-block")).toContainText(`${name} renamed`);
+      const saved = await (await request.get(`${apiUrl}/api/v1/rulesets/${rulesetId}`, { headers })).json();
+      expect(saved.definition).toEqual(original.definition);
+      await expect(page.locator(".ruleset-detail-section table tbody tr")).toHaveCount(1);
+    }
+
+    await page.goto(`/rulesets/${rulesetId}/edit`);
+    await page.locator("#cfg-cash").fill("27");
+    await page.locator("form[data-ruleset-create-form] button[type=submit]").click();
+    await expect(page).toHaveURL(new RegExp(`/rulesets/${rulesetId}$`));
+    await expect(page.locator("#ruleset-detail-starting-cash")).toHaveValue("27");
+    await expect(page.locator(".ruleset-detail-section table tbody tr")).toHaveCount(2);
+    await page.reload();
+    await expect(page.locator("#ruleset-detail-starting-cash")).toHaveValue("27");
+    await page.goto(`/rulesets/${rulesetId}?version=1`);
+    await expect(page.locator("#ruleset-detail-starting-cash")).toHaveValue("23");
+  } finally {
+    if (rulesetId) {
+      const cleanup = await request.delete(`${apiUrl}/api/v1/rulesets/${rulesetId}`, { headers });
+      expect(cleanup.status()).toBe(204);
+    }
+  }
+});
+}
+
 // Penjelasan: Melakukan operasi dengan memanggil `async function expectNoHorizontalOverflow(page) {` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 test("pemain dipantau sama dengan jumlah peserta unik sesi instruktur", async ({ page }) => {
   await page.goto("/players");

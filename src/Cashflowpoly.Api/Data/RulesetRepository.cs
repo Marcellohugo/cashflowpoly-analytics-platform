@@ -567,33 +567,13 @@ public sealed class RulesetRepository
     // berdasarkan pengguna identitas; nilai null diizinkan ketika data opsional belum tersedia; Parameter `ct` bertipe `CancellationToken` membawa
     // sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti.
     public async Task<(Guid RulesetVersionId, int Version)> CreateRulesetVersionAsync(
-        // Parameter `rulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan.
         Guid rulesetId,
-        // Parameter `name` bertipe `string?` membawa nilai nama; nilai null diizinkan ketika data opsional belum tersedia.
         string? name,
-        // Parameter `description` bertipe `string?` membawa nilai description; nilai null diizinkan ketika data opsional belum tersedia.
         string? description,
-        // Parameter `definition` bertipe `RulesetDefinitionDto` membawa definisi terstruktur komponen serta parameter aturan permainan.
         RulesetDefinitionDto definition,
-        // Parameter `createdByUserId` bertipe `Guid?` membawa nilai created berdasarkan pengguna identitas; nilai null diizinkan ketika data opsional belum
-        // tersedia.
         Guid? createdByUserId,
-        // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
-        // aplikasi berhenti.
         CancellationToken ct)
-    // Membuka scope metode CreateRulesetVersionAsync; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateRulesetVersionAsync.
     {
-        // Menyiapkan variabel lokal `lockRulesetSql` untuk nilai lock aturan SQL dengan literal multiline yang dirinci pada komentar di dekat deklarasinya.
-        // Tipe yang dipakai adalah `string`.
-        // Penjelasan literal multiline berikut diletakkan di luar tanda kutip agar nilai SQL/JSON/teks yang digunakan program tetap persis sama.
-        // Baris literal 1: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `const string lockRulesetSql =
-        // ”””`.
-        // Baris literal 2: SELECT menentukan nilai atau kolom yang dikembalikan query: `select ruleset_id, name, description, instructor_user_id,
-        // is_archived, archived_at, created_at, created_by_user_id`.
-        // Baris literal 3: FROM memilih tabel/subquery sumber pembacaan: `from rulesets`.
-        // Baris literal 4: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where ruleset_id = @rulesetId`.
-        // Baris literal 5: FOR UPDATE mengunci baris hasil selama transaksi agar perubahan bersamaan tidak menimpa keadaan yang dibaca: `for update`.
-        // Baris literal 6: Pembatas literal/penutup `”””;`; menandai batas teks dan tidak menambahkan komentar ke nilai string.
         const string lockRulesetSql = """
             select ruleset_id, name, description, instructor_user_id, is_archived, archived_at, created_at, created_by_user_id
             from rulesets
@@ -601,32 +581,14 @@ public sealed class RulesetRepository
             for update
             """;
 
-        // Menyiapkan variabel lokal `nextVersionSql` untuk nilai next versi SQL dengan literal multiline yang dirinci pada komentar di dekat deklarasinya.
-        // Tipe yang dipakai adalah `string`.
-        // Penjelasan literal multiline berikut diletakkan di luar tanda kutip agar nilai SQL/JSON/teks yang digunakan program tetap persis sama.
-        // Baris literal 1: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `const string nextVersionSql =
-        // ”””`.
-        // Baris literal 2: SELECT menentukan nilai atau kolom yang dikembalikan query: `select coalesce(max(version), 0) + 1`.
-        // Baris literal 3: FROM memilih tabel/subquery sumber pembacaan: `from ruleset_versions`.
-        // Baris literal 4: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where ruleset_id = @rulesetId`.
-        // Baris literal 5: Pembatas literal/penutup `”””;`; menandai batas teks dan tidak menambahkan komentar ke nilai string.
-        const string nextVersionSql = """
-            select coalesce(max(version), 0) + 1
+        const string latestVersionSql = """
+            select ruleset_version_id, version, config_hash
             from ruleset_versions
             where ruleset_id = @rulesetId
+            order by version desc
+            limit 1
             """;
 
-        // Menyiapkan variabel lokal `updateRuleset` untuk nilai update aturan dengan literal multiline yang dirinci pada komentar di dekat deklarasinya.
-        // Tipe yang dipakai adalah `string`.
-        // Penjelasan literal multiline berikut diletakkan di luar tanda kutip agar nilai SQL/JSON/teks yang digunakan program tetap persis sama.
-        // Baris literal 1: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `const string updateRuleset =
-        // ”””`.
-        // Baris literal 2: UPDATE memilih tabel yang akan diperbarui; kolom dan batas baris ditentukan oleh SET/WHERE: `update rulesets`.
-        // Baris literal 3: SET menetapkan nilai kolom yang diperbarui oleh UPDATE: `set name = @name,`.
-        // Baris literal 4: Meneruskan kolom/ekspresi SQL dengan placeholder @ yang nilainya diikat dari parameter perintah, bukan digabung sebagai teks
-        // SQL: `description = @description`.
-        // Baris literal 5: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where ruleset_id = @rulesetId`.
-        // Baris literal 6: Pembatas literal/penutup `”””;`; menandai batas teks dan tidak menambahkan komentar ke nilai string.
         const string updateRuleset = """
             update rulesets
             set name = @name,
@@ -634,162 +596,74 @@ public sealed class RulesetRepository
             where ruleset_id = @rulesetId
             """;
 
-        // Menyiapkan variabel lokal `insertVersion` untuk nilai insert versi dengan literal multiline yang dirinci pada komentar di dekat deklarasinya.
-        // Tipe yang dipakai adalah `string`.
-        // Penjelasan literal multiline berikut diletakkan di luar tanda kutip agar nilai SQL/JSON/teks yang digunakan program tetap persis sama.
-        // Baris literal 1: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `const string insertVersion =
-        // ”””`.
-        // Baris literal 2: INSERT INTO menetapkan tabel dan kolom tujuan penambahan rekaman: `insert into ruleset_versions (ruleset_version_id, ruleset_id,
-        // version, status, mode, config_hash, created_at, created_by_user_id)`.
-        // Baris literal 3: VALUES menyediakan nilai baris baru sesuai urutan kolom INSERT; placeholder @ diikat ke parameter perintah: `values
-        // (@rulesetVersionId, @rulesetId, @version, 'DRAFT', @mode, @configHash, @createdAt, @CreatedByUserId)`.
-        // Baris literal 4: Pembatas literal/penutup `”””;`; menandai batas teks dan tidak menambahkan komentar ke nilai string.
         const string insertVersion = """
             insert into ruleset_versions (ruleset_version_id, ruleset_id, version, status, mode, config_hash, created_at, created_by_user_id)
             values (@rulesetVersionId, @rulesetId, @version, 'DRAFT', @mode, @configHash, @createdAt, @CreatedByUserId)
             """;
 
-        // Menyiapkan variabel lokal `rulesetVersionId` untuk identitas versi aturan sehingga perhitungan memakai konfigurasi aturan yang tepat dengan
-        // memanggil `Guid.NewGuid` dengan tanpa argumen. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var rulesetVersionId = Guid.NewGuid();
-        // Menyiapkan variabel lokal `createdAt` untuk nilai created at dengan `DateTimeOffset.UtcNow`, yaitu waktu UTC saat operasi dilakukan. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
         var createdAt = DateTimeOffset.UtcNow;
-        // Menyiapkan variabel lokal `configHash` untuk nilai konfigurasi hash dengan memanggil `ComputeHash` dengan `definition`. Tipe variabel disimpulkan
-        // dari ekspresi nilai awal.
         var configHash = ComputeHash(definition);
-        // Menyiapkan variabel lokal `mode` untuk mode permainan yang menentukan kelompok aturan yang digunakan dengan memanggil `ResolveMode` dengan
-        // `definition`. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var mode = ResolveMode(definition);
 
-        // Menyiapkan variabel lokal `conn` untuk koneksi PostgreSQL untuk mengirim perintah dan membaca hasil basis data dengan hasil operasi asinkron
-        // membuka koneksi PostgreSQL melalui `_dataSource` menggunakan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal; using memastikan sumber daya dilepas otomatis saat scope berakhir.
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
-        // Menyiapkan variabel lokal `tx` untuk transaksi basis data yang menggabungkan perubahan sebagai satu kesatuan dengan hasil operasi asinkron
-        // memulai transaksi pada `conn` menggunakan `ct` agar perubahan terkait dapat diselesaikan bersama; await menunggu hasil tanpa memblokir thread
-        // selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal; using memastikan sumber daya dilepas otomatis saat scope
-        // berakhir.
         await using var tx = await conn.BeginTransactionAsync(ct);
 
-        // Menyiapkan variabel lokal `lockedRuleset` untuk nilai locked aturan dengan hasil operasi asinkron membaca satu hasil basis data melalui
-        // `conn.QuerySingleOrDefaultAsync<RulesetDb>` dengan `new CommandDefinition(lockRulesetSql, new { rulesetId }, tx, cancellationToken: ct)`; nilai
-        // default menunjukkan tidak ada baris hasil; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan
-        // dari ekspresi nilai awal.
         var lockedRuleset = await conn.QuerySingleOrDefaultAsync<RulesetDb>(
-            // Meneruskan objek baru bertipe `CommandDefinition` dengan argumen (lockRulesetSql, new { rulesetId }, tx, cancellationToken: ct) sebagai argumen
-            // ke `conn.QuerySingleOrDefaultAsync<RulesetDb>`; Meneruskan `lockRulesetSql` (nilai lock aturan SQL) sebagai argumen ke konstruktor
-            // `CommandDefinition`; Meneruskan objek anonim yang mengelompokkan rulesetId sebagai satu nilai sebagai argumen ke konstruktor `CommandDefinition`;
-            // Meneruskan `tx` (transaksi basis data yang menggabungkan perubahan sebagai satu kesatuan) sebagai argumen ke konstruktor `CommandDefinition`;
-            // Meneruskan `ct` (sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti) sebagai argumen
-            // bernama `cancellationToken`.
             new CommandDefinition(lockRulesetSql, new { rulesetId }, tx, cancellationToken: ct));
-        // Memeriksa hasil pencocokan `lockedRuleset` dengan pola `null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
-        // CreateRulesetVersionAsync.
         if (lockedRuleset is null)
-        // Membuka scope cabang if untuk kondisi `lockedRuleset is null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // CreateRulesetVersionAsync.
         {
-            // Menghentikan alur dengan melempar objek baru bertipe `InvalidOperationException` dengan argumen (”Ruleset tidak ditemukan.”) dalam
-            // CreateRulesetVersionAsync; pemanggil atau middleware penanganan error menerima kegagalan ini.
             throw new InvalidOperationException("Ruleset tidak ditemukan.");
-        // Menutup scope cabang if untuk kondisi `lockedRuleset is null`; bagian berikut berada di luar batas blok tersebut dalam CreateRulesetVersionAsync.
         }
 
-        // Menyiapkan variabel lokal `nextVersion` untuk nilai next versi dengan hasil operasi asinkron menjalankan perintah basis data melalui `conn`
-        // dengan `new CommandDefinition(nextVersionSql, new { rulesetId }, tx, cancellationToken: ct)` dan mengambil nilai skalar hasilnya; await menunggu
-        // hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var nextVersion = await conn.ExecuteScalarAsync<int>(
-            // Meneruskan objek baru bertipe `CommandDefinition` dengan argumen (nextVersionSql, new { rulesetId }, tx, cancellationToken: ct) sebagai argumen
-            // ke `conn.ExecuteScalarAsync<int>`; Meneruskan `nextVersionSql` (nilai next versi SQL) sebagai argumen ke konstruktor `CommandDefinition`;
-            // Meneruskan objek anonim yang mengelompokkan rulesetId sebagai satu nilai sebagai argumen ke konstruktor `CommandDefinition`; Meneruskan `tx`
-            // (transaksi basis data yang menggabungkan perubahan sebagai satu kesatuan) sebagai argumen ke konstruktor `CommandDefinition`; Meneruskan `ct`
-            // (sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti) sebagai argumen bernama
-            // `cancellationToken`.
-            new CommandDefinition(nextVersionSql, new { rulesetId }, tx, cancellationToken: ct));
+        var latestVersion = await conn.QuerySingleOrDefaultAsync<RulesetVersionDb>(
+            new CommandDefinition(latestVersionSql, new { rulesetId }, tx, cancellationToken: ct));
 
-        // Memeriksa gabungan syarat OR: setidaknya satu kondisi wajib benar antara `name is not null` dan `description is not null`; sisi kanan diperiksa
-        // hanya jika sisi kiri salah; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam CreateRulesetVersionAsync.
         if (name is not null || description is not null)
-        // Membuka scope cabang if untuk kondisi `name is not null || description is not null`; pernyataan/deklarasi berikut berada di dalam batas blok ini
-        // dalam CreateRulesetVersionAsync.
         {
-            // Menyiapkan variabel lokal `updateDef` untuk nilai update def dengan objek baru bertipe `CommandDefinition` dengan argumen (updateRuleset, new {
-            // rulesetId, name = name ?? lockedRuleset.Name, description = description ?? lockedRuleset.Description }, tx, cancellationToken: ct). Tipe variabel
-            // disimpulkan dari ekspresi nilai awal.
             var updateDef = new CommandDefinition(updateRuleset, new
-            // Membuka scope objek anonim yang mengelompokkan beberapa nilai; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-            // CreateRulesetVersionAsync.
             {
-                // Meneruskan objek anonim yang mengelompokkan rulesetId, name, description sebagai satu nilai sebagai argumen ke konstruktor `CommandDefinition`.
                 rulesetId,
-                // Meneruskan objek anonim yang mengelompokkan rulesetId, name, description sebagai satu nilai sebagai argumen ke konstruktor `CommandDefinition`.
                 name = name ?? lockedRuleset.Name,
-                // Meneruskan objek anonim yang mengelompokkan rulesetId, name, description sebagai satu nilai sebagai argumen ke konstruktor `CommandDefinition`.
                 description = description ?? lockedRuleset.Description
-            // Menutup scope objek anonim yang mengelompokkan beberapa nilai; bagian berikut berada di luar batas blok tersebut dalam CreateRulesetVersionAsync.
             }, tx, cancellationToken: ct);
-            // Menjalankan hasil operasi asinkron menjalankan perintah SQL melalui `conn` menggunakan `updateDef`; nilai hasil menunjukkan jumlah baris yang
-            // terpengaruh; await menunggu hasil tanpa memblokir thread selama operasi belum selesai dalam CreateRulesetVersionAsync.
             await conn.ExecuteAsync(updateDef);
-        // Menutup scope cabang if untuk kondisi `name is not null || description is not null`; bagian berikut berada di luar batas blok tersebut dalam
-        // CreateRulesetVersionAsync.
         }
 
-        // Menyiapkan variabel lokal `insertDef` untuk nilai insert def dengan objek baru bertipe `CommandDefinition` dengan argumen (insertVersion, new {
-        // rulesetVersionId, rulesetId, version = nextVersion, mode, configHash, createdAt, CreatedByUserId = createdByUserId }, tx, cancellationToke....
-        // Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var insertDef = new CommandDefinition(insertVersion, new
-        // Membuka scope objek anonim yang mengelompokkan beberapa nilai; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // CreateRulesetVersionAsync.
+        // The database normalizes catalog order; compare the persisted definition on form round trips too.
+        var unchanged = latestVersion?.ConfigHash == configHash;
+        if (!unchanged && latestVersion is not null)
         {
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
+            var persistedDefinition = await ReadRulesetDefinitionAsync(conn, latestVersion.RulesetVersionId, ct);
+            unchanged = persistedDefinition is not null && ComputeHash(persistedDefinition) == configHash;
+        }
+        if (unchanged && latestVersion is not null)
+        {
+            await tx.CommitAsync(ct);
+            return (latestVersion.RulesetVersionId, latestVersion.Version);
+        }
+
+        var nextVersion = (latestVersion?.Version ?? 0) + 1;
+        var insertDef = new CommandDefinition(insertVersion, new
+        {
             rulesetVersionId,
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
             rulesetId,
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
             version = nextVersion,
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
             mode,
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
             configHash,
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
             createdAt,
-            // Meneruskan objek anonim yang mengelompokkan rulesetVersionId, rulesetId, version, mode, configHash, createdAt, CreatedByUserId sebagai satu nilai
-            // sebagai argumen ke konstruktor `CommandDefinition`.
             CreatedByUserId = createdByUserId
-        // Menutup scope objek anonim yang mengelompokkan beberapa nilai; bagian berikut berada di luar batas blok tersebut dalam CreateRulesetVersionAsync.
         }, tx, cancellationToken: ct);
-        // Menjalankan hasil operasi asinkron menjalankan perintah SQL melalui `conn` menggunakan `insertDef`; nilai hasil menunjukkan jumlah baris yang
-        // terpengaruh; await menunggu hasil tanpa memblokir thread selama operasi belum selesai dalam CreateRulesetVersionAsync.
         await conn.ExecuteAsync(insertDef);
-        // Menjalankan hasil operasi asinkron memanggil `WriteRulesetDefinitionAsync` dengan `conn`, `tx`, `rulesetVersionId`, `definition`, `ct`; await
-        // menunggu hasil tanpa memblokir thread selama operasi belum selesai dalam CreateRulesetVersionAsync.
         await WriteRulesetDefinitionAsync(conn, tx, rulesetVersionId, definition, ct);
 
-        // Menjalankan hasil operasi asinkron mengesahkan transaksi `tx` sehingga perubahan yang terkumpul menjadi permanen; await menunggu hasil tanpa
-        // memblokir thread selama operasi belum selesai dalam CreateRulesetVersionAsync.
         await tx.CommitAsync(ct);
-        // Mengembalikan tuple yang membawa bagian 1: rulesetVersionId; bagian 2: nextVersion kepada pemanggil dalam CreateRulesetVersionAsync; eksekusi
-        // jalur ini selesai setelah nilai hasil ditentukan.
         return (rulesetVersionId, nextVersion);
-    // Menutup scope metode CreateRulesetVersionAsync; bagian berikut berada di luar batas blok tersebut dalam CreateRulesetVersionAsync.
     }
 
     /// <summary>
     /// Mengaktifkan versi ruleset: retire versi ACTIVE sebelumnya dan set versi target menjadi ACTIVE.
     /// </summary>
-    // Mendefinisikan metode `ActivateRulesetVersionAsync` dengan hasil bertipe `Task<bool>`. Mengaktifkan versi ruleset: retire versi ACTIVE sebelumnya
-    // dan set versi target menjadi ACTIVE. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task.
-    // Masukan: Parameter `rulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; Parameter `version` bertipe `int` membawa nomor versi
-    // yang dipakai untuk konsistensi data atau konfigurasi; Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat
-    // dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti.
     public async Task<bool> ActivateRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     // Membuka scope metode ActivateRulesetVersionAsync; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam ActivateRulesetVersionAsync.
     {
@@ -1170,7 +1044,6 @@ public sealed class RulesetRepository
         // Baris literal 27: JOIN menghubungkan data antartabel berdasarkan relasi/kondisi ON: `join sessions s_lock on s_lock.ruleset_version_id =
         // rv_lock.ruleset_version_id`.
         // Baris literal 28: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where rv_lock.ruleset_id = r.ruleset_id`.
-        // Baris literal 29: Melanjutkan kondisi SQL dengan AND (syarat tambahan wajib terpenuhi): `and s_lock.status in ('STARTED', 'ENDED')`.
         // Baris literal 30: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `) as is_locked_by_session,`.
         // Baris literal 31: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `v.mode`.
         // Baris literal 32: FROM memilih tabel/subquery sumber pembacaan: `from rulesets r`.
@@ -1208,7 +1081,6 @@ public sealed class RulesetRepository
                     from ruleset_versions rv_lock
                     join sessions s_lock on s_lock.ruleset_version_id = rv_lock.ruleset_version_id
                     where rv_lock.ruleset_id = r.ruleset_id
-                      and s_lock.status in ('STARTED', 'ENDED')
                 ) as is_locked_by_session,
                 v.mode
             from rulesets r
@@ -1277,7 +1149,6 @@ public sealed class RulesetRepository
         // Baris literal 22: JOIN menghubungkan data antartabel berdasarkan relasi/kondisi ON: `join sessions s_lock on s_lock.ruleset_version_id =
         // rv_lock.ruleset_version_id`.
         // Baris literal 23: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where rv_lock.ruleset_id = r.ruleset_id`.
-        // Baris literal 24: Melanjutkan kondisi SQL dengan AND (syarat tambahan wajib terpenuhi): `and s_lock.status in ('STARTED', 'ENDED')`.
         // Baris literal 25: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `) as is_locked_by_session,`.
         // Baris literal 26: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `v.mode`.
         // Baris literal 27: FROM memilih tabel/subquery sumber pembacaan: `from rulesets r`.
@@ -1318,7 +1189,6 @@ public sealed class RulesetRepository
                     from ruleset_versions rv_lock
                     join sessions s_lock on s_lock.ruleset_version_id = rv_lock.ruleset_version_id
                     where rv_lock.ruleset_id = r.ruleset_id
-                      and s_lock.status in ('STARTED', 'ENDED')
                 ) as is_locked_by_session,
                 v.mode
             from rulesets r
@@ -1398,7 +1268,6 @@ public sealed class RulesetRepository
         // Baris literal 25: JOIN menghubungkan data antartabel berdasarkan relasi/kondisi ON: `join sessions s_lock on s_lock.ruleset_version_id =
         // rv_lock.ruleset_version_id`.
         // Baris literal 26: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where rv_lock.ruleset_id = r.ruleset_id`.
-        // Baris literal 27: Melanjutkan kondisi SQL dengan AND (syarat tambahan wajib terpenuhi): `and s_lock.status in ('STARTED', 'ENDED')`.
         // Baris literal 28: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `) as is_locked_by_session,`.
         // Baris literal 29: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `v.mode`.
         // Baris literal 30: FROM memilih tabel/subquery sumber pembacaan: `from rulesets r`.
@@ -1440,7 +1309,6 @@ public sealed class RulesetRepository
                     from ruleset_versions rv_lock
                     join sessions s_lock on s_lock.ruleset_version_id = rv_lock.ruleset_version_id
                     where rv_lock.ruleset_id = r.ruleset_id
-                      and s_lock.status in ('STARTED', 'ENDED')
                 ) as is_locked_by_session,
                 v.mode
             from rulesets r
@@ -1794,10 +1662,10 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
-    /// Memeriksa apakah ruleset dikunci karena dipakai sesi yang sudah dimulai atau selesai.
+    /// Memeriksa apakah ruleset dikunci karena dipakai sesi sejak dibuat, termasuk histori sesi.
     /// </summary>
     // Mendefinisikan metode `IsRulesetLockedBySessionAsync` dengan hasil bertipe `Task<bool>`. Memeriksa apakah ruleset dikunci karena dipakai sesi
-    // yang sudah dimulai atau selesai. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task.
+    // sejak dibuat, termasuk histori sesi. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task.
     // Masukan: Parameter `rulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; Parameter `ct` bertipe `CancellationToken` membawa
     // sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti.
     public async Task<bool> IsRulesetLockedBySessionAsync(Guid rulesetId, CancellationToken ct)
@@ -1813,7 +1681,6 @@ public sealed class RulesetRepository
         // Baris literal 4: JOIN menghubungkan data antartabel berdasarkan relasi/kondisi ON: `join ruleset_versions rv on rv.ruleset_version_id =
         // s.ruleset_version_id`.
         // Baris literal 5: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where rv.ruleset_id = @rulesetId`.
-        // Baris literal 6: Melanjutkan kondisi SQL dengan AND (syarat tambahan wajib terpenuhi): `and s.status in ('STARTED', 'ENDED')`.
         // Baris literal 7: LIMIT membatasi jumlah baris yang dikembalikan query: `limit 1`.
         // Baris literal 8: Pembatas literal/penutup `”””;`; menandai batas teks dan tidak menambahkan komentar ke nilai string.
         const string sql = """
@@ -1821,7 +1688,6 @@ public sealed class RulesetRepository
             from sessions s
             join ruleset_versions rv on rv.ruleset_version_id = s.ruleset_version_id
             where rv.ruleset_id = @rulesetId
-              and s.status in ('STARTED', 'ENDED')
             limit 1
             """;
 

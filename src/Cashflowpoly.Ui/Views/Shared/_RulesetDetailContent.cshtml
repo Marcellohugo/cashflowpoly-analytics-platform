@@ -368,7 +368,7 @@ else
     var hasConfig = Model.CompatibilityDefinitionJson.HasValue
         && Model.CompatibilityDefinitionJson.Value.ValueKind == JsonValueKind.Object;
     var cfg = hasConfig ? Model.CompatibilityDefinitionJson!.Value : default;
-    var modeRaw = Model.Ruleset.Mode ?? (hasConfig ? AsText(GetPath(cfg, "mode"), "PEMULA") : "PEMULA");
+    var modeRaw = Model.Components?.Mode ?? Model.Ruleset.Mode ?? (hasConfig ? AsText(GetPath(cfg, "mode"), "PEMULA") : "PEMULA");
     var isAdvancedMode = string.Equals(modeRaw, "MAHIR", StringComparison.OrdinalIgnoreCase);
     var modeCode = isAdvancedMode ? "MAHIR" : "PEMULA";
     var modeCss = isAdvancedMode ? "advanced" : "beginner";

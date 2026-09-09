@@ -139,6 +139,8 @@ internal static class RulesetDefinitionMapper
             // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam FromConfigJson.
             },
             // Memperbarui `Ingredients` menggunakan memanggil `ReadIngredients` dengan `componentCatalog` dalam FromConfigJson.
+            Actions = root.TryGetProperty("actions", out var actions) && actions.ValueKind == JsonValueKind.Array
+                ? actions.Deserialize<List<RulesetActionDto>>() ?? [] : [],
             Ingredients = ReadIngredients(componentCatalog),
             // Memperbarui `Orders` menggunakan memanggil `ReadOrders` dengan `componentCatalog` dalam FromConfigJson.
             Orders = ReadOrders(componentCatalog),
@@ -209,6 +211,7 @@ internal static class RulesetDefinitionMapper
         {
             // Memperbarui `[”mode”]` menggunakan `definition.Mode` (mode permainan yang menentukan kelompok aturan yang digunakan) dalam ToConfigJson.
             ["mode"] = definition.Mode,
+            ["actions"] = JsonSerializer.SerializeToNode(definition.Actions),
             // Memperbarui `[”actions_per_turn”]` menggunakan `definition.Settings.ActionsPerTurn` (nilai aksi per giliran) dalam ToConfigJson.
             ["actions_per_turn"] = definition.Settings.ActionsPerTurn,
             // Memperbarui `[”starting_cash”]` menggunakan `definition.Settings.StartingCash` (nilai starting uang tunai) dalam ToConfigJson.
@@ -531,6 +534,7 @@ internal static class RulesetDefinitionMapper
                     ["nama"] = item.Nama,
                     // Memperbarui `[”tipe”]` menggunakan `item.Tipe` (nilai tipe) dalam ToConfigJson.
                     ["tipe"] = item.Tipe,
+                    ["family"] = item.Family,
                     // Memperbarui `[”hargaBeli”]` menggunakan `item.HargaBeli` (nilai harga beli) dalam ToConfigJson.
                     ["hargaBeli"] = item.HargaBeli,
                     // Memperbarui `[”poinKebahagiaan”]` menggunakan `item.PoinKebahagiaan` (nilai poin kebahagiaan) dalam ToConfigJson.
@@ -764,6 +768,7 @@ internal static class RulesetDefinitionMapper
             Nama = ReadString(item, "nama", string.Empty),
             // Memperbarui `Tipe` menggunakan memanggil `ReadString` dengan `item`, `”tipe”`, `string.Empty` dalam ReadNeeds.
             Tipe = ReadString(item, "tipe", string.Empty),
+            Family = item.TryGetProperty("family", out var family) && family.ValueKind == JsonValueKind.String ? family.GetString() : null,
             // Memperbarui `HargaBeli` menggunakan memanggil `ReadInt` dengan `item`, `”hargaBeli”`, `0` dalam ReadNeeds.
             HargaBeli = ReadInt(item, "hargaBeli", 0),
             // Memperbarui `PoinKebahagiaan` menggunakan memanggil `ReadInt` dengan `item`, `”poinKebahagiaan”`, `0` dalam ReadNeeds.

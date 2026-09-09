@@ -555,6 +555,8 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
             };
             const toBool = (id) => !!getEl(id)?.checked;
             const configTextArea = getEl("DefinitionJson");
+            let savedConfig = {};
+            try { savedConfig = JSON.parse(configTextArea.value || "{}"); } catch (_) {}
             const formEl = document.querySelector("[data-ruleset-create-form]");
             const modeInputs = Array.from(document.querySelectorAll('input[name="cfg-mode"]'));
             const getMode = () => modeInputs.find((input) => input.checked)?.value ?? "PEMULA";
@@ -582,6 +584,7 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
             };
 
             const readForm = () => ({
+                ...savedConfig,
                 mode: getMode(),
                 actions_per_turn: toInt("cfg-actions", 2),
                 starting_cash: toInt("cfg-cash", 20),
@@ -595,8 +598,8 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                     cash_min: toInt("cfg-cash-min", 0),
                     max_ingredient_total: toInt("cfg-max-ing-total", 6),
                     max_same_ingredient: toInt("cfg-max-same-ing", 3),
-                    primary_need_max_per_day: null,
-                    require_primary_before_others: true
+                    primary_need_max_per_day: savedConfig.constraints?.primary_need_max_per_day ?? null,
+                    require_primary_before_others: savedConfig.constraints?.require_primary_before_others ?? true
                 },
                 donation: {
                     min_amount: toInt("cfg-donation-min", 1),
@@ -612,7 +615,7 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                     saving_goal: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-saving-goal") }
                 },
                 freelance: { income: toInt("cfg-freelance-income", 1) },
-                scoring: scoreDefaults
+                scoring: savedConfig.scoring ?? scoreDefaults
             });
 
             const writeFormFromConfig = (cfg) => {

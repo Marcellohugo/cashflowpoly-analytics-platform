@@ -4,6 +4,8 @@ const { defineConfig, devices } = require("@playwright/test");
 
 // Penjelasan: Memperbarui `module.exports` dengan memanggil `defineConfig({` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 module.exports = defineConfig({
+  // Desktop dan ponsel memakai akun yang sama; hindari lonjakan request bersamaan.
+  workers: 1,
   // Penjelasan: Mengisi properti `testDir` pada objek atau konfigurasi dengan menggunakan literal `"./specs"` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya; konsumen objek membaca nilai ini melalui nama properti tersebut.
   testDir: "./specs",
   // Penjelasan: Mengisi properti `timeout` pada objek atau konfigurasi dengan membaca nilai `30_000` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.

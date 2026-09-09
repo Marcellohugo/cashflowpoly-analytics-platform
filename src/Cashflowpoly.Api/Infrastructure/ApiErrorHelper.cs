@@ -74,6 +74,8 @@ internal static class ApiErrorHelper
         ["Definition ruleset tidak ditemukan"] = "Ruleset definition not found",
         // Memperbarui `[”Definition ruleset tidak valid”]` menggunakan nilai literal `”Invalid ruleset definition”`.
         ["Definition ruleset tidak valid"] = "Invalid ruleset definition",
+        ["Prasyarat narasi harus merujuk aksi yang tersedia pada set aturan."] = "Narrative prerequisites must reference actions available in the ruleset.",
+        ["Ruleset sudah terhubung ke sesi sehingga hanya dapat dilihat, termasuk saat sesi belum dimulai. Buat ruleset baru untuk perubahan aturan."] = "This ruleset is assigned to a session and is read-only, even before the session starts. Create a new ruleset to change the rules.",
         // Memperbarui `[”Definition ruleset wajib ada”]` menggunakan nilai literal `”Ruleset definition is required”`.
         ["Definition ruleset wajib ada"] = "Ruleset definition is required",
         // Memperbarui `[”Direction tidak valid”]` menggunakan nilai literal `”Invalid direction”`.

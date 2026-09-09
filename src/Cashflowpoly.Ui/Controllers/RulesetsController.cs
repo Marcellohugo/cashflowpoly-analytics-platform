@@ -755,10 +755,11 @@ public sealed class RulesetsController : Controller
         // Menyiapkan variabel lokal `componentsPath` untuk nilai komponen path dengan hasil pemilihan bersyarat: ketika `requestedVersion.HasValue` benar
         // gunakan `$”api/v1/rulesets/{rulesetId}/components?version={requestedVersion.Value}”`, jika tidak gunakan
         // `$”api/v1/rulesets/{rulesetId}/components”`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var componentsPath = requestedVersion.HasValue
+        var displayedVersion = requestedVersion ?? data.Version;
+        var componentsPath = displayedVersion.HasValue
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar:
             // $”api/v1/rulesets/{rulesetId}/components?version={requestedVersion.Value}” dalam Details.
-            ? $"api/v1/rulesets/{rulesetId}/components?version={requestedVersion.Value}"
+            ? $"api/v1/rulesets/{rulesetId}/components?version={displayedVersion.Value}"
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: $”api/v1/rulesets/{rulesetId}/components”; dalam Details.
             : $"api/v1/rulesets/{rulesetId}/components";
         // Menyiapkan variabel lokal `componentsResponse` untuk nilai komponen respons dengan hasil operasi asinkron memanggil `client.GetAsync` dengan
@@ -846,7 +847,7 @@ public sealed class RulesetsController : Controller
         // Membuka scope cabang if untuk kondisi `data.IsLockedBySession`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Details.
         {
             // Menjalankan menambahkan `HttpContext.T(”rulesets.readonly_hint”)` ke `infoMessages` dalam Details.
-            infoMessages.Add(HttpContext.T("rulesets.readonly_hint"));
+            infoMessages.Add(HttpContext.T("rulesets.info.session_readonly"));
         // Menutup scope cabang if untuk kondisi `data.IsLockedBySession`; bagian berikut berada di luar batas blok tersebut dalam Details.
         }
 
@@ -878,7 +879,7 @@ public sealed class RulesetsController : Controller
             // Memperbarui `Components` menggunakan `components` (nilai komponen) dalam Details.
             Components = components,
             // Memperbarui `CompatibilityDefinitionJson` menggunakan memanggil `BuildCompatibilityConfigElement` dengan `data.Definition` dalam Details.
-            CompatibilityDefinitionJson = BuildCompatibilityConfigElement(data.Definition),
+            CompatibilityDefinitionJson = BuildCompatibilityConfigElement(components?.Definition ?? data.Definition),
             // Memperbarui `CompatibilityComponentCatalog` menggunakan memanggil `BuildCompatibilityComponentCatalog` dengan `components?.Definition ??
             // data.Definition` dalam Details.
             CompatibilityComponentCatalog = BuildCompatibilityComponentCatalog(components?.Definition ?? data.Definition),
@@ -1350,165 +1351,44 @@ public sealed class RulesetsController : Controller
     // bertipe `HttpClient` membawa nilai client; Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan
     // ketika pemanggil membatalkan permintaan atau aplikasi berhenti.
     private async Task<JsonNode?> EnsureComponentCatalogAsync(JsonNode? configNode, HttpClient client, CancellationToken ct)
-    // Membuka scope metode EnsureComponentCatalogAsync; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam EnsureComponentCatalogAsync.
     {
-        // Memeriksa hasil pencocokan `configNode` dengan pola `not JsonObject configObject`; blok if hanya dijalankan ketika kondisi ini bernilai benar
-        // dalam EnsureComponentCatalogAsync.
-        if (configNode is not JsonObject configObject)
-        // Membuka scope cabang if untuk kondisi `configNode is not JsonObject configObject`; pernyataan/deklarasi berikut berada di dalam batas blok ini
-        // dalam EnsureComponentCatalogAsync.
+        if (configNode is not JsonObject configObject ||
+            !RulesetFormHelper.TryResolveMode(configObject, out var mode))
         {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
             return configNode;
-        // Menutup scope cabang if untuk kondisi `configNode is not JsonObject configObject`; bagian berikut berada di luar batas blok tersebut dalam
-        // EnsureComponentCatalogAsync.
         }
 
-        // Memeriksa gabungan syarat AND: kedua kondisi wajib benar antara `configObject.TryGetPropertyValue(”component_catalog”, out var existingCatalog)`
-        // dan `existingCatalog is not null`; sisi kanan diperiksa hanya jika sisi kiri benar; blok if hanya dijalankan ketika kondisi ini bernilai benar
-        // dalam EnsureComponentCatalogAsync.
-        if (configObject.TryGetPropertyValue("component_catalog", out var existingCatalog) && existingCatalog is not null)
-        // Membuka scope cabang if untuk kondisi `configObject.TryGetPropertyValue(”component_catalog”, out var existingCatalog) && existingCatalog is not
-        // null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam EnsureComponentCatalogAsync.
+        if (configObject["component_catalog"] is JsonObject && configObject["actions"] is JsonArray { Count: > 0 })
         {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
             return configNode;
-        // Menutup scope cabang if untuk kondisi `configObject.TryGetPropertyValue(”component_catalog”, out var existingCatalog) && existingCatalog is not
-        // null`; bagian berikut berada di luar batas blok tersebut dalam EnsureComponentCatalogAsync.
         }
 
-        // Memeriksa kebalikan kondisi `RulesetFormHelper.TryResolveMode(configObject, out var mode)`; blok if hanya dijalankan ketika kondisi ini bernilai
-        // benar dalam EnsureComponentCatalogAsync.
-        if (!RulesetFormHelper.TryResolveMode(configObject, out var mode))
-        // Membuka scope cabang if untuk kondisi `!RulesetFormHelper.TryResolveMode(configObject, out var mode)`; pernyataan/deklarasi berikut berada di
-        // dalam batas blok ini dalam EnsureComponentCatalogAsync.
-        {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
-            return configNode;
-        // Menutup scope cabang if untuk kondisi `!RulesetFormHelper.TryResolveMode(configObject, out var mode)`; bagian berikut berada di luar batas blok
-        // tersebut dalam EnsureComponentCatalogAsync.
-        }
-
-        // Menyiapkan variabel lokal `defaultsResponse` untuk nilai defaults respons dengan hasil operasi asinkron memanggil `client.GetAsync` dengan
-        // `$”api/v1/rulesets/components/defaults?mode={Uri.EscapeDataString(mode)}”`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi
-        // belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var defaultsResponse = await client.GetAsync($"api/v1/rulesets/components/defaults?mode={Uri.EscapeDataString(mode)}", ct);
-        // Memeriksa kebalikan kondisi `defaultsResponse.IsSuccessStatusCode`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
-        // EnsureComponentCatalogAsync.
         if (!defaultsResponse.IsSuccessStatusCode)
-        // Membuka scope cabang if untuk kondisi `!defaultsResponse.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // EnsureComponentCatalogAsync.
         {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
             return configNode;
-        // Menutup scope cabang if untuk kondisi `!defaultsResponse.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam
-        // EnsureComponentCatalogAsync.
         }
 
-        // Menyiapkan variabel lokal `defaultsData` untuk nilai defaults data dengan hasil operasi asinkron memanggil
-        // `defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama
-        // operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(ct);
-        // Memeriksa gabungan syarat OR: setidaknya satu kondisi wajib benar antara `defaultsData?.Items is null` dan `defaultsData.Items.Count == 0`; sisi
-        // kanan diperiksa hanya jika sisi kiri salah; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam EnsureComponentCatalogAsync.
-        if (defaultsData?.Items is null || defaultsData.Items.Count == 0)
-        // Membuka scope cabang if untuk kondisi `defaultsData?.Items is null || defaultsData.Items.Count == 0`; pernyataan/deklarasi berikut berada di
-        // dalam batas blok ini dalam EnsureComponentCatalogAsync.
+        var definition = defaultsData?.Items.FirstOrDefault(item =>
+            string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase))?.Definition;
+        if (definition is null)
         {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
             return configNode;
-        // Menutup scope cabang if untuk kondisi `defaultsData?.Items is null || defaultsData.Items.Count == 0`; bagian berikut berada di luar batas blok
-        // tersebut dalam EnsureComponentCatalogAsync.
         }
 
-        // Menyiapkan variabel lokal `selectedCatalog` untuk nilai selected catalog dengan null, yaitu penanda tidak ada nilai. Tipe yang dipakai adalah
-        // `JsonElement?`.
-        JsonElement? selectedCatalog = null;
-        // Mengulangi setiap elemen `defaultsData.Items`; elemen saat ini disimpan sebagai `item` bertipe `var` untuk diproses oleh badan loop dalam
-        // EnsureComponentCatalogAsync.
-        foreach (var item in defaultsData.Items)
-        // Membuka scope loop setiap item dari `defaultsData.Items`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // EnsureComponentCatalogAsync.
+        // Keep all catalogs and action references, including fields the form does not expose.
+        var defaults = JsonNode.Parse(RulesetDefinitionMapper.ToConfigJson(definition))!.AsObject();
+        foreach (var (key, value) in defaults)
         {
-            // Menyiapkan variabel lokal `catalog` untuk nilai catalog dengan memanggil `BuildCompatibilityComponentCatalog` dengan `item.Definition`. Tipe
-            // variabel disimpulkan dari ekspresi nilai awal.
-            var catalog = BuildCompatibilityComponentCatalog(item.Definition);
-            // Memeriksa gabungan syarat AND: kedua kondisi wajib benar antara `catalog.HasValue` dan `string.Equals(item.Mode, mode,
-            // StringComparison.OrdinalIgnoreCase)`; sisi kanan diperiksa hanya jika sisi kiri benar; blok if hanya dijalankan ketika kondisi ini bernilai benar
-            // dalam EnsureComponentCatalogAsync.
-            if (catalog.HasValue && string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase))
-            // Membuka scope cabang if untuk kondisi `catalog.HasValue && string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase)`;
-            // pernyataan/deklarasi berikut berada di dalam batas blok ini dalam EnsureComponentCatalogAsync.
+            if (!configObject.ContainsKey(key) || configObject[key] is null)
             {
-                // Memperbarui `selectedCatalog` menggunakan `catalog` (nilai catalog) dalam EnsureComponentCatalogAsync.
-                selectedCatalog = catalog;
-                // Mengakhiri loop atau cabang switch terdekat, kemudian melanjutkan setelah blok tersebut dalam EnsureComponentCatalogAsync.
-                break;
-            // Menutup scope cabang if untuk kondisi `catalog.HasValue && string.Equals(item.Mode, mode, StringComparison.OrdinalIgnoreCase)`; bagian berikut
-            // berada di luar batas blok tersebut dalam EnsureComponentCatalogAsync.
+                configObject[key] = value?.DeepClone();
             }
-
-            // Memeriksa gabungan syarat AND: kedua kondisi wajib benar antara `!selectedCatalog.HasValue` dan `catalog.HasValue`; sisi kanan diperiksa hanya
-            // jika sisi kiri benar; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam EnsureComponentCatalogAsync.
-            if (!selectedCatalog.HasValue && catalog.HasValue)
-            // Membuka scope cabang if untuk kondisi `!selectedCatalog.HasValue && catalog.HasValue`; pernyataan/deklarasi berikut berada di dalam batas blok
-            // ini dalam EnsureComponentCatalogAsync.
-            {
-                // Memperbarui `selectedCatalog` menggunakan `catalog` (nilai catalog) dalam EnsureComponentCatalogAsync.
-                selectedCatalog = catalog;
-            // Menutup scope cabang if untuk kondisi `!selectedCatalog.HasValue && catalog.HasValue`; bagian berikut berada di luar batas blok tersebut dalam
-            // EnsureComponentCatalogAsync.
-            }
-        // Menutup scope loop setiap item dari `defaultsData.Items`; bagian berikut berada di luar batas blok tersebut dalam EnsureComponentCatalogAsync.
         }
-
-        // Memeriksa kebalikan kondisi `selectedCatalog.HasValue`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
-        // EnsureComponentCatalogAsync.
-        if (!selectedCatalog.HasValue)
-        // Membuka scope cabang if untuk kondisi `!selectedCatalog.HasValue`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // EnsureComponentCatalogAsync.
-        {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
-            return configNode;
-        // Menutup scope cabang if untuk kondisi `!selectedCatalog.HasValue`; bagian berikut berada di luar batas blok tersebut dalam
-        // EnsureComponentCatalogAsync.
-        }
-
-        // Memulai blok try dalam EnsureComponentCatalogAsync; exception dari blok ini dapat dialihkan ke catch, sedangkan finally (jika ada) tetap
-        // dijalankan saat keluar.
-        try
-        // Membuka scope penanganan operasi try; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam EnsureComponentCatalogAsync.
-        {
-            // Memperbarui `configObject[”component_catalog”]` menggunakan memanggil `JsonNode.Parse` dengan `selectedCatalog.Value.GetRawText()` dalam
-            // EnsureComponentCatalogAsync.
-            configObject["component_catalog"] = JsonNode.Parse(selectedCatalog.Value.GetRawText());
-        // Menutup scope penanganan operasi try; bagian berikut berada di luar batas blok tersebut dalam EnsureComponentCatalogAsync.
-        }
-        // Menangani exception `JsonException` melalui variabel dalam EnsureComponentCatalogAsync.
-        catch (JsonException)
-        // Membuka scope penanganan exception catch; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam EnsureComponentCatalogAsync.
-        {
-            // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-            // hasil ditentukan.
-            return configNode;
-        // Menutup scope penanganan exception catch; bagian berikut berada di luar batas blok tersebut dalam EnsureComponentCatalogAsync.
-        }
-
-        // Mengembalikan `configNode` (nilai konfigurasi node) kepada pemanggil dalam EnsureComponentCatalogAsync; eksekusi jalur ini selesai setelah nilai
-        // hasil ditentukan.
         return configNode;
-    // Menutup scope metode EnsureComponentCatalogAsync; bagian berikut berada di luar batas blok tersebut dalam EnsureComponentCatalogAsync.
     }
 
-    // Mendefinisikan metode `SerializeDefinitionConfig` dengan hasil bertipe `string`; operasi ini menangani serialize definisi konfigurasi. Masukan:
-    // Parameter `definition` bertipe `RulesetDefinitionDto?` membawa definisi terstruktur komponen serta parameter aturan permainan; nilai null
-    // diizinkan ketika data opsional belum tersedia.
     private static string SerializeDefinitionConfig(RulesetDefinitionDto? definition)
     // Membuka scope metode SerializeDefinitionConfig; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam SerializeDefinitionConfig.
     {

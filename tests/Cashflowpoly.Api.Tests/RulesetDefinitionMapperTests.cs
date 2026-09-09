@@ -15,6 +15,23 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class RulesetDefinitionMapperTests
 // Membuka scope tipe RulesetDefinitionMapperTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    [Fact]
+    public void ConfigRoundTrip_PreservesActionsReferencedByNarratives()
+    {
+        var definition = new RulesetDefinitionDto
+        {
+            Actions = [new RulesetActionDto { ActionId = "JualMasakan" }],
+            Needs = [new RulesetNeedDto { Id = "buku_1", Family = "buku" }],
+            Narratives = [new RulesetNarrativeDto
+            {
+                Id = "first_sale", PrerequisiteAksi = [new RulesetNarrativePrerequisiteDto { Aksi = "JualMasakan", Value = 1 }]
+            }]
+        };
+        var roundTrip = RulesetDefinitionMapper.FromConfigJson(RulesetDefinitionMapper.ToConfigJson(definition));
+        Assert.Equal("JualMasakan", Assert.Single(roundTrip.Actions).ActionId);
+        Assert.Equal("buku", Assert.Single(roundTrip.Needs).Family);
+        Assert.Equal("JualMasakan", Assert.Single(Assert.Single(roundTrip.Narratives).PrerequisiteAksi).Aksi);
+    }
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `FromConfigJson_IgnoresRemovedQuestAndScripts_AndKeepsDataDrivenNarrativeConditions` dengan hasil bertipe `void`; operasi

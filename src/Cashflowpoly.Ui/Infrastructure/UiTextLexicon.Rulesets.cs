@@ -248,6 +248,7 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”rulesets.readonly_hint”]` menggunakan tuple yang membawa bagian 1: ”Mode baca saja.”; bagian 2: ”Read-only mode.” dalam
         // AddRulesets.
         terms["rulesets.readonly_hint"] = ("Mode baca saja.", "Read-only mode.");
+        terms["rulesets.info.session_readonly"] = ("Set aturan ini sudah terhubung ke sesi sehingga tidak dapat diubah atau dihapus, termasuk saat sesi belum dimulai. Buat set aturan baru untuk perubahan.", "This ruleset is assigned to a session and cannot be edited or deleted, even before the session starts. Create a new ruleset to make changes.");
         // Memperbarui `terms[”rulesets.back_to_list”]` menggunakan tuple yang membawa bagian 1: ”Kembali ke daftar”; bagian 2: ”Back to list” dalam
         // AddRulesets.
         terms["rulesets.back_to_list"] = ("Kembali ke daftar", "Back to list");

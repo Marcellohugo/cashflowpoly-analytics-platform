@@ -1578,9 +1578,9 @@ public sealed class RulesetsController : ControllerBase
                 HttpContext,
                 // Meneruskan nilai literal `”DOMAIN_RULE_VIOLATION”` sebagai argumen ke `ApiErrorHelper.BuildError`.
                 "DOMAIN_RULE_VIOLATION",
-                // Meneruskan nilai literal `”Ruleset sudah dipakai pada sesi yang berjalan atau selesai sehingga hanya dapat dilihat.”` sebagai argumen ke
+                // Meneruskan nilai literal `”Ruleset sudah terhubung ke sesi sehingga hanya dapat dilihat, termasuk saat sesi belum dimulai. Buat ruleset baru untuk perubahan aturan.”` sebagai argumen ke
                 // `ApiErrorHelper.BuildError`.
-                "Ruleset sudah dipakai pada sesi yang berjalan atau selesai sehingga hanya dapat dilihat.")));
+                "Ruleset sudah terhubung ke sesi sehingga hanya dapat dilihat, termasuk saat sesi belum dimulai. Buat ruleset baru untuk perubahan aturan.")));
         // Menutup scope cabang if untuk kondisi `lockedBySession`; bagian berikut berada di luar batas blok tersebut dalam
         // GetMutableInstructorRulesetAsync.
         }
@@ -1666,6 +1666,15 @@ public sealed class RulesetsController : ControllerBase
         // Menyiapkan variabel lokal `definition` untuk definisi terstruktur komponen serta parameter aturan permainan dengan `explicitDefinition` (nilai
         // explicit definisi). Tipe variabel disimpulkan dari ekspresi nilai awal.
         var definition = explicitDefinition;
+
+        var actionIds = definition.Actions.Select(action => action.ActionId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (definition.Narratives.SelectMany(narrative => narrative.PrerequisiteAksi)
+            .Any(prerequisite => !actionIds.Contains(prerequisite.Aksi)))
+        {
+            return (null, BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR",
+                "Prasyarat narasi harus merujuk aksi yang tersedia pada set aturan.",
+                new ErrorDetail("definition.narratives.prerequisite_aksi", "UNKNOWN_ACTION"))));
+        }
 
         // Memeriksa kebalikan kondisi `RulesetRuntimeMapper.TryBuildConfig(definition, out _, out var configErrors)`; blok if hanya dijalankan ketika
         // kondisi ini bernilai benar dalam PrepareDefinitionForWriteAsync.
