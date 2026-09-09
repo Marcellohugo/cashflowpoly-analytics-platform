@@ -1,4 +1,4 @@
-// Fungsi file: Menguji HTML direktori agar pemain tanpa sesi tetap terlihat bersama kelompok sesi.
+// Fungsi file: Menguji direktori pemain dan pembatasan tampilan instruktur pada peserta sesinya.
 using Cashflowpoly.Ui.Contracts;
 using System.Security.Claims;
 using Cashflowpoly.Ui.Controllers;
@@ -109,7 +109,8 @@ public sealed class PlayerDirectoryViewTests
     [InlineData(false, false, "1")]
     [InlineData(true, false, "0")]
     [InlineData(false, true, "—")]
-    public async Task InstructorSummary_CountsOnlyDistinctSessionParticipants(bool noSessions, bool failed, string expectedCount)
+    [InlineData(true, true, "—")]
+    public async Task InstructorDirectory_OnlyShowsSessionParticipants(bool noSessions, bool failed, string expectedCount)
     {
         var joined = new PlayerResponse(Guid.NewGuid(), "Joined Player");
         var unjoined = new PlayerResponse(Guid.NewGuid(), "General Player");
@@ -128,11 +129,22 @@ public sealed class PlayerDirectoryViewTests
         var html = System.Net.WebUtility.HtmlDecode(await RenderAsync(model, instructor: true));
         Assert.Contains("Monitored Players", html);
         Assert.Contains($"<p class=\"ruleset-index-count\">{expectedCount}</p>", html);
-        Assert.Contains(unjoined.DisplayName, html);
-        Assert.Contains(failed ? "General Player List" : "Players Outside Your Sessions", html);
-        if (!failed)
+        Assert.DoesNotContain(unjoined.DisplayName, html);
+        Assert.DoesNotContain("General Player List", html);
+        Assert.DoesNotContain("Players Outside Your Sessions", html);
+        Assert.DoesNotContain("Players Without a Session", html);
+        if (noSessions)
         {
-            Assert.Contains("They are not included in Monitored Players", html);
+            Assert.DoesNotContain(joined.DisplayName, html);
+            Assert.Equal(!failed, html.Contains("No players are registered in your sessions yet.", StringComparison.Ordinal));
+        }
+        else
+        {
+            Assert.Contains(joined.DisplayName, html);
+        }
+        if (failed)
+        {
+            Assert.Contains("Session details unavailable", html);
         }
     }
 

@@ -47,7 +47,9 @@ public sealed class PlayerDirectoryController : Controller
         // Menyiapkan variabel lokal `response` untuk hasil respons yang akan dibaca atau dikirim kepada pemanggil dengan hasil operasi asinkron memanggil
         // `client.GetAsync` dengan `”api/v1/players”`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel
         // disimpulkan dari ekspresi nilai awal.
-        var response = await client.GetAsync("api/v1/players", ct);
+        var response = await client.GetAsync(HttpContext.IsInstructor()
+            ? "api/v1/players?inMySessions=true"
+            : "api/v1/players", ct);
         // Menyiapkan variabel lokal `unauthorized` untuk nilai unauthorized dengan memanggil `this.HandleUnauthorizedApiResponse` dengan `response`. Tipe
         // variabel disimpulkan dari ekspresi nilai awal.
         var unauthorized = this.HandleUnauthorizedApiResponse(response);

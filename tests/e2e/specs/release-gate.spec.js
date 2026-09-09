@@ -112,6 +112,9 @@ test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan k
 // Penjelasan: Melakukan operasi dengan memanggil `async function expectNoHorizontalOverflow(page) {` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 test("pemain dipantau sama dengan jumlah peserta unik sesi instruktur", async ({ page }) => {
   await page.goto("/players");
+  await expect(page.locator(".page-intro .subhead")).toContainText("pemain yang terdaftar dalam sesi Anda");
+  await expect(page.getByText("Pemain di Luar Sesi Anda", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Daftar Pemain Umum", { exact: true })).toHaveCount(0);
   const participantIds = await page.locator('.players-session-card a[href*="/players/"]').evaluateAll(
     anchors => anchors.map(anchor => anchor.getAttribute("href").split("/players/")[1])
   );

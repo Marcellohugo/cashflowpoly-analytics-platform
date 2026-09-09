@@ -302,11 +302,17 @@ Baris sumber 237: Menutup elemen `section` (bagian halaman dengan topik konten t
 
         @{
         <section class="players-index-section mt-5">
-            @if (sessionGroupCount == 0 || ungroupedPlayers.Count > 0)
+            @if (isInstructor && sessionGroupCount == 0 && !hasGroupingError)
+            {
+                <div class="mt-3 alert alert-info">
+                    @Context.T("players.index.no_session_participants")
+                </div>
+            }
+            @if (!isInstructor && (sessionGroupCount == 0 || ungroupedPlayers.Count > 0))
             {
                 <div class="ruleset-section-head">
-                    <p class="ruleset-section-title">@Context.T(hasGroupingError ? "players.index.ungrouped_title" : isInstructor ? "players.index.outside_my_sessions_title" : "players.index.without_session_title")</p>
-                    <p class="ruleset-section-subtitle">@Context.T(hasGroupingError ? "players.index.ungrouped_subtitle" : isInstructor ? "players.index.outside_my_sessions_subtitle" : "players.index.without_session_subtitle")</p>
+                    <p class="ruleset-section-title">@Context.T(hasGroupingError ? "players.index.ungrouped_title" : "players.index.without_session_title")</p>
+                    <p class="ruleset-section-subtitle">@Context.T(hasGroupingError ? "players.index.ungrouped_subtitle" : "players.index.without_session_subtitle")</p>
                 </div>
 
                 <div class="mt-3 alert alert-info">

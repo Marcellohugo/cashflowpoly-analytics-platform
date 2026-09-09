@@ -18,7 +18,7 @@ internal static partial class UiTextLexicon
         terms["players.title"] = ("Direktori Pemain", "Player Directory");
         // Memperbarui `terms[”players.subtitle”]` menggunakan tuple yang membawa bagian 1: ”Lihat peserta setiap sesi dan buka analitika performa mereka.”;
         // bagian 2: ”View each session's participants and open their performance analytics.” dalam AddPlayers.
-        terms["players.subtitle"] = ("Lihat seluruh pemain, termasuk yang belum masuk sesi, dan analitika peserta setiap sesi.", "View all players, including those who have not joined a session, and each session's participant analytics.");
+        terms["players.subtitle"] = ("Lihat pemain yang terdaftar dalam sesi Anda dan analitika mereka setelah sesi selesai.", "View players registered in your sessions and their analytics after each session ends.");
         // Memperbarui `terms[”players.player_directory_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Lihat seluruh sesi yang Anda ikuti beserta
         // pemain yang berada dalam sesi yang s...; bagian 2: ”View every session you joined and the players who shared those sessions.” dalam AddPlayers.
         terms["players.player_directory_subtitle"] = ("Lihat seluruh sesi yang Anda ikuti beserta pemain yang berada dalam sesi yang sama.", "View every session you joined and the players who shared those sessions.");
@@ -64,8 +64,7 @@ internal static partial class UiTextLexicon
         terms["players.index.ungrouped_title"] = ("Daftar Pemain Umum", "General Player List");
         terms["players.monitored_players"] = ("Pemain Dipantau", "Monitored Players");
         terms["players.index.monitored_subtitle"] = ("Peserta sesi yang Anda kelola. Setiap pemain dihitung satu kali, termasuk peserta sesi yang belum dimulai.", "Participants in the sessions you manage. Each player is counted once, including participants in sessions that have not started.");
-        terms["players.index.outside_my_sessions_title"] = ("Pemain di Luar Sesi Anda", "Players Outside Your Sessions");
-        terms["players.index.outside_my_sessions_subtitle"] = ("Daftar umum pemain yang belum tercatat dalam sesi yang Anda kelola. Mereka tidak termasuk Pemain Dipantau dan dapat sudah mengikuti sesi instruktur lain.", "General list of players who are not in the sessions you manage. They are not included in Monitored Players and may already participate in another instructor's sessions.");
+        terms["players.index.no_session_participants"] = ("Belum ada pemain yang terdaftar dalam sesi Anda. Tambahkan pemain ke sesi agar muncul di direktori ini.", "No players are registered in your sessions yet. Add players to a session to see them in this directory.");
         terms["players.index.without_session_title"] = ("Pemain Belum Masuk Sesi", "Players Without a Session");
         terms["players.index.without_session_subtitle"] = ("Pemain berikut belum bergabung ke sesi yang tersedia di direktori ini.", "These players have not joined any session available in this directory.");
         // Memperbarui `terms[”players.index.ungrouped_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Belum ada pengelompokan per sesi, namun daftar
