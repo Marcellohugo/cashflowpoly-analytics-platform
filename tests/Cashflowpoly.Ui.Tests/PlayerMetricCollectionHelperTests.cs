@@ -391,7 +391,7 @@ public sealed class PlayerMetricCollectionHelperTests
             // Meneruskan nilai literal `”7.99”` sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
             "7.99",
             // Meneruskan nilai literal `”score”` sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
-            "score",
+            "%",
             // Meneruskan nilai literal `”N/A”` sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
             "N/A",
             // Meneruskan `CultureInfo.InvariantCulture` (nilai invariant culture) sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
@@ -399,7 +399,7 @@ public sealed class PlayerMetricCollectionHelperTests
 
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”min(100, max(0, 29.289322 × 0.272727 × 1)) =
         // 7.99 score”`, `calculation`); pengujian gagal jika keduanya berbeda dalam BuildActualCalculation_PreservesEnoughPrecisionToExplainRoundedResult.
-        Assert.Equal("min(100, max(0, 29.289322 × 0.272727 × 1)) = 7.99 score", calculation);
+        Assert.Equal("(29.289322 ÷ 100) × (27.272727 ÷ 100) × (100 ÷ 100) × 100% = 7.99%", calculation);
     // Menutup scope metode BuildActualCalculation_PreservesEnoughPrecisionToExplainRoundedResult; bagian berikut berada di luar batas blok tersebut
     // dalam BuildActualCalculation_PreservesEnoughPrecisionToExplainRoundedResult.
     }
@@ -453,7 +453,9 @@ public sealed class PlayerMetricCollectionHelperTests
             ("life_risk_cards_drawn", "2"),
             // Menggunakan tuple yang membawa bagian 1: ”outstanding_loan”; bagian 2: ”2” sebagai bagian ekspresi yang sedang disusun dalam
             // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
-            ("outstanding_loan", "2"),
+            ("sharia_loans_taken", "2"),
+            ("sharia_loans_repaid", "1"),
+            ("sharia_loans_unpaid_end", "1"),
             // Menggunakan tuple yang membawa bagian 1: ”liquid_assets”; bagian 2: ”8” sebagai bagian ekspresi yang sedang disusun dalam
             // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
             ("liquid_assets", "8"),
@@ -462,7 +464,8 @@ public sealed class PlayerMetricCollectionHelperTests
             ("coins_committed_to_goals", "5"),
             // Menggunakan tuple yang membawa bagian 1: ”attempted_goal_target_total”; bagian 2: ”10” sebagai bagian ekspresi yang sedang disusun dalam
             // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
-            ("attempted_goal_target_total", "10"),
+            ("financial_goals_completed", "1"),
+            ("financial_goals_attempted", "2"),
             // Menggunakan tuple yang membawa bagian 1: ”income_main_actions”; bagian 2: ”4” sebagai bagian ekspresi yang sedang disusun dalam
             // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
             ("income_main_actions", "4"),
@@ -595,9 +598,9 @@ public sealed class PlayerMetricCollectionHelperTests
                 // Meneruskan `rows` (nilai baris) sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
                 rows,
                 // Meneruskan nilai literal `”50”` sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
-                analysisKey == "goal-ambition" ? "1" : "50",
+                "50",
                 // Meneruskan nilai literal `”%”` sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
-                analysisKey == "goal-ambition" ? "target" : "%",
+                "%",
                 // Meneruskan nilai literal `”N/A”` sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
                 "N/A",
                 // Meneruskan `CultureInfo.InvariantCulture` (nilai invariant culture) sebagai argumen ke `PlayerMetricCollectionHelper.BuildActualCalculation`.
@@ -608,8 +611,7 @@ public sealed class PlayerMetricCollectionHelperTests
             Assert.False(calculation.StartsWith("N/A", StringComparison.Ordinal));
             // Menjalankan pemeriksaan hasil dengan `Assert.EndsWith` menggunakan `”= 50%”`, `calculation`, `StringComparison.Ordinal`; ketidaksesuaian dengan
             // ekspektasi membuat pengujian gagal dalam BuildActualCalculation_CoversEveryPlayerAnalysisCard.
-            if (analysisKey == "goal-ambition") Assert.Equal("1 target", calculation);
-            else Assert.EndsWith("= 50%", calculation, StringComparison.Ordinal);
+            Assert.EndsWith("= 50%", calculation, StringComparison.Ordinal);
         // Menutup scope loop setiap analysisKey dari `analysisKeys`; bagian berikut berada di luar batas blok tersebut dalam
         // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
         }

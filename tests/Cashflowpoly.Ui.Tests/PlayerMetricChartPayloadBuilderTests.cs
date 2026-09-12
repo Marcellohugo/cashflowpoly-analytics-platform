@@ -22,20 +22,20 @@ public sealed class PlayerMetricChartPayloadBuilderTests
     // dalam BuildMergedRowChart_UsesPreferredScalarRowsBeforeNestedRows.
     {
         // Menyiapkan variabel lokal `chart` untuk nilai chart dengan memanggil `PlayerMetricChartPayloadBuilder.BuildMergedRowChart` dengan `”Financial”`,
-        // `[(”coins_net_end_game”, ”22”), (”coins.history.total”, ”30”), (”notes[0]”, ”skip”)]`, `true`, `Translate`. Tipe variabel disimpulkan dari
+        // `[(”coins_net_end_game”, ”22”), (”coins.statistics.total”, ”30”), (”notes[0]”, ”skip”)]`, `true`, `Translate`. Tipe variabel disimpulkan dari
         // ekspresi nilai awal.
         var chart = PlayerMetricChartPayloadBuilder.BuildMergedRowChart(
             // Meneruskan nilai literal `”Financial”` sebagai argumen ke `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`.
             "Financial",
-            // Meneruskan koleksi berisi (”coins_net_end_game”, ”22”), (”coins.history.total”, ”30”), (”notes[0]”, ”skip”) sebagai argumen ke
+            // Meneruskan koleksi berisi (”coins_net_end_game”, ”22”), (”coins.statistics.total”, ”30”), (”notes[0]”, ”skip”) sebagai argumen ke
             // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”coins_net_end_game”` sebagai argumen ke
             // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”22”` sebagai argumen ke
-            // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”coins.history.total”` sebagai argumen ke
+            // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”coins.statistics.total”` sebagai argumen ke
             // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”30”` sebagai argumen ke
             // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”notes[0]”` sebagai argumen ke
             // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`; Meneruskan nilai literal `”skip”` sebagai argumen ke
             // `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`.
-            [("coins_net_end_game", "22"), ("coins.history.total", "30"), ("notes[0]", "skip")],
+            [("coins_net_end_game", "22"), ("coins.statistics.total", "30"), ("notes[0]", "skip")],
             // Meneruskan true, yaitu kondisi aktif/terpenuhi sebagai argumen bernama `isRawDomain`.
             isRawDomain: true,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerMetricChartPayloadBuilder.BuildMergedRowChart`.

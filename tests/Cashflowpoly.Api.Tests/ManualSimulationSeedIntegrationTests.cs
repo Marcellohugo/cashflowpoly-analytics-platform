@@ -33,15 +33,15 @@ namespace Cashflowpoly.Api.Tests;
 // menerapkan metadata `Trait(”Category”, ”Integration”)` pada deklarasi berikut agar framework/compiler dapat mengenali pengaturannya.
 [Trait("Category", "Integration")]
 // Mendefinisikan tipe class `ManualSimulationSeedIntegrationTests`; sealed mencegah tipe ini diturunkan lagi.
-public sealed class ManualSimulationSeedIntegrationTests
+public sealed partial class ManualSimulationSeedIntegrationTests
 // Membuka scope tipe ManualSimulationSeedIntegrationTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
     // Mendeklarasikan field bertipe `string`: `JwtSigningKey` menyimpan nilai jwt signing kunci dengan nilai awal nilai literal
     // `”integration-test-signing-key-with-min-32-char”`.
     private const string JwtSigningKey = "integration-test-signing-key-with-min-32-char";
     // Mendeklarasikan field bertipe `string`: `SeedInstructorUsername` menyimpan nilai seed instruktur username dengan nilai awal nilai literal
-    // `”rina.kartika”`.
-    private const string SeedInstructorUsername = "rina.kartika";
+    // `”hadziq”`.
+    private const string SeedInstructorUsername = "hadziq";
     // Mendeklarasikan field bertipe `string`: `SeedInstructorPassword` menyimpan nilai seed instruktur password dengan nilai awal nilai literal
     // `”SeedLocal!2026”`.
     private const string SeedInstructorPassword = "SeedLocal!2026";
@@ -255,6 +255,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             // `gameplayBody.DerivedJson.Value.GetProperty(”meal_order_profit_margin_percent”).GetDouble()`, `2`); pengujian gagal jika keduanya berbeda dalam
             // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
             Assert.Equal(68.13, gameplayBody.DerivedJson.Value.GetProperty("meal_order_profit_margin_percent").GetDouble(), 2);
+            await AssertExpandedSeedAccessAndMetricsAsync(client, database.GetConnectionString());
         // Menutup scope fungsi lambda yang dipasok ke `RunWithConnectionStringAsync`; bagian berikut berada di luar batas blok tersebut dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
         });
@@ -475,26 +476,26 @@ public sealed class ManualSimulationSeedIntegrationTests
             // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
             })).ToDictionary(row => row.SessionName);
 
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”f5b4c67b-0825-4970-9f07-3b68e8fcb524”`,
+        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”98000000-0000-0000-0000-000000000001”`,
         // `rulesetChecks[SeedPemulaSessionName].ActivatedRulesetVersionId`); pengujian gagal jika keduanya berbeda dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
-        Assert.Equal("f5b4c67b-0825-4970-9f07-3b68e8fcb524", rulesetChecks[SeedPemulaSessionName].ActivatedRulesetVersionId);
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”f5b4c67b-0825-4970-9f07-3b68e8fcb524”`,
+        Assert.Equal("98000000-0000-0000-0000-000000000001", rulesetChecks[SeedPemulaSessionName].ActivatedRulesetVersionId);
+        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”98000000-0000-0000-0000-000000000001”`,
         // `rulesetChecks[SeedPemulaSessionName].EventRulesetVersionId`); pengujian gagal jika keduanya berbeda dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
-        Assert.Equal("f5b4c67b-0825-4970-9f07-3b68e8fcb524", rulesetChecks[SeedPemulaSessionName].EventRulesetVersionId);
+        Assert.Equal("98000000-0000-0000-0000-000000000001", rulesetChecks[SeedPemulaSessionName].EventRulesetVersionId);
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`1`,
         // `rulesetChecks[SeedPemulaSessionName].EventRulesetVersions`); pengujian gagal jika keduanya berbeda dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
         Assert.Equal(1, rulesetChecks[SeedPemulaSessionName].EventRulesetVersions);
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”7c3bfd8a-27d7-4468-b8d7-cf90131bc61d”`,
+        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”98000000-0000-0000-0000-000000000002”`,
         // `rulesetChecks[SeedMahirSessionName].ActivatedRulesetVersionId`); pengujian gagal jika keduanya berbeda dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
-        Assert.Equal("7c3bfd8a-27d7-4468-b8d7-cf90131bc61d", rulesetChecks[SeedMahirSessionName].ActivatedRulesetVersionId);
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”7c3bfd8a-27d7-4468-b8d7-cf90131bc61d”`,
+        Assert.Equal("98000000-0000-0000-0000-000000000002", rulesetChecks[SeedMahirSessionName].ActivatedRulesetVersionId);
+        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”98000000-0000-0000-0000-000000000002”`,
         // `rulesetChecks[SeedMahirSessionName].EventRulesetVersionId`); pengujian gagal jika keduanya berbeda dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
-        Assert.Equal("7c3bfd8a-27d7-4468-b8d7-cf90131bc61d", rulesetChecks[SeedMahirSessionName].EventRulesetVersionId);
+        Assert.Equal("98000000-0000-0000-0000-000000000002", rulesetChecks[SeedMahirSessionName].EventRulesetVersionId);
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`1`,
         // `rulesetChecks[SeedMahirSessionName].EventRulesetVersions`); pengujian gagal jika keduanya berbeda dalam
         // ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
@@ -2361,6 +2362,7 @@ public sealed class ManualSimulationSeedIntegrationTests
         // Menjalankan hasil operasi asinkron memanggil `AssertScenarioReplayIsValidAsync` dengan `connection`; await menunggu hasil tanpa memblokir thread
         // selama operasi belum selesai dalam ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
         await AssertScenarioReplayIsValidAsync(connection);
+        await AssertExpandedSeedCanBeReappliedAsync(connection);
     // Menutup scope metode ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions; bagian berikut berada di luar batas
     // blok tersebut dalam ManualSimulationSeed_WhenAppliedAfterCanonicalSeeds_ProducesLoginableDualModeSessions.
     }
@@ -2421,7 +2423,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             from sessions s
             join events e on e.session_id = s.session_id
             left join session_participants sp on sp.session_participant_id = e.session_player_id
-            where s.session_name in (@pemulaSessionName, @mahirSessionName)
+            where s.session_id::text like '91000000-%'
             order by s.session_name asc, e.sequence_number asc
             """,
             // Meneruskan objek anonim yang mengelompokkan pemulaSessionName, mahirSessionName sebagai satu nilai sebagai argumen ke
@@ -2470,7 +2472,7 @@ public sealed class ManualSimulationSeedIntegrationTests
             from sessions s
             join ruleset_life_risks risk
               on risk.ruleset_version_id = s.ruleset_version_id
-            where s.session_name in (@pemulaSessionName, @mahirSessionName)
+            where s.session_id::text like '91000000-%'
             """,
             // Meneruskan objek anonim yang mengelompokkan pemulaSessionName, mahirSessionName sebagai satu nilai sebagai argumen ke
             // `connection.QueryAsync<ReplayLifeRiskRow>`.

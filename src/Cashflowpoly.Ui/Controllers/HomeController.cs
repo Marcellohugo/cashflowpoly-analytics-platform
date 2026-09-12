@@ -287,194 +287,57 @@ public class HomeController : Controller
         // Menyiapkan variabel lokal `client` untuk nilai client dengan memanggil `_clientFactory.CreateClient` dengan `”Api”`. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
         var client = _clientFactory.CreateClient("Api");
+        var errors = new System.Collections.Concurrent.ConcurrentBag<string>();
+        var expired = false;
+        async Task<T?> LoadAsync<T>(string path) where T : class
+        {
+            try
+            {
+                using var response = await client.GetAsync(path, ct);
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) expired = true;
+                var value = response.IsSuccessStatusCode
+                    ? await response.Content.TryReadFromJsonAsync<T>(cancellationToken: ct) : null;
+                if (value is null) errors.Add(path.Split('?')[0].Split('/').Last());
+                return value;
+            }
+            catch (HttpRequestException) { errors.Add(path.Split('?')[0].Split('/').Last()); return null; }
+            catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+            { errors.Add(path.Split('?')[0].Split('/').Last()); return null; }
+        }
 
-        // Menyiapkan variabel lokal `sessionsTask` untuk nilai sessions task dengan memanggil `client.GetAsync` dengan `”api/v1/sessions”`, `ct`. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
-        var sessionsTask = client.GetAsync("api/v1/sessions", ct);
-        // Menyiapkan variabel lokal `playersTask` untuk nilai pemain task dengan memanggil `client.GetAsync` dengan `”api/v1/players”`, `ct`. Tipe variabel
-        // disimpulkan dari ekspresi nilai awal.
-        var playersTask = client.GetAsync(HttpContext.IsInstructor()
-            ? "api/v1/players?inMySessions=true"
-            : "api/v1/players", ct);
-        // Menyiapkan variabel lokal `rulesetsTask` untuk nilai aturan task dengan memanggil `client.GetAsync` dengan `”api/v1/rulesets”`, `ct`. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
-        var rulesetsTask = client.GetAsync("api/v1/rulesets", ct);
-        // Menjalankan hasil operasi asinkron memanggil `Task.WhenAll` dengan `sessionsTask`, `playersTask`, `rulesetsTask`; await menunggu hasil tanpa
-        // memblokir thread selama operasi belum selesai dalam GetRealtimeStatsInternal.
+        var sessionsTask = LoadAsync<SessionListResponse>("api/v1/sessions");
+        var playersTask = LoadAsync<PlayerListResponse>(HttpContext.IsInstructor()
+            ? "api/v1/players?inMySessions=true" : "api/v1/players");
+        var rulesetsTask = LoadAsync<RulesetListResponse>("api/v1/rulesets");
         await Task.WhenAll(sessionsTask, playersTask, rulesetsTask);
-
-        // Menyiapkan variabel lokal `sessionsResponse` untuk nilai sessions respons dengan `sessionsTask.Result` (nilai hasil pemrosesan yang akan dipakai
-        // pada tahap berikutnya). Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var sessionsResponse = sessionsTask.Result;
-        // Menyiapkan variabel lokal `playersResponse` untuk nilai pemain respons dengan `playersTask.Result` (nilai hasil pemrosesan yang akan dipakai pada
-        // tahap berikutnya). Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playersResponse = playersTask.Result;
-        // Menyiapkan variabel lokal `rulesetsResponse` untuk nilai aturan respons dengan `rulesetsTask.Result` (nilai hasil pemrosesan yang akan dipakai
-        // pada tahap berikutnya). Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var rulesetsResponse = rulesetsTask.Result;
-
-        // Menyiapkan variabel lokal `unauthorized` untuk nilai unauthorized dengan `this.HandleUnauthorizedApiResponse(sessionsResponse)` bila tidak null;
-        // jika null gunakan `this.HandleUnauthorizedApiResponse(playersResponse) ?? this.HandleUnauthorizedApiResponse(rulesetsResponse)` sebagai nilai
-        // pengganti. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var unauthorized = this.HandleUnauthorizedApiResponse(sessionsResponse)
-                          // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: this.HandleUnauthorizedApiResponse(playersResponse) dalam
-                          // GetRealtimeStatsInternal.
-                          ?? this.HandleUnauthorizedApiResponse(playersResponse)
-                          // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: this.HandleUnauthorizedApiResponse(rulesetsResponse); dalam
-                          // GetRealtimeStatsInternal.
-                          ?? this.HandleUnauthorizedApiResponse(rulesetsResponse);
-        // Memeriksa hasil pencocokan `unauthorized` dengan pola `not null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
-        // GetRealtimeStatsInternal.
-        if (unauthorized is not null)
-        // Membuka scope cabang if untuk kondisi `unauthorized is not null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // GetRealtimeStatsInternal.
+        if (expired)
         {
-            // Mengembalikan tuple yang membawa bagian 1: new HomeIndexViewModel(); bagian 2: unauthorized kepada pemanggil dalam GetRealtimeStatsInternal;
-            // eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-            return (new HomeIndexViewModel(), unauthorized);
-        // Menutup scope cabang if untuk kondisi `unauthorized is not null`; bagian berikut berada di luar batas blok tersebut dalam
-        // GetRealtimeStatsInternal.
+            using var response = new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
+            return (new HomeIndexViewModel(), this.HandleUnauthorizedApiResponse(response));
         }
 
-        // Menyiapkan variabel lokal `errorMessages` untuk nilai kesalahan pesan dengan objek baru bertipe `List<string>` dengan nilai awal sesuai
-        // konstruktornya. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var errorMessages = new List<string>();
-        // Menyiapkan variabel lokal `sessions` untuk nilai sessions dengan objek baru bertipe `List<SessionListItem>` dengan nilai awal sesuai
-        // konstruktornya. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var sessions = new List<SessionListItem>();
-        // Menyiapkan variabel lokal `players` untuk nilai pemain dengan objek baru bertipe `List<PlayerResponse>` dengan nilai awal sesuai konstruktornya.
-        // Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var players = new List<PlayerResponse>();
-        // Menyiapkan variabel lokal `rulesets` untuk nilai aturan dengan objek baru bertipe `List<RulesetListItem>` dengan nilai awal sesuai
-        // konstruktornya. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var rulesets = new List<RulesetListItem>();
-
-        // Memeriksa `sessionsResponse.IsSuccessStatusCode` (nilai berstatus success status kode); blok if hanya dijalankan ketika kondisi ini bernilai
-        // benar dalam GetRealtimeStatsInternal.
-        if (sessionsResponse.IsSuccessStatusCode)
-        // Membuka scope cabang if untuk kondisi `sessionsResponse.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // GetRealtimeStatsInternal.
-        {
-            // Menyiapkan variabel lokal `data` untuk nilai data dengan hasil operasi asinkron memanggil
-            // `sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi
-            // belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-            var data = await sessionsResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
-            // Memperbarui `sessions` menggunakan `data?.Items` bila tidak null; jika null gunakan `new List<SessionListItem>()` sebagai nilai pengganti dalam
-            // GetRealtimeStatsInternal.
-            sessions = data?.Items ?? new List<SessionListItem>();
-        // Menutup scope cabang if untuk kondisi `sessionsResponse.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam
-        // GetRealtimeStatsInternal.
-        }
-        // Menjalankan cabang alternatif ketika kondisi if sebelumnya tidak terpenuhi dalam GetRealtimeStatsInternal.
-        else
-        // Membuka scope cabang else; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam GetRealtimeStatsInternal.
-        {
-            // Menjalankan menambahkan `$”sessions:{(int)sessionsResponse.StatusCode}”` ke `errorMessages` dalam GetRealtimeStatsInternal.
-            errorMessages.Add($"sessions:{(int)sessionsResponse.StatusCode}");
-        // Menutup scope cabang else; bagian berikut berada di luar batas blok tersebut dalam GetRealtimeStatsInternal.
-        }
-
-        // Memeriksa `playersResponse.IsSuccessStatusCode` (nilai berstatus success status kode); blok if hanya dijalankan ketika kondisi ini bernilai benar
-        // dalam GetRealtimeStatsInternal.
-        if (playersResponse.IsSuccessStatusCode)
-        // Membuka scope cabang if untuk kondisi `playersResponse.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // GetRealtimeStatsInternal.
-        {
-            // Menyiapkan variabel lokal `data` untuk nilai data dengan hasil operasi asinkron memanggil
-            // `playersResponse.Content.TryReadFromJsonAsync<PlayerListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
-            // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-            var data = await playersResponse.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
-            // Memperbarui `players` menggunakan `data?.Items` bila tidak null; jika null gunakan `new List<PlayerResponse>()` sebagai nilai pengganti dalam
-            // GetRealtimeStatsInternal.
-            players = data?.Items ?? new List<PlayerResponse>();
-        // Menutup scope cabang if untuk kondisi `playersResponse.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam
-        // GetRealtimeStatsInternal.
-        }
-        // Menjalankan cabang alternatif ketika kondisi if sebelumnya tidak terpenuhi dalam GetRealtimeStatsInternal.
-        else
-        // Membuka scope cabang else; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam GetRealtimeStatsInternal.
-        {
-            // Menjalankan menambahkan `$”players:{(int)playersResponse.StatusCode}”` ke `errorMessages` dalam GetRealtimeStatsInternal.
-            errorMessages.Add($"players:{(int)playersResponse.StatusCode}");
-        // Menutup scope cabang else; bagian berikut berada di luar batas blok tersebut dalam GetRealtimeStatsInternal.
-        }
-
-        // Memeriksa `rulesetsResponse.IsSuccessStatusCode` (nilai berstatus success status kode); blok if hanya dijalankan ketika kondisi ini bernilai
-        // benar dalam GetRealtimeStatsInternal.
-        if (rulesetsResponse.IsSuccessStatusCode)
-        // Membuka scope cabang if untuk kondisi `rulesetsResponse.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // GetRealtimeStatsInternal.
-        {
-            // Menyiapkan variabel lokal `data` untuk nilai data dengan hasil operasi asinkron memanggil
-            // `rulesetsResponse.Content.TryReadFromJsonAsync<RulesetListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi
-            // belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-            var data = await rulesetsResponse.Content.TryReadFromJsonAsync<RulesetListResponse>(cancellationToken: ct);
-            // Memperbarui `rulesets` menggunakan `data?.Items` bila tidak null; jika null gunakan `new List<RulesetListItem>()` sebagai nilai pengganti dalam
-            // GetRealtimeStatsInternal.
-            rulesets = data?.Items ?? new List<RulesetListItem>();
-        // Menutup scope cabang if untuk kondisi `rulesetsResponse.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam
-        // GetRealtimeStatsInternal.
-        }
-        // Menjalankan cabang alternatif ketika kondisi if sebelumnya tidak terpenuhi dalam GetRealtimeStatsInternal.
-        else
-        // Membuka scope cabang else; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam GetRealtimeStatsInternal.
-        {
-            // Menjalankan menambahkan `$”rulesets:{(int)rulesetsResponse.StatusCode}”` ke `errorMessages` dalam GetRealtimeStatsInternal.
-            errorMessages.Add($"rulesets:{(int)rulesetsResponse.StatusCode}");
-        // Menutup scope cabang else; bagian berikut berada di luar batas blok tersebut dalam GetRealtimeStatsInternal.
-        }
-
-        // Menyiapkan variabel lokal `model` untuk nilai model dengan objek baru bertipe `HomeIndexViewModel` dengan nilai awal sesuai konstruktornya. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
+        var sessions = sessionsTask.Result?.Items;
+        var players = playersTask.Result?.Items;
+        var rulesets = rulesetsTask.Result?.Items;
+        if (sessions is null && sessionsTask.Result is not null) errors.Add("sessions");
+        if (players is null && playersTask.Result is not null) errors.Add("players");
+        if (rulesets is null && rulesetsTask.Result is not null) errors.Add("rulesets");
         var model = new HomeIndexViewModel
-        // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // GetRealtimeStatsInternal.
         {
-            // Memperbarui `TotalSessions` menggunakan `sessions.Count`, yaitu jumlah elemen atau panjang data dalam GetRealtimeStatsInternal.
-            TotalSessions = sessions.Count,
-            // Memperbarui `ActiveSessions` menggunakan memanggil `sessions.Count` dengan `s => string.Equals(s.Status, ”STARTED”,
-            // StringComparison.OrdinalIgnoreCase)` dalam GetRealtimeStatsInternal.
-            ActiveSessions = sessions.Count(s => string.Equals(s.Status, "STARTED", StringComparison.OrdinalIgnoreCase)),
-            // Memperbarui `TotalPlayers` menggunakan `players.Count`, yaitu jumlah elemen atau panjang data dalam GetRealtimeStatsInternal.
-            TotalPlayers = players.Count,
-            // Memperbarui `TotalRulesets` menggunakan memanggil `rulesets.Count` dengan `r => string.Equals(r.Status, ”ACTIVE”,
-            // StringComparison.OrdinalIgnoreCase)` dalam GetRealtimeStatsInternal.
-            TotalRulesets = rulesets.Count(r => string.Equals(r.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)),
-            // Memperbarui `LastSyncedAt` menggunakan `DateTimeOffset.UtcNow`, yaitu waktu UTC saat operasi dilakukan dalam GetRealtimeStatsInternal.
+            TotalSessions = sessions?.Count,
+            ActiveSessions = sessions?.Count(s => string.Equals(s.Status, "STARTED", StringComparison.OrdinalIgnoreCase)),
+            // The player-list endpoint includes the account itself even before it joins a session.
+            TotalPlayers = !HttpContext.IsInstructor() && sessions is null ? null
+                : sessions?.Count == 0 ? 0 : players?.Select(p => p.UserId).Distinct().Count(),
+            TotalRulesets = rulesets?.Count(r => string.Equals(r.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)),
             LastSyncedAt = DateTimeOffset.UtcNow,
-            // Memperbarui `ErrorMessage` menggunakan hasil pemilihan bersyarat: ketika `errorMessages.Count == 0` benar gunakan `null`, jika tidak gunakan
-            // `HttpContext.T(”home.error.partial_realtime_failed”) .Replace(”{details}”, string.Join(”, ”, errorMessages))` dalam GetRealtimeStatsInternal.
-            ErrorMessage = errorMessages.Count == 0
-                // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: null dalam GetRealtimeStatsInternal.
-                ? null
-                // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: HttpContext.T(”home.error.partial_realtime_failed”) dalam
-                // GetRealtimeStatsInternal.
-                : HttpContext.T("home.error.partial_realtime_failed")
-                    // Melengkapi struktur ekspresi SimpleMemberAccessExpression melalui .Replace(”{details}”, string.Join(”, ”, errorMessages)) dalam
-                    // GetRealtimeStatsInternal; token pada baris ini menyambungkan bagian kode sebelum dan sesudahnya.
-                    .Replace("{details}", string.Join(", ", errorMessages))
-        // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam GetRealtimeStatsInternal.
+            ErrorMessage = errors.IsEmpty ? null : HttpContext.T("home.error.partial_realtime_failed")
+                .Replace("{details}", string.Join(", ", errors.Distinct().Order()))
         };
-
-        // Memeriksa perbandingan kesamaan antara `errorMessages.Count` dan `0`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
-        // GetRealtimeStatsInternal.
-        if (errorMessages.Count == 0)
-        // Membuka scope cabang if untuk kondisi `errorMessages.Count == 0`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // GetRealtimeStatsInternal.
-        {
-            // Menjalankan memanggil `_memoryCache.Set` dengan `cacheKey`, `model`, `RealtimeStatsCacheDuration` dalam GetRealtimeStatsInternal.
-            _memoryCache.Set(cacheKey, model, RealtimeStatsCacheDuration);
-        // Menutup scope cabang if untuk kondisi `errorMessages.Count == 0`; bagian berikut berada di luar batas blok tersebut dalam
-        // GetRealtimeStatsInternal.
-        }
-
-        // Mengembalikan tuple yang membawa bagian 1: model; bagian 2: null kepada pemanggil dalam GetRealtimeStatsInternal; eksekusi jalur ini selesai
-        // setelah nilai hasil ditentukan.
+        if (errors.IsEmpty) _memoryCache.Set(cacheKey, model, RealtimeStatsCacheDuration);
         return (model, null);
-    // Menutup scope metode GetRealtimeStatsInternal; bagian berikut berada di luar batas blok tersebut dalam GetRealtimeStatsInternal.
     }
 
-    // Mendefinisikan metode `BuildRealtimeStatsCacheKey` dengan hasil bertipe `string`; operasi ini menangani build realtime stats cache kunci.
     private string BuildRealtimeStatsCacheKey()
     // Membuka scope metode BuildRealtimeStatsCacheKey; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam BuildRealtimeStatsCacheKey.
     {

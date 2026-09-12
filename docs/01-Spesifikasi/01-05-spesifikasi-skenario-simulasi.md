@@ -17,7 +17,7 @@ Dokumen ini menyatukan skenario permainan untuk Mode Pemula dan Mode Mahir. Tim 
 ### 1.1 Instruktur
 - Nama instruktur: Ibu Rina Kartika, S.Pd.
 - Peran sistem: `INSTRUCTOR`
-- Username contoh: `rina.kartika`
+- Username contoh: `hadziq`
 
 ### 1.2 Sesi Mode Pemula
 - Nama sesi: Simulasi Cashflowpoly Kelas XI IPS 2 - Mode Pemula - Kelompok A

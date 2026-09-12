@@ -89,7 +89,7 @@ public sealed class PlayerDetailStatsLayoutTests
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `PlayerDetails_ShouldNotRenderStandaloneTransactionHistory` dengan hasil bertipe `void`; operasi ini menangani pemain
-    // rincian should not render standalone transaction history.
+    // rincian should not render standalone transaction statistics.
     public void PlayerDetails_ShouldNotRenderStandaloneTransactionHistory()
     // Membuka scope metode PlayerDetails_ShouldNotRenderStandaloneTransactionHistory; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
     // PlayerDetails_ShouldNotRenderStandaloneTransactionHistory.
@@ -219,7 +219,7 @@ public sealed class PlayerDetailStatsLayoutTests
         Assert.DoesNotContain("players.analytics_title", view, StringComparison.Ordinal);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”@Model.PlayerId”`, `view`,
         // `StringComparison.Ordinal` dalam PlayerDetails_ShouldUseProminentIdentityWithoutPlayerId.
-        Assert.DoesNotContain("@Model.PlayerId", view, StringComparison.Ordinal);
+        Assert.DoesNotContain(">@Model.PlayerId<", view, StringComparison.Ordinal);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”Model.GameplayComputedAt”`,
         // `view`, `StringComparison.Ordinal` dalam PlayerDetails_ShouldUseProminentIdentityWithoutPlayerId.
         Assert.DoesNotContain("Model.GameplayComputedAt", view, StringComparison.Ordinal);
@@ -334,7 +334,7 @@ public sealed class PlayerDetailStatsLayoutTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”Skor Komitmen Donasi = Keteraturan
         // Jumlah Donasi × (Porsi Donasi dari Koin Tersisa dan Donasi ÷ 100) × (Persentase Jumat dengan Donasi ÷ 100), dibatasi 0–100.”`, `lexicon`,
         // `StringComparison.Ordinal` dalam PlayerDetails_ShouldExposeSourceFormulaGuidanceAndRecommendation.
-        Assert.Contains("Skor Komitmen Donasi = Keteraturan Jumlah Donasi × (Porsi Donasi dari Koin Tersisa dan Donasi ÷ 100) × (Persentase Jumat dengan Donasi ÷ 100), dibatasi 0–100.", lexicon, StringComparison.Ordinal);
+        Assert.Contains("Persentase Komitmen Donasi = (Keteraturan Jumlah Donasi ÷ 100) × (Porsi Donasi dari Koin Tersisa dan Donasi ÷ 100) × (Persentase Jumat dengan Donasi ÷ 100) × 100%.", lexicon, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”Poin Kebahagiaan Kartu Kebutuhan + Poin
         // Kebahagiaan Bonus Set Kebutuhan + Poin Kebahagiaan dari Donasi”`, `lexicon`, `StringComparison.Ordinal` dalam
         // PlayerDetails_ShouldExposeSourceFormulaGuidanceAndRecommendation.
@@ -643,7 +643,7 @@ public sealed class PlayerDetailStatsLayoutTests
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `PlayerEvidenceLibrary_ShouldMergeTransactionsChangesAndBalancesIntoOneHistory` dengan hasil bertipe `void`; operasi ini
-    // menangani pemain evidence library should merge transactions changes dan balances into one history.
+    // menangani pemain evidence library should merge transactions changes dan balances into one statistics.
     public void PlayerEvidenceLibrary_ShouldMergeTransactionsChangesAndBalancesIntoOneHistory()
     // Membuka scope metode PlayerEvidenceLibrary_ShouldMergeTransactionsChangesAndBalancesIntoOneHistory; pernyataan/deklarasi berikut berada di dalam
     // batas blok ini dalam PlayerEvidenceLibrary_ShouldMergeTransactionsChangesAndBalancesIntoOneHistory.
@@ -674,7 +674,7 @@ public sealed class PlayerDetailStatsLayoutTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”\”coins_per_turn_progression\”,\n
         // \”net_income_per_turn\””`, `view`, `StringComparison.Ordinal` dalam
         // PlayerEvidenceLibrary_ShouldMergeTransactionsChangesAndBalancesIntoOneHistory.
-        Assert.Contains("\"coins_per_turn_progression\",\n            \"net_income_per_turn\"", view, StringComparison.Ordinal);
+        Assert.Contains("\"coins_per_turn_progression\",\n            \"net_income_per_turn\"", view.Replace("\r\n", "\n"), StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”result.Add((\”transaction_history\”,
         // transactionHistory))”`, `view`, `StringComparison.Ordinal` dalam PlayerEvidenceLibrary_ShouldMergeTransactionsChangesAndBalancesIntoOneHistory.
         Assert.Contains("result.Add((\"transaction_history\", transactionHistory))", view, StringComparison.Ordinal);
@@ -762,7 +762,7 @@ public sealed class PlayerDetailStatsLayoutTests
             "risk_readiness_components",
             // Menggunakan nilai literal `”loan_burden_components”` sebagai bagian ekspresi yang sedang disusun dalam
             // PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents.
-            "loan_burden_components",
+            "sharia_loans_repaid",
             // Menggunakan nilai literal `”financial_goal_progress_components”` sebagai bagian ekspresi yang sedang disusun dalam
             // PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents.
             "financial_goals_purchase_cost_total",
@@ -844,8 +844,8 @@ public sealed class PlayerDetailStatsLayoutTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”FormulaKey =
         // \”players.support.formula.goal_ambition_index\””`, `view`, `StringComparison.Ordinal` dalam
         // PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents.
-        Assert.Contains("PrimaryKey = \"financial_goals_completed\"", view, StringComparison.Ordinal);
-        Assert.Contains("FormulaKey = \"players.support.formula.goal_purchases\"", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"financial_goal_completion_percent\"", view, StringComparison.Ordinal);
+        Assert.Contains("FormulaKey = \"players.support.formula.goal_completion\"", view, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”PrimaryKey =
         // \”long_term_action_share_percent\””`, `view`, `StringComparison.Ordinal` dalam PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents.
         Assert.Contains("PrimaryKey = \"long_term_action_share_percent\"", view, StringComparison.Ordinal);

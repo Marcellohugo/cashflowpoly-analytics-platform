@@ -27,9 +27,9 @@ public sealed class PlayerMetricNamingConsistencyTests
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
         { "risk-appetite", "risk_readiness_percent", "risk_appetite", ["risks_resolved_without_emergency", "life_risk_cards_drawn"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-        { "debt-discipline", "loan_burden_percent", "debt_leverage", ["outstanding_loan", "liquid_assets"] },
+        { "debt-discipline", "sharia_loans_taken", "loan_counts", ["sharia_loans_repaid", "sharia_loans_unpaid_end"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-        { "goal-ambition", "financial_goals_completed", "goal_purchases", ["financial_goals_purchase_cost_total", "financial_goals_incomplete_coins_wasted"] },
+        { "goal-ambition", "financial_goal_completion_percent", "goal_completion", ["financial_goals_completed", "financial_goals_attempted"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
         { "action-efficiency", "income_action_focus_percent", "action_efficiency", ["income_main_actions", "total_main_actions"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.

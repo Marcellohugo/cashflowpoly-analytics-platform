@@ -36,7 +36,7 @@ public sealed class AuthRegistrationOptions
 {
     // Mendefinisikan properti `AllowPublicInstructorRegistration` bertipe `bool` untuk nilai allow public instruktur registration; get menyediakan
     // pembacaan nilai, set mengizinkan penggantian nilai.
-    public bool AllowPublicInstructorRegistration { get; set; }
+    public bool AllowPublicInstructorRegistration { get; set; } = true;
 
     // Mendefinisikan metode `CanRegisterPublicly` dengan hasil bertipe `bool`; operasi ini menangani can register publicly. Masukan: Parameter `role`
     // bertipe `string` membawa peran pengguna yang menentukan hak akses. Nilai hasil langsung berasal dari gabungan syarat OR: setidaknya satu kondisi

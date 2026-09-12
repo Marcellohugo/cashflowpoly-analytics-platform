@@ -78,7 +78,7 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 | Daftar Sesi | `/sessions` | `SessionsController` | `Index` | `INSTRUCTOR` / `PLAYER` |
 | Detail Sesi & Analitika | `/sessions/{id}` | `SessionsController` | `Details` | `INSTRUCTOR` / `PLAYER` |
 | Performa Detil Pemain | `/sessions/{id}/players/{userId}` | `PlayersController` | `Details` | `INSTRUCTOR` / `PLAYER` |
-| Direktori Pemain Global | `/players` | `PlayerDirectoryController`| `Index` | `INSTRUCTOR` |
+| Statistik Pemain | `/statistics` | `PlayerStatisticsController` | `Index` | Player sendiri / Instruktur pemilik sesi |
 | Buku Aturan (Rulebook) | `/rulebook` | `HomeController` | `Rulebook` | Publik |
 | Daftar Ruleset | `/rulesets` | `RulesetsController` | `Index` | `INSTRUCTOR` / `PLAYER` |
 | Detail Versi Ruleset | `/rulesets/{id}` | `RulesetsController` | `Details` | `INSTRUCTOR` / `PLAYER` |

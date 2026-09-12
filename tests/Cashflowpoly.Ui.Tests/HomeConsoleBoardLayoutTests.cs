@@ -70,7 +70,7 @@ public sealed class HomeCommandCenterLayoutTests
         Assert.DoesNotContain("home-console-", viewContent);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”section-shell home-hero”`,
         // `viewContent` dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
-        Assert.DoesNotContain("section-shell home-hero", viewContent);
+        Assert.Contains("home-hero section-shell", viewContent);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”home-command-footer”`,
         // `viewContent` dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
         Assert.DoesNotContain("home-command-footer", viewContent);

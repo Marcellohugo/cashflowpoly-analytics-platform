@@ -12,7 +12,7 @@
 
 ## 1. Tujuan dan batasan
 
-Dokumen ini menjelaskan deployment manual Cashflowpoly ke VPS melalui Docker Compose dan Cloudflare Tunnel. Commit yang dipasang selalu commit terbaru `origin/prod`. VPS membangun image dari source, menjalankan migrasi maju, menyelaraskan Seed 2 secara idempoten, menghitung ulang analitik, lalu melakukan health check.
+Dokumen ini menjelaskan deployment manual Cashflowpoly ke VPS melalui Docker Compose dan Cloudflare Tunnel. Commit yang dipasang selalu commit terbaru `origin/prod`. VPS membangun image dari source, menjalankan migrasi maju beserta Seed 2 sesuai konfigurasi, menghitung ulang analitik, lalu melakukan health check.
 
 Keputusan operasional proyek:
 
@@ -40,8 +40,8 @@ PostgreSQL, API, UI, dan `/metrics` tidak diekspos langsung. Hanya Nginx yang di
 | Service | Image/runtime | Port internal | Akses publik |
 |---|---|---:|---|
 | `db` | PostgreSQL 16.15 | 5432 | Tidak |
-| `api` | .NET 10.0.4 | 5041 | Melalui `/api/` |
-| `ui` | .NET 10.0.4 | 5203 | Melalui `/` |
+| `api` | .NET 10.0.12 | 5041 | Melalui `/api/` |
+| `ui` | .NET 10.0.12 | 5203 | Melalui `/` |
 | `nginx` | nginx-unprivileged 1.31.3 | 8080 | Melalui tunnel |
 | `cloudflared` | 2026.8.1 | - | Koneksi keluar saja |
 
@@ -129,7 +129,7 @@ Skrip deployment melakukan langkah berikut:
 6. Menampilkan halaman pemeliharaan singkat bila ada rilis sebelumnya.
 7. Menyalakan PostgreSQL dan menunggu status sehat.
 8. Menjalankan API `--migrate-only`.
-9. Menjalankan Seed 2 idempoten melalui konfigurasi migrasi/seed.
+9. Menjalankan Seed 2 idempoten dengan `DATABASE_MIGRATIONS_SEED_SIMULATION=true` (default produksi), lalu melanjutkan rekalkulasi.
 10. Menjalankan `--recalculate-analytics` untuk seluruh sesi.
 11. Menyalakan API, UI, Nginx, dan tunnel baru.
 12. Memeriksa health container, `/health`, serta `/privacy`.
@@ -149,7 +149,7 @@ curl --fail https://narafin.org/privacy
 curl --fail https://narafin.org/terms
 ```
 
-Lakukan smoke test login Instruktur dan Player Seed 2, daftar sesi, setup, event, analitik pemain, buku aturan, Privasi, dan Ketentuan. Permintaan publik `https://narafin.org/metrics` harus menghasilkan `404`.
+Lakukan smoke test login Instruktur dan Player, termasuk akun demo Seed 2, daftar sesi, setup, event, analitik pemain, buku aturan, Privasi, dan Ketentuan. Permintaan publik `https://narafin.org/metrics` harus menghasilkan `404`.
 
 ## 9. Rollback dan kegagalan
 

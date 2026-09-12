@@ -36,11 +36,22 @@ public sealed class PlayerFinancialGoalViewTests
         Assert.True(cardStart >= 0);
         var card = html[cardStart..html.IndexOf("</article>", cardStart, StringComparison.Ordinal)];
         Assert.Contains(UiText.Translate(language, "players.raw.financial_goals_completed"), card);
-        Assert.Contains($"<strong>{count}<small>{UiText.Translate(language, "players.support.unit.goals")}</small></strong>", card);
-        Assert.Contains(string.Format(UiText.Translate(language, "players.analysis.goal_purchases.result"), cost), card);
+        var attempted = count + (savings > 0 ? 1 : 0);
+        if (attempted > 0)
+        {
+            Assert.Contains($"<strong>{count * 100 / attempted}<small>%</small></strong>", card);
+            Assert.Contains(string.Format(UiText.Translate(language, "players.analysis.goal_completion.result"), count, attempted), card);
+        }
+        else
+        {
+            Assert.Contains(UiText.Translate(language, "players.support.value.unavailable"), card);
+            Assert.DoesNotContain("<strong>0<small>%</small></strong>", card);
+        }
+        Assert.Contains(UiText.Translate(language, "players.raw.financial_goals_purchase_cost_total"), card);
+        Assert.Contains($"<strong>{cost}</strong>", card);
         Assert.Contains(UiText.Translate(language, "players.raw.financial_goals_incomplete_coins_wasted"), card);
         Assert.Contains($"<strong>{savings}</strong>", card);
-        Assert.DoesNotContain("%", card);
+        Assert.Contains(UiText.Translate(language, "players.metric.financial_goal_completion_percent"), card);
         Assert.DoesNotContain(UiText.Translate(language, "players.metric.financial_goal_progress_percent"), card);
     }
 
@@ -80,7 +91,7 @@ public sealed class PlayerFinancialGoalViewTests
         Assert.DoesNotContain($"<dt>{UiText.Translate(language, "players.metric.saving_actions")}</dt>", card);
         Assert.DoesNotContain("<strong>0</strong>", card);
         Assert.Contains(UiText.Translate(language, "players.raw.financial_goals_completed"), html);
-        Assert.Contains(string.Format(UiText.Translate(language, "players.analysis.goal_purchases.result"), 35), html);
+        Assert.Contains(string.Format(UiText.Translate(language, "players.analysis.goal_completion.result"), 1, 1), html);
     }
 
     [Theory]
@@ -94,12 +105,18 @@ public sealed class PlayerFinancialGoalViewTests
         var html = await RenderAsync(language, "advanced", count, count * 35, 0, outstandingLoan: outstandingLoan);
         var note = UiText.Translate(language, "players.analysis.goal_purchases.unpaid_loan");
         Assert.Equal(showNote, html.Contains(note, StringComparison.Ordinal));
-        Assert.Contains(string.Format(UiText.Translate(language, "players.analysis.goal_purchases.result"), count * 35), html);
+        if (count > 0)
+            Assert.Contains(string.Format(UiText.Translate(language, "players.analysis.goal_completion.result"), count, count), html);
     }
 
     private static async Task<string> RenderAsync(string language, string mode, int count, int cost, int savings,
         JsonElement? derived = null, int outstandingLoan = 0)
     {
+        var attempted = count + (savings > 0 ? 1 : 0);
+        var derivedValues = derived.HasValue
+            ? JsonSerializer.Deserialize<Dictionary<string, object?>>(derived.Value.GetRawText())!
+            : new Dictionary<string, object?>();
+        derivedValues["financial_goal_completion_percent"] = attempted > 0 ? (double?)count / attempted * 100 : null;
         var model = new PlayerDetailViewModel
         {
             SessionId = Guid.NewGuid(), PlayerId = Guid.NewGuid(), PlayerDisplayName = "Marco",
@@ -109,12 +126,13 @@ public sealed class PlayerFinancialGoalViewTests
                 financial_goals = new
                 {
                     financial_goals_completed = count,
+                    financial_goals_attempted = attempted,
                     financial_goals_purchase_cost_total = cost,
                     financial_goals_incomplete_coins_wasted = savings,
                     sharia_loans_outstanding_coins = outstandingLoan
                 }
             }),
-            GameplayDerived = derived ?? JsonSerializer.SerializeToElement(new { financial_goal_progress_percent = 100 })
+            GameplayDerived = JsonSerializer.SerializeToElement(derivedValues)
         };
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {

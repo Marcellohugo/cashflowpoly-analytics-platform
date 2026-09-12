@@ -34,6 +34,46 @@ public sealed class AuthRbacRulesetIntegrationTests
     private readonly HttpClient _client;
 
     [Fact]
+    public async Task Ruleset_CreateAndEdit_RejectDisabledMechanicsForBothModes()
+    {
+        var instructor = await RegisterAsync($"held_mechanics_{Guid.NewGuid():N}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+        using var defaultsResponse = await SendJsonAsync(HttpMethod.Get, "/api/v1/rulesets/components/defaults", null, instructor.AccessToken);
+        var defaults = await defaultsResponse.Content.ReadFromJsonAsync<DefaultRulesetComponentsResponse>();
+        Assert.NotNull(defaults);
+        foreach (var mode in new[] { "PEMULA", "MAHIR" })
+        {
+            var definition = defaults.Items.Single(d => d.Mode == mode).Definition;
+            Assert.NotNull(definition);
+            using var create = await SendJsonAsync(HttpMethod.Post, "/api/v1/rulesets", new { name = $"Held {mode}", definition }, instructor.AccessToken);
+            Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+            var created = (await create.Content.ReadFromJsonAsync<CreateRulesetResponse>())!;
+            var flags = new List<(string Group, string Key)>
+            {
+                ("player_ordering", "friday_enabled"), ("player_ordering", "saturday_enabled"),
+                ("player_ordering", "sunday_enabled"), ("settings", "gold_trade_allow_buy"),
+                ("settings", "gold_trade_allow_sell")
+            };
+            if (mode == "MAHIR") flags.AddRange([("settings", "loan_enabled"), ("settings", "insurance_enabled"), ("settings", "saving_goal_enabled")]);
+            foreach (var (group, key) in flags)
+            {
+                var changed = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(definition))!;
+                changed[group]![key] = false;
+                foreach (var method in new[] { HttpMethod.Post, HttpMethod.Put })
+                {
+                    var path = method == HttpMethod.Post ? "/api/v1/rulesets" : $"/api/v1/rulesets/{created.RulesetId}";
+                    using var response = await SendJsonAsync(method, path, new { name = "Unsupported mechanics", definition = changed }, instructor.AccessToken);
+                    Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+                    var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    Assert.Equal("DOMAIN_RULE_VIOLATION", error!.ErrorCode);
+                    Assert.Contains("Coming soon", error.Message);
+                }
+            }
+            using var detail = await SendJsonAsync(HttpMethod.Get, $"/api/v1/rulesets/{created.RulesetId}", null, instructor.AccessToken);
+            Assert.Single((await detail.Content.ReadFromJsonAsync<RulesetDetailResponse>())!.Versions);
+        }
+    }
+
+    [Fact]
     public async Task Ruleset_WithMissingNarrativeAction_ReturnsValidationError()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];

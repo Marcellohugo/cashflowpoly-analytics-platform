@@ -169,6 +169,15 @@ Baris sumber 125: Menutup elemen `div` (kontainer pengelompokan layout dan kompo
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="ReturnUrl" />
 
+                <div class="form-field">
+                    <label class="auth-label" for="register-role">@Context.T("auth.register_role")</label>
+                    <select class="auth-input" id="register-role" asp-for="Role" aria-describedby="register-role-hint" required>
+                        <option value="PLAYER">@Context.T("auth.role_player")</option>
+                        <option value="INSTRUCTOR">@Context.T("auth.role_instructor")</option>
+                    </select>
+                    <p id="register-role-hint" class="auth-copy">@Context.T("auth.register_role_hint")</p>
+                </div>
+
                 <div class="auth-form-grid auth-form-grid-2">
                     <div class="form-field">
                         <label class="auth-label" for="register-display-name">@Context.T("auth.display_name")</label>

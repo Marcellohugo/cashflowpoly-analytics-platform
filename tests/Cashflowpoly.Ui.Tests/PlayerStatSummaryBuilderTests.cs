@@ -57,7 +57,7 @@ public sealed class PlayerStatSummaryBuilderTests
 
         // Menyiapkan variabel lokal `summary` untuk nilai summary dengan memanggil `PlayerStatSummaryBuilder.Build` dengan `gameplay`, `null`, `null`,
         // `Translate`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var summary = PlayerStatSummaryBuilder.Build(gameplay, null, null, Translate);
+        var summary = PlayerStatSummaryBuilder.Build(gameplay, null, Translate);
 
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`expected`,
         // `summary.CollectionMissionComplete`); pengujian gagal jika keduanya berbeda dalam
@@ -77,7 +77,7 @@ public sealed class PlayerStatSummaryBuilderTests
     {
         // Menyiapkan variabel lokal `summary` untuk nilai summary dengan memanggil `PlayerStatSummaryBuilder.Build` dengan `null`, `null`, `null`,
         // `Translate`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var summary = PlayerStatSummaryBuilder.Build(null, null, null, Translate);
+        var summary = PlayerStatSummaryBuilder.Build(null, null, Translate);
 
         // Menjalankan pemeriksaan Null atas `summary.CollectionMissionComplete` untuk memastikan keberadaan nilai sesuai kontrak pengujian dalam
         // Build_MissingGameplayHasUnknownMissionResult.
@@ -115,7 +115,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             null,
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 
@@ -146,7 +145,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             null,
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 
@@ -177,7 +175,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             null,
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 
@@ -211,7 +208,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             null,
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 
@@ -242,7 +238,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             null,
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 
@@ -276,7 +271,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             null,
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 
@@ -319,7 +313,6 @@ public sealed class PlayerStatSummaryBuilderTests
             // false, yaitu kondisi nonaktif/tidak terpenuhi sebagai argumen bernama `hasUnpaidLoan`.
             BuildAnalyticsSummary(cashIn: 50, cashOut: 20, happiness: 72, fulfillmentDiversity: 0.9, hasUnpaidLoan: false),
             // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
-            null,
             // Meneruskan `Translate` (nilai translate) sebagai argumen ke `PlayerStatSummaryBuilder.Build`.
             Translate);
 

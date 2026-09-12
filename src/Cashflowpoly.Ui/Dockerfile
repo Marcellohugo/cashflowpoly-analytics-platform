@@ -1,7 +1,7 @@
 # Fungsi file: Membangun aset frontend dan image production UI MVC secara multi-stage.
 # assets
-# Uraian baris: Memulai tahap image dari node:20.19.5-alpine AS assets. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
-FROM node:20.19.5-alpine AS assets
+# Uraian baris: Memulai tahap image dari node:24.21.0-alpine AS assets. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
+FROM node:24.21.0-alpine AS assets
 # Uraian baris: Menetapkan direktori kerja /src/src/Cashflowpoly.Ui di dalam image; jalur relatif pada COPY, RUN, dan proses berikutnya diinterpretasikan dari lokasi ini.
 WORKDIR /src/src/Cashflowpoly.Ui
 
@@ -16,8 +16,8 @@ COPY src/Cashflowpoly.Ui/ ./
 RUN npm run tailwind:build
 
 # build
-# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/sdk:10.0.200 AS build. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.200 AS build
+# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/sdk:10.0.401 AS build. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
 # Uraian baris: Menetapkan direktori kerja /src di dalam image; jalur relatif pada COPY, RUN, dan proses berikutnya diinterpretasikan dari lokasi ini.
 WORKDIR /src
 
@@ -36,8 +36,8 @@ COPY --from=assets /src/src/Cashflowpoly.Ui/wwwroot/css/tailwind.css src/Cashflo
 RUN dotnet publish src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release -o /app/publish
 
 # runtime
-# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/aspnet:10.0.4 AS runtime. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.4 AS runtime
+# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/aspnet:10.0.12 AS runtime. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.12 AS runtime
 # Uraian baris: Menetapkan direktori kerja /app di dalam image; jalur relatif pada COPY, RUN, dan proses berikutnya diinterpretasikan dari lokasi ini.
 WORKDIR /app
 # Uraian baris: Bagian 1 dari 5 baris instruksi berikut. Memperbarui indeks paket Debian sebelum instalasi utilitas pada instruksi RUN yang sama; backslash meneruskan perintah ke baris sesudahnya.

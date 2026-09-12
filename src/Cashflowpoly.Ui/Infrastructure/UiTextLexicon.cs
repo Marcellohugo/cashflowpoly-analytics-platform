@@ -22,6 +22,7 @@ internal static partial class UiTextLexicon
         AddSessions(terms);
         // Menjalankan memanggil `AddPlayers` dengan `terms` dalam Build.
         AddPlayers(terms);
+        AddStatistics(terms);
         // Menjalankan memanggil `AddRulesets` dengan `terms` dalam Build.
         AddRulesets(terms);
         // Menjalankan memanggil `AddRulebook` dengan `terms` dalam Build.
@@ -34,6 +35,7 @@ internal static partial class UiTextLexicon
 
     // Mendefinisikan metode `AddCore` dengan hasil bertipe `void`; operasi ini menangani add core. Masukan: Parameter `terms` bertipe
     // `Dictionary<string, (string Id, string En)>` membawa nilai terms.
+    private static partial void AddStatistics(Dictionary<string, (string Id, string En)> terms);
     private static partial void AddCore(Dictionary<string, (string Id, string En)> terms);
 
     // Mendefinisikan metode `AddSessions` dengan hasil bertipe `void`; operasi ini menangani add sessions. Masukan: Parameter `terms` bertipe

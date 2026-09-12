@@ -531,6 +531,7 @@ Baris sumber 577: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
 @{
     ViewData["Title"] = Context.T("sessions.detail_title");
     var isInstructor = Context.IsInstructor();
+    var currentPlayerId = Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     var playerDisplayNames = Model.PlayerDisplayNames;
     var fallbackPlayerNames = new Dictionary<Guid, string>();
     var fallbackPlayerIndex = 1;
@@ -692,7 +693,7 @@ Baris sumber 577: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
            asp-action="Index">@("<- " + Context.T("sessions.back_to_list"))</a>
     </div>
 
-    <div class="ruleset-hero">
+    <div class="page-intro">
         <div>
             <p class="eyebrow text-emerald-700">@Context.T("sessions.analytics_title")</p>
             <h1 class="headline">@Context.T("sessions.detail_title")</h1>
@@ -828,7 +829,7 @@ Baris sumber 577: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
         var playerRankLookup = rankedPlayers
             .Select((item, index) => new { item.UserId, Rank = index + 1 })
             .ToDictionary(item => item.UserId, item => item.Rank);
-        var currentPlayerSummary = isInstructor ? null : orderedPlayers.FirstOrDefault();
+        var currentPlayerSummary = isInstructor ? null : orderedPlayers.FirstOrDefault(p => p.UserId.ToString() == currentPlayerId);
         var happinessScoreRows = new[]
         {
             new { Number = 1, Label = Context.T("sessions.score.need_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.NeedPointsTotal).ToList() },
@@ -932,9 +933,12 @@ Baris sumber 577: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                                         <span class="happiness-score-player-meta">
                                             @Context.T("common.turn_order") @turnOrder · @Context.T("common.rank") @(rank > 0 ? rank : "-")
                                         </span>
+                                        @if (isInstructor || item.UserId.ToString() == currentPlayerId)
+                                        {
                                         <a class="table-link"
                                            asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
                                            asp-route-playerId="@item.UserId">@Context.T("sessions.view_analytics")</a>
+                                        }
                                     </span>
                                 </th>
                             }
@@ -990,9 +994,12 @@ Baris sumber 577: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                             <div>
                                 <h3>@ResolvePlayerName(item.UserId)</h3>
                                 <p>@Context.T("common.turn_order") @turnOrder · @Context.T("common.rank") @(rank > 0 ? rank : "-")</p>
+                                @if (isInstructor || item.UserId.ToString() == currentPlayerId)
+                                {
                                 <a class="table-link"
                                    asp-controller="Players" asp-action="Details" asp-route-sessionId="@Model.SessionId"
                                    asp-route-playerId="@item.UserId">@Context.T("sessions.view_analytics")</a>
+                                }
                             </div>
                         </header>
                         <dl>

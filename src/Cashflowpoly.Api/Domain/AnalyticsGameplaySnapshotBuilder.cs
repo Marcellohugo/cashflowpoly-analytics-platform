@@ -1049,6 +1049,9 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             };
             // Memperbarui `derived[”financial_goal_progress_percent”]` menggunakan memanggil `SafeRatio` dengan `coinsCommittedToGoals`,
             // `attemptedGoalTargetTotal`, `true` dalam Build.
+            // Persentase pembelian memakai jumlah target, terpisah dari progres dana.
+            derived["financial_goal_completion_percent"] = SafeRatio(
+                savingGoalMetrics.FinancialGoalsCompleted, savingGoalMetrics.FinancialGoalsAttempted, true);
             derived["financial_goal_progress_percent"] = SafeRatio(
                 // Meneruskan `coinsCommittedToGoals` (nilai coins committed ke target) sebagai argumen ke `SafeRatio`.
                 coinsCommittedToGoals,

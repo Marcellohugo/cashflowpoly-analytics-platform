@@ -523,6 +523,11 @@ public sealed class RulesetsController : ControllerBase
 
         // Menjalankan hasil operasi asinkron memanggil `_rulesets.ActivateRulesetVersionAsync` dengan `rulesetId`, `version`, `ct`; await menunggu hasil
         // tanpa memblokir thread selama operasi belum selesai dalam ActivateRulesetVersion.
+        if (selectedVersion.Definition is { } activatingDefinition &&
+            ValidateMechanicAvailability(activatingDefinition) is { } mechanicError)
+        {
+            return mechanicError;
+        }
         await _rulesets.ActivateRulesetVersionAsync(rulesetId, version, ct);
         // Mengembalikan membentuk respons HTTP 200 dengan `new CreateRulesetResponse(rulesetId, selectedVersion.RulesetVersionId, version)` sebagai hasil
         // berhasil kepada pemanggil dalam ActivateRulesetVersion; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
@@ -1706,13 +1711,29 @@ public sealed class RulesetsController : ControllerBase
 
         // Mengembalikan tuple yang membawa bagian 1: definition; bagian 2: null kepada pemanggil dalam PrepareDefinitionForWriteAsync; eksekusi jalur ini
         // selesai setelah nilai hasil ditentukan.
-        return (definition, null);
+        return (definition, ValidateMechanicAvailability(definition));
     // Menutup scope metode PrepareDefinitionForWriteAsync; bagian berikut berada di luar batas blok tersebut dalam PrepareDefinitionForWriteAsync.
     }
 
     // Mendefinisikan metode `CloneDefinition` dengan hasil bertipe `RulesetDefinitionDto`; operasi ini menangani clone definisi. Masukan: Parameter
     // `source` bertipe `RulesetDefinitionDto` membawa nilai source; Parameter `actions` bertipe `IReadOnlyCollection<RulesetActionDto>` membawa nilai
     // aksi.
+    private IActionResult? ValidateMechanicAvailability(RulesetDefinitionDto definition)
+    {
+        var settings = definition.Settings;
+        var ordering = definition.PlayerOrdering;
+        var advanced = string.Equals(definition.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase);
+        if (!ordering.FridayEnabled || !ordering.SaturdayEnabled || !ordering.SundayEnabled ||
+            !settings.GoldTradeAllowBuy || !settings.GoldTradeAllowSell ||
+            settings.LoanEnabled != advanced || settings.InsuranceEnabled != advanced ||
+            settings.SavingGoalEnabled != advanced)
+        {
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION",
+                "Pengubahan mekanik permainan belum tersedia (Coming soon). Gunakan mekanik bawaan sesuai mode."));
+        }
+        return null;
+    }
+
     private static RulesetDefinitionDto CloneDefinition(
         // Parameter `source` bertipe `RulesetDefinitionDto` membawa nilai source.
         RulesetDefinitionDto source,

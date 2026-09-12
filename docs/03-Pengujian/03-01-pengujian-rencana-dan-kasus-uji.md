@@ -635,7 +635,7 @@ Gerbang akhir wajib dijalankan tanpa parameter skip. Parameter `-SkipBrowser`, `
 
 ### 14.2B Web UI smoke test
 1. Login ke UI menggunakan akun valid.
-2. Verifikasi halaman utama (`/`, `/sessions`, `/players`, `/rulesets`, `/rulebook`) dapat diakses tanpa error, dan route kompatibilitas `/analytics` atau `/Analytics` melakukan redirect yang benar ke halaman sesi.
+2. Verifikasi halaman utama (`/`, `/sessions`, `/statistics`, `/rulesets`, `/rulebook`) dapat diakses tanpa error, dan route kompatibilitas `/analytics` atau `/Analytics` melakukan redirect yang benar ke halaman sesi.
 3. Pada environment Development, verifikasi Swagger API (`/swagger`) dapat diakses. Swagger tidak diekspos pada Production.
 
 ### 14.3 Definition of Done (DoD)

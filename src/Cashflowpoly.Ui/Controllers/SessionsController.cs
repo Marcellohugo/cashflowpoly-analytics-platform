@@ -47,101 +47,111 @@ public sealed class SessionsController : Controller
     {
         // Menyiapkan variabel lokal `client` untuk nilai client dengan memanggil `_clientFactory.CreateClient` dengan `”Api”`. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
-        var client = _clientFactory.CreateClient("Api");
-        // Menyiapkan variabel lokal `response` untuk hasil respons yang akan dibaca atau dikirim kepada pemanggil dengan hasil operasi asinkron memanggil
-        // `client.GetAsync` dengan `”api/v1/sessions”`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel
-        // disimpulkan dari ekspresi nilai awal.
-        var response = await client.GetAsync("api/v1/sessions", ct);
-        // Menyiapkan variabel lokal `unauthorized` untuk nilai unauthorized dengan memanggil `this.HandleUnauthorizedApiResponse` dengan `response`. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        // Memeriksa hasil pencocokan `unauthorized` dengan pola `not null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam Index.
-        if (unauthorized is not null)
-        // Membuka scope cabang if untuk kondisi `unauthorized is not null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
+        try
         {
-            // Mengembalikan `unauthorized` (nilai unauthorized) kepada pemanggil dalam Index; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-            return unauthorized;
-        // Menutup scope cabang if untuk kondisi `unauthorized is not null`; bagian berikut berada di luar batas blok tersebut dalam Index.
-        }
-
-        // Memeriksa kebalikan kondisi `response.IsSuccessStatusCode`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam Index.
-        if (!response.IsSuccessStatusCode)
-        // Membuka scope cabang if untuk kondisi `!response.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
-        {
-            // Memeriksa perbandingan kesamaan antara `response.StatusCode` dan `HttpStatusCode.TooManyRequests`; blok if hanya dijalankan ketika kondisi ini
-            // bernilai benar dalam Index.
-            if (response.StatusCode == HttpStatusCode.TooManyRequests)
-            // Membuka scope cabang if untuk kondisi `response.StatusCode == HttpStatusCode.TooManyRequests`; pernyataan/deklarasi berikut berada di dalam batas
-            // blok ini dalam Index.
+            var client = _clientFactory.CreateClient("Api");
+            // Menyiapkan variabel lokal `response` untuk hasil respons yang akan dibaca atau dikirim kepada pemanggil dengan hasil operasi asinkron memanggil
+            // `client.GetAsync` dengan `”api/v1/sessions”`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel
+            // disimpulkan dari ekspresi nilai awal.
+            var response = await client.GetAsync("api/v1/sessions", ct);
+            // Menyiapkan variabel lokal `unauthorized` untuk nilai unauthorized dengan memanggil `this.HandleUnauthorizedApiResponse` dengan `response`. Tipe
+            // variabel disimpulkan dari ekspresi nilai awal.
+            var unauthorized = this.HandleUnauthorizedApiResponse(response);
+            // Memeriksa hasil pencocokan `unauthorized` dengan pola `not null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam Index.
+            if (unauthorized is not null)
+            // Membuka scope cabang if untuk kondisi `unauthorized is not null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
             {
-                // Mengembalikan menyiapkan tampilan Razor dengan `new SessionListViewModel { ErrorMessage = HttpContext.T(”sessions.error.too_many_requests”) }`
-                // sebagai nama tampilan atau modelnya kepada pemanggil dalam Index; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
+                // Mengembalikan `unauthorized` (nilai unauthorized) kepada pemanggil dalam Index; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
+                return unauthorized;
+            // Menutup scope cabang if untuk kondisi `unauthorized is not null`; bagian berikut berada di luar batas blok tersebut dalam Index.
+            }
+
+            // Memeriksa kebalikan kondisi `response.IsSuccessStatusCode`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam Index.
+            if (!response.IsSuccessStatusCode)
+            // Membuka scope cabang if untuk kondisi `!response.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
+            {
+                // Memeriksa perbandingan kesamaan antara `response.StatusCode` dan `HttpStatusCode.TooManyRequests`; blok if hanya dijalankan ketika kondisi ini
+                // bernilai benar dalam Index.
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                // Membuka scope cabang if untuk kondisi `response.StatusCode == HttpStatusCode.TooManyRequests`; pernyataan/deklarasi berikut berada di dalam batas
+                // blok ini dalam Index.
+                {
+                    // Mengembalikan menyiapkan tampilan Razor dengan `new SessionListViewModel { ErrorMessage = HttpContext.T(”sessions.error.too_many_requests”) }`
+                    // sebagai nama tampilan atau modelnya kepada pemanggil dalam Index; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
+                    return View(new SessionListViewModel
+                    // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
+                    {
+                        // Memperbarui `ErrorMessage` menggunakan memanggil `HttpContext.T` dengan `”sessions.error.too_many_requests”` dalam Index.
+                        ErrorMessage = HttpContext.T("sessions.error.too_many_requests")
+                    // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam Index.
+                    });
+                // Menutup scope cabang if untuk kondisi `response.StatusCode == HttpStatusCode.TooManyRequests`; bagian berikut berada di luar batas blok tersebut
+                // dalam Index.
+                }
+
+                // Mengembalikan menyiapkan tampilan Razor dengan `new SessionListViewModel { ErrorMessage = HttpContext .T(”sessions.error.load_sessions_failed”)
+                // .Replace(”{status}”, ((int)response.StatusCode).ToString()) }` sebagai nama tampilan atau modelnya kepada pemanggil dalam Index; eksekusi jalur
+                // ini selesai setelah nilai hasil ditentukan.
                 return View(new SessionListViewModel
                 // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
                 {
-                    // Memperbarui `ErrorMessage` menggunakan memanggil `HttpContext.T` dengan `”sessions.error.too_many_requests”` dalam Index.
-                    ErrorMessage = HttpContext.T("sessions.error.too_many_requests")
+                    // Memperbarui `ErrorMessage` menggunakan memanggil `HttpContext .T(”sessions.error.load_sessions_failed”) .Replace` dengan `”{status}”`,
+                    // `((int)response.StatusCode).ToString()` dalam Index.
+                    ErrorMessage = HttpContext
+                        // Meneruskan nilai literal `”sessions.error.load_sessions_failed”` sebagai argumen ke `HttpContext .T`.
+                        .T("sessions.error.load_sessions_failed")
+                        // Meneruskan nilai literal `”{status}”` sebagai argumen ke `HttpContext .T(”sessions.error.load_sessions_failed”) .Replace`; Meneruskan mengubah
+                        // `((int)response.StatusCode)` menjadi teks sebagai argumen ke `HttpContext .T(”sessions.error.load_sessions_failed”) .Replace`.
+                        .Replace("{status}", ((int)response.StatusCode).ToString())
                 // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam Index.
                 });
-            // Menutup scope cabang if untuk kondisi `response.StatusCode == HttpStatusCode.TooManyRequests`; bagian berikut berada di luar batas blok tersebut
-            // dalam Index.
+            // Menutup scope cabang if untuk kondisi `!response.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam Index.
             }
 
-            // Mengembalikan menyiapkan tampilan Razor dengan `new SessionListViewModel { ErrorMessage = HttpContext .T(”sessions.error.load_sessions_failed”)
-            // .Replace(”{status}”, ((int)response.StatusCode).ToString()) }` sebagai nama tampilan atau modelnya kepada pemanggil dalam Index; eksekusi jalur
-            // ini selesai setelah nilai hasil ditentukan.
-            return View(new SessionListViewModel
-            // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
+            // Menyiapkan variabel lokal `data` untuk nilai data dengan hasil operasi asinkron memanggil
+            // `response.Content.TryReadFromJsonAsync<SessionListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
+            // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
+            var data = await response.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
+            var items = data?.Items ?? [];
+            var groups = await SessionRosterLoader.LoadAsync(client, items, true, ct);
+            if (groups.Any(g => g.Unauthorized))
             {
-                // Memperbarui `ErrorMessage` menggunakan memanggil `HttpContext .T(”sessions.error.load_sessions_failed”) .Replace` dengan `”{status}”`,
-                // `((int)response.StatusCode).ToString()` dalam Index.
-                ErrorMessage = HttpContext
-                    // Meneruskan nilai literal `”sessions.error.load_sessions_failed”` sebagai argumen ke `HttpContext .T`.
-                    .T("sessions.error.load_sessions_failed")
-                    // Meneruskan nilai literal `”{status}”` sebagai argumen ke `HttpContext .T(”sessions.error.load_sessions_failed”) .Replace`; Meneruskan mengubah
-                    // `((int)response.StatusCode)` menjadi teks sebagai argumen ke `HttpContext .T(”sessions.error.load_sessions_failed”) .Replace`.
-                    .Replace("{status}", ((int)response.StatusCode).ToString())
-            // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam Index.
+                using var expired = new HttpResponseMessage(HttpStatusCode.Unauthorized);
+                return this.HandleUnauthorizedApiResponse(expired)!;
+            }
+            var participantsComplete = groups.All(g => g.ParticipantsAvailable);
+            return View(new SessionListViewModel
+            {
+                Items = items, SessionGroups = groups, SessionsAvailable = data?.Items is not null,
+                MonitoredPlayers = data?.Items is not null && participantsComplete
+                    ? groups.SelectMany(g => g.Players).Select(p => p.PlayerId).Distinct().Count() : null,
+                ErrorMessage = data?.Items is null || groups.Any(g => !g.ParticipantsAvailable || (g.Status == "ENDED" && !g.ResultsAvailable))
+                    ? HttpContext.T("players.error.load_session_details_partial") : null
             });
-        // Menutup scope cabang if untuk kondisi `!response.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam Index.
         }
-
-        // Menyiapkan variabel lokal `data` untuk nilai data dengan hasil operasi asinkron memanggil
-        // `response.Content.TryReadFromJsonAsync<SessionListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
-        // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var data = await response.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
-        // Mengembalikan menyiapkan tampilan Razor dengan `new SessionListViewModel { Items = data?.Items ?? new List<SessionListItem>() }` sebagai nama
-        // tampilan atau modelnya kepada pemanggil dalam Index; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return View(new SessionListViewModel
-        // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Index.
-        {
-            // Memperbarui `Items` menggunakan `data?.Items` bila tidak null; jika null gunakan `new List<SessionListItem>()` sebagai nilai pengganti dalam
-            // Index.
-            Items = data?.Items ?? new List<SessionListItem>()
-        // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam Index.
-        });
-    // Menutup scope metode Index; bagian berikut berada di luar batas blok tersebut dalam Index.
+        catch (HttpRequestException) { return View(new SessionListViewModel { ErrorMessage = HttpContext.T("auth.error.api_unavailable") }); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { return View(new SessionListViewModel { ErrorMessage = HttpContext.T("auth.error.api_unavailable") }); }
     }
 
-    // mendaftarkan action untuk metode HTTP GET pada rute (”{sessionId:guid}”).
     [HttpGet("{sessionId:guid}")]
     // Mendefinisikan metode `Details` dengan hasil bertipe `Task<IActionResult>`; operasi ini menangani rincian. async memungkinkan metode menunggu
     // operasi I/O dengan await dan mengembalikan penyelesaian melalui Task. Masukan: Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi
     // permainan yang menjadi batas data operasi ini; Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan
     // ketika pemanggil membatalkan permintaan atau aplikasi berhenti.
     public async Task<IActionResult> Details(Guid sessionId, CancellationToken ct)
-    // Membuka scope metode Details; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Details.
     {
-        // Menyiapkan variabel lokal `detail` untuk nilai detail dengan hasil operasi asinkron memanggil `BuildSessionDetailViewModel` dengan `sessionId`,
-        // `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var detail = await BuildSessionDetailViewModel(sessionId, ct);
-        // Mengembalikan `detail.Result` bila tidak null; jika null gunakan `View(detail.Model)` sebagai nilai pengganti kepada pemanggil dalam Details;
-        // eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return detail.Result ?? View(detail.Model);
-    // Menutup scope metode Details; bagian berikut berada di luar batas blok tersebut dalam Details.
+        try
+        {
+            var detail = await BuildSessionDetailViewModel(sessionId, ct);
+            return detail.Result ?? View(detail.Model);
+        }
+        catch (HttpRequestException)
+        { return View(new SessionDetailViewModel { SessionId = sessionId, ErrorMessage = HttpContext.T("auth.error.api_unavailable") }); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { return View(new SessionDetailViewModel { SessionId = sessionId, ErrorMessage = HttpContext.T("auth.error.api_unavailable") }); }
     }
 
-    // mendaftarkan action untuk metode HTTP GET pada rute (”{sessionId:guid}/timeline”).
     [HttpGet("{sessionId:guid}/timeline")]
     // Mendefinisikan metode `Timeline` dengan hasil bertipe `Task<IActionResult>`; operasi ini menangani timeline. async memungkinkan metode menunggu
     // operasi I/O dengan await dan mengembalikan penyelesaian melalui Task. Masukan: Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi
@@ -222,6 +232,13 @@ public sealed class SessionsController : Controller
         // `response.Content.TryReadFromJsonAsync<EventsBySessionResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
         // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var data = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
+        if (data?.Items is null || (data.HasMore && (string.IsNullOrWhiteSpace(data.NextCursor) || data.NextCursor == cursor)))
+            return Json(new
+            {
+                timeline = Array.Empty<SessionTimelineEventViewModel>(),
+                errorMessage = HttpContext.T("sessions.error.timeline_incomplete"),
+                lastSyncedAt = DateTimeOffset.UtcNow
+            });
         // Menyiapkan variabel lokal `language` untuk nilai language dengan memanggil `UiText.NormalizeLanguage` dengan
         // `HttpContext.Session.GetString(AuthConstants.SessionLanguageKey)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
@@ -231,7 +248,7 @@ public sealed class SessionsController : Controller
         // Menyiapkan variabel lokal `playerDisplayNames` untuk nilai pemain display nama dengan hasil operasi asinkron memanggil
         // `LoadPlayerDisplayNameMapAsync` dengan `client`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel
         // disimpulkan dari ekspresi nilai awal.
-        var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, ct);
+        var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, sessionId, ct);
         // Menjalankan memanggil `SessionTimelineMapper.ApplyPlayerDisplayNames` dengan `timeline`, `playerDisplayNames` dalam Timeline.
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
 
@@ -314,7 +331,7 @@ public sealed class SessionsController : Controller
         var sessionStatus = await GetSessionStatusAsync(client, sessionId, ct);
         // Menyiapkan variabel lokal `playerDisplayNamesTask` untuk nilai pemain display nama task dengan memanggil `LoadPlayerDisplayNameMapAsync` dengan
         // `client`, `ct`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerDisplayNamesTask = LoadPlayerDisplayNameMapAsync(client, ct);
+        var playerDisplayNamesTask = LoadPlayerDisplayNameMapAsync(client, sessionId, ct);
         // Menyiapkan variabel lokal `timelineTask` untuk nilai timeline task dengan memanggil `LoadTimelineAsync` dengan `client`, `sessionId`, `language`,
         // `ct`. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var timelineTask = LoadTimelineAsync(client, sessionId, language, ct);
@@ -375,6 +392,8 @@ public sealed class SessionsController : Controller
         // `response.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
         // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var analytics = await response.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
+        if (analytics?.SessionId != sessionId || analytics.Summary is null || analytics.ByPlayer is null)
+            analytics = null;
         // Menyiapkan variabel lokal `playerDisplayNames` untuk nilai pemain display nama dengan hasil operasi asinkron `playerDisplayNamesTask` (nilai
         // pemain display nama task); await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi
         // nilai awal.
@@ -385,12 +404,12 @@ public sealed class SessionsController : Controller
         // Menjalankan memanggil `SessionTimelineMapper.ApplyPlayerDisplayNames` dengan `timeline`, `playerDisplayNames` dalam BuildSessionDetailViewModel.
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
         // Menyiapkan variabel lokal `activeRulesetDetail` untuk nilai aktif aturan detail dengan hasil pemilihan bersyarat: ketika `analytics?.RulesetId is
-        // Guid rulesetId` benar gunakan `await LoadActiveRulesetDetailAsync(client, rulesetId, ct)`, jika tidak gunakan `null`. Tipe variabel disimpulkan
+        // Guid rulesetId` benar gunakan `await LoadActiveRulesetDetailAsync(client, rulesetId, analytics.RulesetVersionId, ct)`, jika tidak gunakan `null`. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
         var activeRulesetDetail = analytics?.RulesetId is Guid rulesetId
-            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: await LoadActiveRulesetDetailAsync(client, rulesetId, ct) dalam
+            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: await LoadActiveRulesetDetailAsync(client, rulesetId, analytics.RulesetVersionId, ct) dalam
             // BuildSessionDetailViewModel.
-            ? await LoadActiveRulesetDetailAsync(client, rulesetId, ct)
+            ? await LoadActiveRulesetDetailAsync(client, rulesetId, analytics.RulesetVersionId, ct)
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: null; dalam BuildSessionDetailViewModel.
             : null;
         // Menyiapkan variabel lokal `activeRulesetViewModel` untuk nilai aktif aturan view model dengan hasil pemilihan bersyarat: ketika
@@ -439,7 +458,7 @@ public sealed class SessionsController : Controller
             // Memperbarui `PlayerDisplayNames` menggunakan `playerDisplayNames` (nilai pemain display nama) dalam BuildSessionDetailViewModel.
             PlayerDisplayNames = playerDisplayNames,
             // Memperbarui `ErrorMessage` menggunakan null, yaitu penanda tidak ada nilai dalam BuildSessionDetailViewModel.
-            ErrorMessage = null
+            ErrorMessage = analytics is null ? HttpContext.T("sessions.error.invalid_analytics") : null
         // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam BuildSessionDetailViewModel.
         }, null);
     // Menutup scope metode BuildSessionDetailViewModel; bagian berikut berada di luar batas blok tersebut dalam BuildSessionDetailViewModel.
@@ -455,6 +474,7 @@ public sealed class SessionsController : Controller
         HttpClient client,
         // Parameter `rulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan.
         Guid rulesetId,
+        Guid? versionId,
         // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
         // aplikasi berhenti.
         CancellationToken ct)
@@ -477,22 +497,20 @@ public sealed class SessionsController : Controller
             var detail = await response.Content.TryReadFromJsonAsync<RulesetDetailResponse>(cancellationToken: ct);
             // Memeriksa hasil pencocokan `detail` dengan pola `not null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
             // LoadActiveRulesetDetailAsync.
-            if (detail is not null)
-            // Membuka scope cabang if untuk kondisi `detail is not null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-            // LoadActiveRulesetDetailAsync.
+            if (detail is not null && versionId.HasValue)
             {
-                // Mengembalikan `detail` (nilai detail) kepada pemanggil dalam LoadActiveRulesetDetailAsync; eksekusi jalur ini selesai setelah nilai hasil
-                // ditentukan.
-                return detail;
-            // Menutup scope cabang if untuk kondisi `detail is not null`; bagian berikut berada di luar batas blok tersebut dalam LoadActiveRulesetDetailAsync.
+                if (detail.RulesetVersionId == versionId) return detail;
+                var version = detail.Versions?.FirstOrDefault(v => v.RulesetVersionId == versionId);
+                if (version is null) return null;
+                using var componentsResponse = await client.GetAsync($"api/v1/rulesets/{rulesetId}/components?version={version.Version}", ct);
+                var components = componentsResponse.IsSuccessStatusCode
+                    ? await componentsResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponse>(ct) : null;
+                return components?.RulesetVersionId == versionId
+                    ? detail with { RulesetVersionId = versionId, Version = components.Version, Mode = components.Mode, Definition = components.Definition }
+                    : null;
             }
-        // Menutup scope cabang if untuk kondisi `response.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam
-        // LoadActiveRulesetDetailAsync.
         }
 
-        // Menyiapkan variabel lokal `defaultsResponse` untuk nilai defaults respons dengan hasil operasi asinkron memanggil `client.GetAsync` dengan
-        // `”api/v1/rulesets/components/defaults”`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel
-        // disimpulkan dari ekspresi nilai awal.
         var defaultsResponse = await client.GetAsync("api/v1/rulesets/components/defaults", ct);
         // Memeriksa `defaultsResponse.IsSuccessStatusCode` (nilai berstatus success status kode); blok if hanya dijalankan ketika kondisi ini bernilai
         // benar dalam LoadActiveRulesetDetailAsync.
@@ -506,7 +524,7 @@ public sealed class SessionsController : Controller
             var defaultsData = await defaultsResponse.Content.TryReadFromJsonAsync<DefaultRulesetComponentsResponse>(cancellationToken: ct);
             // Menyiapkan variabel lokal `fallbackItem` untuk nilai fallback elemen dengan `defaultsData?.Items?.FirstOrDefault(item => item.RulesetId ==
             // rulesetId)`; akses setelah ?. hanya dilakukan bila penerimanya tidak null. Tipe variabel disimpulkan dari ekspresi nilai awal.
-            var fallbackItem = defaultsData?.Items?.FirstOrDefault(item => item.RulesetId == rulesetId);
+            var fallbackItem = defaultsData?.Items?.FirstOrDefault(item => item.RulesetId == rulesetId && item.RulesetVersionId == versionId);
             // Memeriksa hasil pencocokan `fallbackItem` dengan pola `not null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
             // LoadActiveRulesetDetailAsync.
             if (fallbackItem is not null)
@@ -600,7 +618,7 @@ public sealed class SessionsController : Controller
         var data = await sessionResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
         // Mengembalikan `data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status`; akses setelah ?. hanya dilakukan bila penerimanya tidak null
         // kepada pemanggil dalam GetSessionStatusAsync; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return data?.Items.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
+        return data?.Items?.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
     // Menutup scope metode GetSessionStatusAsync; bagian berikut berada di luar batas blok tersebut dalam GetSessionStatusAsync.
     }
 
@@ -611,6 +629,7 @@ public sealed class SessionsController : Controller
     private static async Task<Dictionary<Guid, string>> LoadPlayerDisplayNameMapAsync(
         // Parameter `client` bertipe `HttpClient` membawa nilai client.
         HttpClient client,
+        Guid sessionId,
         // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
         // aplikasi berhenti.
         CancellationToken ct)
@@ -620,7 +639,7 @@ public sealed class SessionsController : Controller
         // Menyiapkan variabel lokal `response` untuk hasil respons yang akan dibaca atau dikirim kepada pemanggil dengan hasil operasi asinkron memanggil
         // `client.GetAsync` dengan `”api/v1/players”`, `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel
         // disimpulkan dari ekspresi nilai awal.
-        var response = await client.GetAsync("api/v1/players", ct);
+        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/players", ct);
         // Memeriksa kebalikan kondisi `response.IsSuccessStatusCode`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
         // LoadPlayerDisplayNameMapAsync.
         if (!response.IsSuccessStatusCode)
@@ -635,13 +654,13 @@ public sealed class SessionsController : Controller
         }
 
         // Menyiapkan variabel lokal `data` untuk nilai data dengan hasil operasi asinkron memanggil
-        // `response.Content.TryReadFromJsonAsync<PlayerListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
+        // `response.Content.TryReadFromJsonAsync<SessionPlayerListResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
         // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var data = await response.Content.TryReadFromJsonAsync<PlayerListResponse>(cancellationToken: ct);
-        // Mengembalikan membangun kamus dari `(data?.Items ?? new List<PlayerResponse>()) .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
+        var data = await response.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
+        // Mengembalikan membangun kamus dari `(data?.Items ?? new List<SessionPlayerResponse>()) .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
         // .GroupBy(item => item.UserId)` dengan pemilihan kunci/nilai `group => group.Key`, `group => group.First().DisplayName`; kunci harus unik agar
         // konversi berhasil kepada pemanggil dalam LoadPlayerDisplayNameMapAsync; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return (data?.Items ?? new List<PlayerResponse>())
+        return (data?.Items ?? new List<SessionPlayerResponse>())
             // Melengkapi struktur ekspresi SimpleMemberAccessExpression melalui .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName)) dalam
             // LoadPlayerDisplayNameMapAsync; token pada baris ini menyambungkan bagian kode sebelum dan sesudahnya.
             .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
@@ -660,99 +679,26 @@ public sealed class SessionsController : Controller
     // permainan yang menjadi batas data operasi ini; Parameter `language` bertipe `string` membawa nilai language; Parameter `ct` bertipe
     // `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti.
     private async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
-        // Parameter `client` bertipe `HttpClient` membawa nilai client.
-        HttpClient client,
-        // Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini.
-        Guid sessionId,
-        // Parameter `language` bertipe `string` membawa nilai language.
-        string language,
-        // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
-        // aplikasi berhenti.
-        CancellationToken ct)
-    // Membuka scope metode LoadTimelineAsync; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam LoadTimelineAsync.
+        HttpClient client, Guid sessionId, string language, CancellationToken ct)
     {
-        // Menyiapkan variabel lokal `events` untuk kumpulan event permainan sebagai sumber riwayat untuk validasi atau perhitungan dengan objek baru
-        // bertipe `List<EventRequest>` dengan nilai awal sesuai konstruktornya. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var events = new List<EventRequest>();
-        // Menyiapkan variabel lokal `cursor` untuk penanda halaman untuk melanjutkan pembacaan setelah elemen sebelumnya dengan null, yaitu penanda tidak
-        // ada nilai. Tipe yang dipakai adalah `string?`.
+        var cursors = new HashSet<string>(StringComparer.Ordinal);
         string? cursor = null;
-        // Melengkapi struktur ekspresi DoStatement melalui do dalam LoadTimelineAsync; token pada baris ini menyambungkan bagian kode sebelum dan
-        // sesudahnya.
         do
-        // Membuka scope blok DoStatement; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam LoadTimelineAsync.
         {
-            // Menyiapkan variabel lokal `cursorQuery` untuk nilai cursor query dengan hasil pemilihan bersyarat: ketika `string.IsNullOrWhiteSpace(cursor)`
-            // benar gunakan `string.Empty`, jika tidak gunakan `$”&cursor={Uri.EscapeDataString(cursor)}”`. Tipe variabel disimpulkan dari ekspresi nilai awal.
             var cursorQuery = string.IsNullOrWhiteSpace(cursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
-            // Menyiapkan variabel lokal `response` untuk hasil respons yang akan dibaca atau dikirim kepada pemanggil dengan hasil operasi asinkron memanggil
-            // `client.GetAsync` dengan `$”api/v1/sessions/{sessionId}/events?limit=100{cursorQuery}”`, `ct`; await menunggu hasil tanpa memblokir thread selama
-            // operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-            var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit=100{cursorQuery}", ct);
-            // Memeriksa kebalikan kondisi `response.IsSuccessStatusCode`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam LoadTimelineAsync.
+            using var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit=100{cursorQuery}", ct);
             if (!response.IsSuccessStatusCode)
-            // Membuka scope cabang if untuk kondisi `!response.IsSuccessStatusCode`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-            // LoadTimelineAsync.
-            {
-                // Mengembalikan tuple yang membawa bagian 1: new List<SessionTimelineEventViewModel>(); bagian 2:
-                // HttpContext.T(”sessions.error.load_timeline_failed”) .Replace(”{status}”, ((int)... kepada pemanggil dalam LoadTimelineAsync; eksekusi jalur ini
-                // selesai setelah nilai hasil ditentukan.
-                return (
-                    // Meneruskan objek baru bertipe `List<SessionTimelineEventViewModel>` dengan nilai awal sesuai konstruktornya sebagai argumen ke
-                    // `LoadTimelineAsync`.
-                    new List<SessionTimelineEventViewModel>(),
-                    // Meneruskan memanggil `HttpContext.T(”sessions.error.load_timeline_failed”) .Replace` dengan `”{status}”`, `((int)response.StatusCode).ToString()`
-                    // sebagai argumen ke `LoadTimelineAsync`; Meneruskan nilai literal `”sessions.error.load_timeline_failed”` sebagai argumen ke `HttpContext.T`.
-                    HttpContext.T("sessions.error.load_timeline_failed")
-                        // Meneruskan nilai literal `”{status}”` sebagai argumen ke `HttpContext.T(”sessions.error.load_timeline_failed”) .Replace`; Meneruskan mengubah
-                        // `((int)response.StatusCode)` menjadi teks sebagai argumen ke `HttpContext.T(”sessions.error.load_timeline_failed”) .Replace`.
-                        .Replace("{status}", ((int)response.StatusCode).ToString()));
-            // Menutup scope cabang if untuk kondisi `!response.IsSuccessStatusCode`; bagian berikut berada di luar batas blok tersebut dalam LoadTimelineAsync.
-            }
+                return ([], HttpContext.T("sessions.error.load_timeline_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString()));
 
-            // Menyiapkan variabel lokal `page` untuk nilai page dengan hasil operasi asinkron memanggil
-            // `response.Content.TryReadFromJsonAsync<EventsBySessionResponse>` dengan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum
-            // selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-            var page = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(cancellationToken: ct);
-            // Memeriksa hasil pencocokan `page` dengan pola `null`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam LoadTimelineAsync.
-            if (page is null)
-            // Membuka scope cabang if untuk kondisi `page is null`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam LoadTimelineAsync.
-            {
-                // Mengakhiri loop atau cabang switch terdekat, kemudian melanjutkan setelah blok tersebut dalam LoadTimelineAsync.
-                break;
-            // Menutup scope cabang if untuk kondisi `page is null`; bagian berikut berada di luar batas blok tersebut dalam LoadTimelineAsync.
-            }
-
-            // Menjalankan menambahkan seluruh elemen `page.Items` ke `events` dalam LoadTimelineAsync.
+            var page = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(ct);
+            if (page?.Items is null || (page.HasMore && (string.IsNullOrWhiteSpace(page.NextCursor) || !cursors.Add(page.NextCursor))))
+                return ([], HttpContext.T("sessions.error.timeline_incomplete"));
             events.AddRange(page.Items);
-            // Memperbarui `cursor` menggunakan hasil pemilihan bersyarat: ketika `page.HasMore` benar gunakan `page.NextCursor`, jika tidak gunakan `null`
-            // dalam LoadTimelineAsync.
             cursor = page.HasMore ? page.NextCursor : null;
-        // Menutup scope blok DoStatement; bagian berikut berada di luar batas blok tersebut dalam LoadTimelineAsync.
         }
-        // Melengkapi struktur ekspresi DoStatement melalui while (!string.IsNullOrWhiteSpace(cursor)); dalam LoadTimelineAsync; token pada baris ini
-        // menyambungkan bagian kode sebelum dan sesudahnya.
         while (!string.IsNullOrWhiteSpace(cursor));
-
-        // Memeriksa perbandingan kesamaan antara `events.Count` dan `0`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
-        // LoadTimelineAsync.
-        if (events.Count == 0)
-        // Membuka scope cabang if untuk kondisi `events.Count == 0`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam LoadTimelineAsync.
-        {
-            // Mengembalikan tuple yang membawa bagian 1: new List<SessionTimelineEventViewModel>(); bagian 2: null kepada pemanggil dalam LoadTimelineAsync;
-            // eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-            return (new List<SessionTimelineEventViewModel>(), null);
-        // Menutup scope cabang if untuk kondisi `events.Count == 0`; bagian berikut berada di luar batas blok tersebut dalam LoadTimelineAsync.
-        }
-
-        // Menyiapkan variabel lokal `timeline` untuk nilai timeline dengan memanggil `SessionTimelineMapper.MapTimeline` dengan `events`, `language`. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
-        var timeline = SessionTimelineMapper.MapTimeline(events, language);
-        // Mengembalikan tuple yang membawa bagian 1: timeline; bagian 2: null kepada pemanggil dalam LoadTimelineAsync; eksekusi jalur ini selesai setelah
-        // nilai hasil ditentukan.
-        return (timeline, null);
-    // Menutup scope metode LoadTimelineAsync; bagian berikut berada di luar batas blok tersebut dalam LoadTimelineAsync.
+        return (SessionTimelineMapper.MapTimeline(events, language), null);
     }
-
-// Menutup scope tipe SessionsController; bagian berikut berada di luar batas blok tersebut.
 }

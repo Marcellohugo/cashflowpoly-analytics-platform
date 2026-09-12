@@ -814,6 +814,9 @@ public sealed class RulesetsController : Controller
 
         // Menyiapkan variabel lokal `tempInfo` untuk nilai temp info dengan operasi as antara `TempData[RulesetInfoTempDataKey]` dan `string`. Tipe
         // variabel disimpulkan dari ekspresi nilai awal.
+        // A failed historical-version request must not display the current definition under an old version label.
+        var displayedDefinition = components?.Definition
+            ?? (requestedVersion is null || requestedVersion == data.Version ? data.Definition : null);
         var tempInfo = TempData[RulesetInfoTempDataKey] as string;
         // Menyiapkan variabel lokal `infoMessages` untuk nilai info pesan dengan objek baru bertipe `List<string>` dengan nilai awal sesuai konstruktornya.
         // Tipe variabel disimpulkan dari ekspresi nilai awal.
@@ -879,10 +882,10 @@ public sealed class RulesetsController : Controller
             // Memperbarui `Components` menggunakan `components` (nilai komponen) dalam Details.
             Components = components,
             // Memperbarui `CompatibilityDefinitionJson` menggunakan memanggil `BuildCompatibilityConfigElement` dengan `data.Definition` dalam Details.
-            CompatibilityDefinitionJson = BuildCompatibilityConfigElement(components?.Definition ?? data.Definition),
+            CompatibilityDefinitionJson = BuildCompatibilityConfigElement(displayedDefinition),
             // Memperbarui `CompatibilityComponentCatalog` menggunakan memanggil `BuildCompatibilityComponentCatalog` dengan `components?.Definition ??
             // data.Definition` dalam Details.
-            CompatibilityComponentCatalog = BuildCompatibilityComponentCatalog(components?.Definition ?? data.Definition),
+            CompatibilityComponentCatalog = BuildCompatibilityComponentCatalog(displayedDefinition),
             // Memperbarui `ErrorMessage` menggunakan operasi as antara `TempData[RulesetErrorTempDataKey]` dan `string` dalam Details.
             ErrorMessage = TempData[RulesetErrorTempDataKey] as string,
             // Memperbarui `InfoMessage` menggunakan hasil pemilihan bersyarat: ketika `infoMessages.Count == 0` benar gunakan `null`, jika tidak gunakan

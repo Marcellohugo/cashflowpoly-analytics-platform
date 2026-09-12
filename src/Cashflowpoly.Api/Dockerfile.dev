@@ -1,6 +1,6 @@
 # dev runtime
-# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/sdk:10.0.200. Image SDK menyediakan compiler dan watcher untuk menjalankan kode saat pengembangan.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.200
+# Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/sdk:10.0.401. Image SDK menyediakan compiler dan watcher untuk menjalankan kode saat pengembangan.
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401
 
 # Uraian baris: Menetapkan direktori kerja /src di dalam image; jalur relatif pada COPY, RUN, dan proses berikutnya diinterpretasikan dari lokasi ini.
 WORKDIR /src

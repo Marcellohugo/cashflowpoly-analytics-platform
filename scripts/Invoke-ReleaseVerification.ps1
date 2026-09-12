@@ -21,7 +21,7 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 # Uraian baris: Menyimpan hasil ekspresi Join-Path $repositoryRoot "tests/e2e" ke variabel e2eRoot agar dapat digunakan pada tahap verifikasi selanjutnya.
 $e2eRoot = Join-Path $repositoryRoot "tests/e2e"
 # Uraian baris: Menyimpan hasil ekspresi Join-Path $repositoryRoot $EnvironmentFile ke variabel resolvedEnvironmentFile agar dapat digunakan pada tahap verifikasi selanjutnya.
-$resolvedEnvironmentFile = Join-Path $repositoryRoot $EnvironmentFile
+$resolvedEnvironmentFile = if ([IO.Path]::IsPathRooted($EnvironmentFile)) { $EnvironmentFile } else { Join-Path $repositoryRoot $EnvironmentFile }
 # Uraian baris: Menyusun array argumen -f untuk menggabungkan Compose dasar dan override development. Nilai dihitung dari ekspresi di sebelah kanan assignment.
 $composeFiles = @(
     # Uraian baris: Menambahkan nilai "-f", (Join-Path $repositoryRoot "infra/docker/docker-compose.yml") ke daftar yang sedang dibentuk. Urutan nilai mengikuti urutan pemeriksaan kontrak/metrik atau argumen command line di bawahnya.
@@ -123,6 +123,12 @@ try {
     Invoke-Checked "Konsistensi dokumentasi dan Postman" { & (Join-Path $PSScriptRoot "Test-DocumentationConsistency.ps1") }
 
     # Uraian baris: Mengevaluasi kondisi (-not $SkipPerformance). Blok berikutnya hanya dijalankan saat kondisi bernilai benar; cabang ini menentukan apakah validasi diterima, ditolak, atau dilanjutkan.
+    Invoke-Checked "Validasi Docker Compose production" {
+        docker compose --env-file (Join-Path $repositoryRoot "config/env/.env.prod.example") `
+            -f (Join-Path $repositoryRoot "infra/docker/docker-compose.yml") `
+            -f (Join-Path $repositoryRoot "infra/docker/docker-compose.prod.yml") config -q
+    }
+
     if (-not $SkipPerformance) {
         # Uraian baris: Menjalankan tahap Target performa 100 akun, 20 sesi aktif, 20 pengguna bersamaan melalui helper pemeriksa exit code. Jika perintah tahap ini mengembalikan kode bukan nol, proses verifikasi dilempar sebagai error.
         Invoke-Checked "Target performa 100 akun, 20 sesi aktif, 20 pengguna bersamaan" {

@@ -325,7 +325,7 @@ public sealed class ReleasePerformanceIntegrationTests
             // Baris literal 12: JOIN menghubungkan data antartabel berdasarkan relasi/kondisi ON: `cross join lateral (`.
             // Baris literal 13: SELECT menentukan nilai atau kolom yang dikembalikan query: `select password_hash`.
             // Baris literal 14: FROM memilih tabel/subquery sumber pembacaan: `from app_users`.
-            // Baris literal 15: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where lower(username::text) = 'rina.kartika'`.
+            // Baris literal 15: WHERE menyaring baris agar hanya data yang memenuhi syarat diproses: `where lower(username::text) = 'hadziq'`.
             // Baris literal 16: LIMIT membatasi jumlah baris yang dikembalikan query: `limit 1`.
             // Baris literal 17: Meneruskan daftar kolom, ekspresi, atau struktur teks literal untuk perintah yang sedang disusun: `) source`.
             // Baris literal 18: ON CONFLICT menentukan penanganan saat INSERT bertabrakan dengan kunci unik yang sudah ada: `on conflict (username) do
@@ -547,7 +547,7 @@ public sealed class ReleasePerformanceIntegrationTests
             cross join lateral (
                 select password_hash
                 from app_users
-                where lower(username::text) = 'rina.kartika'
+                where lower(username::text) = 'hadziq'
                 limit 1
             ) source
             on conflict (username) do nothing;

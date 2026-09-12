@@ -395,56 +395,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
-    [Fact]
-    // Mendefinisikan metode `PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened` dengan hasil bertipe `void`; operasi ini menangani pemain
-    // directory should be visible but only own detail can be opened.
-    public void PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened()
-    // Membuka scope metode PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened; pernyataan/deklarasi berikut berada di dalam batas blok ini
-    // dalam PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-    {
-        // Menyiapkan variabel lokal `layout` untuk nilai layout dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot, ”Views”, ”Shared”,
-        // ”_Layout.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var layout = File.ReadAllText(Path.Combine(UiRoot, "Views", "Shared", "_Layout.cshtml"));
-        // Menyiapkan variabel lokal `directoryController` untuk nilai directory controller dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
-        // ”Controllers”, ”PlayerDirectoryController.cs”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var directoryController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "PlayerDirectoryController.cs"));
-        // Menyiapkan variabel lokal `playersController` untuk nilai pemain controller dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
-        // ”Controllers”, ”PlayersController.cs”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playersController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "PlayersController.cs"));
-        // Menyiapkan variabel lokal `directoryView` untuk nilai directory view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot, ”Views”,
-        // ”Players”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var directoryView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
 
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”data-nav=\”players\””`, `layout`,
-        // `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("data-nav=\"players\"", layout, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”return
-        // RedirectToAction(\”Index\”, \”Sessions\”)”`, `directoryController`, `StringComparison.Ordinal` dalam
-        // PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.DoesNotContain("return RedirectToAction(\"Index\", \"Sessions\")", directoryController, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”currentUserId != playerId”`,
-        // `playersController`, `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("currentUserId != playerId", playersController, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”StatusCodes.Status403Forbidden”`,
-        // `playersController`, `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("StatusCodes.Status403Forbidden", playersController, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
-        // `”api/v1/sessions/{session.SessionId}/players”`, `directoryController`, `StringComparison.Ordinal` dalam
-        // PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("api/v1/sessions/{session.SessionId}/players", directoryController, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”foreach (var session in
-        // Model.SessionGroups)”`, `directoryView`, `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("foreach (var session in Model.SessionGroups)", directoryView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”isInstructor || (hasCurrentPlayerId &&
-        // player.PlayerId == currentPlayerId)”`, `directoryView`, `StringComparison.Ordinal` dalam
-        // PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("isInstructor || (hasCurrentPlayerId && player.PlayerId == currentPlayerId)", directoryView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players.index.detail_unavailable”`,
-        // `directoryView`, `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-        Assert.Contains("players.index.detail_unavailable", directoryView, StringComparison.Ordinal);
-    // Menutup scope metode PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened; bagian berikut berada di luar batas blok tersebut dalam
-    // PlayerDirectory_ShouldBeVisibleButOnlyOwnDetailCanBeOpened.
-    }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
@@ -571,54 +522,12 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     [Fact]
     // Mendefinisikan metode `PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount` dengan hasil bertipe `void`; operasi ini menangani pemain index
     // summary should only show total pemain jumlah.
-    public void PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount()
-    // Membuka scope metode PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-    // PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
+    public void SessionSummary_IncludesDistinctMonitoredPlayerCount()
     {
-        // Menyiapkan variabel lokal `playerIndexView` untuk nilai pemain index view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
-        // ”Views”, ”Players”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
-        // Menyiapkan variabel lokal `sessionIndexView` untuk nilai sesi index view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
-        // ”Views”, ”Sessions”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var sessionIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"));
-
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”ruleset-section-head-row”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.Contains("ruleset-section-head-row", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players.total_players”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.Contains("players.total_players", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”@Model.Players.Count”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.Contains("Model.Players.Count", playerIndexView, StringComparison.Ordinal);
-        Assert.Contains("sessionPlayerIds.Count", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players-stats-grid”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("players-stats-grid", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
-        // `”players.index.players_with_data”`, `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("players.index.players_with_data", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
-        // `”players.index.sessions_with_data”`, `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("players.index.sessions_with_data", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”ux-legend”`, `playerIndexView`,
-        // `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("ux-legend", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”ux-legend”`, `sessionIndexView`,
-        // `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("ux-legend", sessionIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”sessions.legend.title”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("sessions.legend.title", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”sessions.legend.title”`,
-        // `sessionIndexView`, `StringComparison.Ordinal` dalam PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain("sessions.legend.title", sessionIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”.players-index-shell
-        // .ruleset-index-count-block”`, `File.ReadAllText(Path.Combine(UiRoot, ”wwwroot”, ”css”, ”site.css”))`, `StringComparison.Ordinal` dalam
-        // PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
-        Assert.DoesNotContain(".players-index-shell .ruleset-index-count-block", File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css")), StringComparison.Ordinal);
-    // Menutup scope metode PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount; bagian berikut berada di luar batas blok tersebut dalam
-    // PlayerIndexSummary_ShouldOnlyShowTotalPlayersCount.
+        var view = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"));
+        Assert.Contains("players.monitored_players", view);
+        Assert.Contains("Model.MonitoredPlayers", view);
+        Assert.False(File.Exists(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml")));
     }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
@@ -631,10 +540,10 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     {
         // Menyiapkan variabel lokal `playerIndexView` untuk nilai pemain index view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
         // ”Views”, ”Players”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
+        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"));
         // Menyiapkan variabel lokal `playerDirectoryController` untuk nilai pemain directory controller dengan memanggil `File.ReadAllText` dengan
         // `Path.Combine(UiRoot, ”Controllers”, ”PlayerDirectoryController.cs”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerDirectoryController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "PlayerDirectoryController.cs"));
+        var playerDirectoryController = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "SessionRosterLoader.cs"));
 
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”common.rank”`, `playerIndexView`,
         // `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
@@ -647,10 +556,10 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.DoesNotContain("playerRankLookup", playerIndexView, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”x.analytics?.Leaderboard”`,
         // `playerDirectoryController`, `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
-        Assert.Contains("x.analytics?.Leaderboard", playerDirectoryController, StringComparison.Ordinal);
+        Assert.Contains("analytics?.Leaderboard", playerDirectoryController, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”leaderboard?.HappinessPointsTotal”`,
         // `playerDirectoryController`, `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
-        Assert.Contains("leaderboard?.HappinessPointsTotal", playerDirectoryController, StringComparison.Ordinal);
+        Assert.Contains("rank?.HappinessPointsTotal", playerDirectoryController, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”winner-row”`, `playerIndexView`,
         // `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
         Assert.Contains("winner-row", playerIndexView, StringComparison.Ordinal);
@@ -690,10 +599,10 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     {
         // Menyiapkan variabel lokal `playerIndexView` untuk nilai pemain index view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
         // ”Views”, ”Players”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
+        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"));
         // Menyiapkan variabel lokal `playerDirectoryController` untuk nilai pemain directory controller dengan memanggil `File.ReadAllText` dengan
         // `Path.Combine(UiRoot, ”Controllers”, ”PlayerDirectoryController.cs”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerDirectoryController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "PlayerDirectoryController.cs"));
+        var playerDirectoryController = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "SessionRosterLoader.cs"));
 
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”common.player_id”`,
         // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndexTable_ShouldNotRenderPlayerIdOrNetCashflowColumns.
@@ -729,7 +638,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     {
         // Menyiapkan variabel lokal `playerIndexView` untuk nilai pemain index view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
         // ”Views”, ”Players”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
+        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"));
         // Menyiapkan variabel lokal `css` untuk nilai css dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot, ”wwwroot”, ”css”, ”site.css”)`.
         // Tipe variabel disimpulkan dari ekspresi nilai awal.
         var css = File.ReadAllText(Path.Combine(UiRoot, "wwwroot", "css", "site.css"));
@@ -834,53 +743,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
     }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
-    [Fact]
-    // Mendefinisikan metode `PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds` dengan hasil bertipe `void`; operasi ini menangani pemain index
-    // should reveal pemain baris only after sesi ends.
-    public void PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds()
-    // Membuka scope metode PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-    // PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-    {
-        // Menyiapkan variabel lokal `playerIndexView` untuk nilai pemain index view dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
-        // ”Views”, ”Players”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var playerIndexView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"));
-        // Menyiapkan variabel lokal `directoryController` untuk nilai directory controller dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot,
-        // ”Controllers”, ”PlayerDirectoryController.cs”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var directoryController = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "PlayerDirectoryController.cs"));
 
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”var isSessionEnded =
-        // string.Equals(session.Status, \”ENDED\””`, `playerIndexView`, `StringComparison.Ordinal` dalam
-        // PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-        Assert.Contains("var isSessionEnded = string.Equals(session.Status, \"ENDED\"", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”@if (!isSessionEnded)”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-        Assert.Contains("@if (!isSessionEnded)", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”colspan=\”5\””`, `playerIndexView`,
-        // `StringComparison.Ordinal` dalam PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-        Assert.Contains("colspan=\"5\"", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players.index.results_pending”`,
-        // `playerIndexView`, `StringComparison.Ordinal` dalam PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-        Assert.Contains("players.index.results_pending", playerIndexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”!string.Equals(session.Status,
-        // \”ENDED\””`, `directoryController`, `StringComparison.Ordinal` dalam PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-        Assert.Contains("!string.Equals(session.Status, \"ENDED\"", directoryController, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan bahwa `directoryController.IndexOf(”!string.Equals(session.Status, \”ENDED\””, StringComparison.Ordinal) <
-        // directoryController.IndexOf(”api/v1/analytics/sessions/{session.SessionId}”...`, `”Analitika sesi aktif tidak boleh diminta sebelum pemeriksaan
-        // status selesai.”` bernilai benar; pengujian gagal jika kondisi tidak terpenuhi dalam PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-        Assert.True(
-            // Meneruskan pemeriksaan lebih kecil antara `directoryController.IndexOf(”!string.Equals(session.Status, \”ENDED\””, StringComparison.Ordinal)` dan
-            // `directoryController.IndexOf(”api/v1/analytics/sessions/{session.SessionId}”, StringComparison.Ordinal)` sebagai argumen ke `Assert.True`;
-            // Meneruskan nilai literal `”!string.Equals(session.Status, \”ENDED\””` sebagai argumen ke `directoryController.IndexOf`; Meneruskan
-            // `StringComparison.Ordinal` (nilai ordinal) sebagai argumen ke `directoryController.IndexOf`.
-            directoryController.IndexOf("!string.Equals(session.Status, \"ENDED\"", StringComparison.Ordinal) <
-            // Meneruskan nilai literal `”api/v1/analytics/sessions/{session.SessionId}”` sebagai argumen ke `directoryController.IndexOf`; Meneruskan
-            // `StringComparison.Ordinal` (nilai ordinal) sebagai argumen ke `directoryController.IndexOf`.
-            directoryController.IndexOf("api/v1/analytics/sessions/{session.SessionId}", StringComparison.Ordinal),
-            // Meneruskan nilai literal `”Analitika sesi aktif tidak boleh diminta sebelum pemeriksaan status selesai.”` sebagai argumen ke `Assert.True`.
-            "Analitika sesi aktif tidak boleh diminta sebelum pemeriksaan status selesai.");
-    // Menutup scope metode PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds; bagian berikut berada di luar batas blok tersebut dalam
-    // PlayerIndex_ShouldRevealPlayerRowsOnlyAfterSessionEnds.
-    }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
@@ -896,7 +759,7 @@ public sealed class SessionAndPlayerSummaryLayoutTests
 
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”body:has(.players-index-shell)”`,
         // `css`, `StringComparison.Ordinal` dalam PlayerIndex_ShouldUseOneCalmPaletteWithGoldReservedForWinner.
-        Assert.Contains("body:has(.players-index-shell)", css, StringComparison.Ordinal);
+        Assert.Contains(".players-session-card", css, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”--session-accent: #2f6973;”`, `css`,
         // `StringComparison.Ordinal` dalam PlayerIndex_ShouldUseOneCalmPaletteWithGoldReservedForWinner.
         Assert.Contains("--session-accent: #2f6973;", css, StringComparison.Ordinal);

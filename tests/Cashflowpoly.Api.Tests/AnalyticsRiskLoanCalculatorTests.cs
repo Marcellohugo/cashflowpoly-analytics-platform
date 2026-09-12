@@ -339,6 +339,31 @@ public sealed class AnalyticsRiskLoanCalculatorTests
     // `Guid` membawa identitas unik event untuk pencatatan dan pemeriksaan duplikasi; Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi
     // permainan yang menjadi batas data operasi ini; Parameter `playerId` bertipe `Guid` membawa nilai pemain identitas; Parameter `actionType` bertipe
     // `string` membawa nilai aksi jenis; Parameter `payload` bertipe `string` membawa muatan detail event dalam format JSON.
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(4, 0, 6)]
+    [InlineData(6, 1, 4)]
+    [InlineData(6, 2, 10)]
+    public void Compute_CountsFullyRepaidLoansRatherThanInstallments(int secondPayment, int expectedRepaid, int otherLoanPayment)
+    {
+        var session = Guid.NewGuid();
+        var player = Guid.NewGuid();
+        var events = new List<EventDb>
+        {
+            CreateEvent(Guid.NewGuid(), session, player, "SetupPinjamanAwal", """{"loan_id":"initial","principal":10,"penalty_points":15}"""),
+            CreateEvent(Guid.NewGuid(), session, player, "GunakanOpsiDarurat", """{"option_type":"TAKE_SHARIA_LOAN","loan_id":"emergency","principal":10,"penalty_points":15}"""),
+            CreateEvent(Guid.NewGuid(), session, player, "BayarPinjaman", """{"loan_id":"initial","amount":4}""")
+        };
+        if (secondPayment > 0)
+            events.Add(CreateEvent(Guid.NewGuid(), session, player, "BayarPinjaman", System.Text.Json.JsonSerializer.Serialize(new { loan_id = "initial", amount = secondPayment })));
+        if (otherLoanPayment > 0)
+            events.Add(CreateEvent(Guid.NewGuid(), session, player, "BayarPinjaman", System.Text.Json.JsonSerializer.Serialize(new { loan_id = "emergency", amount = otherLoanPayment })));
+        var metrics = new RiskLoanCalculator().Compute(events, [], 10, 10, 20);
+        Assert.Equal(2, metrics.LoansTaken);
+        Assert.Equal(expectedRepaid, metrics.LoansRepaid);
+        Assert.Equal(2 - expectedRepaid, metrics.LoansUnpaid);
+    }
+
     private static EventDb CreateEvent(Guid eventId, Guid sessionId, Guid playerId, string actionType, string payload)
     // Membuka scope metode CreateEvent; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateEvent.
     {

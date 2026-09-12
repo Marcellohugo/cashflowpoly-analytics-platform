@@ -40,7 +40,7 @@ Player memiliki hak akses terbatas yang hanya diizinkan untuk:
 Dasbor dapat diakses melalui browser pada port UI MVC (default pada environment development):
 - **Halaman Utama (Home)**: `http://localhost:5203/`
 - **Daftar Sesi**: `http://localhost:5203/sessions`
-- **Direktori Pemain**: `http://localhost:5203/players`
+- **Statistik Pemain**: `http://localhost:5203/statistics`; daftar peserta tersedia pada kartu di halaman Sesi Permainan.
 - **Manajemen Ruleset**: `http://localhost:5203/rulesets`
 - **Buku Aturan (Rulebook)**: `http://localhost:5203/rulebook`
 

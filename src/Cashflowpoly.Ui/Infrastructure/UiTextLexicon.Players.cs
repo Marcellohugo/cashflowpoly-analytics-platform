@@ -13,15 +13,24 @@ internal static partial class UiTextLexicon
     {
         // Memperbarui `terms[”players.management”]` menggunakan tuple yang membawa bagian 1: ”Manajemen Pemain”; bagian 2: ”Player Management” dalam
         // AddPlayers.
-        terms["players.management"] = ("Manajemen Pemain", "Player Management");
-        // Memperbarui `terms[”players.title”]` menggunakan tuple yang membawa bagian 1: ”Direktori Pemain”; bagian 2: ”Player Directory” dalam AddPlayers.
-        terms["players.title"] = ("Direktori Pemain", "Player Directory");
+        terms["players.analysis.loan_counts.result"] = ("{0} pinjaman sudah lunas dan {1} pinjaman belum lunas. Cicilan sebagian belum termasuk lunas.", "{0} loans are fully repaid and {1} loans remain unpaid. Partial repayments do not count as fully repaid.");
+        terms["players.support.formula.loan_counts"] = ("Jumlah Pinjaman Diambil = Jumlah Pinjaman Dilunasi + Jumlah Pinjaman Belum Lunas. Pinjaman disebut lunas setelah seluruh pokoknya dibayar. Setiap pinjaman dihitung satu kali meskipun dibayar dengan beberapa cicilan.", "Loans Taken Count = Loans Repaid Count + Unpaid Loan Count. A loan is fully repaid only after its entire principal has been paid. Each loan is counted once, even when paid in several installments.");
+        terms["players.support.meaning.loans_taken"] = ("Jumlah pinjaman berbeda yang diterima, termasuk pinjaman awal dan darurat. Nol berarti pemain tidak mengambil pinjaman.", "Number of distinct loans received, including initial and emergency loans. Zero means the player took no loans.");
+        terms["players.support.meaning.loans_repaid"] = ("Jumlah pinjaman yang seluruh pokoknya sudah dibayar. Beberapa cicilan untuk satu pinjaman tetap dihitung sebagai satu pinjaman lunas.", "Number of loans whose entire principal has been repaid. Several installments for one loan still count as one fully repaid loan.");
+        terms["players.support.meaning.loans_unpaid"] = ("Jumlah pinjaman yang pokoknya belum dibayar seluruhnya, termasuk pinjaman yang baru dicicil sebagian.", "Number of loans whose principal has not been fully repaid, including partially repaid loans.");
+        terms["players.analysis.goal_completion.result"] = ("{0} dari {1} target yang mulai diusahakan sudah dibeli.", "{0} of {1} attempted goals have been purchased.");
+        terms["players.support.formula.goal_completion"] = ("Persentase Target Berhasil Dibeli = Target Finansial Berhasil Dibeli ÷ Target yang Mulai Diusahakan × 100%. Jika belum ada target yang diusahakan, hasil belum tersedia. Besarnya biaya dan sisa tabungan tidak menentukan persentase ini.", "Goal Purchase Completion = Financial Goals Purchased ÷ Attempted Goals × 100%. With no attempted goals, the result is unavailable. Purchase costs and remaining savings do not determine this percentage.");
+        terms["players.metric.financial_goal_completion_percent"] = ("Persentase Target Berhasil Dibeli", "Goal Purchase Completion");
+        terms["players.support.meaning.attempted_goals"] = ("Jumlah target berbeda yang pernah menerima setoran tabungan atau sudah dibeli. Setoran berulang ke target yang sama tidak menambah jumlah target.", "Number of distinct goals that received a savings deposit or were purchased. Repeated deposits into one goal do not add more goals.");
+        terms["players.support.meaning.goal_completion"] = ("Jumlah target yang sudah dibeli dibandingkan jumlah target yang mulai diusahakan, dikalikan 100%. Target yang hanya tersedia di set aturan tidak masuk penyebut.", "Purchased goals divided by attempted goals, multiplied by 100%. Goals merely available in the ruleset are excluded from the denominator.");
+        terms["players.support.guide.goal_completion_all"] = ("100%: semua target yang mulai diusahakan sudah dibeli. Ini tidak berarti semua target dalam set aturan sudah dibeli.", "100%: every attempted goal has been purchased. This does not mean every goal in the ruleset has been purchased.");
+        terms["players.support.guide.goal_completion_none"] = ("0%: pemain sudah mulai mengusahakan target, tetapi belum ada yang berhasil dibeli.", "0%: the player started pursuing goals but has not purchased any yet.");
+        terms["players.support.guide.goal_completion_partial"] = ("Di atas 0% dan di bawah 100%: sebagian target sudah dibeli dan sebagian masih belum selesai.", "Above 0% and below 100%: some goals have been purchased and others remain unfinished.");
+        terms["players.support.meaning.donation_commitment"] = ("Persentase gabungan keteraturan donasi, porsi donasi dari koin tersisa dan donasi, serta keikutsertaan pada Jumat. Ketiganya dikalikan setelah dibagi 100, lalu dikalikan 100%. Ini tidak menunjukkan persentase pendapatan yang didonasikan.", "Composite percentage of donation regularity, donated share of remaining coins plus donations, and Friday participation. The three percentages are divided by 100, multiplied together, then multiplied by 100%. It does not measure the percentage of income donated.");
         // Memperbarui `terms[”players.subtitle”]` menggunakan tuple yang membawa bagian 1: ”Lihat peserta setiap sesi dan buka analitika performa mereka.”;
         // bagian 2: ”View each session's participants and open their performance analytics.” dalam AddPlayers.
-        terms["players.subtitle"] = ("Lihat pemain yang terdaftar dalam sesi Anda dan analitika mereka setelah sesi selesai.", "View players registered in your sessions and their analytics after each session ends.");
         // Memperbarui `terms[”players.player_directory_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Lihat seluruh sesi yang Anda ikuti beserta
         // pemain yang berada dalam sesi yang s...; bagian 2: ”View every session you joined and the players who shared those sessions.” dalam AddPlayers.
-        terms["players.player_directory_subtitle"] = ("Lihat seluruh sesi yang Anda ikuti beserta pemain yang berada dalam sesi yang sama.", "View every session you joined and the players who shared those sessions.");
         // Memperbarui `terms[”players.index.player_privacy_hint”]` menggunakan tuple yang membawa bagian 1: ”Analitika permainan hanya tersedia pada baris
         // akun Anda sendiri.”; bagian 2: ”Gameplay analytics are available only on your own account row.” dalam AddPlayers.
         terms["players.index.player_privacy_hint"] = ("Analitika permainan hanya tersedia pada baris akun Anda sendiri.", "Gameplay analytics are available only on your own account row.");
@@ -44,12 +53,8 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”players.index.source_hint”]` menggunakan tuple yang membawa bagian 1: ”Pemain dikelompokkan sesuai keikutsertaan pada setiap
         // sesi.”; bagian 2: ”Players are grouped by participation in each session.” dalam AddPlayers.
         terms["players.index.source_hint"] = ("Pemain dikelompokkan sesuai keikutsertaan pada setiap sesi.", "Players are grouped by participation in each session.");
-        // Memperbarui `terms[”players.index.summary_title”]` menggunakan tuple yang membawa bagian 1: ”Ringkasan Direktori Pemain”; bagian 2: ”Player
-        // Directory Summary” dalam AddPlayers.
-        terms["players.index.summary_title"] = ("Ringkasan Direktori Pemain", "Player Directory Summary");
         // Memperbarui `terms[”players.index.summary_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Gunakan ringkasan ini untuk cepat melihat jumlah
         // pemain yang tersedia.”; bagian 2: ”Use this summary to quickly see the number of available players.” dalam AddPlayers.
-        terms["players.index.summary_subtitle"] = ("Gunakan ringkasan ini untuk cepat melihat jumlah pemain yang tersedia.", "Use this summary to quickly see the number of available players.");
         // Memperbarui `terms[”players.index.players_with_data”]` menggunakan tuple yang membawa bagian 1: ”Pemain dengan Data Sesi”; bagian 2: ”Players
         // with Session Data” dalam AddPlayers.
         terms["players.index.players_with_data"] = ("Pemain dengan Data Sesi", "Players with Session Data");
@@ -61,34 +66,24 @@ internal static partial class UiTextLexicon
         terms["players.index.happiness_points"] = ("Poin Kebahagiaan", "Happiness Points");
         // Memperbarui `terms[”players.index.ungrouped_title”]` menggunakan tuple yang membawa bagian 1: ”Daftar Pemain Umum”; bagian 2: ”General Player
         // List” dalam AddPlayers.
-        terms["players.index.ungrouped_title"] = ("Daftar Pemain Umum", "General Player List");
         terms["players.monitored_players"] = ("Pemain Dipantau", "Monitored Players");
         terms["players.index.monitored_subtitle"] = ("Peserta sesi yang Anda kelola. Setiap pemain dihitung satu kali, termasuk peserta sesi yang belum dimulai.", "Participants in the sessions you manage. Each player is counted once, including participants in sessions that have not started.");
-        terms["players.index.no_session_participants"] = ("Belum ada pemain yang terdaftar dalam sesi Anda. Tambahkan pemain ke sesi agar muncul di direktori ini.", "No players are registered in your sessions yet. Add players to a session to see them in this directory.");
-        terms["players.index.without_session_title"] = ("Pemain Belum Masuk Sesi", "Players Without a Session");
-        terms["players.index.without_session_subtitle"] = ("Pemain berikut belum bergabung ke sesi yang tersedia di direktori ini.", "These players have not joined any session available in this directory.");
         // Memperbarui `terms[”players.index.ungrouped_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Belum ada pengelompokan per sesi, namun daftar
         // identitas pemain tetap tersedia....; bagian 2: ”Per-session grouping is not available yet, but the player identity list is stil... dalam
         // AddPlayers.
-        terms["players.index.ungrouped_subtitle"] = ("Pengelompokan sesi belum lengkap. Pemain yang belum tercantum dalam kelompok sesi tetap ditampilkan di sini.", "Session grouping is incomplete. Players not listed in a session group are still shown here.");
         // Memperbarui `terms[”players.index.ungrouped_hint”]` menggunakan tuple yang membawa bagian 1: ”Saat analitika sesi sudah tersedia, daftar ini
         // otomatis berubah menjadi tampila...; bagian 2: ”When session analytics become available, this list will automatically switch to... dalam
         // AddPlayers.
-        terms["players.index.ungrouped_hint"] = ("Pemain yang bergabung ke sesi akan tercantum dalam kelompok sesi. Analitika tersedia setelah sesi selesai.", "Players who join a session appear in its group. Analytics are available after the session ends.");
         // Memperbarui `terms[”players.index.grouped_title”]` menggunakan tuple yang membawa bagian 1: ”Pemain per Sesi”; bagian 2: ”Players by Session”
         // dalam AddPlayers.
-        terms["players.index.grouped_title"] = ("Pemain per Sesi", "Players by Session");
         // Memperbarui `terms[”players.index.grouped_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Header hasil selalu tersedia; data pemain dan
         // analitika baru ditampilkan setela...; bagian 2: ”Result headers are always available; player data and analytics appear only afte... dalam
         // AddPlayers.
-        terms["players.index.grouped_subtitle"] = ("Header hasil selalu tersedia; data pemain dan analitika baru ditampilkan setelah sesi selesai.", "Result headers are always available; player data and analytics appear only after the session ends.");
         // Memperbarui `terms[”players.index.grouped_subtitle.player”]` menggunakan tuple yang membawa bagian 1: ”Header hasil selalu tersedia. Setelah sesi
         // selesai, data seluruh peserta tampil...; bagian 2: ”Result headers are always available. After the session ends, all participant da... dalam
         // AddPlayers.
-        terms["players.index.grouped_subtitle.player"] = ("Header hasil selalu tersedia. Setelah sesi selesai, data seluruh peserta tampil dan analitika hanya dapat dibuka untuk akun Anda sendiri.", "Result headers are always available. After the session ends, all participant data appears while analytics remain available only for your own account.");
         // Memperbarui `terms[”players.index.results_pending”]` menggunakan tuple yang membawa bagian 1: ”Data pemain akan ditampilkan setelah sesi
         // selesai.”; bagian 2: ”Player data will appear after the session ends.” dalam AddPlayers.
-        terms["players.index.results_pending"] = ("Data pemain akan ditampilkan setelah sesi selesai.", "Player data will appear after the session ends.");
         // Memperbarui `terms[”players.tips.title”]` menggunakan tuple yang membawa bagian 1: ”Tips penggunaan menu Pemain”; bagian 2: ”Players menu tips”
         // dalam AddPlayers.
         terms["players.tips.title"] = ("Tips penggunaan menu Pemain", "Players menu tips");
@@ -125,12 +120,9 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”players.detail.subtitle”]` menggunakan tuple yang membawa bagian 1: ”Lihat hasil akhir, keputusan, dan perjalanan uang pemain
         // dalam satu halaman.”; bagian 2: ”See the player's final result, decisions, and money journey on one page.” dalam AddPlayers.
         terms["players.detail.subtitle"] = ("Lihat hasil akhir, keputusan, dan perjalanan uang pemain dalam satu halaman.", "See the player's final result, decisions, and money journey on one page.");
-        // Memperbarui `terms[”players.detail.nav_back_players”]` menggunakan tuple yang membawa bagian 1: ”Kembali ke Direktori Pemain”; bagian 2: ”Back to
-        // Player Directory” dalam AddPlayers.
-        terms["players.detail.nav_back_players"] = ("Kembali ke Direktori Pemain", "Back to Player Directory");
         // Memperbarui `terms[”players.detail.nav_back_session”]` menggunakan tuple yang membawa bagian 1: ”Kembali ke Analitika Sesi”; bagian 2: ”Back to
         // Session Analytics” dalam AddPlayers.
-        terms["players.detail.nav_back_session"] = ("Kembali ke Analitika Sesi", "Back to Session Analytics");
+        terms["players.detail.nav_back_session"] = ("Analitika Sesi", "Session Analytics");
         // Memperbarui `terms[”players.detail.empty_analytics”]` menggunakan tuple yang membawa bagian 1: ”Data gameplay pemain belum tersedia pada sesi
         // ini. Pastikan event pemain sudah ...; bagian 2: ”Player gameplay data is not available in this session yet. Ensure player events... dalam
         // AddPlayers.
@@ -146,7 +138,6 @@ internal static partial class UiTextLexicon
         terms["players.error.load_gameplay_failed"] = ("Gagal memuat data permainan. Status: {status}", "Failed to load gameplay data. Status: {status}");
         // Memperbarui `terms[”players.error.load_player_directory_failed”]` menggunakan tuple yang membawa bagian 1: ”Gagal memuat daftar pemain. Status:
         // {status}”; bagian 2: ”Failed to load player list. Status: {status}” dalam AddPlayers.
-        terms["players.error.load_player_directory_failed"] = ("Gagal memuat daftar pemain. Status: {status}", "Failed to load player list. Status: {status}");
         // Memperbarui `terms[”players.error.load_sessions_grouping_failed”]` menggunakan tuple yang membawa bagian 1: ”Gagal memuat daftar sesi untuk
         // pengelompokan pemain. Status: {status}”; bagian 2: ”Failed to load session list for player grouping. Status: {status}” dalam AddPlayers.
         terms["players.error.load_sessions_grouping_failed"] = ("Gagal memuat daftar sesi untuk pengelompokan pemain. Status: {status}", "Failed to load session list for player grouping. Status: {status}");
@@ -335,18 +326,18 @@ internal static partial class UiTextLexicon
         terms["players.analysis.risk_appetite.desc"] = ("Membandingkan Risiko Selesai tanpa Tindakan Darurat dengan Kartu Risiko Kehidupan yang Muncul.", "Compares Risks Resolved without Emergency Action with Life Risk Cards Drawn.");
         // Memperbarui `terms[”players.analysis.debt_discipline.title”]` menggunakan tuple yang membawa bagian 1: ”Berapa porsi pinjaman yang belum lunas?”;
         // bagian 2: ”What share is made up of the outstanding loan?” dalam AddPlayers.
-        terms["players.analysis.debt_discipline.title"] = ("Berapa porsi pinjaman yang belum lunas?", "What share is made up of the outstanding loan?");
+        terms["players.analysis.debt_discipline.title"] = ("Berapa kali pemain mengambil pinjaman dan berapa yang sudah lunas?", "How many loans were taken and how many were fully repaid?");
         // Memperbarui `terms[”players.analysis.debt_discipline.desc”]` menggunakan tuple yang membawa bagian 1: ”Membandingkan Sisa Pinjaman dengan
         // gabungan Sisa Pinjaman dan Total Koin Tersis...; bagian 2: ”Compares Outstanding Loan with Outstanding Loan plus Remaining Coins and Saving...
         // dalam AddPlayers.
-        terms["players.analysis.debt_discipline.desc"] = ("Membandingkan Sisa Pinjaman dengan gabungan Sisa Pinjaman dan Total Koin Tersisa dan Tabungan. Ini bukan perbandingan pinjaman dengan koin saja.", "Compares Outstanding Loan with Outstanding Loan plus Remaining Coins and Savings Total. This is not a loan-to-cash-only ratio.");
+        terms["players.analysis.debt_discipline.desc"] = ("Menghitung jumlah pinjaman, termasuk pinjaman awal dan pinjaman darurat. Satu pinjaman disebut lunas setelah seluruh pokoknya dibayar; beberapa kali mencicil tetap dihitung sebagai satu pinjaman.", "Counts loans, including initial and emergency loans. A loan is fully repaid only when its entire principal has been paid; several installments still belong to one loan.");
         // Memperbarui `terms[”players.analysis.goal_ambition.title”]` menggunakan tuple yang membawa bagian 1: ”Seberapa jauh target finansial sudah
         // didanai?”; bagian 2: ”How much of the financial goal cost has been funded?” dalam AddPlayers.
-        terms["players.analysis.goal_ambition.title"] = ("Berapa target finansial yang berhasil dibeli?", "How many financial goals have been purchased?");
+        terms["players.analysis.goal_ambition.title"] = ("Berapa persen target yang diusahakan sudah berhasil dibeli?", "What percentage of attempted goals have been purchased?");
         // Memperbarui `terms[”players.analysis.goal_ambition.desc”]` menggunakan tuple yang membawa bagian 1: ”Membandingkan dana yang diperhitungkan untuk
         // target dengan total biaya target y...; bagian 2: ”Compares funds counted toward goals with the total cost of attempted goals. Sav... dalam
         // AddPlayers.
-        terms["players.analysis.goal_ambition.desc"] = ("Saat tabungan mencapai harga target, koin dibayarkan ke bank dan pemain memperoleh kartu target. Lihat jumlah target yang sudah dibeli, biaya pembeliannya, serta tabungan untuk target yang belum dibeli.", "Once savings reach a goal's price, coins are paid to the bank and the player receives the goal card. See purchased goals, their purchase costs, and savings for goals still to be purchased.");
+        terms["players.analysis.goal_ambition.desc"] = ("Membandingkan jumlah target yang sudah dibeli dengan jumlah target yang mulai diusahakan. Target masuk hitungan setelah menerima setoran tabungan atau langsung dibeli. Contoh: 1 target terbeli dari 2 target yang diusahakan = 50%. Jika belum ada target yang diusahakan, persentase belum tersedia.", "Compares purchased goals with goals the player started pursuing. A goal is included after receiving a savings deposit or being purchased directly. For example, 1 purchased goal out of 2 attempted goals = 50%. With no attempted goals, the percentage is unavailable.");
         terms["players.analysis.goal_purchases.result"] = ("Total biaya pembelian: {0} koin. Ini adalah koin yang sudah dibayarkan untuk memperoleh kartu target.", "Total purchase cost: {0} coins. These coins have already been paid to obtain goal cards.");
         terms["players.analysis.goal_purchases.unpaid_loan"] = ("Target ini sudah dibeli. Namun, poin kebahagiaan target saat ini tidak dihitung karena masih ada pinjaman yang belum lunas. Jika pinjaman tetap belum lunas saat sesi berakhir, poin kebahagiaan target hangus sesuai aturan.", "These goals were purchased. However, their Happiness Points currently do not count because a loan remains unpaid. If the loan is still unpaid when the session ends, goal Happiness Points are forfeited under the rules.");
         terms["players.support.formula.goal_purchases"] = ("Target Finansial Berhasil Dibeli = jumlah kartu target yang pembeliannya sudah selesai. Total Biaya Pembelian Target Finansial = jumlah biaya pembelian kartu-kartu tersebut. Tabungan untuk Target Belum Dibeli = sisa setoran pada target yang pembeliannya belum selesai.", "Financial Goals Purchased = number of goal cards whose purchase is complete. Total Financial Goal Purchase Cost = sum of the purchase costs of those cards. Savings for Unpurchased Goals = remaining deposits for goals whose purchase is not complete.");
@@ -380,11 +371,11 @@ internal static partial class UiTextLexicon
         terms["players.analysis.fulfillment_diversity.desc"] = ("Membandingkan proporsi kartu kebutuhan primer, sekunder, dan tersier yang masih dimiliki. Nilai ini tidak menyatakan misi koleksi sudah selesai.", "Compares the shares of primary, secondary, and tertiary need cards still owned. This does not indicate that the collection mission is complete.");
         // Memperbarui `terms[”players.analysis.donation_commitment.title”]` menggunakan tuple yang membawa bagian 1: ”Bagaimana keteraturan, porsi, dan
         // keikutsertaan donasi pemain?”; bagian 2: ”How regular, substantial, and frequent were the player's donations?” dalam AddPlayers.
-        terms["players.analysis.donation_commitment.title"] = ("Bagaimana keteraturan, porsi, dan keikutsertaan donasi pemain?", "How regular, substantial, and frequent were the player's donations?");
+        terms["players.analysis.donation_commitment.title"] = ("Berapa persentase komitmen donasi pemain?", "What is the player’s donation commitment percentage?");
         // Memperbarui `terms[”players.analysis.donation_commitment.desc”]` menggunakan tuple yang membawa bagian 1: ”Menggabungkan Keteraturan Jumlah
         // Donasi, Porsi Donasi dari Koin Tersisa dan Don...; bagian 2: ”Combines Donation Amount Regularity, Donation Share of Remaining and Donated Co...
         // dalam AddPlayers.
-        terms["players.analysis.donation_commitment.desc"] = ("Menggabungkan Keteraturan Jumlah Donasi, Porsi Donasi dari Koin Tersisa dan Donasi, serta Persentase Jumat dengan Donasi menjadi satu skor.", "Combines Donation Amount Regularity, Donation Share of Remaining and Donated Coins, and Share of Fridays with Donations into one score.");
+        terms["players.analysis.donation_commitment.desc"] = ("Menggabungkan keteraturan jumlah donasi, porsi koin untuk donasi, dan keikutsertaan pada Jumat menjadi persentase 0–100%. Nilai tinggi memerlukan ketiga komponen yang tinggi. Ini adalah persentase gabungan indikator, bukan persentase pendapatan yang didonasikan.", "Combines donation amount regularity, the share of coins donated, and Friday participation into a 0–100% measure. A high result requires all three components to be high. This is a composite indicator percentage, not the percentage of income donated.");
         // Memperbarui `terms[”players.analysis.happiness_portfolio.title”]` menggunakan tuple yang membawa bagian 1: ”Dari mana Poin Kebahagiaan berasal?”;
         // bagian 2: ”Where did Happiness Points come from?” dalam AddPlayers.
         terms["players.analysis.happiness_portfolio.title"] = ("Seberapa merata sumber Poin Kebahagiaan?", "How evenly are Happiness Points spread across sources?");
@@ -419,11 +410,11 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”players.analysis.source.debt-discipline”]` menggunakan tuple yang membawa bagian 1: ”Sisa Pinjaman berasal dari jumlah
         // pinjaman dikurangi pembayaran. Total Koin Ter...; bagian 2: ”Outstanding Loan is the borrowed amount minus repayments. Remaining Coins and S...
         // dalam AddPlayers.
-        terms["players.analysis.source.debt-discipline"] = ("Sisa Pinjaman berasal dari jumlah pinjaman dikurangi pembayaran. Total Koin Tersisa dan Tabungan adalah Koin Tersisa ditambah Koin dalam Tabungan; setiap komponen bernilai negatif dihitung sebagai nol.", "Outstanding Loan is the borrowed amount minus repayments. Remaining Coins and Savings Total adds Remaining Coins and Coins in Savings, treating each negative component as zero.");
+        terms["players.analysis.source.debt-discipline"] = ("Jumlah Pinjaman Diambil berasal dari setiap pinjaman berbeda yang diterima pemain, termasuk saat persiapan dan tindakan darurat. Pembayaran dicocokkan ke pinjaman yang sama. Jumlah Pinjaman Dilunasi mencakup pinjaman yang seluruh pokoknya sudah dibayar. Jumlah Pinjaman Belum Lunas mencakup pinjaman yang belum dibayar atau baru dicicil sebagian. Sisa Pinjaman menjumlahkan pokok yang masih harus dibayar. Jumlah pembayaran atau besarnya koin tidak dipakai sebagai jumlah pinjaman.", "Loans Taken Count includes each distinct loan received, including setup and emergency loans. Repayments are matched to the same loan. Loans Repaid Count includes loans whose entire principal has been paid. Unpaid Loan Count includes unpaid or partially repaid loans. Outstanding Loan sums the remaining principal. Payment transactions and coin amounts are not loan counts.");
         // Memperbarui `terms[”players.analysis.source.goal-ambition”]` menggunakan tuple yang membawa bagian 1: ”Dana yang Diperhitungkan untuk Target
         // berasal dari koin yang dialokasikan ke ta...; bagian 2: ”Funds Counted Toward Goals come from coins allocated to goals and are capped at... dalam
         // AddPlayers.
-        terms["players.analysis.source.goal-ambition"] = ("Target Finansial Berhasil Dibeli dan Total Biaya Pembelian Target Finansial berasal dari catatan pembelian kartu target. Tabungan untuk Target Belum Dibeli berasal dari setoran yang masih tersimpan untuk target yang belum selesai. Biaya target yang sudah dibeli tetap tercatat meskipun saldo tabungannya sudah menjadi nol.", "Financial Goals Purchased and Total Financial Goal Purchase Cost come from completed goal card purchases. Savings for Unpurchased Goals come from deposits still held for unfinished goals. Purchased goal costs remain recorded even when their savings balance has reached zero.");
+        terms["players.analysis.source.goal-ambition"] = ("Target Finansial Berhasil Dibeli berasal dari catatan pembelian kartu target, termasuk pembelian otomatis dari tabungan. Target yang Mulai Diusahakan adalah gabungan target yang pernah menerima setoran dan target yang sudah dibeli; setiap target dihitung sekali. Target yang hanya tersedia di set aturan tidak termasuk. Pembelian tetap dihitung walaupun tabungannya sudah dipakai atau poin kebahagiaan terkena penalti. Penyebut ini menunjukkan penyelesaian target yang benar-benar diusahakan. Total Biaya Pembelian Target Finansial adalah koin yang dibayar untuk target yang sudah dibeli. Tabungan untuk Target Belum Dibeli adalah setoran yang masih tersimpan untuk target lainnya.", "Financial Goals Purchased comes from recorded goal-card purchases, including automatic purchases from savings. Attempted Goals combines goals that received a deposit with purchased goals; each goal is counted once. Goals merely available in the ruleset are excluded. Purchases still count after savings are spent or happiness points are penalized. This denominator measures completion of goals actually pursued. Total Financial Goal Purchase Cost is the coins paid for purchased goals. Savings for Unpurchased Goals is the balance still saved for other goals.");
         // Memperbarui `terms[”players.analysis.source.action-efficiency”]` menggunakan tuple yang membawa bagian 1: ”Jumlah Aksi Utama Penghasil Koin dan
         // Total Aksi Utama dihitung dari aktivitas p...; bagian 2: ”Income-Earning Main Action Count and Total Main Actions come from player activi...
         // dalam AddPlayers.
@@ -760,7 +751,7 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”players.support.meaning.collection_mission”]` menggunakan tuple yang membawa bagian 1: ”Menunjukkan apakah seluruh syarat
         // misi koleksi pribadi pemain sudah terpenuhi p...; bagian 2: ”Shows whether all requirements of the player's private collection mission were ...
         // dalam AddPlayers.
-        terms["players.support.meaning.collection_mission"] = ("Menunjukkan apakah seluruh syarat pembelian dalam misi koleksi sudah terpenuhi berdasarkan riwayat permainan. Kartu yang kemudian dijual tetap dihitung untuk misi, tetapi tidak lagi dihitung dalam kartu yang masih dimiliki.", "Shows whether all collection-mission purchase requirements have been met in the game history. Cards sold later still count toward the mission but no longer count as currently owned cards.");
+        terms["players.support.meaning.collection_mission"] = ("Menunjukkan apakah seluruh syarat pembelian dalam misi koleksi sudah terpenuhi berdasarkan riwayat permainan. Kartu yang kemudian dijual tetap dihitung untuk misi, tetapi tidak lagi dihitung dalam kartu yang masih dimiliki.", "Shows whether all collection-mission purchase requirements have been met in the game statistics. Cards sold later still count toward the mission but no longer count as currently owned cards.");
         // Memperbarui `terms[”players.support.meaning.need_purchase_cost”]` menggunakan tuple yang membawa bagian 1: ”Jumlah koin yang dibayar untuk
         // seluruh kartu kebutuhan yang dibeli.”; bagian 2: ”Coins paid for all purchased need cards.” dalam AddPlayers.
         terms["players.support.meaning.need_purchase_cost"] = ("Jumlah koin yang dibayar untuk seluruh kartu kebutuhan yang dibeli.", "Coins paid for all purchased need cards.");
@@ -1213,15 +1204,15 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”players.support.guide.donation_commitment_strong”]` menggunakan tuple yang membawa bagian 1: ”67 atau lebih: nominal relatif
         // konsisten, proporsional terhadap kas, dan partis...; bagian 2: ”67 or more: amounts were relatively consistent, proportional to cash, and
         // Frida... dalam AddPlayers.
-        terms["players.support.guide.donation_commitment_strong"] = ("67 atau lebih: nominal relatif konsisten, proporsional terhadap kas, dan partisipasi Jumat tinggi.", "67 or more: amounts were relatively consistent, proportional to cash, and Friday participation was high.");
+        terms["players.support.guide.donation_commitment_strong"] = ("67% atau lebih: gabungan keteraturan, porsi, dan keikutsertaan donasi tinggi. Lihat ketiga komponen untuk mengetahui kontribusinya.", "67% or more: combined donation regularity, share, and participation are high. Check the three components for their contributions.");
         // Memperbarui `terms[”players.support.guide.donation_commitment_moderate”]` menggunakan tuple yang membawa bagian 1: ”34–67: konsistensi, proporsi,
         // atau partisipasi donasi masih berada pada tingkat...; bagian 2: ”34–67: donation consistency, proportion, or participation remained moderate.”
         // dalam AddPlayers.
-        terms["players.support.guide.donation_commitment_moderate"] = ("34–67: konsistensi, proporsi, atau partisipasi donasi masih berada pada tingkat menengah.", "34–67: donation consistency, proportion, or participation remained moderate.");
+        terms["players.support.guide.donation_commitment_moderate"] = ("34% hingga kurang dari 67%: gabungan indikator donasi berada di tingkat sedang. Komponen yang lebih rendah masih membatasi hasil.", "34% to below 67%: the combined donation indicators are moderate. Lower components still limit the result.");
         // Memperbarui `terms[”players.support.guide.donation_commitment_weak”]` menggunakan tuple yang membawa bagian 1: ”Di bawah 34: konsistensi,
         // proporsi, atau partisipasi donasi masih rendah.”; bagian 2: ”Below 34: donation consistency, proportion, or participation remained low.” dalam
         // AddPlayers.
-        terms["players.support.guide.donation_commitment_weak"] = ("Di bawah 34: konsistensi, proporsi, atau partisipasi donasi masih rendah.", "Below 34: donation consistency, proportion, or participation remained low.");
+        terms["players.support.guide.donation_commitment_weak"] = ("Di bawah 34%: hasil gabungan indikator donasi masih rendah. Buka ketiga komponen untuk melihat pengaruhnya. Keikutsertaan 100% saja belum membuat hasil gabungan 100%.", "Below 34%: the combined donation result is low. Open the three components to see their effects. Participation of 100% alone does not make the composite result 100%.");
         // Memperbarui `terms[”players.support.guide.mission_complete”]` menggunakan tuple yang membawa bagian 1: ”Nilai 1 berarti syarat misi pemain
         // tercapai.”; bagian 2: ”A value of 1 means the player's mission requirements were achieved.” dalam AddPlayers.
         terms["players.support.guide.mission_complete"] = ("Nilai 1 berarti syarat misi pemain tercapai.", "A value of 1 means the player's mission requirements were achieved.");
@@ -1325,7 +1316,7 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”players.support.formula.donation_commitment”]` menggunakan tuple yang membawa bagian 1: ”Skor Komitmen Donasi = Keteraturan
         // Jumlah Donasi × (Porsi Donasi dari Koin Ters...; bagian 2: ”Donation Commitment Score = Donation Amount Regularity × (Donation Share of Rem...
         // dalam AddPlayers.
-        terms["players.support.formula.donation_commitment"] = ("Skor Komitmen Donasi = Keteraturan Jumlah Donasi × (Porsi Donasi dari Koin Tersisa dan Donasi ÷ 100) × (Persentase Jumat dengan Donasi ÷ 100), dibatasi 0–100.", "Donation Commitment Score = Donation Amount Regularity × (Donation Share of Remaining and Donated Coins ÷ 100) × (Share of Fridays with Donations ÷ 100), capped at 0–100.");
+        terms["players.support.formula.donation_commitment"] = ("Persentase Komitmen Donasi = (Keteraturan Jumlah Donasi ÷ 100) × (Porsi Donasi dari Koin Tersisa dan Donasi ÷ 100) × (Persentase Jumat dengan Donasi ÷ 100) × 100%. Hasil dibatasi 0–100%. Perkalian digunakan agar satu komponen yang tinggi tidak menutupi komponen lain yang rendah.", "Donation Commitment Percentage = (Donation Amount Regularity ÷ 100) × (Donation Share of Remaining and Donated Coins ÷ 100) × (Share of Fridays with Donations ÷ 100) × 100%. The result is bounded to 0–100%. Multiplication prevents a high component from masking a low one.");
         // Memperbarui `terms[”players.support.formula.happiness_portfolio”]` menggunakan tuple yang membawa bagian 1: ”Total Poin Kebahagiaan = Poin
         // Kebahagiaan Kartu Kebutuhan + Poin Kebahagiaan Bo...; bagian 2: ”Total Happiness Points = Need Card Happiness Points + Need Set Bonus Happiness
         // ... dalam AddPlayers.
@@ -1877,7 +1868,7 @@ internal static partial class UiTextLexicon
         terms["players.metric.fulfillment_diversity"] = ("Pemerataan Kartu Kebutuhan", "Need Card Balance");
         // Memperbarui `terms[”players.metric.donation_commitment”]` menggunakan tuple yang membawa bagian 1: ”Skor Komitmen Donasi”; bagian 2: ”Donation
         // Commitment Score” dalam AddPlayers.
-        terms["players.metric.donation_commitment"] = ("Skor Komitmen Donasi", "Donation Commitment Score");
+        terms["players.metric.donation_commitment"] = ("Persentase Komitmen Donasi", "Donation Commitment Percentage");
         // Memperbarui `terms[”players.metric.debt_ratio”]` menggunakan tuple yang membawa bagian 1: ”Rasio Utang”; bagian 2: ”Debt Ratio” dalam AddPlayers.
         terms["players.metric.debt_ratio"] = ("Rasio Utang", "Debt Ratio");
         // Memperbarui `terms[”players.metric.risk_exposure”]` menggunakan tuple yang membawa bagian 1: ”Eksposur Risiko”; bagian 2: ”Risk Exposure” dalam
@@ -2276,7 +2267,7 @@ internal static partial class UiTextLexicon
         terms["players.raw.emergency_options_used"] = ("Penggunaan Tindakan Darurat", "Emergency Actions Used");
         // Memperbarui `terms[”players.raw.financial_goals_attempted”]` menggunakan tuple yang membawa bagian 1: ”Target Finansial yang Dicoba”; bagian 2:
         // ”Financial Goals Attempted” dalam AddPlayers.
-        terms["players.raw.financial_goals_attempted"] = ("Target Finansial yang Dicoba", "Financial Goals Attempted");
+        terms["players.raw.financial_goals_attempted"] = ("Target yang Mulai Diusahakan", "Attempted Goals");
         // Memperbarui `terms[”players.raw.financial_goals_completed”]` menggunakan tuple yang membawa bagian 1: ”Target Finansial yang Selesai”; bagian 2:
         // ”Financial Goals Completed” dalam AddPlayers.
         terms["players.raw.financial_goals_completed"] = ("Target Finansial Berhasil Dibeli", "Financial Goals Purchased");
@@ -2740,7 +2731,7 @@ internal static partial class UiTextLexicon
         terms["players.metric.friday_participation_rate"] = ("Persentase Jumat dengan Donasi", "Share of Fridays with Donations");
         // Memperbarui `terms[”players.metric.donation_commitment_score”]` menggunakan tuple yang membawa bagian 1: ”Skor Komitmen Donasi”; bagian 2:
         // ”Donation Commitment Score” dalam AddPlayers.
-        terms["players.metric.donation_commitment_score"] = ("Skor Komitmen Donasi", "Donation Commitment Score");
+        terms["players.metric.donation_commitment_score"] = ("Persentase Komitmen Donasi", "Donation Commitment Percentage");
         // Memperbarui `terms[”players.metric.donation_stability”]` menggunakan tuple yang membawa bagian 1: ”Stabilitas Donasi”; bagian 2: ”Donation
         // Stability” dalam AddPlayers.
         terms["players.metric.donation_stability"] = ("Stabilitas Donasi", "Donation Stability");

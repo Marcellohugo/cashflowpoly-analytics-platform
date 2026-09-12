@@ -83,6 +83,10 @@ public sealed class SourceFileDocumentationTests
         // Menyiapkan variabel lokal `normalized` untuk nilai normalized dengan memanggil `path.Replace` dengan `'\\'`, `'/'`. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
         var normalized = path.Replace('\\', '/');
+        // Browser reports contain generated copies of third-party CSS and scripts, not project source.
+        if (normalized.Contains("/tests/e2e/test-results/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/tests/e2e/playwright-report/", StringComparison.OrdinalIgnoreCase))
+            return false;
         // Memeriksa gabungan syarat OR: setidaknya satu kondisi wajib benar antara `normalized.Contains(”/bin/”, StringComparison.OrdinalIgnoreCase) ||
         // normalized.Contains(”/obj/”, StringComparison.OrdinalIgnoreCase) || normalized.Contains(”/node_modules/”, S...` dan
         // `normalized.EndsWith(”/wwwroot/css/tailwind.css”, StringComparison.OrdinalIgnoreCase)`; sisi kanan diperiksa hanya jika sisi kiri salah; blok if

@@ -369,6 +369,8 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
         </div>
     </div>
 
+    <p class="alert alert-info" id="ruleset-mechanics-note">@Context.T("rulesets.mechanics_held_hint")</p>
+
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
         <div class="mt-4 alert alert-error" aria-live="polite">
@@ -445,16 +447,6 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                         <label class="form-label" for="cfg-cash">@Context.T("rulesets.form.starting_cash")</label>
                         <input id="cfg-cash" type="number" min="0" class="form-input" value="20" />
                     </div>
-                    <div class="md:col-span-2">
-                        <label class="form-label" for="cfg-player-ordering-display">@Context.T("rulesets.form.player_ordering")</label>
-                        <input id="cfg-player-ordering-display"
-                               type="text"
-                               readonly
-                               class="form-input"
-                               value="@Context.T("rulesets.form.player_ordering_player_order")" />
-                        <input id="cfg-player-ordering" type="hidden" value="PLAYER_ORDER" />
-                        <p class="mt-1 text-xs text-slate-500">@Context.T("rulesets.form.player_ordering_fixed_hint")</p>
-                    </div>
                     <div>
                         <label class="form-label" for="cfg-freelance-income">@Context.T("rulesets.form.freelance_income")</label>
                         <input id="cfg-freelance-income" type="number" min="0" class="form-input" value="1" />
@@ -468,9 +460,9 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                     <p class="ruleset-section-subtitle">@Context.T("rulesets.form.help.weekday_features")</p>
                 </div>
                 <div class="grid gap-3 md:grid-cols-3 mt-3">
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input id="cfg-friday" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input id="cfg-saturday" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.sunday_rest")</span><input id="cfg-sunday" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.friday_donation")</span><input id="cfg-friday" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saturday_gold_trade")</span><input id="cfg-saturday" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.sunday_rest")</span><input id="cfg-sunday" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
                 </div>
             </div>
 
@@ -509,17 +501,17 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                         <label class="form-label" for="cfg-donation-max">@Context.T("rulesets.form.donation_max")</label>
                         <input id="cfg-donation-max" type="number" min="1" class="form-input" value="999999" />
                     </div>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input id="cfg-gold-buy" type="checkbox" checked /></label>
-                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input id="cfg-gold-sell" type="checkbox" checked /></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_buy")</span><input id="cfg-gold-buy" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
+                    <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.gold_sell")</span><input id="cfg-gold-sell" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
                     <div class="ruleset-advanced-feature-grid md:col-span-2" data-ruleset-advanced-features hidden>
                         <div class="ruleset-advanced-feature-head">
                             <span class="ruleset-mode-badge ruleset-mode-badge--advanced">@Context.T("rulesets.form.mode_advanced")</span>
                             <p>@Context.T("rulesets.form.advanced_features_hint")</p>
                         </div>
                         <div class="grid gap-3 md:grid-cols-3 mt-3">
-                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input id="cfg-adv-loan" type="checkbox" disabled /></label>
-                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input id="cfg-adv-insurance" type="checkbox" disabled /></label>
-                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input id="cfg-adv-saving-goal" type="checkbox" disabled /></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.loan_enabled")</span><input id="cfg-adv-loan" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.insurance_enabled")</span><input id="cfg-adv-insurance" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
+                            <label class="metric-row"><span class="metric-key">@Context.T("rulesets.form.saving_goal_enabled")</span><input id="cfg-adv-saving-goal" type="checkbox" checked disabled aria-describedby="ruleset-mechanics-note" /><span class="ruleset-coming-soon">@Context.T("rulesets.coming_soon")</span></label>
                         </div>
                     </div>
                 </div>
@@ -553,7 +545,7 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                 const v = parseInt(getEl(id)?.value ?? "", 10);
                 return Number.isFinite(v) ? v : fallback;
             };
-            const toBool = (id) => !!getEl(id)?.checked;
+
             const configTextArea = getEl("DefinitionJson");
             let savedConfig = {};
             try { savedConfig = JSON.parse(configTextArea.value || "{}"); } catch (_) {}
@@ -590,9 +582,9 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                 starting_cash: toInt("cfg-cash", 20),
                 player_ordering: "PLAYER_ORDER",
                 weekday_rules: {
-                    friday: { feature: "DONATION", enabled: toBool("cfg-friday") },
-                    saturday: { feature: "GOLD_TRADE", enabled: toBool("cfg-saturday") },
-                    sunday: { feature: "REST", enabled: toBool("cfg-sunday") }
+                    friday: { feature: "DONATION", enabled: true },
+                    saturday: { feature: "GOLD_TRADE", enabled: true },
+                    sunday: { feature: "REST", enabled: true }
                 },
                 constraints: {
                     cash_min: toInt("cfg-cash-min", 0),
@@ -606,13 +598,13 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                     max_amount: toInt("cfg-donation-max", 999999)
                 },
                 gold_trade: {
-                    allow_buy: toBool("cfg-gold-buy"),
-                    allow_sell: toBool("cfg-gold-sell")
+                    allow_buy: true,
+                    allow_sell: true
                 },
                 advanced: {
-                    loan: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-loan") },
-                    insurance: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-insurance") },
-                    saving_goal: { enabled: getMode() === "MAHIR" && toBool("cfg-adv-saving-goal") }
+                    loan: { enabled: getMode() === "MAHIR" },
+                    insurance: { enabled: getMode() === "MAHIR" },
+                    saving_goal: { enabled: getMode() === "MAHIR" }
                 },
                 freelance: { income: toInt("cfg-freelance-income", 1) },
                 scoring: savedConfig.scoring ?? scoreDefaults
@@ -627,19 +619,19 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                 getEl("cfg-actions").value = cfg.actions_per_turn ?? 2;
                 getEl("cfg-cash").value = cfg.starting_cash ?? 20;
                 getEl("cfg-freelance-income").value = cfg.freelance?.income ?? 1;
-                getEl("cfg-friday").checked = !!cfg.weekday_rules?.friday?.enabled;
-                getEl("cfg-saturday").checked = !!cfg.weekday_rules?.saturday?.enabled;
-                getEl("cfg-sunday").checked = !!cfg.weekday_rules?.sunday?.enabled;
+                getEl("cfg-friday").checked = true;
+                getEl("cfg-saturday").checked = true;
+                getEl("cfg-sunday").checked = true;
                 getEl("cfg-cash-min").value = cfg.constraints?.cash_min ?? 0;
                 getEl("cfg-max-ing-total").value = cfg.constraints?.max_ingredient_total ?? 6;
                 getEl("cfg-max-same-ing").value = cfg.constraints?.max_same_ingredient ?? 3;
                 getEl("cfg-donation-min").value = cfg.donation?.min_amount ?? 1;
                 getEl("cfg-donation-max").value = cfg.donation?.max_amount ?? 999999;
-                getEl("cfg-gold-buy").checked = cfg.gold_trade?.allow_buy ?? true;
-                getEl("cfg-gold-sell").checked = cfg.gold_trade?.allow_sell ?? true;
-                getEl("cfg-adv-loan").checked = !!cfg.advanced?.loan?.enabled;
-                getEl("cfg-adv-insurance").checked = !!cfg.advanced?.insurance?.enabled;
-                getEl("cfg-adv-saving-goal").checked = !!cfg.advanced?.saving_goal?.enabled;
+                getEl("cfg-gold-buy").checked = true;
+                getEl("cfg-gold-sell").checked = true;
+                getEl("cfg-adv-loan").checked = true;
+                getEl("cfg-adv-insurance").checked = true;
+                getEl("cfg-adv-saving-goal").checked = true;
                 setAdvancedFeatureAvailability(resolvedMode);
             };
 
@@ -651,8 +643,8 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                 }
                 advancedFeatureInputs.forEach((input) => {
                     if (!input) return;
-                    input.disabled = !isAdvanced;
-                    if (!isAdvanced) input.checked = false;
+                    input.disabled = true;
+                    input.checked = true;
                 });
             };
 
@@ -660,9 +652,9 @@ Baris sumber 360: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                 const preset = modePresets[`${mode ?? ""}`.toUpperCase()];
                 if (!preset) return;
                 getEl("cfg-cash").value = preset.starting_cash;
-                getEl("cfg-adv-loan").checked = preset.loan_enabled;
-                getEl("cfg-adv-insurance").checked = preset.insurance_enabled;
-                getEl("cfg-adv-saving-goal").checked = preset.saving_goal_enabled;
+                getEl("cfg-adv-loan").checked = true;
+                getEl("cfg-adv-insurance").checked = true;
+                getEl("cfg-adv-saving-goal").checked = true;
                 setAdvancedFeatureAvailability(mode);
             };
 

@@ -98,15 +98,15 @@ internal static partial class UiTextLexicon
         terms["rulesets.create_title"] = ("Buat Set Aturan baru", "Create new ruleset");
         // Memperbarui `terms[”rulesets.create_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Isi form aturan permainan. JSON konfigurasi dibuat
         // otomatis.”; bagian 2: ”Fill the gameplay rules form. Configuration JSON is generated automatically.” dalam AddRulesets.
-        terms["rulesets.create_subtitle"] = ("Isi form aturan permainan. JSON konfigurasi dibuat otomatis.", "Fill the gameplay rules form. Configuration JSON is generated automatically.");
+        terms["rulesets.create_subtitle"] = ("Pilih mode permainan, lalu sesuaikan nilai aturan yang tersedia untuk sesi Anda.", "Choose a game mode, then adjust the available rule values for your session.");
         // Memperbarui `terms[”rulesets.edit”]` menggunakan tuple yang membawa bagian 1: ”Edit aturan”; bagian 2: ”Edit rules” dalam AddRulesets.
         terms["rulesets.edit"] = ("Edit aturan", "Edit rules");
         // Memperbarui `terms[”rulesets.edit_title”]` menggunakan tuple yang membawa bagian 1: ”Edit aturan Set Aturan”; bagian 2: ”Edit ruleset rules”
         // dalam AddRulesets.
         terms["rulesets.edit_title"] = ("Edit aturan Set Aturan", "Edit ruleset rules");
         // Memperbarui `terms[”rulesets.edit_subtitle”]` menggunakan tuple yang membawa bagian 1: ”Perbarui aturan untuk membuat versi baru tanpa mengubah
-        // riwayat versi lama.”; bagian 2: ”Update rules to create a new version without changing previous version history.... dalam AddRulesets.
-        terms["rulesets.edit_subtitle"] = ("Perbarui aturan untuk membuat versi baru tanpa mengubah riwayat versi lama.", "Update rules to create a new version without changing previous version history.");
+        // riwayat versi lama.”; bagian 2: ”Update rules to create a new version without changing previous version statistics.... dalam AddRulesets.
+        terms["rulesets.edit_subtitle"] = ("Perbarui aturan untuk membuat versi baru tanpa mengubah riwayat versi lama.", "Update rules to create a new version without changing previous version statistics.");
         // Memperbarui `terms[”rulesets.delete”]` menggunakan tuple yang membawa bagian 1: ”Hapus”; bagian 2: ”Delete” dalam AddRulesets.
         terms["rulesets.delete"] = ("Hapus", "Delete");
         // Memperbarui `terms[”rulesets.save”]` menggunakan tuple yang membawa bagian 1: ”Simpan Set Aturan”; bagian 2: ”Save Ruleset” dalam AddRulesets.
@@ -216,8 +216,8 @@ internal static partial class UiTextLexicon
         // tips” dalam AddRulesets.
         terms["rulesets.tips.form_title"] = ("Tips mengisi form Set Aturan", "Ruleset form tips");
         // Memperbarui `terms[”rulesets.tip.versioning_draft”]` menggunakan tuple yang membawa bagian 1: ”Simpan perubahan sebagai versi baru agar aturan
-        // lama tetap dapat ditelusuri pad...; bagian 2: ”Save changes as a new version so previous rules remain traceable in history.” dalam AddRulesets.
-        terms["rulesets.tip.versioning_draft"] = ("Simpan perubahan sebagai versi baru agar aturan lama tetap dapat ditelusuri pada riwayat.", "Save changes as a new version so previous rules remain traceable in history.");
+        // lama tetap dapat ditelusuri pad...; bagian 2: ”Save changes as a new version so previous rules remain traceable in statistics.” dalam AddRulesets.
+        terms["rulesets.tip.versioning_draft"] = ("Simpan perubahan sebagai versi baru agar aturan lama tetap dapat ditelusuri pada riwayat.", "Save changes as a new version so previous rules remain traceable in statistics.");
         // Memperbarui `terms[”rulesets.tip.consistency”]` menggunakan tuple yang membawa bagian 1: ”Cocokkan jumlah aksi, kas awal, batasan, dan fitur
         // harian dengan tujuan latihan...; bagian 2: ”Match action count, starting cash, constraints, and daily features to the sessi... dalam AddRulesets.
         terms["rulesets.tip.consistency"] = ("Cocokkan jumlah aksi, kas awal, batasan, dan fitur harian dengan tujuan latihan pada sesi.", "Match action count, starting cash, constraints, and daily features to the session's learning objective.");
@@ -251,7 +251,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.info.session_readonly"] = ("Set aturan ini sudah terhubung ke sesi sehingga tidak dapat diubah atau dihapus, termasuk saat sesi belum dimulai. Buat set aturan baru untuk perubahan.", "This ruleset is assigned to a session and cannot be edited or deleted, even before the session starts. Create a new ruleset to make changes.");
         // Memperbarui `terms[”rulesets.back_to_list”]` menggunakan tuple yang membawa bagian 1: ”Kembali ke daftar”; bagian 2: ”Back to list” dalam
         // AddRulesets.
-        terms["rulesets.back_to_list"] = ("Kembali ke daftar", "Back to list");
+        terms["rulesets.back_to_list"] = ("Kembali ke daftar ruleset", "Back to ruleset list");
         // Memperbarui `terms[”rulesets.status.available”]` menggunakan tuple yang membawa bagian 1: ”Tersedia”; bagian 2: ”Available” dalam AddRulesets.
         terms["rulesets.status.available"] = ("Tersedia", "Available");
         // Memperbarui `terms[”rulesets.config_summary”]` menggunakan tuple yang membawa bagian 1: ”Ringkasan Konfigurasi Aturan”; bagian 2: ”Ruleset
@@ -419,7 +419,7 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”rulesets.form.help.core_setup”]` menggunakan tuple yang membawa bagian 1: ”Atur mode permainan, jumlah aksi harian pemain,
         // kas awal, urutan pemain, dan ha...; bagian 2: ”Set the game mode, daily player actions, starting cash, player ordering, and fr... dalam
         // AddRulesets.
-        terms["rulesets.form.help.core_setup"] = ("Atur mode permainan, jumlah aksi harian pemain, kas awal, urutan pemain, dan hasil kerja lepas.", "Set the game mode, daily player actions, starting cash, player ordering, and freelance reward.");
+        terms["rulesets.form.help.core_setup"] = ("Atur mode permainan, jumlah aksi harian pemain, kas awal, dan hasil kerja lepas.", "Set the game mode, daily player actions, starting cash, and freelance reward.");
         // Memperbarui `terms[”rulesets.form.help.weekday_features”]` menggunakan tuple yang membawa bagian 1: ”Tentukan apakah event khusus
         // Jumat/Sabtu/Minggu berjalan di sesi ini.”; bagian 2: ”Decide whether Friday/Saturday/Sunday special events are enabled in this sessio... dalam
         // AddRulesets.

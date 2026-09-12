@@ -12,16 +12,16 @@ public sealed class HomeIndexViewModel
 {
     // Mendefinisikan properti `ActiveSessions` bertipe `int` untuk nilai aktif sessions; get menyediakan pembacaan nilai, init membatasi pengisian saat
     // inisialisasi objek.
-    public int ActiveSessions { get; init; }
+    public int? ActiveSessions { get; init; }
     // Mendefinisikan properti `TotalSessions` bertipe `int` untuk nilai total sessions; get menyediakan pembacaan nilai, init membatasi pengisian saat
     // inisialisasi objek.
-    public int TotalSessions { get; init; }
+    public int? TotalSessions { get; init; }
     // Mendefinisikan properti `TotalPlayers` bertipe `int` untuk nilai total pemain; get menyediakan pembacaan nilai, init membatasi pengisian saat
     // inisialisasi objek.
-    public int TotalPlayers { get; init; }
+    public int? TotalPlayers { get; init; }
     // Mendefinisikan properti `TotalRulesets` bertipe `int` untuk nilai total aturan; get menyediakan pembacaan nilai, init membatasi pengisian saat
     // inisialisasi objek.
-    public int TotalRulesets { get; init; }
+    public int? TotalRulesets { get; init; }
     // Mendefinisikan properti `LastSyncedAt` bertipe `DateTimeOffset` untuk nilai last synced at; get menyediakan pembacaan nilai, init membatasi
     // pengisian saat inisialisasi objek; nilai awalnya `DateTimeOffset.UtcNow`, yaitu waktu UTC saat operasi dilakukan.
     public DateTimeOffset LastSyncedAt { get; init; } = DateTimeOffset.UtcNow;

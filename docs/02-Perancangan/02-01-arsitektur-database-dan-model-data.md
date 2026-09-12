@@ -627,7 +627,7 @@ Mode migrasi API memastikan:
 Data simulasi manual berada pada:
 - `database/02_seed_simulation_sessions_events.sql`
 
-File simulasi hanya dijalankan ketika `DatabaseMigrations__SeedSimulation=true` pada mode migrasi. Setelah itu, `--recalculate-analytics` wajib dijalankan agar snapshot Seed 2 dibentuk oleh kalkulator domain API, bukan oleh rumus SQL terpisah.
+File simulasi dijalankan ketika `DatabaseMigrations__SeedSimulation=true`, termasuk pada proses migrasi production. Runtime production biasa hanya memverifikasi migrasi sehingga tidak menjalankan ulang Seed 2 saat restart. Setelah itu, `--recalculate-analytics` wajib dijalankan agar snapshot Seed 2 dibentuk oleh kalkulator domain API, bukan oleh rumus SQL terpisah.
 
 ---
 
@@ -696,7 +696,7 @@ Urutan inisialisasi yang benar:
 2. jalankan image API dengan `--migrate-only`;
 3. pasang baseline untuk database kosong, kemudian seluruh migrasi berurutan;
 4. verifikasi checksum pada `schema_history`;
-5. jalankan Seed 2 hanya bila `DatabaseMigrations__SeedSimulation=true`;
+5. jalankan Seed 2 bila `DatabaseMigrations__SeedSimulation=true` (aktif pada konfigurasi production proyek);
 6. jalankan `--recalculate-analytics` setelah Seed 2;
 7. mulai instance API biasa tanpa hak mengubah schema.
 

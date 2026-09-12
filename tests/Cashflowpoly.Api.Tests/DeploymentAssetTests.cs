@@ -273,7 +273,7 @@ public sealed class DeploymentAssetTests
         Assert.DoesNotContain("fromSeq", collection, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”Verify Public Instructor Registration
         // Is Rejected”`, `collection`, `StringComparison.Ordinal` dalam PostmanAndDocumentation_ShouldMatchCurrentAuthAndApiContract.
-        Assert.Contains("Verify Public Instructor Registration Is Rejected", collection, StringComparison.Ordinal);
+        Assert.Contains("Register Public Instructor", collection, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”'Login': [200]”`, `collection`,
         // `StringComparison.Ordinal` dalam PostmanAndDocumentation_ShouldMatchCurrentAuthAndApiContract.
         Assert.Contains("'Login': [200]", collection, StringComparison.Ordinal);
@@ -290,9 +290,9 @@ public sealed class DeploymentAssetTests
         // `”/api/v1/sessions/{{sessionId}}/players”`, `collection`, `StringComparison.Ordinal` dalam
         // PostmanAndDocumentation_ShouldMatchCurrentAuthAndApiContract.
         Assert.Contains("/api/v1/sessions/{{sessionId}}/players", collection, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”deniedInstructorUsername”`,
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”registeredInstructorUsername”`,
         // `environment`, `StringComparison.Ordinal` dalam PostmanAndDocumentation_ShouldMatchCurrentAuthAndApiContract.
-        Assert.Contains("deniedInstructorUsername", environment, StringComparison.Ordinal);
+        Assert.Contains("registeredInstructorUsername", environment, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”skema database **`3.0.13`**”`,
         // `readme`, `StringComparison.Ordinal` dalam PostmanAndDocumentation_ShouldMatchCurrentAuthAndApiContract.
         Assert.Contains("skema database **`3.0.13`**", readme, StringComparison.Ordinal);
@@ -394,13 +394,13 @@ public sealed class DeploymentAssetTests
         // `uiDockerfile`, `StringComparison.Ordinal` dalam ProductionContainers_ShouldBePinnedNonRootAndKeepMetricsPrivate.
         Assert.Contains("chown -R app:app /home/app/.aspnet", uiDockerfile, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
-        // `”mcr.microsoft.com/dotnet/aspnet:10.0.4”`, `apiDockerfile`, `StringComparison.Ordinal` dalam
+        // `”mcr.microsoft.com/dotnet/aspnet:10.0.12”`, `apiDockerfile`, `StringComparison.Ordinal` dalam
         // ProductionContainers_ShouldBePinnedNonRootAndKeepMetricsPrivate.
-        Assert.Contains("mcr.microsoft.com/dotnet/aspnet:10.0.4", apiDockerfile, StringComparison.Ordinal);
+        Assert.Contains("mcr.microsoft.com/dotnet/aspnet:10.0.12", apiDockerfile, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
-        // `”mcr.microsoft.com/dotnet/aspnet:10.0.4”`, `uiDockerfile`, `StringComparison.Ordinal` dalam
+        // `”mcr.microsoft.com/dotnet/aspnet:10.0.12”`, `uiDockerfile`, `StringComparison.Ordinal` dalam
         // ProductionContainers_ShouldBePinnedNonRootAndKeepMetricsPrivate.
-        Assert.Contains("mcr.microsoft.com/dotnet/aspnet:10.0.4", uiDockerfile, StringComparison.Ordinal);
+        Assert.Contains("mcr.microsoft.com/dotnet/aspnet:10.0.12", uiDockerfile, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”driver: ${LOG_DRIVER:-journald}”`,
         // `production`, `StringComparison.Ordinal` dalam ProductionContainers_ShouldBePinnedNonRootAndKeepMetricsPrivate.
         Assert.Contains("driver: ${LOG_DRIVER:-journald}", production, StringComparison.Ordinal);

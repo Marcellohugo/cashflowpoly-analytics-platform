@@ -22,6 +22,7 @@ internal static class DatabaseInitialization
     private const string BaselineVersion = "3.0.13";
     // Mendeklarasikan field bertipe `long`: `MigrationLockKey` menyimpan nilai migration lock kunci dengan nilai awal nilai literal `43465348504`.
     private const long MigrationLockKey = 43465348504;
+    private const int MaintenanceCommandTimeoutSeconds = 300;
 
     // Mendefinisikan metode `InitializeAsync` dengan hasil bertipe `Task`; operasi ini menangani initialize asinkron. async memungkinkan metode
     // menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task. Masukan: Parameter `services` bertipe `IServiceProvider` membawa
@@ -151,7 +152,7 @@ internal static class DatabaseInitialization
                 // Menjalankan hasil operasi asinkron menjalankan perintah SQL melalui `connection` menggunakan `new CommandDefinition(baselineSql,
                 // cancellationToken: cancellationToken)`; nilai hasil menunjukkan jumlah baris yang terpengaruh; await menunggu hasil tanpa memblokir thread selama
                 // operasi belum selesai dalam ApplyMigrationsAsync.
-                await connection.ExecuteAsync(new CommandDefinition(baselineSql, cancellationToken: cancellationToken));
+                await connection.ExecuteAsync(new CommandDefinition(baselineSql, commandTimeout: MaintenanceCommandTimeoutSeconds, cancellationToken: cancellationToken));
                 // Menjalankan mencatat log tingkat Information melalui `logger` dengan pesan dan data `”Applied canonical database baseline from {BaselinePath}”`,
                 // `baselinePath` dalam ApplyMigrationsAsync.
                 logger.LogInformation("Applied canonical database baseline from {BaselinePath}", baselinePath);
@@ -221,6 +222,7 @@ internal static class DatabaseInitialization
                     migration.Sql,
                     // Meneruskan `transaction` (transaksi basis data yang menggabungkan perubahan sebagai satu kesatuan) sebagai argumen bernama `transaction`.
                     transaction: transaction,
+                    commandTimeout: MaintenanceCommandTimeoutSeconds,
                     // Meneruskan `cancellationToken` (sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti)
                     // sebagai argumen bernama `cancellationToken`.
                     cancellationToken: cancellationToken));
@@ -260,17 +262,6 @@ internal static class DatabaseInitialization
                 // Menjalankan hasil operasi asinkron memanggil `SeedSqlFileAsync` dengan `connection`, `logger`, `”02_seed_simulation_sessions_events.sql”`,
                 // `configuration`, `cancellationToken`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai dalam ApplyMigrationsAsync.
                 await SeedSqlFileAsync(connection, logger, "02_seed_simulation_sessions_events.sql", configuration, cancellationToken);
-                // Menjalankan hasil operasi asinkron menjalankan perintah SQL melalui `connection` menggunakan `new CommandDefinition( ”update app_users set
-                // is_demo = true where lower(username::text) in ('rina.kartika', 'marco', 'marcello', 'hugo', 'manalu');”, cancellationToken: cancel...`; nilai
-                // hasil menunjukkan jumlah baris yang terpengaruh; await menunggu hasil tanpa memblokir thread selama operasi belum selesai dalam
-                // ApplyMigrationsAsync.
-                await connection.ExecuteAsync(new CommandDefinition(
-                    // Meneruskan nilai literal `”update app_users set is_demo = true where lower(username::text) in ('rina.kartika', 'marco', 'marcello', 'hugo',
-                    // 'manalu');”` sebagai argumen ke konstruktor `CommandDefinition`.
-                    "update app_users set is_demo = true where lower(username::text) in ('rina.kartika', 'marco', 'marcello', 'hugo', 'manalu');",
-                    // Meneruskan `cancellationToken` (sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi berhenti)
-                    // sebagai argumen bernama `cancellationToken`.
-                    cancellationToken: cancellationToken));
             // Menutup scope cabang if untuk kondisi `configuration.GetValue<bool>(”DatabaseMigrations:SeedSimulation”)`; bagian berikut berada di luar batas
             // blok tersebut dalam ApplyMigrationsAsync.
             }
@@ -604,7 +595,7 @@ internal static class DatabaseInitialization
         // Menjalankan hasil operasi asinkron menjalankan perintah SQL melalui `connection` menggunakan `new CommandDefinition(seedSql, cancellationToken:
         // cancellationToken)`; nilai hasil menunjukkan jumlah baris yang terpengaruh; await menunggu hasil tanpa memblokir thread selama operasi belum
         // selesai dalam SeedSqlFileAsync.
-        await connection.ExecuteAsync(new CommandDefinition(seedSql, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition(seedSql, commandTimeout: MaintenanceCommandTimeoutSeconds, cancellationToken: cancellationToken));
         // Menjalankan mencatat log tingkat Information melalui `logger` dengan pesan dan data `”Applied idempotent seed from {SeedPath}”`, `seedPath` dalam
         // SeedSqlFileAsync.
         logger.LogInformation("Applied idempotent seed from {SeedPath}", seedPath);

@@ -20,6 +20,9 @@ public sealed class SessionListViewModel
     // Mendefinisikan properti `Items` bertipe `List<SessionListItem>` untuk nilai elemen; get menyediakan pembacaan nilai, init membatasi pengisian
     // saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
     public List<SessionListItem> Items { get; init; } = new();
+    public List<PlayerSessionGroupViewModel> SessionGroups { get; init; } = [];
+    public int? MonitoredPlayers { get; init; }
+    public bool SessionsAvailable { get; init; }
     // Mendefinisikan properti `ErrorMessage` bertipe `string?` untuk nilai kesalahan pesan; get menyediakan pembacaan nilai, init membatasi pengisian
     // saat inisialisasi objek; tanda ? mengizinkan nilai null.
     public string? ErrorMessage { get; init; }
@@ -148,7 +151,7 @@ public sealed class PlayerDetailViewModel
     public DateTimeOffset? GameplayComputedAt { get; init; }
     // Mendefinisikan properti `CashflowJourney` bertipe `PlayerCashflowJourneyStatsViewModel?` untuk nilai arus kas journey; get menyediakan pembacaan
     // nilai, init membatasi pengisian saat inisialisasi objek; tanda ? mengizinkan nilai null.
-    public PlayerCashflowJourneyStatsViewModel? CashflowJourney { get; init; }
+    public GameplayMetricsResponse? Gameplay { get; init; }
     // Mendefinisikan properti `GameplayErrorMessage` bertipe `string?` untuk nilai gameplay kesalahan pesan; get menyediakan pembacaan nilai, init
     // membatasi pengisian saat inisialisasi objek; tanda ? mengizinkan nilai null.
     public string? GameplayErrorMessage { get; init; }
@@ -196,166 +199,27 @@ public sealed class PlayerInstructorInsightViewModel
 // Menutup scope tipe PlayerInstructorInsightViewModel; bagian berikut berada di luar batas blok tersebut.
 }
 
-/// <summary>
-/// ViewModel statistik perjalanan arus kas pemain, memuat saldo awal/akhir, jumlah transaksi,
-/// total arus kas masuk/keluar, arus kas bersih, puncak/terendah, serta data seri untuk grafik.
-/// </summary>
-// Mendefinisikan tipe class `PlayerCashflowJourneyStatsViewModel`; sealed mencegah tipe ini diturunkan lagi.
-public sealed class PlayerCashflowJourneyStatsViewModel
-// Membuka scope tipe PlayerCashflowJourneyStatsViewModel; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-{
-    // Mendefinisikan properti `StartingCash` bertipe `double` untuk nilai starting uang tunai; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public double StartingCash { get; init; }
-    // Mendefinisikan properti `EndingCash` bertipe `double` untuk nilai ending uang tunai; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek.
-    public double EndingCash { get; init; }
-    // Mendefinisikan properti `TransactionCount` bertipe `int` untuk nilai transaction jumlah; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public int TransactionCount { get; init; }
-    // Mendefinisikan properti `CashInCount` bertipe `int` untuk nilai uang tunai in jumlah; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek.
-    public int CashInCount { get; init; }
-    // Mendefinisikan properti `CashOutCount` bertipe `int` untuk nilai uang tunai out jumlah; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek.
-    public int CashOutCount { get; init; }
-    // Mendefinisikan properti `TotalCashIn` bertipe `double` untuk nilai total uang tunai in; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek.
-    public double TotalCashIn { get; init; }
-    // Mendefinisikan properti `TotalCashOut` bertipe `double` untuk nilai total uang tunai out; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public double TotalCashOut { get; init; }
-    // Mendefinisikan properti `NetCashflow` bertipe `double` untuk nilai net arus kas; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek.
-    public double NetCashflow { get; init; }
-    // Mendefinisikan properti `PeakRunningNet` bertipe `double` untuk nilai peak running net; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek.
-    public double PeakRunningNet { get; init; }
-    // Mendefinisikan properti `LowestRunningNet` bertipe `double` untuk nilai lowest running net; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public double LowestRunningNet { get; init; }
-    // Mendefinisikan properti `FirstTransactionAt` bertipe `DateTimeOffset?` untuk nilai first transaction at; get menyediakan pembacaan nilai, init
-    // membatasi pengisian saat inisialisasi objek; tanda ? mengizinkan nilai null.
-    public DateTimeOffset? FirstTransactionAt { get; init; }
-    // Mendefinisikan properti `LastTransactionAt` bertipe `DateTimeOffset?` untuk nilai last transaction at; get menyediakan pembacaan nilai, init
-    // membatasi pengisian saat inisialisasi objek; tanda ? mengizinkan nilai null.
-    public DateTimeOffset? LastTransactionAt { get; init; }
-    /// <summary>
-    /// Label sumbu waktu untuk grafik perjalanan arus kas pemain.
-    /// </summary>
-    // Mendefinisikan properti `TimelineLabels` bertipe `List<string>` untuk nilai timeline labels; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
-    public List<string> TimelineLabels { get; init; } = new();
-    /// <summary>
-    /// Seri data arus kas bersih berjalan (running net) untuk ditampilkan pada grafik.
-    /// </summary>
-    // Mendefinisikan properti `RunningNetSeries` bertipe `List<double>` untuk nilai running net series; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
-    public List<double> RunningNetSeries { get; init; } = new();
-    /// <summary>
-    /// Daftar detail transaksi dalam format teks untuk tooltip atau legenda grafik.
-    /// </summary>
-    // Mendefinisikan properti `TransactionDetails` bertipe `List<string>` untuk nilai transaction rincian; get menyediakan pembacaan nilai, init
-    // membatasi pengisian saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
-    public List<string> TransactionDetails { get; init; } = new();
-// Menutup scope tipe PlayerCashflowJourneyStatsViewModel; bagian berikut berada di luar batas blok tersebut.
-}
-
-/// <summary>
-/// ViewModel halaman direktori pemain yang memuat daftar semua pemain dan pengelompokan pemain berdasarkan sesi.
-/// </summary>
-// Mendefinisikan tipe class `PlayerDirectoryViewModel`; sealed mencegah tipe ini diturunkan lagi.
-public sealed class PlayerDirectoryViewModel
-// Membuka scope tipe PlayerDirectoryViewModel; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-{
-    /// <summary>
-    /// Daftar seluruh pemain yang terdaftar dalam sistem.
-    /// </summary>
-    // Mendefinisikan properti `Players` bertipe `List<PlayerResponse>` untuk nilai pemain; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
-    public List<PlayerResponse> Players { get; init; } = new();
-    /// <summary>
-    /// Daftar grup sesi yang masing-masing berisi data pemain peserta sesi tersebut.
-    /// </summary>
-    // Mendefinisikan properti `SessionGroups` bertipe `List<PlayerSessionGroupViewModel>` untuk nilai sesi groups; get menyediakan pembacaan nilai,
-    // init membatasi pengisian saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
-    public List<PlayerSessionGroupViewModel> SessionGroups { get; init; } = new();
-    // Mendefinisikan properti `ErrorMessage` bertipe `string?` untuk nilai kesalahan pesan; get menyediakan pembacaan nilai, set mengizinkan
-    // penggantian nilai; tanda ? mengizinkan nilai null.
-    public string? ErrorMessage { get; set; }
-// Menutup scope tipe PlayerDirectoryViewModel; bagian berikut berada di luar batas blok tersebut.
-}
-
-/// <summary>
-/// ViewModel satu grup sesi dalam direktori pemain, memuat metadata sesi dan daftar pemain peserta.
-/// </summary>
-// Mendefinisikan tipe class `PlayerSessionGroupViewModel`; sealed mencegah tipe ini diturunkan lagi.
+/// <summary>Peserta satu sesi beserta hasil akhir yang sudah tersedia.</summary>
 public sealed class PlayerSessionGroupViewModel
-// Membuka scope tipe PlayerSessionGroupViewModel; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
-    // Mendefinisikan properti `SessionId` bertipe `Guid` untuk identitas unik sesi permainan yang menjadi batas data operasi ini; get menyediakan
-    // pembacaan nilai, init membatasi pengisian saat inisialisasi objek.
     public Guid SessionId { get; init; }
-    // Mendefinisikan properti `SessionName` bertipe `string` untuk nilai sesi nama; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek; nilai awalnya `string.Empty`, yaitu nilai kosong bawaan tipe terkait.
     public string SessionName { get; init; } = string.Empty;
-    // Mendefinisikan properti `Status` bertipe `string` untuk nilai status; get menyediakan pembacaan nilai, init membatasi pengisian saat inisialisasi
-    // objek; nilai awalnya `string.Empty`, yaitu nilai kosong bawaan tipe terkait.
+    public string Mode { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
-    // Mendefinisikan properti `StartedAt` bertipe `DateTimeOffset?` untuk nilai started at; get menyediakan pembacaan nilai, init membatasi pengisian
-    // saat inisialisasi objek; tanda ? mengizinkan nilai null.
+    public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? StartedAt { get; init; }
-    // Mendefinisikan properti `EndedAt` bertipe `DateTimeOffset?` untuk nilai ended at; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek; tanda ? mengizinkan nilai null.
     public DateTimeOffset? EndedAt { get; init; }
-    /// <summary>
-    /// Daftar pemain peserta dalam grup sesi ini beserta metrik singkat mereka.
-    /// </summary>
-    // Mendefinisikan properti `Players` bertipe `List<PlayerSessionEntryViewModel>` untuk nilai pemain; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
-    public List<PlayerSessionEntryViewModel> Players { get; init; } = new();
-// Menutup scope tipe PlayerSessionGroupViewModel; bagian berikut berada di luar batas blok tersebut.
+    public bool ParticipantsAvailable { get; init; }
+    public bool ResultsAvailable { get; init; }
+    public bool Unauthorized { get; init; }
+    public List<PlayerSessionEntryViewModel> Players { get; init; } = [];
 }
 
-/// <summary>
-/// ViewModel satu entri pemain dalam grup sesi, memuat urutan bergabung, nama tampilan, dan metrik keuangan ringkas.
-/// </summary>
-// Mendefinisikan tipe class `PlayerSessionEntryViewModel`; sealed mencegah tipe ini diturunkan lagi.
 public sealed class PlayerSessionEntryViewModel
-// Membuka scope tipe PlayerSessionEntryViewModel; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
-    // Mendefinisikan properti `PlayerId` bertipe `Guid` untuk nilai pemain identitas; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek.
     public Guid PlayerId { get; init; }
-    // Mendefinisikan properti `PlayerOrder` bertipe `int` untuk nomor urut pemain untuk menentukan urutan tindakan; get menyediakan pembacaan nilai,
-    // init membatasi pengisian saat inisialisasi objek.
     public int PlayerOrder { get; init; }
-    // Mendefinisikan properti `FinalRank` bertipe `int` untuk nilai akhir rank; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek.
     public int FinalRank { get; init; }
-    // Mendefinisikan properti `DisplayName` bertipe `string` untuk nilai display nama; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek; nilai awalnya `string.Empty`, yaitu nilai kosong bawaan tipe terkait.
     public string DisplayName { get; init; } = string.Empty;
-    // Mendefinisikan properti `CashInTotal` bertipe `double` untuk jumlah seluruh pemasukan arus kas; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public double CashInTotal { get; init; }
-    // Mendefinisikan properti `CashOutTotal` bertipe `double` untuk jumlah seluruh pengeluaran arus kas; get menyediakan pembacaan nilai, init
-    // membatasi pengisian saat inisialisasi objek.
-    public double CashOutTotal { get; init; }
-    // Mendefinisikan properti `DonationTotal` bertipe `double` untuk nilai donasi total; get menyediakan pembacaan nilai, init membatasi pengisian saat
-    // inisialisasi objek.
-    public double DonationTotal { get; init; }
-    // Mendefinisikan properti `DonationPointsTotal` bertipe `double` untuk nilai donasi poin total; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public double DonationPointsTotal { get; init; }
-    // Mendefinisikan properti `PensionPointsTotal` bertipe `double` untuk nilai pension poin total; get menyediakan pembacaan nilai, init membatasi
-    // pengisian saat inisialisasi objek.
-    public double PensionPointsTotal { get; init; }
-    // Mendefinisikan properti `GoldQty` bertipe `int` untuk nilai emas qty; get menyediakan pembacaan nilai, init membatasi pengisian saat inisialisasi
-    // objek.
-    public int GoldQty { get; init; }
-    // Mendefinisikan properti `HappinessPointsTotal` bertipe `double` untuk akumulasi poin kebahagiaan pemain; get menyediakan pembacaan nilai, init
-    // membatasi pengisian saat inisialisasi objek.
-    public double HappinessPointsTotal { get; init; }
-// Menutup scope tipe PlayerSessionEntryViewModel; bagian berikut berada di luar batas blok tersebut.
+    public double? HappinessPointsTotal { get; init; }
 }

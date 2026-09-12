@@ -15,8 +15,6 @@ internal static partial class UiTextLexicon
         terms["nav.home"] = ("Beranda", "Home");
         // Memperbarui `terms[”nav.sessions”]` menggunakan tuple yang membawa bagian 1: ”Sesi Permainan”; bagian 2: ”Game Sessions” dalam AddCore.
         terms["nav.sessions"] = ("Sesi Permainan", "Game Sessions");
-        // Memperbarui `terms[”nav.players”]` menggunakan tuple yang membawa bagian 1: ”Direktori Pemain”; bagian 2: ”Player Directory” dalam AddCore.
-        terms["nav.players"] = ("Direktori Pemain", "Player Directory");
         // Memperbarui `terms[”nav.ruleset”]` menggunakan tuple yang membawa bagian 1: ”Set Aturan”; bagian 2: ”Rulesets” dalam AddCore.
         terms["nav.ruleset"] = ("Set Aturan", "Rulesets");
         // Memperbarui `terms[”nav.privacy”]` menggunakan tuple yang membawa bagian 1: ”Buku Aturan”; bagian 2: ”Rulebook” dalam AddCore.
@@ -107,7 +105,7 @@ internal static partial class UiTextLexicon
         terms["auth.error.login_failed"] = ("Login gagal.", "Login failed.");
         // Memperbarui `terms[”auth.error.api_unavailable”]` menggunakan tuple yang membawa bagian 1: ”Layanan data belum aktif. Jalankan layanan aplikasi
         // lalu coba lagi.”; bagian 2: ”The data service is not running. Start the application service and try again.” dalam AddCore.
-        terms["auth.error.api_unavailable"] = ("Layanan data belum aktif. Jalankan layanan aplikasi lalu coba lagi.", "The data service is not running. Start the application service and try again.");
+        terms["auth.error.api_unavailable"] = ("Layanan data belum dapat diakses. Silakan coba lagi.", "The data service is currently unavailable. Please try again.");
         // Memperbarui `terms[”auth.error.login_response_invalid”]` menggunakan tuple yang membawa bagian 1: ”Respons login tidak valid.”; bagian 2:
         // ”Invalid login response.” dalam AddCore.
         terms["auth.error.login_response_invalid"] = ("Respons login tidak valid.", "Invalid login response.");
@@ -189,11 +187,11 @@ internal static partial class UiTextLexicon
         terms["layout.quickstart.instructor.step2.desc"] = ("Pilih sesi, periksa status dan ringkasannya, lalu telusuri urutan aktivitas permainan.", "Choose a session, review its status and summary, then trace the gameplay activity sequence.");
         // Memperbarui `terms[”layout.quickstart.instructor.step3.title”]` menggunakan tuple yang membawa bagian 1: ”Evaluasi per pemain”; bagian 2:
         // ”Evaluate each player” dalam AddCore.
-        terms["layout.quickstart.instructor.step3.title"] = ("Evaluasi per pemain", "Evaluate each player");
+        terms["layout.quickstart.instructor.step3.title"] = ("Baca Statistik Pemain", "Read Player Statistics");
         // Memperbarui `terms[”layout.quickstart.instructor.step3.desc”]` menggunakan tuple yang membawa bagian 1: ”Buka pemain pada sesi yang sama, lalu
         // gunakan Analitika untuk membahas hasil ti...; bagian 2: ”Open players from the same session, then use Analytics to discuss each individu... dalam
         // AddCore.
-        terms["layout.quickstart.instructor.step3.desc"] = ("Buka pemain pada sesi yang sama, lalu gunakan Analitika untuk membahas hasil tiap individu.", "Open players from the same session, then use Analytics to discuss each individual's results.");
+        terms["layout.quickstart.instructor.step3.desc"] = ("Pilih peserta sesi Anda untuk membandingkan analitika antarsesi. Pemula dan Mahir ditampilkan terpisah.", "Choose a participant from your sessions to compare analytics. Beginner and Advanced are shown separately.");
         // Memperbarui `terms[”layout.quickstart.instructor.step4.title”]` menggunakan tuple yang membawa bagian 1: ”Rujuk Buku Aturan”; bagian 2: ”Consult
         // the Rulebook” dalam AddCore.
         terms["layout.quickstart.instructor.step4.title"] = ("Rujuk Buku Aturan", "Consult the Rulebook");
@@ -443,13 +441,13 @@ internal static partial class UiTextLexicon
         // AddCore.
         terms["home.guide.ruleset.link"] = ("Buka menu Set Aturan", "Open Rulesets");
         // Memperbarui `terms[”home.guide.players.title”]` menggunakan tuple yang membawa bagian 1: ”Pemain”; bagian 2: ”Players” dalam AddCore.
-        terms["home.guide.players.title"] = ("Pemain", "Players");
+        terms["home.guide.players.title"] = ("Statistik Pemain", "Player Statistics");
         // Memperbarui `terms[”home.guide.players.desc”]` menggunakan tuple yang membawa bagian 1: ”Lihat peserta per sesi, lalu buka Analitika pemain untuk
         // membahas hasil individ...; bagian 2: ”View participants by session, then open player Analytics to discuss individual ... dalam AddCore.
-        terms["home.guide.players.desc"] = ("Lihat peserta per sesi, lalu buka Analitika pemain untuk membahas hasil individunya.", "View participants by session, then open player Analytics to discuss individual results.");
+        terms["home.guide.players.desc"] = ("Bandingkan perkembangan peserta sesi Anda dalam satu mode permainan.", "Compare your session participants across games in a single mode.");
         // Memperbarui `terms[”home.guide.players.link”]` menggunakan tuple yang membawa bagian 1: ”Buka menu Pemain”; bagian 2: ”Open Players” dalam
         // AddCore.
-        terms["home.guide.players.link"] = ("Buka menu Pemain", "Open Players");
+        terms["home.guide.players.link"] = ("Buka Statistik Pemain", "Open Player Statistics");
         // Memperbarui `terms[”home.quick_flow.title”]` menggunakan tuple yang membawa bagian 1: ”Panduan penggunaan”; bagian 2: ”Usage guide” dalam
         // AddCore.
         terms["home.quick_flow.title"] = ("Panduan penggunaan", "Usage guide");
@@ -629,7 +627,7 @@ internal static partial class UiTextLexicon
         terms["rulebook.meta_keywords"] = ("aturan cashflowpoly, cara bermain cashflowpoly, panduan keuangan, rulebook cashflowpoly, cashflowpoly rules, cheat sheet, board game, marco marcello hugo", "cashflowpoly rules, how to play cashflowpoly, financial rulebook, cashflowpoly guide, cheat sheet, board game, marco marcello hugo");
         // Memperbarui `terms[”login.meta_desc”]` menggunakan tuple yang membawa bagian 1: ”Masuk ke dashboard Narafin untuk memantau data permainan,
         // progres sesi, dan dir...; bagian 2: ”Sign in to the Narafin dashboard to monitor game data, session progress, and pl... dalam AddCore.
-        terms["login.meta_desc"] = ("Masuk ke dashboard Narafin untuk memantau data permainan, progres sesi, dan direktori pemain.", "Sign in to the Narafin dashboard to monitor game data, session progress, and player directory.");
+        terms["login.meta_desc"] = ("Masuk ke dashboard Narafin untuk memantau data permainan, progres sesi, dan statistik pemain.", "Sign in to the Narafin dashboard to monitor game data, session progress, and player statistics.");
         // Memperbarui `terms[”login.meta_keywords”]` menggunakan tuple yang membawa bagian 1: ”narafin login, login cashflowpoly, akses dasbor narafin,
         // narafin dashboard logi...; bagian 2: ”narafin login, cashflowpoly sign in, narafin dashboard access, sign in, marco m... dalam AddCore.
         terms["login.meta_keywords"] = ("narafin login, login cashflowpoly, akses dasbor narafin, narafin dashboard login, sign in, marco marcello hugo", "narafin login, cashflowpoly sign in, narafin dashboard access, sign in, marco marcello hugo");

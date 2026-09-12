@@ -505,14 +505,6 @@ else
             else
             {
                 var modeLabel = Context.TRulesetMode(modeRaw);
-                var playerOrderingRaw = AsText(GetPath(cfg, "player_ordering"), "PLAYER_ORDER");
-                var playerOrderingLabel = playerOrderingRaw.ToUpperInvariant() switch
-                {
-                    "EVENT_SEQUENCE" => Context.T("rulesets.form.player_ordering_event_sequence"),
-                    "PLAYER_ID" => Context.T("rulesets.form.player_ordering_player_id"),
-                    "USERNAME" => Context.T("rulesets.form.player_ordering_username"),
-                    _ => Context.T("rulesets.form.player_ordering_player_order")
-                };
                 <div class="mt-3 space-y-4">
                     <div class="alert alert-info text-sm text-slate-700">@Context.T("rulesets.config_read_guide")</div>
 
@@ -525,7 +517,6 @@ else
                             <div><label class="form-label" for="@(idPrefix + "-mode")">@Context.T("rulesets.form.mode")</label><input id="@(idPrefix + "-mode")" type="text" readonly value="@modeLabel" class="form-input" /></div>
                             <div><label class="form-label" for="@(idPrefix + "-actions")">@Context.T("rulesets.form.actions_per_turn")</label><input id="@(idPrefix + "-actions")" type="number" readonly value="@AsInt(GetPath(cfg, "actions_per_turn"), 2)" class="form-input" /></div>
                             <div><label class="form-label" for="@(idPrefix + "-starting-cash")">@Context.T("rulesets.form.starting_cash")</label><input id="@(idPrefix + "-starting-cash")" type="number" readonly value="@AsInt(GetPath(cfg, "starting_cash"), 20)" class="form-input" /></div>
-                            <div><label class="form-label" for="@(idPrefix + "-player-ordering")">@Context.T("rulesets.form.player_ordering")</label><input id="@(idPrefix + "-player-ordering")" type="text" readonly value="@($"{playerOrderingLabel} ({playerOrderingRaw})")" class="form-input" /></div>
                             <div><label class="form-label" for="@(idPrefix + "-freelance-income")">@Context.T("rulesets.form.freelance_income")</label><input id="@(idPrefix + "-freelance-income")" type="number" readonly value="@AsInt(GetPath(cfg, "freelance", "income"), 1)" class="form-input" /></div>
                         </div>
                     </div>

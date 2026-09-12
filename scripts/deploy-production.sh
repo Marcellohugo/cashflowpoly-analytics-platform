@@ -117,7 +117,7 @@ git -C "${REPOSITORY_DIR}" fetch --prune origin "${BRANCH}"
 # Uraian baris: Menetapkan RELEASE_SHA sebagai SHA commit origin/branch yang telah diverifikasi sebagai objek commit. Command substitution mengambil keluaran perintah yang disebut di sisi kanan.
 RELEASE_SHA=$(git -C "${REPOSITORY_DIR}" rev-parse "origin/${BRANCH}^{commit}")
 # Uraian baris: Menetapkan RELEASE_DIR sebagai direktori rilis unik berdasarkan SHA commit. Nilai disimpan untuk dipakai pada langkah deployment berikutnya.
-RELEASE_DIR="${RELEASES_DIR}/${RELEASE_SHA}"
+RELEASE_DIR="${RELEASES_DIR_RESOLVED}/${RELEASE_SHA}"
 # Uraian baris: Menetapkan CURRENT_LINK sebagai jalur symlink current yang menunjuk rilis aktif. Nilai disimpan untuk dipakai pada langkah deployment berikutnya.
 CURRENT_LINK="${APP_ROOT}/current"
 # Uraian baris: Menetapkan PREVIOUS_DIR sebagai direktori rilis sebelumnya, kosong bila belum ada rilis aktif. Nilai disimpan untuk dipakai pada langkah deployment berikutnya.
@@ -155,8 +155,7 @@ fi
 
 # Uraian baris: Meneruskan commit rilis sebagai environment ke Docker Compose sehingga tag image hasil build menunjuk versi sumber yang dipilih.
 export RELEASE_SHA
-# Uraian baris: Mengaktifkan seed simulasi untuk proses migrasi deployment melalui environment yang diwarisi Compose.
-export DATABASE_MIGRATIONS_SEED_SIMULATION=true
+# Seed 2 mengikuti konfigurasi environment produksi (default aktif pada Compose produksi).
 # Uraian baris: Memulai array argumen Bash untuk perintah Compose rilis baru; array mempertahankan batas tiap argumen ketika jalur mengandung spasi.
 COMPOSE=(
   # Uraian baris: Menambahkan executable docker dan subperintah compose ke array perintah; pemanggilan array akan mempertahankan tiap batas argumen.
@@ -300,7 +299,7 @@ fi
 wait_for_container_health cashflowpoly-db 45
 # Uraian baris: Menjalankan array Compose run --rm --no-deps api --migrate-only. Menjalankan migrasi database satu kali sebelum aplikasi rilis baru dinyalakan.
 "${COMPOSE[@]}" run --rm --no-deps api --migrate-only
-# Uraian baris: Menjalankan array Compose run --rm --no-deps api --recalculate-analytics. Menghitung ulang proyeksi analitik setelah migrasi/seed selesai.
+# Uraian baris: Menjalankan array Compose run --rm --no-deps api --recalculate-analytics. Menghitung ulang proyeksi analitik setelah migrasi selesai.
 "${COMPOSE[@]}" run --rm --no-deps api --recalculate-analytics
 # Uraian baris: Menjalankan array Compose up -d --no-build --force-recreate api ui nginx cloudflared. Membangun image aplikasi dari sumber commit rilis yang dipilih.
 "${COMPOSE[@]}" up -d --no-build --force-recreate api ui nginx cloudflared
@@ -316,7 +315,7 @@ wait_for_container_health cashflowpoly-tunnel 30
 # Uraian baris: Memeriksa endpoint publik melalui Nginx lokal menggunakan header Host domain deployment. --fail menolak status HTTP gagal dan --max-time 15 membatasi penantian; body dibuang karena hanya keberhasilan akses yang dibutuhkan.
 curl --fail --silent --show-error --max-time 15 --header "Host: ${DOMAIN_HOST}" http://127.0.0.1/health >/dev/null
 # Uraian baris: Memeriksa endpoint publik melalui Nginx lokal menggunakan header Host domain deployment. --fail menolak status HTTP gagal dan --max-time 15 membatasi penantian; body dibuang karena hanya keberhasilan akses yang dibutuhkan.
-curl --fail --silent --show-error --max-time 15 --header "Host: ${DOMAIN_HOST}" http://127.0.0.1/privacy >/dev/null
+curl --fail --silent --show-error --max-time 15 --header "Host: ${DOMAIN_HOST}" --header "X-Forwarded-Proto: https" http://127.0.0.1/privacy >/dev/null
 
 # Uraian baris: Memperbarui symlink current ke direktori rilis baru setelah health check berhasil. -s membuat symlink, -f mengganti entri lama, dan -n tidak menelusuri symlink tujuan.
 ln -sfn "${RELEASE_DIR}" "${CURRENT_LINK}"
@@ -327,12 +326,13 @@ if [[ -n "${PREVIOUS_DIR}" ]]; then
 # Uraian baris: Menutup percabangan if/elif; eksekusi kembali pada urutan instruksi setelah keputusan tersebut.
 fi
 
-# Uraian baris: Mengumpulkan direktori rilis yang diurutkan menurut waktu modifikasi, melewati dua yang terbaru, lalu menyimpan sisanya sebagai kandidat pembersihan; tiap jalur tetap diverifikasi sebelum Git worktree menghapusnya.
-mapfile -t old_releases < <(find "${RELEASES_DIR_RESOLVED}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | tail -n +3 | cut -d' ' -f2-)
+# Retensi berdasarkan rilis aktif dan sebelumnya, bukan umur folder (redeploy dapat memakai folder lama).
+mapfile -t old_releases < <(find "${RELEASES_DIR_RESOLVED}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
 # Uraian baris: Memulai perulangan for old_release in "${old_releases[@]}". Setiap item diproses satu kali untuk memeriksa tool atau membersihkan rilis/image yang tidak lagi dipakai.
 for old_release in "${old_releases[@]}"; do
   # Uraian baris: Menetapkan old_release_resolved sebagai jalur absolut kandidat rilis lama sebelum dibatasi pada direktori rilis. Command substitution mengambil keluaran perintah yang disebut di sisi kanan.
   old_release_resolved=$(realpath "${old_release}")
+  [[ "${old_release_resolved}" == "${RELEASE_DIR}" || "${old_release_resolved}" == "${PREVIOUS_DIR}" ]] && continue
   # Uraian baris: Membandingkan jalur "${old_release_resolved}" dengan pola pada cabang berikutnya untuk memeriksa apakah lokasinya tetap berada pada direktori yang diharapkan.
   case "${old_release_resolved}" in
     # Uraian baris: Menerima jalur yang berada di bawah direktori absolut yang telah diverifikasi. Menghapus checkout rilis lama melalui Git worktree hanya pada cabang direktori rilis ini.

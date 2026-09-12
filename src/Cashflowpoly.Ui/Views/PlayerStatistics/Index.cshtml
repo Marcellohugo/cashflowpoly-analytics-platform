@@ -1,0 +1,221 @@
+@* Fungsi file: Menampilkan grafik, arti nilai, dan rincian statistik pemain dari analitika sesi. *@
+@using System.Text.Json
+@model PlayerStatisticsViewModel
+@{
+    ViewData["Title"] = Context.T("statistics.title");
+    var available = Model.Sessions.Count(s => s.Gameplay is not null);
+    var groupKeys = new[] { "overview", "money", "play", "future", "happiness" };
+    var sessionsLoaded = Model.TotalSessions.HasValue || Model.Sessions.Count > 0;
+    string StateLabel(string state) => Context.T("statistics.status." + state.ToLowerInvariant());
+}
+@section Head {
+    <link rel="stylesheet" href="~/css/player-statistics.css" asp-append-version="true" />
+}
+<section class="section-shell player-statistics" aria-labelledby="statistics-title">
+    <header class="page-intro">
+        <div class="page-intro-main">
+            <p class="eyebrow">@Context.T("statistics.kicker")</p>
+            <h1 class="headline" id="statistics-title">@Context.T("statistics.title")</h1>
+            <p class="subhead">@Context.T(Context.IsInstructor() ? "statistics.subtitle.instructor" : "statistics.subtitle")</p>
+        </div>
+    </header>
+    @if (sessionsLoaded)
+    {
+    <div class="statistics-stats">
+        <div><span>@Context.T("statistics.total_sessions")</span><strong>@(Model.TotalSessions?.ToString() ?? "—")</strong></div>
+        <div><span>@Context.T("statistics.shown_sessions")</span><strong>@Model.Sessions.Count</strong></div>
+        <div><span>@Context.T("statistics.analysed_sessions")</span><strong>@available</strong></div>
+        <div><span>@Context.T("statistics.finished_sessions")</span><strong>@Model.Sessions.Count(s => s.Session.Status == "ENDED")</strong></div>
+    </div>
+    }
+    <details class="data-toggle statistics-reading">
+        <summary>@Context.T("statistics.reading_title")</summary>
+        <div class="mt-3 metric-panel">
+            <div class="metric-list">
+                @for (var step = 1; step <= 3; step++)
+                {
+                    <div class="metric-row">
+                        <span class="metric-key">@Context.T("sessions.step") @step</span>
+                        <span class="metric-value">@Context.T("statistics.tips.step" + step)</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </details>
+    <form class="ruleset-quick-tools statistics-filters" method="get" asp-controller="PlayerStatistics" asp-action="Index">
+        <div class="ruleset-section-head">
+            <h2 class="ruleset-section-title">@Context.T("statistics.filters")</h2>
+            <p class="ruleset-section-subtitle">@Context.T("statistics.mode_hint")</p>
+        </div>
+        <div class="ruleset-quick-tools-controls statistics-filter-controls">
+        @if (Context.IsInstructor())
+        {
+            <div class="form-field">
+                <label class="form-label" for="statistics-player">@Context.T("statistics.player")</label>
+                <input class="form-input" id="statistics-player" list="statistics-players" autocomplete="off"
+                       value="@Model.PlayerName" required disabled="@(Model.AvailablePlayers.Count == 0)"
+                       placeholder="@Context.T("statistics.search_player")" data-invalid-player="@Context.T("statistics.choose_player")" />
+                <input type="hidden" name="playerId" value="@Model.PlayerId" />
+                <datalist id="statistics-players">
+                    @foreach (var player in Model.AvailablePlayers)
+                    {
+                        var sameName = Model.AvailablePlayers.Count(p => p.DisplayName == player.DisplayName) > 1;
+                        <option value="@(sameName ? player.DisplayName + " (" + player.UserId + ")" : player.DisplayName)" data-player-id="@player.UserId"></option>
+                    }
+                </datalist>
+            </div>
+        }
+        <div class="form-field">
+            <label class="form-label" for="statistics-mode">@Context.T("statistics.mode")</label>
+            <select class="form-input" id="statistics-mode" name="mode">
+                <option value="PEMULA" selected="@(Model.Mode == "PEMULA")">@Context.T("statistics.mode.pemula")</option>
+                <option value="MAHIR" selected="@(Model.Mode == "MAHIR")">@Context.T("statistics.mode.mahir")</option>
+            </select>
+        </div>
+        <div class="form-field">
+            <label class="form-label" for="statistics-status">@Context.T("statistics.status")</label>
+            <select class="form-input" id="statistics-status" name="status">
+                <option value="ALL" selected="@(Model.Status == "ALL")">@Context.T("statistics.all_statuses")</option>
+                @foreach (var state in new[] { "CREATED", "STARTED", "ENDED" })
+                {
+                    <option value="@state" selected="@(Model.Status == state)">@StateLabel(state)</option>
+                }
+            </select>
+        </div>
+        <button class="btn-primary" type="submit">@Context.T("statistics.apply")</button>
+        </div>
+    </form>
+    @if (Model.ErrorMessage is not null)
+    {
+        <p class="alert alert-error" role="alert">@Model.ErrorMessage</p>
+    }
+    @if (sessionsLoaded && Model.Sessions.Count == 0)
+    {
+        <div class="statistics-empty">
+            <h2>@Context.T(Model.TotalSessions == 0 ? "statistics.empty_title" : "statistics.no_match")</h2>
+            <p>@Context.T(Model.TotalSessions == 0 ? (Context.IsInstructor() ? "statistics.empty_hint.instructor" : "statistics.empty_hint") : "statistics.filter_hint")</p>
+        </div>
+    }
+    else if (Model.Sessions.Count > 0)
+    {
+        @if (Context.IsInstructor() && !string.IsNullOrWhiteSpace(Model.PlayerName))
+        {
+            <div class="statistics-selected-player">
+                <div class="statistics-selected-player-name">
+                    <span class="eyebrow">@Context.T("statistics.selected_player")</span>
+                    <strong>@Model.PlayerName</strong>
+                </div>
+                <span class="hint-chip">@Context.T("statistics.mode"): <strong>@Context.T("statistics.mode." + Model.Mode.ToLowerInvariant())</strong></span>
+            </div>
+        }
+        <nav class="statistics-jump" aria-label="@Context.T("statistics.sections")">
+            @foreach (var key in groupKeys.Where(key => Model.Charts.Any(c => c.Group == key)))
+            {
+                <button type="button" class="btn-ghost" data-statistics-panel="statistics-@key" aria-controls="statistics-@key" aria-expanded="@(key == "overview" ? "true" : "false")">@Context.T("statistics.group." + key)</button>
+            }
+        </nav>
+        @foreach (var key in groupKeys)
+        {
+            var charts = Model.Charts.Where(c => c.Group == key).ToList();
+            if (charts.Count == 0) { continue; }
+            <section class="statistics-chapter" data-statistics-section hidden="@(key != "overview")" id="statistics-@key" aria-labelledby="statistics-heading-@key">
+                <div class="ruleset-section-head statistics-chapter-heading">
+                    <h2 class="ruleset-section-title" id="statistics-heading-@key">@Context.T("statistics.group." + key)</h2>
+                    <p class="ruleset-section-subtitle">@Context.T("statistics.group_hint." + key)</p>
+                </div>
+                <div class="statistics-chart-grid">
+                    @foreach (var chart in charts)
+                    {
+                        var last = chart.Points.LastOrDefault(p => p.Value.HasValue);
+                        <article class="chart-card statistics-chart" data-statistics-metric="@chart.Key">
+                            <h3 id="chart-@chart.Key">@chart.Title</h3>
+                            <div class="statistics-chart-plot">
+                                <svg class="js-metric-line-chart" viewBox="0 0 840 340" data-chart-responsive data-chart="@chart.Json" role="img" aria-labelledby="chart-@chart.Key"></svg>
+                            </div>
+                            <div class="chart-bar-insight js-chart-bar-insight statistics-point-detail" hidden aria-live="polite" aria-atomic="true">
+                                <div class="statistics-point-heading">
+                                    <div class="statistics-point-session">
+                                        <span class="eyebrow js-chart-bar-insight-metric"></span>
+                                        <p class="statistics-point-session-name js-chart-bar-insight-session"></p>
+                                    </div>
+                                    <div class="statistics-point-result">
+                                        <span class="statistics-point-label">@chart.Title</span>
+                                        <p class="statistics-point-amount"><strong class="js-chart-bar-insight-points"></strong><span class="js-chart-bar-insight-unit"></span></p>
+                                    </div>
+                                </div>
+                                <div class="statistics-point-explanation">
+                                    <p class="statistics-point-label">@Context.T("statistics.read_value")</p>
+                                    <p class="js-chart-bar-insight-formula"></p>
+                                </div>
+                            </div>
+                            <details class="statistics-chart-detail">
+                                <summary>@Context.T("statistics.values_and_source")</summary>
+                                <p>@chart.Source</p>
+                                @if (last is not null && !string.IsNullOrWhiteSpace(last.Presentation.Formula))
+                                {
+                                    <p>@last.Presentation.Formula</p>
+                                }
+                                <div class="statistics-table-wrap">
+                                    <table id="statistics-table-@chart.Key">
+                                        <caption>@chart.Title — @Context.T("statistics.values_per_session")</caption>
+                                        <thead><tr><th scope="col">@Context.T("statistics.session")</th><th scope="col">@Context.T("common.value")</th><th scope="col">@Context.T("statistics.meaning")</th></tr></thead>
+                                        <tbody>
+                                            @for (var row = 0; row < chart.Points.Count; row++)
+                                            {
+                                                var point = chart.Points[row];
+                                                <tr hidden="@(row >= 5)"><th scope="row">@point.Label</th><td>@point.Presentation.DisplayValue @point.Presentation.Unit</td><td>@point.Presentation.Guidance</td></tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <nav class="statistics-pagination" aria-label="@chart.Title — @Context.T("statistics.table_pages")" data-statistics-pagination data-page-status="@Context.T("statistics.page_status")">
+                                    <span role="status" aria-live="polite" data-page-status-text></span>
+                                    <button type="button" class="btn-ghost" data-page-back aria-controls="statistics-table-@chart.Key" disabled>@Context.T("statistics.page_back")</button>
+                                    <button type="button" class="btn-ghost" data-page-next aria-controls="statistics-table-@chart.Key" disabled="@(chart.Points.Count <= 5)">@Context.T("rulesets.pagination_next")</button>
+                                </nav>
+                            </details>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+        <section class="statistics-chapter" id="statistics-sessions" aria-labelledby="statistics-session-title">
+            <div class="ruleset-section-head statistics-chapter-heading">
+                <h2 class="ruleset-section-title" id="statistics-session-title">@Context.T("statistics.session_details")</h2>
+                <p class="ruleset-section-subtitle">@Context.T("statistics.session_hint")</p>
+            </div>
+            <div class="statistics-session-list">
+                @for (var i = Model.Sessions.Count - 1; i >= 0; i--)
+                {
+                    var item = Model.Sessions[i];
+                    <article class="statistics-session">
+                        <div>
+                            <span class="eyebrow">@Context.T("statistics.mode." + item.Session.Mode.ToLowerInvariant()) · @StateLabel(item.Session.Status)</span>
+                            <h3>@(i + 1). @item.Session.SessionName</h3>
+                            <p><time datetime="@((item.Session.StartedAt ?? item.Session.CreatedAt).ToString("O"))">@((item.Session.StartedAt ?? item.Session.CreatedAt).ToLocalTime().ToString("dd MMM yyyy HH:mm"))</time></p>
+                            <p>@(item.Gameplay?.ComputedAt is { } computed ? Context.T("statistics.updated") + " " + computed.ToLocalTime().ToString("dd MMM yyyy HH:mm") : Context.T("statistics.not_available"))</p>
+                        </div>
+                        @if (item.Gameplay is not null)
+                        {
+                            <a class="btn-ghost" asp-controller="Players" asp-action="Details" asp-route-sessionId="@item.Session.SessionId" asp-route-playerId="@Model.PlayerId">@Context.T("statistics.open_analytics")</a>
+                        }
+                        else
+                        {
+                            <a class="btn-ghost" asp-controller="Sessions" asp-action="Details" asp-route-sessionId="@item.Session.SessionId">@Context.T("statistics.open_session")</a>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+    }
+</section>
+@section Scripts {
+    <script>
+        window.cashflowpolyPlayerDetailCharts = @Html.Raw(JsonSerializer.Serialize(new {
+            tooltipText = new { metric = Context.T("statistics.session"), series = Context.T("statistics.session"), points = Context.T("common.value"), formula = Context.T("statistics.meaning"), defaultFormula = Context.T("statistics.source"), selectedDetail = Context.T("statistics.selected_point"), tapHint = Context.T("statistics.tap_hint"), itemPrefix = Context.T("statistics.session") },
+            chartStatusText = new { noSeries = Context.T("statistics.no_numeric"), noPoints = Context.T("statistics.no_numeric"), invalidPayload = Context.T("statistics.error.partial") }
+        }));
+    </script>
+    <script src="~/js/player-statistics.js" asp-append-version="true"></script>
+    <script src="~/js/player-detail-charts.js" asp-append-version="true"></script>
+}

@@ -49,10 +49,10 @@ Baris sumber 50: Membentuk elemen `div` sebagai kontainer pengelompokan layout d
 Baris sumber 50: Baris sumber 51: Melengkapi atribut `class` pada `div` dengan `”home-session-ring”`; kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 50: Baris sumber 52: Melengkapi atribut `style` pada `div` dengan `”--home-active-progress: @(activeSessionPercent)%”`; deklarasi gaya langsung pada elemen.
 Baris sumber 50: Baris sumber 53: Melengkapi atribut `role` pada `div` dengan `”img”`; peran semantik yang diumumkan kepada teknologi bantu.
-Baris sumber 50: Baris sumber 54: Melengkapi atribut `aria-label` pada `div` dengan `”@Model.ActiveSessions / @Model.TotalSessions @Context.T(”home.active_sessions”)”›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
+Baris sumber 50: Baris sumber 54: Melengkapi atribut `aria-label` pada `div` dengan `”@(Model.ActiveSessions?.ToString() ?? "—") / @(Model.TotalSessions?.ToString() ?? "—") @Context.T(”home.active_sessions”)”›`; metadata aksesibilitas ini menyampaikan nama, hubungan, atau status kontrol kepada pembaca layar.
 Baris sumber 55: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen. Atribut `class` bernilai `home-session-ring-core` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
-Baris sumber 56: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-active-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.ActiveSessions` berasal dari model yang disusun controller.
-Baris sumber 57: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `id` bernilai `home-active-total-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalSessions` berasal dari model yang disusun controller.
+Baris sumber 56: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-active-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@(Model.ActiveSessions?.ToString() ?? "—")` berasal dari model yang disusun controller.
+Baris sumber 57: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `id` bernilai `home-active-total-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@(Model.TotalSessions?.ToString() ?? "—")` berasal dari model yang disusun controller.
 Baris sumber 58: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
 Baris sumber 59: Menutup elemen `div` (kontainer pengelompokan layout dan komponen) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
 Baris sumber 60: Menutup elemen `aside` (informasi pendamping konten utama) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
@@ -70,19 +70,19 @@ Baris sumber 72: Menutup blok atau objek yang sedang disusun sehingga ekspresi a
 Baris sumber 74: Membentuk elemen `div` sebagai kontainer pengelompokan layout dan komponen.
 Baris sumber 75: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `home-stat-card home-stat-card-sessions` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 76: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
-Baris sumber 77: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalSessions` berasal dari model yang disusun controller.
+Baris sumber 77: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-sessions` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@(Model.TotalSessions?.ToString() ?? "—")` berasal dari model yang disusun controller.
 Baris sumber 78: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-accent` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 79: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
 Baris sumber 80: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `home-stat-card home-stat-card-players` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 81: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
-Baris sumber 82: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-players` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalPlayers` berasal dari model yang disusun controller.
+Baris sumber 82: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-players` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@(Model.TotalPlayers?.ToString() ?? "—")` berasal dari model yang disusun controller.
 Baris sumber 83: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-accent` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 84: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
 Baris sumber 85: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
 Baris sumber 86: Membuka ruang lingkup blok untuk `span`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
 Baris sumber 87: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `home-stat-card home-stat-card-rulesets` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 88: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-label` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Teks dinamis dibaca dari kunci terjemahan `home.ruleset_active` menurut bahasa sesi.
-Baris sumber 89: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-rulesets` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@Model.TotalRulesets` berasal dari model yang disusun controller.
+Baris sumber 89: Membentuk elemen `strong` sebagai teks dengan penekanan kuat. Atribut `id` bernilai `home-total-rulesets` menentukan identitas unik elemen untuk selector, label, atau sasaran tautan. Nilai `@(Model.TotalRulesets?.ToString() ?? "—")` berasal dari model yang disusun controller.
 Baris sumber 90: Membentuk elemen `span` sebagai wadah teks inline tanpa memulai blok baru. Atribut `class` bernilai `home-stat-accent` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 91: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
 Baris sumber 92: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
@@ -119,7 +119,7 @@ Baris sumber 126: Menutup elemen `article` (kartu atau unit konten yang dapat di
 Baris sumber 127: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 128: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.title` menurut bahasa sesi.
 Baris sumber 129: Membentuk elemen `p` sebagai paragraf atau label penjelasan. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.desc` menurut bahasa sesi.
-Baris sumber 130: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `PlayerDirectory` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.link` menurut bahasa sesi.
+Baris sumber 130: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `asp-controller` bernilai `PlayerStatistics` menentukan nama controller tujuan yang dipakai tag helper pembuat URL. Atribut `asp-action` bernilai `Index` menentukan nama action tujuan yang dipakai tag helper pembuat URL. Teks dinamis dibaca dari kunci terjemahan `home.guide.players.link` menurut bahasa sesi.
 Baris sumber 131: Menutup elemen `article` (kartu atau unit konten yang dapat dipahami sendiri) agar struktur anak berikutnya kembali berada pada elemen induk yang sesuai.
 Baris sumber 132: Membentuk elemen `article` sebagai kartu atau unit konten yang dapat dipahami sendiri. Atribut `class` bernilai `tip-card` menentukan kelas CSS untuk memilih gaya dan hook interaksi.
 Baris sumber 133: Membentuk elemen `h3` sebagai judul subbagian tingkat tiga. Teks dinamis dibaca dari kunci terjemahan `home.guide.ruleset.title` menurut bahasa sesi.
@@ -214,10 +214,10 @@ Baris sumber 229: Melakukan operasi dengan mengganti bagian teks berdasarkan pol
 Baris sumber 230: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
 Baris sumber 231: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
 Baris sumber 233: Menyimpan `data` dengan menunggu operasi asinkron `response.json()` selesai sebelum memakai hasilnya.
-Baris sumber 234: Menyimpan `totalSessions` dengan mengevaluasi `Number(data.totalSessions ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
-Baris sumber 235: Menyimpan `activeSessions` dengan mengevaluasi `Number(data.activeSessions ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
-Baris sumber 236: Menyimpan `totalPlayers` dengan mengevaluasi `Number(data.totalPlayers ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
-Baris sumber 237: Menyimpan `totalRulesets` dengan mengevaluasi `Number(data.totalRulesets ?? 0)`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 234: Menyimpan `totalSessions` dengan mengevaluasi `Number.isFinite(data.totalSessions) ? data.totalSessions : null`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 235: Menyimpan `activeSessions` dengan mengevaluasi `Number.isFinite(data.activeSessions) ? data.activeSessions : null`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 236: Menyimpan `totalPlayers` dengan mengevaluasi `Number.isFinite(data.totalPlayers) ? data.totalPlayers : null`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 237: Menyimpan `totalRulesets` dengan mengevaluasi `Number.isFinite(data.totalRulesets) ? data.totalRulesets : null`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
 Baris sumber 238: Menyimpan `activePercentage` dengan membaca nilai `totalSessions › 0` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
 Baris sumber 239: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `Math.min(100, Math.max(0, Math.round(activeSessions * 100 / totalSessions)))`; nilai ini menjadi keluaran ekspresi pilihan.
 Baris sumber 240: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `0;`; nilai cadangan ini melengkapi ekspresi pilihan.
@@ -284,19 +284,19 @@ Baris sumber 287: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
     var totalSessionsLabel = isInstructor ? Context.T("home.total_sessions") : Context.T("home.my_sessions");
     var totalPlayersLabel = isInstructor ? Context.T("home.players_monitored") : Context.T("home.players_in_my_sessions");
     var hasWorkspaceData = Model.TotalSessions > 0 || Model.TotalPlayers > 0 || (isInstructor && Model.TotalRulesets > 0);
-    var activeSessionPercent = Model.TotalSessions > 0
-        ? Math.Clamp((int)Math.Round(Model.ActiveSessions * 100d / Model.TotalSessions), 0, 100)
+    var activeSessionPercent = Model.TotalSessions > 0 && Model.ActiveSessions.HasValue
+        ? Math.Clamp((int)Math.Round(Model.ActiveSessions.Value * 100d / Model.TotalSessions.Value), 0, 100)
         : 0;
 }
 
-<section class="home-hero @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
+<section class="home-hero section-shell @(isInstructor ? "home-hero-instructor" : "home-hero-player")">
     <div class="home-command">
         <div class="home-command-main">
-            <div class="home-command-intro">
-                <span class="home-command-badge">@heroBadge</span>
-                <div class="home-command-copy">
-                    <h1 class="headline home-command-title">@heroTitle</h1>
-                    <p class="subhead home-command-subhead">@heroSubtitle</p>
+            <div class="home-command-intro page-intro">
+                <div class="home-command-copy page-intro-main">
+                    <p class="eyebrow">@heroBadge</p>
+                    <h1 class="headline">@heroTitle</h1>
+                    <p class="subhead">@heroSubtitle</p>
                 </div>
                 <div class="home-command-actions">
                     <a class="btn-primary" asp-controller="@primaryCtaController" asp-action="Index">@primaryCtaText</a>
@@ -313,10 +313,10 @@ Baris sumber 287: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                      class="home-session-ring"
                      style="--home-active-progress: @(activeSessionPercent)%"
                      role="img"
-                     aria-label="@Model.ActiveSessions / @Model.TotalSessions @Context.T("home.active_sessions")">
+                     aria-label="@(Model.ActiveSessions?.ToString() ?? "—") / @(Model.TotalSessions?.ToString() ?? "—") @Context.T("home.active_sessions")">
                     <div class="home-session-ring-core">
-                        <strong id="home-active-sessions">@Model.ActiveSessions</strong>
-                        <span id="home-active-total-sessions">/ @Model.TotalSessions</span>
+                        <strong id="home-active-sessions">@(Model.ActiveSessions?.ToString() ?? "—")</strong>
+                        <span id="home-active-total-sessions">/ @(Model.TotalSessions?.ToString() ?? "—")</span>
                     </div>
                 </div>
             </aside>
@@ -336,25 +336,25 @@ Baris sumber 287: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
         <div class="home-stat-grid @(isInstructor ? null : "home-stat-grid-player")">
             <article class="home-stat-card home-stat-card-sessions">
                 <span class="home-stat-label">@totalSessionsLabel</span>
-                <strong id="home-total-sessions">@Model.TotalSessions</strong>
+                <strong id="home-total-sessions">@(Model.TotalSessions?.ToString() ?? "—")</strong>
                 <span class="home-stat-accent" aria-hidden="true"></span>
             </article>
             <article class="home-stat-card home-stat-card-players">
                 <span class="home-stat-label">@totalPlayersLabel</span>
-                <strong id="home-total-players">@Model.TotalPlayers</strong>
+                <strong id="home-total-players">@(Model.TotalPlayers?.ToString() ?? "—")</strong>
                 <span class="home-stat-accent" aria-hidden="true"></span>
             </article>
             @if (isInstructor)
             {
                 <article class="home-stat-card home-stat-card-rulesets">
                     <span class="home-stat-label">@Context.T("home.ruleset_active")</span>
-                    <strong id="home-total-rulesets">@Model.TotalRulesets</strong>
+                    <strong id="home-total-rulesets">@(Model.TotalRulesets?.ToString() ?? "—")</strong>
                     <span class="home-stat-accent" aria-hidden="true"></span>
                 </article>
             }
         </div>
 
-        @if (!hasWorkspaceData)
+        @if (!hasWorkspaceData && Model.ErrorMessage is null)
         {
             <div class="home-empty-state" aria-live="polite">
                 <p class="home-empty-state-title">@Context.T("home.empty_workspace.title")</p>
@@ -389,7 +389,7 @@ Baris sumber 287: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
             <article class="tip-card">
                 <h3>@Context.T("home.guide.players.title")</h3>
                 <p>@Context.T("home.guide.players.desc")</p>
-                <a asp-controller="PlayerDirectory" asp-action="Index">@Context.T("home.guide.players.link")</a>
+                <a asp-controller="PlayerStatistics" asp-action="Index">@Context.T("home.guide.players.link")</a>
             </article>
             <article class="tip-card">
                 <h3>@Context.T("home.guide.ruleset.title")</h3>
@@ -427,9 +427,9 @@ else
 
         <div class="mt-6 tips-grid">
             <article class="tip-card">
-                <h3>@Context.T("home.player_guide.analytics.title")</h3>
-                <p>@Context.T("home.player_guide.analytics.desc")</p>
-                <a asp-controller="Sessions" asp-action="Index">@Context.T("home.player_guide.analytics.link")</a>
+                <h3>@Context.T("statistics.title")</h3>
+                <p>@Context.T("statistics.subtitle")</p>
+                <a asp-controller="PlayerStatistics" asp-action="Index">@Context.T("statistics.title")</a>
             </article>
             <article class="tip-card">
                 <h3>@Context.T("home.player_guide.ruleset.title")</h3>
@@ -493,23 +493,23 @@ else
                     }
 
                     const data = await response.json();
-                    const totalSessions = Number(data.totalSessions ?? 0);
-                    const activeSessions = Number(data.activeSessions ?? 0);
-                    const totalPlayers = Number(data.totalPlayers ?? 0);
-                    const totalRulesets = Number(data.totalRulesets ?? 0);
-                    const activePercentage = totalSessions > 0
+                    const totalSessions = Number.isFinite(data.totalSessions) ? data.totalSessions : null;
+                    const activeSessions = Number.isFinite(data.activeSessions) ? data.activeSessions : null;
+                    const totalPlayers = Number.isFinite(data.totalPlayers) ? data.totalPlayers : null;
+                    const totalRulesets = Number.isFinite(data.totalRulesets) ? data.totalRulesets : null;
+                    const activePercentage = totalSessions > 0 && activeSessions !== null
                         ? Math.min(100, Math.max(0, Math.round(activeSessions * 100 / totalSessions)))
                         : 0;
 
-                    if (totalSessionsEl) totalSessionsEl.textContent = `${totalSessions}`;
-                    if (activeSessionsEl) activeSessionsEl.textContent = `${activeSessions}`;
-                    if (activeTotalSessionsEl) activeTotalSessionsEl.textContent = `/ ${totalSessions}`;
+                    if (totalSessionsEl) totalSessionsEl.textContent = `${totalSessions ?? "—"}`;
+                    if (activeSessionsEl) activeSessionsEl.textContent = `${activeSessions ?? "—"}`;
+                    if (activeTotalSessionsEl) activeTotalSessionsEl.textContent = `/ ${totalSessions ?? "—"}`;
                     if (sessionRingEl) {
                         sessionRingEl.style.setProperty("--home-active-progress", `${activePercentage}%`);
-                        sessionRingEl.setAttribute("aria-label", `${activeSessions} / ${totalSessions} ${activeSessionsLabel}`);
+                        sessionRingEl.setAttribute("aria-label", `${activeSessions ?? "—"} / ${totalSessions ?? "—"} ${activeSessionsLabel}`);
                     }
-                    if (totalPlayersEl) totalPlayersEl.textContent = `${totalPlayers}`;
-                    if (totalRulesetsEl) totalRulesetsEl.textContent = `${totalRulesets}`;
+                    if (totalPlayersEl) totalPlayersEl.textContent = `${totalPlayers ?? "—"}`;
+                    if (totalRulesetsEl) totalRulesetsEl.textContent = `${totalRulesets ?? "—"}`;
 
                     setError(data.errorMessage);
                 } catch {

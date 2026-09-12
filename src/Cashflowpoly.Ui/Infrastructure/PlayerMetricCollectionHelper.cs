@@ -365,7 +365,7 @@ public static class PlayerMetricCollectionHelper
         // Menyiapkan variabel lokal `incomeShares` untuk nilai pemasukan shares dengan mematerialisasi urutan `values .Where(item =>
         // item.Key.StartsWith(”income_shares.”, StringComparison.OrdinalIgnoreCase)) .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
         // .Select(item => d...` menjadi List; enumerasi dijalankan dan hasilnya disimpan dalam memori. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        if (analysisKey == "goal-ambition") return result.Trim();
+
         if (analysisKey == "income-diversification" &&
             values.TryGetValue("active_income_source_count", out var sourceCount) &&
             int.TryParse(sourceCount, out var count) && count == 1)
@@ -430,7 +430,9 @@ public static class PlayerMetricCollectionHelper
             "debt-discipline" =>
                 // Menggunakan teks interpolasi `$”{Value(”outstanding_loan”)} ÷ ({Value(”outstanding_loan”)} + {Value(”liquid_assets”)}) × 100%”`; nilai ekspresi
                 // di dalam kurung kurawal disisipkan saat program berjalan sebagai bagian ekspresi yang sedang disusun dalam BuildActualCalculation.
-                $"{Value("outstanding_loan")} ÷ ({Value("outstanding_loan")} + {Value("liquid_assets")}) × 100%",
+                $"{Value("sharia_loans_repaid")} + {Value("sharia_loans_unpaid_end")}",
+            "goal-ambition" =>
+                $"{Value("financial_goals_completed")} ÷ {Value("financial_goals_attempted")} × 100%",
             // Untuk pola `”goal-ambition”`, menghasilkan teks interpolasi `$”{Value(”coins_committed_to_goals”)} ÷ {Value(”attempted_goal_target_total”)} ×
             // 100%”`; nilai ekspresi di dalam kurung kurawal disisipkan saat program berjalan sebagai hasil switch.
             // Untuk pola `”action-efficiency”`, menghasilkan teks interpolasi `$”{Value(”income_main_actions”)} ÷ {Value(”total_main_actions”)} × 100%”`; nilai
@@ -468,7 +470,7 @@ public static class PlayerMetricCollectionHelper
                 // Menggunakan teks interpolasi `$”min(100, max(0, {Value(”donation_stability_index”)} × {Value(”donated_resource_share”)} ×
                 // {Value(”friday_participation_rate”)}))”`; nilai ekspresi di dalam kurung kurawal disisipkan saat program berjalan sebagai bagian ekspresi yang
                 // sedang disusun dalam BuildActualCalculation.
-                $"min(100, max(0, {Value("donation_stability_index")} × {Value("donated_resource_share")} × {Value("friday_participation_rate")}))",
+                $"({Value("donation_stability_index")} ÷ 100) × ({Value("donated_resource_share", 100)} ÷ 100) × ({Value("friday_participation_rate", 100)} ÷ 100) × 100%",
             "happiness-portfolio" or "happiness-portfolio-beginner" => BuildHappinessDiversityCalculation(
                 values, analysisKey == "happiness-portfolio", unavailableText, culture),
             _ => unavailableText

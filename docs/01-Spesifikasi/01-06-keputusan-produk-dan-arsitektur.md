@@ -148,11 +148,13 @@ Data permainan lengkap, variabel nol yang sah, status belum ada data, jejak akti
 - Produksi memakai Nginx dan Cloudflare Tunnel; API, UI, database, serta `/metrics` tidak diekspos langsung.
 - Container berjalan non-root dan health check dipertahankan.
 - Audit operasional disimpan 30 hari; payload gameplay yang ditolak tidak disimpan.
-- Rilis dilakukan manual melalui SSH dengan lock, migrasi, Seed 2 idempoten, rekalkulasi analitik, health check, smoke test, dan rollback image aplikasi.
+- Rilis dilakukan manual melalui SSH dengan lock, migrasi dengan Seed 2 sesuai konfigurasi, rekalkulasi analitik, health check, smoke test, dan rollback image aplikasi.
 - Tidak digunakan GitHub Actions atau staging terpisah.
 - Tidak dibuat backup database, restore test, atau rollback schema. Rollback hanya mengembalikan image aplikasi.
 
 ## 9. Keputusan data produksi dan Seed 2
+
+Sesuai permintaan pengguna pada 13 September 2026, Seed 2 tetap tersedia dan aktif pada production melalui konfigurasi migrasi. Isinya dibatasi pada UUID demo yang ditentukan dan selalu dilanjutkan rekalkulasi analitik. Riwayat reset di bawah bukan prosedur deployment rutin.
 
 Atas persetujuan pengguna, database produksi di-reset total pada volume yang digunakan deployment. Seluruh data lama menjadi tidak dapat dipulihkan karena tidak dibuat backup. Setelah reset, baseline schema, migrasi, Seed 2, dan rekalkulasi analitik dijalankan kembali.
 

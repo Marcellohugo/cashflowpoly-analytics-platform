@@ -74,12 +74,12 @@
   <ItemGroup>
     <!-- Uraian baris: Mereferensikan Dapper versi 2.1.79 untuk pemetaan hasil SQL langsung ke objek C# pada lapisan repository. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Dapper" Version="2.1.79" />
-    <!-- Uraian baris: Mereferensikan Microsoft.AspNetCore.Authentication.JwtBearer versi 10.0.11 untuk validasi JWT Bearer pada permintaan HTTP API. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
-    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore versi 10.0.11 untuk model dan pemetaan database pada AppDbContext. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
-    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore.Design versi 10.0.11 untuk layanan desain EF Core untuk alat pengembangan. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+    <!-- Uraian baris: Mereferensikan Microsoft.AspNetCore.Authentication.JwtBearer versi 10.0.12 untuk validasi JWT Bearer pada permintaan HTTP API. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore versi 10.0.12 untuk model dan pemetaan database pada AppDbContext. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore.Design versi 10.0.12 untuk layanan desain EF Core untuk alat pengembangan. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
       <!-- Uraian baris: Memilih kategori aset paket EF Design yang tersedia dalam proyek: runtime, build, native, contentfiles, analyzers, dan buildtransitive. -->
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <!-- Uraian baris: Menahan semua aset paket desain agar tidak diteruskan sebagai dependensi transitif kepada proyek yang mereferensikan proyek ini. -->

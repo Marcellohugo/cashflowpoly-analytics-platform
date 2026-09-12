@@ -15,8 +15,8 @@ public sealed class MenuComponentConsistencyTests
     [Theory]
     // menyediakan satu kombinasi masukan pengujian (”Sessions”, ”Details.cshtml”, ”sessions.back_to_list”).
     [InlineData("Sessions", "Details.cshtml", "sessions.back_to_list")]
-    // menyediakan satu kombinasi masukan pengujian (”Players”, ”Details.cshtml”, ”players.detail.nav_back_players”).
-    [InlineData("Players", "Details.cshtml", "players.detail.nav_back_players")]
+    // menyediakan satu kombinasi masukan pengujian (”Players”, ”Details.cshtml”, ”sessions.back_to_list”).
+    [InlineData("Players", "Details.cshtml", "sessions.back_to_list")]
     // menyediakan satu kombinasi masukan pengujian (”Players”, ”Details.cshtml”, ”players.detail.nav_back_session”).
     [InlineData("Players", "Details.cshtml", "players.detail.nav_back_session")]
     // menyediakan satu kombinasi masukan pengujian (”Rulesets”, ”Details.cshtml”, ”rulesets.back_to_list”).
@@ -107,7 +107,7 @@ public sealed class MenuComponentConsistencyTests
     // menyediakan satu kombinasi masukan pengujian (”Sessions”, ”Details.cshtml”, 3).
     [InlineData("Sessions", "Details.cshtml", 3)]
     // menyediakan satu kombinasi masukan pengujian (”Players”, ”Index.cshtml”, 3).
-    [InlineData("Players", "Index.cshtml", 3)]
+    [InlineData("PlayerStatistics", "Index.cshtml", 3)]
     // menyediakan satu kombinasi masukan pengujian (”Players”, ”Details.cshtml”, 2).
     [InlineData("Players", "Details.cshtml", 2)]
     // menyediakan satu kombinasi masukan pengujian (”Rulesets”, ”Index.cshtml”, 3).

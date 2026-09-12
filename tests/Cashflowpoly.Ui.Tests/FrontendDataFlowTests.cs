@@ -36,9 +36,9 @@ public sealed class FrontendDataFlowTests
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”ActiveSessions = sessions.Count(s
         // => string.Equals(s.Status, \”ENDED\””`, `controller`, `StringComparison.Ordinal` dalam HomeRealtimeStats_ShouldCountOnlyStartedSessionsAsActive.
         Assert.DoesNotContain("ActiveSessions = sessions.Count(s => string.Equals(s.Status, \"ENDED\"", controller, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”TotalRulesets = rulesets.Count(r =>
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”TotalRulesets = rulesets?.Count(r =>
         // string.Equals(r.Status, \”ACTIVE\””`, `controller`, `StringComparison.Ordinal` dalam HomeRealtimeStats_ShouldCountOnlyStartedSessionsAsActive.
-        Assert.Contains("TotalRulesets = rulesets.Count(r => string.Equals(r.Status, \"ACTIVE\"", controller, StringComparison.Ordinal);
+        Assert.Contains("TotalRulesets = rulesets?.Count(r => string.Equals(r.Status, \"ACTIVE\"", controller, StringComparison.Ordinal);
         Assert.Contains("api/v1/players?inMySessions=true", controller, StringComparison.Ordinal);
     // Menutup scope metode HomeRealtimeStats_ShouldCountOnlyStartedSessionsAsActive; bagian berikut berada di luar batas blok tersebut dalam
     // HomeRealtimeStats_ShouldCountOnlyStartedSessionsAsActive.
@@ -79,26 +79,12 @@ public sealed class FrontendDataFlowTests
     [Fact]
     // Mendefinisikan metode `PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics` dengan hasil bertipe `void`; operasi ini menangani
     // pemain directory should bound requests dan reuse ended sesi analytics.
-    public void PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics()
-    // Membuka scope metode PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics; pernyataan/deklarasi berikut berada di dalam batas blok
-    // ini dalam PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics.
+    public void SessionRoster_ShouldBoundRequestsAndOnlyFetchFinalResultsAfterSessionEnds()
     {
-        // Menyiapkan variabel lokal `controller` untuk nilai controller dengan memanggil `File.ReadAllText` dengan `Path.Combine(UiRoot, ”Controllers”,
-        // ”PlayerDirectoryController.cs”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var controller = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "PlayerDirectoryController.cs"));
-
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”new SemaphoreSlim(8)”`, `controller`,
-        // `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics.
-        Assert.Contains("new SemaphoreSlim(8)", controller, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”analyticsParticipants”`, `controller`,
-        // `StringComparison.Ordinal` dalam PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics.
-        Assert.Contains("analyticsParticipants", controller, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
-        // `”players.error.load_session_details_partial”`, `controller`, `StringComparison.Ordinal` dalam
-        // PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics.
-        Assert.Contains("players.error.load_session_details_partial", controller, StringComparison.Ordinal);
-    // Menutup scope metode PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics; bagian berikut berada di luar batas blok tersebut dalam
-    // PlayerDirectory_ShouldBoundRequestsAndReuseEndedSessionAnalytics.
+        var loader = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "SessionRosterLoader.cs"));
+        Assert.Contains("SemaphoreSlim(4)", loader);
+        Assert.Contains("session.Status == \"ENDED\"", loader);
+        Assert.Contains("api/v1/sessions/{session.SessionId}/players", loader);
     }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.

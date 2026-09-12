@@ -126,8 +126,8 @@ Alur data satu keputusan pemain:
 
 Aturan penting:
 
-- Registrasi publik hanya menerima role `PLAYER`.
-- Akun Instruktur pertama dibuat melalui bootstrap terkontrol atau seed lokal, bukan melalui halaman registrasi publik.
+- Registrasi publik menerima role `PLAYER` dan `INSTRUCTOR`. Pendaftaran instruktur mengikuti `Auth:AllowPublicInstructorRegistration`, yang aktif secara bawaan.
+- Akun instruktur juga dapat disiapkan melalui bootstrap atau seed lokal.
 - Instruktur tidak otomatis dapat melihat sesi/ruleset milik Instruktur lain.
 - Player tidak dapat meminta analitika Player lain dengan mengganti ID pada URL.
 - Ruleset default dapat dibaca, tetapi tidak dapat dimutasi/dihapus.
@@ -278,7 +278,7 @@ Pilih salah satu pendekatan berikut.
 
 ### Opsi A — Seed 2 untuk demo development
 
-Seed 2 menyediakan dua sesi deterministik (`PEMULA` dan `MAHIR`) beserta event dan akun demo. Jalankan melalui proses migrasi lalu bentuk snapshot analitik menggunakan kalkulator domain API yang sama dengan halaman analitika:
+Seed 2 menyediakan 16 sesi selesai: Hadziq dan Pratama masing-masing memiliki empat sesi `PEMULA` serta empat sesi `MAHIR`. Pilihan pemain dibuat bervariasi dengan hash tetap agar pengujian dapat diulang: urutan duduk/strategi berganti, nominal donasi berbeda, sebagian jatah kerja lepas tidak dipakai ketika kas mencukupi, serta waktu keputusan bervariasi. Harga kartu dan kewajiban mengikuti aturan. Dua sesi pertama tetap menjadi skenario acuan regresi. Jalankan melalui proses migrasi lalu bentuk snapshot analitik menggunakan kalkulator domain API yang sama dengan halaman analitika:
 
 ```powershell
 $env:DATABASE_MIGRATIONS_SEED_SIMULATION = 'true'
@@ -302,13 +302,20 @@ Akun demo lokal:
 
 | Peran | Username | Password |
 |---|---|---|
-| Instruktur | `rina.kartika` | `SeedLocal!2026` |
+| Instruktur Hadziq | `hadziq` | `SeedLocal!2026` |
+| Instruktur Pratama | `pratama` | `SeedLocal!2026` |
 | Player | `marco` | `SeedLocal!2026` |
 | Player | `marcello` | `SeedLocal!2026` |
 | Player | `hugo` | `SeedLocal!2026` |
 | Player | `manalu` | `SeedLocal!2026` |
+| Player | `nadia` | `SeedLocal!2026` |
+| Player | `farhan` | `SeedLocal!2026` |
 
-Seed ini hanya untuk development/demo. Jangan memakai password tersebut di production. Seed 2 mengganti data pada scope demo deterministiknya, bukan menjadi mekanisme migrasi production. Jangan menjalankan file SQL Seed 2 sendirian tanpa langkah rekalkulasi karena `metric_snapshots` sengaja hanya dibentuk oleh mesin analitik API.
+Hadziq membimbing Marco, Marcello, Hugo, dan Manalu. Pratama membimbing Marco, Hugo, Nadia, dan Farhan. Marco dan Hugo mengikuti kedua instruktur untuk menguji bahwa instruktur hanya melihat sesi miliknya. Penggantian `rina.kartika` menjadi `hadziq` mempertahankan UUID akun demo; tidak membuat akun instruktur duplikat. Seed hanya mengganti 16 UUID sesi demo yang sudah ditentukan.
+
+File `database/02_seed_simulation_sessions_events.sql` juga menyediakan 10 ruleset pribadi per instruktur (5 Pemula dan 5 Mahir), di luar dua ruleset bawaan global. Delapan ruleset per instruktur dipakai pada delapan sesi yang sudah ada; dua sisanya tersedia untuk sesi berikutnya. Setiap salinan memiliki ID komponen sendiri dan mengikuti mekanik acuan modenya. Sesi, kejadian, kepemilikan kartu, serta snapshot hasil rekalkulasi memakai versi ruleset yang sama. Menjalankan ulang seed tidak menggandakan ruleset.
+
+Seed 2 tetap disertakan pada production sesuai kebutuhan demo/pengujian proyek. Seed hanya mengganti data pada UUID demo deterministiknya; akun ditandai `is_demo=true` dan tetap mengikuti hak akses biasa. Jangan menjalankan file SQL Seed 2 sendirian tanpa langkah rekalkulasi karena `metric_snapshots` sengaja hanya dibentuk oleh mesin analitik API.
 
 ### Opsi B — Bootstrap Instruktur pertama
 
@@ -399,13 +406,13 @@ Klien harus menyimpan setidaknya:
 |---|---|---|
 | `/` | Dashboard operasional ringkas | Login |
 | `/auth/login` | Login | Publik |
-| `/auth/register` | Registrasi Player | Publik |
+| `/auth/register` | Registrasi Player atau Instruktur | Publik |
 | `/rulebook` | Buku aturan permainan | Publik |
 | `/sessions` | Daftar sesi sesuai scope | Login |
 | `/sessions/{sessionId}` | Detail sesi | Sesuai scope |
 | `/sessions/{sessionId}/timeline` | Urutan event sesi | Sesuai scope |
 | `/sessions/{sessionId}/players/{playerId}` | Analitika pemain (`playerId` adalah `user_id`) | Instruktur pemilik / Player sendiri |
-| `/players` | Direktori Player yang dapat diakses | Login |
+| `/statistics` | Statistik antarsesi, satu pemain dan satu mode | Player sendiri / Instruktur pemilik sesi |
 | `/rulesets` | Daftar ruleset | Login |
 | `/rulesets/create` | Membuat ruleset | Instruktur |
 | `/rulesets/{rulesetId}` | Detail ruleset/version | Sesuai scope |
@@ -429,7 +436,7 @@ dotnet build Cashflowpoly.sln -c Debug --no-restore /warnaserror
 
 ### Database lokal
 
-API menjalankan schema canonical dan memastikan seed ruleset default saat startup. Database dan user PostgreSQL tetap harus tersedia terlebih dahulu. Atur connection string melalui environment:
+API development menjalankan baseline SQL lalu migrasi berurutan dan memastikan ruleset default saat startup. Runtime production hanya memverifikasi migrasi; jalankan `--migrate-only` sebelum menyalakannya. Database dan user PostgreSQL tetap harus tersedia terlebih dahulu. Atur connection string melalui environment:
 
 ```powershell
 $env:ConnectionStrings__Default = 'Host=localhost;Port=5432;Database=cashflowpoly;Username=cashflowpoly;Password=<PASSWORD>'
@@ -488,7 +495,7 @@ Template tersedia pada:
 | `AUTH_BOOTSTRAP_INSTRUCTOR_PASSWORD` | Kondisional | — | Password bootstrap Instruktur |
 | `AUTH_BOOTSTRAP_PLAYER_USERNAME` | Kondisional | — | Username bootstrap Player opsional |
 | `AUTH_BOOTSTRAP_PLAYER_PASSWORD` | Kondisional | — | Password bootstrap Player opsional |
-| `DATABASE_MIGRATIONS_SEED_SIMULATION` | — | `false` | Menjalankan Seed 2 idempoten setelah migrasi; aktifkan hanya pada proses migrasi yang disengaja |
+| `DATABASE_MIGRATIONS_SEED_SIMULATION` | — | `false` (development), `true` (production) | Menjalankan Seed 2 idempoten setelah migrasi; deployment dilanjutkan dengan rekalkulasi analitik |
 | `LEGACY_API_COMPATIBILITY` | — | `false` | Variabel transisi yang masih ada di template; belum dibaca runtime saat ini |
 | `DOMAIN` | Produksi | `narafin.org` | Host publik untuk Nginx |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Profil tunnel | — | Token tunnel HTTPS publik |
@@ -519,6 +526,8 @@ Dokumentasi teknis rinci memiliki satu sumber kanonis di folder `docs`:
 API aktif memakai prefix `/api/v1`. Database kosong memakai baseline SQL lalu migrasi berurutan yang dicatat bersama checksum pada `schema_history`; instance runtime biasa tidak menjalankan migrasi. Ringkasan setup tetap berada di README utama; detail kontrak dipelihara pada kedua dokumen di atas.
 
 ## Pengujian dan pemeriksaan kualitas
+
+Hasil pemeriksaan terbaru: [Verifikasi kesiapan produksi, 13 September 2026](docs/03-Pengujian/03-05-kesiapan-produksi.md).
 
 ### Gerbang rilis lengkap
 
@@ -631,7 +640,7 @@ sudo APP_ROOT=/opt/cashflowpoly \
   /opt/cashflowpoly/repository/scripts/deploy-production.sh
 ```
 
-Skrip mengambil commit terbaru `origin/prod`, mengunci proses agar tidak berjalan ganda, membangun API/UI secara berurutan, menampilkan maintenance singkat, menjalankan `--migrate-only`, Seed 2 idempoten, rekalkulasi analitik, health/smoke test, lalu mempertahankan rilis aktif dan satu rilis sebelumnya.
+Skrip mengambil commit terbaru `origin/prod`, mengunci proses agar tidak berjalan ganda, membangun API/UI secara berurutan, menampilkan maintenance singkat, menjalankan `--migrate-only` beserta Seed 2 sesuai konfigurasi environment, rekalkulasi analitik, health/smoke test, lalu mempertahankan rilis aktif dan satu rilis sebelumnya.
 
 ### 5. Verifikasi
 
@@ -733,7 +742,7 @@ Checklist minimum:
 - pahami keputusan proyek tanpa backup: rollback hanya mengembalikan image aplikasi dan tidak memulihkan schema/data;
 - periksa security audit log dan alert rate limit;
 - sensor Authorization header, password, signing key, token, dan payload sensitif dari log/tiket;
-- jangan menjalankan Seed 2 atau reset volume pada production.
+- jalankan Seed 2 melalui migrasi dan rekalkulasi; jangan reset volume production.
 
 ## Dokumentasi lanjutan
 

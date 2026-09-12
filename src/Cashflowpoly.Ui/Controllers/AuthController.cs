@@ -258,6 +258,14 @@ public sealed class AuthController : Controller
     public async Task<IActionResult> Register(RegisterViewModel model)
     // Membuka scope metode Register; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Register.
     {
+        model.Role = model.Role?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (!AuthConstants.IsValidRole(model.Role))
+        {
+            model.ErrorMessage = HttpContext.T("auth.error.invalid_role");
+            model.Password = string.Empty;
+            model.ConfirmPassword = string.Empty;
+            return View(model);
+        }
         // Memeriksa gabungan syarat OR: setidaknya satu kondisi wajib benar antara `string.IsNullOrWhiteSpace(model.DisplayName) ||
         // string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password)` dan `string.IsNullOrWhiteSpace(model.ConfirmPassword)`;
         // sisi kanan diperiksa hanya jika sisi kiri salah; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam Register.
@@ -316,7 +324,7 @@ public sealed class AuthController : Controller
             // Meneruskan `model.Password` (kata sandi masukan yang diperiksa sesuai kebijakan autentikasi) sebagai argumen ke konstruktor `RegisterRequest`.
             model.Password,
             // Meneruskan `AuthConstants.PlayerRole` (nilai pemain role) sebagai argumen ke konstruktor `RegisterRequest`.
-            AuthConstants.PlayerRole,
+            model.Role,
             // Meneruskan membersihkan karakter tepi pada `model.DisplayName` memakai tanpa argumen sebagai argumen ke konstruktor `RegisterRequest`.
             model.DisplayName.Trim());
         // Menyiapkan variabel lokal `response` untuk hasil respons yang akan dibaca atau dikirim kepada pemanggil tanpa nilai awal pada deklarasi ini. Tipe
@@ -390,7 +398,8 @@ public sealed class AuthController : Controller
         var created = await response.Content.TryReadFromJsonAsync<RegisterResponse>();
         // Memeriksa gabungan syarat OR: setidaknya satu kondisi wajib benar antara `created is null` dan `string.IsNullOrWhiteSpace(created.AccessToken)`;
         // sisi kanan diperiksa hanya jika sisi kiri salah; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam Register.
-        if (created is null || string.IsNullOrWhiteSpace(created.AccessToken))
+        if (created is null || string.IsNullOrWhiteSpace(created.AccessToken) ||
+            !string.Equals(created.Role, model.Role, StringComparison.OrdinalIgnoreCase))
         // Membuka scope cabang if untuk kondisi `created is null || string.IsNullOrWhiteSpace(created.AccessToken)`; pernyataan/deklarasi berikut berada di
         // dalam batas blok ini dalam Register.
         {

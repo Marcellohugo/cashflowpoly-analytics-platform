@@ -55,6 +55,8 @@ public static class PlayerMetricLabelFormatter
         "risk_readiness_percent",
         // Menggunakan nilai literal `”loan_burden_percent”` sebagai bagian ekspresi yang sedang disusun.
         "loan_burden_percent",
+        "financial_goal_completion_percent",
+        "donation_commitment_score",
         // Menggunakan nilai literal `”financial_goal_progress_percent”` sebagai bagian ekspresi yang sedang disusun.
         "financial_goal_progress_percent",
         // Menggunakan nilai literal `”income_action_focus_percent”` sebagai bagian ekspresi yang sedang disusun.
@@ -1644,6 +1646,10 @@ public static class PlayerMetricLabelFormatter
             "donation_happiness_points" or "donations_pts" => "players.support.meaning.donation_happiness",
             // Untuk pola `”financial_goals_completed”`, menghasilkan nilai literal `”players.support.meaning.completed_goals”` sebagai hasil switch.
             "financial_goals_completed" => "players.support.meaning.completed_goals",
+            "financial_goals_attempted" => "players.support.meaning.attempted_goals",
+            "sharia_loans_taken" => "players.support.meaning.loans_taken",
+            "sharia_loans_repaid" => "players.support.meaning.loans_repaid",
+            "sharia_loans_unpaid_end" => "players.support.meaning.loans_unpaid",
             // Untuk pola `”sharia_loans_outstanding_coins”`, menghasilkan nilai literal `”players.support.meaning.outstanding_loan”` sebagai hasil switch.
             "sharia_loans_outstanding_coins" => "players.support.meaning.outstanding_loan",
             // Untuk pola `”need_cards_purchased”`, menghasilkan nilai literal `”players.support.meaning.need_cards_purchased”` sebagai hasil switch.
@@ -1754,6 +1760,8 @@ public static class PlayerMetricLabelFormatter
                 "risk_appetite_score" or "risk_appetite_score_normalized" or "risk_acceptance_rate" => "players.support.meaning.risk_appetite",
                 // Untuk pola `”loan_burden_percent”`, menghasilkan nilai literal `”players.support.meaning.loan_burden”` sebagai hasil switch.
                 "loan_burden_percent" => "players.support.meaning.loan_burden",
+                "financial_goal_completion_percent" => "players.support.meaning.goal_completion",
+                "donation_commitment_score" => "players.support.meaning.donation_commitment",
                 // Untuk pola `”debt_leverage_ratio” or ”debt_ratio” or ”loan_repayment_discipline”`, menghasilkan nilai literal `”players.support.meaning.debt”`
                 // sebagai hasil switch.
                 "debt_leverage_ratio" or "debt_ratio" or "loan_repayment_discipline" => "players.support.meaning.debt",
@@ -1780,7 +1788,7 @@ public static class PlayerMetricLabelFormatter
                 // ”donation_commitment_score” or ”donation_stabilit...`, menghasilkan nilai literal `”players.support.meaning.donation”` sebagai hasil switch.
                 "donation_aggressiveness_percent" or "donation_stability_std_deviation" or "donation_ratio" or
                     // Menggunakan nilai literal `”friday_participation_rate”` sebagai bagian ekspresi yang sedang disusun dalam ResolveExplanationKey.
-                    "friday_participation_rate" or "donation_commitment_score" or "donation_stability" or "donation_stability_index" => "players.support.meaning.donation",
+                    "friday_participation_rate" or "donation_stability" or "donation_stability_index" => "players.support.meaning.donation",
                 // Untuk pola `_`, menghasilkan `string.Empty`, yaitu nilai kosong bawaan tipe terkait sebagai hasil switch.
                 _ => string.Empty
             // Menutup scope pemetaan switch atas `metricKey`; bagian berikut berada di luar batas blok tersebut dalam ResolveExplanationKey.
@@ -1965,6 +1973,12 @@ public static class PlayerMetricLabelFormatter
                 // Untuk pola `”loan_burden_percent” or ”debt_leverage_ratio”` dengan syarat tambahan `numericValue > 75`, menghasilkan nilai literal
                 // `”players.support.guide.debt_high”` sebagai hasil switch.
                 "loan_burden_percent" or "debt_leverage_ratio" when numericValue > 75 => "players.support.guide.debt_high",
+                "financial_goal_completion_percent" when numericValue >= 100 => "players.support.guide.goal_completion_all",
+                "financial_goal_completion_percent" when numericValue <= 0 => "players.support.guide.goal_completion_none",
+                "financial_goal_completion_percent" => "players.support.guide.goal_completion_partial",
+                "sharia_loans_taken" => "players.support.meaning.loans_taken",
+                "sharia_loans_repaid" => "players.support.meaning.loans_repaid",
+                "sharia_loans_unpaid_end" => "players.support.meaning.loans_unpaid",
                 // Untuk pola `”loan_burden_percent” or ”debt_leverage_ratio”` dengan syarat tambahan `numericValue <= 25`, menghasilkan nilai literal
                 // `”players.support.guide.debt_low”` sebagai hasil switch.
                 "loan_burden_percent" or "debt_leverage_ratio" when numericValue <= 25 => "players.support.guide.debt_low",
@@ -2325,6 +2339,7 @@ public static class PlayerMetricLabelFormatter
                 "loan_burden_percent" or "debt_leverage_ratio" when numericValue > 75 => "players.support.recommendation.debt_reduce",
                 // Untuk pola `”financial_goal_progress_percent” or ”goal_ambition” or ”goal_ambition_index”` dengan syarat tambahan `numericValue < 50`,
                 // menghasilkan nilai literal `”players.support.recommendation.goals_focus”` sebagai hasil switch.
+                "financial_goal_completion_percent" when numericValue < 100 => "players.support.recommendation.goals_focus",
                 "financial_goal_progress_percent" or "goal_ambition" or "goal_ambition_index" when numericValue < 50 => "players.support.recommendation.goals_focus",
                 // Untuk pola `”income_action_focus_percent” or ”action_efficiency_percent”` dengan syarat tambahan `numericValue < 40`, menghasilkan nilai literal
                 // `”players.support.recommendation.action_income”` sebagai hasil switch.
@@ -2451,6 +2466,8 @@ public static class PlayerMetricLabelFormatter
             // Untuk pola `”loan_burden_percent” or ”debt_leverage_ratio”`, menghasilkan nilai literal `”players.support.formula.debt_leverage”` sebagai hasil
             // switch.
             "loan_burden_percent" or "debt_leverage_ratio" => "players.support.formula.debt_leverage",
+            "sharia_loans_taken" or "sharia_loans_repaid" or "sharia_loans_unpaid_end" => "players.support.formula.loan_counts",
+            "financial_goal_completion_percent" => "players.support.formula.goal_completion",
             // Untuk pola `”loan_repayment_discipline”`, menghasilkan nilai literal `”players.support.formula.loan_discipline”` sebagai hasil switch.
             "loan_repayment_discipline" => "players.support.formula.loan_discipline",
             // Untuk pola `”debt_ratio”`, menghasilkan nilai literal `”players.support.formula.debt_ratio”` sebagai hasil switch.

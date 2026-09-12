@@ -2,8 +2,8 @@
 // Penjelasan: Melakukan operasi dengan memuat modul CommonJS `"@playwright/test"` agar fungsi atau konfigurasi modul dapat digunakan.
 const { test: base, expect } = require("@playwright/test");
 
-// Penjelasan: Menyimpan `username` dengan membaca nilai `process.env.E2E_USERNAME || "rina.kartika"` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
-const username = process.env.E2E_USERNAME || "rina.kartika";
+// Penjelasan: Menyimpan `username` dengan membaca nilai `process.env.E2E_USERNAME || "hadziq"` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+const username = process.env.E2E_USERNAME || "hadziq";
 // Penjelasan: Menyimpan `password` dengan membaca nilai `process.env.E2E_PASSWORD || "SeedLocal!2026"` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
 const password = process.env.E2E_PASSWORD || "SeedLocal!2026";
 // Penjelasan: Menyimpan `baseUrl` dengan menghitung ekspresi `process.env.E2E_BASE_URL || "http://localhost:5203"` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
@@ -67,6 +67,11 @@ test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan k
   try {
     await page.goto("/rulesets/create");
     await page.locator(`input[name="cfg-mode"][value="${mode}"]`).check();
+    for (const box of await page.locator('input[type="checkbox"]').all()) {
+      await expect(box).toBeChecked();
+      await expect(box).toBeDisabled();
+    }
+    await expect(page.locator(".ruleset-coming-soon")).toHaveCount(8);
     await page.locator("#ruleset-name").fill(name);
     await page.locator("#cfg-cash").fill("23");
     await page.locator("form[data-ruleset-create-form] button[type=submit]").click();
@@ -80,6 +85,10 @@ test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan k
     for (let save = 0; save < 2; save += 1) {
       await page.goto(`/rulesets/${rulesetId}/edit`);
       await expect(page.locator("#cfg-cash")).toHaveValue("23");
+      for (const box of await page.locator('input[type="checkbox"]').all()) {
+        await expect(box).toBeChecked();
+        await expect(box).toBeDisabled();
+      }
       await page.locator("#ruleset-name").fill(`${name} renamed`);
       await page.locator("#ruleset-description").fill("Description updated without changing configuration");
       await page.locator("form[data-ruleset-create-form] button[type=submit]").click();
@@ -111,8 +120,8 @@ test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan k
 
 // Penjelasan: Melakukan operasi dengan memanggil `async function expectNoHorizontalOverflow(page) {` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 test("pemain dipantau sama dengan jumlah peserta unik sesi instruktur", async ({ page }) => {
-  await page.goto("/players");
-  await expect(page.locator(".page-intro .subhead")).toContainText("pemain yang terdaftar dalam sesi Anda");
+  await page.goto("/sessions");
+  await expect(page.locator(".players-session-card")).toHaveCount(8);
   await expect(page.getByText("Pemain di Luar Sesi Anda", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Daftar Pemain Umum", { exact: true })).toHaveCount(0);
   const participantIds = await page.locator('.players-session-card a[href*="/players/"]').evaluateAll(
@@ -120,8 +129,8 @@ test("pemain dipantau sama dengan jumlah peserta unik sesi instruktur", async ({
   );
   const participantCount = new Set(participantIds).size;
   expect(participantCount).toBe(4);
-  await expect(page.locator(".ruleset-index-count-block")).toContainText("Pemain Dipantau");
-  await expect(page.locator(".ruleset-index-count")).toHaveText(String(participantCount));
+  await expect(page.locator(".session-stats-grid .stat-card").last()).toContainText("Pemain Dipantau");
+  await expect(page.locator(".session-stats-grid .stat-card").last().locator("p").last()).toHaveText(String(participantCount));
   await page.goto("/");
   await expect(page.locator("#home-total-players")).toHaveText(String(participantCount));
 });
@@ -131,8 +140,19 @@ test("analitika membedakan perubahan koin target dibeli dan jumlah aksi", async 
   await expect(page.locator(".player-analysis-scorecard > div").nth(2).locator("dd")).toHaveText("+20%");
   await page.locator("#player-analysis-atlas > summary").click();
   const goal = page.locator(".player-analysis-card--goal-ambition");
-  await expect(goal.locator(".player-analysis-card__takeaway")).toContainText("Target Finansial Berhasil Dibeli");
-  await expect(goal.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/1\s*target/);
+  await expect(goal.locator(".player-analysis-card__takeaway")).toContainText("Persentase Target Berhasil Dibeli");
+  await expect(goal.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/100\s*%/);
+  await expect(goal).toContainText("1 dari 1 target yang mulai diusahakan sudah dibeli");
+  await goal.locator("summary").click();
+  await expect(goal).toContainText("1 ÷ 1 × 100% = 100%");
+  const debt = page.locator(".player-analysis-card--debt-discipline");
+  await expect(debt.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/1\s*pinjaman/);
+  await expect(debt).toContainText("1 pinjaman sudah lunas dan 0 pinjaman belum lunas");
+  await debt.locator("summary").click();
+  await expect(debt.locator(".player-analysis-card__metrics dd strong")).toHaveText(["1", "0", "0"]);
+  const donation = page.locator(".player-analysis-card--donation-commitment");
+  await expect(donation.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/9.76\s*%/);
+  await expect(donation.locator(".player-analysis-card__takeaway")).toContainText("Persentase Komitmen Donasi");
   const planning = page.locator(".player-analysis-card--planning-horizon");
   await planning.locator("summary").click();
   await expect(planning.locator(".player-analysis-card__metrics dt")).toHaveText([

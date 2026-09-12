@@ -13,33 +13,35 @@ public sealed class AuthPolicyTests
 {
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
-    // Mendefinisikan metode `ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors` dengan hasil bertipe `void`; operasi ini menangani
+    // Mendefinisikan metode `ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles` dengan hasil bertipe `void`; operasi ini menangani
     // production policies reject oversized passwords dan public instructors.
-    public void ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors()
-    // Membuka scope metode ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors; pernyataan/deklarasi berikut berada di dalam batas blok ini
-    // dalam ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+    public void ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles()
+    // Membuka scope metode ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles; pernyataan/deklarasi berikut berada di dalam batas blok ini
+    // dalam ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
     {
         // Menjalankan pemeriksaan bahwa `PasswordPolicy.IsWithinBcryptLimit(new string('a', 72))` bernilai benar; pengujian gagal jika kondisi tidak
-        // terpenuhi dalam ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+        // terpenuhi dalam ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
         Assert.True(PasswordPolicy.IsWithinBcryptLimit(new string('a', 72)));
         // Menjalankan pemeriksaan bahwa `PasswordPolicy.IsWithinBcryptLimit(new string('a', 73))` bernilai salah; pengujian gagal jika kondisi justru
-        // terpenuhi dalam ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+        // terpenuhi dalam ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
         Assert.False(PasswordPolicy.IsWithinBcryptLimit(new string('a', 73)));
         // Menjalankan pemeriksaan bahwa `PasswordPolicy.IsWithinBcryptLimit(string.Concat(Enumerable.Repeat(”😀”, 19)))` bernilai salah; pengujian gagal
-        // jika kondisi justru terpenuhi dalam ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+        // jika kondisi justru terpenuhi dalam ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
         Assert.False(PasswordPolicy.IsWithinBcryptLimit(string.Concat(Enumerable.Repeat("😀", 19))));
 
         // Menyiapkan variabel lokal `registration` untuk nilai registration dengan objek baru bertipe `AuthRegistrationOptions` dengan nilai awal sesuai
         // konstruktornya. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var registration = new AuthRegistrationOptions();
         // Menjalankan pemeriksaan bahwa `registration.CanRegisterPublicly(”PLAYER”)` bernilai benar; pengujian gagal jika kondisi tidak terpenuhi dalam
-        // ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+        // ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
         Assert.True(registration.CanRegisterPublicly("PLAYER"));
         // Menjalankan pemeriksaan bahwa `registration.CanRegisterPublicly(”INSTRUCTOR”)` bernilai salah; pengujian gagal jika kondisi justru terpenuhi
-        // dalam ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+        // dalam ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
+        Assert.True(registration.CanRegisterPublicly("INSTRUCTOR"));
+        registration.AllowPublicInstructorRegistration = false;
         Assert.False(registration.CanRegisterPublicly("INSTRUCTOR"));
-    // Menutup scope metode ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors; bagian berikut berada di luar batas blok tersebut dalam
-    // ProductionPolicies_RejectOversizedPasswordsAndPublicInstructors.
+    // Menutup scope metode ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles; bagian berikut berada di luar batas blok tersebut dalam
+    // ProductionPolicies_RejectOversizedPasswordsAndAllowPublicRoles.
     }
 // Menutup scope tipe AuthPolicyTests; bagian berikut berada di luar batas blok tersebut.
 }

@@ -79,6 +79,7 @@ public sealed class LoginViewModel
 public sealed class RegisterViewModel
 // Membuka scope tipe RegisterViewModel; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    public string Role { get; set; } = AuthConstants.PlayerRole;
     // Mendefinisikan properti `DisplayName` bertipe `string` untuk nilai display nama; get menyediakan pembacaan nilai, set mengizinkan penggantian
     // nilai; nilai awalnya `string.Empty`, yaitu nilai kosong bawaan tipe terkait.
     public string DisplayName { get; set; } = string.Empty;

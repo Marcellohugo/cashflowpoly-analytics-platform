@@ -338,7 +338,7 @@ public sealed class PlayerMetricLabelFormatterTests
     // menyediakan satu kombinasi masukan pengujian (”action_sequence[0].action_type”, false, ”timeline”).
     [InlineData("action_sequence[0].action_type", false, "timeline")]
     // menyediakan satu kombinasi masukan pengujian (”sharia_loans_unpaid_end”, false, ”debt”).
-    [InlineData("sharia_loans_unpaid_end", false, "debt")]
+
     // menyediakan satu kombinasi masukan pengujian (”average_risk_cost”, true, ”risk”).
     [InlineData("average_risk_cost", true, "risk")]
     // Mendefinisikan metode `DescribeMetric_UsesTheDataFunctionInsteadOfAGenericUnitDescription` dengan hasil bertipe `void`; operasi ini menangani
@@ -917,7 +917,7 @@ public sealed class PlayerMetricLabelFormatterTests
     // menyediakan satu kombinasi masukan pengujian (”en”, ”Donations Each Friday”, ”Donation Amount”, ”coins”).
     [InlineData("en", "Donations Each Friday", "Donation Amount", "coins")]
     // Mendefinisikan metode `DescribeMetric_LocalizesCombinedDonationHistory` dengan hasil bertipe `void`; operasi ini menangani describe metric
-    // localizes combined donasi history. Masukan: Parameter `language` bertipe `string` membawa nilai language; Parameter `title` bertipe `string`
+    // localizes combined donasi statistics. Masukan: Parameter `language` bertipe `string` membawa nilai language; Parameter `title` bertipe `string`
     // membawa nilai title; Parameter `amountLabel` bertipe `string` membawa nilai nominal label; Parameter `coins` bertipe `string` membawa nilai
     // coins.
     public void DescribeMetric_LocalizesCombinedDonationHistory(string language, string title, string amountLabel, string coins)

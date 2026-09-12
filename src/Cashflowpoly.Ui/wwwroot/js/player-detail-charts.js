@@ -134,7 +134,7 @@
             // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
             };
             // Penjelasan: Menyimpan `ensureBarInsightPanel` dengan membaca nilai `(hostCard, detailLabel) => {` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
-            const ensureBarInsightPanel = (hostCard, detailLabel) => {
+            const ensureBarInsightPanel = (hostCard, svg, detailLabel) => {
                 // Penjelasan: Memeriksa kondisi `!hostCard`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
                 if (!hostCard) {
                     // Penjelasan: Mengembalikan hasil kepada pemanggil dengan menggunakan null sebagai penanda bahwa objek atau pilihan belum tersedia; eksekusi fungsi berakhir setelah nilai dihitung.
@@ -229,7 +229,10 @@
                         "js-chart-bar-insight-formula"));
 
                     // Penjelasan: Melakukan operasi dengan menempatkan node `panel` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
-                    hostCard.appendChild(panel);
+                    // Keep details next to their chart, before guidance and data tables.
+                    let plot = svg;
+                    while (plot.parentElement && plot.parentElement !== hostCard) plot = plot.parentElement;
+                    plot.after(panel);
                 // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
                 }
 
@@ -246,6 +249,8 @@
                 return {
                     // Penjelasan: Melakukan operasi dengan membaca nilai `panel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
                     panel,
+                    session: panel.querySelector(".js-chart-bar-insight-session"),
+                    unit: panel.querySelector(".js-chart-bar-insight-unit"),
                     // Penjelasan: Mengisi properti `metric` pada objek atau konfigurasi dengan mencari turunan pertama dengan selector `".js-chart-bar-insight-metric"`; pemanggil memeriksa ketersediaannya sebelum mengubah tampilan; konsumen objek membaca nilai ini melalui nama properti tersebut.
                     metric: panel.querySelector(".js-chart-bar-insight-metric"),
                     // Penjelasan: Mengisi properti `points` pada objek atau konfigurasi dengan mencari turunan pertama dengan selector `".js-chart-bar-insight-points"`; pemanggil memeriksa ketersediaannya sebelum mengubah tampilan; konsumen objek membaca nilai ini melalui nama properti tersebut.
@@ -269,6 +274,8 @@
 
                 // Penjelasan: Memperbarui `insight.panel.hidden` dengan menonaktifkan flag Boolean dengan nilai false.
                 insight.panel.hidden = false;
+                if (insight.session) insight.session.textContent = detail.sessionName || '';
+                if (insight.unit) insight.unit.textContent = detail.unit || '';
                 // Penjelasan: Memeriksa kondisi `insight.metric`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
                 if (insight.metric) {
                     // Penjelasan: Memperbarui `insight.metric.textContent` dengan membaca nilai `detail.metric` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
@@ -645,7 +652,7 @@
                 // Penjelasan: Menyimpan `hostCard` dengan memanggil `svg.closest(".chart-card")` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
                 const hostCard = svg.closest(".chart-card");
                 // Penjelasan: Menyimpan `chartInsight` dengan memanggil `ensureBarInsightPanel(hostCard, detailLabel)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-                const chartInsight = ensureBarInsightPanel(hostCard, detailLabel);
+                const chartInsight = ensureBarInsightPanel(hostCard, svg, detailLabel);
                 // Penjelasan: Memeriksa kondisi `chartInsight`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
                 if (chartInsight) {
                     // Penjelasan: Memperbarui `chartInsight.panel.hidden` dengan mengaktifkan flag Boolean dengan nilai true.
@@ -919,7 +926,11 @@
                 }));
 
                 // Penjelasan: Menyimpan `xLabelStep` dengan membaca nilai `chartType === "bar"` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
-                const xLabelStep = chartType === "bar"
+                const responsiveLine = svg.hasAttribute('data-chart-responsive') && chartType === 'line';
+                const labelGap = Math.max(60, ...labels.map(label => label.length * 6 + 12));
+                const xLabelStep = responsiveLine
+                    ? Math.max(1, Math.ceil((labels.length - 1) / Math.max(1, Math.floor(plotWidth / labelGap))))
+                    : chartType === "bar"
                     // Penjelasan: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `1`; nilai ini menjadi keluaran ekspresi pilihan.
                     ? 1
                     // Penjelasan: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `Math.max(1, Math.ceil(labels.length / 6));`; nilai cadangan ini melengkapi ekspresi pilihan.
@@ -928,6 +939,7 @@
                 labels.forEach((label, index) => {
                     // Penjelasan: Menyimpan `isLast` dengan menghitung ekspresi `index === labels.length - 1` dengan urutan operator untuk memperoleh nilai turunan dari data masukan.
                     const isLast = index === labels.length - 1;
+                    if (responsiveLine && index > 0 && !isLast && xForIndex(labels.length - 1) - xForIndex(index) < labelGap) return;
                     // Penjelasan: Memeriksa kondisi `!isLast && index % xLabelStep !== 0`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
                     if (!isLast && index % xLabelStep !== 0) {
                         // Penjelasan: Mengakhiri fungsi atau callback saat ini tanpa nilai hasil; langkah setelah return pada jalur ini dilewati.
@@ -1250,16 +1262,14 @@
                             // Penjelasan: Menutup koleksi array yang sedang disusun; tanda titik koma mengakhiri pernyataan.
                             ];
                             // Penjelasan: Menyimpan `insightDetail` dengan menyiapkan objek sebagai wadah pasangan properti dan nilai yang diisi pada baris berikutnya.
+                            const selectedPoint = payload.pointDetails?.[index];
                             const insightDetail = {
-                                // Penjelasan: Mengisi properti `metric` pada objek atau konfigurasi dengan membaca nilai `metricLabel` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
                                 metric: metricLabel,
-                                // Penjelasan: Mengisi properti `points` pada objek atau konfigurasi dengan memanggil `formatMetricValue(value)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi; konsumen objek membaca nilai ini melalui nama properti tersebut.
-                                points: formatMetricValue(value),
-                                // Penjelasan: Mengisi properti `formula` pada objek atau konfigurasi dengan membaca nilai `formulaHints[index] || detailFallback` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
-                                formula: formulaHints[index] || detailFallback
-                            // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+                                sessionName: selectedPoint?.sessionName,
+                                points: selectedPoint?.displayValue ?? formatMetricValue(value),
+                                unit: selectedPoint?.unit,
+                                formula: selectedPoint?.guidance ?? (formulaHints[index] || detailFallback)
                             };
-                            // Penjelasan: Menyimpan `hitTarget` dengan memanggil `makeNode("circle", {` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
                             const hitTarget = makeNode("circle", {
                                 // Penjelasan: Mengisi properti `cx` pada objek atau konfigurasi dengan membaca nilai `point.x` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya; konsumen objek membaca nilai ini melalui nama properti tersebut.
                                 cx: point.x,
@@ -1288,55 +1298,26 @@
                             // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
                             });
                             // Penjelasan: Menyimpan `title` dengan memanggil `makeNode("title")` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-                            const title = makeNode("title");
-                            // Penjelasan: Memperbarui `title.textContent` dengan menggabungkan elemen array menjadi satu string dengan pemisah `"\n"`.
-                            title.textContent = tooltipLines.join("\n");
-                            // Penjelasan: Melakukan operasi dengan menempatkan node `title` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
-                            pointNode.appendChild(title);
-                            // Penjelasan: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `"tabindex", "0"`; atribut mengendalikan presentasi atau aksesibilitas komponen.
                             pointNode.setAttribute("tabindex", "0");
-                            // Penjelasan: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `"role", "button"`; atribut mengendalikan presentasi atau aksesibilitas komponen.
-                            pointNode.setAttribute("role", "button");
-                            // Penjelasan: Melakukan operasi dengan menetapkan atribut elemen sesuai pasangan nama dan nilai `"aria-label", tooltipLines.join(". ")`; atribut mengendalikan presentasi atau aksesibilitas komponen.
+                            pointNode.setAttribute("role", "img");
                             pointNode.setAttribute("aria-label", tooltipLines.join(". "));
-                            // Penjelasan: Memperbarui `pointNode.style.cursor` dengan menggunakan literal `"pointer"` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
-                            pointNode.style.cursor = "pointer";
-                            // Penjelasan: Memperbarui `hitTarget.style.cursor` dengan menggunakan literal `"pointer"` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
-                            hitTarget.style.cursor = "pointer";
-                            // Penjelasan: Menyimpan `onSelectPoint` dengan memanggil `() => revealBarInsight(chartInsight, insightDetail)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi. Nilai berupa fungsi; badan callback dijalankan hanya ketika fungsi dipanggil.
-                            const onSelectPoint = () => revealBarInsight(chartInsight, insightDetail);
-                            // Penjelasan: Mendefinisikan fungsi atau pemetaan `hitTarget.addEventListener("click", (event) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-                            hitTarget.addEventListener("click", (event) => {
-                                // Penjelasan: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
-                                event.preventDefault();
-                                // Penjelasan: Melakukan operasi dengan memanggil `onSelectPoint()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-                                onSelectPoint();
-                            // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+                            // One hover target prevents flicker between the visible dot and its hit area.
+                            const pointGroup = makeNode("g", { class: "js-chart-point" });
+                            pointGroup.append(hitTarget, pointNode);
+                            const showDetail = () => revealBarInsight(chartInsight, insightDetail);
+                            const hideDetail = () => { if (chartInsight) chartInsight.panel.hidden = true; };
+                            pointGroup.addEventListener("pointerenter", event => {
+                                if (event.pointerType !== "touch") showDetail();
                             });
-                            // Penjelasan: Mendefinisikan fungsi atau pemetaan `pointNode.addEventListener("click", (event) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-                            pointNode.addEventListener("click", (event) => {
-                                // Penjelasan: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
-                                event.preventDefault();
-                                // Penjelasan: Melakukan operasi dengan memanggil `onSelectPoint()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-                                onSelectPoint();
-                            // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+                            pointGroup.addEventListener("pointerleave", hideDetail);
+                            pointNode.addEventListener("focus", () => {
+                                if (pointNode.matches(":focus-visible")) showDetail();
                             });
-                            // Penjelasan: Mendefinisikan fungsi atau pemetaan `pointNode.addEventListener("keydown", (event) => {`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-                            pointNode.addEventListener("keydown", (event) => {
-                                // Penjelasan: Memeriksa kondisi `event.key === "Enter" || event.key === " "`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
-                                if (event.key === "Enter" || event.key === " ") {
-                                    // Penjelasan: Melakukan operasi dengan membatalkan aksi bawaan browser untuk event ini sehingga interaksi ditangani oleh kode aplikasi.
-                                    event.preventDefault();
-                                    // Penjelasan: Melakukan operasi dengan memanggil `onSelectPoint()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-                                    onSelectPoint();
-                                // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
-                                }
-                            // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
+                            pointNode.addEventListener("blur", hideDetail);
+                            pointNode.addEventListener("keydown", event => {
+                                if (event.key === "Escape") hideDetail();
                             });
-                            // Penjelasan: Melakukan operasi dengan menempatkan node `hitTarget` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
-                            svg.appendChild(hitTarget);
-                            // Penjelasan: Melakukan operasi dengan menempatkan node `pointNode` sebagai anak terakhir elemen induk sehingga muncul dalam struktur DOM.
-                            svg.appendChild(pointNode);
+                            svg.appendChild(pointGroup);
                         // Penjelasan: Menutup blok atau objek yang sedang disusun; tanda titik koma mengakhiri pernyataan.
                         });
                         // Penjelasan: Melakukan operasi dengan memanggil `flushSegment()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
@@ -1450,6 +1431,20 @@
                 try {
                     // Penjelasan: Menyimpan `payload` dengan mendeserialisasi string JSON `node.dataset.chart || "{}"` menjadi objek JavaScript; JSON tidak valid akan masuk penanganan kesalahan.
                     const payload = JSON.parse(node.dataset.chart || "{}");
+                    if (node.hasAttribute('data-chart-responsive')) {
+                        let previousSize = '';
+                        const resize = () => {
+                            const width = Math.round(node.getBoundingClientRect().width);
+                            const height = Math.round(node.getBoundingClientRect().height);
+                            if (!width || !height || previousSize === `${width}:${height}`) return;
+                            previousSize = `${width}:${height}`;
+                            node.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                            drawChart(node, payload);
+                        };
+                        new ResizeObserver(resize).observe(node);
+                        resize();
+                        return;
+                    }
                     // Penjelasan: Melakukan operasi dengan memanggil `drawChart(node, payload)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
                     drawChart(node, payload);
                 // Penjelasan: Menangani kesalahan melalui catch `{`; alur ini menyediakan pemulihan atau pesan kesalahan ketika operasi pada try gagal.
@@ -1462,4 +1457,3 @@
             });
         // Penjelasan: Melakukan operasi dengan membaca nilai `})()` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
         })();
-

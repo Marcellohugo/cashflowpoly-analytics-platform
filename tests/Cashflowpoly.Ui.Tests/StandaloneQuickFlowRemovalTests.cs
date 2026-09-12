@@ -193,7 +193,7 @@ public sealed class StandaloneQuickFlowRemovalTests
     {
         // Menyiapkan variabel lokal `viewPath` untuk nilai view path dengan memanggil `Path.Combine` dengan `UiRoot`, `”Views”`, `”Players”`,
         // `”Index.cshtml”`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var viewPath = Path.Combine(UiRoot, "Views", "Players", "Index.cshtml");
+        var viewPath = Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml");
         // Menyiapkan variabel lokal `viewContent` untuk nilai view content dengan memanggil `File.ReadAllText` dengan `viewPath`. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
         var viewContent = File.ReadAllText(viewPath);
@@ -211,15 +211,15 @@ public sealed class StandaloneQuickFlowRemovalTests
             new Regex(@"<details\s+class=""mt-3 data-toggle""\s*>", RegexOptions.CultureInvariant),
             // Meneruskan `viewContent` (nilai view content) sebagai argumen ke `Assert.Matches`.
             viewContent);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players.tip.validate”`, `viewContent`
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”sessions.tips.instructor.step1”`, `viewContent`
         // dalam PlayersIndexView_ShouldFoldQuickFlowContentIntoCollapsedTipsPanel.
-        Assert.Contains("players.tip.validate", viewContent);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players.tip.tracking”`, `viewContent`
+        Assert.Contains("sessions.tips.instructor.step1", viewContent);
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”sessions.tips.instructor.step2”`, `viewContent`
         // dalam PlayersIndexView_ShouldFoldQuickFlowContentIntoCollapsedTipsPanel.
-        Assert.Contains("players.tip.tracking", viewContent);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”players.tip.analysis”`, `viewContent`
+        Assert.Contains("sessions.tips.instructor.step2", viewContent);
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”sessions.tips.instructor.step3”`, `viewContent`
         // dalam PlayersIndexView_ShouldFoldQuickFlowContentIntoCollapsedTipsPanel.
-        Assert.Contains("players.tip.analysis", viewContent);
+        Assert.Contains("sessions.tips.instructor.step3", viewContent);
     // Menutup scope metode PlayersIndexView_ShouldFoldQuickFlowContentIntoCollapsedTipsPanel; bagian berikut berada di luar batas blok tersebut dalam
     // PlayersIndexView_ShouldFoldQuickFlowContentIntoCollapsedTipsPanel.
     }
@@ -286,7 +286,7 @@ public sealed class StandaloneQuickFlowRemovalTests
             Path.Combine(UiRoot, "Views", "Sessions", "Details.cshtml"),
             // Melanjutkan pengolahan dengan memanggil `Path.Combine` dengan `UiRoot`, `”Views”`, `”Players”`, `”Index.cshtml”` dalam
             // UsageTips_ShouldAlwaysStartCollapsed.
-            Path.Combine(UiRoot, "Views", "Players", "Index.cshtml"),
+            Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"),
             // Melanjutkan pengolahan dengan memanggil `Path.Combine` dengan `UiRoot`, `”Views”`, `”Rulesets”`, `”Index.cshtml”` dalam
             // UsageTips_ShouldAlwaysStartCollapsed.
             Path.Combine(UiRoot, "Views", "Rulesets", "Index.cshtml"),

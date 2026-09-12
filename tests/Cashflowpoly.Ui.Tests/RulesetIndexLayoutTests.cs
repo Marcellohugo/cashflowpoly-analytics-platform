@@ -239,10 +239,10 @@ public sealed class RulesetIndexLayoutTests
         Assert.Contains("setAdvancedFeatureAvailability", createView, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”input.disabled = !isAdvanced”`,
         // `createView`, `StringComparison.Ordinal` dalam RulesetViews_ShouldExposeAdvancedFeaturesOnlyForAdvancedMode.
-        Assert.Contains("input.disabled = !isAdvanced", createView, StringComparison.Ordinal);
+        Assert.Contains("input.disabled = true", createView, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”getMode() === \”MAHIR\” &&
         // toBool(\”cfg-adv-loan\”)”`, `createView`, `StringComparison.Ordinal` dalam RulesetViews_ShouldExposeAdvancedFeaturesOnlyForAdvancedMode.
-        Assert.Contains("getMode() === \"MAHIR\" && toBool(\"cfg-adv-loan\")", createView, StringComparison.Ordinal);
+        Assert.Contains("rulesets.coming_soon", createView, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”@if (isAdvancedMode)”`, `detailView`,
         // `StringComparison.Ordinal` dalam RulesetViews_ShouldExposeAdvancedFeaturesOnlyForAdvancedMode.
         Assert.Contains("@if (isAdvancedMode)", detailView, StringComparison.Ordinal);

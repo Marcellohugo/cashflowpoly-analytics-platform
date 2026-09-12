@@ -28,6 +28,18 @@
  * Baris 26: Menutup aturan atau kelompok CSS `:root`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 :root {
+    --ui-radius-page: 1.25rem;
+    --ui-radius-card: 1rem;
+    --ui-radius-inset: 0.75rem;
+    --ui-card-padding: clamp(1rem, 1.4vw, 1.25rem);
+    --ui-border: #b6dcd8;
+    --ui-muted: #f3faf9;
+    --ui-title: #1b3f5b;
+    --ui-text: #4f6e83;
+    --ui-shadow-card: 0 4px 14px rgba(19, 100, 136, 0.06);
+    --ui-shadow-page: 0 8px 24px rgba(19, 100, 136, 0.1);
+    --ui-title-size: clamp(1.85rem, 2.7vw, 2.5rem);
+
     --footer-height: 72px;
     --shell-max-width: 1760px;
     --shell-gutter: clamp(0.75rem, 1vw, 1.5rem);
@@ -216,6 +228,8 @@ body.role-player {
         radial-gradient(circle at 86% 12%, rgba(245, 139, 44, 0.24), transparent 34%),
         radial-gradient(circle at 86% 88%, rgba(82, 189, 140, 0.2), transparent 36%),
         linear-gradient(136deg, #ecf6ff 0%, #dff1ff 38%, #fff4df 70%, #ffe5cf 100%);
+    --ui-border: #bdd7eb;
+    --ui-muted: #f3f8fd;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -318,8 +332,8 @@ body.role-player .section-shell,
 body.role-player .glass-surface,
 body.role-player .table-wrap,
 body.role-player .stat-card {
-    border-color: #9ec9ea !important;
-    box-shadow: 0 14px 32px rgba(31, 85, 136, 0.14);
+    border-color: var(--ui-border) !important;
+    box-shadow: var(--ui-shadow-card);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -1361,9 +1375,10 @@ a:hover {
 .table-wrap,
 .stat-card {
     background: var(--card) !important;
-    border: 2px solid #95ded6 !important;
     color: var(--ink);
-    box-shadow: 0 14px 32px rgba(19, 100, 136, 0.14);
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-card);
+    box-shadow: var(--ui-shadow-card);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -1408,8 +1423,8 @@ a:hover {
  * Baris 666: Menutup aturan atau kelompok CSS `.stat-card::before`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .stat-card::before {
-    background: linear-gradient(130deg, rgba(18, 168, 154, 0.12), rgba(255, 190, 46, 0.08), transparent 70%) !important;
     opacity: 1;
+    background: none !important;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -1427,7 +1442,12 @@ a:hover {
  * Baris 674: Menutup aturan atau kelompok CSS `.headline`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .headline {
-    color: #1b3f5b !important;
+    font-size: var(--ui-title-size);
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0.4rem 0 0;
+    color: var(--ui-title) !important;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -1442,7 +1462,7 @@ a:hover {
 .text-slate-600,
 .text-slate-500,
 .text-slate-700 {
-    color: #4f6e83 !important;
+    color: var(--ui-text) !important;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -1553,9 +1573,9 @@ a:hover {
 .page-intro {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
     justify-content: space-between;
-    gap: 0.75rem;
+    align-items: flex-start;
+    gap: 1rem;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2110,13 +2130,13 @@ a:hover {
  * Baris 994: Menutup aturan atau kelompok CSS `.chart-card`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .chart-card {
-    background: var(--card-strong);
-    border: 2px solid #95ded6;
-    border-radius: 1rem;
-    padding: 0.9rem;
     min-height: 220px;
     overflow: hidden;
-    box-shadow: 0 14px 30px rgba(20, 99, 134, 0.14);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2557,12 +2577,11 @@ textarea::placeholder {
  * Baris 1203: Menutup aturan atau kelompok CSS `.rulebook-surface`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .rulebook-surface {
-    border: 2px solid #a7e6df;
-    border-radius: 1rem;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 190, 46, 0.13), transparent 34%),
-        linear-gradient(160deg, rgba(255, 255, 255, 0.97), rgba(245, 255, 253, 0.94));
-    box-shadow: 0 14px 30px rgba(17, 89, 122, 0.1);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2585,8 +2604,12 @@ textarea::placeholder {
  * Baris 1214: Menutup aturan atau kelompok CSS `.rulebook-surface`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .rulebook-surface {
-    padding: clamp(0.9rem, 1.1vw, 1.35rem);
     overflow: hidden;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2735,13 +2758,11 @@ textarea::placeholder {
  */
 .rulebook-guide-card {
     min-width: 0;
-    padding: 1rem;
-    border: 1px solid #bae7e1;
-    border-radius: 1rem;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 190, 46, 0.12), transparent 34%),
-        linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(245, 255, 253, 0.92));
-    box-shadow: 0 10px 22px rgba(17, 89, 122, 0.08);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2836,10 +2857,11 @@ textarea::placeholder {
     align-items: start;
     gap: 1rem;
     min-width: 0;
-    padding: 1rem;
-    border: 1px solid #bae7e1;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2917,13 +2939,12 @@ textarea::placeholder {
  * Baris 1372: Menutup aturan atau kelompok CSS `.rulebook-reference-card`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .rulebook-reference-card {
-    border: 1px solid #b9e8e2;
-    border-radius: 1rem;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 190, 46, 0.12), transparent 34%),
-        linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(245, 255, 253, 0.9));
-    padding: 1rem;
     min-width: 0;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -2992,11 +3013,11 @@ textarea::placeholder {
  */
 .rulebook-score-card {
     min-width: 0;
-    padding: 0.95rem;
-    border: 1px solid #b9e8e2;
-    border-radius: 1rem;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 255, 253, 0.88));
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -3103,6 +3124,11 @@ textarea::placeholder {
 
     .rulebook-visual-panel {
         grid-template-columns: 1fr;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-card);
+        background: var(--card-strong);
+        box-shadow: var(--ui-shadow-card);
+        padding: var(--ui-card-padding);
     }
 }
 
@@ -3275,10 +3301,7 @@ body > footer .footer-shell {
  * Baris 1542: Mengatur tinggi baris teks menjadi `1.08` pada `.legal-page__header h1`.
  * Baris 1543: Menutup aturan atau kelompok CSS `.legal-page__header h1`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.legal-page__header h1 {
-    font-size: clamp(1.9rem, 4vw, 3rem);
-    line-height: 1.08;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 1545: Memilih sasaran gaya `.legal-page__notice` dan membuka blok deklarasinya.
@@ -3325,10 +3348,11 @@ body > footer .footer-shell {
  */
 .legal-page__section {
     min-width: 0;
-    padding: 1.2rem;
-    border: 1px solid #cce1e5;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -3350,7 +3374,8 @@ body > footer .footer-shell {
 .legal-page__section h2 {
     margin-bottom: 0.55rem;
     color: #174c69;
-    font-size: 1.08rem;
+    font-size: 1rem;
+    font-weight: 800;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -3430,6 +3455,7 @@ body > footer .footer-shell {
  * Baris 1618: Menutup aturan atau kelompok CSS `.page-shell`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .page-shell {
+    align-content: start;
     flex: 1 0 auto;
     margin: 1rem auto 0;
     min-width: 0;
@@ -4124,7 +4150,11 @@ body > footer .footer-shell {
 
     .chart-card {
         min-height: 200px;
-        padding: 0.8rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-card);
+        background: var(--card-strong);
+        box-shadow: var(--ui-shadow-card);
+        padding: var(--ui-card-padding);
     }
 
     .chart-card canvas {
@@ -4151,9 +4181,7 @@ body > footer .footer-shell {
         flex: 0 0 auto;
     }
 
-    .ruleset-hero {
-        padding: 0.85rem;
-    }
+
 
     .nav-shell.nav-auth-page {
         display: flex !important;
@@ -4342,11 +4370,11 @@ body > footer .footer-shell {
  * Baris 2081: Menutup aturan atau kelompok CSS `.metric-panel`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .metric-panel {
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
     background: var(--card-strong);
-    border: 2px solid #95ded6;
-    border-radius: 1rem;
-    padding: 1rem;
-    box-shadow: 0 12px 26px rgba(20, 99, 134, 0.12);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -4901,20 +4929,14 @@ body > footer .footer-shell {
  * Baris 2341: Mengatur bayangan kotak beserta jarak, blur, dan warnanya menjadi `0 12px 28px rgba(20, 99, 134, 0.1)` pada `.section-shell.player-detail-overhaul`. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
  * Baris 2342: Menutup aturan atau kelompok CSS `.section-shell.player-detail-overhaul`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.section-shell.player-detail-overhaul {
-    border: 1px solid #bfe8e3 !important;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 255, 253, 0.97)) !important;
-    box-shadow: 0 12px 28px rgba(20, 99, 134, 0.1);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2344: Memilih sasaran gaya `.section-shell.player-detail-overhaul::after` dan membuka blok deklarasinya. Pseudo-element mengatur bagian tambahan atau bagian khusus elemen tanpa menambah markup.
  * Baris 2345: Mengatur mode penyusunan kotak elemen (misalnya flex, grid, block, atau hidden melalui none) menjadi `none` pada `.section-shell.player-detail-overhaul::after`.
  * Baris 2346: Menutup aturan atau kelompok CSS `.section-shell.player-detail-overhaul::after`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.section-shell.player-detail-overhaul::after {
-    display: none;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2348: Memilih sasaran gaya `.player-detail-overhaul` dan membuka blok deklarasinya.
@@ -4964,6 +4986,11 @@ body > footer .footer-shell {
     max-width: 100%;
     min-inline-size: 0;
     max-inline-size: 100%;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -4987,12 +5014,7 @@ body > footer .footer-shell {
  * Baris 2382: Mengatur tinggi baris teks menjadi `1.02` pada `.player-detail-overhaul .player-detail-hero .headline`.
  * Baris 2383: Menutup aturan atau kelompok CSS `.player-detail-overhaul .player-detail-hero .headline`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .player-detail-hero .headline {
-    max-width: 13ch;
-    color: #ffffff !important;
-    font-size: clamp(2.25rem, 2vw + 1.6rem, 3.7rem);
-    line-height: 1.02;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2385: Memilih sasaran gaya `.player-detail-overhaul .player-detail-hero` dan membuka blok deklarasinya.
@@ -5013,20 +5035,10 @@ body > footer .footer-shell {
  * Baris 2400: Menutup aturan atau kelompok CSS `.player-detail-overhaul .player-detail-hero`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .player-detail-overhaul .player-detail-hero {
-    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
-    align-items: stretch;
-    gap: clamp(1rem, 2vw, 2rem);
-    overflow: hidden;
-    padding: clamp(1.35rem, 2.5vw, 2.4rem);
-    border: 1px solid rgba(116, 190, 235, 0.72);
-    border-radius: 1.75rem;
-    background:
-        radial-gradient(circle at 84% 4%, rgba(100, 193, 238, 0.35), transparent 30%),
-        radial-gradient(circle at 65% 120%, rgba(80, 207, 179, 0.25), transparent 34%),
-        linear-gradient(135deg, #153f6a 0%, #216fa7 56%, #3396bd 100%);
-    box-shadow: 0 22px 46px rgba(20, 72, 112, 0.24);
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.55fr);
+    align-items: center;
+    gap: 1.25rem;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -5042,17 +5054,7 @@ body > footer .footer-shell {
  * Baris 2411: Mengatur apakah elemen menerima interaksi pointer menjadi `none` pada `.player-detail-overhaul .player-detail-hero::after`.
  * Baris 2412: Menutup aturan atau kelompok CSS `.player-detail-overhaul .player-detail-hero::after`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .player-detail-hero::after {
-    position: absolute;
-    right: -4.5rem;
-    bottom: -6rem;
-    width: 14rem;
-    height: 14rem;
-    border: 1.5rem solid rgba(255, 255, 255, 0.12);
-    border-radius: 50%;
-    content: "";
-    pointer-events: none;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2414: Memilih sasaran gaya `.player-detail-overhaul .player-detail-hero›*` dan membuka blok deklarasinya.
@@ -5060,10 +5062,7 @@ body > footer .footer-shell {
  * Baris 2416: Mengatur urutan tumpukan elemen pada konteks penumpukannya menjadi `1` pada `.player-detail-overhaul .player-detail-hero›*`.
  * Baris 2417: Menutup aturan atau kelompok CSS `.player-detail-overhaul .player-detail-hero›*`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .player-detail-hero>* {
-    position: relative;
-    z-index: 1;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2419: Memilih sasaran gaya `.player-detail-overhaul .player-detail-hero-copy` dan membuka blok deklarasinya.
@@ -5073,12 +5072,7 @@ body > footer .footer-shell {
  * Baris 2423: Mengatur batas minimum lebar yang boleh ditempati elemen menjadi `0` pada `.player-detail-overhaul .player-detail-hero-copy`.
  * Baris 2424: Menutup aturan atau kelompok CSS `.player-detail-overhaul .player-detail-hero-copy`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .player-detail-hero-copy {
-    display: grid;
-    align-content: center;
-    gap: 0.72rem;
-    min-width: 0;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2426: Memilih sasaran gaya `.player-detail-overhaul .player-detail-hero-subtitle` dan membuka blok deklarasinya.
@@ -5089,13 +5083,7 @@ body > footer .footer-shell {
  * Baris 2431: Mengatur tinggi baris teks menjadi `1.65` pada `.player-detail-overhaul .player-detail-hero-subtitle`.
  * Baris 2432: Menutup aturan atau kelompok CSS `.player-detail-overhaul .player-detail-hero-subtitle`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .player-detail-hero-subtitle {
-    max-width: 42rem;
-    margin: 0;
-    color: rgba(239, 249, 255, 0.86);
-    font-size: clamp(0.98rem, 0.35vw + 0.9rem, 1.12rem);
-    line-height: 1.65;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 2434: Memilih sasaran gaya `.player-detail-overhaul .player-profile-identity` dan membuka blok deklarasinya.
@@ -5117,13 +5105,12 @@ body > footer .footer-shell {
     width: 100%;
     max-width: 100%;
     align-items: center;
-    gap: clamp(1rem, 1.5vw, 1.4rem);
-    padding: clamp(1rem, 1.6vw, 1.35rem);
-    border: 1px solid rgba(255, 255, 255, 0.38);
-    border-radius: 1.4rem;
-    background: rgba(249, 253, 255, 0.94);
-    box-shadow: 0 16px 34px rgba(9, 49, 82, 0.2);
-    backdrop-filter: blur(12px);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--ui-muted);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
+    gap: 1rem;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -5141,14 +5128,14 @@ body > footer .footer-shell {
  */
 .player-detail-overhaul .player-profile-avatar-shell {
     display: grid;
-    width: clamp(6.25rem, 8vw, 8rem);
     aspect-ratio: 1;
     flex: 0 0 auto;
     place-items: center;
     padding: 0.24rem;
-    border-radius: 1.35rem;
     background: linear-gradient(145deg, #4aa8de, #5bc8b6 58%, #f4a33d);
-    box-shadow: 0 10px 20px rgba(40, 111, 166, 0.22);
+    width: 4.5rem;
+    border-radius: var(--ui-radius-card);
+    box-shadow: none;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -5163,9 +5150,9 @@ body > footer .footer-shell {
 .player-detail-overhaul .player-profile-avatar {
     width: 100%;
     height: 100%;
-    border-radius: 1.08rem;
     background: #ffffff;
     object-fit: cover;
+    border-radius: var(--ui-radius-inset);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -5223,10 +5210,10 @@ body > footer .footer-shell {
     margin: 0;
     color: #173f60;
     font-family: "Baloo 2", cursive;
-    font-size: clamp(2rem, 2.7vw, 3rem);
     font-weight: 800;
-    line-height: 1.05;
     overflow-wrap: anywhere;
+    font-size: 1.65rem;
+    line-height: 1.2;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -6681,11 +6668,11 @@ body > footer .footer-shell {
     align-content: start;
     gap: 0.52rem;
     min-inline-size: 0;
-    border: 1px solid #d5e3e9;
-    border-radius: 0.72rem;
     background: #fff;
-    padding: 0.72rem;
     block-size: 100%;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-inset);
+    padding: 1rem;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -7006,12 +6993,12 @@ body > footer .footer-shell {
     grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);
     gap: 1rem;
     align-items: stretch;
-    border: 1px solid #b9d9e1;
-    border-radius: 1.15rem;
-    background: linear-gradient(135deg, #f1fbf9 0%, #f6f9ff 58%, #fff9ed 100%);
-    padding: 1rem;
     overflow: hidden;
-    box-shadow: 0 0.75rem 1.8rem rgba(28, 102, 135, 0.08);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    padding: var(--ui-card-padding);
+    background: var(--ui-muted);
+    box-shadow: none;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -7412,9 +7399,9 @@ body > footer .footer-shell {
     --analysis-accent: #267b9b;
     --analysis-wash: #edf8fb;
     min-inline-size: 0;
-    border-radius: 1.15rem;
     background: var(--analysis-wash);
-    padding: 1rem;
+    border-radius: var(--ui-radius-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8041,10 +8028,12 @@ body > footer .footer-shell {
  */
 .player-detail-overhaul .player-evidence-domain {
     min-inline-size: 0;
-    border: 1px solid #c6dfdf;
-    border-radius: 0.9rem;
-    background: rgba(255, 255, 255, 0.94);
     overflow: clip;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8384,11 +8373,11 @@ body > footer .footer-shell {
  * Baris 3967: Menutup aturan atau kelompok CSS `.player-detail-overhaul .players-fusion-metrics`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .player-detail-overhaul .players-fusion-metrics {
-    padding: clamp(1.15rem, 1vw + 0.85rem, 1.8rem);
-    border-radius: 1.2rem;
-    border: 1px solid #a8e3dd;
-    background: linear-gradient(176deg, rgba(255, 255, 255, 0.98), rgba(244, 253, 251, 0.96));
-    box-shadow: 0 10px 24px rgba(21, 100, 132, 0.09);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8416,8 +8405,8 @@ body > footer .footer-shell {
  * Baris 3980: Menutup aturan atau kelompok CSS `.player-detail-overhaul .players-fusion-head .ruleset-section-title`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .player-detail-overhaul .players-fusion-head .ruleset-section-title {
-    font-size: clamp(1.48rem, 0.7vw + 1.2rem, 1.9rem);
-    line-height: 1.22;
+    font-size: 1.15rem;
+    line-height: 1.3;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8427,8 +8416,8 @@ body > footer .footer-shell {
  * Baris 3985: Menutup aturan atau kelompok CSS `.player-detail-overhaul .players-fusion-head .ruleset-section-subtitle`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .player-detail-overhaul .players-fusion-head .ruleset-section-subtitle {
-    font-size: 1rem;
-    line-height: 1.62;
+    font-size: 0.9rem;
+    line-height: 1.6;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8453,12 +8442,12 @@ body > footer .footer-shell {
  * Baris 3999: Menutup aturan atau kelompok CSS `.player-detail-overhaul .metric-domain-card`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .player-detail-overhaul .metric-domain-card {
-    padding: 1.2rem 1.24rem 1.28rem;
-    border-radius: 1.1rem;
-    border: 1px solid #bee9e3;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 255, 253, 0.95));
-    box-shadow: 0 6px 16px rgba(22, 95, 130, 0.07);
     gap: 0.72rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8529,11 +8518,11 @@ body > footer .footer-shell {
  * Baris 4034: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-card`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .player-detail-overhaul .chart-card {
-    border: 1px solid #c2ebe6;
-    border-radius: 1rem;
-    padding: 1rem;
-    background: linear-gradient(178deg, rgba(255, 255, 255, 0.98), rgba(246, 254, 251, 0.95));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 6px 16px rgba(24, 96, 132, 0.08);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -8613,15 +8602,15 @@ body > footer .footer-shell {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 4072: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight` dan membuka blok deklarasinya.
- * Baris 4073: Mengatur jarak luar pada sisi atas menjadi `0.72rem` pada `.player-detail-overhaul .chart-bar-insight`.
- * Baris 4074: Mengatur ketebalan, gaya, dan warna garis tepi menjadi `1px solid #b6e2dd` pada `.player-detail-overhaul .chart-bar-insight`.
- * Baris 4075: Mengatur kelengkungan sudut kotak menjadi `0.86rem` pada `.player-detail-overhaul .chart-bar-insight`.
- * Baris 4076: Mengatur lapisan latar, warna, atau gradien komponen menjadi `linear-gradient(180deg, rgba(237, 252, 249, 0.95), rgba(250, 255, 254, 0.96))` pada `.player-detail-overhaul .chart-bar-insight`. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya. Urutan lapisan gradien menentukan perpaduan warna dan kedalaman visual latar.
- * Baris 4077: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.66rem 0.78rem` pada `.player-detail-overhaul .chart-bar-insight`.
- * Baris 4078: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4072: Memilih sasaran gaya `.chart-card .chart-bar-insight` dan membuka blok deklarasinya.
+ * Baris 4073: Mengatur jarak luar pada sisi atas menjadi `0.72rem` pada `.chart-card .chart-bar-insight`.
+ * Baris 4074: Mengatur ketebalan, gaya, dan warna garis tepi menjadi `1px solid #b6e2dd` pada `.chart-card .chart-bar-insight`.
+ * Baris 4075: Mengatur kelengkungan sudut kotak menjadi `0.86rem` pada `.chart-card .chart-bar-insight`.
+ * Baris 4076: Mengatur lapisan latar, warna, atau gradien komponen menjadi `linear-gradient(180deg, rgba(237, 252, 249, 0.95), rgba(250, 255, 254, 0.96))` pada `.chart-card .chart-bar-insight`. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya. Urutan lapisan gradien menentukan perpaduan warna dan kedalaman visual latar.
+ * Baris 4077: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.66rem 0.78rem` pada `.chart-card .chart-bar-insight`.
+ * Baris 4078: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .chart-bar-insight {
+.chart-card .chart-bar-insight {
     margin-top: 0.72rem;
     border: 1px solid #b6e2dd;
     border-radius: 0.86rem;
@@ -8630,16 +8619,16 @@ body > footer .footer-shell {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 4080: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-title` dan membuka blok deklarasinya.
- * Baris 4081: Mengatur jarak luar antara elemen dan tetangganya menjadi `0 0 0.28rem` pada `.player-detail-overhaul .chart-bar-insight-title`.
- * Baris 4082: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#1f5a6c` pada `.player-detail-overhaul .chart-bar-insight-title`.
- * Baris 4083: Mengatur ukuran huruf menjadi `0.78rem` pada `.player-detail-overhaul .chart-bar-insight-title`.
- * Baris 4084: Mengatur ketebalan huruf menjadi `800` pada `.player-detail-overhaul .chart-bar-insight-title`.
- * Baris 4085: Mengatur jarak antarkarakter menjadi `0.03em` pada `.player-detail-overhaul .chart-bar-insight-title`.
- * Baris 4086: Mengatur perubahan bentuk kapitalisasi saat ditampilkan menjadi `uppercase` pada `.player-detail-overhaul .chart-bar-insight-title`.
- * Baris 4087: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-title`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4080: Memilih sasaran gaya `.chart-card .chart-bar-insight-title` dan membuka blok deklarasinya.
+ * Baris 4081: Mengatur jarak luar antara elemen dan tetangganya menjadi `0 0 0.28rem` pada `.chart-card .chart-bar-insight-title`.
+ * Baris 4082: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#1f5a6c` pada `.chart-card .chart-bar-insight-title`.
+ * Baris 4083: Mengatur ukuran huruf menjadi `0.78rem` pada `.chart-card .chart-bar-insight-title`.
+ * Baris 4084: Mengatur ketebalan huruf menjadi `800` pada `.chart-card .chart-bar-insight-title`.
+ * Baris 4085: Mengatur jarak antarkarakter menjadi `0.03em` pada `.chart-card .chart-bar-insight-title`.
+ * Baris 4086: Mengatur perubahan bentuk kapitalisasi saat ditampilkan menjadi `uppercase` pada `.chart-card .chart-bar-insight-title`.
+ * Baris 4087: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-title`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .chart-bar-insight-title {
+.chart-card .chart-bar-insight-title {
     margin: 0 0 0.28rem;
     color: #1f5a6c;
     font-size: 0.78rem;
@@ -8649,14 +8638,14 @@ body > footer .footer-shell {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 4089: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-hint` dan membuka blok deklarasinya.
- * Baris 4090: Mengatur jarak luar antara elemen dan tetangganya menjadi `0 0 0.46rem` pada `.player-detail-overhaul .chart-bar-insight-hint`.
- * Baris 4091: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#486f81` pada `.player-detail-overhaul .chart-bar-insight-hint`.
- * Baris 4092: Mengatur ukuran huruf menjadi `0.76rem` pada `.player-detail-overhaul .chart-bar-insight-hint`.
- * Baris 4093: Mengatur tinggi baris teks menjadi `1.45` pada `.player-detail-overhaul .chart-bar-insight-hint`.
- * Baris 4094: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-hint`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4089: Memilih sasaran gaya `.chart-card .chart-bar-insight-hint` dan membuka blok deklarasinya.
+ * Baris 4090: Mengatur jarak luar antara elemen dan tetangganya menjadi `0 0 0.46rem` pada `.chart-card .chart-bar-insight-hint`.
+ * Baris 4091: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#486f81` pada `.chart-card .chart-bar-insight-hint`.
+ * Baris 4092: Mengatur ukuran huruf menjadi `0.76rem` pada `.chart-card .chart-bar-insight-hint`.
+ * Baris 4093: Mengatur tinggi baris teks menjadi `1.45` pada `.chart-card .chart-bar-insight-hint`.
+ * Baris 4094: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-hint`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .chart-bar-insight-hint {
+.chart-card .chart-bar-insight-hint {
     margin: 0 0 0.46rem;
     color: #486f81;
     font-size: 0.76rem;
@@ -8664,15 +8653,15 @@ body > footer .footer-shell {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 4096: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-row` dan membuka blok deklarasinya.
- * Baris 4097: Mengatur mode penyusunan kotak elemen (misalnya flex, grid, block, atau hidden melalui none) menjadi `grid` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4098: Mengatur jumlah dan ukuran kolom grid menjadi `minmax(88px, 132px) 1fr` pada `.player-detail-overhaul .chart-bar-insight-row`. minmax(...) memberi setiap track grid batas minimum dan maksimum saat ruang tersedia berubah.
- * Baris 4099: Mengatur jarak antaritem pada grid atau flex menjadi `0.45rem` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4100: Mengatur perataan item pada sumbu silang atau sumbu blok grid menjadi `start` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4101: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.12rem 0` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4102: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-row`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4096: Memilih sasaran gaya `.chart-card .chart-bar-insight-row` dan membuka blok deklarasinya.
+ * Baris 4097: Mengatur mode penyusunan kotak elemen (misalnya flex, grid, block, atau hidden melalui none) menjadi `grid` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4098: Mengatur jumlah dan ukuran kolom grid menjadi `minmax(88px, 132px) 1fr` pada `.chart-card .chart-bar-insight-row`. minmax(...) memberi setiap track grid batas minimum dan maksimum saat ruang tersedia berubah.
+ * Baris 4099: Mengatur jarak antaritem pada grid atau flex menjadi `0.45rem` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4100: Mengatur perataan item pada sumbu silang atau sumbu blok grid menjadi `start` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4101: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.12rem 0` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4102: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-row`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .chart-bar-insight-row {
+.chart-card .chart-bar-insight-row {
     display: grid;
     grid-template-columns: minmax(88px, 132px) 1fr;
     gap: 0.45rem;
@@ -8681,27 +8670,27 @@ body > footer .footer-shell {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 4104: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-key` dan membuka blok deklarasinya.
- * Baris 4105: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#3c6274` pada `.player-detail-overhaul .chart-bar-insight-key`.
- * Baris 4106: Mengatur ukuran huruf menjadi `0.76rem` pada `.player-detail-overhaul .chart-bar-insight-key`.
- * Baris 4107: Mengatur ketebalan huruf menjadi `700` pada `.player-detail-overhaul .chart-bar-insight-key`.
- * Baris 4108: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-key`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4104: Memilih sasaran gaya `.chart-card .chart-bar-insight-key` dan membuka blok deklarasinya.
+ * Baris 4105: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#3c6274` pada `.chart-card .chart-bar-insight-key`.
+ * Baris 4106: Mengatur ukuran huruf menjadi `0.76rem` pada `.chart-card .chart-bar-insight-key`.
+ * Baris 4107: Mengatur ketebalan huruf menjadi `700` pada `.chart-card .chart-bar-insight-key`.
+ * Baris 4108: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-key`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .chart-bar-insight-key {
+.chart-card .chart-bar-insight-key {
     color: #3c6274;
     font-size: 0.76rem;
     font-weight: 700;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 4110: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-value` dan membuka blok deklarasinya.
- * Baris 4111: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#204a60` pada `.player-detail-overhaul .chart-bar-insight-value`.
- * Baris 4112: Mengatur ukuran huruf menjadi `0.79rem` pada `.player-detail-overhaul .chart-bar-insight-value`.
- * Baris 4113: Mengatur tinggi baris teks menjadi `1.45` pada `.player-detail-overhaul .chart-bar-insight-value`.
- * Baris 4114: Mengatur izin pemenggalan kata panjang agar tidak melampaui kontainer menjadi `anywhere` pada `.player-detail-overhaul .chart-bar-insight-value`.
- * Baris 4115: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-value`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4110: Memilih sasaran gaya `.chart-card .chart-bar-insight-value` dan membuka blok deklarasinya.
+ * Baris 4111: Mengatur warna teks dan currentColor yang diwarisi elemen menjadi `#204a60` pada `.chart-card .chart-bar-insight-value`.
+ * Baris 4112: Mengatur ukuran huruf menjadi `0.79rem` pada `.chart-card .chart-bar-insight-value`.
+ * Baris 4113: Mengatur tinggi baris teks menjadi `1.45` pada `.chart-card .chart-bar-insight-value`.
+ * Baris 4114: Mengatur izin pemenggalan kata panjang agar tidak melampaui kontainer menjadi `anywhere` pada `.chart-card .chart-bar-insight-value`.
+ * Baris 4115: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-value`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.player-detail-overhaul .chart-bar-insight-value {
+.chart-card .chart-bar-insight-value {
     color: #204a60;
     font-size: 0.79rem;
     line-height: 1.45;
@@ -9089,20 +9078,20 @@ body > footer .footer-shell {
  * Baris 4375: Memilih sasaran gaya `.player-detail-overhaul .chart-grid-scroll .metric-line-chart` dan membuka blok deklarasinya.
  * Baris 4376: Mengatur tinggi kotak elemen menjadi `268px` pada `.player-detail-overhaul .chart-grid-scroll .metric-line-chart`.
  * Baris 4377: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-grid-scroll .metric-line-chart`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
- * Baris 4379: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight` dan membuka blok deklarasinya.
- * Baris 4380: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.58rem 0.62rem` pada `.player-detail-overhaul .chart-bar-insight`.
- * Baris 4381: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
- * Baris 4383: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-row` dan membuka blok deklarasinya.
- * Baris 4384: Mengatur jumlah dan ukuran kolom grid menjadi `1fr` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4385: Mengatur jarak antaritem pada grid atau flex menjadi `0.12rem` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4386: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.18rem 0` pada `.player-detail-overhaul .chart-bar-insight-row`.
- * Baris 4387: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-row`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
- * Baris 4389: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-key` dan membuka blok deklarasinya.
- * Baris 4390: Mengatur ukuran huruf menjadi `0.72rem` pada `.player-detail-overhaul .chart-bar-insight-key`.
- * Baris 4391: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-key`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
- * Baris 4393: Memilih sasaran gaya `.player-detail-overhaul .chart-bar-insight-value` dan membuka blok deklarasinya.
- * Baris 4394: Mengatur ukuran huruf menjadi `0.76rem` pada `.player-detail-overhaul .chart-bar-insight-value`.
- * Baris 4395: Menutup aturan atau kelompok CSS `.player-detail-overhaul .chart-bar-insight-value`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4379: Memilih sasaran gaya `.chart-card .chart-bar-insight` dan membuka blok deklarasinya.
+ * Baris 4380: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.58rem 0.62rem` pada `.chart-card .chart-bar-insight`.
+ * Baris 4381: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4383: Memilih sasaran gaya `.chart-card .chart-bar-insight-row` dan membuka blok deklarasinya.
+ * Baris 4384: Mengatur jumlah dan ukuran kolom grid menjadi `1fr` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4385: Mengatur jarak antaritem pada grid atau flex menjadi `0.12rem` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4386: Mengatur ruang dalam antara isi dan tepi elemen menjadi `0.18rem 0` pada `.chart-card .chart-bar-insight-row`.
+ * Baris 4387: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-row`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4389: Memilih sasaran gaya `.chart-card .chart-bar-insight-key` dan membuka blok deklarasinya.
+ * Baris 4390: Mengatur ukuran huruf menjadi `0.72rem` pada `.chart-card .chart-bar-insight-key`.
+ * Baris 4391: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-key`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 4393: Memilih sasaran gaya `.chart-card .chart-bar-insight-value` dan membuka blok deklarasinya.
+ * Baris 4394: Mengatur ukuran huruf menjadi `0.76rem` pada `.chart-card .chart-bar-insight-value`.
+ * Baris 4395: Menutup aturan atau kelompok CSS `.chart-card .chart-bar-insight-value`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  * Baris 4396: Menutup aturan atau kelompok CSS `@media (max-width: 900px)`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 @media (max-width: 900px) {
@@ -9112,40 +9101,47 @@ body > footer .footer-shell {
     }
 
     .player-detail-overhaul .players-fusion-metrics {
-        padding: 1rem 0.92rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-card);
+        background: var(--card-strong);
+        box-shadow: var(--ui-shadow-card);
+        padding: var(--ui-card-padding);
     }
 
     .player-detail-overhaul .player-detail-hero {
         grid-template-columns: minmax(0, 1fr);
-        padding: 1rem;
     }
 
     .player-detail-overhaul .player-profile-identity {
         width: 100%;
-        gap: 0.8rem;
-        padding: 0.7rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-card);
+        background: var(--ui-muted);
+        box-shadow: var(--ui-shadow-card);
+        padding: var(--ui-card-padding);
+        gap: 1rem;
     }
 
     .player-detail-overhaul .player-profile-avatar-shell {
-        width: 4.35rem;
-        border-radius: 1.15rem;
+        width: 4.5rem;
+        border-radius: var(--ui-radius-card);
+        box-shadow: none;
     }
 
     .player-detail-overhaul .player-profile-avatar {
-        border-radius: 0.92rem;
+        border-radius: var(--ui-radius-inset);
     }
 
-    .player-detail-overhaul .players-fusion-head .ruleset-section-title {
-        font-size: 1.3rem;
-    }
+
 
     .player-detail-overhaul .players-fusion-head .ruleset-section-subtitle {
         font-size: 0.9rem;
-        line-height: 1.56;
+        line-height: 1.6;
     }
 
     .player-detail-overhaul .player-detail-name {
-        font-size: clamp(1.5rem, 7vw, 1.9rem);
+        font-size: 1.65rem;
+        line-height: 1.2;
     }
 
     .player-detail-overhaul .player-detail-meta__item {
@@ -9158,7 +9154,11 @@ body > footer .footer-shell {
     }
 
     .player-detail-overhaul .metric-domain-card {
-        padding: 0.95rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-card);
+        background: var(--card-strong);
+        box-shadow: var(--ui-shadow-card);
+        padding: var(--ui-card-padding);
     }
 
     .player-detail-overhaul .metric-domain-heading {
@@ -9179,6 +9179,11 @@ body > footer .footer-shell {
 
     .player-detail-overhaul .player-analysis-overview {
         grid-template-columns: 1fr;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-card);
+        padding: var(--ui-card-padding);
+        background: var(--ui-muted);
+        box-shadow: none;
     }
 
     .player-detail-overhaul .player-analysis-grid {
@@ -9230,21 +9235,21 @@ body > footer .footer-shell {
         height: 268px;
     }
 
-    .player-detail-overhaul .chart-bar-insight {
+    .chart-card .chart-bar-insight {
         padding: 0.58rem 0.62rem;
     }
 
-    .player-detail-overhaul .chart-bar-insight-row {
+    .chart-card .chart-bar-insight-row {
         grid-template-columns: 1fr;
         gap: 0.12rem;
         padding: 0.18rem 0;
     }
 
-    .player-detail-overhaul .chart-bar-insight-key {
+    .chart-card .chart-bar-insight-key {
         font-size: 0.72rem;
     }
 
-    .player-detail-overhaul .chart-bar-insight-value {
+    .chart-card .chart-bar-insight-value {
         font-size: 0.76rem;
     }
 }
@@ -9348,7 +9353,8 @@ body > footer .footer-shell {
     }
 
     .player-detail-overhaul .player-analysis-chapter {
-        padding: 0.78rem;
+        border-radius: var(--ui-radius-card);
+        padding: var(--ui-card-padding);
     }
 
     .player-detail-overhaul .player-analysis-card__takeaway {
@@ -9480,13 +9486,6 @@ body > footer .footer-shell {
     --home-accent-soft: #dff8f3;
     --home-hot: #ff6b4a;
     --home-ink: #173951;
-    position: relative;
-    overflow: visible;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -9510,10 +9509,7 @@ body > footer .footer-shell {
  * Baris 4535: Mengatur mode penyusunan kotak elemen (misalnya flex, grid, block, atau hidden melalui none) menjadi `none` pada `.home-hero::before, .home-hero::after`.
  * Baris 4536: Menutup aturan atau kelompok CSS `.home-hero::before, .home-hero::after`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-hero::before,
-.home-hero::after {
-    display: none;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4538: Memilih sasaran gaya `.home-command` dan membuka blok deklarasinya.
@@ -9562,22 +9558,12 @@ body > footer .footer-shell {
  * Baris 4567: Menutup aturan atau kelompok CSS `.home-command-intro`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .home-command-intro {
-    position: relative;
-    isolation: isolate;
+    justify-content: flex-start;
     display: flex;
-    min-width: 0;
-    min-height: 320px;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.2rem;
-    overflow: hidden;
-    padding: clamp(1.6rem, 3vw, 2.7rem);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 2rem 2rem 0.8rem 2rem;
-    color: #fff;
-    background:
-        linear-gradient(135deg, var(--home-accent-deep) 0%, var(--home-accent) 72%, #35bfa8 130%);
-    box-shadow: 0 22px 44px rgba(18, 75, 91, 0.2);
+    gap: 1rem;
+    min-width: 0;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -9586,10 +9572,7 @@ body > footer .footer-shell {
  * Baris 4571: Melanjutkan nilai properti `background` dengan bagian `linear-gradient(135deg, var(--home-accent-deep) 0%, var(--home-accent) 72%, #5da2df 130%);`; posisi bagian ini menjaga urutan argumen fungsi atau lapisan gaya sampai deklarasi berakhir.
  * Baris 4572: Menutup aturan atau kelompok CSS `.home-hero-player .home-command-intro`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-hero-player .home-command-intro {
-    background:
-        linear-gradient(135deg, var(--home-accent-deep) 0%, var(--home-accent) 72%, #5da2df 130%);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4574: Memilih sasaran gaya `.home-command-intro::before` dan membuka blok deklarasinya. Pseudo-element mengatur bagian tambahan atau bagian khusus elemen tanpa menambah markup.
@@ -9603,16 +9586,7 @@ body > footer .footer-shell {
  * Baris 4582: Mengatur properti CSS mask-image menjadi `linear-gradient(100deg, transparent 22%, #000 100%)` pada `.home-command-intro::before`. Urutan lapisan gradien menentukan perpaduan warna dan kedalaman visual latar.
  * Baris 4583: Menutup aturan atau kelompok CSS `.home-command-intro::before`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-command-intro::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    opacity: 0.28;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.72) 1px, transparent 1px);
-    background-size: 18px 18px;
-    mask-image: linear-gradient(100deg, transparent 22%, #000 100%);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4585: Memilih sasaran gaya `.home-command-intro::after` dan membuka blok deklarasinya. Pseudo-element mengatur bagian tambahan atau bagian khusus elemen tanpa menambah markup.
@@ -9627,17 +9601,7 @@ body > footer .footer-shell {
  * Baris 4594: Mengatur kelengkungan sudut kotak menjadi `50%` pada `.home-command-intro::after`.
  * Baris 4595: Menutup aturan atau kelompok CSS `.home-command-intro::after`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-command-intro::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    top: -8.5rem;
-    right: -5rem;
-    width: 23rem;
-    height: 23rem;
-    border: 4rem solid rgba(255, 255, 255, 0.08);
-    border-radius: 50%;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4597: Memilih sasaran gaya `.home-command-badge` dan membuka blok deklarasinya.
@@ -9657,22 +9621,7 @@ body > footer .footer-shell {
  * Baris 4611: Mengatur efek visual pada area di belakang permukaan menjadi `blur(8px)` pada `.home-command-badge`.
  * Baris 4612: Menutup aturan atau kelompok CSS `.home-command-badge`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-command-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.42rem 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    border-radius: 999px;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.14);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    backdrop-filter: blur(8px);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4614: Memilih sasaran gaya `.home-command-copy` dan membuka blok deklarasinya.
@@ -9682,9 +9631,8 @@ body > footer .footer-shell {
  * Baris 4618: Menutup aturan atau kelompok CSS `.home-command-copy`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .home-command-copy {
-    display: grid;
-    gap: 0.9rem;
     max-width: 900px;
+    display: block;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -9698,15 +9646,7 @@ body > footer .footer-shell {
  * Baris 4627: Mengatur bayangan huruf menjadi `0 2px 0 rgba(0, 0, 0, 0.06)` pada `.home-command-title`. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
  * Baris 4628: Menutup aturan atau kelompok CSS `.home-command-title`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-command-title {
-    margin: 0;
-    color: #fff !important;
-    font-size: clamp(2.2rem, 4.2vw, 4.25rem);
-    line-height: 0.94;
-    letter-spacing: -0.035em;
-    text-wrap: balance;
-    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4630: Memilih sasaran gaya `.home-command-subhead` dan membuka blok deklarasinya.
@@ -9717,13 +9657,7 @@ body > footer .footer-shell {
  * Baris 4635: Mengatur tinggi baris teks menjadi `1.55` pada `.home-command-subhead`.
  * Baris 4636: Menutup aturan atau kelompok CSS `.home-command-subhead`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-command-subhead {
-    margin: 0;
-    max-width: 860px;
-    color: rgba(255, 255, 255, 0.84) !important;
-    font-size: clamp(0.96rem, 1.2vw, 1.08rem);
-    line-height: 1.55;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4638: Memilih sasaran gaya `.home-command-actions` dan membuka blok deklarasinya.
@@ -9736,8 +9670,8 @@ body > footer .footer-shell {
 .home-command-actions {
     display: flex;
     flex-wrap: wrap;
-    margin-top: auto;
     gap: 0.72rem;
+    margin-top: 0.5rem;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -9747,11 +9681,7 @@ body > footer .footer-shell {
  * Baris 4648: Mengatur kelengkungan sudut kotak menjadi `0.85rem` pada `.home-hero .home-command-actions .btn-primary, .home-hero .home-command-actions .btn-ghost`.
  * Baris 4649: Menutup aturan atau kelompok CSS `.home-hero .home-command-actions .btn-primary, .home-hero .home-command-actions .btn-ghost`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-hero .home-command-actions .btn-primary,
-.home-hero .home-command-actions .btn-ghost {
-    min-height: 44px;
-    border-radius: 0.85rem;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4651: Memilih sasaran gaya `.home-hero .home-command-actions .btn-primary` dan membuka blok deklarasinya.
@@ -9761,12 +9691,7 @@ body > footer .footer-shell {
  * Baris 4655: Mengatur bayangan kotak beserta jarak, blur, dan warnanya menjadi `0 10px 20px rgba(96, 42, 29, 0.22)` pada `.home-hero .home-command-actions .btn-primary`. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
  * Baris 4656: Menutup aturan atau kelompok CSS `.home-hero .home-command-actions .btn-primary`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-hero .home-command-actions .btn-primary {
-    border-color: #de4d35 !important;
-    color: #fff !important;
-    background: linear-gradient(135deg, var(--home-hot), #ff845a) !important;
-    box-shadow: 0 10px 20px rgba(96, 42, 29, 0.22);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4658: Memilih sasaran gaya `.home-hero .home-command-actions .btn-ghost` dan membuka blok deklarasinya.
@@ -9777,13 +9702,7 @@ body > footer .footer-shell {
  * Baris 4663: Mengatur efek visual pada area di belakang permukaan menjadi `blur(8px)` pada `.home-hero .home-command-actions .btn-ghost`.
  * Baris 4664: Menutup aturan atau kelompok CSS `.home-hero .home-command-actions .btn-ghost`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-hero .home-command-actions .btn-ghost {
-    border-color: rgba(255, 255, 255, 0.6) !important;
-    color: #fff !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    box-shadow: none;
-    backdrop-filter: blur(8px);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4666: Memilih sasaran gaya `.home-live-card` dan membuka blok deklarasinya.
@@ -9807,19 +9726,17 @@ body > footer .footer-shell {
 .home-live-card {
     position: relative;
     display: flex;
-    min-height: 320px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 1.05rem;
     overflow: hidden;
-    padding: 1.35rem;
-    border: 1px solid #f0d59b;
-    border-radius: 2rem 2rem 2rem 0.8rem;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 190, 67, 0.3), transparent 42%),
-        linear-gradient(145deg, #fffef9, #fff6df);
-    box-shadow: 0 18px 38px rgba(123, 91, 31, 0.14);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
+    min-height: 0;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -9834,16 +9751,7 @@ body > footer .footer-shell {
  * Baris 4692: Mengatur kelengkungan sudut kotak menjadi `50%` pada `.home-live-card::before`.
  * Baris 4693: Menutup aturan atau kelompok CSS `.home-live-card::before`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.home-live-card::before {
-    content: "";
-    position: absolute;
-    right: -3rem;
-    bottom: -3rem;
-    width: 9rem;
-    height: 9rem;
-    border: 1.2rem solid rgba(244, 163, 61, 0.1);
-    border-radius: 50%;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 4695: Memilih sasaran gaya `.home-live-header` dan membuka blok deklarasinya.
@@ -9861,11 +9769,11 @@ body > footer .footer-shell {
     display: inline-flex;
     align-items: center;
     gap: 0.55rem;
-    color: #765a25;
     font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+    color: var(--ui-text);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10021,16 +9929,15 @@ body > footer .footer-shell {
     position: relative;
     display: grid;
     min-width: 0;
-    min-height: 142px;
     align-content: space-between;
     gap: 0.75rem;
     overflow: hidden;
-    padding: 1.2rem 1.3rem;
-    border: 1px solid color-mix(in srgb, var(--home-card-accent) 28%, #d8e5e8);
-    border-radius: 1.35rem;
-    background:
-        linear-gradient(145deg, #fff 18%, color-mix(in srgb, var(--home-card-accent) 7%, #fff));
-    box-shadow: 0 12px 26px rgba(28, 68, 85, 0.1);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
+    min-height: 112px;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10090,11 +9997,11 @@ body > footer .footer-shell {
 .home-stat-card>strong {
     position: relative;
     z-index: 1;
-    color: var(--home-ink);
-    font-size: clamp(2.35rem, 3.4vw, 3.2rem);
     font-weight: 900;
-    line-height: 1;
-    letter-spacing: -0.055em;
+    font-size: 2rem;
+    line-height: 1.2;
+    letter-spacing: 0;
+    color: var(--ui-title);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10161,14 +10068,12 @@ body > footer .footer-shell {
  */
 .home-guide-shell {
     width: 100%;
-    padding: clamp(1rem, 1.6vw, 1.35rem);
-    border: 1px solid rgba(91, 167, 190, 0.34);
-    border-radius: 1.4rem;
-    background:
-        radial-gradient(circle at 92% 0%, rgba(99, 200, 184, 0.18), transparent 30%),
-        linear-gradient(135deg, rgba(238, 249, 255, 0.96), rgba(247, 252, 249, 0.98) 52%, rgba(255, 248, 234, 0.96));
-    box-shadow: 0 14px 32px rgba(29, 92, 127, 0.1);
     transition: border-color 160ms ease, box-shadow 160ms ease;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10319,11 +10224,11 @@ body > footer .footer-shell {
  * Baris 4918: Menutup aturan atau kelompok CSS `.tip-card`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .tip-card {
-    border: 2px solid #97dfd7;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.86);
-    padding: 1rem;
-    box-shadow: 0 12px 24px rgba(20, 99, 134, 0.1);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10493,13 +10398,11 @@ body > footer .footer-shell {
  * Baris 5000: Menutup aturan atau kelompok CSS `.ruleset-unified`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .ruleset-unified {
-    border: 2px solid #95ded6;
-    border-radius: 1rem;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 199, 71, 0.14), transparent 38%),
-        linear-gradient(158deg, rgba(255, 255, 255, 0.96), rgba(240, 255, 251, 0.94));
-    padding: 1rem;
-    box-shadow: 0 12px 28px rgba(20, 99, 134, 0.12);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--card-strong);
+    box-shadow: var(--ui-shadow-card);
+    padding: var(--ui-card-padding);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10734,9 +10637,11 @@ body > footer .footer-shell {
  */
 .ruleset-section-title {
     margin: 0;
-    font-size: 0.95rem;
-    color: #1f4863;
     font-weight: 800;
+    font-family: "Baloo 2", cursive;
+    font-size: 1.15rem;
+    line-height: 1.3;
+    color: var(--ui-title);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10749,9 +10654,9 @@ body > footer .footer-shell {
  */
 .ruleset-section-subtitle {
     margin: 0;
-    color: #507085;
-    font-size: 0.81rem;
-    line-height: 1.42;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--ui-text);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -10871,71 +10776,55 @@ body > footer .footer-shell {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5172: Memilih sasaran gaya `.players-index-shell` dan membuka blok deklarasinya.
- * Baris 5173: Mengatur ruang dalam antara isi dan tepi elemen menjadi `1.08rem` pada `.players-index-shell`.
- * Baris 5174: Mengatur batas minimum lebar yang boleh ditempati elemen menjadi `0` pada `.players-index-shell`.
- * Baris 5175: Mengatur warna garis tepi menjadi `#b9ced5` pada `.players-index-shell`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade.
- * Baris 5176: Mengatur lapisan latar, warna, atau gradien komponen menjadi `rgba(252, 253, 253, 0.96)` pada `.players-index-shell`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
- * Baris 5177: Mengatur bayangan kotak beserta jarak, blur, dan warnanya menjadi `0 14px 30px rgba(35, 75, 91, 0.09)` pada `.players-index-shell`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
- * Baris 5178: Menutup aturan atau kelompok CSS `.players-index-shell`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 5172: Memilih sasaran gaya `.sessions-index-shell` dan membuka blok deklarasinya.
+ * Baris 5173: Mengatur ruang dalam antara isi dan tepi elemen menjadi `1.08rem` pada `.sessions-index-shell`.
+ * Baris 5174: Mengatur batas minimum lebar yang boleh ditempati elemen menjadi `0` pada `.sessions-index-shell`.
+ * Baris 5175: Mengatur warna garis tepi menjadi `#b9ced5` pada `.sessions-index-shell`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade.
+ * Baris 5176: Mengatur lapisan latar, warna, atau gradien komponen menjadi `rgba(252, 253, 253, 0.96)` pada `.sessions-index-shell`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
+ * Baris 5177: Mengatur bayangan kotak beserta jarak, blur, dan warnanya menjadi `0 14px 30px rgba(35, 75, 91, 0.09)` pada `.sessions-index-shell`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
+ * Baris 5178: Menutup aturan atau kelompok CSS `.sessions-index-shell`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.players-index-shell {
+.sessions-index-shell {
     padding: 1.08rem;
     min-width: 0;
-    border-color: #b9ced5 !important;
-    background: rgba(252, 253, 253, 0.96) !important;
-    box-shadow: 0 14px 30px rgba(35, 75, 91, 0.09) !important;
+    border-color: var(--ui-border) !important;
+    background: var(--card-strong) !important;
+    box-shadow: var(--ui-shadow-card) !important;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5180: Memilih sasaran gaya `body:has(.players-index-shell)` dan membuka blok deklarasinya.
- * Baris 5181: Mengatur lapisan latar, warna, atau gradien komponen menjadi `radial-gradient(circle at 10% 8%, rgba(67, 139, 147, 0.08), transparent 34%), radial-gradient(circle at 90% 12%, rgba(70, 94, 118, 0.06), transparent 32%), linear-gradient(145deg, #eef3f5 0%, #f7f9fa 52%, #edf3f2 100%)` pada `body:has(.players-index-shell)`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya. Urutan lapisan gradien menentukan perpaduan warna dan kedalaman visual latar. Baris ini bagian deklarasi multibaris `background`; koma mempertahankan urutan lapisan atau argumen sampai titik koma penutup.
+ * Baris 5180: Memilih sasaran gaya `body:has(.sessions-index-shell)` dan membuka blok deklarasinya.
+ * Baris 5181: Mengatur lapisan latar, warna, atau gradien komponen menjadi `radial-gradient(circle at 10% 8%, rgba(67, 139, 147, 0.08), transparent 34%), radial-gradient(circle at 90% 12%, rgba(70, 94, 118, 0.06), transparent 32%), linear-gradient(145deg, #eef3f5 0%, #f7f9fa 52%, #edf3f2 100%)` pada `body:has(.sessions-index-shell)`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya. Urutan lapisan gradien menentukan perpaduan warna dan kedalaman visual latar. Baris ini bagian deklarasi multibaris `background`; koma mempertahankan urutan lapisan atau argumen sampai titik koma penutup.
  * Baris 5182: Melanjutkan nilai properti `background` dengan bagian `radial-gradient(circle at 10% 8%, rgba(67, 139, 147, 0.08), transparent 34%),`; posisi bagian ini menjaga urutan argumen fungsi atau lapisan gaya sampai deklarasi berakhir.
  * Baris 5183: Melanjutkan nilai properti `background` dengan bagian `radial-gradient(circle at 90% 12%, rgba(70, 94, 118, 0.06), transparent 32%),`; posisi bagian ini menjaga urutan argumen fungsi atau lapisan gaya sampai deklarasi berakhir.
  * Baris 5184: Melanjutkan nilai properti `background` dengan bagian `linear-gradient(145deg, #eef3f5 0%, #f7f9fa 52%, #edf3f2 100%) !important;`; posisi bagian ini menjaga urutan argumen fungsi atau lapisan gaya sampai deklarasi berakhir.
- * Baris 5185: Menutup aturan atau kelompok CSS `body:has(.players-index-shell)`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 5185: Menutup aturan atau kelompok CSS `body:has(.sessions-index-shell)`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-body:has(.players-index-shell) {
-    background:
-        radial-gradient(circle at 10% 8%, rgba(67, 139, 147, 0.08), transparent 34%),
-        radial-gradient(circle at 90% 12%, rgba(70, 94, 118, 0.06), transparent 32%),
-        linear-gradient(145deg, #eef3f5 0%, #f7f9fa 52%, #edf3f2 100%) !important;
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5187: Memilih sasaran gaya `body:has(.players-index-shell)::before` dan membuka blok deklarasinya. Pseudo-element mengatur bagian tambahan atau bagian khusus elemen tanpa menambah markup.
- * Baris 5188: Mengatur tingkat opasitas elemen beserta anaknya menjadi `0.12` pada `body:has(.players-index-shell)::before`.
- * Baris 5189: Menutup aturan atau kelompok CSS `body:has(.players-index-shell)::before`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 5187: Memilih sasaran gaya `body:has(.sessions-index-shell)::before` dan membuka blok deklarasinya. Pseudo-element mengatur bagian tambahan atau bagian khusus elemen tanpa menambah markup.
+ * Baris 5188: Mengatur tingkat opasitas elemen beserta anaknya menjadi `0.12` pada `body:has(.sessions-index-shell)::before`.
+ * Baris 5189: Menutup aturan atau kelompok CSS `body:has(.sessions-index-shell)::before`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-body:has(.players-index-shell)::before {
+body:has(.sessions-index-shell)::before {
     opacity: 0.12;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5191: Memilih sasaran gaya `.players-index-section` dan membuka blok deklarasinya.
- * Baris 5192: Mengatur ruang dalam sisi atas menjadi `0.92rem` pada `.players-index-section`.
- * Baris 5193: Mengatur garis tepi sisi atas menjadi `1px dashed #c6d5da` pada `.players-index-section`.
- * Baris 5194: Mengatur batas minimum lebar yang boleh ditempati elemen menjadi `0` pada `.players-index-section`.
- * Baris 5195: Menutup aturan atau kelompok CSS `.players-index-section`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 5191: Memilih sasaran gaya `.sessions-index-section` dan membuka blok deklarasinya.
+ * Baris 5192: Mengatur ruang dalam sisi atas menjadi `0.92rem` pada `.sessions-index-section`.
+ * Baris 5193: Mengatur garis tepi sisi atas menjadi `1px dashed #c6d5da` pada `.sessions-index-section`.
+ * Baris 5194: Mengatur batas minimum lebar yang boleh ditempati elemen menjadi `0` pada `.sessions-index-section`.
+ * Baris 5195: Menutup aturan atau kelompok CSS `.sessions-index-section`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.players-index-section {
+.sessions-index-section {
     padding-top: 0.92rem;
     border-top: 1px dashed #c6d5da;
     min-width: 0;
 }
 
-/* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5197: Memilih sasaran gaya `.players-stats-grid` dan membuka blok deklarasinya.
- * Baris 5198: Mengatur mode penyusunan kotak elemen (misalnya flex, grid, block, atau hidden melalui none) menjadi `grid` pada `.players-stats-grid`.
- * Baris 5199: Mengatur jarak antaritem pada grid atau flex menjadi `1rem` pada `.players-stats-grid`.
- * Baris 5200: Mengatur jumlah dan ukuran kolom grid menjadi `repeat(auto-fit, minmax(170px, 1fr))` pada `.players-stats-grid`. minmax(...) memberi setiap track grid batas minimum dan maksimum saat ruang tersedia berubah. repeat(...) mengulang pola track sehingga jumlah kolom/baris konsisten tanpa deklarasi satu per satu.
- * Baris 5201: Menutup aturan atau kelompok CSS `.players-stats-grid`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
- */
-.players-stats-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 5203: Memilih sasaran gaya `.players-session-stack` dan membuka blok deklarasinya.
@@ -11049,13 +10938,13 @@ body:has(.players-index-shell)::before {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5255: Memilih sasaran gaya `.players-index-shell .players-session-card .table-wrap` dan membuka blok deklarasinya.
- * Baris 5256: Mengatur lapisan latar, warna, atau gradien komponen menjadi `rgba(255, 255, 255, 0.96)` pada `.players-index-shell .players-session-card .table-wrap`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
- * Baris 5257: Mengatur warna garis tepi menjadi `var(--session-border)` pada `.players-index-shell .players-session-card .table-wrap`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Nilai var(...) diambil dari variabel tema atau konfigurasi elemen yang berlaku.
- * Baris 5258: Mengatur batas maksimum lebar agar elemen tidak melampaui area yang ditentukan menjadi `100%` pada `.players-index-shell .players-session-card .table-wrap`.
- * Baris 5259: Menutup aturan atau kelompok CSS `.players-index-shell .players-session-card .table-wrap`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 5255: Memilih sasaran gaya `.sessions-index-shell .players-session-card .table-wrap` dan membuka blok deklarasinya.
+ * Baris 5256: Mengatur lapisan latar, warna, atau gradien komponen menjadi `rgba(255, 255, 255, 0.96)` pada `.sessions-index-shell .players-session-card .table-wrap`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
+ * Baris 5257: Mengatur warna garis tepi menjadi `var(--session-border)` pada `.sessions-index-shell .players-session-card .table-wrap`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade. Nilai var(...) diambil dari variabel tema atau konfigurasi elemen yang berlaku.
+ * Baris 5258: Mengatur batas maksimum lebar agar elemen tidak melampaui area yang ditentukan menjadi `100%` pada `.sessions-index-shell .players-session-card .table-wrap`.
+ * Baris 5259: Menutup aturan atau kelompok CSS `.sessions-index-shell .players-session-card .table-wrap`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.players-index-shell .players-session-card .table-wrap {
+.sessions-index-shell .players-session-card .table-wrap {
     background: rgba(255, 255, 255, 0.96) !important;
     border-color: var(--session-border) !important;
     max-width: 100%;
@@ -11138,7 +11027,6 @@ body:has(.players-index-shell)::before {
  * Baris 5295: Mengatur perataan horizontal teks menjadi `left` pada `.kelas tabel sesi pemain .players-session-name-heading, .kelas tabel sesi pemain .players-session-player`. !important memberi prioritas lebih tinggi terhadap deklarasi biasa dalam cascade.
  * Baris 5296: Menutup aturan atau kelompok CSS `.kelas tabel sesi pemain .players-session-name-heading, .kelas tabel sesi pemain .players-session-player`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.players-session-table .players-session-name-heading,
 .players-session-table .players-session-player {
     text-align: left !important;
 }
@@ -11257,11 +11145,11 @@ body:has(.players-index-shell)::before {
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
- * Baris 5351: Memilih sasaran gaya `.players-index-shell .kelas tabel sesi pemain tbody tr:hover` dan membuka blok deklarasinya. Pseudo-class :hover berlaku saat pointer berada pada elemen.
- * Baris 5352: Mengatur lapisan latar, warna, atau gradien komponen menjadi `#f2f6f7` pada `.players-index-shell .kelas tabel sesi pemain tbody tr:hover`.
- * Baris 5353: Menutup aturan atau kelompok CSS `.players-index-shell .kelas tabel sesi pemain tbody tr:hover`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
+ * Baris 5351: Memilih sasaran gaya `.sessions-index-shell .kelas tabel sesi pemain tbody tr:hover` dan membuka blok deklarasinya. Pseudo-class :hover berlaku saat pointer berada pada elemen.
+ * Baris 5352: Mengatur lapisan latar, warna, atau gradien komponen menjadi `#f2f6f7` pada `.sessions-index-shell .kelas tabel sesi pemain tbody tr:hover`.
+ * Baris 5353: Menutup aturan atau kelompok CSS `.sessions-index-shell .kelas tabel sesi pemain tbody tr:hover`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.players-index-shell .players-session-table tbody tr:hover {
+.sessions-index-shell .players-session-table tbody tr:hover {
     background: #f2f6f7;
 }
 
@@ -11389,10 +11277,8 @@ body:has(.players-index-shell)::before {
     }
 
     .home-live-card {
-        min-height: 0;
         flex-direction: row;
         justify-content: space-around;
-        padding: 1.15rem 1.5rem;
     }
 }
 
@@ -12733,6 +12619,10 @@ body:has(.players-index-shell)::before {
     align-items: stretch;
 }
 
+.player-detail-statistics-link {
+    margin-inline-start: auto;
+}
+
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 6067: Memilih sasaran gaya `.home-empty-state` dan membuka blok deklarasinya.
  * Baris 6068: Mengatur ketebalan, gaya, dan warna garis tepi menjadi `1px dashed #9fded7` pada `.home-empty-state`.
@@ -13009,16 +12899,7 @@ body:has(.players-index-shell)::before {
  * Baris 6198: Mengatur lapisan latar, warna, atau gradien komponen menjadi `rgba(255, 255, 255, 0.8)` pada `.ruleset-hero`. Komponen alfa pada rgba(...) mengendalikan transparansi warna terhadap lapisan di belakangnya.
  * Baris 6199: Menutup aturan atau kelompok CSS `.ruleset-hero`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
-.ruleset-hero {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: 1fr auto;
-    align-items: start;
-    padding: 1rem;
-    border: 2px solid #9de0d8;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.8);
-}
+
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
  * Baris 6201: Memilih sasaran gaya `.ruleset-hero-meta` dan membuka blok deklarasinya.
@@ -13308,11 +13189,11 @@ body:has(.players-index-shell)::before {
     grid-template-columns: 1fr 1fr;
     width: 100%;
     min-height: 700px;
-    border-radius: 2rem;
     overflow: hidden;
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 34px 70px rgba(14, 48, 74, 0.3);
     background: #ffffff;
+    border-radius: var(--ui-radius-page);
+    border: 1px solid var(--ui-border);
+    box-shadow: var(--ui-shadow-page);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -13380,12 +13261,13 @@ body:has(.players-index-shell)::before {
  * Baris 6372: Menutup aturan atau kelompok CSS `.auth-heading`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .auth-heading {
-    margin: 0.5rem 0 0;
-    color: #0d1c2b;
-    font-size: clamp(2.1rem, 4vw, 3rem);
+    margin: 0.4rem 0 0;
+    color: var(--ui-title);
+    font-size: var(--ui-title-size);
     font-family: "Baloo 2", cursive;
-    font-weight: 800;
-    line-height: 1.05;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -13448,8 +13330,8 @@ body:has(.players-index-shell)::before {
  */
 .auth-input {
     width: 100%;
-    border-radius: 0.95rem;
-    border: 2px solid #d7e4ee !important;
+    border-radius: var(--ui-radius-inset);
+    border: 2px solid var(--ui-border) !important;
     background: #ffffff !important;
     padding: 0.86rem 1rem;
     font-size: 0.95rem;
@@ -14064,9 +13946,7 @@ body:has(.players-index-shell)::before {
  * Baris 6739: Menutup aturan atau kelompok CSS `@media (max-width: 768px)`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 @media (max-width: 768px) {
-    .page-intro {
-        align-items: flex-start;
-    }
+
 
     .ruleset-quick-tools-controls {
         grid-template-columns: 1fr;
@@ -14081,9 +13961,7 @@ body:has(.players-index-shell)::before {
         justify-content: flex-start;
     }
 
-    .ruleset-hero {
-        grid-template-columns: 1fr;
-    }
+
 
     .ruleset-hero-meta {
         align-items: flex-start;
@@ -14118,7 +13996,6 @@ body:has(.players-index-shell)::before {
     .auth-split-card {
         grid-template-columns: 1fr;
         min-height: 0;
-        border-radius: 1.5rem;
     }
 
     .auth-split-card.auth-mode-register .auth-split-right,
@@ -14292,20 +14169,11 @@ body:has(.players-index-shell)::before {
  * Baris 6926: Menutup aturan atau kelompok CSS `@media (max-width: 640px)`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 @media (max-width: 640px) {
-    .home-command-intro {
-        min-height: 390px;
-        padding: 1.35rem;
-        border-radius: 1.5rem 1.5rem 0.7rem 1.5rem;
-    }
 
-    .home-command-badge {
-        font-size: 0.67rem;
-        letter-spacing: 0.14em;
-    }
 
-    .home-command-title {
-        font-size: clamp(2.05rem, 11vw, 3.1rem);
-    }
+
+
+
 
     .home-command-actions {
         width: 100%;
@@ -14320,15 +14188,11 @@ body:has(.players-index-shell)::before {
 
     .home-live-card {
         display: grid;
-        min-height: 0;
         grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas: "live-header live-ring";
-        align-items: center;
         justify-content: stretch;
         justify-items: start;
         gap: 0.65rem 1rem;
-        padding: 1.2rem;
-        border-radius: 1.5rem 1.5rem 1.5rem 0.7rem;
     }
 
     .home-live-header {
@@ -14345,11 +14209,7 @@ body:has(.players-index-shell)::before {
         gap: 0.75rem;
     }
 
-    .home-stat-card {
-        min-height: 118px;
-        padding: 1rem 1.1rem;
-        border-radius: 1.1rem;
-    }
+
 
     .home-stat-accent {
         top: 1rem;
@@ -14597,13 +14457,9 @@ body:has(.players-index-shell)::before {
         padding: 0.62rem 0.64rem;
     }
 
-    .ruleset-section-title {
-        font-size: 0.9rem;
-    }
 
-    .ruleset-section-subtitle {
-        font-size: 0.77rem;
-    }
+
+
 
     .nav-brand .brand-title {
         display: none;
@@ -14660,9 +14516,7 @@ body:has(.players-index-shell)::before {
         padding-inline: 0.2rem;
     }
 
-    .auth-split-card {
-        border-radius: 1.1rem;
-    }
+
 
     .auth-heading,
     .auth-split-right h2,
@@ -14672,9 +14526,7 @@ body:has(.players-index-shell)::before {
         hyphens: none;
     }
 
-    .auth-heading {
-        font-size: clamp(1.65rem, 9vw, 2rem);
-    }
+
 
     .auth-login-btn {
         min-height: 2.95rem;
@@ -15844,7 +15696,9 @@ body:not(.role-player) .language-toggle .language-pill {
 .table-wrap,
 .stat-card {
     background: var(--card) !important;
-    box-shadow: 0 14px 32px rgba(19, 100, 136, 0.14);
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-card);
+    box-shadow: var(--ui-shadow-card);
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -15853,7 +15707,7 @@ body:not(.role-player) .language-toggle .language-pill {
  * Baris 7622: Menutup aturan atau kelompok CSS `.stat-card::before`; deklarasi sesudah kurung ini mengikuti lingkup berikutnya.
  */
 .stat-card::before {
-    background: linear-gradient(130deg, rgba(18, 168, 154, 0.12), rgba(255, 190, 46, 0.08), transparent 70%) !important;
+    background: none !important;
 }
 
 /* Penjelasan bagian CSS (nomor merujuk baris sumber sebelum anotasi):
@@ -16047,3 +15901,59 @@ body:not(.role-player) .language-toggle .language-pill {
     border-color: #0fa093 !important;
     background: linear-gradient(145deg, #63d6cb, #2fb9ad) !important;
 }
+
+/* Pilihan mekanik tetap terbaca selama pengubahannya belum tersedia. */
+.ruleset-coming-soon{display:inline-block;font-size:.72rem;font-weight:700;line-height:1.3;color:#6a4d95;background:#f1eafb;border-radius:99px;padding:.3rem .6rem;margin-left:.4rem;white-space:nowrap}
+[data-ruleset-create-form] input[type="checkbox"]:disabled{opacity:1;accent-color:#19968c;cursor:not-allowed}
+
+/* Bahasa visual bersama: halaman, kartu, judul, dan bidang masukan. */
+.section-shell {
+    border-color: var(--ui-border) !important;
+    border-radius: var(--ui-radius-page);
+    box-shadow: var(--ui-shadow-page);
+}
+.subhead {
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+.stat-card { padding: var(--ui-card-padding); }
+.stat-card, .glass-surface, .table-wrap { border-color: var(--ui-border) !important; }
+.form-input { border-color: var(--ui-border) !important; border-radius: var(--ui-radius-inset); }
+
+.home-hero::before { display: none; }
+.chart-card h3,
+.rulebook-guide-card h3,
+.rulebook-reference-card h3,
+.rulebook-score-card h3,
+.tip-card h3 {
+    color: var(--ui-title);
+    font-family: "Baloo 2", cursive;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+.rulebook-heading {
+    color: var(--ui-title);
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.players-session-meta { align-items: center; }
+.players-session-detail { margin-inline-start: auto; }
+.sessions-index-shell .session-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+@media (max-width: 760px) { .sessions-index-shell .session-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+
+/* Chart selection details are shared by player analytics and statistics. */
+.chart-card .chart-bar-insight[hidden]{display:none}
+.chart-card .chart-bar-insight{border-color:var(--ui-border);border-radius:var(--ui-radius-inset);background:var(--ui-muted);padding:var(--ui-card-padding);grid-column:1/-1}
+.chart-card .chart-bar-insight-hint{display:none}
+.chart-card .chart-bar-insight-row{padding:.35rem 0}
+.chart-card .chart-bar-insight-key,.chart-card .chart-bar-insight-value{font-size:.88rem;line-height:1.6}
+[data-ruleset-create-form] label.metric-row:has(input[type=checkbox]){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.65rem 1rem}
+[data-ruleset-create-form] label.metric-row>.ruleset-coming-soon{grid-column:1/-1;justify-self:start;margin:0}
+select.form-input{appearance:none;padding-right:2.7rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23335468' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 1rem center!important;background-size:1rem!important}
+
+/* Keep column headings consistent across every table. */
+table thead th, table th[scope="col"] { text-align: center !important; vertical-align: middle; }

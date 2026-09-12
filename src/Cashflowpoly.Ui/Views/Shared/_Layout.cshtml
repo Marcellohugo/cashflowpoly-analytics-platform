@@ -31,7 +31,7 @@ Baris sumber 30: Melanjutkan syarat logika dengan `&& !isLegalSection;`; AND men
 Baris sumber 31: Menyimpan `isSessionsSection` dengan memanggil `string.Equals(currentController, ”Sessions”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 Baris sumber 32: Menyimpan `isSessionListPage` dengan memanggil `isSessionsSection && string.Equals(currentAction, ”Index”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 Baris sumber 33: Menyimpan `isSessionDetailPage` dengan memanggil `isSessionsSection && string.Equals(currentAction, ”Details”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-Baris sumber 34: Menyimpan `isPlayersSection` dengan memanggil `string.Equals(currentController, ”PlayerDirectory”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+Baris sumber 34: Menyimpan `isStatisticsSection` dengan memanggil `string.Equals(currentController, ”PlayerStatistics”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 Baris sumber 35: Melanjutkan syarat logika dengan `|| string.Equals(currentController, ”Players”, StringComparison.OrdinalIgnoreCase);`; OR cukup membutuhkan salah satu syarat benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
 Baris sumber 36: Menyimpan `isRulesetsSection` dengan memanggil `string.Equals(currentController, ”Rulesets”, StringComparison.OrdinalIgnoreCase)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
 Baris sumber 37: Mendefinisikan fungsi atau pemetaan `Func‹bool, string› navClass ＝ isActive → isActive ? ”nav-link is-active” : ”nav-link”;`; parameter di sisi kiri → dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
@@ -76,9 +76,9 @@ Baris sumber 75: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; dek
 Baris sumber 76: Memperbarui `Number` dengan menggunakan konstanta numerik `3` sebagai nilai awal atau parameter perhitungan.
 Baris sumber 77: Memperbarui `Title` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step3.title` sesuai bahasa sesi pengguna.
 Baris sumber 78: Memperbarui `Description` dengan mengambil teks terjemahan berkunci `layout.quickstart.instructor.step3.desc` sesuai bahasa sesi pengguna.
-Baris sumber 79: Memperbarui `Controller` dengan menggunakan literal `”PlayerDirectory”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
+Baris sumber 79: Memperbarui `Controller` dengan menggunakan literal `”PlayerStatistics”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
 Baris sumber 80: Memperbarui `Action` dengan menggunakan literal `”Index”` sebagai teks, kunci, warna, atau isi template sesuai tempat pemakaiannya.
-Baris sumber 81: Memperbarui `IsCurrent` dengan membaca nilai `isPlayersSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
+Baris sumber 81: Memperbarui `IsCurrent` dengan membaca nilai `isStatisticsSection` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
 Baris sumber 82: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
 Baris sumber 83: Menyediakan teks atau fragmen konten `new` pada bagian tampilan ini; posisinya mengikuti struktur elemen dan kondisi Razor yang membungkusnya.
 Baris sumber 84: Membuka ruang lingkup blok untuk `tampilan _Layout.cshtml`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
@@ -381,11 +381,11 @@ Baris sumber 360: Melakukan operasi dengan menghitung ekspresi `‹/html›` den
     var isHomeSection = string.Equals(currentController, "Home", StringComparison.OrdinalIgnoreCase)
         && !isRulebookSection
         && !isLegalSection;
-    var isSessionsSection = string.Equals(currentController, "Sessions", StringComparison.OrdinalIgnoreCase);
+    var isSessionsSection = string.Equals(currentController, "Sessions", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(currentController, "Players", StringComparison.OrdinalIgnoreCase);
     var isSessionListPage = isSessionsSection && string.Equals(currentAction, "Index", StringComparison.OrdinalIgnoreCase);
     var isSessionDetailPage = isSessionsSection && string.Equals(currentAction, "Details", StringComparison.OrdinalIgnoreCase);
-    var isPlayersSection = string.Equals(currentController, "PlayerDirectory", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(currentController, "Players", StringComparison.OrdinalIgnoreCase);
+    var isStatisticsSection = string.Equals(currentController, "PlayerStatistics", StringComparison.OrdinalIgnoreCase);
     var isRulesetsSection = string.Equals(currentController, "Rulesets", StringComparison.OrdinalIgnoreCase);
     Func<bool, string> navClass = isActive => isActive ? "nav-link is-active" : "nav-link";
     var hideFooter = ViewData["HideFooter"] as bool? ?? false;
@@ -429,9 +429,9 @@ Baris sumber 360: Melakukan operasi dengan menghitung ekspresi `‹/html›` den
                 Number = 3,
                 Title = Context.T("layout.quickstart.instructor.step3.title"),
                 Description = Context.T("layout.quickstart.instructor.step3.desc"),
-                Controller = "PlayerDirectory",
+                Controller = "PlayerStatistics",
                 Action = "Index",
-                IsCurrent = isPlayersSection
+                IsCurrent = isStatisticsSection
             },
             new
             {
@@ -466,11 +466,11 @@ Baris sumber 360: Melakukan operasi dengan menghitung ekspresi `‹/html›` den
             new
             {
                 Number = 3,
-                Title = Context.T("layout.quickstart.player.step3.title"),
-                Description = Context.T("layout.quickstart.player.step3.desc"),
-                Controller = "Sessions",
+                Title = Context.T("statistics.title"),
+                Description = Context.T("statistics.subtitle"),
+                Controller = "PlayerStatistics",
                 Action = "Index",
-                IsCurrent = isSessionDetailPage
+                IsCurrent = isStatisticsSection
             },
             new
             {
@@ -561,7 +561,7 @@ Baris sumber 360: Melakukan operasi dengan menghitung ekspresi `‹/html›` den
                     <div id="primary-nav-links" class="nav-pill nav-center">
                         <a class="@navClass(isHomeSection)" aria-current="@(isHomeSection ? "page" : null)" data-nav="home" asp-area="" asp-controller="Home" asp-action="Index">@Context.T("nav.home")</a>
                         <a class="@navClass(isSessionsSection)" aria-current="@(isSessionsSection ? "page" : null)" data-nav="sessions" asp-area="" asp-controller="Sessions" asp-action="Index">@Context.T("nav.sessions")</a>
-                        <a class="@navClass(isPlayersSection)" aria-current="@(isPlayersSection ? "page" : null)" data-nav="players" asp-area="" asp-controller="PlayerDirectory" asp-action="Index">@Context.T("nav.players")</a>
+                        <a class="@navClass(isStatisticsSection)" aria-current="@(isStatisticsSection ? "page" : null)" data-nav="statistics" asp-controller="PlayerStatistics" asp-action="Index">@Context.T("statistics.title")</a>
                         @if (isInstructor)
                         {
                             <a class="@navClass(isRulesetsSection)" aria-current="@(isRulesetsSection ? "page" : null)" data-nav="rulesets" asp-area="" asp-controller="Rulesets" asp-action="Index">@Context.T("nav.ruleset")</a>

@@ -55,13 +55,13 @@ internal static partial class UiTextLexicon
         // Memperbarui `terms[”sessions.index.list_subtitle.instructor”]` menggunakan tuple yang membawa bagian 1: ”Pilih sesi untuk membuka rincian
         // analitika, performa pemain, dan linimasa event...; bagian 2: ”Select a session to open analytics details, player performance, and the event t...
         // dalam AddSessions.
-        terms["sessions.index.list_subtitle.instructor"] = ("Pilih sesi untuk membuka rincian analitika, performa pemain, dan linimasa event.", "Select a session to open analytics details, player performance, and the event timeline.");
+        terms["sessions.index.list_subtitle.instructor"] = ("Buka kartu sesi untuk melihat peserta, hasil akhir, dan analitika pemain. Tekan Rincian untuk membuka sesinya.", "Expand a session card to view participants, final results, and player analytics. Select Details to open the session.");
         // Memperbarui `terms[”sessions.index.list_title.player”]` menggunakan tuple yang membawa bagian 1: ”Daftar sesi yang Anda ikuti”; bagian 2:
         // ”Sessions you joined” dalam AddSessions.
         terms["sessions.index.list_title.player"] = ("Daftar sesi yang Anda ikuti", "Sessions you joined");
         // Memperbarui `terms[”sessions.index.list_subtitle.player”]` menggunakan tuple yang membawa bagian 1: ”Pilih sesi untuk melihat ringkasan performa
         // dan progres pribadi Anda.”; bagian 2: ”Select a session to view your performance summary and personal progress.” dalam AddSessions.
-        terms["sessions.index.list_subtitle.player"] = ("Pilih sesi untuk melihat ringkasan performa dan progres pribadi Anda.", "Select a session to view your performance summary and personal progress.");
+        terms["sessions.index.list_subtitle.player"] = ("Lihat peserta di tiap sesi yang Anda ikuti. Tombol Lihat Analitika hanya tersedia pada baris Anda sendiri.", "View participants in each session you joined. View Analytics is available only on your own row.");
         // Memperbarui `terms[”sessions.tips.instructor.title”]` menggunakan tuple yang membawa bagian 1: ”Tips penggunaan menu Sesi”; bagian 2: ”Sessions
         // menu tips” dalam AddSessions.
         terms["sessions.tips.instructor.title"] = ("Tips penggunaan menu Sesi", "Sessions menu tips");

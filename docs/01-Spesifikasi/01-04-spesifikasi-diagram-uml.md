@@ -58,7 +58,7 @@ Diagram UML yang dibutuhkan: semuanya.
 
 ### Fitur utama
 1. Login/register
-   - Instruktur dan Player dapat login; registrasi publik hanya untuk Player.
+   - Instruktur dan Player dapat login; registrasi publik untuk Player dan Instruktur; registrasi Instruktur mengikuti konfigurasi server.
    - API menghasilkan JWT access token.
 
 2. Setup sesi melalui Klien Game/IDN

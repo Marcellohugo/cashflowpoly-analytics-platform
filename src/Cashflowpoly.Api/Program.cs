@@ -99,7 +99,7 @@ builder.Services.Configure<AuthRegistrationOptions>(options =>
     // `”Auth:AllowPublicInstructorRegistration”`.
     options.AllowPublicInstructorRegistration =
         // Meneruskan nilai literal `”Auth:AllowPublicInstructorRegistration”` sebagai argumen ke `builder.Configuration.GetValue<bool>`.
-        builder.Configuration.GetValue<bool>("Auth:AllowPublicInstructorRegistration");
+        builder.Configuration.GetValue("Auth:AllowPublicInstructorRegistration", true);
 // Menutup scope fungsi lambda yang dipasok ke `builder.Services.Configure<AuthRegistrationOptions>`; bagian berikut berada di luar batas blok
 // tersebut.
 });

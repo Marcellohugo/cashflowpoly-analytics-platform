@@ -13,7 +13,7 @@ $ErrorActionPreference = "Stop"
 # Uraian baris: Mengambil direktori induk scripts sebagai root repositori; semua jalur proyek disusun dari lokasi skrip, bukan direktori terminal pemanggil.
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 # Uraian baris: Menyimpan hasil ekspresi Join-Path $repositoryRoot $EnvironmentFile ke variabel resolvedEnvironmentFile agar dapat digunakan pada tahap verifikasi selanjutnya.
-$resolvedEnvironmentFile = Join-Path $repositoryRoot $EnvironmentFile
+$resolvedEnvironmentFile = if ([IO.Path]::IsPathRooted($EnvironmentFile)) { $EnvironmentFile } else { Join-Path $repositoryRoot $EnvironmentFile }
 
 # Uraian baris: Mengevaluasi kondisi (-not (Test-Path -LiteralPath $resolvedEnvironmentFile -PathType Leaf)). Blok berikutnya hanya dijalankan saat kondisi bernilai benar; cabang ini menentukan apakah validasi diterima, ditolak, atau dilanjutkan.
 if (-not (Test-Path -LiteralPath $resolvedEnvironmentFile -PathType Leaf)) {
@@ -39,12 +39,16 @@ foreach ($line in Get-Content -LiteralPath $resolvedEnvironmentFile) {
     # Uraian baris: Memisahkan baris dotenv pada tanda sama dengan pertama saja (maksimal dua bagian), sehingga tanda sama dengan di dalam nilai tidak ikut dipecah.
     $name, $value = $trimmed.Split("=", 2)
     # Uraian baris: Menampung konfigurasi dotenv dalam hashtable agar nilai dapat dicari menggunakan nama variabel. Nilai dihitung dari ekspresi di sebelah kanan assignment.
-    $settings[$name.Trim()] = $value.Trim()
+    $settings[$name.Trim()] = $value.Trim().Trim('"', "'")
 # Uraian baris: Menutup blok, daftar parameter, atau koleksi yang sedang dibentuk; batas sintaks ini mengembalikan eksekusi/struktur ke tingkat induknya atau membuka badan perulangan setelah daftar selesai.
 }
 
 # Menolak nilai kosong dan placeholder yang aman untuk development tetapi berbahaya di production.
 # Uraian baris: Mendaftar variabel wajib produksi yang harus tersedia dan tidak kosong. Nilai dihitung dari ekspresi di sebelah kanan assignment.
+if ($settings["DATABASE_MIGRATIONS_SEED_SIMULATION"] -and $settings["DATABASE_MIGRATIONS_SEED_SIMULATION"] -notmatch "(?i)^(true|false)$") {
+    throw "DATABASE_MIGRATIONS_SEED_SIMULATION harus bernilai true atau false."
+}
+
 $required = @("POSTGRES_PASSWORD", "JWT_SIGNING_KEY", "DOMAIN", "CLOUDFLARE_TUNNEL_TOKEN")
 # Uraian baris: Mengulangi blok untuk setiap elemen pada ($name in $required). Variabel iterasi menunjuk satu tool, entri konfigurasi, atau kontrak yang diperiksa pada putaran berjalan.
 foreach ($name in $required) {
@@ -78,6 +82,12 @@ if ($settings["JWT_SIGNING_KEY"] -match $placeholderPattern -or $settings["JWT_S
 # Uraian baris: Menutup blok, daftar parameter, atau koleksi yang sedang dibentuk; batas sintaks ini mengembalikan eksekusi/struktur ke tingkat induknya atau membuka badan perulangan setelah daftar selesai.
 }
 # Uraian baris: Mengevaluasi kondisi ($settings["DOMAIN"] -match "(?i)^(localhost|127\.0\.0\.1)$"). Blok berikutnya hanya dijalankan saat kondisi bernilai benar; cabang ini menentukan apakah validasi diterima, ditolak, atau dilanjutkan.
+if ($settings["CLOUDFLARE_TUNNEL_TOKEN"] -match $placeholderPattern) {
+    throw "CLOUDFLARE_TUNNEL_TOKEN masih menggunakan placeholder."
+}
+if ($settings["DOMAIN"] -notmatch "^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$") {
+    throw "DOMAIN wajib berupa hostname publik tanpa skema, path, atau port."
+}
 if ($settings["DOMAIN"] -match "(?i)^(localhost|127\.0\.0\.1)$") {
     # Uraian baris: Menghentikan operasi dengan exception berisi pesan "DOMAIN production tidak boleh localhost.". Pesan ini menjelaskan prasyarat atau pemeriksaan yang gagal kepada pemanggil.
     throw "DOMAIN production tidak boleh localhost."
@@ -200,5 +210,5 @@ if ($LASTEXITCODE -ne 0) {
 # Uraian baris: Menutup blok, daftar parameter, atau koleksi yang sedang dibentuk; batas sintaks ini mengembalikan eksekusi/struktur ke tingkat induknya atau membuka badan perulangan setelah daftar selesai.
 }
 
-# Uraian baris: Menampilkan "Konfigurasi production valid: rahasia, bootstrap akun, domain, tunnel TLS, dan Docker Compose siap digunakan.". Keluaran ini memberi hasil/progres verifikasi kepada operator tanpa mengubah berkas konfigurasi.
-Write-Output "Konfigurasi production valid: rahasia, bootstrap akun, domain, tunnel TLS, dan Docker Compose siap digunakan."
+# Uraian baris: Menampilkan "Konfigurasi production valid secara lokal: format rahasia, bootstrap akun, domain, dan Docker Compose. Konektivitas tunnel/TLS harus diperiksa setelah deployment.". Keluaran ini memberi hasil/progres verifikasi kepada operator tanpa mengubah berkas konfigurasi.
+Write-Output "Konfigurasi production valid secara lokal: format rahasia, bootstrap akun, domain, dan Docker Compose. Konektivitas tunnel/TLS harus diperiksa setelah deployment."

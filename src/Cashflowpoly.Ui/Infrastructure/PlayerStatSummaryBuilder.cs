@@ -29,7 +29,6 @@ public static class PlayerStatSummaryBuilder
         AnalyticsByPlayerItem? analyticsSummary,
         // Parameter `cashflowJourney` bertipe `PlayerCashflowJourneyStatsViewModel?` membawa nilai arus kas journey; nilai null diizinkan ketika data
         // opsional belum tersedia.
-        PlayerCashflowJourneyStatsViewModel? cashflowJourney,
         // Parameter `translate` bertipe `Func<string, string>` membawa nilai translate.
         Func<string, string> translate)
     // Membuka scope metode Build; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam Build.
@@ -45,9 +44,9 @@ public static class PlayerStatSummaryBuilder
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: analyticsSummary.CashInTotal - analyticsSummary.CashOutTotal dalam
             // Build.
             ? analyticsSummary.CashInTotal - analyticsSummary.CashOutTotal
-            // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: cashflowJourney?.NetCashflow ?? gameplay?.Economy.CashflowNetTotal;
+            // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: gameplay?.Economy.CashflowNetTotal;
             // dalam Build.
-            : cashflowJourney?.NetCashflow ?? gameplay?.Economy.CashflowNetTotal;
+            : gameplay?.Economy.CashflowNetTotal;
         // Menyiapkan variabel lokal `happiness` untuk nilai kebahagiaan dengan `analyticsSummary?.HappinessPointsTotal` bila tidak null; jika null gunakan
         // `gameplay?.Score.HappinessPointsTotal` sebagai nilai pengganti. Tipe yang dipakai adalah `double?`.
         double? happiness = analyticsSummary?.HappinessPointsTotal ?? gameplay?.Score.HappinessPointsTotal;

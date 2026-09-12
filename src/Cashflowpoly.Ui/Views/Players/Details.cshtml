@@ -77,12 +77,12 @@ Baris sumber 87: Menyediakan teks atau fragmen konten `or ”action_type” or �
 Baris sumber 89: Menyimpan `cashflowJourney` dengan membaca nilai `Model.CashflowJourney` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
 Baris sumber 90: Menyimpan `statSummary` dengan membuat instance `PlayerStatSummaryViewModel` dengan masukan `tanpa argumen`.
 Baris sumber 91: Menyimpan `nullText` dengan mengambil teks terjemahan berkunci `players.support.value.unavailable` sesuai bahasa sesi pengguna.
-Baris sumber 92: Menyimpan `totalCashIn` dengan mengevaluasi `Model.Summary?.CashInTotal ?? cashflowJourney?.TotalCashIn`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
-Baris sumber 93: Menyimpan `totalCashOut` dengan mengevaluasi `Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 92: Menyimpan `totalCashIn` dengan mengevaluasi `Model.Summary?.CashInTotal ?? economy?.CashInTotal`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
+Baris sumber 93: Menyimpan `totalCashOut` dengan mengevaluasi `Model.Summary?.CashOutTotal ?? economy?.CashOutTotal`; operator ?? memakai nilai cadangan hanya ketika sisi kiri null atau undefined.
 Baris sumber 94: Menyimpan `netCashflow` dengan membaca nilai `totalCashIn.HasValue && totalCashOut.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
 Baris sumber 95: Menentukan hasil ketika kondisi ternary sebelumnya benar, yaitu `totalCashIn.Value - totalCashOut.Value`; nilai ini menjadi keluaran ekspresi pilihan.
 Baris sumber 96: Menentukan hasil ketika kondisi ternary sebelumnya salah, yaitu `null;`; nilai cadangan ini melengkapi ekspresi pilihan.
-Baris sumber 97: Menyimpan `endingCash` dengan membaca `cashflowJourney?.StartingCash + netCashflow` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
+Baris sumber 97: Menyimpan `endingCash` dengan membaca `economy?.StartingCash + economy?.CashflowNetTotal` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
 Baris sumber 98: Menyimpan `fulfillmentDiversity` dengan membaca `Model.Summary?.FulfillmentDiversity` dengan akses opsional sehingga properti pada objek kosong tidak menyebabkan kegagalan.
 Baris sumber 99: Menyimpan `needCardsOwned` dengan membaca nilai `Model.GameplayRaw.HasValue` dari variabel, properti, atau ekspresi yang telah disiapkan sebelumnya.
 Baris sumber 100: Melanjutkan syarat logika dengan `&& Model.GameplayRaw.Value.ValueKind ＝＝ JsonValueKind.Object`; AND mengharuskan syarat tambahan benar, dan evaluasi berhenti dini ketika hasil sudah diketahui.
@@ -261,7 +261,7 @@ Baris sumber 291: Membentuk elemen `div` sebagai kontainer pengelompokan layout 
 Baris sumber 292: Memeriksa kondisi `isInstructor`; blok terkait hanya diproses bila kondisi benar sehingga jalur ini mengikuti keadaan data atau interaksi pengguna.
 Baris sumber 293: Membuka ruang lingkup blok untuk `div`; deklarasi lokal dan urutan langkah di dalamnya dikelompokkan di sini.
 Baris sumber 294: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-ghost”` menjadi teks yang terlihat pada komponen.
-Baris sumber 294: Baris sumber 295: Melengkapi atribut `asp-controller` pada `a` dengan `”PlayerDirectory”`; nama controller tujuan yang dipakai tag helper pembuat URL.
+Baris sumber 294: Baris sumber 295: Melengkapi atribut `asp-controller` pada `a` dengan `”Sessions”`; nama controller tujuan yang dipakai tag helper pembuat URL.
 Baris sumber 294: Baris sumber 296: Melengkapi atribut `asp-action` pada `a` dengan `”Index”›@(”‹- ” + Context.T(”players.detail.navigasi kembali players”))‹/a›`; nama action tujuan yang dipakai tag helper pembuat URL.
 Baris sumber 297: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
 Baris sumber 298: Membentuk elemen `a` sebagai tautan navigasi ke halaman atau sasaran lain. Atribut `class` bernilai `btn-ghost` menentukan kelas CSS untuk memilih gaya dan hook interaksi. Isi `‹a class＝”btn-ghost”` menjadi teks yang terlihat pada komponen.
@@ -842,15 +842,15 @@ Baris sumber 800: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
         column is "item_index" or "action_slot" or "day_index" or "sequence_number" or "action_index"
             or "action_type" or "actions" or "action_pattern" or "series" or "rank" or "cashflow_category";
 
-    var cashflowJourney = Model.CashflowJourney;
+    var economy = Model.Gameplay?.Economy;
     var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
     var nullText = Context.T("players.support.value.unavailable");
-    double? totalCashIn = Model.Summary?.CashInTotal ?? cashflowJourney?.TotalCashIn;
-    double? totalCashOut = Model.Summary?.CashOutTotal ?? cashflowJourney?.TotalCashOut;
+    double? totalCashIn = Model.Summary?.CashInTotal ?? economy?.CashInTotal;
+    double? totalCashOut = Model.Summary?.CashOutTotal ?? economy?.CashOutTotal;
     double? netCashflow = totalCashIn.HasValue && totalCashOut.HasValue
         ? totalCashIn.Value - totalCashOut.Value
         : null;
-    double? endingCash = cashflowJourney?.StartingCash + netCashflow;
+    double? endingCash = economy?.StartingCash + economy?.CashflowNetTotal;
     double? fulfillmentDiversity = Model.Summary?.FulfillmentDiversity;
     var needCardsOwned = Model.GameplayRaw.HasValue
         && Model.GameplayRaw.Value.ValueKind == JsonValueKind.Object
@@ -1016,8 +1016,8 @@ Baris sumber 800: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
         new { Chapter = "money", Key = "expense-efficiency", PrimaryKey = "business_expense_share_percent", TitleKey = "players.analysis.expense_efficiency.title", DescriptionKey = "players.analysis.expense_efficiency.desc", FormulaKey = "players.support.formula.expense_efficiency", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("business_expense_share_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "business_expense_share_components")) },
         new { Chapter = "money", Key = "business-margin", PrimaryKey = "meal_order_profit_margin_percent", TitleKey = "players.analysis.business_margin.title", DescriptionKey = "players.analysis.business_margin.desc", FormulaKey = "players.support.formula.business_margin", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("meal_order_profit_margin_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "meal_order_profit_margin_components")) },
         new { Chapter = "future", Key = "risk-appetite", PrimaryKey = "risk_readiness_percent", TitleKey = "players.analysis.risk_appetite.title", DescriptionKey = "players.analysis.risk_appetite.desc", FormulaKey = "players.support.formula.risk_appetite", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("risk_readiness_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "risk_readiness_components")) },
-        new { Chapter = "future", Key = "debt-discipline", PrimaryKey = "loan_burden_percent", TitleKey = "players.analysis.debt_discipline.title", DescriptionKey = "players.analysis.debt_discipline.desc", FormulaKey = "players.support.formula.debt_leverage", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("loan_burden_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "loan_burden_components")) },
-        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "financial_goals_completed", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_purchases", AdvancedOnly = true, Rows = financialGoalRows.Where(row => row.Path is "financial_goals_completed" or "financial_goals_purchase_cost_total" or "financial_goals_incomplete_coins_wasted").ToList() },
+        new { Chapter = "future", Key = "debt-discipline", PrimaryKey = "sharia_loans_taken", TitleKey = "players.analysis.debt_discipline.title", DescriptionKey = "players.analysis.debt_discipline.desc", FormulaKey = "players.support.formula.loan_counts", AdvancedOnly = true, Rows = financialGoalRows.Where(row => row.Path is "sharia_loans_taken" or "sharia_loans_repaid" or "sharia_loans_unpaid_end" or "sharia_loans_outstanding_coins").ToList() },
+        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "financial_goal_completion_percent", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_completion", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("financial_goal_completion_percent"), financialGoalRows.Where(row => row.Path is "financial_goals_completed" or "financial_goals_attempted" or "financial_goals_purchase_cost_total" or "financial_goals_incomplete_coins_wasted").ToList()) },
         new { Chapter = "play", Key = "action-efficiency", PrimaryKey = "income_action_focus_percent", TitleKey = "players.analysis.action_efficiency.title", DescriptionKey = "players.analysis.action_efficiency.desc", FormulaKey = "players.support.formula.action_efficiency", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("income_action_focus_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "income_action_focus_components")) },
         new { Chapter = "play", Key = "meal-success", PrimaryKey = "ingredient_utilization_percent", TitleKey = "players.analysis.meal_success.title", DescriptionKey = "players.analysis.meal_success.desc", FormulaKey = "players.support.formula.order_success", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("ingredient_utilization_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "ingredient_utilization_components")) },
         new { Chapter = "play", Key = "planning-horizon", PrimaryKey = "long_term_action_share_percent", TitleKey = "players.analysis.planning_horizon.title", DescriptionKey = "players.analysis.planning_horizon.desc", FormulaKey = "players.support.formula.planning", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("long_term_action_share_percent"), ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "long_term_action_share_components"), "saving_actions", "financial_goal_actions")) },
@@ -1045,22 +1045,20 @@ Baris sumber 800: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
 
 <section class="section-shell player-detail-overhaul">
     <div class="action-toolbar mb-4 player-detail-toolbar">
-        @if (isInstructor)
-        {
-            <a class="btn-ghost"
-               asp-controller="PlayerDirectory"
-               asp-action="Index">@("<- " + Context.T("players.detail.nav_back_players"))</a>
-        }
+        <a class="btn-ghost"
+               asp-controller="Sessions"
+               asp-action="Index">@("<- " + Context.T("sessions.back_to_list"))</a>
         <a class="btn-ghost"
            asp-controller="Sessions"
            asp-action="Details"
            asp-route-sessionId="@Model.SessionId">@("<- " + Context.T("players.detail.nav_back_session"))</a>
+        <a class="btn-ghost player-detail-statistics-link" asp-controller="PlayerStatistics" asp-action="Index" asp-route-playerId="@Model.PlayerId" asp-route-mode="@(isAdvancedMode ? "MAHIR" : "PEMULA")">@(Context.T("statistics.title") + " →")</a>
     </div>
 
-    <div class="player-detail-hero">
-        <div class="player-detail-hero-copy">
+    <div class="player-detail-hero page-intro">
+        <div class="page-intro-main">
             <h1 class="headline">@Context.T("players.detail_title")</h1>
-            <p class="player-detail-hero-subtitle">@Context.T("players.detail.subtitle")</p>
+            <p class="subhead">@Context.T("players.detail.subtitle")</p>
         </div>
         <div class="player-profile-identity">
             <span class="player-profile-avatar-shell">
@@ -1223,13 +1221,23 @@ Baris sumber 800: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                                                 </div>
                                                 <p>
                                                     <strong>@Context.T("players.analysis.reading")</strong>
-                                                    @if (analysis.Key == "goal-ambition" && primaryMetric.State is "recorded" or "zero")
+                                                    @if (analysis.Key is "goal-ambition" or "debt-discipline" && primaryMetric.State is "recorded" or "zero")
                                                     {
-                                                        var purchaseCost = PlayerMetricLabelFormatter.DescribeMetric(
-                                                            "financial_goals_purchase_cost_total",
-                                                            analysis.Rows.FirstOrDefault(row => row.Path == "financial_goals_purchase_cost_total").Value ?? nullText,
+                                                        var firstCount = PlayerMetricLabelFormatter.DescribeMetric(
+                                                            analysis.Key == "goal-ambition" ? "financial_goals_completed" : "sharia_loans_repaid",
+                                                            analysis.Rows.FirstOrDefault(row => row.Path == (analysis.Key == "goal-ambition" ? "financial_goals_completed" : "sharia_loans_repaid")).Value ?? nullText,
                                                             false, isAdvancedMode, nullText, Context.T);
-                                                        @string.Format(CultureInfo.CurrentCulture, Context.T("players.analysis.goal_purchases.result"), purchaseCost.DisplayValue)
+                                                        var secondCount = PlayerMetricLabelFormatter.DescribeMetric(
+                                                            analysis.Key == "goal-ambition" ? "financial_goals_attempted" : "sharia_loans_unpaid_end",
+                                                            analysis.Rows.FirstOrDefault(row => row.Path == (analysis.Key == "goal-ambition" ? "financial_goals_attempted" : "sharia_loans_unpaid_end")).Value ?? nullText,
+                                                            false, isAdvancedMode, nullText, Context.T);
+                                                        @string.Format(CultureInfo.CurrentCulture,
+                                                            Context.T(analysis.Key == "goal-ambition" ? "players.analysis.goal_completion.result" : "players.analysis.loan_counts.result"),
+                                                            firstCount.DisplayValue, secondCount.DisplayValue)
+                                                        @if (analysis.Key == "goal-ambition")
+                                                        {
+                                                            @: @primaryMetric.Guidance
+                                                        }
                                                     }
                                                     else
                                                     {
@@ -1239,7 +1247,7 @@ Baris sumber 800: Menutup blok atau objek yang sedang disusun sehingga ekspresi 
                                             </div>
 
                                             @if (analysis.Key == "goal-ambition"
-                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(primaryRow.Value, out var purchasedGoalCount) && purchasedGoalCount > 0
+                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(financialGoalRows.FirstOrDefault(row => row.Path == "financial_goals_completed").Value, out var purchasedGoalCount) && purchasedGoalCount > 0
                                                 && PlayerMetricLabelFormatter.TryParseMetricNumber(financialGoalRows.FirstOrDefault(row => row.Path == "sharia_loans_outstanding_coins").Value, out var outstandingGoalLoan) && outstandingGoalLoan > 0)
                                             {
                                                 <p class="player-analysis-card__description">@Context.T("players.analysis.goal_purchases.unpaid_loan")</p>

@@ -631,7 +631,7 @@ UI berada di src/Cashflowpoly.Ui.
 | /sessions | SessionsController | Daftar sesi sesuai role. |
 | /sessions/{id} | SessionsController | Detail sesi, ringkasan, timeline. |
 | /sessions/{id}/players/{userId} | PlayersController | Detail metrik player. |
-| /players | PlayerDirectoryController | Direktori player, instructor only. |
+| /statistics | PlayerStatisticsController | Statistik pemain per mode; instruktur hanya mengakses peserta sesi miliknya. |
 | /rulesets | RulesetsController | Daftar ruleset. |
 | /rulesets/{id} | RulesetsController | Detail ruleset. |
 | /rulesets/create | RulesetsController | Buat ruleset, instructor only. |

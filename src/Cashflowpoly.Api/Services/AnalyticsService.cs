@@ -265,7 +265,7 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         // Mengembalikan tuple yang membawa bagian 1: new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.Ruleset...; bagian 2: 200;
         // bagian 3: null kepada pemanggil dalam RecomputeAsync; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard, activeRuleset.VersionId), 200, null);
     // Menutup scope metode RecomputeAsync; bagian berikut berada di luar batas blok tersebut dalam RecomputeAsync.
     }
 
@@ -367,7 +367,7 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         // Mengembalikan tuple yang membawa bagian 1: new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.Ruleset...; bagian 2: 200;
         // bagian 3: null kepada pemanggil dalam GetSessionAnalyticsAsync; eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard, activeRuleset.VersionId), 200, null);
     // Menutup scope metode GetSessionAnalyticsAsync; bagian berikut berada di luar batas blok tersebut dalam GetSessionAnalyticsAsync.
     }
 

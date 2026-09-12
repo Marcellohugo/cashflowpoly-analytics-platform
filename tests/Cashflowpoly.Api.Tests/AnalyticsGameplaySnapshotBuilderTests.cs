@@ -1084,6 +1084,55 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
     // Mendefinisikan metode `BuildAdvancedConfig` dengan hasil bertipe `RulesetConfig`; operasi ini menangani build advanced konfigurasi. Nilai hasil
     // langsung berasal dari objek baru dengan tipe mengikuti konteks tujuan dan argumen ( ”MAHIR”, 2, 10, PlayerOrdering.PlayerOrder, 0, 6, 3, 1, true,
     // true, true, true, 1, 999, true, true, true, true, true, 1, null).
+    [Theory]
+    [InlineData(0, 0, null)]
+    [InlineData(0, 2, 0d)]
+    [InlineData(1, 2, 50d)]
+    [InlineData(2, 2, 100d)]
+    public void Build_GoalCompletionCountsDistinctPurchasedAndAttemptedGoals(int completed, int attempted, double? expected)
+    {
+        var sessionId = Guid.NewGuid();
+        var playerId = Guid.NewGuid();
+        var events = new List<EventDb>();
+        for (var i = 0; i < attempted; i++)
+        {
+            // Setoran berulang ke target yang sama tidak menambah penyebut.
+            for (var deposit = 0; deposit < 2; deposit++)
+                events.Add(CreateEvent(Guid.NewGuid(), sessionId, playerId, "Menabung",
+                    JsonSerializer.Serialize(new { goal_id = $"goal-{i}", amount = 5 }), 1, events.Count));
+            if (i < completed)
+            {
+                var purchase = CreateEvent(Guid.NewGuid(), sessionId, playerId, "TujuanFinansial",
+                    JsonSerializer.Serialize(new { goal_id = $"goal-{i}", cost = 10, points = 10 }), 1, events.Count);
+                purchase.ActorType = "SYSTEM";
+                events.Add(purchase);
+            }
+        }
+        var snapshot = new GameplaySnapshotBuilder().Build(events, [], events, BuildAdvancedConfig(),
+            new AnalyticsHappinessBreakdown(0, 0, 0, 0, 0, 0, 0, 0, 0, false));
+        using var raw = JsonDocument.Parse(snapshot.RawJson);
+        using var derived = JsonDocument.Parse(snapshot.DerivedJson);
+        var goals = raw.RootElement.GetProperty("financial_goals");
+        Assert.Equal(attempted, goals.GetProperty("financial_goals_attempted").GetInt32());
+        Assert.Equal(completed, goals.GetProperty("financial_goals_completed").GetInt32());
+        var percentage = derived.RootElement.GetProperty("financial_goal_completion_percent");
+        if (expected.HasValue) Assert.Equal(expected.Value, percentage.GetDouble(), 6);
+        else Assert.Equal(JsonValueKind.Null, percentage.ValueKind);
+    }
+
+    [Fact]
+    public void Build_DirectGoalPurchaseCountsAsAnAttemptAndCompletedPurchase()
+    {
+        var purchase = CreateEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "TujuanFinansial",
+            """{"goal_id":"direct","cost":35,"points":35}""", 1, 1);
+        var snapshot = new GameplaySnapshotBuilder().Build([purchase], [], [purchase], BuildAdvancedConfig(),
+            new AnalyticsHappinessBreakdown(0, 0, 0, 0, 0, 0, 0, 0, 0, false));
+        using var raw = JsonDocument.Parse(snapshot.RawJson);
+        using var derived = JsonDocument.Parse(snapshot.DerivedJson);
+        Assert.Equal(1, raw.RootElement.GetProperty("financial_goals").GetProperty("financial_goals_attempted").GetInt32());
+        Assert.Equal(100, derived.RootElement.GetProperty("financial_goal_completion_percent").GetDouble());
+    }
+
     private static RulesetConfig BuildAdvancedConfig() => new(
         // Meneruskan nilai literal `”MAHIR”` sebagai argumen ke konstruktor dengan tipe mengikuti konteks.
         "MAHIR",

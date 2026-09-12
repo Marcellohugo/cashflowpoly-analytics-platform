@@ -36,7 +36,7 @@ Urutan sumber kebenaran ketika ditemukan perbedaan adalah:
 | Format data | JSON UTF-8; nama field umumnya `snake_case` |
 | Autentikasi | `Authorization: Bearer <access_token>` |
 
-Endpoint selain login, registrasi, landing page, health check, dan metrik internal memerlukan JWT. Registrasi publik hanya dapat membuat akun `PLAYER`; resource milik sesi/ruleset tetap dibatasi berdasarkan pemilik atau partisipasi, bukan hanya berdasarkan role.
+Endpoint selain login, registrasi, landing page, health check, dan metrik internal memerlukan JWT. Registrasi publik dapat membuat akun `PLAYER` atau `INSTRUCTOR` ketika `Auth:AllowPublicInstructorRegistration=true` (default); resource milik sesi/ruleset tetap dibatasi berdasarkan pemilik atau partisipasi, bukan hanya berdasarkan role.
 
 Header yang perlu dipahami klien:
 
@@ -798,7 +798,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
 ```
 - Catatan kebijakan:
   - Registrasi publik role `PLAYER` diperbolehkan.
-  - Registrasi publik role `INSTRUCTOR` ditolak; akun instruktur dibuat melalui bootstrap/admin.
+  - Registrasi publik role `INSTRUCTOR` diperbolehkan secara default. Jika `Auth:AllowPublicInstructorRegistration=false`, permintaan tersebut menghasilkan `403`; bootstrap tetap tersedia.
 
 ---
 

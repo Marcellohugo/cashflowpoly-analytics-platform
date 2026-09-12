@@ -623,7 +623,8 @@ public sealed record AnalyticsSessionResponse(
     [property: JsonPropertyName("ruleset_name")] string? RulesetName,
     // Parameter `Leaderboard` bertipe `List<AnalyticsLeaderboardItem>?` membawa nilai leaderboard; nilai null diizinkan ketika data opsional belum
     // tersedia; bila argumen tidak diberikan digunakan null, yaitu penanda tidak ada nilai; memetakan nama properti JSON menjadi (”leaderboard”).
-    [property: JsonPropertyName("leaderboard")] List<AnalyticsLeaderboardItem>? Leaderboard = null);
+    [property: JsonPropertyName("leaderboard")] List<AnalyticsLeaderboardItem>? Leaderboard = null,
+    [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null);
 
 // Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `GameplayMetricsResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record GameplayMetricsResponse(

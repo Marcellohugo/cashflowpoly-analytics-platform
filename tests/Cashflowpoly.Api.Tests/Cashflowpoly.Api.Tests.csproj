@@ -22,10 +22,10 @@
 
   <!-- Uraian baris: Memulai kelompok item MSBuild yang berisi dependensi proyek/paket atau berkas SQL yang disertakan dalam build. -->
   <ItemGroup>
-    <!-- Uraian baris: Mereferensikan Microsoft.AspNetCore.Mvc.Testing versi 10.0.11 untuk host aplikasi dalam memori untuk integration test HTTP. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
-    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore.Relational versi 10.0.11 untuk API EF Core untuk database relasional dalam pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+    <!-- Uraian baris: Mereferensikan Microsoft.AspNetCore.Mvc.Testing versi 10.0.12 untuk host aplikasi dalam memori untuk integration test HTTP. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <!-- Uraian baris: Mereferensikan Microsoft.EntityFrameworkCore.Relational versi 10.0.12 untuk API EF Core untuk database relasional dalam pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
     <!-- Uraian baris: Mereferensikan Microsoft.NET.Test.Sdk versi 18.8.1 untuk integrasi proyek pengujian dengan runner dotnet test. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <!-- Uraian baris: Mereferensikan SSH.NET versi 2026.0.0 untuk klien SSH yang digunakan dukungan lingkungan pengujian. Versi eksplisit menjaga dependensi build sesuai definisi proyek. -->

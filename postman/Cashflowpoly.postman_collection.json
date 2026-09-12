@@ -28,16 +28,16 @@
           "};",
           "setVar('timestamp', now);",
           "const suffix = Date.now().toString().slice(-8);",
-          "ensure('deniedInstructorUsername', `instructor_denied_${suffix}`);",
-          "ensure('deniedInstructorPassword', 'Pass123!Aa2026');",
+          "ensure('registeredInstructorUsername', `instructor_registered_${suffix}`);",
+          "ensure('registeredInstructorPassword', 'Pass123!Aa2026');",
           "ensure('playerUsername', `player_${suffix}`);",
           "ensure('playerPassword', 'Pass123!Aa2026');",
           "ensure('secondPlayerUsername', `player_b_${suffix}`);",
           "ensure('secondPlayerPassword', 'Pass123!Aa2026');",
           "ensure('rulesetVersionNumber', '1');",
-          "const startsCollectionRun = pm.info.requestName === 'Verify Public Instructor Registration Is Rejected';",
+          "const startsCollectionRun = pm.info.requestName === 'Register Public Instructor';",
           "if (startsCollectionRun) {",
-          "  setVar('deniedInstructorUsername', `instructor_denied_${suffix}`);",
+          "  setVar('registeredInstructorUsername', `instructor_registered_${suffix}`);",
           "  setVar('playerUsername', `player_${suffix}`);",
           "  setVar('secondPlayerUsername', `player_b_${suffix}`);",
           "  setVar('accessToken', '');",
@@ -63,7 +63,7 @@
         "type": "text/javascript",
         "exec": [
           "const expectedByRequest = {",
-          "  'Verify Public Instructor Registration Is Rejected': [403],",
+          "  'Register Public Instructor': [201],",
           "  'Login': [200],",
           "  'Create Ruleset PEMULA': [201],",
           "  'Update Ruleset PEMULA': [200],",
@@ -228,7 +228,7 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Verify Public Instructor Registration Is Rejected",
+          "name": "Register Public Instructor",
           "request": {
             "method": "POST",
             "header": [
@@ -237,7 +237,7 @@
             "url": "{{baseUrl}}/api/v1/auth/register",
             "body": {
               "mode": "raw",
-              "raw": "{\"username\":\"{{deniedInstructorUsername}}\",\"password\":\"{{deniedInstructorPassword}}\",\"role\":\"INSTRUCTOR\",\"display_name\":\"Instructor Ditolak\"}"
+              "raw": "{\"username\":\"{{registeredInstructorUsername}}\",\"password\":\"{{registeredInstructorPassword}}\",\"role\":\"INSTRUCTOR\",\"display_name\":\"Instruktur Pengujian\"}"
             }
           }
         },
@@ -868,8 +868,8 @@
     { "key": "baseUrl", "value": "http://localhost:5041", "type": "string" },
     { "key": "authUsername", "value": "instructor", "type": "string" },
     { "key": "authPassword", "value": "replace-with-your-password", "type": "string" },
-    { "key": "deniedInstructorUsername", "value": "", "type": "string" },
-    { "key": "deniedInstructorPassword", "value": "Pass123!Aa2026", "type": "string" },
+    { "key": "registeredInstructorUsername", "value": "", "type": "string" },
+    { "key": "registeredInstructorPassword", "value": "Pass123!Aa2026", "type": "string" },
     { "key": "playerUsername", "value": "", "type": "string" },
     { "key": "playerPassword", "value": "Pass123!Aa2026", "type": "string" },
     { "key": "secondPlayerUsername", "value": "", "type": "string" },
