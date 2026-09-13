@@ -578,6 +578,7 @@
                                     fill: "none",
                                     stroke: color,
                                     "stroke-width": "2.4",
+                                    "pointer-events": "none",
                                     "stroke-linejoin": "round",
                                     "stroke-linecap": "round"
                                 }));
@@ -612,16 +613,18 @@
                                 unit: selectedPoint?.unit,
                                 formula: selectedPoint?.guidance ?? (formulaHints[index] || detailFallback)
                             };
+                            // Keep adjacent hover targets separate when many sessions share a narrow plot.
+                            const pointRadius = plotWidth / Math.max(1, labels.length - 1) / 2;
                             const hitTarget = makeNode("circle", {
                                 cx: point.x,
                                 cy: point.y,
-                                r: "10",
+                                r: Math.min(10, pointRadius),
                                 fill: "transparent"
                             });
                             const pointNode = makeNode("circle", {
                                 cx: point.x,
                                 cy: point.y,
-                                r: "3",
+                                r: Math.min(3, pointRadius),
                                 fill: color,
                                 stroke: "#ffffff",
                                 "stroke-width": "1"

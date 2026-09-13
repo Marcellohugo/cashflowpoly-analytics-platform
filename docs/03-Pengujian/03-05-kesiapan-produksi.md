@@ -6,6 +6,7 @@ Tanggal pemeriksaan: 13 September 2026. Dokumen ini mencatat verifikasi perbaika
 
 - Deployment menyalakan API/UI/Nginx terlebih dahulu, membuka maintenance setelah API/UI siap, lalu menyalakan Cloudflare Tunnel. Mengulang SHA yang sama tidak terjebak pada health check Nginx dan tetap menyimpan rilis rollback. Kegagalan pembersihan setelah aktivasi tidak membatalkan rilis sehat.
 - Statistik memakai endpoint gabungan untuk roster dan gameplay. Halaman pemain membutuhkan paling banyak dua permintaan API dan halaman instruktur tiga, terlepas dari jumlah sesi. Perhitungan menggunakan kalkulator yang sama dengan analitika per sesi; mode, kepemilikan sesi, dan identitas pemain tetap diperiksa di server.
+- Pengujian produksi menemukan area hover bertumpuk pada histori panjang di layar sempit. Radius titik/area hover kini dibatasi setengah jarak antarsesi, dan garis tidak menangkap pointer. Regresi 40 titik berdekatan lulus pada desktop dan ponsel.
 - Pilihan nama pemain membedakan nama identik atau yang hanya berbeda huruf besar/kecil. Masukan ambigu tidak diam-diam memilih UUID pertama.
 - Waktu statis dan aktivitas langsung mengikuti zona waktu browser, dengan label zona. HTML menyimpan waktu ISO dan menyediakan teks UTC sebelum JavaScript berjalan.
 - Seed 2 tetap aktif di production. Data berisi 24 sesi: 16 selesai, 4 persiapan, dan 4 berjalan. Masing-masing instruktur memiliki empat sesi selesai per mode, satu persiapan per mode, dan satu berjalan per mode.
@@ -22,7 +23,7 @@ Tanggal pemeriksaan: 13 September 2026. Dokumen ini mencatat verifikasi perbaika
 | Pengujian UI .NET | 406 lulus |
 | Performa 100 akun, 20 sesi uji aktif, 20 klien bersamaan, 2.000 kejadian per sesi | 1 lulus; P95 ingest ≤500 ms dan analitika ≤1.500 ms |
 | Statistik 160 sesi yang dimainkan ditambah skenario batas | Cakupan akun, pemisahan mode, null untuk persiapan, dan kesamaan dengan endpoint per sesi lulus |
-| E2E Chromium desktop dan ponsel | 70 skenario lulus: 66 pada run lengkap dan 4 pada pengulangan setelah asumsi tes diperbarui |
+| E2E Chromium desktop dan ponsel | 72 skenario lulus: 66 pada run lengkap, 4 pada pengulangan setelah asumsi tes diperbarui, dan 2 regresi histori padat |
 | Audit NuGet termasuk dependensi transitif | Tidak ditemukan paket rentan |
 | Audit npm UI dan E2E | 0 kerentanan |
 | Konfigurasi produksi lokal, Compose, dan konsistensi dokumentasi | Lulus |

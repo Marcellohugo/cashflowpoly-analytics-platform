@@ -3,6 +3,22 @@ const { test, expect } = require('@playwright/test');
 const path = require('node:path');
 const scripts = path.resolve(__dirname, '../../../src/Cashflowpoly.Ui/wwwroot/js');
 
+test('titik berdekatan pada histori panjang tetap dapat dihover sendiri', async ({ page }) => {
+  const labels = Array.from({ length: 40 }, (_, i) => `Sesi ${i + 1}`);
+  const payload = { labels, series: [{ name: 'Nilai', values: labels.map(() => 10) }] };
+  await page.setContent('<article class="chart-card"><svg class="js-metric-line-chart" viewBox="0 0 300 240" style="width:300px;height:240px"></svg></article>');
+  await page.locator('svg').evaluate((svg, payload) => { svg.dataset.chart = JSON.stringify(payload); }, payload);
+  await page.addScriptTag({ path: path.join(scripts, 'player-detail-charts.js') });
+  const points = page.locator('svg [tabindex="0"]');
+  await expect(points).toHaveCount(40);
+  for (let i = 0; i < 40; i++) {
+    await points.nth(i).hover();
+    await expect(page.locator('.js-chart-bar-insight-metric')).toHaveText(`Sesi ${i + 1}`);
+  }
+  await page.mouse.move(310, 10);
+  await expect(page.locator('.js-chart-bar-insight')).toBeHidden();
+});
+
 test('nama yang mirip tidak diam-diam memilih identitas pertama', async ({ page }) => {
   await page.setContent(`<form>
     <input id="statistics-player" list="statistics-players" data-invalid-player="Pilih pemain yang sesuai">
