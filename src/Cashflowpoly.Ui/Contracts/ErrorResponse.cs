@@ -5,14 +5,12 @@ using System.Text.Json.Serialization;
 // Menempatkan deklarasi pada namespace `Cashflowpoly.Ui.Contracts` untuk mengelompokkan komponen dan mencegah benturan nama tipe.
 namespace Cashflowpoly.Ui.Contracts;
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `ErrorDetail`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record ErrorDetail(
     // Parameter `Field` bertipe `string` membawa nilai field; memetakan nama properti JSON menjadi (”field”).
     [property: JsonPropertyName("field")] string Field,
     // Parameter `Issue` bertipe `string` membawa nilai issue; memetakan nama properti JSON menjadi (”issue”).
     [property: JsonPropertyName("issue")] string Issue);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `ErrorResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record ErrorResponse(
     // Parameter `ErrorCode` bertipe `string` membawa nilai kesalahan kode; memetakan nama properti JSON menjadi (”error_code”).
     [property: JsonPropertyName("error_code")] string ErrorCode,

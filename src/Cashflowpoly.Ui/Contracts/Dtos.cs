@@ -7,19 +7,16 @@ using System.Text.Json.Serialization;
 // Menempatkan deklarasi pada namespace `Cashflowpoly.Ui.Contracts` untuk mengelompokkan komponen dan mencegah benturan nama tipe.
 namespace Cashflowpoly.Ui.Contracts;
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `PlayerResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record PlayerResponse(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
     [property: JsonPropertyName("user_id")] Guid UserId,
     // Parameter `DisplayName` bertipe `string` membawa nilai display nama; memetakan nama properti JSON menjadi (”display_name”).
     [property: JsonPropertyName("display_name")] string DisplayName);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `PlayerListResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record PlayerListResponse(
     // Parameter `Items` bertipe `List<PlayerResponse>` membawa nilai elemen; memetakan nama properti JSON menjadi (”items”).
     [property: JsonPropertyName("items")] List<PlayerResponse> Items);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `SessionPlayerResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record SessionPlayerResponse(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -29,12 +26,10 @@ public sealed record SessionPlayerResponse(
     // (”player_order_no”).
     [property: JsonPropertyName("player_order_no")] int PlayerOrder);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `SessionPlayerListResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record SessionPlayerListResponse(
     // Parameter `Items` bertipe `List<SessionPlayerResponse>` membawa nilai elemen; memetakan nama properti JSON menjadi (”items”).
     [property: JsonPropertyName("items")] List<SessionPlayerResponse> Items);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `SessionListItem`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record SessionListItem(
     // Parameter `SessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini; memetakan nama properti JSON
     // menjadi (”session_id”).
@@ -55,12 +50,10 @@ public sealed record SessionListItem(
     // properti JSON menjadi (”ended_at”).
     [property: JsonPropertyName("ended_at")] DateTimeOffset? EndedAt);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `SessionListResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record SessionListResponse(
     // Parameter `Items` bertipe `List<SessionListItem>` membawa nilai elemen; memetakan nama properti JSON menjadi (”items”).
     [property: JsonPropertyName("items")] List<SessionListItem> Items);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `CreateRulesetRequest`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record CreateRulesetRequest(
     // Parameter `Name` bertipe `string` membawa nilai nama; memetakan nama properti JSON menjadi (”name”).
     [property: JsonPropertyName("name")] string Name,
@@ -71,7 +64,6 @@ public sealed record CreateRulesetRequest(
     // diizinkan ketika data opsional belum tersedia; memetakan nama properti JSON menjadi (”definition”).
     [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `UpdateRulesetRequest`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record UpdateRulesetRequest(
     // Parameter `Name` bertipe `string?` membawa nilai nama; nilai null diizinkan ketika data opsional belum tersedia; memetakan nama properti JSON
     // menjadi (”name”).
@@ -83,7 +75,6 @@ public sealed record UpdateRulesetRequest(
     // diizinkan ketika data opsional belum tersedia; memetakan nama properti JSON menjadi (”definition”).
     [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `CreateRulesetResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record CreateRulesetResponse(
     // Parameter `RulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; memetakan nama properti JSON menjadi (”ruleset_id”).
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -94,7 +85,6 @@ public sealed record CreateRulesetResponse(
     // (”version”).
     [property: JsonPropertyName("version")] int Version);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RulesetListItem`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RulesetListItem(
     // Parameter `RulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; memetakan nama properti JSON menjadi (”ruleset_id”).
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -115,12 +105,10 @@ public sealed record RulesetListItem(
     // (”mode”).
     [property: JsonPropertyName("mode")] string? Mode = null);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RulesetListResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RulesetListResponse(
     // Parameter `Items` bertipe `List<RulesetListItem>` membawa nilai elemen; memetakan nama properti JSON menjadi (”items”).
     [property: JsonPropertyName("items")] List<RulesetListItem> Items);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RulesetVersionItem`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RulesetVersionItem(
     // Parameter `RulesetVersionId` bertipe `Guid` membawa identitas versi aturan sehingga perhitungan memakai konfigurasi aturan yang tepat; memetakan
     // nama properti JSON menjadi (”ruleset_version_id”).
@@ -133,8 +121,6 @@ public sealed record RulesetVersionItem(
     // Parameter `CreatedAt` bertipe `DateTimeOffset` membawa nilai created at; memetakan nama properti JSON menjadi (”created_at”).
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RulesetSectionCatalogResponse`; sealed mencegah tipe ini diturunkan
-// lagi.
 public sealed record RulesetSectionCatalogResponse(
     // Parameter `GameConfig` bertipe `JsonElement` membawa nilai game konfigurasi; memetakan nama properti JSON menjadi (”gameConfig”).
     [property: JsonPropertyName("gameConfig")] JsonElement GameConfig,
@@ -151,7 +137,6 @@ public sealed record RulesetSectionCatalogResponse(
     // Parameter `Narasi` bertipe `JsonElement` membawa nilai narasi; memetakan nama properti JSON menjadi (”narasi”).
     [property: JsonPropertyName("narasi")] JsonElement Narasi);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RulesetDetailResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RulesetDetailResponse(
     // Parameter `RulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; memetakan nama properti JSON menjadi (”ruleset_id”).
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -185,7 +170,6 @@ public sealed record RulesetDetailResponse(
     // kondisi nonaktif/tidak terpenuhi; memetakan nama properti JSON menjadi (”is_locked_by_session”).
     [property: JsonPropertyName("is_locked_by_session")] bool IsLockedBySession = false);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RulesetComponentsResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RulesetComponentsResponse(
     // Parameter `RulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; memetakan nama properti JSON menjadi (”ruleset_id”).
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -203,8 +187,6 @@ public sealed record RulesetComponentsResponse(
     // properti JSON menjadi (”definition”).
     [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition = null);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `DefaultRulesetComponentItem`; sealed mencegah tipe ini diturunkan
-// lagi.
 public sealed record DefaultRulesetComponentItem(
     // Parameter `RulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; memetakan nama properti JSON menjadi (”ruleset_id”).
     [property: JsonPropertyName("ruleset_id")] Guid RulesetId,
@@ -227,13 +209,10 @@ public sealed record DefaultRulesetComponentItem(
     // properti JSON menjadi (”definition”).
     [property: JsonPropertyName("definition")] RulesetDefinitionDto? Definition = null);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `DefaultRulesetComponentsResponse`; sealed mencegah tipe ini diturunkan
-// lagi.
 public sealed record DefaultRulesetComponentsResponse(
     // Parameter `Items` bertipe `List<DefaultRulesetComponentItem>` membawa nilai elemen; memetakan nama properti JSON menjadi (”items”).
     [property: JsonPropertyName("items")] List<DefaultRulesetComponentItem> Items);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `EventRequest`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record EventRequest(
     // Parameter `EventId` bertipe `Guid` membawa identitas unik event untuk pencatatan dan pemeriksaan duplikasi; memetakan nama properti JSON menjadi
     // (”event_id”).
@@ -272,7 +251,6 @@ public sealed record EventRequest(
     // properti JSON menjadi (”turn_number”).
     [property: JsonPropertyName("turn_number")] int TurnNumber = 0);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `EventsBySessionResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record EventsBySessionResponse(
     // Parameter `SessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini; memetakan nama properti JSON
     // menjadi (”session_id”).
@@ -285,7 +263,6 @@ public sealed record EventsBySessionResponse(
     // Parameter `HasMore` bertipe `bool` membawa nilai memiliki more; memetakan nama properti JSON menjadi (”has_more”).
     [property: JsonPropertyName("has_more")] bool HasMore);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `AnalyticsSessionSummary`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record AnalyticsSessionSummary(
     // Parameter `EventCount` bertipe `int` membawa nilai event jumlah; memetakan nama properti JSON menjadi (”event_count”).
     [property: JsonPropertyName("event_count")] int EventCount,
@@ -297,7 +274,6 @@ public sealed record AnalyticsSessionSummary(
     // (”cashflow_net_total”).
     [property: JsonPropertyName("cashflow_net_total")] double CashflowNetTotal);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `AnalyticsByPlayerItem`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record AnalyticsByPlayerItem(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -348,7 +324,6 @@ public sealed record AnalyticsByPlayerItem(
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman; memetakan nama properti JSON menjadi (”has_unpaid_loan”).
     [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `AnalyticsLeaderboardItem`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record AnalyticsLeaderboardItem(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -361,7 +336,6 @@ public sealed record AnalyticsLeaderboardItem(
     // (”happiness_points_total”).
     [property: JsonPropertyName("happiness_points_total")] double HappinessPointsTotal);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `AnalyticsSessionResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record AnalyticsSessionResponse(
     // Parameter `SessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini; memetakan nama properti JSON
     // menjadi (”session_id”).
@@ -381,7 +355,6 @@ public sealed record AnalyticsSessionResponse(
     [property: JsonPropertyName("leaderboard")] List<AnalyticsLeaderboardItem>? Leaderboard = null,
     [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `GameplayMetricsResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record GameplayMetricsResponse(
     // Parameter `SessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini; memetakan nama properti JSON
     // menjadi (”session_id”).
@@ -406,7 +379,6 @@ public sealed record GameplayMetricsResponse(
     // tidak diberikan digunakan null, yaitu penanda tidak ada nilai; memetakan nama properti JSON menjadi (”derived_json”).
     [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `GameplayEconomyMetrics`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record GameplayEconomyMetrics(
     // Parameter `StartingCash` bertipe `double` membawa nilai starting uang tunai; memetakan nama properti JSON menjadi (”starting_cash”).
     [property: JsonPropertyName("starting_cash")] double StartingCash,
@@ -420,7 +392,6 @@ public sealed record GameplayEconomyMetrics(
     // Parameter `DonationTotal` bertipe `double` membawa nilai donasi total; memetakan nama properti JSON menjadi (”donation_total”).
     [property: JsonPropertyName("donation_total")] double DonationTotal);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `GameplayProgressMetrics`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record GameplayProgressMetrics(
     // Parameter `GoldQty` bertipe `int` membawa nilai emas qty; memetakan nama properti JSON menjadi (”gold_qty”).
     [property: JsonPropertyName("gold_qty")] int GoldQty,
@@ -433,7 +404,6 @@ public sealed record GameplayProgressMetrics(
     // Parameter `ActionsUsedTotal` bertipe `int` membawa nilai aksi used total; memetakan nama properti JSON menjadi (”actions_used_total”).
     [property: JsonPropertyName("actions_used_total")] int ActionsUsedTotal);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `GameplayScoreMetrics`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record GameplayScoreMetrics(
     // Parameter `HappinessPointsTotal` bertipe `double` membawa akumulasi poin kebahagiaan pemain; memetakan nama properti JSON menjadi
     // (”happiness_points_total”).
@@ -460,13 +430,11 @@ public sealed record GameplayScoreMetrics(
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman; memetakan nama properti JSON menjadi (”has_unpaid_loan”).
     [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `GameplayNeedMetrics`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record GameplayNeedMetrics(
     // Parameter `FulfillmentDiversity` bertipe `double` membawa tingkat keberagaman kategori kebutuhan yang telah dipenuhi; memetakan nama properti
     // JSON menjadi (”fulfillment_diversity”).
     [property: JsonPropertyName("fulfillment_diversity")] double FulfillmentDiversity);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `TransactionHistoryItem`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record TransactionHistoryItem(
     // Parameter `TransactionId` bertipe `Guid` membawa nilai transaction identitas; memetakan nama properti JSON menjadi (”transaction_id”).
     [property: JsonPropertyName("transaction_id")] Guid TransactionId,
@@ -481,7 +449,6 @@ public sealed record TransactionHistoryItem(
     // Parameter `Category` bertipe `string` membawa nilai category; memetakan nama properti JSON menjadi (”category”).
     [property: JsonPropertyName("category")] string Category);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `TransactionHistoryResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record TransactionHistoryResponse(
     // Parameter `Items` bertipe `List<TransactionHistoryItem>` membawa nilai elemen; memetakan nama properti JSON menjadi (”items”).
     [property: JsonPropertyName("items")] List<TransactionHistoryItem> Items,
@@ -491,7 +458,6 @@ public sealed record TransactionHistoryResponse(
     // Parameter `HasMore` bertipe `bool` membawa nilai memiliki more; memetakan nama properti JSON menjadi (”has_more”).
     [property: JsonPropertyName("has_more")] bool HasMore);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `LoginRequest`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record LoginRequest(
     // Parameter `Username` bertipe `string` membawa nama akun yang dipakai saat autentikasi; memetakan nama properti JSON menjadi (”username”).
     [property: JsonPropertyName("username")] string Username,
@@ -499,7 +465,6 @@ public sealed record LoginRequest(
     // menjadi (”password”).
     [property: JsonPropertyName("password")] string Password);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `LoginResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record LoginResponse(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
     [property: JsonPropertyName("user_id")] Guid UserId,
@@ -515,7 +480,6 @@ public sealed record LoginResponse(
     // Parameter `ExpiresAt` bertipe `DateTimeOffset` membawa nilai expires at; memetakan nama properti JSON menjadi (”expires_at”).
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RegisterRequest`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RegisterRequest(
     // Parameter `Username` bertipe `string` membawa nama akun yang dipakai saat autentikasi; memetakan nama properti JSON menjadi (”username”).
     [property: JsonPropertyName("username")] string Username,
@@ -528,7 +492,6 @@ public sealed record RegisterRequest(
     // properti JSON menjadi (”display_name”).
     [property: JsonPropertyName("display_name")] string? DisplayName);
 
-// Mendefinisikan record untuk membawa data dengan kesetaraan berbasis nilai `RegisterResponse`; sealed mencegah tipe ini diturunkan lagi.
 public sealed record RegisterResponse(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
     [property: JsonPropertyName("user_id")] Guid UserId,

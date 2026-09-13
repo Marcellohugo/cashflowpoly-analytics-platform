@@ -7,9 +7,7 @@ namespace Cashflowpoly.Api.Domain;
 /// </summary>
 // Mendefinisikan tipe class `AnalyticsIngredientInventory`; sealed mencegah tipe ini diturunkan lagi.
 public sealed class AnalyticsIngredientInventory
-// Membuka scope tipe AnalyticsIngredientInventory; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
-    // Mendefinisikan properti `Total` bertipe `int` untuk nilai total; get menyediakan pembacaan nilai, set mengizinkan penggantian nilai.
     public int Total { get; set; }
 
     /// <summary>
@@ -18,5 +16,4 @@ public sealed class AnalyticsIngredientInventory
     // Mendefinisikan properti `ByCardId` bertipe `Dictionary<string, int>` untuk nilai berdasarkan kartu identitas; get menyediakan pembacaan nilai;
     // nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen (StringComparer.OrdinalIgnoreCase).
     public Dictionary<string, int> ByCardId { get; } = new(StringComparer.OrdinalIgnoreCase);
-// Menutup scope tipe AnalyticsIngredientInventory; bagian berikut berada di luar batas blok tersebut.
 }

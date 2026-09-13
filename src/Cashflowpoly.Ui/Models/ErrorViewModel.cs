@@ -8,10 +8,7 @@ namespace Cashflowpoly.Ui.Models;
 /// </summary>
 // Mendefinisikan tipe class `ErrorViewModel`.
 public class ErrorViewModel
-// Membuka scope tipe ErrorViewModel; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
-    // Mendefinisikan properti `RequestId` bertipe `string?` untuk nilai permintaan identitas; get menyediakan pembacaan nilai, set mengizinkan
-    // penggantian nilai; tanda ? mengizinkan nilai null.
     public string? RequestId { get; set; }
 
     /// <summary>
@@ -20,5 +17,4 @@ public class ErrorViewModel
     // Mendefinisikan properti `ShowRequestId` bertipe `bool` untuk nilai show permintaan identitas; nilainya dihitung dari kebalikan kondisi
     // `string.IsNullOrEmpty(RequestId)`.
     public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-// Menutup scope tipe ErrorViewModel; bagian berikut berada di luar batas blok tersebut.
 }

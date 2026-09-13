@@ -15,7 +15,6 @@ namespace Cashflowpoly.Ui.Infrastructure;
 /// </summary>
 // Mendefinisikan tipe class `AuthContextExtensions`.
 public static class AuthContextExtensions
-// Membuka scope tipe AuthContextExtensions; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
     /// <summary>
     /// Memeriksa apakah pengguna yang sedang login memiliki peran instruktur.
@@ -27,16 +26,8 @@ public static class AuthContextExtensions
     // berasal dari membandingkan kesamaan `string` dengan `context.User.FindFirst(ClaimTypes.Role)?.Value`, `AuthConstants.InstructorRole`,
     // `StringComparison.OrdinalIgnoreCase`; aturan perbandingan mengikuti overload dan comparer yang diberikan.
     public static bool IsInstructor(this HttpContext context) =>
-        // Melanjutkan pengolahan dengan membandingkan kesamaan `string` dengan `context.User.FindFirst(ClaimTypes.Role)?.Value`,
-        // `AuthConstants.InstructorRole`, `StringComparison.OrdinalIgnoreCase`; aturan perbandingan mengikuti overload dan comparer yang diberikan dalam
-        // IsInstructor.
         string.Equals(
-            // Meneruskan `context.User.FindFirst(ClaimTypes.Role)?.Value`; akses setelah ?. hanya dilakukan bila penerimanya tidak null sebagai argumen ke
-            // `string.Equals`; Meneruskan `ClaimTypes.Role` (peran pengguna yang menentukan hak akses) sebagai argumen ke `context.User.FindFirst`.
             context.User.FindFirst(ClaimTypes.Role)?.Value,
-            // Meneruskan `AuthConstants.InstructorRole` (nilai instruktur role) sebagai argumen ke `string.Equals`.
             AuthConstants.InstructorRole,
-            // Meneruskan `StringComparison.OrdinalIgnoreCase` (nilai ordinal ignore case) sebagai argumen ke `string.Equals`.
             StringComparison.OrdinalIgnoreCase);
-// Menutup scope tipe AuthContextExtensions; bagian berikut berada di luar batas blok tersebut.
 }
