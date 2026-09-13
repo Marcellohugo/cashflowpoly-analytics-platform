@@ -1,4 +1,4 @@
-// Fungsi file: Memuat peserta dari sesi yang dapat diakses akun, dengan hasil akhir opsional.
+// Fungsi file: Memuat roster lintas sesi dalam satu permintaan tanpa menghapus sesi saat data tidak tersedia.
 using System.Net;
 using System.Net.Http.Json;
 using Cashflowpoly.Ui.Contracts;
@@ -11,52 +11,37 @@ public static class SessionRosterLoader
     public static async Task<List<PlayerSessionGroupViewModel>> LoadAsync(
         HttpClient client, IReadOnlyList<SessionListItem> sessions, bool includeResults, CancellationToken ct)
     {
-        using var gate = new SemaphoreSlim(4);
-        return (await Task.WhenAll(sessions.Select(async session =>
+        if (sessions.Count == 0) return [];
+        SessionRostersResponse? data = null;
+        var unauthorized = false;
+        try
         {
-            await gate.WaitAsync(ct);
-            SessionPlayerListResponse? participants = null;
-            AnalyticsSessionResponse? analytics = null;
-            var unauthorized = false;
-            try
-            {
-                using var response = await client.GetAsync($"api/v1/sessions/{session.SessionId}/players", ct);
-                unauthorized = response.StatusCode == HttpStatusCode.Unauthorized;
-                if (response.IsSuccessStatusCode)
-                    participants = await response.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
-                if (participants?.Items is not null && includeResults && session.Status == "ENDED")
-                {
-                    using var result = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}", ct);
-                    unauthorized |= result.StatusCode == HttpStatusCode.Unauthorized;
-                    if (result.IsSuccessStatusCode)
-                        analytics = await result.Content.TryReadFromJsonAsync<AnalyticsSessionResponse>(cancellationToken: ct);
-                    if (analytics?.SessionId != session.SessionId || analytics.ByPlayer is null) analytics = null;
-                }
-            }
-            catch (HttpRequestException) { }
-            catch (TaskCanceledException) when (!ct.IsCancellationRequested) { }
-            finally { gate.Release(); }
-
+            using var response = await client.GetAsync($"api/v1/analytics/session-rosters?includeResults={includeResults.ToString().ToLowerInvariant()}", ct);
+            unauthorized = response.StatusCode == HttpStatusCode.Unauthorized;
+            if (response.IsSuccessStatusCode)
+                data = await response.Content.TryReadFromJsonAsync<SessionRostersResponse>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) { }
+        var rosters = data?.Items?.GroupBy(r => r.SessionId).Where(g => g.Count() == 1)
+            .ToDictionary(g => g.Key, g => g.Single());
+        return sessions.Select(session =>
+        {
+            var roster = rosters?.GetValueOrDefault(session.SessionId);
             return new PlayerSessionGroupViewModel
             {
                 SessionId = session.SessionId, SessionName = session.SessionName,
                 Mode = session.Mode, Status = session.Status, CreatedAt = session.CreatedAt,
                 StartedAt = session.StartedAt, EndedAt = session.EndedAt,
-                ParticipantsAvailable = participants?.Items is not null, Unauthorized = unauthorized,
-                ResultsAvailable = analytics is not null,
-                Players = (participants?.Items ?? []).OrderBy(p => p.PlayerOrder > 0 ? p.PlayerOrder : int.MaxValue)
-                    .ThenBy(p => p.UserId).Select(p =>
+                ParticipantsAvailable = roster?.Players is not null, Unauthorized = unauthorized,
+                ResultsAvailable = roster?.ResultsAvailable == true,
+                Players = (roster?.Players ?? []).OrderBy(p => p.PlayerOrder > 0 ? p.PlayerOrder : int.MaxValue)
+                    .ThenBy(p => p.UserId).Select(p => new PlayerSessionEntryViewModel
                     {
-                        var summary = analytics?.ByPlayer?.FirstOrDefault(x => x.UserId == p.UserId);
-                        var rank = analytics?.Leaderboard?.FirstOrDefault(x => x.UserId == p.UserId);
-                        return new PlayerSessionEntryViewModel
-                        {
-                            PlayerId = p.UserId, DisplayName = p.DisplayName, PlayerOrder = p.PlayerOrder,
-                            FinalRank = rank?.Rank ?? 0,
-                            HappinessPointsTotal = rank?.HappinessPointsTotal ?? summary?.HappinessPointsTotal
-                        };
+                        PlayerId = p.UserId, DisplayName = p.DisplayName, PlayerOrder = p.PlayerOrder,
+                        FinalRank = p.FinalRank ?? 0, HappinessPointsTotal = p.HappinessPointsTotal
                     }).ToList()
             };
-        }))).ToList();
+        }).ToList();
     }
 }

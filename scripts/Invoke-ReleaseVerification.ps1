@@ -253,6 +253,11 @@ try {
         Invoke-Checked "Build image API" { docker build -f src/Cashflowpoly.Api/Dockerfile -t cashflowpoly-api:release-gate . }
         # Uraian baris: Menjalankan tahap Build image UI melalui helper pemeriksa exit code. Jika perintah tahap ini mengembalikan kode bukan nol, proses verifikasi dilempar sebagai error.
         Invoke-Checked "Build image UI" { docker build -f src/Cashflowpoly.Ui/Dockerfile -t cashflowpoly-ui:release-gate . }
+        Invoke-Checked "Regresi deployment terisolasi tanpa jaringan" {
+            docker run --rm --network none --user 0 --entrypoint bash `
+                --mount "type=bind,source=$repositoryRoot,target=/repo,readonly" `
+                cashflowpoly-api:release-gate /repo/tests/deployment/deploy-production.test.sh
+        }
     # Uraian baris: Menutup blok, daftar parameter, atau koleksi yang sedang dibentuk; batas sintaks ini mengembalikan eksekusi/struktur ke tingkat induknya atau membuka badan perulangan setelah daftar selesai.
     }
 

@@ -1538,3 +1538,11 @@ Sebelum merilis perubahan kontrak:
 3. pastikan contoh Postman memakai path dan query aktif;
 4. pastikan semua respons error, termasuk kegagalan model binding, memakai `error_code`, `message`, `details`, dan `trace_id`;
 5. perbarui dokumen ini pada commit yang sama dengan perubahan DTO/controller.
+
+
+## Pembacaan statistik lintas sesi
+
+- `GET /api/v1/analytics/session-rosters?includeResults=true` mengembalikan peserta seluruh sesi yang dapat diakses akun dalam satu respons. Instruktur dibatasi pada sesi miliknya; pemain pada sesi yang diikutinya. Hasil akhir hanya disertakan untuk sesi selesai, dengan `results_available` sebagai penanda kelengkapan.
+- `GET /api/v1/analytics/players/{playerId}/gameplay?mode=MAHIR&status=ENDED` mengembalikan gameplay pemain per sesi. `mode` wajib `PEMULA` atau `MAHIR`; `status` menerima `ALL`, `CREATED`, `STARTED`, atau `ENDED`. Instruktur hanya dapat membaca peserta sesinya sendiri; pemain hanya dapat membaca dirinya sendiri. `gameplay: null` berarti sesi persiapan atau hasil yang belum tersedia, bukan nilai nol.
+- Halaman sesi menggunakan dua permintaan API, dan statistik menggunakan dua permintaan untuk pemain atau tiga untuk instruktur. Jumlah HTTP tidak bertambah per sesi; kalkulasi tetap memakai aturan dan sumber yang sama dengan detail analitika.
+- Nilai waktu API tetap ISO 8601 dengan offset. UI memformat waktu menurut zona browser dan menampilkan label zona; bila JavaScript belum berjalan, waktu ditampilkan eksplisit sebagai UTC.

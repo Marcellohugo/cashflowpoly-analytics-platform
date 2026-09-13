@@ -2504,6 +2504,12 @@ public sealed partial class ManualSimulationSeedIntegrationTests
         // pemilihan kunci/nilai `group => group.Key`, `group => new ReplaySessionState( group.First().SessionName, group.First().Mode,
         // group.First().Mode.Equals(”MAHIR”, StringComparison.OrdinalIgnoreCase) ? 10 : 20)`; kunci harus unik agar konversi berhasil. Tipe variabel
         // disimpulkan dari ekspresi nilai awal.
+        var startingCash = (await connection.QueryAsync<(Guid SessionId, int Cash)>("""
+            select s.session_id, gs.starting_cash from sessions s
+            join ruleset_game_settings gs using(ruleset_version_id)
+            where s.session_id::text like '91000000-%'
+            """)).ToDictionary(row => row.SessionId, row => row.Cash);
+
         var sessionStates = events
             // Melengkapi struktur ekspresi SimpleMemberAccessExpression melalui .GroupBy(e => e.SessionId) dalam AssertScenarioReplayIsValidAsync; token pada
             // baris ini menyambungkan bagian kode sebelum dan sesudahnya.
@@ -2524,7 +2530,7 @@ public sealed partial class ManualSimulationSeedIntegrationTests
                     // tidak gunakan `20` sebagai argumen ke konstruktor `ReplaySessionState`; Meneruskan nilai literal `”MAHIR”` sebagai argumen ke
                     // `group.First().Mode.Equals`; Meneruskan `StringComparison.OrdinalIgnoreCase` (nilai ordinal ignore case) sebagai argumen ke
                     // `group.First().Mode.Equals`.
-                    group.First().Mode.Equals("MAHIR", StringComparison.OrdinalIgnoreCase) ? 10 : 20));
+                    startingCash[group.Key]));
 
         // Menyiapkan variabel lokal `failures` untuk nilai failures dengan objek baru bertipe `List<string>` dengan nilai awal sesuai konstruktornya. Tipe
         // variabel disimpulkan dari ekspresi nilai awal.

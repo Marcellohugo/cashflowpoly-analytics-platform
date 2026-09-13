@@ -7,7 +7,11 @@
         const selected = options.find(option => option.dataset.playerId === playerId.value);
         if (selected) playerInput.value = selected.value;
         const resolvePlayer = () => {
-            const match = options.find(option => option.value.toLocaleLowerCase() === playerInput.value.trim().toLocaleLowerCase());
+            const value = playerInput.value.trim();
+            const exact = options.find(option => option.value === value);
+            const matches = options.filter(option => option.value.toLowerCase() === value.toLowerCase());
+            // Never silently select the first person when a typed name is ambiguous.
+            const match = exact || (matches.length === 1 ? matches[0] : null);
             playerId.value = match?.dataset.playerId || '';
             playerInput.setCustomValidity(match ? '' : playerInput.dataset.invalidPlayer);
         };

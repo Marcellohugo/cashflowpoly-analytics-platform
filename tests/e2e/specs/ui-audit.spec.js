@@ -83,7 +83,7 @@ for (const [role, username] of [['instructor', 'hadziq'], ['player', 'marco']]) 
           expect(Number(await values.nth(0).innerText())).toBeCloseTo(gameplay.economy.starting_cash + gameplay.economy.cashflow_net_total, 2);
           expect(Number(await values.nth(1).innerText())).toBeCloseTo(gameplay.economy.cashflow_net_total, 2);
           expect(Number(await values.nth(3).innerText())).toBeCloseTo(gameplay.score.happiness_points_total, 2);
-          await page.goto(`/statistics?mode=${session.mode}&playerId=${participant.user_id}`);
+          await page.goto(`/statistics?mode=${session.mode}&status=ENDED&playerId=${participant.user_id}`);
           await inspectStructure(page);
           await expect(page.locator('.player-statistics > [role="alert"]')).toHaveCount(0);
           const indexes = await page.locator('.statistics-session').evaluateAll(cards => Object.fromEntries(cards.map(card => [

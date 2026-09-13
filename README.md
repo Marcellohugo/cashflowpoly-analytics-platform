@@ -278,7 +278,7 @@ Pilih salah satu pendekatan berikut.
 
 ### Opsi A — Seed 2 untuk demo development
 
-Seed 2 menyediakan 16 sesi selesai: Hadziq dan Pratama masing-masing memiliki empat sesi `PEMULA` serta empat sesi `MAHIR`. Pilihan pemain dibuat bervariasi dengan hash tetap agar pengujian dapat diulang: urutan duduk/strategi berganti, nominal donasi berbeda, sebagian jatah kerja lepas tidak dipakai ketika kas mencukupi, serta waktu keputusan bervariasi. Harga kartu dan kewajiban mengikuti aturan. Dua sesi pertama tetap menjadi skenario acuan regresi. Jalankan melalui proses migrasi lalu bentuk snapshot analitik menggunakan kalkulator domain API yang sama dengan halaman analitika:
+Seed 2 menyediakan 24 sesi: 16 selesai, 4 persiapan, dan 4 berjalan. Pada sesi selesai, Hadziq dan Pratama masing-masing memiliki empat sesi `PEMULA` serta empat sesi `MAHIR`. Pilihan pemain dibuat bervariasi dengan hash tetap agar pengujian dapat diulang: urutan duduk/strategi berganti, nominal donasi berbeda, sebagian jatah kerja lepas tidak dipakai ketika kas mencukupi, serta waktu keputusan bervariasi. Harga kartu dan kewajiban mengikuti aturan. Dua sesi pertama tetap menjadi skenario acuan regresi. Jalankan melalui proses migrasi lalu bentuk snapshot analitik menggunakan kalkulator domain API yang sama dengan halaman analitika:
 
 ```powershell
 $env:DATABASE_MIGRATIONS_SEED_SIMULATION = 'true'
@@ -311,9 +311,9 @@ Akun demo lokal:
 | Player | `nadia` | `SeedLocal!2026` |
 | Player | `farhan` | `SeedLocal!2026` |
 
-Hadziq membimbing Marco, Marcello, Hugo, dan Manalu. Pratama membimbing Marco, Hugo, Nadia, dan Farhan. Marco dan Hugo mengikuti kedua instruktur untuk menguji bahwa instruktur hanya melihat sesi miliknya. Penggantian `rina.kartika` menjadi `hadziq` mempertahankan UUID akun demo; tidak membuat akun instruktur duplikat. Seed hanya mengganti 16 UUID sesi demo yang sudah ditentukan.
+Hadziq membimbing Marco, Marcello, Hugo, dan Manalu. Pratama membimbing Marco, Hugo, Nadia, dan Farhan. Marco dan Hugo mengikuti kedua instruktur untuk menguji bahwa instruktur hanya melihat sesi miliknya. Penggantian `rina.kartika` menjadi `hadziq` mempertahankan UUID akun demo; tidak membuat akun instruktur duplikat. Seed hanya mengganti 24 UUID sesi demo yang sudah ditentukan.
 
-File `database/02_seed_simulation_sessions_events.sql` juga menyediakan 10 ruleset pribadi per instruktur (5 Pemula dan 5 Mahir), di luar dua ruleset bawaan global. Delapan ruleset per instruktur dipakai pada delapan sesi yang sudah ada; dua sisanya tersedia untuk sesi berikutnya. Setiap salinan memiliki ID komponen sendiri dan mengikuti mekanik acuan modenya. Sesi, kejadian, kepemilikan kartu, serta snapshot hasil rekalkulasi memakai versi ruleset yang sama. Menjalankan ulang seed tidak menggandakan ruleset.
+File `database/02_seed_simulation_sessions_events.sql` juga menyediakan 10 ruleset pribadi per instruktur (5 Pemula dan 5 Mahir), di luar dua ruleset bawaan global. Seluruh sepuluh ruleset per instruktur dipakai: delapan pada sesi selesai dan dua pada skenario persiapan/berjalan. Versi aturan baru membedakan modal awal dan pendapatan kerja lepas, dengan nominal kejadian menyesuaikan aturan. Versi lama tetap tersedia bagi sesi yang sudah memakainya. Sesi, kejadian, kepemilikan kartu, serta snapshot hasil rekalkulasi memakai versi ruleset yang sama. Menjalankan ulang seed tidak menggandakan ruleset.
 
 Seed 2 tetap disertakan pada production sesuai kebutuhan demo/pengujian proyek. Seed hanya mengganti data pada UUID demo deterministiknya; akun ditandai `is_demo=true` dan tetap mengikuti hak akses biasa. Jangan menjalankan file SQL Seed 2 sendirian tanpa langkah rekalkulasi karena `metric_snapshots` sengaja hanya dibentuk oleh mesin analitik API.
 
@@ -633,12 +633,13 @@ docker compose `
 ### 4. Deploy dari VPS
 
 ```bash
-sudo APP_ROOT=/opt/cashflowpoly \
-  REPOSITORY_DIR=/opt/cashflowpoly/repository \
-  ENV_FILE=/opt/cashflowpoly/shared/.env.prod \
-  BRANCH=prod \
-  /opt/cashflowpoly/repository/scripts/deploy-production.sh
+git -C /root/cashflowpoly-analytics-platform fetch origin prod
+git -C /root/cashflowpoly-analytics-platform status --short
+git -C /root/cashflowpoly-analytics-platform checkout --detach origin/prod
+/root/cashflowpoly-analytics-platform/scripts/deploy-production.sh
 ```
+
+Jalankan sebagai `root` dan pastikan working tree bersih sebelum checkout. VPS menggunakan repository `/root/cashflowpoly-analytics-platform`, environment `/root/cashflowpoly-analytics-platform/config/env/.env.prod`, dan rilis `/opt/cashflowpoly/releases`. Default skrip mengikuti lokasi checkout dan environment tersebut; jangan menimpa file environment VPS yang sudah terisi.
 
 Skrip mengambil commit terbaru `origin/prod`, mengunci proses agar tidak berjalan ganda, membangun API/UI secara berurutan, menampilkan maintenance singkat, menjalankan `--migrate-only` beserta Seed 2 sesuai konfigurasi environment, rekalkulasi analitik, health/smoke test, lalu mempertahankan rilis aktif dan satu rilis sebelumnya.
 
@@ -666,7 +667,7 @@ Jika bootstrap digunakan, segera set flag ke `false`, kosongkan secret bootstrap
 
 ### Rollback
 
-Jika health/smoke test gagal, skrip menjalankan kembali image dari SHA sebelumnya. Schema database tidak diturunkan, sehingga semua migrasi wajib kompatibel maju (*expand/contract*).
+Jika health/smoke test gagal, skrip menjalankan kembali image dari SHA sebelumnya dan memulihkan penunjuk `current`. Kegagalan cleanup setelah rilis sehat hanya menghasilkan peringatan. Deployment ulang SHA yang sama juga didukung. Schema database tidak diturunkan, sehingga semua migrasi wajib kompatibel maju (*expand/contract*).
 
 Keputusan proyek ini secara eksplisit tidak membuat backup database, termasuk sebelum migrasi. Kegagalan VPS, kesalahan operator, atau migrasi rusak dapat menyebabkan kehilangan data permanen. Jangan memakai `down -v`, `DROP DATABASE`, atau reset Seed pada production.
 

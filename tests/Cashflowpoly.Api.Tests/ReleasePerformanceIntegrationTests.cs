@@ -733,7 +733,8 @@ public sealed class ReleasePerformanceIntegrationTests
         // Menyiapkan variabel lokal `activeSessionCount` untuk nilai aktif sesi jumlah dengan hasil operasi asinkron menjalankan perintah basis data
         // melalui `connection` dengan `”select count(*) from sessions where status = 'STARTED';”` dan mengambil nilai skalar hasilnya; await menunggu hasil
         // tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var activeSessionCount = await connection.ExecuteScalarAsync<int>("select count(*) from sessions where status = 'STARTED';");
+        var activeSessionCount = await connection.ExecuteScalarAsync<int>(
+            "select count(*) from sessions where status = 'STARTED' and session_name like 'Performance Active Session %';");
         // Menyiapkan variabel lokal `minimumEventCount` untuk nilai minimum event jumlah dengan hasil operasi asinkron menjalankan perintah basis data
         // melalui `connection` dengan `”select min(event_count) from (select count(*)::int event_count from events where session_id in (select session_id
         // from sessions where session_name like 'Performance Active Se...` dan mengambil nilai skalar hasilnya; await menunggu hasil tanpa memblokir thread

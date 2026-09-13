@@ -471,7 +471,8 @@ public sealed class DeploymentAssetTests
         Assert.Contains("up -d --no-recreate db", script, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”up -d --no-build --force-recreate api
         // ui nginx cloudflared”`, `script`, `StringComparison.Ordinal` dalam DeploymentScript_ShouldLockMigrateRecalculateAndRollbackImagesOnly.
-        Assert.Contains("up -d --no-build --force-recreate api ui nginx cloudflared", script, StringComparison.Ordinal);
+        Assert.Contains("up -d --no-build --force-recreate api ui nginx", script, StringComparison.Ordinal);
+        Assert.Contains("up -d --no-build --no-deps --force-recreate cloudflared", script, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”MaxRetentionSec=30day”`, `script`,
         // `StringComparison.Ordinal` dalam DeploymentScript_ShouldLockMigrateRecalculateAndRollbackImagesOnly.
         Assert.Contains("MaxRetentionSec=30day", script, StringComparison.Ordinal);

@@ -82,9 +82,9 @@ public sealed class PlayerStatisticsTests
         var preparing = Session("PEMULA", "CREATED");
         var handler = new ResponseHandler(path => path == "/api/v1/sessions"
             ? Json(new SessionListResponse([preparing, good, wrongOwner, failed]))
-            : path.Contains(good.SessionId.ToString()) ? Json(Gameplay(good))
-            : path.Contains(wrongOwner.SessionId.ToString()) ? Json(Gameplay(wrongOwner) with { UserId = Guid.NewGuid() })
-            : new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+            : Json(new PlayerGameplayHistoryResponse([
+                new(good.SessionId, Gameplay(good)), new(wrongOwner.SessionId, Gameplay(wrongOwner) with { UserId = Guid.NewGuid() }),
+                new(failed.SessionId, null)])));
         var result = Assert.IsType<ViewResult>(await Controller(handler).Index("MAHIR", null, TestContext.Current.CancellationToken));
         var model = Assert.IsType<PlayerStatisticsViewModel>(result.Model);
         Assert.Equal(4, model.TotalSessions);
@@ -94,8 +94,8 @@ public sealed class PlayerStatisticsTests
         Assert.Equal(Player, model.PlayerId);
         Assert.Equal(T("statistics.error.partial"), model.ErrorMessage);
         var analyticsRequests = handler.Paths.Where(p => p.Contains("/analytics/")).ToList();
-        Assert.Equal(3, analyticsRequests.Count);
-        Assert.All(analyticsRequests, p => Assert.EndsWith($"/players/{Player}/gameplay", p));
+        Assert.Single(analyticsRequests);
+        Assert.EndsWith($"/players/{Player}/gameplay?mode=MAHIR&status=ALL", analyticsRequests[0]);
         Assert.DoesNotContain(analyticsRequests, p => p.Contains(preparing.SessionId.ToString()));
     }
 
@@ -108,12 +108,13 @@ public sealed class PlayerStatisticsTests
         var ongoing = Session("MAHIR", "STARTED");
         var handler = new ResponseHandler(path => path == "/api/v1/sessions"
             ? Json(new SessionListResponse([last, ongoing, otherMode, first]))
-            : Json(Gameplay(path.Contains(first.SessionId.ToString()) ? first : last)));
+            : Json(new PlayerGameplayHistoryResponse([new(first.SessionId, Gameplay(first)), new(last.SessionId, Gameplay(last))])));
         var view = Assert.IsType<ViewResult>(await Controller(handler).Index("mahir", "ended", TestContext.Current.CancellationToken));
         var model = Assert.IsType<PlayerStatisticsViewModel>(view.Model);
         Assert.Equal(4, model.TotalSessions);
         Assert.Equal(new[] { first.SessionId, last.SessionId }, model.Sessions.Select(s => s.Session.SessionId));
-        Assert.Equal(3, handler.Paths.Count);
+        Assert.Equal(2, handler.Paths.Count);
+        Assert.Contains(handler.Paths, path => path.EndsWith("?mode=MAHIR&status=ENDED", StringComparison.Ordinal));
         Assert.Null(model.ErrorMessage);
     }
 
@@ -140,7 +141,7 @@ public sealed class PlayerStatisticsTests
     {
         var first = Session("PEMULA");
         var last = Session("MAHIR") with { StartedAt = Date.AddDays(2) };
-        var handler = new ResponseHandler(path => path == "/api/v1/sessions" ? Json(new SessionListResponse([first, last])) : Json(Gameplay(last)));
+        var handler = new ResponseHandler(path => path == "/api/v1/sessions" ? Json(new SessionListResponse([first, last])) : Json(new PlayerGameplayHistoryResponse([new(last.SessionId, Gameplay(last))])));
         var result = Assert.IsType<ViewResult>(await Controller(handler).Index(mode, null, TestContext.Current.CancellationToken));
         var model = Assert.IsType<PlayerStatisticsViewModel>(result.Model);
         Assert.Equal("MAHIR", model.Mode);
@@ -157,14 +158,15 @@ public sealed class PlayerStatisticsTests
         var notJoined = Session("MAHIR");
         var other = Guid.NewGuid();
         var handler = new ResponseHandler(path => path == "/api/v1/sessions" ? Json(new SessionListResponse([shared, notJoined]))
-            : path.EndsWith("/players") ? Json(new SessionPlayerListResponse(path.Contains(shared.SessionId.ToString())
-                ? [new(Player, "Selected Player", 1)] : [new(other, "Other Participant", 1)]))
-            : Json(Gameplay(shared)));
+            : path.Contains("/session-rosters") ? Json(new SessionRostersResponse([
+                new(shared.SessionId, [new(Player, "Selected Player", 1, null, null)], false),
+                new(notJoined.SessionId, [new(other, "Other Participant", 1, null, null)], false)]))
+            : Json(new PlayerGameplayHistoryResponse([new(shared.SessionId, Gameplay(shared))])));
         var result = await Controller(handler, "INSTRUCTOR").Index("MAHIR", null, TestContext.Current.CancellationToken, foreignPlayer ? Guid.NewGuid() : Player);
         if (foreignPlayer)
         {
             Assert.IsType<NotFoundResult>(result);
-            Assert.DoesNotContain(handler.Paths, p => p.Contains("/analytics/"));
+            Assert.DoesNotContain(handler.Paths, p => p.Contains("/gameplay"));
         }
         else
         {
@@ -172,7 +174,7 @@ public sealed class PlayerStatisticsTests
             Assert.Equal(2, model.AvailablePlayers.Count);
             Assert.Equal(1, model.TotalSessions);
             Assert.Equal(shared.SessionId, Assert.Single(model.Sessions).Session.SessionId);
-            Assert.Equal($"/api/v1/analytics/sessions/{shared.SessionId}/players/{Player}/gameplay", Assert.Single(handler.Paths, p => p.Contains("/analytics/")));
+            Assert.Equal($"/api/v1/analytics/players/{Player}/gameplay?mode=MAHIR&status=ALL", Assert.Single(handler.Paths, p => p.Contains("/gameplay")));
         }
     }
 
@@ -181,9 +183,9 @@ public sealed class PlayerStatisticsTests
     {
         var ended = Session("MAHIR");
         var empty = Session("PEMULA", "CREATED");
-        var handler = new ResponseHandler(path => path.EndsWith("/players")
-            ? Json(new SessionPlayerListResponse(path.Contains(ended.SessionId.ToString()) ? [new(Player, "Known Player", 1)] : []))
-            : new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        var handler = new ResponseHandler(_ => Json(new SessionRostersResponse([
+            new(ended.SessionId, [new(Player, "Known Player", 1, null, null)], false),
+            new(empty.SessionId, [], false)])));
         var groups = await SessionRosterLoader.LoadAsync(new ClientFactory(handler).CreateClient("Api"), [ended, empty], true, TestContext.Current.CancellationToken);
         Assert.Equal(2, groups.Count);
         Assert.All(groups, g => Assert.True(g.ParticipantsAvailable));
@@ -191,6 +193,54 @@ public sealed class PlayerStatisticsTests
         Assert.False(groups[0].ResultsAvailable);
         Assert.Empty(groups[1].Players);
         Assert.Single(handler.Paths, path => path.Contains("/analytics/"));
+    }
+
+    [Theory]
+    [InlineData("PLAYER", 2)]
+    [InlineData("INSTRUCTOR", 3)]
+    public async Task Controller_PreservesAll160SessionsWithConstantHttpRequests(string role, int expectedRequests)
+    {
+        var sessions = Enumerable.Range(0, 160).Select(i => Session("MAHIR") with
+            { StartedAt = Date.AddDays(i), CreatedAt = Date.AddDays(i) }).ToList();
+        var handler = new ResponseHandler(path => path == "/api/v1/sessions" ? Json(new SessionListResponse(sessions))
+            : path.Contains("/session-rosters") ? Json(new SessionRostersResponse(sessions.Select(s =>
+                new SessionRosterResponse(s.SessionId, [new(Player, "Known Player", 1, 1, 36)], true)).ToList()))
+            : Json(new PlayerGameplayHistoryResponse(sessions.Select(s => new SessionGameplayItem(s.SessionId, Gameplay(s))).ToList())));
+        var result = Assert.IsType<ViewResult>(await Controller(handler, role).Index("MAHIR", null, TestContext.Current.CancellationToken, Player));
+        var model = Assert.IsType<PlayerStatisticsViewModel>(result.Model);
+        Assert.Equal(160, model.Sessions.Count);
+        Assert.Equal(160, model.TotalSessions);
+        Assert.All(model.Sessions, s => Assert.NotNull(s.Gameplay));
+        Assert.All(model.Charts, chart => Assert.Equal(160, chart.Points.Count));
+        Assert.Null(model.ErrorMessage);
+        Assert.Equal(expectedRequests, handler.Paths.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BatchFailure_PreservesSessionRowsAsMissing(bool networkFailure)
+    {
+        var sessions = new[] { Session("MAHIR"), Session("MAHIR", "CREATED") };
+        var handler = new ResponseHandler(path => path == "/api/v1/sessions" ? Json(new SessionListResponse(sessions.ToList()))
+            : networkFailure ? throw new HttpRequestException("offline") : new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        var result = Assert.IsType<ViewResult>(await Controller(handler).Index("MAHIR", null, TestContext.Current.CancellationToken));
+        var model = Assert.IsType<PlayerStatisticsViewModel>(result.Model);
+        Assert.Equal(2, model.Sessions.Count);
+        Assert.All(model.Sessions, s => Assert.Null(s.Gameplay));
+        Assert.Equal(T("statistics.error.partial"), model.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task SessionList_Preserves160RostersInOneBatchRequest()
+    {
+        var sessions = Enumerable.Range(0, 160).Select(_ => Session("MAHIR")).ToList();
+        var handler = new ResponseHandler(_ => Json(new SessionRostersResponse(sessions.Select(s =>
+            new SessionRosterResponse(s.SessionId, [new(Player, "Known Player", 1, 1, 36)], true)).ToList())));
+        var groups = await SessionRosterLoader.LoadAsync(new ClientFactory(handler).CreateClient("Api"), sessions, true, TestContext.Current.CancellationToken);
+        Assert.Equal(160, groups.Count);
+        Assert.All(groups, g => { Assert.True(g.ParticipantsAvailable); Assert.True(g.ResultsAvailable); Assert.Single(g.Players); });
+        Assert.Single(handler.Paths);
     }
 
     private static SessionListItem Session(string mode, string status = "ENDED") =>
@@ -220,7 +270,7 @@ public sealed class PlayerStatisticsTests
         public ConcurrentBag<string> Paths { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
-            var path = request.RequestUri!.AbsolutePath;
+            var path = request.RequestUri!.PathAndQuery;
             Paths.Add(path);
             return Task.FromResult(respond(path));
         }

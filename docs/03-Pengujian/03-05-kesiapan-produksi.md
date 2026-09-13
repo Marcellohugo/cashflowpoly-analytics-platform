@@ -1,46 +1,49 @@
 # Verifikasi kesiapan produksi
 
-Tanggal pemeriksaan: 13 September 2026. Hasil: pemeriksaan lokal lulus; deployment ke server tidak dijalankan pada pekerjaan ini.
+Tanggal pemeriksaan: 13 September 2026. Dokumen ini mencatat verifikasi perbaikan audit setelah rilis `59552ec`. Status rilis aktif diperiksa melalui log deployment dan symlink `current` di server.
 
-## Perubahan yang diselesaikan
+## Perbaikan audit
 
-- Seed 2 tetap aktif pada konfigurasi production sesuai permintaan pengguna. Migrasi menjalankan seed, kemudian deployment menjalankan rekalkulasi analitik. Restart runtime production hanya memverifikasi migrasi.
-- Batas waktu SQL untuk baseline, migrasi, dan seed dinaikkan menjadi 300 detik. Permintaan API biasa tetap memakai batas waktunya sendiri. Seed 2 yang diperluas sebelumnya melewati batas 30 detik.
-- Penandaan akun demo menggunakan UUID yang ditetapkan Seed 2; pembaruan tambahan berdasarkan nama pengguna lama dihapus.
-- Image API/UI menggunakan .NET SDK 10.0.401 dan ASP.NET Core 10.0.12. Paket Microsoft terkait diperbarui ke 10.0.12. Build aset UI menggunakan Node 24.21.0 LTS. Sumber versi: [metadata resmi .NET](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json) dan [rilis resmi Node](https://nodejs.org/dist/index.json).
-- Port internal produksi, alamat API yang dipakai UI, dan health check diselaraskan dengan upstream Nginx. API/UI/database tetap tidak memublikasikan port ke host.
-- Health check Cloudflare Tunnel memakai pemeriksaan `tunnel ready`, bukan pemeriksaan versi executable. Endpoint metrik hanya mendengarkan loopback container.
-- Retensi worktree melindungi direktori rilis aktif dan sebelumnya berdasarkan jalur absolut, termasuk saat rilis lama dipasang ulang. Smoke test HTTPS melalui Nginx meneruskan skema yang benar.
-- Pemeriksa konfigurasi mendukung jalur absolut, nilai dotenv berpetik, validasi hostname/token, serta nilai boolean Seed 2. Laporannya membedakan validasi lokal dari konektivitas server.
-- Header kolom tabel diratakan ke tengah; kolom Urutan Pemain dihapus dari formulir/ringkasan ruleset. Aturan urutan giliran dalam data permainan tetap berlaku.
-- README, panduan pengguna, kontrak registrasi, peta halaman Statistik Pemain, dan koleksi Postman diselaraskan dengan implementasi.
+- Deployment menyalakan API/UI/Nginx terlebih dahulu, membuka maintenance setelah API/UI siap, lalu menyalakan Cloudflare Tunnel. Mengulang SHA yang sama tidak terjebak pada health check Nginx dan tetap menyimpan rilis rollback. Kegagalan pembersihan setelah aktivasi tidak membatalkan rilis sehat.
+- Statistik memakai endpoint gabungan untuk roster dan gameplay. Halaman pemain membutuhkan paling banyak dua permintaan API dan halaman instruktur tiga, terlepas dari jumlah sesi. Perhitungan menggunakan kalkulator yang sama dengan analitika per sesi; mode, kepemilikan sesi, dan identitas pemain tetap diperiksa di server.
+- Pilihan nama pemain membedakan nama identik atau yang hanya berbeda huruf besar/kecil. Masukan ambigu tidak diam-diam memilih UUID pertama.
+- Waktu statis dan aktivitas langsung mengikuti zona waktu browser, dengan label zona. HTML menyimpan waktu ISO dan menyediakan teks UTC sebelum JavaScript berjalan.
+- Seed 2 tetap aktif di production. Data berisi 24 sesi: 16 selesai, 4 persiapan, dan 4 berjalan. Masing-masing instruktur memiliki empat sesi selesai per mode, satu persiapan per mode, dan satu berjalan per mode.
+- Hadziq dan Pratama masing-masing memiliki 10 konfigurasi ruleset berbeda yang terpakai. Versi baru mengubah modal awal dan pendapatan kerja lepas; nilai kejadian mengikuti versinya. Versi lama yang digunakan sesi lain dipertahankan. Waktu berakhir sesi mencakup seluruh kejadian.
+- Komentar otomatis yang mengulang setiap baris kode dibersihkan. CSS produksi diminifikasi dengan tool yang sudah tersedia. `site.css` turun dari 1.244.905 menjadi 135.884 byte, sekitar 89%, tanpa mengubah aturan tampilannya.
+- README, kontrak endpoint gabungan, Postman, dan runbook memakai implementasi serta lokasi repository VPS yang aktual. Pesan API baru memiliki terjemahan Inggris.
 
 ## Bukti pemeriksaan
 
 | Pemeriksaan | Hasil |
 |---|---|
 | Build Release `/warnaserror` | Lulus, 0 warning dan 0 error |
-| Unit, integrasi PostgreSQL, kontrak API dan performa setelah konfigurasi Seed 2 akhir | 369 lulus |
-| Pengujian UI .NET | 401 lulus |
-| E2E Chromium desktop dan ponsel | 64 lulus |
-| Performa 100 akun, 20 sesi, 20 klien bersamaan | Lulus: P95 ingest ≤500 ms dan analitika ≤1.500 ms |
+| Unit, integrasi PostgreSQL, kontrak API | 369 lulus |
+| Pengujian UI .NET | 406 lulus |
+| Performa 100 akun, 20 sesi uji aktif, 20 klien bersamaan, 2.000 kejadian per sesi | 1 lulus; P95 ingest ≤500 ms dan analitika ≤1.500 ms |
+| Statistik 160 sesi yang dimainkan ditambah skenario batas | Cakupan akun, pemisahan mode, null untuk persiapan, dan kesamaan dengan endpoint per sesi lulus |
+| E2E Chromium desktop dan ponsel | 70 skenario lulus: 66 pada run lengkap dan 4 pada pengulangan setelah asumsi tes diperbarui |
 | Audit NuGet termasuk dependensi transitif | Tidak ditemukan paket rentan |
 | Audit npm UI dan E2E | 0 kerentanan |
-| Validasi konfigurasi produksi lokal dan Compose | Lulus |
+| Konfigurasi produksi lokal, Compose, dan konsistensi dokumentasi | Lulus |
 | Sintaks Bash, PowerShell, JavaScript frontend | Lulus |
-| Image produksi API dan UI | Berhasil dibangun, pengguna runtime `app` |
-| Smoke image production pada PostgreSQL kosong sementara | Lulus: migrasi dua kali, startup, UI publik/aset, API terproteksi, Swagger nonaktif, rekalkulasi |
-| Hasil Seed 2 pada image production | 8 akun, 16 sesi, 22 ruleset; 10 ruleset per instruktur dan 2 bawaan; tidak mengganda setelah migrasi ulang |
-| Snapshot hasil rekalkulasi production | 64 `gameplay.raw.variables` dan 64 `gameplay.derived.metrics` |
-| Header tabel dan ringkasan ruleset pada lebar 1081/390 px | 126 header per ukuran layar rata tengah; Urutan Pemain tidak tampil |
+| Regresi deployment terisolasi | 4 skenario lulus; pengujian Compose/Nginx aktual juga lulus |
+| Image produksi pada PostgreSQL kosong sementara | Migrasi dua kali, startup, UI/aset, API terproteksi, Swagger nonaktif, dan rekalkulasi lulus |
+| Seed 2 pada image produksi | 8 akun, 24 sesi, 22 ruleset; 10 per instruktur dan 2 bawaan; tidak mengganda |
+| Snapshot hasil rekalkulasi produksi | 80 `gameplay.raw.variables` dan 80 `gameplay.derived.metrics` |
+| Perlindungan data di luar seed | Uji terisolasi memastikan sesi di luar 24 UUID dan versi aturan yang dipakainya tidak berubah |
 | `git diff --check` | Lulus |
 
-Gerbang lengkap dijalankan tanpa parameter skip. Setelah penyesuaian terakhir agar Seed 2 tetap aktif di production, seluruh pengujian .NET, konfigurasi, dan smoke image produksi diulang. Perubahan CSS terakhir juga diperiksa langsung pada desktop/ponsel dan image UI dibangun ulang.
+Run lengkap menemukan dua asumsi tes browser yang masih memakai data lama: delapan sesi instruktur dan ketiadaan semua tautan pada sesi persiapan. Asumsi diperbaiki menjadi 12 sesi serta larangan khusus tautan analitika; keempat kasus desktop/ponsel kemudian lulus pada pengulangan. Build image dan regresi deployment dijalankan terpisah setelah tahap browser. Tidak ada tahap pemeriksaan yang dilewati.
 
-Log lokal tersedia pada `artifacts/production-release-final.log`, `artifacts/production-seed-final-tests.log`, `artifacts/production-seed-image-smoke.log`, dan `artifacts/production-ui-check.log`. Artefak hasil pengujian tidak masuk image Docker.
+Seed diuji melalui replay legal seluruh kejadian, pemeriksaan saldo terhadap kalkulator, serta penerapan ulang deterministik. Dua sesi awal tetap menjadi acuan angka regresi. Tes beban menghitung 20 sesi khusus pengukuran, terpisah dari empat sesi demo yang sedang berjalan.
 
-## Langkah rilis
+Log lokal: `artifacts/audit-fixes-release.log`, `artifacts/audit-fixes-browser-recheck.log`, `artifacts/audit-fixes-deployment-tests.log`, `artifacts/audit-fixes-production-smoke.log`, `artifacts/audit-production-readiness.log`, `artifacts/batch-api-tests.log`, `artifacts/seed-diversity-test.log`, dan `artifacts/deployment-nginx-smoke.log`. Artefak pengujian tidak masuk image Docker.
 
-Jalankan `scripts/Test-ProductionReadiness.ps1` terhadap environment tujuan, lalu gunakan runbook [deployment produksi](../00-Panduan/00-04-panduan-deployment-produksi.md). Seed 2 memakai `DATABASE_MIGRATIONS_SEED_SIMULATION=true`; rekalkulasi wajib mengikuti migrasi. Verifikasi domain, TLS, tunnel aktif, serta login pada server setelah deployment.
+## Pelaksanaan rilis
 
-Kebijakan proyek tetap memakai deployment manual tanpa GitHub Actions. Sesuai keputusan proyek yang sudah tercatat, rollback hanya memulihkan image aplikasi; backup dan rollback database belum tersedia.
+Gunakan [runbook deployment produksi](../00-Panduan/00-04-panduan-deployment-produksi.md). Repository VPS berada di `/root/cashflowpoly-analytics-platform`, environment di `config/env/.env.prod` dalam repository itu, dan worktree rilis di `/opt/cashflowpoly/releases`. Skrip memperoleh path repository dari lokasi skrip; penggantian environment/path tetap tersedia melalui variabel yang didokumentasikan.
+
+`DATABASE_MIGRATIONS_SEED_SIMULATION=true` tetap berlaku dan rekalkulasi wajib mengikuti migrasi. Setelah deploy, periksa domain/TLS, health lima service, login kedua peran, jumlah seed, serta data sesi/partisipan/kejadian di luar seed.
+
+Kebijakan proyek tetap memakai deployment manual tanpa GitHub Actions. Sesuai keputusan proyek yang sudah tercatat, rollback memulihkan image aplikasi; backup dan rollback database belum tersedia.

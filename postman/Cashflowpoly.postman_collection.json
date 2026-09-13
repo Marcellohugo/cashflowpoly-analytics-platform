@@ -63,6 +63,8 @@
         "type": "text/javascript",
         "exec": [
           "const expectedByRequest = {",
+          "  'Gameplay pemain lintas sesi per mode': [200],",
+          "  'Roster sesi yang dapat diakses': [200],",
           "  'Register Public Instructor': [201],",
           "  'Login': [200],",
           "  'Create Ruleset PEMULA': [201],",
@@ -859,6 +861,81 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/health/ready"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Statistik lintas sesi",
+      "item": [
+        {
+          "name": "Roster sesi yang dapat diakses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/session-rosters?includeResults=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "session-rosters"
+              ],
+              "query": [
+                {
+                  "key": "includeResults",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Roster dibatasi oleh lingkup sesi akun. Hasil akhir hanya tersedia pada sesi selesai."
+          }
+        },
+        {
+          "name": "Gameplay pemain lintas sesi per mode",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/players/{{playerUserId}}/gameplay?mode=MAHIR&status=ENDED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "players",
+                "{{playerUserId}}",
+                "gameplay"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "MAHIR"
+                },
+                {
+                  "key": "status",
+                  "value": "ENDED"
+                }
+              ]
+            },
+            "description": "Instruktur hanya peserta sesinya sendiri; pemain hanya diri sendiri. Pilih satu mode permainan."
           }
         }
       ]

@@ -20,7 +20,7 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await expect(page.locator('a[href="/players"]')).toHaveCount(0);
   const removed = await page.goto("/players");
   expect(removed.status()).toBe(404);
-  await page.goto("/statistics?mode=MAHIR");
+  await page.goto("/statistics?mode=MAHIR&status=ENDED");
   await expect(page.locator("h1")).toHaveText("Statistik Pemain");
   await expect(page.locator(".statistics-chart")).toHaveCount(19);
   await expect(page.locator(".statistics-session")).toHaveCount(8);
@@ -104,11 +104,11 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await page.locator('[data-statistics-metric="cash_growth_percent"] svg [tabindex="0"]').first().hover();
   await expect(page.locator('[data-statistics-metric="cash_growth_percent"] .js-chart-bar-insight')).toContainText("+20");
   await page.goto('/sessions');
-  await expect(page.locator('.players-session-card')).toHaveCount(16);
+  await expect(page.locator('.players-session-card')).toHaveCount(24);
   await expect(page.locator('.session-stats-grid .stat-card')).toHaveCount(4);
-  await expect(page.locator('.players-session-detail')).toHaveCount(16);
+  await expect(page.locator('.players-session-detail')).toHaveCount(24);
   const ownLinks = await page.locator('.players-session-table a').evaluateAll(links => links.map(a => a.getAttribute('href')));
-  expect(ownLinks).toHaveLength(16);
+  expect(ownLinks).toHaveLength(20);
   expect(ownLinks.every(link => link.endsWith('/players/' + playerId))).toBeTruthy();
   await expect(page.locator('.session-stats-grid .stat-card').last()).toContainText('6');
   for (const table of await page.locator('.players-session-card .table-wrap').all()) {
@@ -125,7 +125,7 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await page.goto(sessionLinks[0]);
   await expect(page.locator('.player-detail-statistics-link')).toBeVisible();
   await expect(page.locator('a[href="/players"]')).toHaveCount(0);
-  await page.goto("/statistics");
+  await page.goto("/statistics?status=ENDED");
   await page.locator("#statistics-mode").selectOption("PEMULA");
   await page.getByRole("button", { name: "Tampilkan", exact: true }).click();
   await expect(page.locator(".statistics-session")).toHaveCount(8);
@@ -134,7 +134,15 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await expect(page.locator('.statistics-chart svg [tabindex="0"]').first()).toBeVisible();
   await page.locator("#statistics-status").selectOption("CREATED");
   await page.getByRole("button", { name: "Tampilkan", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Tidak ada sesi yang cocok" })).toBeVisible();
+  await expect(page.locator('.statistics-session')).toHaveCount(2);
+  await expect(page.locator('.statistics-chart svg [tabindex="0"]')).toHaveCount(0);
+  await expect(page.locator('.statistics-session a[href*="/players/"]')).toHaveCount(0);
+  await expect(page.locator('.statistics-session a')).toHaveCount(2);
+  await page.locator('#statistics-status').selectOption('STARTED');
+  await page.getByRole('button', { name: 'Tampilkan', exact: true }).click();
+  await expect(page.locator('.statistics-session')).toHaveCount(2);
+  await expect(page.locator('.statistics-session a')).toHaveCount(2);
+  await expect(page.locator('[data-statistics-metric="total_happiness_points"] svg [tabindex="0"]')).toHaveCount(2);
   await page.goto("/statistics");
   await page.locator(".nav-dropdown-lang summary").click();
   await page.getByRole("button", { name: "Bahasa Inggris (EN)", exact: true }).click();
@@ -194,10 +202,10 @@ for (const [instructor, selectedPlayer] of [
 test(`instruktur ${instructor} memilih peserta sesinya dan dapat membuka statistik per mode`, async ({ page }, testInfo) => {
   await login(page, instructor);
   await page.goto('/sessions');
-  await expect(page.locator('.players-session-card')).toHaveCount(8);
-  await expect(page.locator('.players-session-table a')).toHaveCount(32);
+  await expect(page.locator('.players-session-card')).toHaveCount(12);
+  await expect(page.locator('.players-session-table a')).toHaveCount(40);
   await expect(page.locator('a[href="/players"]')).toHaveCount(0);
-  await page.goto('/statistics?mode=MAHIR&playerId=' + playerId);
+  await page.goto('/statistics?mode=MAHIR&status=ENDED&playerId=' + playerId);
   await expect(page.locator('#statistics-players option')).toHaveCount(4);
   await expect(page.locator('#statistics-player')).toHaveValue('Marco');
   await expect(page.locator('.player-statistics > .page-intro .page-intro-actions')).toHaveCount(0);

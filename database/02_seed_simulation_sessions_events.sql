@@ -1,4 +1,4 @@
--- Fungsi file: Membentuk 16 sesi demo Hadziq dan Pratama, memainkan kejadian yang konsisten, lalu menyiapkan hasil untuk rekalkulasi API.
+-- Fungsi file: Membentuk 24 sesi demo Hadziq dan Pratama, memainkan kejadian yang konsisten, lalu menyiapkan hasil untuk rekalkulasi API.
 -- Pilihan pseudoacak memakai hash tetap agar hasil dapat direproduksi; dua sesi pertama menjadi acuan regresi.
 begin;
 
@@ -73,10 +73,10 @@ drop table if exists seed_session_scope;
 
 create temporary table seed_session_scope (session_id uuid primary key) on commit drop;
 
--- Enam belas identitas tetap; tidak menyentuh sesi di luar scope demo ini.
+-- Dua puluh empat identitas tetap; tidak menyentuh sesi di luar scope demo ini.
 insert into seed_session_scope(session_id)
 select ('91000000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid
-from generate_series(1,16) n;
+from generate_series(1,24) n;
 
 update
   sessions
@@ -421,12 +421,13 @@ update app_users set is_demo=true where user_id in (
 '90000000-0000-0000-0000-000000000012','90000000-0000-0000-0000-000000000013','90000000-0000-0000-0000-000000000014');
 
 -- Sepuluh set aturan pribadi per instruktur: lima Pemula dan lima Mahir.
--- Delapan dipakai sesi yang sudah ada; pasangan kelima tersedia untuk latihan berikutnya.
--- Mekanik dan harga mengikuti acuan mode agar transaksi yang direplay tetap sah.
+-- Semua dipakai oleh sesi selesai, persiapan, atau sedang berjalan.
+-- Versi pertama tetap utuh agar sesi pengguna yang sudah memakainya tidak berubah.
 create temporary table seed_rulesets on commit drop as
 select n, (n-1)%10+1 as ordinal,
   ('97000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid as ruleset_id,
-  ('98000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid as version_id,
+  ('98000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid as legacy_version_id,
+  ((case when n<=2 then '98000000' else '98100000' end)||'-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid as version_id,
   ('90000000-0000-0000-0000-'||lpad((case when n<=10 then 1 else 2 end)::text,12,'0'))::uuid as instructor_id,
   (case when n%2=1 then 'f5b4c67b-0825-4970-9f07-3b68e8fcb524' else '7c3bfd8a-27d7-4468-b8d7-cf90131bc61d' end)::uuid as source_version
 from generate_series(1,20) n;
@@ -435,16 +436,28 @@ insert into rulesets(ruleset_id,name,description,instructor_user_id,created_by_u
 select r.ruleset_id,u.display_name||' - '||initcap(v.mode)||' - '||
   (array['Mengatur Belanja','Mencoba Usaha','Menyiapkan Kebutuhan','Meninjau Keputusan','Latihan Mandiri'])[(r.ordinal+1)/2],
   'Set latihan '||initcap(v.mode)||' milik '||u.display_name||'. '||
-  (case when r.ordinal<=8 then 'Digunakan pada sesi latihan yang tersedia.' else 'Disiapkan untuk sesi latihan berikutnya.' end),
+  'Digunakan pada sesi latihan dengan kondisi dan modal yang bervariasi.',
   r.instructor_id,r.instructor_id,timestamptz '2026-01-01 00:00:00+00'+r.n*interval '1 minute'
 from seed_rulesets r join app_users u on u.user_id=r.instructor_id
 join ruleset_versions v on v.ruleset_version_id=r.source_version
 on conflict(ruleset_id) do nothing;
 
 insert into ruleset_versions(ruleset_version_id,ruleset_id,version,status,mode,schema_version,config_hash,change_note,published_at,created_at,created_by_user_id)
-select r.version_id,r.ruleset_id,1,'ACTIVE',v.mode,v.schema_version,v.config_hash,
+select r.legacy_version_id,r.ruleset_id,1,case when r.n<=2 then 'ACTIVE' else 'ARCHIVED' end,v.mode,v.schema_version,v.config_hash,
   'Acuan mode untuk latihan seed 2.',timestamptz '2026-01-01 00:00:00+00',timestamptz '2026-01-01 00:00:00+00',r.instructor_id
 from seed_rulesets r join ruleset_versions v on v.ruleset_version_id=r.source_version
+on conflict(ruleset_version_id) do nothing;
+
+-- Versi kedua hanya mengganti modal dan hasil kerja lepas. Harga kartu serta batas aksi
+-- tetap mengikuti acuan supaya perbedaan hasil masih mudah dibandingkan.
+update ruleset_versions v set status='ARCHIVED'
+from seed_rulesets r where r.n>2 and v.ruleset_version_id=r.legacy_version_id and v.status='ACTIVE';
+insert into ruleset_versions(ruleset_version_id,ruleset_id,version,status,mode,schema_version,config_hash,change_note,published_at,created_at,created_by_user_id)
+select r.version_id,r.ruleset_id,2,'ACTIVE',v.mode,v.schema_version,
+  encode(digest(v.config_hash||':seed2-v2:'||r.n::text,'sha256'),'hex'),
+  'Variasi modal awal dan pendapatan kerja lepas untuk pengujian.',
+  timestamptz '2026-01-02',timestamptz '2026-01-02',r.instructor_id
+from seed_rulesets r join ruleset_versions v on v.ruleset_version_id=r.source_version where r.n>2
 on conflict(ruleset_version_id) do nothing;
 
 -- Salin komponen dalam urutan dependensi. Seluruh ID dan FK UUID dipetakan konsisten
@@ -452,7 +465,10 @@ on conflict(ruleset_version_id) do nothing;
 do $$
 declare r record; component_table text; columns_sql text; values_sql text;
 begin
-  for r in select * from seed_rulesets order by n loop
+  for r in
+    select legacy_version_id as version_id,source_version from seed_rulesets
+    union select version_id,source_version from seed_rulesets
+  loop
     foreach component_table in array array[
       'ruleset_game_settings','ruleset_player_ordering_rules','ruleset_actions','ruleset_game_assets',
       'ruleset_ingredients','ruleset_orders','ruleset_order_requirements','ruleset_needs','ruleset_need_set_bonuses',
@@ -471,6 +487,12 @@ begin
     end loop;
   end loop;
 end $$;
+
+update ruleset_game_settings target
+set starting_cash=source.starting_cash+(r.ordinal+1)/2+case when r.n>10 then 2 else 0 end,
+    freelance_income=1+(r.ordinal/2+r.n/10)%3
+from seed_rulesets r join ruleset_game_settings source on source.ruleset_version_id=r.source_version
+where r.n>2 and target.ruleset_version_id=r.version_id;
 
 insert into
   sessions (
@@ -599,8 +621,8 @@ set
   end,
   ended_at = case
     session_id
-    when '91000000-0000-0000-0000-000000000001' :: uuid then '2026-01-29T02:00:00Z' :: timestamptz
-    when '91000000-0000-0000-0000-000000000002' :: uuid then '2026-02-26T02:00:00Z' :: timestamptz
+    when '91000000-0000-0000-0000-000000000001' :: uuid then '2026-01-29T02:20:00Z' :: timestamptz
+    when '91000000-0000-0000-0000-000000000002' :: uuid then '2026-02-26T02:20:00Z' :: timestamptz
     else ended_at
   end
 where
@@ -6338,18 +6360,30 @@ end $$;
 -- Ulangi skenario legal dengan peran pemain dan keputusan sukarela yang bervariasi.
 -- Semua nominal kartu/harga/pinjaman tetap mengikuti acuan; tidak ada angka snapshot buatan.
 create temporary table seed_variants on commit drop as
-select n, ('98000000-0000-0000-0000-'||lpad((case when n<=8 then n else n+2 end)::text,12,'0'))::uuid as version_id,
+select n, ('98100000-0000-0000-0000-'||lpad((case when n<=8 then n else n+2 end)::text,12,'0'))::uuid as version_id,
        ('91000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid as session_id,
        ('91000000-0000-0000-0000-'||lpad((1+(n+1)%2)::text,12,'0'))::uuid as template_id,
        ('90000000-0000-0000-0000-'||lpad((case when n<=8 then 1 else 2 end)::text,12,'0'))::uuid as instructor_id,
        (case when n<=8 then n-1 else n-9 end) as ordinal,
        timestamptz '2026-01-05 01:00:00+00' +
          (case when n<=8 then (n-1)*28 else (n-9)*28+7 end)*interval '1 day' +
-         (case when n<=8 then 0 else 150 end)*interval '1 minute' as starts
+         (case when n<=8 then 0 else 150 end)*interval '1 minute' as starts,
+       'ENDED'::text as status,24 as last_day
 from generate_series(3,16) n;
 
+-- Tambahan tetap mempertahankan empat sesi selesai per mode dan instruktur.
+-- Dua sesi persiapan dan dua sesi berjalan melengkapi contoh filter serta data parsial.
+insert into seed_variants(n,version_id,session_id,template_id,instructor_id,ordinal,starts,status,last_day)
+select n, ('98100000-0000-0000-0000-'||lpad((case when n<=20 then 9 else 19 end+(n-17)%2)::text,12,'0'))::uuid,
+  ('91000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
+  ('91000000-0000-0000-0000-'||lpad((1+(n-17)%2)::text,12,'0'))::uuid,
+  ('90000000-0000-0000-0000-'||lpad((case when n<=20 then 1 else 2 end)::text,12,'0'))::uuid,
+  (n-17)%4,timestamptz '2026-08-10 01:00:00+00'+(n-17)*interval '1 day',
+  case when (n-17)%4<2 then 'CREATED' else 'STARTED' end,case when n%2=0 then 3 else 2 end
+from generate_series(17,24) n;
+
 insert into sessions(session_id,session_name,ruleset_version_id,mode,status,player_count,instructor_user_id,created_at)
-select v.session_id, 'Latihan '||u.display_name||' - '||initcap(t.mode)||' - Pertemuan '||((v.ordinal/2)+1)||' - '||
+select v.session_id, (case when v.status='CREATED' then 'Persiapan ' when v.status='STARTED' then 'Latihan Berjalan ' else 'Latihan ' end)||u.display_name||' - '||initcap(t.mode)||' - Pertemuan '||((v.ordinal/2)+1)||' - '||
        (array['Mengatur belanja','Mencoba usaha','Menyiapkan kebutuhan','Meninjau keputusan'])[(v.ordinal/2)%4+1],
        v.version_id,t.mode,'CREATED',0,v.instructor_id,v.starts-interval '15 minutes'
 from seed_variants v join sessions t on t.session_id=v.template_id join app_users u on u.user_id=v.instructor_id;
@@ -6358,7 +6392,7 @@ create temporary table seed_variant_players on commit drop as
 with pool as (
   select v.*, u.user_id,u.display_name,
          row_number() over(partition by v.session_id order by md5(v.n::text||':'||u.user_id::text))::int as seat
-  from seed_variants v join app_users u on u.user_id = any(case when v.n<=8 then array[
+  from seed_variants v join app_users u on u.user_id = any(case when v.instructor_id='90000000-0000-0000-0000-000000000001'::uuid then array[
     '90000000-0000-0000-0000-000000000011'::uuid,'90000000-0000-0000-0000-000000000012'::uuid,
     '90000000-0000-0000-0000-000000000013'::uuid,'90000000-0000-0000-0000-000000000014'::uuid] else array[
     '90000000-0000-0000-0000-000000000011'::uuid,'90000000-0000-0000-0000-000000000013'::uuid,
@@ -6369,7 +6403,9 @@ select pool.*, md5('seed2-participant:'||pool.session_id::text||':'||pool.user_i
 from pool join session_participants sp on sp.session_id=pool.template_id and sp.player_order_no=pool.seat;
 insert into session_participants(session_participant_id,session_id,user_id,player_name,player_order_no,joined_at)
 select participant_id,session_id,user_id,display_name,seat,starts-interval '2 minutes' from seed_variant_players;
-update sessions s set status='ENDED',player_count=4,started_at=v.starts,ended_at=v.starts+interval '24 days 2 hours'
+update sessions s set status=v.status,player_count=4,
+started_at=case when v.status<>'CREATED' then v.starts end,
+ended_at=case when v.status='ENDED' then v.starts+interval '24 days 2 hours' end
 from seed_variants v where s.session_id=v.session_id;
 
 -- Menyusun peringkat berdasarkan donasi sesi yang sedang dimainkan, termasuk pemecah seri.
@@ -6394,14 +6430,22 @@ declare v record; e record; p record; win record;
   seq bigint; slot int; turn_no int; coins_now int; future_cost int; choice int; actions_used int;
   at_time timestamptz; previous_time timestamptz;
 begin
-  for v in select sv.*,s.started_at as template_start from seed_variants sv join sessions s on s.session_id=sv.template_id order by sv.n loop
+  for v in select sv.*,s.started_at as template_start,gs.starting_cash,gs.freelance_income
+    from seed_variants sv join sessions s on s.session_id=sv.template_id
+    join ruleset_game_settings gs on gs.ruleset_version_id=sv.version_id
+    where sv.status<>'CREATED' order by sv.n loop
     perform ensure_session_card_positions_initialized(v.session_id);
     seq:=0; previous_time:=v.starts-interval '1 hour';
-    for e in select * from events where session_id=v.template_id order by sequence_number loop
+    for e in select * from events where session_id=v.template_id and day_index<=v.last_day order by sequence_number loop
       target_event:=md5('seed2-event:'||v.session_id::text||':'||e.event_id::text)::uuid;
       select * into p from seed_variant_players where session_id=v.session_id and template_user_id=e.user_id;
       target_player:=p.participant_id; target_user:=p.user_id;
       body:=e.payload;
+      if e.action_type='KerjaLepas' then
+        body:=jsonb_set(body,'{amount}',to_jsonb(v.freelance_income));
+      elsif e.action_type='SetupModalAwal' then
+        body:=jsonb_set(body,'{amount}',to_jsonb(v.starting_cash));
+      end if;
       choice:=get_byte(decode(md5(v.n::text||':'||e.event_id::text),'hex'),0);
       if body ? 'risk_event_id' then
         body:=jsonb_set(body,'{risk_event_id}',to_jsonb(md5('seed2-event:'||v.session_id::text||':'||(body->>'risk_event_id'))::uuid::text));
@@ -6449,7 +6493,7 @@ begin
         e.weekday,turn_no,slot,seq,target_action,e.action_type,v.version_id,body,null,target_event);
       previous_time:=at_time; seq:=seq+1;
     end loop;
-    update sessions set ended_at=previous_time+interval '1 minute' where session_id=v.session_id;
+    update sessions set ended_at=previous_time where session_id=v.session_id and status='ENDED';
   end loop;
 end $$;
 
@@ -6486,7 +6530,7 @@ create temporary table seed_pension_rank_points on commit drop as with ranked as
     left join session_participant_tie_breakers sptb on sptb.session_id = sp.session_id
     and sptb.session_participant_id = sp.session_participant_id
   where
-    sp.session_id in (select session_id from seed_session_scope)
+    sp.session_id in (select scope.session_id from seed_session_scope scope join sessions finished using(session_id) where finished.status='ENDED')
 )
 select
   ranked.session_id,
@@ -6627,7 +6671,7 @@ with component_values as (
     left join seed_pension_rank_points spr on spr.session_id = sp.session_id
     and spr.session_participant_id = sp.session_participant_id
   where
-    sp.session_id in (select session_id from seed_session_scope)
+    sp.session_id in (select scope.session_id from seed_session_scope scope join sessions finished using(session_id) where finished.status='ENDED')
   group by
     sp.session_id,
     sp.session_participant_id,

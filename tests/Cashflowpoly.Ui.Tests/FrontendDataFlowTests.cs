@@ -82,9 +82,8 @@ public sealed class FrontendDataFlowTests
     public void SessionRoster_ShouldBoundRequestsAndOnlyFetchFinalResultsAfterSessionEnds()
     {
         var loader = File.ReadAllText(Path.Combine(UiRoot, "Infrastructure", "SessionRosterLoader.cs"));
-        Assert.Contains("SemaphoreSlim(4)", loader);
-        Assert.Contains("session.Status == \"ENDED\"", loader);
-        Assert.Contains("api/v1/sessions/{session.SessionId}/players", loader);
+        Assert.Contains("api/v1/analytics/session-rosters?includeResults=", loader);
+        Assert.DoesNotContain("api/v1/sessions/{session.SessionId}/players", loader);
     }
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.

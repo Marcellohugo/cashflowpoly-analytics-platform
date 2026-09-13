@@ -8,6 +8,7 @@
   },
   "scripts": {
     "tailwind:build": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --minify",
-    "tailwind:watch": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --watch=always"
+    "tailwind:watch": "npx tailwindcss -i ./wwwroot/css/tailwind.input.css -o ./wwwroot/css/tailwind.css --watch=always",
+    "assets:build": "npm run tailwind:build && tailwindcss -i ./wwwroot/css/site.css -o ./obj/assets/css/site.css --minify && tailwindcss -i ./wwwroot/css/player-statistics.css -o ./obj/assets/css/player-statistics.css --minify"
   }
 }

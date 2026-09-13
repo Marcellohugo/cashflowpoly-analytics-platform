@@ -177,9 +177,10 @@ public sealed class UiDataIntegrityTests
         var unavailableSession = Guid.NewGuid();
         var factory = new Factory(path => path == "/api/v1/sessions"
             ? Json(new SessionListResponse([new(SessionId, "Verified", "MAHIR", "ENDED", Date, Date, Date), new(unavailableSession, "Unknown", "MAHIR", "ENDED", Date, Date, Date)]))
-            : path.Contains(unavailableSession.ToString()) || (gameplayFailed && path.EndsWith("/gameplay"))
-                ? new(HttpStatusCode.ServiceUnavailable)
-                : path.EndsWith("/players") ? Roster() : Json(Gameplay()));
+            : path.Contains("/session-rosters")
+                ? Json(new SessionRostersResponse([new(SessionId, [new(PlayerId, "Participant", 1, null, null)], false)]))
+                : gameplayFailed ? new(HttpStatusCode.ServiceUnavailable)
+                : Json(new PlayerGameplayHistoryResponse([new(SessionId, Gameplay())])));
         var result = await Context(new PlayerStatisticsController(factory)).Index("MAHIR", null, TestContext.Current.CancellationToken, PlayerId);
         var model = Assert.IsType<PlayerStatisticsViewModel>(Assert.IsType<ViewResult>(result).Model);
         Assert.Null(model.TotalSessions);

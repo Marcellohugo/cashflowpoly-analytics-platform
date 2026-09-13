@@ -4,8 +4,8 @@
 ### Informasi Dokumen
 
 - Nama dokumen: Panduan Deployment Produksi
-- Versi: 2.0
-- Tanggal: 26 Agustus 2026
+- Versi: 2.1
+- Tanggal: 13 September 2026
 - Penyusun: Marco Marcello Hugo
 
 ---
@@ -55,16 +55,18 @@ Repository deployment harus dapat menjalankan `git fetch origin prod` tanpa prom
 
 ## 4. Konfigurasi awal VPS
 
-Jalankan sekali sebagai `root`:
+Pada VPS yang sudah berjalan, repository berada di `/root/cashflowpoly-analytics-platform`, environment di `config/env/.env.prod` dalam repository tersebut, dan rilis aktif di `/opt/cashflowpoly/current`. Skrip mengikuti lokasi checkout tempat skrip berada; `REPOSITORY_DIR` dan `ENV_FILE` masih dapat diatur bila lokasi berbeda.
+
+Untuk VPS baru saja, jalankan sekali sebagai `root`:
 
 ```bash
-install -d /opt/cashflowpoly/repository /opt/cashflowpoly/releases /opt/cashflowpoly/shared
-git clone <repository-url> /opt/cashflowpoly/repository
-cp /opt/cashflowpoly/repository/config/env/.env.prod.example /opt/cashflowpoly/shared/.env.prod
-chmod 600 /opt/cashflowpoly/shared/.env.prod
+install -d /opt/cashflowpoly/releases
+git clone <repository-url> /root/cashflowpoly-analytics-platform
+cp /root/cashflowpoly-analytics-platform/config/env/.env.prod.example /root/cashflowpoly-analytics-platform/config/env/.env.prod
+chmod 600 /root/cashflowpoly-analytics-platform/config/env/.env.prod
 ```
 
-Isi `/opt/cashflowpoly/shared/.env.prod`:
+Isi `/root/cashflowpoly-analytics-platform/config/env/.env.prod`:
 
 - `POSTGRES_DB` dan `POSTGRES_USER`;
 - `POSTGRES_PASSWORD` minimal 16 karakter dan bukan placeholder;
@@ -97,7 +99,7 @@ Di komputer pengembang, jalankan gerbang verifikasi lengkap:
 ./scripts/Invoke-ReleaseVerification.ps1
 ```
 
-Perintah tersebut wajib selesai tanpa parameter `-SkipBrowser`, `-SkipPerformance`, atau `-SkipDockerBuild`. Pemeriksaannya meliputi build/test .NET, kontrak OpenAPI, audit dependency, konsistensi dokumentasi, performa, migrasi dan Seed 2 development, E2E Chromium desktop/ponsel, validasi Compose, dan build image production. Kegagalan satu langkah menghentikan proses dan berarti commit belum siap dirilis.
+Perintah tersebut wajib selesai tanpa parameter `-SkipBrowser`, `-SkipPerformance`, atau `-SkipDockerBuild`. Pemeriksaannya meliputi build/test .NET, kontrak OpenAPI, audit dependency, konsistensi dokumentasi, performa, migrasi dan Seed 2 development, E2E Chromium desktop/ponsel, validasi Compose, build image production, dan regresi alur deployment terisolasi. Kegagalan satu langkah menghentikan proses dan berarti commit belum siap dirilis.
 
 Setelah seluruh pemeriksaan lulus:
 
@@ -109,15 +111,28 @@ git push origin prod
 
 Jangan melakukan deployment dari perubahan lokal yang belum ada pada `origin/prod`.
 
+Uji regresi alur deployment memakai container disposable tanpa jaringan; Git, Docker, HTTP, dan systemd di dalamnya diganti stub. Uji ini tidak mengakses daemon Docker atau server produksi:
+
+```powershell
+docker run --rm --network none --user 0 --entrypoint bash `
+  --mount "type=bind,source=$($PWD.Path),target=/repo,readonly" `
+  cashflowpoly-api:release-gate /repo/tests/deployment/deploy-production.test.sh
+```
+
+Gerbang verifikasi membangun image `cashflowpoly-api:release-gate` lalu menjalankan uji ini otomatis. Cakupannya: deployment ulang SHA aktif beserta retensi rilis rollback, dependensi health Nginx/tunnel, rilis baru dengan marker usang, kegagalan cleanup, dan rollback ketika smoke test gagal.
+
 ## 7. Menjalankan deployment
 
 Masuk ke VPS sebagai `root`, lalu:
 
 ```bash
-git -C /opt/cashflowpoly/repository fetch origin prod
-git -C /opt/cashflowpoly/repository checkout --force origin/prod
-/opt/cashflowpoly/repository/scripts/deploy-production.sh
+git -C /root/cashflowpoly-analytics-platform fetch origin prod
+git -C /root/cashflowpoly-analytics-platform status --short
+git -C /root/cashflowpoly-analytics-platform checkout --detach origin/prod
+/root/cashflowpoly-analytics-platform/scripts/deploy-production.sh
 ```
+
+Pastikan `git status --short` bersih sebelum checkout. Simpan perubahan lokal yang belum dicatat terlebih dahulu; jangan memakai `checkout --force`. File `.env.prod` diabaikan Git dan tetap tersedia antar-rilis.
 
 Skrip deployment melakukan langkah berikut:
 
@@ -131,15 +146,17 @@ Skrip deployment melakukan langkah berikut:
 8. Menjalankan API `--migrate-only`.
 9. Menjalankan Seed 2 idempoten dengan `DATABASE_MIGRATIONS_SEED_SIMULATION=true` (default produksi), lalu melanjutkan rekalkulasi.
 10. Menjalankan `--recalculate-analytics` untuk seluruh sesi.
-11. Menyalakan API, UI, Nginx, dan tunnel baru.
-12. Memeriksa health container, `/health`, serta `/privacy`.
-13. Mengubah symlink `current`, menyimpan dua rilis terakhir, dan membersihkan image lama.
+11. Menyalakan API, UI, dan Nginx baru.
+12. Menunggu API/UI sehat, menghapus penanda maintenance pada rilis kandidat (termasuk saat SHA yang sama di-deploy ulang), dan menunggu Nginx sehat. Setelah itu tunnel dinyalakan; skrip memeriksa tunnel, `/health`, dan `/privacy`. Pemisahan ini mencegah Compose menunggu Nginx saat maintenance masih aktif.
+13. Mengubah symlink `current` ke rilis yang sudah sehat.
+14. Mempertahankan rilis aktif dan rilis sebelumnya; deployment ulang SHA aktif melewati cleanup agar rilis rollback yang tersimpan tetap tersedia. Kegagalan pembersihan hanya memberi peringatan dan tidak mengembalikan image lama.
 
 ## 8. Verifikasi setelah deployment
 
 ```bash
+export RELEASE_SHA=$(basename "$(readlink -f /opt/cashflowpoly/current)")
 docker compose --project-name cashflowpoly-analytics-platform \
-  --env-file /opt/cashflowpoly/shared/.env.prod \
+  --env-file /root/cashflowpoly-analytics-platform/config/env/.env.prod \
   -f /opt/cashflowpoly/current/infra/docker/docker-compose.yml \
   -f /opt/cashflowpoly/current/infra/docker/docker-compose.prod.yml \
   --profile tunnel ps
@@ -153,7 +170,7 @@ Lakukan smoke test login Instruktur dan Player, termasuk akun demo Seed 2, dafta
 
 ## 9. Rollback dan kegagalan
 
-Jika build, migrasi, container health, atau smoke test gagal, trap pada skrip menjalankan kembali image SHA sebelumnya. Database tidak diturunkan. Karena itu seluruh migrasi wajib memakai pola expand/contract sehingga aplikasi versi sebelumnya tetap dapat membaca schema yang sudah maju.
+Jika build, migrasi, container health, atau smoke test gagal, trap pada skrip menjalankan kembali image SHA sebelumnya dan mengarahkan `current` ke rilis tersebut setelah container berhasil dinyalakan. Database tidak diturunkan. Kegagalan cleanup setelah aktivasi tidak memicu rollback; periksa peringatan dan ulangi cleanup pada deployment berikutnya. Karena itu seluruh migrasi wajib memakai pola expand/contract sehingga aplikasi versi sebelumnya tetap dapat membaca schema yang sudah maju.
 
 Periksa kegagalan dengan:
 
@@ -180,10 +197,15 @@ Karena risiko tersebut diterima oleh keputusan proyek, setiap migrasi wajib:
 
 ```bash
 # Deploy commit prod terbaru
-/opt/cashflowpoly/repository/scripts/deploy-production.sh
+/root/cashflowpoly-analytics-platform/scripts/deploy-production.sh
 
 # Status service
-docker compose --project-name cashflowpoly-analytics-platform ps
+export RELEASE_SHA=$(basename "$(readlink -f /opt/cashflowpoly/current)")
+docker compose --project-name cashflowpoly-analytics-platform \
+  --env-file /root/cashflowpoly-analytics-platform/config/env/.env.prod \
+  -f /opt/cashflowpoly/current/infra/docker/docker-compose.yml \
+  -f /opt/cashflowpoly/current/infra/docker/docker-compose.prod.yml \
+  --profile tunnel ps
 
 # Log aplikasi
 journalctl CONTAINER_NAME=cashflowpoly-api --since today

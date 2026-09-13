@@ -72,34 +72,31 @@ public sealed class PlayerStatisticsController(IHttpClientFactory clientFactory)
                     s.Mode == selectedMode &&
                     (selectedStatus == "ALL" || s.Status == selectedStatus))
                     .OrderBy(s => s.StartedAt ?? s.CreatedAt).ThenBy(s => s.SessionId).ToList();
-                using var gate = new SemaphoreSlim(4);
-                var expired = false;
-                var failed = false;
-                sessions = (await Task.WhenAll(selected.Select(async session =>
+                PlayerGameplayHistoryResponse? history = null;
+                if (selected.Any(s => s.Status != "CREATED"))
                 {
-                    // Sesi persiapan belum mempunyai hasil permainan untuk dibandingkan.
-                    if (session.Status == "CREATED") return new PlayerStatisticsSession(session, null);
-                    await gate.WaitAsync(ct);
                     try
                     {
-                        using var result = await client.GetAsync($"api/v1/analytics/sessions/{session.SessionId}/players/{selectedPlayer}/gameplay", ct);
-                        if (result.StatusCode == System.Net.HttpStatusCode.Unauthorized) expired = true;
-                        var gameplay = result.IsSuccessStatusCode
-                            ? await result.Content.TryReadFromJsonAsync<GameplayMetricsResponse>(cancellationToken: ct) : null;
-                        if (gameplay?.UserId != selectedPlayer || gameplay.SessionId != session.SessionId || gameplay.ComputedAt is null || gameplay.Economy is null || gameplay.Progress is null || gameplay.Score is null || gameplay.Needs is null)
-                            gameplay = null;
-                        if (gameplay is null) failed = true;
-                        return new PlayerStatisticsSession(session, gameplay);
+                        using var result = await client.GetAsync($"api/v1/analytics/players/{selectedPlayer}/gameplay?mode={selectedMode}&status={selectedStatus}", ct);
+                        if (this.HandleUnauthorizedApiResponse(result) is { } unauthorizedHistory) return unauthorizedHistory;
+                        if (result.IsSuccessStatusCode)
+                            history = await result.Content.TryReadFromJsonAsync<PlayerGameplayHistoryResponse>(cancellationToken: ct);
                     }
-                    catch (HttpRequestException) { failed = true; return new PlayerStatisticsSession(session, null); }
-                    catch (TaskCanceledException) when (!ct.IsCancellationRequested) { failed = true; return new PlayerStatisticsSession(session, null); }
-                    finally { gate.Release(); }
-                }))).ToList();
-                if (expired)
-                {
-                    using var unauthorizedResponse = new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
-                    return this.HandleUnauthorizedApiResponse(unauthorizedResponse)!;
+                    catch (HttpRequestException) { }
+                    catch (TaskCanceledException) when (!ct.IsCancellationRequested) { }
                 }
+                var gameplayBySession = history?.Items?.GroupBy(item => item.SessionId).Where(g => g.Count() == 1)
+                    .ToDictionary(g => g.Key, g => g.Single().Gameplay);
+                var failed = false;
+                sessions = selected.Select(session =>
+                {
+                    var gameplay = session.Status == "CREATED" ? null : gameplayBySession?.GetValueOrDefault(session.SessionId);
+                    if (gameplay?.UserId != selectedPlayer || gameplay.SessionId != session.SessionId || gameplay.ComputedAt is null
+                        || gameplay.Economy is null || gameplay.Progress is null || gameplay.Score is null || gameplay.Needs is null)
+                        gameplay = null;
+                    if (gameplay is null && session.Status != "CREATED") failed = true;
+                    return new PlayerStatisticsSession(session, gameplay);
+                }).ToList();
                 if (failed) error = string.Join(" ", new[] { error, HttpContext.T("statistics.error.partial") }.Where(e => e is not null));
             }
         }

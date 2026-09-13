@@ -556,10 +556,10 @@ public sealed class SessionAndPlayerSummaryLayoutTests
         Assert.DoesNotContain("playerRankLookup", playerIndexView, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”x.analytics?.Leaderboard”`,
         // `playerDirectoryController`, `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
-        Assert.Contains("analytics?.Leaderboard", playerDirectoryController, StringComparison.Ordinal);
+        Assert.Contains("FinalRank = p.FinalRank", playerDirectoryController, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”leaderboard?.HappinessPointsTotal”`,
         // `playerDirectoryController`, `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
-        Assert.Contains("rank?.HappinessPointsTotal", playerDirectoryController, StringComparison.Ordinal);
+        Assert.Contains("HappinessPointsTotal = p.HappinessPointsTotal", playerDirectoryController, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”winner-row”`, `playerIndexView`,
         // `StringComparison.Ordinal` dalam PlayerIndexGroupedTable_ShouldReplaceDonationAndPensionRanksWithPlayerRank.
         Assert.Contains("winner-row", playerIndexView, StringComparison.Ordinal);

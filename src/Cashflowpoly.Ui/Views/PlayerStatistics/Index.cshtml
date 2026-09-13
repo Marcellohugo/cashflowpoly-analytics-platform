@@ -59,7 +59,7 @@
                 <datalist id="statistics-players">
                     @foreach (var player in Model.AvailablePlayers)
                     {
-                        var sameName = Model.AvailablePlayers.Count(p => p.DisplayName == player.DisplayName) > 1;
+                        var sameName = Model.AvailablePlayers.Count(p => string.Equals(p.DisplayName.Trim(), player.DisplayName.Trim(), StringComparison.OrdinalIgnoreCase)) > 1;
                         <option value="@(sameName ? player.DisplayName + " (" + player.UserId + ")" : player.DisplayName)" data-player-id="@player.UserId"></option>
                     }
                 </datalist>
@@ -192,8 +192,15 @@
                         <div>
                             <span class="eyebrow">@Context.T("statistics.mode." + item.Session.Mode.ToLowerInvariant()) · @StateLabel(item.Session.Status)</span>
                             <h3>@(i + 1). @item.Session.SessionName</h3>
-                            <p><time datetime="@((item.Session.StartedAt ?? item.Session.CreatedAt).ToString("O"))">@((item.Session.StartedAt ?? item.Session.CreatedAt).ToLocalTime().ToString("dd MMM yyyy HH:mm"))</time></p>
-                            <p>@(item.Gameplay?.ComputedAt is { } computed ? Context.T("statistics.updated") + " " + computed.ToLocalTime().ToString("dd MMM yyyy HH:mm") : Context.T("statistics.not_available"))</p>
+                            <p><time data-local-time datetime="@((item.Session.StartedAt ?? item.Session.CreatedAt).ToString("O"))">@((item.Session.StartedAt ?? item.Session.CreatedAt).UtcDateTime.ToString("dd MMM yyyy HH:mm")) UTC</time></p>
+                            @if (item.Gameplay?.ComputedAt is { } computed)
+                            {
+                                <p>@Context.T("statistics.updated") <time data-local-time datetime="@computed.ToString("O")">@computed.UtcDateTime.ToString("dd MMM yyyy HH:mm") UTC</time></p>
+                            }
+                            else
+                            {
+                                <p>@Context.T("statistics.not_available")</p>
+                            }
                         </div>
                         @if (item.Gameplay is not null)
                         {

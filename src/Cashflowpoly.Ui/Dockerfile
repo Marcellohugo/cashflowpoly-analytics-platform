@@ -13,7 +13,7 @@ RUN npm ci --no-audit --no-fund
 # Uraian baris: Menyalin src/Cashflowpoly.Ui/ ./. Menyediakan sumber atau aset pada tahap build sesuai jalur tujuan instruksi.
 COPY src/Cashflowpoly.Ui/ ./
 # Uraian baris: Menjalankan skrip tailwind:build milik UI untuk menghasilkan CSS distribusi dari stylesheet sumber dan kelas yang digunakan tampilan.
-RUN npm run tailwind:build
+RUN npm run assets:build
 
 # build
 # Uraian baris: Memulai tahap image dari mcr.microsoft.com/dotnet/sdk:10.0.401 AS build. Alias tahap dapat dirujuk oleh COPY agar hanya hasil build/aset yang dipindahkan ke tahap berikutnya.
@@ -32,6 +32,7 @@ RUN dotnet restore src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj
 COPY . .
 # Uraian baris: Menyalin --from=assets /src/src/Cashflowpoly.Ui/wwwroot/css/tailwind.css src/Cashflowpoly.Ui/wwwroot/css/tailwind.css. Mengambil CSS hasil kompilasi frontend untuk disertakan dalam publish UI.
 COPY --from=assets /src/src/Cashflowpoly.Ui/wwwroot/css/tailwind.css src/Cashflowpoly.Ui/wwwroot/css/tailwind.css
+COPY --from=assets /src/src/Cashflowpoly.Ui/obj/assets/css/ src/Cashflowpoly.Ui/wwwroot/css/
 # Uraian baris: Mengompilasi proyek dalam konfigurasi Release dan meletakkan hasil publish di /app/publish untuk disalin ke image runtime.
 RUN dotnet publish src/Cashflowpoly.Ui/Cashflowpoly.Ui.csproj -c Release -o /app/publish
 
