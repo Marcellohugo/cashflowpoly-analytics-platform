@@ -4185,7 +4185,7 @@ public sealed class EventAnalyticsIntegrationTests
     // `string` membawa nilai suffix; Parameter `definition` bertipe `RulesetDefinitionDto?` membawa definisi terstruktur komponen serta parameter
     // aturan permainan; nilai null diizinkan ketika data opsional belum tersedia; bila argumen tidak diberikan digunakan null, yaitu penanda tidak ada
     // nilai.
-    private async Task<(Guid SessionId, Guid UserId, Guid ActingUserId, Guid RulesetVersionId, long NextSequenceNumber)> CreateReadySessionAsync(
+    internal async Task<(Guid SessionId, Guid UserId, Guid ActingUserId, Guid RulesetVersionId, long NextSequenceNumber)> CreateReadySessionAsync(
         // Parameter `instructorToken` bertipe `string` membawa nilai instruktur token.
         string instructorToken,
         // Parameter `suffix` bertipe `string` membawa nilai suffix.

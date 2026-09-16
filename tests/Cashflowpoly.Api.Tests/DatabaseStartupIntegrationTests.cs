@@ -729,10 +729,10 @@ public sealed class DatabaseStartupIntegrationTests
         // Menjalankan hasil operasi asinkron memanggil `connection.OpenAsync` dengan tanpa argumen; await menunggu hasil tanpa memblokir thread selama
         // operasi belum selesai dalam ApiStartup_WhenRepeated_IsIdempotentAndKeepsMigrationHistory.
         await connection.OpenAsync();
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`4`, `await
+        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`5`, `await
         // connection.ExecuteScalarAsync<int>(”select count(*) from schema_history;”)`); pengujian gagal jika keduanya berbeda dalam
         // ApiStartup_WhenRepeated_IsIdempotentAndKeepsMigrationHistory.
-        Assert.Equal(4, await connection.ExecuteScalarAsync<int>("select count(*) from schema_history;"));
+        Assert.Equal(5, await connection.ExecuteScalarAsync<int>("select count(*) from schema_history;"));
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`0`, `await connection.ExecuteScalarAsync<int>(
         // ”select count(*) from schema_history where checksum !~ '^[0-9a-f]{64}$';”)`); pengujian gagal jika keduanya berbeda dalam
         // ApiStartup_WhenRepeated_IsIdempotentAndKeepsMigrationHistory.
