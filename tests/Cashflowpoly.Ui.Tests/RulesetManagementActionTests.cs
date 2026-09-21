@@ -136,10 +136,7 @@ public sealed class RulesetManagementActionTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”secondaryCtaController = isInstructor ?
         // \”Rulesets\” : \”Sessions\””`, `home`, `StringComparison.Ordinal` dalam PlayerRulesetAccess_ShouldBeRestrictedToSessionDetails.
         Assert.Contains("secondaryCtaController = isInstructor ? \"Rulesets\" : \"Sessions\"", home, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”<a asp-controller=\”Sessions\”
-        // asp-action=\”Index\”>@Context.T(\”home.player_guide.ruleset.link\”)</a>”`, `home`, `StringComparison.Ordinal` dalam
-        // PlayerRulesetAccess_ShouldBeRestrictedToSessionDetails.
-        Assert.Contains("<a asp-controller=\"Sessions\" asp-action=\"Index\">@Context.T(\"home.player_guide.ruleset.link\")</a>", home, StringComparison.Ordinal);
+
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”home-stat-grid-player”`, `home`,
         // `StringComparison.Ordinal` dalam PlayerRulesetAccess_ShouldBeRestrictedToSessionDetails.
         Assert.Contains("home-stat-grid-player", home, StringComparison.Ordinal);

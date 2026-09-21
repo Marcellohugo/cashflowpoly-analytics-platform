@@ -14,6 +14,14 @@
 
 Dokumen ini menjelaskan deployment manual Cashflowpoly ke VPS melalui Docker Compose dan Cloudflare Tunnel. Commit yang dipasang selalu commit terbaru `origin/prod`. VPS membangun image dari source, menjalankan migrasi maju beserta Seed 2 sesuai konfigurasi, menghitung ulang analitik, lalu melakukan health check.
 
+Cloudflared dan Nginx memakai jaringan ingress khusus `172.30.254.0/29`. Nginx memakai alamat tetap `172.30.254.3` agar startup lebih dahulu tidak mengambil alamat tunnel. Alamat tunnel `172.30.254.2` harus sama dengan `set_real_ip_from` dan pemetaan proxy tepercaya pada konfigurasi Nginx. Hanya peer ini boleh meneruskan `CF-Connecting-IP` dan skema HTTPS. Nginx mengirim satu IP pengunjung yang sudah diverifikasi ke API/UI, sehingga kuota tidak tercampur antara semua pengguna tunnel. Jangan tambahkan layanan lain dengan kedua alamat tersebut. Jika subnet berbenturan dengan jaringan host, ubah subnet, kedua alamat layanan, dan kedua aturan kepercayaan Nginx bersamaan.
+
+Pembatasan Nginx berlaku per IP: lokasi API umum memakai `50r/s` dengan `burst=100`, sedangkan lokasi khusus `/api/v1/auth/login` memakai `20r/m` dengan `burst=10`. Keduanya memakai `nodelay`: burst yang diizinkan diteruskan tanpa penundaan, kelebihan batas mendapat HTTP `429`; HTTP `503` tetap berarti maintenance. Ini lapisan tambahan di depan kuota API per kelompok/identitas akun (autentikasi 30, ingest 340, lainnya 400 request per *fixed window* satu menit; fallback identitas ke IP dan tanpa antrean). Beberapa akun pada IP yang sama tetap berbagi kuota Nginx. Jalankan `pwsh -File tests/deployment/Test-NginxClientIdentity.ps1` untuk menguji IP tepercaya, penolakan header palsu, dan kuota per pengunjung dalam container sementara tanpa jaringan.
+
+Jalankan `pwsh -File tests/deployment/Test-IngressNetworking.ps1` untuk menguji startup Nginx sebelum tunnel pada jaringan Docker sementara. Tes memakai alamat dari Compose produksi pada subnet uji terpisah, lalu membersihkan container dan jaringan uji. Gerbang verifikasi rilis menjalankannya setelah regresi deployment.
+
+UI menetapkan port HTTPS publik `443` untuk redirect permintaan HTTP. Header skema dari tunnel tepercaya diteruskan Nginx untuk halaman dan aset statis, sehingga permintaan HTTPS tidak diarahkan ulang. Endpoint `/health` tetap dapat diperiksa melalui HTTP internal.
+
 Keputusan operasional proyek:
 
 - deployment dijalankan sebagai `root` melalui SSH;

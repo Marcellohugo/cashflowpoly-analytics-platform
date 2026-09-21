@@ -15,6 +15,17 @@ namespace Cashflowpoly.Ui.Tests;
 public sealed class SessionTimelineMapperTests
 // Membuka scope tipe SessionTimelineMapperTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    [Theory]
+    [InlineData("id", "{\"amount\":5}", "Menyetor 5 ke tabungan.")]
+    [InlineData("en", "{\"amount\":5}", "Deposited 5 to savings.")]
+    [InlineData("id", "{\"goal_id\":\"old-goal\",\"amount\":5}", "Menyetor 5 ke tabungan.")]
+    public void MapTimeline_SavingsDoNotReserveAGoal(string language, string payload, string expected)
+    {
+        var item = Assert.Single(SessionTimelineMapper.MapTimeline(
+            [CreateEvent("Menabung", payload, "MON")], language));
+        Assert.Equal(expected, item.FlowDescription);
+    }
+
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `MapTimeline_ShouldLocalizeWeekdayNamesForActiveLanguage` dengan hasil bertipe `void`; operasi ini menangani pemetaan

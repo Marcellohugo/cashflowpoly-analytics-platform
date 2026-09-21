@@ -185,6 +185,17 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
 
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                var role = context.Principal?.FindFirstValue(ClaimTypes.Role);
+                if (!Guid.TryParse(context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) ||
+                    string.IsNullOrWhiteSpace(role) ||
+                    !await context.HttpContext.RequestServices.GetRequiredService<UserRepository>()
+                        .IsActiveUserInRoleAsync(userId, role, context.HttpContext.RequestAborted))
+                {
+                    context.Fail("Account is inactive or its role has changed.");
+                }
+            },
             OnAuthenticationFailed = async context =>
             {
                 context.HttpContext.Items["security_auth_audit_written"] = true;
@@ -307,11 +318,20 @@ builder.Services.AddOpenTelemetry()
 var postgresDataSource = Npgsql.NpgsqlDataSource.Create(connectionString);
 builder.Services.AddSingleton(postgresDataSource);
 builder.Services.AddHostedService<LogRetentionWorker>();
+builder.Services.AddOptions<SessionLifecycleOptions>()
+    .Bind(builder.Configuration.GetSection("SessionLifecycle"))
+    .Validate(options => options.HeartbeatIntervalSeconds > 0 &&
+        options.StartedTimeoutSeconds > options.HeartbeatIntervalSeconds &&
+        options.CreatedTimeoutSeconds > options.HeartbeatIntervalSeconds &&
+        options.SweepIntervalSeconds > 0, "Interval dan timeout heartbeat tidak valid")
+    .ValidateOnStart();
+builder.Services.AddHostedService<SessionLifecycleWorker>();
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseNpgsql(serviceProvider.GetRequiredService<Npgsql.NpgsqlDataSource>()));
 builder.Services.AddScoped<RulesetRepository>();
 builder.Services.AddScoped<SessionRepository>();
 builder.Services.AddScoped<EventRepository>();
+builder.Services.AddScoped<EventUndoRepository>();
 builder.Services.AddScoped<MetricsRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<UserRepository>();

@@ -10,8 +10,10 @@ internal static partial class UiTextLexicon
         terms["sessions.error.invalid_analytics"] = ("Data analitika yang sesuai dengan sesi ini belum dapat dimuat. Silakan coba lagi.", "Analytics matching this session could not be loaded. Please try again.");
         terms["statistics.filters"] = ("Pilih data statistik", "Select statistics");
         terms["statistics.player"] = ("Pemain dalam sesi Anda", "Player in your sessions");
-        terms["statistics.search_player"] = ("Ketik atau pilih nama pemain", "Type or choose a player");
+        terms["statistics.search_player"] = ("Cari nama pemain...", "Search player name...");
         terms["statistics.choose_player"] = ("Pilih nama pemain dari daftar yang tersedia.", "Choose a player from the available list.");
+        terms["statistics.choose_player_title"] = ("Pilih nama pemain terlebih dahulu", "Select a player first");
+        terms["statistics.choose_player_hint"] = ("Silakan cari atau pilih nama pemain pada pencarian di atas, lalu tekan Tampilkan untuk melihat grafik perkembangan antarsesi.", "Search or choose a player above, then click Apply to view cross-session statistics.");
         terms["statistics.selected_point"] = ("Rincian titik terpilih", "Selected point details");
         terms["statistics.read_value"] = ("Cara membaca nilai ini", "How to read this value");
         terms["statistics.selected_player"] = ("Pemain yang ditampilkan", "Showing statistics for");
@@ -50,7 +52,7 @@ internal static partial class UiTextLexicon
         terms["statistics.group.future"] = ("Perencanaan dan risiko", "Planning and risk");
         terms["statistics.group.happiness"] = ("Kebutuhan dan kebahagiaan", "Needs and happiness");
         terms["statistics.group_hint.overview"] = ("Lihat poin kebahagiaan dan koin tersisa pada setiap sesi.", "Review happiness points and remaining coins in each session.");
-        terms["statistics.group_hint.money"] = ("Baca perubahan kas, pemerataan pemasukan, pengeluaran bahan, dan laba pesanan secara terpisah.", "Read cash changes, income distribution, ingredient spending, and order profits separately.");
+        terms["statistics.group_hint.money"] = ("Baca perubahan kas, pemerataan pemasukan, pengeluaran bahan, dan keuntungan pesanan secara terpisah.", "Read cash changes, income distribution, ingredient spending, and order profits separately.");
         terms["statistics.group_hint.play"] = ("Lihat bagaimana aksi dipakai untuk mendapatkan koin dan menyelesaikan pesanan.", "See how actions earn coins and complete orders.");
         terms["statistics.group_hint.future"] = ("Khusus mode Mahir: risiko, pinjaman, target yang terbeli, dan porsi aksi untuk masa depan.", "Advanced mode: risks, loans, purchased goals, and actions used for future needs.");
         terms["statistics.group_hint.happiness"] = ("Telusuri pemerataan kebutuhan, komitmen donasi, dan sumber poin kebahagiaan.", "Explore needs distribution, donation commitment, and happiness point sources.");

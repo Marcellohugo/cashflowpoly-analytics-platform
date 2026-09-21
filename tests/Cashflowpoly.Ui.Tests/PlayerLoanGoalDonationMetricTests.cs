@@ -39,7 +39,7 @@ public sealed class PlayerLoanGoalDonationMetricTests
         Assert.StartsWith(guidance, metric.Guidance);
         Assert.DoesNotContain("players.", metric.Label);
         Assert.Equal("1 ÷ 2 × 100% = 50%", PlayerMetricCollectionHelper.BuildActualCalculation("goal-ambition",
-            [("financial_goals_completed", "1"), ("financial_goals_attempted", "2")],
+            [("financial_goals_completed", "1"), ("financial_goals_available_total", "2")],
             "50", "%", "N/A", CultureInfo.InvariantCulture));
     }
 

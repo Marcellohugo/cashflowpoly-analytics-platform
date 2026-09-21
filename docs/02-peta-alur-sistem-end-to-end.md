@@ -47,7 +47,7 @@ Rulebook -> Ruleset -> Session -> Players -> Setup Cards -> Events -> Validation
 | Guest | Login/register, melihat rulebook publik | Tidak bisa baca data sesi. |
 | INSTRUCTOR | Membuat ruleset, membuat sesi via API/IDN, menambah player, mulai/akhir sesi, kirim event, melihat semua analitika sesi miliknya | Tidak boleh mengubah ruleset default atau ruleset yang sudah terkunci sesi. |
 | PLAYER | Melihat sesi yang ia ikuti, melihat metrik dan transaksi dirinya sendiri, mengirim event untuk dirinya sendiri jika client mengizinkan | Tidak bisa melihat data player lain, audit security, atau mutasi ruleset/sesi. |
-| Sistem/Perangkat Uji | Mengirim event setup, event ranking, event akhir sesi; perangkat uji meniru permintaan Klien Game/IDN | Harus tetap membawa ruleset_version_id dan sequence yang valid. |
+| Sistem/Perangkat Uji | Klien instruktur melaporkan event sistem dan memanggil endpoint start/end; API membentuk event setup dan akhir sesi | Event tetap membawa ruleset_version_id dan sequence yang valid. |
 
 **Identitas penting:**
 
@@ -134,7 +134,7 @@ Snapshots --> Dashboard[Web Analitik MVC]
 **Setelah login:**
 - API memverifikasi password hash.
 - API menerbitkan JWT berisi user_id, username, role, display_name.
-- UI menyimpan token di server-side session.
+- UI menyimpan JWT sebagai claim pada tiket cookie autentikasi terenkripsi dengan ASP.NET Core Data Protection.
 - BearerTokenHandler UI menempelkan token ke request API berikutnya.
 
 ## 6.2 Guard UI
@@ -347,8 +347,8 @@ Payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pemain pemilik misi. M
 
 | Event | Fungsi |
 | --- | --- |
-| MulaiSesi | Menandai awal sesi. |
-| AkhiriSesi | Menandai akhir sesi. |
+| MulaiSesi | Dibentuk API melalui endpoint `/sessions/{sessionId}/start`. |
+| AkhiriSesi | Dibentuk API melalui endpoint `/sessions/{sessionId}/end`, bersama finalisasi state dan skor; tidak dikirim langsung ke `/events`. |
 | AkhirGiliran | Menandai progres giliran/hari. |
 | HariMingguLibur | Mencatat hari Minggu tanpa aksi pemain. |
 
@@ -387,12 +387,14 @@ Payload `SetupMisiAwal` hanya dibuka untuk Instruktur dan pemain pemilik misi. M
 | Asuransi | Membeli asuransi atau memakai asuransi pada risiko. |
 | PinjamanSyariah | Mengambil/menerima pinjaman 10. |
 | BayarPinjaman | Melunasi pinjaman. |
-| Menabung | Setor tabungan tujuan, maksimal 15 koin per aksi. |
-| TujuanFinansial | Event sistem otomatis saat tabungan mencapai harga kartu tujuan. |
+| Menabung | Setor saldo tabungan pemain, maksimal 15 koin per aksi; tidak memesan kartu tujuan. |
+| TujuanFinansial | Klien instruktur melaporkan pembelian kartu tujuan fisik sebagai event `SYSTEM` bagi pemain penerima setelah tabungannya cukup. |
 | GunakanOpsiDarurat | Menutup risiko dengan opsi darurat. |
 
 **Catatan rulebook:**
-- `TarikTabungan` ditolak karena bukan aksi resmi rulebook. `TujuanFinansial` tidak memakai token aksi pemain; sistem mencatatnya otomatis ketika saldo tabungan mencapai target.
+- `TarikTabungan` ditolak karena bukan aksi resmi rulebook. `TujuanFinansial` memakai `actor_type=SYSTEM`, `action_slot=0`, dan `user_id` pemain penerima; event ini tidak menghabiskan jatah aksi pemain.
+- Saldo yang cukup tidak membuat API menerbitkan `TujuanFinansial` otomatis. Setelah instruktur mengonfirmasi pembelian pada permainan fisik, Klien Game/IDN mengirim `goal_id`, `cost`, dan `points`; API memvalidasi katalog, saldo, dan ketersediaan kartu tujuan sebelum menyimpan event.
+- Seluruh setoran dan tabungan awal dapat dipakai membeli kartu tujuan mana pun yang tersedia. Pemain yang lebih dulu membayar penuh memperoleh kartu; `goal_id` pada setoran lama tidak mengikat dana atau memesan kartu. Hanya pembelian yang membuat catatan kepemilikan tujuan, dan stok diperiksa di dalam transaksi dengan kunci sesi.
 
 ## 11. Struktur Event API
 
@@ -402,10 +404,10 @@ Setiap event minimal membawa:
 | --- | --- | --- |
 | event_id | Ya | UUID stabil untuk idempotensi. |
 | session_id | Ya | Sesi target. |
-| user_id | Ya untuk player | Akun player. Kosong untuk event sistem. |
+| user_id | Ya untuk event yang menargetkan pemain | Akun pemain, termasuk event `SYSTEM` seperti `TujuanFinansial` dan pemberian poin. Kosong untuk event sistem seluruh sesi seperti `AkhirGiliran`. |
 | actor_type | Ya | PLAYER atau SYSTEM. |
 | timestamp | Ya | Waktu event. |
-| day_index | Ya | Index hari, mulai 0. |
+| day_index | Ya | Hari 0 untuk setup; permainan dimulai pada hari 1. |
 | weekday | Ya | MON sampai SUN. |
 | turn_number | Ya | Nomor giliran. |
 | action_slot | Ya | Slot 0 untuk event sistem/aksi gratis; slot 1..N untuk aksi reguler pemain. |
@@ -428,10 +430,10 @@ Request Event
 -> EventRequestShapeValidator
 -> Auth/RBAC/Scope Session
 -> Resolve Session Participant
+-> Check duplicate event_id
 -> Check Session Status
 -> Check ruleset_version_id
 -> Check sequence_number
--> Check duplicate event_id
 -> Resolve action_id
 -> Domain Validators
 -> Cashflow Projection Builder
@@ -484,7 +486,7 @@ Request Event
 - BayarPinjaman: wajib melunasi seluruh outstanding.
 - Asuransi: premium sesuai katalog; penggunaan hanya melalui event `Asuransi` dengan `risk_event_id`, memerlukan polis `ACTIVE` dengan `remaining_uses > 0`, dan mengurangi tepat satu penggunaan secara atomik.
 - Menabung: amount > 0 dan maksimal 15.
-- TarikTabungan: ditolak. TujuanFinansial: event sistem otomatis; biaya, poin, saldo, dan stok satu kartu fisik diverifikasi terhadap katalog.
+- TarikTabungan: ditolak. TujuanFinansial: laporan pembelian fisik dari klien instruktur sebagai event sistem bagi pemain penerima; biaya, poin, saldo, dan stok satu kartu fisik diverifikasi terhadap katalog.
 - AkhirGiliran: hari Senin–Kamis memerlukan tepat dua aksi per pemain; Jumat memerlukan satu donasi per pemain; Sabtu memerlukan harga terbuka dan satu keputusan emas per pemain.
 - InvestasiEmas: total kepemilikan seluruh pemain tidak boleh melampaui 20 Kartu Emas fisik.
 
@@ -550,10 +552,12 @@ Dashboard transaksi membaca projection ini, bukan menghitung ulang di browser.
 | Endpoint | Fungsi |
 | --- | --- |
 | GET /api/v1/analytics/sessions/{sessionId} | Ringkasan sesi dan by-player. |
-| POST /api/v1/analytics/sessions/{sessionId}/recompute | Hitung ulang projection/metrik dari event. |
+| POST /api/v1/analytics/sessions/{sessionId}/recompute | Hitung ulang snapshot metrik dari event dan proyeksi yang sudah tersimpan. |
 | GET /api/v1/analytics/sessions/{sessionId}/transactions?userId=... | Histori cashflow. |
 | GET /api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay | Snapshot gameplay player. |
 | GET /api/v1/analytics/rulesets/{rulesetId}/summary | Ringkasan lintas sesi per ruleset. |
+
+`recompute` membaca event, `event_cashflow_projections`, ruleset sesi, dan skor final yang tersedia, lalu memperbarui `metric_snapshots`. Endpoint ini tidak membangun ulang tabel saldo, inventory, asuransi, pinjaman, atau proyeksi arus kas. Bila proyeksi tersebut salah, perbaiki penyebab dan data proyeksinya melalui migrasi/prosedur pemulihan yang telah diuji pada salinan database sebelum menghitung ulang snapshot; mengulang `recompute` saja tidak memperbaikinya.
 
 **Metrik minimum:**
 
@@ -640,7 +644,7 @@ UI berada di src/Cashflowpoly.Ui.
 
 **Alur UI:**
 - User login.
-- UI menyimpan token di session.
+- UI menyimpan JWT dalam tiket cookie autentikasi terenkripsi; session digunakan untuk preferensi bahasa.
 - UI memanggil API via HttpClient("Api").
 - DTO API dipetakan ke ViewModel.
 - Razor render dashboard, cards, table, timeline, grafik.

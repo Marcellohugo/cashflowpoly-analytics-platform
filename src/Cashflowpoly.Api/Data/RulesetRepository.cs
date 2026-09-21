@@ -1561,8 +1561,8 @@ public sealed class RulesetRepository
                         MissionCode = missionEntry.Item.Id,
                         ItemName = missionEntry.Item.Nama,
                         missionEntry.Item.SuccessPoints,
-                        missionEntry.Item.FailurePoints,
-                        missionEntry.Item.PenaltyPoints,
+                        FailurePoints = -AnalyticsCollectionMissions.ResolvePenalty(missionEntry.Item),
+                        PenaltyPoints = AnalyticsCollectionMissions.ResolvePenalty(missionEntry.Item),
                         SortOrder = missionEntry.Index + 1
                     },
                     tx,

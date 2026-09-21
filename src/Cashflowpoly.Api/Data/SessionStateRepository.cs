@@ -187,8 +187,7 @@ public sealed class SessionStateRepository
             var targetFamily = mission.KebutuhanTarget.FirstOrDefault(item =>
                     item.Type.Equals("FAMILY", StringComparison.OrdinalIgnoreCase) ||
                     item.Type.Equals("NEED_FAMILY", StringComparison.OrdinalIgnoreCase))
-                // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: .Value ?? mission.Nama; dalam InitializeSetupAsync.
-                ?.Value ?? mission.Nama;
+                ?.Value ?? string.Empty;
             var requirePrimary = mission.KebutuhanTarget.Any(item =>
                 (item.Type.Equals("TIER", StringComparison.OrdinalIgnoreCase) ||
                  item.Type.Equals("NEED_TIER", StringComparison.OrdinalIgnoreCase)) &&
@@ -219,6 +218,7 @@ public sealed class SessionStateRepository
                 new
                 {
                     mission_id = mission.Id,
+                    requirements = mission.KebutuhanTarget,
                     target_tertiary_card_id = targetFamily,
                     penalty_points = mission.PenaltyPoints,
                     require_primary = requirePrimary,
@@ -497,6 +497,18 @@ public sealed class SessionStateRepository
             throw new InvalidOperationException("Pembagian awal tidak dapat diubah setelah sesi dimulai");
         }
 
+        var participantIds = (await conn.QueryAsync<Guid>(new CommandDefinition(
+            "select session_participant_id from session_participants where session_id = @sessionId",
+            new { sessionId }, tx, cancellationToken: ct))).ToHashSet();
+        var currentRulesetVersionId = await conn.ExecuteScalarAsync<Guid>(new CommandDefinition(
+            "select ruleset_version_id from sessions where session_id = @sessionId",
+            new { sessionId }, tx, cancellationToken: ct));
+        if (currentRulesetVersionId != rulesetVersionId ||
+            !participantIds.SetEquals(request.Players.Select(player => player.SessionPlayerId)))
+        {
+            throw new InvalidOperationException("Daftar pemain atau set aturan berubah. Muat ulang sesi sebelum menyimpan pembagian awal.");
+        }
+
         var created = await conn.QuerySingleAsync<SessionSetupDb>(new CommandDefinition(
             insertSql,
             new
@@ -543,6 +555,11 @@ public sealed class SessionStateRepository
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
+
+        // Match the event/end lock order before setup inserts acquire the same advisory lock.
+        await conn.ExecuteAsync(new CommandDefinition(
+            "select pg_advisory_xact_lock(hashtextextended(@sessionId::text, 0))",
+            new { sessionId }, tx, cancellationToken: ct));
 
         var status = await conn.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
             "select status from sessions where session_id = @sessionId for update",
@@ -598,7 +615,8 @@ public sealed class SessionStateRepository
             """
             update sessions
             set status = 'STARTED',
-                started_at = @startedAt
+                started_at = @startedAt,
+                last_activity_at = clock_timestamp()
             where session_id = @sessionId
               and status = 'CREATED';
 
@@ -657,9 +675,15 @@ public sealed class SessionStateRepository
                 finish_day,
                 is_game_over,
                 (
-                    select coalesce(max(e.sequence_number) + 1, 0)
-                    from events e
-                    where e.session_id = session_states.session_id
+                    select coalesce(max(reserved.sequence_number) + 1, 0)
+                    from (
+                        select e.sequence_number from events e
+                        where e.session_id = session_states.session_id
+                        union all
+                        select (undone.original_event->>'sequence_number')::bigint
+                        from event_undos undone
+                        where undone.session_id = session_states.session_id
+                    ) reserved
                 ) as next_sequence_number,
                 '{}'::jsonb::text as ui_state_json
             from session_states
@@ -684,15 +708,16 @@ public sealed class SessionStateRepository
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
         var state = await conn.QuerySingleOrDefaultAsync<SessionStateRow>(
-            new CommandDefinition(stateSql, new { sessionId }, cancellationToken: ct));
+            new CommandDefinition(stateSql, new { sessionId }, tx, cancellationToken: ct));
         if (state is null)
         {
             return null;
         }
 
         var playerRows = (await conn.QueryAsync<SessionPlayerStateRow>(
-            new CommandDefinition(playersSql, new { sessionId }, cancellationToken: ct))).ToList();
+            new CommandDefinition(playersSql, new { sessionId }, tx, cancellationToken: ct))).ToList();
 
         var players = playerRows.Select(row => new SessionPlayerStateDto
         {
@@ -711,10 +736,11 @@ public sealed class SessionStateRepository
 
         if (sessionPlayerIds.Length > 0)
         {
-            await LoadPlayerChildrenAsync(conn, sessionPlayerIds, bySessionPlayerId, ct);
+            await LoadPlayerChildrenAsync(conn, tx, sessionPlayerIds, bySessionPlayerId, ct);
         }
 
-        var donationEvents = await LoadDonationEventsAsync(conn, sessionId, ct);
+        var donationEvents = await LoadDonationEventsAsync(conn, tx, sessionId, ct);
+        await tx.CommitAsync(ct);
 
         return new SessionStateResponse
         {
@@ -840,7 +866,8 @@ public sealed class SessionStateRepository
         return SaveSessionStateResult.Saved(state);
     }
 
-    public async Task ComputeFinalScoresAsync(Guid sessionId, CancellationToken ct)
+    public async Task<string?> EndSessionAsync(Guid sessionId, CancellationToken ct,
+        TimeSpan? startedTimeout = null, TimeSpan? createdTimeout = null)
     {
         const string activeRulesetSql = """
             select ruleset_version_id
@@ -850,12 +877,63 @@ public sealed class SessionStateRepository
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(
+            "select pg_advisory_xact_lock(hashtextextended(@sessionId::text, 0))",
+            new { sessionId }, tx, cancellationToken: ct));
+        var status = await conn.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
+            "select status from sessions where session_id = @sessionId for update",
+            new { sessionId }, tx, cancellationToken: ct));
+        if (status is not ("CREATED" or "STARTED" or "ENDED")) return null;
+
+        // Recheck the lease after locking: a heartbeat/start/event may have won the race with the sweep.
+        if (startedTimeout.HasValue && status != "ENDED" &&
+            !await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
+                "select last_activity_at <= clock_timestamp() - @timeout from sessions where session_id = @sessionId",
+                new { sessionId, timeout = status == "CREATED" ? createdTimeout ?? startedTimeout.Value : startedTimeout.Value },
+                tx, cancellationToken: ct))) return null;
+
+        if (!await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "select session_has_gameplay(@sessionId)", new { sessionId }, tx, cancellationToken: ct)))
+        {
+            // Remove restrictive dependents first; the remaining session state is deleted by existing FK cascades.
+            // The temporary CREATED status lets the roster-count trigger accept zero players; it never commits separately.
+            await conn.ExecuteAsync(new CommandDefinition("""
+                update sessions set status = 'CREATED' where session_id = @sessionId;
+                delete from session_final_scores where session_id = @sessionId;
+                delete from metric_snapshots where session_id = @sessionId;
+                delete from event_cashflow_projections where session_id = @sessionId;
+                delete from event_asset_references where session_id = @sessionId;
+                delete from events where session_id = @sessionId;
+                delete from session_setup_revisions where session_id = @sessionId;
+                delete from session_states where session_id = @sessionId;
+                delete from session_card_positions where session_id = @sessionId;
+                delete from session_participants where session_id = @sessionId;
+                delete from sessions where session_id = @sessionId;
+                """, new { sessionId }, tx, cancellationToken: ct));
+            await tx.CommitAsync(ct);
+            return "DELETED";
+        }
+
+        if (status != "STARTED") return null;
+        // Timeout closes the last committed state even if a multi-step turn was interrupted.
+        if (!startedTimeout.HasValue && await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "select has_pending_life_risk(@sessionId, null)",
+            new { sessionId }, tx, cancellationToken: ct))) return null;
+        if (!startedTimeout.HasValue && await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
+            """
+            select exists (select day_index from events
+                where session_id = @sessionId and action_type = 'JumatBerkah' and user_id is not null
+                group by day_index having count(distinct user_id) <
+                    (select count(*) from session_participants where session_id = @sessionId))
+            """, new { sessionId }, tx, cancellationToken: ct))) return null;
+
         var rulesetVersionId = await conn.QuerySingleOrDefaultAsync<Guid?>(
-            new CommandDefinition(activeRulesetSql, new { sessionId }, cancellationToken: ct));
+            new CommandDefinition(activeRulesetSql, new { sessionId }, tx, cancellationToken: ct));
         if (!rulesetVersionId.HasValue)
         {
             // Menghentikan alur dengan melempar objek baru bertipe `InvalidOperationException` dengan argumen (”Session belum memiliki ruleset aktif.”) dalam
-            // ComputeFinalScoresAsync; pemanggil atau middleware penanganan error menerima kegagalan ini.
+            // EndSessionAsync; pemanggil atau middleware penanganan error menerima kegagalan ini.
             throw new InvalidOperationException("Session belum memiliki ruleset aktif.");
         }
 
@@ -864,7 +942,7 @@ public sealed class SessionStateRepository
             !RulesetRuntimeMapper.TryBuildConfig(rulesetVersion.Definition, out var config, out _))
         {
             // Menghentikan alur dengan melempar objek baru bertipe `InvalidOperationException` dengan argumen (”Definition ruleset aktif tidak valid.”) dalam
-            // ComputeFinalScoresAsync; pemanggil atau middleware penanganan error menerima kegagalan ini.
+            // EndSessionAsync; pemanggil atau middleware penanganan error menerima kegagalan ini.
             throw new InvalidOperationException("Definition ruleset aktif tidak valid.");
         }
 
@@ -905,11 +983,11 @@ public sealed class SessionStateRepository
                 order by sp.player_order_no asc
                 """,
                 new { sessionId },
-                cancellationToken: ct))).ToList();
+                tx, cancellationToken: ct))).ToList();
 
         var pensionPointsByRank = config!.Scoring?.PensionRankPoints
             .ToDictionary(item => item.Rank, item => item.Points)
-            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: new Dictionary<int, int>(); dalam ComputeFinalScoresAsync.
+            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: new Dictionary<int, int>(); dalam EndSessionAsync.
             ?? new Dictionary<int, int>();
 
         var pensionRanking = participants
@@ -927,7 +1005,6 @@ public sealed class SessionStateRepository
             .ThenBy(item => item.Participant.UserId)
             .ToList();
 
-        await using var tx = await conn.BeginTransactionAsync(ct);
         await conn.ExecuteAsync(
             new CommandDefinition(
                 """
@@ -1025,6 +1102,8 @@ public sealed class SessionStateRepository
 
             var components = new[]
             {
+                new FinalScoreComponentValue("INITIAL_HAPPINESS", correctedBreakdown.InitialHappinessPoints),
+                new FinalScoreComponentValue("MISSION_REWARD", correctedBreakdown.MissionRewardPoints),
                 new FinalScoreComponentValue("NEED_POINTS", correctedBreakdown.NeedPoints),
                 new FinalScoreComponentValue("NEED_SET_BONUS", correctedBreakdown.NeedSetBonusPoints),
                 new FinalScoreComponentValue("DONATION", correctedBreakdown.DonationPoints),
@@ -1036,7 +1115,7 @@ public sealed class SessionStateRepository
             };
 
             // Mengulangi setiap elemen `components`; elemen saat ini disimpan sebagai `component` bertipe `var` untuk diproses oleh badan loop dalam
-            // ComputeFinalScoresAsync.
+            // EndSessionAsync.
             foreach (var component in components)
             {
                 await conn.ExecuteAsync(
@@ -1078,12 +1157,22 @@ public sealed class SessionStateRepository
             }
         }
 
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            update sessions set status = 'ENDED', ended_at = clock_timestamp(), end_reason = @endReason
+            where session_id = @sessionId;
+            update session_states set phase = 'GAME_END', is_game_over = true,
+                current_session_player_id = null, state_version = state_version + 1, updated_at = now()
+            where session_id = @sessionId;
+            """, new { sessionId, endReason = startedTimeout.HasValue ? "HEARTBEAT_TIMEOUT" : "MANUAL" }, tx, cancellationToken: ct));
         await tx.CommitAsync(ct);
+        return "ENDED";
     }
 
     private static async Task LoadPlayerChildrenAsync(
         // Parameter `conn` bertipe `NpgsqlConnection` membawa koneksi PostgreSQL untuk mengirim perintah dan membaca hasil basis data.
         NpgsqlConnection conn,
+        NpgsqlTransaction tx,
         // Parameter `sessionPlayerIds` bertipe `Guid[]` membawa nilai sesi pemain identitas.
         Guid[] sessionPlayerIds,
         // Parameter `players` bertipe `IReadOnlyDictionary<Guid, SessionPlayerStateDto>` membawa nilai pemain.
@@ -1122,6 +1211,7 @@ public sealed class SessionStateRepository
             from session_participant_financial_goals spfg
             join ruleset_financial_goals rfg on rfg.ruleset_financial_goal_id = spfg.ruleset_financial_goal_id
             where spfg.session_participant_id = any(@sessionPlayerIds)
+              and spfg.status = 'COMPLETED'
             order by coalesce(spfg.purchased_at_day, 2147483647) asc, rfg.item_name asc
             """;
 
@@ -1148,7 +1238,7 @@ public sealed class SessionStateRepository
 
         // Mengulangi setiap elemen `await conn.QueryAsync<BahanRow>(new CommandDefinition(bahanSql, new { sessionPlayerIds }, cancellationToken: ct))`;
         // elemen saat ini disimpan sebagai `row` bertipe `var` untuk diproses oleh badan loop dalam LoadPlayerChildrenAsync.
-        foreach (var row in await conn.QueryAsync<BahanRow>(new CommandDefinition(bahanSql, new { sessionPlayerIds }, cancellationToken: ct)))
+        foreach (var row in await conn.QueryAsync<BahanRow>(new CommandDefinition(bahanSql, new { sessionPlayerIds }, tx, cancellationToken: ct)))
         {
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
@@ -1158,7 +1248,7 @@ public sealed class SessionStateRepository
 
         // Mengulangi setiap elemen `await conn.QueryAsync<KebutuhanRow>(new CommandDefinition(kebutuhanSql, new { sessionPlayerIds }, cancellationToken:
         // ct))`; elemen saat ini disimpan sebagai `row` bertipe `var` untuk diproses oleh badan loop dalam LoadPlayerChildrenAsync.
-        foreach (var row in await conn.QueryAsync<KebutuhanRow>(new CommandDefinition(kebutuhanSql, new { sessionPlayerIds }, cancellationToken: ct)))
+        foreach (var row in await conn.QueryAsync<KebutuhanRow>(new CommandDefinition(kebutuhanSql, new { sessionPlayerIds }, tx, cancellationToken: ct)))
         {
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
@@ -1168,7 +1258,7 @@ public sealed class SessionStateRepository
 
         // Mengulangi setiap elemen `await conn.QueryAsync<TujuanFinansialRow>(new CommandDefinition(tujuanSql, new { sessionPlayerIds }, cancellationToken:
         // ct))`; elemen saat ini disimpan sebagai `row` bertipe `var` untuk diproses oleh badan loop dalam LoadPlayerChildrenAsync.
-        foreach (var row in await conn.QueryAsync<TujuanFinansialRow>(new CommandDefinition(tujuanSql, new { sessionPlayerIds }, cancellationToken: ct)))
+        foreach (var row in await conn.QueryAsync<TujuanFinansialRow>(new CommandDefinition(tujuanSql, new { sessionPlayerIds }, tx, cancellationToken: ct)))
         {
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
@@ -1185,7 +1275,7 @@ public sealed class SessionStateRepository
 
         // Mengulangi setiap elemen `await conn.QueryAsync<TargetKebutuhanRow>(new CommandDefinition(targetSql, new { sessionPlayerIds }, cancellationToken:
         // ct))`; elemen saat ini disimpan sebagai `row` bertipe `var` untuk diproses oleh badan loop dalam LoadPlayerChildrenAsync.
-        foreach (var row in await conn.QueryAsync<TargetKebutuhanRow>(new CommandDefinition(targetSql, new { sessionPlayerIds }, cancellationToken: ct)))
+        foreach (var row in await conn.QueryAsync<TargetKebutuhanRow>(new CommandDefinition(targetSql, new { sessionPlayerIds }, tx, cancellationToken: ct)))
         {
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
@@ -1195,7 +1285,7 @@ public sealed class SessionStateRepository
 
         // Mengulangi setiap elemen `await conn.QueryAsync<ActionCounterRow>(new CommandDefinition(counterSql, new { sessionPlayerIds }, cancellationToken:
         // ct))`; elemen saat ini disimpan sebagai `row` bertipe `var` untuk diproses oleh badan loop dalam LoadPlayerChildrenAsync.
-        foreach (var row in await conn.QueryAsync<ActionCounterRow>(new CommandDefinition(counterSql, new { sessionPlayerIds }, cancellationToken: ct)))
+        foreach (var row in await conn.QueryAsync<ActionCounterRow>(new CommandDefinition(counterSql, new { sessionPlayerIds }, tx, cancellationToken: ct)))
         {
             if (players.TryGetValue(row.SessionPlayerId, out var player))
             {
@@ -1207,6 +1297,7 @@ public sealed class SessionStateRepository
     private static async Task<List<DonationEventDto>> LoadDonationEventsAsync(
         // Parameter `conn` bertipe `NpgsqlConnection` membawa koneksi PostgreSQL untuk mengirim perintah dan membaca hasil basis data.
         NpgsqlConnection conn,
+        NpgsqlTransaction tx,
         // Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini.
         Guid sessionId,
         // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
@@ -1245,7 +1336,7 @@ public sealed class SessionStateRepository
             """;
 
         var eventRows = (await conn.QueryAsync<DonationEventRow>(
-            new CommandDefinition(eventsSql, new { sessionId }, cancellationToken: ct))).ToList();
+            new CommandDefinition(eventsSql, new { sessionId }, tx, cancellationToken: ct))).ToList();
         var results = new List<DonationEventDto>(eventRows.Count);
 
         // Mengulangi setiap elemen `eventRows`; elemen saat ini disimpan sebagai `row` bertipe `var` untuk diproses oleh badan loop dalam

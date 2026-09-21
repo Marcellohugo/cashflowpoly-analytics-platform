@@ -40,7 +40,7 @@ Sistem menggunakan terminologi identitas berikut untuk membedakan pengguna aplik
 
 ### 3.1 Pengguna Publik (Public / Guest)
 1. Pengguna membuka Web Analitika dasbor atau Game Client.
-2. Player dapat mendaftarkan akun baru melalui `/auth/register`; akun Instruktur dibuat melalui bootstrap/admin. Keduanya masuk melalui `/auth/login`.
+2. Player dan Instruktur dapat mendaftarkan akun melalui `/auth/register`; pendaftaran Instruktur mengikuti `Auth:AllowPublicInstructorRegistration` (default `true`). Keduanya masuk melalui `/auth/login`.
 3. Setelah masuk, sistem menerbitkan JWT token yang berisi informasi `user_id`, `role`, dan data sesi login.
 
 ### 3.2 Alur Kerja Instruktur (`INSTRUCTOR`)
@@ -63,7 +63,7 @@ Sistem menggunakan terminologi identitas berikut untuk membedakan pengguna aplik
 
 Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
 
-*   **Autentikasi & Registrasi**: Login dan registrasi Player dapat diakses publik; registrasi publik Instruktur ditolak.
+*   **Autentikasi & Registrasi**: Login dan registrasi Player dapat diakses publik; registrasi Instruktur diizinkan bila `Auth:AllowPublicInstructorRegistration=true` (default).
 *   **Modifikasi Sesi & Ruleset (Create/Update/Delete/Activate)**: Hanya diizinkan untuk peran `INSTRUCTOR`. Player hanya memiliki hak baca (*read-only*).
 *   **Pengiriman Event Permainan**:
     *   `INSTRUCTOR` dapat mengirim event untuk sesi mana pun yang mereka buat.
@@ -71,7 +71,7 @@ Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
 *   **Pembacaan Metrik Analitika**:
     *   `INSTRUCTOR` dapat membaca analitika seluruh peserta sesi.
     *   `PLAYER` dibatasi hanya dapat membaca grafik performa dan histori transaksi miliknya sendiri (*Player Data Scope*).
-*   **Audit Keamanan & Metrik Observabilitas**: Hanya dapat diakses oleh peran `INSTRUCTOR` atau administrator sistem.
+*   **Audit Keamanan & Metrik Observabilitas**: API mensyaratkan `INSTRUCTOR`. Log audit hanya untuk akun pemanggil; `userId` milik akun lain ditolak dengan 403. Akses log global dilakukan oleh operator melalui sarana administrasi server, bukan akun instruktur biasa.
 
 > [!TIP]
 > Detail pemetaan endpoint API beserta kode respons HTTP dapat dilihat pada dokumen [Kontrak REST API dan Event Permainan](../02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md).
@@ -80,7 +80,7 @@ Berikut ringkasan otorisasi akses layanan berdasarkan peran pengguna:
 
 ## 5. Aturan Mutasi Ruleset & Validasi Sesi
 
-1. **Aturan Mutability**: Ruleset bawaan (default) berstatus *read-only*. Ruleset milik Instruktur dapat diubah gilirannya (versi baru) selama ruleset tersebut belum dikunci oleh sesi permainan yang berjalan.
+1. **Aturan Mutability**: Ruleset bawaan (default) berstatus *read-only*. Ruleset milik Instruktur dapat diperbarui melalui versi baru selama belum terhubung pada sesi apa pun. Sesi persiapan (`CREATED`), berjalan, dan selesai sama-sama mengunci ruleset.
 2. **Aturan Penguncian Sesi**: Begitu sesi dibuat, sesi akan mengunci satu `ruleset_version_id` secara permanen. Versi ruleset pada sesi tersebut tidak dapat diubah lagi untuk menjamin keabsahan data permainan.
 3. **Aturan Penghapusan**:
    - Versi ruleset dengan status `ACTIVE` tidak boleh dihapus.

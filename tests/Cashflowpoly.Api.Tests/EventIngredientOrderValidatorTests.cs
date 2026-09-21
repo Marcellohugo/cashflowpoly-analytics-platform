@@ -196,6 +196,39 @@ public sealed class EventIngredientOrderValidatorTests
     // TryValidateOrderClaim_ReturnsValidWhenInventoryCoversRequiredCards.
     }
 
+    [Fact]
+    public void TryValidateOrderClaim_UsesInitialRiceAndPurchasedVegetablesOnlyOnce()
+    {
+        var playerId = Guid.NewGuid();
+        var config = CreateConfig() with
+        {
+            Ingredients =
+            [
+                new() { Id = "nasi_putih", Nama = "Nasi Putih", HargaBeli = 1 },
+                new() { Id = "sayur", Nama = "Sayur", HargaBeli = 2 }
+            ],
+            Orders = [new() { Id = "lontong_balap", Nama = "lontong balap", HargaJual = 13, Bahan = ["Sayur", "Nasi Putih"] }]
+        };
+        var initialRice = CreateEvent("SetupBahanAwal", """{"card_id":"nasi_putih","ingredient_name":"Nasi Putih","amount":1,"setup":"INITIAL"}""", playerId);
+        initialRice.ActorType = "SYSTEM";
+        var history = new List<EventDb>
+        {
+            initialRice,
+            CreateEvent("BahanMasakan", """{"card_id":"sayur","amount":2}""", playerId)
+        };
+        var request = CreateRequest("JualMasakan", """{"order_card_id":"lontong_balap"}""", playerId);
+        var validator = new EventIngredientOrderValidator();
+
+        Assert.True(validator.TryValidate(request, config, history, out var sale));
+        Assert.True(sale.Validation.IsValid, sale.Validation.Message);
+
+        history.Add(CreateEvent("JualMasakan", """{"order_card_id":"lontong_balap","required_ingredient_card_ids":["sayur","nasi_putih"],"income":13}""", playerId));
+        history.Add(CreateEvent("BahanMasakan", """{"card_id":"sayur","amount":2}""", playerId));
+        Assert.True(validator.TryValidate(request, config, history, out var repeatedSale));
+        Assert.False(repeatedSale.Validation.IsValid);
+        Assert.Equal("Bahan tidak mencukupi untuk klaim order", repeatedSale.Validation.Message);
+    }
+
     // Mendefinisikan metode `CreateRequest` dengan hasil bertipe `EventRequest`; operasi ini menangani create permintaan. Masukan: Parameter
     // `actionType` bertipe `string` membawa nilai aksi jenis; Parameter `payloadJson` bertipe `string` membawa nilai payload JSON; Parameter `playerId`
     // bertipe `Guid?` membawa nilai pemain identitas; nilai null diizinkan ketika data opsional belum tersedia.

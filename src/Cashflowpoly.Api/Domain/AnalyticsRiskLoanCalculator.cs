@@ -103,10 +103,16 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
 
         var riskCostsTotal = riskCostsPerCard.Sum();
         var riskCardsDrawn = riskEvents.Count;
-        var riskMitigated = playerEvents.Count(e =>
-            e.ActionType == GameActionCatalog.Asuransi &&
-            e.Payload.Contains("\"risk_event_id\"", StringComparison.OrdinalIgnoreCase));
-        var riskAccepted = Math.Max(0, riskCardsDrawn - riskMitigated);
+        var riskMitigated = playerEvents.Count(e => e.ActionType == GameActionCatalog.Asuransi &&
+            TryReadRiskId(e.Payload, out _, "risk_event_id"));
+        var insuredRisks = playerEvents.Where(e => e.ActionType == GameActionCatalog.Asuransi)
+            .Select(e => TryReadRiskId(e.Payload, out var reference, "risk_event_id") ? reference : string.Empty)
+            .Select(reference => Guid.TryParse(reference, out var id) ? id.ToString() : reference)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Draw-based metrics exclude claims on mass cards drawn by another participant.
+        var drawnRisksMitigated = riskEvents.Count(e => insuredRisks.Contains(e.EventId.ToString()) ||
+            (TryReadRiskId(e.Payload, out var code) && insuredRisks.Contains(code)));
+        var riskAccepted = Math.Max(0, riskCardsDrawn - drawnRisksMitigated);
         var insurancePayments = playerProjections
             .Where(p => p.Category == "INSURANCE_PREMIUM" && p.Direction == "OUT")
             .Sum(p => p.Amount);
@@ -120,7 +126,7 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
 
         var averageRiskCost = riskCardsDrawn > 0 ? (double)riskCostsTotal / riskCardsDrawn : 0;
         var riskAcceptanceRate = SafeRatio(riskAccepted, riskCardsDrawn);
-        var insuranceCoverageRate = SafeRatio(riskMitigated, riskCardsDrawn);
+        var insuranceCoverageRate = SafeRatio(drawnRisksMitigated, riskCardsDrawn);
         var riskCostIntensity = SafeRatio(averageRiskCost, startingCoins);
         var riskAppetiteScore =
             riskAcceptanceRate.HasValue &&
@@ -144,7 +150,7 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
             loansUnpaid,
             loansOutstandingAmount,
             SafeRatio(riskCostsTotal, totalIncome, true),
-            SafeRatio(riskMitigated, riskCardsDrawn, true),
+            SafeRatio(drawnRisksMitigated, riskCardsDrawn, true),
             averageRiskCost,
             riskAcceptanceRate,
             insuranceCoverageRate,
@@ -158,13 +164,14 @@ internal sealed class RiskLoanCalculator : IRiskLoanCalculator
     private static bool ReferencesRiskEvent(string? reference, Guid riskEventId)
         => Guid.TryParse(reference, out var referencedEventId) && referencedEventId == riskEventId;
 
-    private static bool TryReadRiskId(string payload, out string riskId)
+    private static bool TryReadRiskId(string payload, out string riskId, string property = "risk_id")
     {
         riskId = string.Empty;
         try
         {
             using var document = System.Text.Json.JsonDocument.Parse(payload);
-            if (!document.RootElement.TryGetProperty("risk_id", out var riskIdElement))
+            if (!document.RootElement.TryGetProperty(property, out var riskIdElement) ||
+                riskIdElement.ValueKind != System.Text.Json.JsonValueKind.String)
             {
                 return false;
             }

@@ -92,7 +92,7 @@ Catatan:
 4. Log aplikasi tidak boleh mencatat password mentah, token JWT utuh, atau payload sensitif di luar kebutuhan debugging terkontrol.
 5. Akun role `PLAYER` disimpan langsung sebagai baris `app_users`; keterlibatan
    Player pada sesi disimpan pada `session_participants`.
-6. UI menyimpan sesi autentikasi pada cookie server-side dengan `HttpOnly`, `SameSite=Lax`, dan kebijakan `Secure` yang wajib di production.
+6. UI menyimpan sesi autentikasi pada tiket cookie yang dilindungi ASP.NET Core Data Protection (terenkripsi) dengan `HttpOnly`, `SameSite=Lax`, dan kebijakan `Secure` yang wajib di production.
 
 ### 3.6 Validasi input minimum
 1. Endpoint autentikasi memvalidasi field wajib (`username`, `password`).
@@ -165,7 +165,7 @@ Aturan tambahan untuk konteks integrasi IDN:
 ### 7.1 Event wajib
 Klien IDN wajib mengirim:
 1. metadata urutan event (`event_id`, `session_id`, `sequence_number`, `action_slot`, `timestamp`)
-2. identitas aktor (`actor_type`, `user_id`; kosong untuk event sistem)
+2. identitas aktor (`actor_type`, `user_id`; null untuk SYSTEM tingkat sesi; wajib untuk SYSTEM yang menargetkan pemain)
 3. konteks ruleset (`ruleset_version_id`)
 4. payload domain event sesuai `action_type`.
 
@@ -189,9 +189,11 @@ Target performa mengikuti NFR pada `docs/01-Spesifikasi/01-01-spesifikasi-kebutu
 2. P95 analitika sesi <= 1500 ms (<= 2000 event per sesi).
 
 ### 8.1A Rate limiting operasional
-1. Endpoint ingest (`/api/v1/events`, `/api/v1/events/batch`) dibatasi 120 request/menit per identitas klien.
-2. Endpoint non-ingest dibatasi 60 request/menit per identitas klien.
-3. Pelanggaran rate limit mengembalikan HTTP `429` dengan format error standar.
+1. API membagi request menjadi tiga kelompok: autentikasi (`/api/v1/auth/*`) 30 request/menit, ingest (`/api/v1/events`, `/api/v1/events/batch`) 340 request/menit, dan endpoint API lainnya 400 request/menit.
+2. Kuota dibagikan antar-endpoint dalam kelompok yang sama, per ID akun dari klaim JWT; bila tidak ada identitas akun, API memakai alamat IP klien. Mengganti token untuk akun yang sama tidak membuat kuota baru. Satu request batch memakai satu permit request, bukan satu permit per event.
+3. API memakai *fixed window* satu menit dengan `QueueLimit=0`: request yang melewati kuota langsung ditolak HTTP `429` dengan error standar `RATE_LIMITED`. Klien harus melakukan *backoff* sebelum retry.
+4. Nginx adalah lapisan tambahan per IP: lokasi API umum memakai `50r/s` dan `burst=100`; lokasi khusus `/api/v1/auth/login` memakai `20r/m` dan `burst=10`. `nodelay` melewatkan burst yang masih diizinkan tanpa penundaan; kelebihan batas Nginx juga menghasilkan HTTP `429`. Respons Nginx tidak dijamin memakai envelope JSON API.
+5. Kuota Nginx dan API dihitung terpisah. Pengguna berbeda pada satu IP berbagi batas Nginx, sedangkan API memisahkan akun yang telah terautentikasi. IP diteruskan hanya melalui proxy tepercaya, bukan header klien yang tidak diverifikasi.
 
 ### 8.2 Reliabilitas
 1. Tidak ada efek ganda pada retry event duplikat.
@@ -203,7 +205,7 @@ Target performa mengikuti NFR pada `docs/01-Spesifikasi/01-01-spesifikasi-kebutu
    untuk role `INSTRUCTOR`; metrik operasional detail diekspos pada
    `GET /metrics` dalam format Prometheus.
 3. Audit validasi event masuk ke `validation_logs`.
-4. Audit keamanan disimpan pada tabel `security_audit_logs` dan tersedia via `GET /api/v1/security/audit-logs` (role `INSTRUCTOR`).
+4. Audit keamanan disimpan pada tabel `security_audit_logs` dan tersedia via `GET /api/v1/security/audit-logs` (role `INSTRUCTOR`, hanya log akun pemanggil; filter akun lain menghasilkan 403).
 5. Error tak terduga harus direkam ke log server dan dikembalikan sebagai respons error standar.
 
 ### 8.4 Migrasi dan keputusan tanpa backup
@@ -219,3 +221,6 @@ Sistem dianggap siap integrasi IDN jika:
 2. retry event dengan `event_id` sama tidak menggandakan data,
 3. seluruh endpoint utama mengembalikan format error standar saat gagal,
 4. data analitika sesi dan pemain dapat diambil konsisten setelah ingest event.
+
+### Koreksi akses dan kerahasiaan (13 September 2026)
+Status aktif dan role akun diverifikasi kembali saat validasi JWT. Log keamanan instruktur dibatasi pada akun sendiri. Donasi SEALED disembunyikan juga dari jumlah kas, peringkat sementara, metrik mentah, dan transaksi agar nominal tidak dapat disimpulkan melalui endpoint analitika lain. Endpoint `/end` menunggu kelengkapan donasi dan menyimpan skor/status secara atomik terhadap ingest event.

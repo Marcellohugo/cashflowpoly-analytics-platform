@@ -16,6 +16,7 @@
     --ui-title-size: clamp(1.85rem, 2.7vw, 2.5rem);
 
     --footer-height: 72px;
+    --mobile-nav-height: 4.5rem;
     --shell-max-width: 1760px;
     --shell-gutter: clamp(0.75rem, 1vw, 1.5rem);
     --bg-sky: #dff6ff;
@@ -321,6 +322,10 @@ a:hover {
 .nav-shell.is-open .nav-mobile-toggle {
     border-color: #39bfb1;
     background: linear-gradient(145deg, #ecfffb, #e1fbf7);
+}
+
+.mobile-bottom-nav {
+    display: none;
 }
 
 .profile-chip {
@@ -1655,18 +1660,98 @@ body > footer .footer-shell {
     margin: 0;
 }
 
+.quickstart-wrapper {
+    position: relative;
+    z-index: 990;
+}
+
+.quickstart-fab {
+    position: fixed;
+    bottom: calc(var(--footer-height, 72px) + 1.25rem);
+    right: 2rem;
+    z-index: 990;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 1.25rem;
+    border-radius: 9999px;
+    background: #112d42;
+    color: #ffffff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(17, 45, 66, 0.35), 0 8px 10px -6px rgba(17, 45, 66, 0.2);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.quickstart-fab:hover {
+    transform: translateY(-2px);
+    background: #1b3f5b;
+    box-shadow: 0 14px 28px -4px rgba(17, 45, 66, 0.45);
+}
+
+.quickstart-fab:active {
+    transform: translateY(0);
+}
+
+.quickstart-fab-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+}
+
+.quickstart-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    animation: quickstartFadeIn 0.2s ease-out;
+}
+
+.quickstart-backdrop[hidden] {
+    display: none !important;
+}
+
 .quickstart-shell {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(640px, calc(100vw - 2rem));
+    max-height: 85vh;
+    overflow-y: auto;
     margin: 0;
-    width: 100%;
-    padding: 1rem;
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1.5px solid #d4e2ed;
+    border-radius: 1.25rem;
+    box-shadow: 0 25px 50px -12px rgba(17, 45, 66, 0.35);
+    z-index: 1001;
+    animation: quickstartPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quickstart-shell.is-collapsed {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
 }
 
 .quickstart-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.8rem;
-    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.quickstart-head-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .quickstart-title {
@@ -1678,21 +1763,38 @@ body > footer .footer-shell {
     line-height: 1.1;
 }
 
-.quickstart-toggle {
-    min-height: 2.45rem;
-    white-space: nowrap;
+.quickstart-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    border: 1px solid #d4e2ed;
+    background: #f1f6fa;
+    color: #4a687d;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.quickstart-close-btn:hover {
+    background: #e2ecf3;
+    color: #1b3f5b;
+    border-color: #bcd1e0;
+}
+
+.quickstart-close-icon {
+    width: 1.15rem;
+    height: 1.15rem;
 }
 
 .quickstart-body {
-    margin-top: 0.95rem;
+    margin-top: 0.5rem;
 }
 
 .quickstart-shell.is-collapsed .quickstart-body {
     display: none;
-}
-
-.quickstart-shell.is-collapsed {
-    padding-block: 0.65rem;
 }
 
 .quickstart-shell.is-collapsed .quickstart-head {
@@ -1711,6 +1813,16 @@ body > footer .footer-shell {
 
 .quickstart-shell.is-collapsed .quickstart-toggle {
     min-height: 2.15rem;
+}
+
+@keyframes quickstartFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes quickstartPopIn {
+    from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 .quickstart-steps {
@@ -1858,40 +1970,62 @@ body > footer .footer-shell {
 
     .nav-shell,
     body > footer .footer-shell {
-        width: calc(100% - 1rem);
+        width: calc(100% - 0.5rem);
     }
 
     .page-shell {
-        width: calc(100% - 1rem);
-        margin-top: 0.75rem;
+        width: calc(100% - 0.5rem);
+        margin-top: 0.5rem;
         padding-top: 0;
-        padding-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        gap: 0.65rem;
+    }
+
+    .quickstart-fab {
+        bottom: calc(var(--mobile-nav-height, 4.5rem) + env(safe-area-inset-bottom, 0px) + 0.85rem) !important;
+        right: 1rem;
+        padding: 0.55rem 0.95rem;
+        font-size: 0.82rem;
     }
 
     .quickstart-shell {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: none;
         width: 100%;
-        padding: 0.92rem;
+        max-height: 82vh;
+        border-radius: 1.25rem 1.25rem 0 0;
+        padding: 1.25rem 1rem calc(var(--mobile-nav-height, 4.5rem) + env(safe-area-inset-bottom, 0px) + 1.25rem) 1rem;
+        animation: quickstartSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .quickstart-head {
-        align-items: stretch;
-    }
-
-    .quickstart-toggle {
-        width: 100%;
-        justify-content: center;
+    .quickstart-shell.is-collapsed {
+        display: none !important;
     }
 
     .quickstart-steps {
         grid-template-columns: 1fr;
     }
 
+@keyframes quickstartSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
     .section-shell {
-        padding: 1.05rem;
+        padding: 0.75rem;
     }
 
     .form-panel {
-        padding: 0.85rem;
+        padding: 0.65rem;
+    }
+
+    #content.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+        --tw-space-y-reverse: 0;
+        margin-top: calc(0.85rem * calc(1 - var(--tw-space-y-reverse)));
+        margin-bottom: calc(0.85rem * var(--tw-space-y-reverse));
     }
 
     .page-intro-actions {
@@ -1959,45 +2093,29 @@ body > footer .footer-shell {
     }
 
     .nav-mobile-toggle {
-        display: inline-flex;
-        margin-left: 0;
-        grid-column: 3;
-        grid-row: 1;
-        justify-self: end;
+        display: none !important;
     }
 
     .nav-shell-auth .nav-center,
+    .nav-shell.is-open .nav-center,
     .nav-shell-guest .nav-right {
         display: none !important;
         width: 100%;
     }
 
-    .nav-shell.is-open .nav-center {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        overflow-x: visible;
-        gap: 0.42rem;
-        justify-content: stretch;
-        padding: 0.34rem 0.36rem !important;
-    }
-
-    .nav-shell.is-open .nav-center .nav-link {
-        flex: initial;
-        width: 100%;
-        min-width: 0;
-    }
-
     .nav-shell-auth {
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        display: flex !important;
+        justify-content: space-between;
         align-items: center;
-        column-gap: 0.5rem;
-        row-gap: 0.55rem;
+        gap: 0.5rem;
+        width: 100%;
     }
 
     .nav-brand {
         gap: 0.55rem !important;
-        max-width: calc(100% - 7.8rem);
+        max-width: none !important;
+        flex: 1;
+        min-width: 0;
     }
 
     .nav-brand .brand-title {
@@ -2007,23 +2125,16 @@ body > footer .footer-shell {
         font-size: 1.02rem;
     }
 
-    .nav-shell-auth .nav-center {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        width: 100%;
-        justify-content: center;
-    }
-
     .nav-shell-auth .nav-right {
         display: flex !important;
-        grid-column: 2;
-        grid-row: 1;
         width: auto;
         min-height: 2.72rem;
         padding: 0.14rem 0.24rem !important;
         justify-self: end;
         align-self: center;
         position: relative;
+        flex-shrink: 0;
+        margin-left: auto;
         --profile-menu-offset-right: calc(-0.24rem - 2px);
     }
 
@@ -2044,8 +2155,97 @@ body > footer .footer-shell {
 
     .nav-shell-guest .nav-right {
         order: 2;
-        margin-left: 0;
+        margin-left: auto;
     }
+
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        display: flex;
+        align-items: stretch;
+        justify-content: space-around;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-top: 1px solid var(--ui-border, #b6dcd8);
+        box-shadow: 0 -4px 20px rgba(19, 100, 136, 0.09);
+        padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+    }
+
+    .mobile-bottom-nav-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        min-width: 0;
+        min-height: 44px;
+        padding: 0.45rem 0.25rem;
+        border-radius: 0.75rem;
+        color: #53758b;
+        text-decoration: none;
+        transition: all 0.18s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-bottom-nav-item:hover,
+    .mobile-bottom-nav-item:focus {
+        color: #12a89a;
+        background: rgba(18, 168, 154, 0.07);
+    }
+
+    .mobile-bottom-nav-item.is-active {
+        color: #0f5f58;
+        background: linear-gradient(145deg, rgba(102, 216, 203, 0.25), rgba(54, 182, 168, 0.18));
+    }
+
+    .mobile-bottom-nav-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        stroke: currentColor;
+        stroke-width: 2.1;
+        transition: transform 0.18s ease;
+        flex-shrink: 0;
+    }
+
+    .mobile-bottom-nav-item.is-active .mobile-bottom-nav-icon {
+        stroke-width: 2.5;
+        transform: scale(1.12);
+    }
+
+    .mobile-bottom-nav-label {
+        display: none !important;
+    }
+
+    body.has-mobile-bottom-nav {
+        padding-bottom: calc(3.85rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.role-player .mobile-bottom-nav {
+        border-top-color: #95c7ef !important;
+        box-shadow: 0 -4px 20px rgba(30, 78, 124, 0.12);
+        background: rgba(255, 255, 255, 0.96) !important;
+    }
+
+    body.role-player .mobile-bottom-nav-item {
+        color: #3f688a;
+    }
+
+    body.role-player .mobile-bottom-nav-item:hover,
+    body.role-player .mobile-bottom-nav-item:focus {
+        color: #1a6296;
+        background: rgba(60, 140, 210, 0.08);
+    }
+
+    body.role-player .mobile-bottom-nav-item.is-active {
+        color: #754206 !important;
+        background: linear-gradient(145deg, rgba(255, 208, 138, 0.45), rgba(246, 173, 83, 0.32)) !important;
+        box-shadow: inset 0 0 0 1px rgba(214, 134, 43, 0.45);
+    }
+
 
     .nav-pill {
         border-radius: 0.82rem !important;
@@ -4229,7 +4429,7 @@ body > footer .footer-shell {
 @media (max-width: 900px) {
     .player-detail-overhaul {
         max-width: 100%;
-        padding: 0.95rem;
+        padding: 0.55rem;
     }
 
     .player-detail-overhaul .players-fusion-metrics {
@@ -6738,16 +6938,36 @@ body:has(.sessions-index-shell)::before {
 }
 
 @media (max-width: 480px) {
+    .nav-shell,
+    body > footer .footer-shell {
+        width: 100%;
+    }
+
+    .page-shell {
+        width: 100%;
+        margin-top: 0.25rem;
+        gap: 0.45rem;
+    }
+
     .quickstart-title {
         font-size: 1.1rem;
     }
 
     .quickstart-step {
-        padding: 0.62rem 0.64rem;
+        padding: 0.5rem 0.55rem;
+    }
+
+    .quickstart-shell {
+        padding: 1rem 0.75rem calc(var(--bottom-nav-height, 3.8rem) + 1rem) 0.75rem;
     }
 
     .nav-brand .brand-title {
-        display: none;
+        display: block;
+        font-size: 0.98rem;
+        max-width: calc(100vw - 11rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .nav-shell-auth .nav-brand {
@@ -6767,7 +6987,7 @@ body:has(.sessions-index-shell)::before {
     .nav-right .nav-dropdown-profile .profile-menu {
         position: fixed;
         top: 4.75rem;
-        right: 1rem;
+        right: 0.5rem;
         left: auto;
         width: auto;
         min-width: min(17rem, calc(100vw - 3rem));
@@ -6781,7 +7001,7 @@ body:has(.sessions-index-shell)::before {
     }
 
     .section-shell {
-        padding: 0.88rem;
+        padding: 0.55rem;
     }
 
     .table-wrap table {
@@ -7578,3 +7798,124 @@ select.form-input{appearance:none;padding-right:2.7rem;background-image:url("dat
 
 /* Keep column headings consistent across every table. */
 table thead th, table th[scope="col"] { text-align: center !important; vertical-align: middle; }
+
+/* ==========================================================================
+   Tata Letak Terbuka & Rata (Selaras dengan Halaman Statistik Pemain):
+   Menghilangkan card-in-card bertingkat yang menyebabkan indentasi menjorok
+   dan blank space kosong yang tidak perlu di seluruh halaman.
+   ========================================================================== */
+
+/* 1. Ratakan pembungkus sekunder ruleset-unified di dalam section-shell */
+.section-shell > .ruleset-unified,
+.section-shell .sessions-index-shell,
+.section-shell .ruleset-index-shell,
+.section-shell .ruleset-detail-shell:not(#rulesetModal *) {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-top: 1.5rem !important;
+}
+
+/* 2. Halaman Sesi (/sessions): stat cards dan session list merentang penuh selebar kartu utama */
+.sessions-index-shell .sessions-index-section {
+    margin-top: 1.5rem !important;
+}
+.session-stats-section,
+.ruleset-summary-section,
+.statistics-stats {
+    display: none !important;
+}
+.sessions-index-shell .players-session-card {
+    border-radius: var(--ui-radius-card) !important;
+    border: 1px solid var(--ui-border) !important;
+    background: var(--card-strong) !important;
+    box-shadow: var(--ui-shadow-card) !important;
+    padding: var(--ui-card-padding) !important;
+}
+.sessions-index-shell .players-session-card summary {
+    padding: 0 !important;
+}
+
+/* 3. Halaman Set Aturan (/rulesets): Filter bar dan tabel merentang penuh tanpa dikotak-kotakkan */
+.ruleset-index-shell .ruleset-quick-tools {
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-card) !important;
+    background: var(--card-strong) !important;
+    padding: var(--ui-card-padding) !important;
+    margin: 1.5rem 0 !important;
+}
+.ruleset-index-shell .table-wrap {
+    margin-top: 1rem !important;
+    width: 100% !important;
+}
+
+/* 4. Halaman Detail Sesi (/sessions/details): Linimasa aktivitas merentang bersih tanpa shell bertingkat */
+.session-detail-shell .session-journey-shell {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-top: 1.5rem !important;
+}
+
+/* 5. Halaman Detail & Analitika Pemain (/players/details):
+      - Hilangkan pembungkus card sekunder pada dashboard
+      - Hilangkan latar belakang wash bertingkat pada chapter
+      - Biarkan kartu metrik merentang penuh dan rapi */
+.player-detail-overhaul {
+    padding: var(--ui-card-padding) !important;
+    max-width: 100% !important;
+}
+.player-detail-overhaul #player-statistics-dashboard.players-fusion-metrics {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+.player-detail-overhaul .player-dashboard-accordion {
+    border-radius: var(--ui-radius-card);
+    background: transparent;
+}
+.player-detail-overhaul .player-analysis-chapter {
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    margin-top: 2rem !important;
+}
+.player-detail-overhaul .player-analysis-chapter__head {
+    padding: 0 0 0.82rem 0 !important;
+}
+.player-detail-overhaul .player-analysis-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1.2rem !important;
+}
+.player-detail-overhaul .player-analysis-card {
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-card) !important;
+    background: var(--card-strong) !important;
+    box-shadow: var(--ui-shadow-card) !important;
+    padding: var(--ui-card-padding) !important;
+}
+.player-detail-overhaul .player-analysis-overview {
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-card) !important;
+    background: var(--card-strong) !important;
+    box-shadow: var(--ui-shadow-card) !important;
+}
+.player-detail-overhaul .metric-domain-card {
+    border: 1px solid var(--ui-border) !important;
+    border-radius: var(--ui-radius-card) !important;
+    background: var(--card-strong) !important;
+    box-shadow: var(--ui-shadow-card) !important;
+    padding: var(--ui-card-padding) !important;
+}
+
+/* 6. Buku Aturan (/rulebook): Hilangkan boks ganda pada rulebook-surface */
+.rulebook-surface {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}

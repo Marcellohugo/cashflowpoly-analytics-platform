@@ -29,7 +29,7 @@ public interface IDonationGameplayCalculator
 
 public interface ISavingGoalCalculator
 {
-    AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents, int? availableGoalCount = null);
+    AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents, int? availableGoalCount = null, int initialSaving = 0);
 }
 
 public interface IIngredientMealCalculator
@@ -52,7 +52,8 @@ public interface INeedMissionCalculator
         // Parameter `playerEvents` bertipe `IEnumerable<EventDb>` membawa nilai pemain event.
         IEnumerable<EventDb> playerEvents,
         // Parameter `playerProjections` bertipe `IEnumerable<CashflowProjectionDb>` membawa nilai pemain projections.
-        IEnumerable<CashflowProjectionDb> playerProjections);
+        IEnumerable<CashflowProjectionDb> playerProjections,
+        RulesetConfig? config = null);
 }
 
 public interface IRiskLoanCalculator

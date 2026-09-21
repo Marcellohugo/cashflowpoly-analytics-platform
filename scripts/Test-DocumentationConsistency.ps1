@@ -126,8 +126,10 @@ foreach ($metric in @(
     "Kesiapan Menghadapi Risiko",
     # Uraian baris: Menambahkan nilai "Beban Pinjaman" ke daftar yang sedang dibentuk. Urutan nilai mengikuti urutan pemeriksaan kontrak/metrik atau argumen command line di bawahnya.
     "Beban Pinjaman",
-    # Uraian baris: Menambahkan nilai "Progres Target Finansial" ke daftar yang sedang dibentuk. Urutan nilai mengikuti urutan pemeriksaan kontrak/metrik atau argumen command line di bawahnya.
-    "Progres Target Finansial",
+    # Memastikan metrik pembelian memakai seluruh katalog, bukan setoran yang dianggap memesan kartu.
+    "Porsi Biaya Pembelian Tujuan",
+    "financial_goals_completed ÷ financial_goals_available_total × 100%",
+    "Saldo tabungan tidak dihitung sebagai pembelian",
     # Uraian baris: Menambahkan nilai "Fokus Aksi Penghasil Uang" ke daftar yang sedang dibentuk. Urutan nilai mengikuti urutan pemeriksaan kontrak/metrik atau argumen command line di bawahnya.
     "Fokus Aksi Penghasil Uang",
     # Uraian baris: Menambahkan nilai "Pemanfaatan Bahan" ke daftar yang sedang dibentuk. Urutan nilai mengikuti urutan pemeriksaan kontrak/metrik atau argumen command line di bawahnya.
@@ -150,6 +152,17 @@ foreach ($metric in @(
 # Uraian baris: Menutup blok, daftar parameter, atau koleksi yang sedang dibentuk; batas sintaks ini mengembalikan eksekusi/struktur ke tingkat induknya atau membuka badan perulangan setelah daftar selesai.
 }
 
+# Menjaga kontrak tabungan tanpa reservasi dan pembelian atomik tetap terdokumentasi.
+foreach ($savingContract in @(
+    'satu saldo tabungan per pemain',
+    '`goal_id` opsional untuk kompatibilitas klien lama',
+    'pemain yang lebih dulu berhasil membeli',
+    'transaksi dengan kunci sesi'
+)) {
+    Assert-ContainsText -Content $apiReadme -Expected $savingContract -Source "dokumen kontrak tabungan dan pembelian tujuan"
+}
+Assert-ExcludesText -Content $apiReadme -Forbidden "setoran pada tujuan lain tetap teralokasi" -Source "dokumen kontrak tabungan"
+
 # Uraian baris: Memeriksa teks kontrak wajib melalui helper Assert-ContainsText dengan masukan -Content $readme -Expected "IDN" -Source "README.md". Ketidakcocokan menghentikan pemeriksaan konsistensi dokumentasi.
 Assert-ContainsText -Content $readme -Expected "IDN" -Source "README.md"
 # Uraian baris: Memeriksa teks kontrak wajib melalui helper Assert-ContainsText dengan masukan -Content $databaseReadme -Expected "schema_history" -Source "dokumen arsitektur database". Ketidakcocokan menghentikan pemeriksaan konsistensi dokumentasi.
@@ -165,5 +178,36 @@ Assert-ExcludesText -Content $postmanText -Forbidden "LewatiOrder" -Source "Post
 # Uraian baris: Memastikan kontrak lama yang disebut pada argumen Forbidden tidak lagi muncul pada sumber; helper memakai perbandingan tanpa membedakan kapital.
 Assert-ExcludesText -Content $postmanText -Forbidden "fromSeq" -Source "Postman collection"
 
-# Uraian baris: Menampilkan "Dokumentasi konsisten: README, kontrak API, arsitektur database, definisi metrik, dan Postman valid.". Keluaran ini memberi hasil/progres verifikasi kepada operator tanpa mengubah berkas konfigurasi.
-Write-Output "Dokumentasi konsisten: README, kontrak API, arsitektur database, definisi metrik, dan Postman valid."
+# Periksa seluruh dokumen aktif dan tautan berkas lokal, bukan hanya kata kunci kontrak API.
+$documentationFiles = Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "docs") -Filter *.md -Recurse -File
+foreach ($document in $documentationFiles) {
+    $content = Get-Content -LiteralPath $document.FullName -Raw
+    foreach ($obsolete in @(
+        "PlayerDirectoryController", "Chart.js", "UI menyimpan token di server-side session.",
+        "UI menyimpan token di session.", "registrasi publik Instruktur ditolak",
+        "pendaftaran Instructor publik tetap ditolak", "Ibu Rina Kartika"
+    )) {
+        Assert-ExcludesText -Content $content -Forbidden $obsolete -Source $document.FullName
+    }
+    foreach ($match in [regex]::Matches($content, '\]\(([^)\s]+)\)')) {
+        $target = $match.Groups[1].Value.Trim('<', '>')
+        if ($target -match '^(?:[a-z][a-z0-9+.-]*:|#)') { continue }
+        $target = [Uri]::UnescapeDataString(($target -split '#', 2)[0])
+        if (-not $target) { continue }
+        $resolved = Join-Path $document.DirectoryName $target
+        if (-not (Test-Path -LiteralPath $resolved)) {
+            throw "Tautan dokumentasi tidak ditemukan: $($document.FullName) -> $target"
+        }
+    }
+}
+$docsIndex = Read-RepositoryFile "docs/README.md"
+Assert-ContainsText -Content $docsIndex -Expected "03-05-kesiapan-produksi.md" -Source "Indeks docs"
+Assert-ContainsText -Content $docsIndex -Expected "03-06-perbaikan-audit-ui-data-dan-dokumentasi.md" -Source "Indeks docs"
+$userManual = Read-RepositoryFile "docs/00-Panduan/00-02-panduan-manual-pengguna-dashboard.md"
+foreach ($required in @("/statistics", "5 baris", "hover", "120 karakter", "72 byte", "Data Protection")) {
+    Assert-ContainsText -Content $userManual -Expected $required -Source "Manual pengguna"
+}
+foreach ($required in @("refreshSequences", "refreshed_items", "has_sealed_donations", "akun instruktur pemanggil")) {
+    Assert-ContainsText -Content $apiReadme -Expected $required -Source "Kontrak API"
+}
+Write-Output "Pemeriksaan kontrak dokumentasi dan tautan lokal lulus pada $($documentationFiles.Count) dokumen Markdown."

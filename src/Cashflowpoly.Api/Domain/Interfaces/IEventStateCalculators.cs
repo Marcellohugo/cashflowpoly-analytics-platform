@@ -13,7 +13,7 @@ public interface IEventDerivedStateCalculator
 {
     EventIngredientInventory BuildIngredientInventory(IEnumerable<EventDb> events, Guid playerId);
 
-    int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, string goalId);
+    int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, int initialSaving = 0);
 }
 
 public interface IEventPlayerBalanceCalculator
@@ -27,4 +27,3 @@ public interface IEventPlayerBalanceCalculator
         // permainan.
         IReadOnlyCollection<CashflowProjectionDb> projections);
 }
-

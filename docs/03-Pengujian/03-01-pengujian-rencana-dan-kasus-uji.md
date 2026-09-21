@@ -424,13 +424,14 @@ Ekspektasi: `orphan_projections = 0`.
 - Sistem tidak menyimpan event pada `events`.
 - Sistem mencatat kegagalan pada `validation_logs` jika modul ini aktif.
 
-Validasi payload invalid tersimpan tanpa event utama:
+Validasi metadata penolakan tersimpan tanpa payload gameplay atau event utama (gunakan ID dari permintaan uji):
 ```sql
-select count(*) as invalid_logs
+select count(*) as invalid_logs,
+       bool_and(vl.raw_payload_json = '{}'::jsonb and vl.details_json = '{}'::jsonb) as payloads_sanitized
 from validation_logs vl
-where vl.raw_payload_json is not null;
+where vl.session_id = '<SESSION_ID>' and vl.event_id = '<EVENT_ID>';
 ```
-Ekspektasi: `invalid_logs > 0`.
+Ekspektasi: `invalid_logs > 0`, `payloads_sanitized = true`, dan tidak ada baris `events` dengan pasangan ID tersebut. Kolom JSON yang sekadar nonnull tidak membuktikan isi payload disimpan.
 
 ### 8.3 Skenario integrasi perubahan ruleset (IT-03)
 **Tujuan:** sistem menempelkan event ke versi ruleset yang benar.

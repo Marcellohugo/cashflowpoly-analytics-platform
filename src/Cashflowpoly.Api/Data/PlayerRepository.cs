@@ -157,7 +157,7 @@ public sealed class PlayerRepository
             new CommandDefinition(sql, new { sessionIds }, cancellationToken: ct))).ToList();
     }
 
-    public async Task<int> AddPlayerToSessionAndAssignPlayerOrderAsync(
+    public async Task<(int PlayerOrder, string? Error)> AddPlayerToSessionAndAssignPlayerOrderAsync(
         Guid sessionId,
         Guid userId,
         int? playerOrder,
@@ -191,26 +191,21 @@ public sealed class PlayerRepository
             """;
 
         const string applyRequestedPlayerOrderSql = """
-            update session_participants
-            set player_order_no = player_order_no + 1
-            where session_id = @sessionId
-              and user_id <> @userId
-              and player_order_no >= @playerOrder;
-
-            update session_participants
-            set player_order_no = @playerOrder
-            where session_id = @sessionId
-              and user_id = @userId;
-            """;
-
-        const string normalizePlayerOrderSql = """
-            with ranked as (
+            with other_players as (
                 select session_participant_id,
-                       row_number() over (
-                           order by player_order_no asc, joined_at asc, user_id asc
-                       )::int as new_player_order
+                       2 * row_number() over (order by player_order_no, joined_at, user_id) as position
                 from session_participants
-                where session_id = @sessionId
+                where session_id = @sessionId and user_id <> @userId
+            ), positions as (
+                select session_participant_id, position from other_players
+                union all
+                select session_participant_id, 2 * @playerOrder - 1
+                from session_participants
+                where session_id = @sessionId and user_id = @userId
+            ), ranked as (
+                select session_participant_id,
+                       row_number() over (order by position)::int as new_player_order
+                from positions
             )
             update session_participants sp
             set player_order_no = ranked.new_player_order
@@ -257,6 +252,28 @@ public sealed class PlayerRepository
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
+        // Setup and roster changes serialize on the same session row.
+        var status = await conn.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
+            "select status from sessions where session_id = @sessionId for update",
+            new { sessionId }, tx, cancellationToken: ct));
+        if (status != "CREATED") return (0, "SESSION_ROSTER_LOCKED");
+
+        var setupExists = await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "select exists (select 1 from session_setup_revisions where session_id = @sessionId)",
+            new { sessionId }, tx, cancellationToken: ct));
+        if (setupExists) return (0, "SESSION_SETUP_LOCKED");
+
+        var remainingSlots = await conn.ExecuteScalarAsync<int>(new CommandDefinition("""
+            select rgs.max_players - (
+                select count(*) from session_participants
+                where session_id = @sessionId and user_id <> @userId
+            )
+            from sessions s
+            join ruleset_game_settings rgs on rgs.ruleset_version_id = s.ruleset_version_id
+            where s.session_id = @sessionId
+            """, new { sessionId, userId }, tx, cancellationToken: ct));
+        if (remainingSlots <= 0) return (0, "SESSION_FULL");
+
         await conn.ExecuteAsync(new CommandDefinition(
             "set constraints uq_session_participants_session_seat deferred",
             transaction: tx,
@@ -278,7 +295,6 @@ public sealed class PlayerRepository
                 new { sessionId, userId, playerOrder = playerOrder.Value },
                 tx,
                 cancellationToken: ct));
-            await conn.ExecuteAsync(new CommandDefinition(normalizePlayerOrderSql, new { sessionId }, tx, cancellationToken: ct));
         }
         else
         {
@@ -305,7 +321,7 @@ public sealed class PlayerRepository
             throw new InvalidOperationException("Pemain gagal terdaftar pada sesi.");
         }
 
-        return assignment.PlayerOrderNo;
+        return (assignment.PlayerOrderNo, null);
     }
 
     public async Task<Dictionary<Guid, int>> GetSessionPlayerPlayerOrderMapAsync(Guid sessionId, CancellationToken ct)

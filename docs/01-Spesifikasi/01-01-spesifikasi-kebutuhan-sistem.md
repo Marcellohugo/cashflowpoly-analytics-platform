@@ -104,7 +104,7 @@ Aturan server (ringkas, tanpa mengubah kontrak payload) ditegaskan sebagai berik
 - Sistem menyimpan event dengan `event_pk` sebagai primary key internal.
 - Sistem menerapkan idempotensi pada kombinasi `session_id + event_id`.
 - Sistem menolak `sequence_number` duplikat dalam satu sesi.
-- Event aksi Player memakai `user_id`; event sistem memakai `user_id = null`.
+- Event aksi Player memakai `user_id`; event SYSTEM tingkat sesi memakai `user_id = null`, sedangkan SYSTEM yang menargetkan pemain (misalnya `TujuanFinansial`) memakai ID pemain penerima.
 - API me-resolve `user_id` ke `session_participant_id`/`session_player_id`
   saat event valid diproses.
 - Kebijakan `action_slot` berasal dari katalog aksi kanonik: aksi reguler memakai slot `1..actions_per_turn`, sedangkan event sistem dan aksi gratis memakai slot `0`.
@@ -176,9 +176,11 @@ Kebutuhan non-fungsional berikut ditetapkan.
 - NFR-SEC-03 Sistem membatasi fitur pengelolaan ruleset hanya untuk instruktur.
 - NFR-SEC-04 Sistem memvalidasi input untuk mencegah payload tidak valid dan manipulasi data.
 - NFR-SEC-05 Sistem menyimpan password dalam bentuk hash kuat (`pgcrypto`/bcrypt) dan tidak pernah mengembalikan password pada respons API.
-- NFR-SEC-06 Sistem menerapkan pembatasan laju request (*rate limiting*) minimum:
-  1. endpoint ingest event: 120 request/menit/identitas klien,
-  2. endpoint non-ingest: 60 request/menit/identitas klien.
+- NFR-SEC-06 Sistem menerapkan pembatasan laju request (*rate limiting*) API:
+  1. kelompok autentikasi (`/api/v1/auth/*`): 30 request/menit/identitas klien,
+  2. kelompok ingest event (`/api/v1/events` dan `/api/v1/events/batch`): 340 request/menit/identitas klien,
+  3. kelompok endpoint API lainnya: 400 request/menit/identitas klien.
+  Setiap kelompok berbagi satu kuota untuk identitas yang sama: ID akun dari JWT, atau alamat IP bila tidak ada identitas akun. API memakai *fixed window* satu menit, tanpa antrean; kelebihan kuota mendapat HTTP `429`. Nginx menambah lapisan per IP: API umum 50 request/detik dengan `burst=100`, khusus `/api/v1/auth/login` 20 request/menit dengan `burst=10`. Kedua lokasi memakai `nodelay`; batas Nginx dan API berlaku secara independen.
 
 ### 9.2 Audit dan logging
 - NFR-AUD-01 Sistem mencatat request dan hasil validasi event untuk audit.

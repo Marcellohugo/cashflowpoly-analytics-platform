@@ -70,8 +70,11 @@
                                id="register-display-name"
                                asp-for="DisplayName"
                                autocomplete="name"
+                               maxlength="80"
+                               aria-describedby="register-display-name-hint"
                                required
                                placeholder="@Context.T("auth.placeholder.full_name")" />
+                        <p id="register-display-name-hint" class="subhead">@Context.T("auth.display_name_hint")</p>
                     </div>
 
                     <div class="form-field">
@@ -79,6 +82,9 @@
                         <input class="auth-input"
                                id="register-username"
                                asp-for="Username"
+                               minlength="3"
+                               maxlength="80"
+                               aria-describedby="register-username-hint"
                                autocomplete="username"
                                autocapitalize="none"
                                autocorrect="off"
@@ -87,6 +93,7 @@
                                enterkeyhint="next"
                                required
                                placeholder="@Context.T("auth.placeholder.new_username")" />
+                        <p id="register-username-hint" class="subhead">@Context.T("auth.username_hint")</p>
                     </div>
                 </div>
 
@@ -96,11 +103,14 @@
                         <input class="auth-input"
                                id="register-password"
                                asp-for="Password"
+                               minlength="12"
+                               aria-describedby="register-password-hint"
                                type="password"
                                autocomplete="new-password"
                                enterkeyhint="next"
                                required
                                placeholder="********" />
+                        <p id="register-password-hint" class="subhead">@Context.T("auth.password_hint")</p>
                     </div>
 
                     <div class="form-field">

@@ -108,6 +108,12 @@ public sealed class PlayersController : ControllerBase
                 new ErrorDetail("password", "REQUIRED")));
         }
 
+        if (request.DisplayName.Trim().Length > 80)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama pemain maksimal 80 karakter",
+                new ErrorDetail("display_name", "OUT_OF_RANGE")));
+        }
+
         var username = request.Username.Trim();
         if (username.Length < 3 || username.Length > 80)
         {
@@ -338,13 +344,21 @@ public sealed class PlayersController : ControllerBase
             }
         }
 
-        var playerOrder = await _players.AddPlayerToSessionAndAssignPlayerOrderAsync(
+        var assignment = await _players.AddPlayerToSessionAndAssignPlayerOrderAsync(
             sessionId,
             userId,
             request.PlayerOrder,
             ct);
 
-        return Ok(new AddSessionPlayerResponse(userId, playerOrder));
+        if (assignment.Error is not null)
+        {
+            return assignment.Error == "SESSION_FULL"
+                ? UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", $"Sesi maksimal {maxPlayers} pemain"))
+                : Conflict(ApiErrorHelper.BuildError(HttpContext, assignment.Error,
+                    "Daftar pemain sudah terkunci. Muat ulang sesi untuk melihat pembagian awal terbaru."));
+        }
+
+        return Ok(new AddSessionPlayerResponse(userId, assignment.PlayerOrder));
     }
 
     private bool TryGetCurrentUserId(out Guid userId)

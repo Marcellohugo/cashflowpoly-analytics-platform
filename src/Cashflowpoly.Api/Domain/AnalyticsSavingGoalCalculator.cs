@@ -34,36 +34,15 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
 {
     private static readonly AnalyticsPayloadReader _payloadReader = new();
 
-    public AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents, int? availableGoalCount = null)
+    public AnalyticsSavingGoalMetrics Compute(IEnumerable<EventDb> playerEvents, int? availableGoalCount = null, int initialSaving = 0)
     {
-        var savingDepositsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var savingWithdrawalsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var events = playerEvents.ToList();
         var savingGoalCostsByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var savingGoalsAchieved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Mengulangi setiap elemen `playerEvents`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh badan loop dalam Compute.
-        foreach (var evt in playerEvents)
+        foreach (var evt in events)
         {
-            if (evt.ActionType == "Menabung" &&
-                _payloadReader.TryReadSavingDeposit(evt.Payload, out var goalId, out var amount))
-            {
-                savingDepositsByGoal[goalId] = savingDepositsByGoal.TryGetValue(goalId, out var existing)
-                    // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: existing + amount dalam Compute.
-                    ? existing + amount
-                    // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: amount; dalam Compute.
-                    : amount;
-            }
-
-            if (evt.ActionType == "TarikTabungan" &&
-                _payloadReader.TryReadSavingDeposit(evt.Payload, out var withdrawGoalId, out var withdrawAmount))
-            {
-                savingWithdrawalsByGoal[withdrawGoalId] = savingWithdrawalsByGoal.TryGetValue(withdrawGoalId, out var existing)
-                    // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: existing + withdrawAmount dalam Compute.
-                    ? existing + withdrawAmount
-                    // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: withdrawAmount; dalam Compute.
-                    : withdrawAmount;
-            }
-
             if (evt.ActionType == "TujuanFinansial" &&
                 _payloadReader.TryReadSavingGoalAchievedDetailed(evt.Payload, out var achievedGoalId, out _, out var cost))
             {
@@ -76,49 +55,28 @@ internal sealed class SavingGoalCalculator : ISavingGoalCalculator
             }
         }
 
-        var savingBalancesByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        // Mengulangi setiap elemen `savingDepositsByGoal.Keys .Concat(savingWithdrawalsByGoal.Keys) .Concat(savingGoalCostsByGoal.Keys)
-        // .Distinct(StringComparer.OrdinalIgnoreCase)`; elemen saat ini disimpan sebagai `goalId` bertipe `var` untuk diproses oleh badan loop dalam
-        // Compute.
-        foreach (var goalId in savingDepositsByGoal.Keys
-                     .Concat(savingWithdrawalsByGoal.Keys)
-                     .Concat(savingGoalCostsByGoal.Keys)
-                     .Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            var deposits = savingDepositsByGoal.TryGetValue(goalId, out var dep) ? dep : 0;
-            var withdraws = savingWithdrawalsByGoal.TryGetValue(goalId, out var wit) ? wit : 0;
-            var costs = savingGoalCostsByGoal.TryGetValue(goalId, out var cst) ? cst : 0;
-            savingBalancesByGoal[goalId] = Math.Max(0, deposits - withdraws - costs);
-        }
-
-        var goalIds = new HashSet<string>(savingDepositsByGoal.Keys, StringComparer.OrdinalIgnoreCase);
-        goalIds.UnionWith(savingGoalsAchieved);
-
-        var financialGoalsAttempted = goalIds.Count;
-        var financialGoalsAvailableTotal = availableGoalCount is > 0
+        // Pertahankan bentuk respons lama tanpa menyiratkan tabungan memesan tujuan tertentu.
+        var unallocatedByGoal = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var financialGoalsAttempted = savingGoalsAchieved.Count;
+        var financialGoalsAvailableTotal = availableGoalCount is >= 0
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: availableGoalCount dalam Compute.
             ? availableGoalCount
-            // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: goalIds.Count > 0 dalam Compute.
-            : goalIds.Count > 0
-                // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: goalIds.Count dalam Compute.
-                ? goalIds.Count
+            // Tanpa katalog, hanya tujuan yang sudah dibeli dapat dihitung.
+            : savingGoalsAchieved.Count > 0
+                ? savingGoalsAchieved.Count
                 // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: (int?)null; dalam Compute.
                 : (int?)null;
-        var financialGoalsIncompleteCoinsWasted = savingBalancesByGoal
-            .Where(kvp => !savingGoalsAchieved.Contains(kvp.Key))
-            .Sum(kvp => kvp.Value);
-
         return new AnalyticsSavingGoalMetrics(
-            savingDepositsByGoal,
-            savingWithdrawalsByGoal,
+            unallocatedByGoal,
+            unallocatedByGoal,
             savingGoalCostsByGoal,
             savingGoalsAchieved,
-            savingBalancesByGoal,
-            savingBalancesByGoal.Values.Sum(),
+            unallocatedByGoal,
+            EventDerivedStateCalculator.ComputeTotalSavings(events, initialSaving),
             financialGoalsAttempted,
             financialGoalsAvailableTotal,
             savingGoalsAchieved.Count,
-            savingDepositsByGoal.Values.Sum(),
-            financialGoalsIncompleteCoinsWasted);
+            savingGoalCostsByGoal.Values.Sum(),
+            0);
     }
 }

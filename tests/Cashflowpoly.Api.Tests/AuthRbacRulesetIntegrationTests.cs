@@ -1332,6 +1332,8 @@ public sealed class AuthRbacRulesetIntegrationTests
         // Menyiapkan variabel lokal `detailAfterStart` untuk nilai detail after start dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
         // `HttpMethod.Get`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}”`, `null`, `instructor.AccessToken`; await menunggu hasil tanpa memblokir thread
         // selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
+        await SessionSetupTestHelper.PlayFirstActionAsync(_client, instructor.AccessToken,
+            createdSession.SessionId, createdRuleset.RulesetVersionId, TestContext.Current.CancellationToken);
         var detailAfterStart = await SendJsonAsync(
             // Meneruskan `HttpMethod.Get` (nilai get) sebagai argumen ke `SendJsonAsync`.
             HttpMethod.Get,

@@ -1,6 +1,8 @@
 // Fungsi file: Menangani endpoint, validasi akses, dan response HTTP untuk SecurityAuditController.
 // Mengimpor namespace `System.Text.Json` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using System.Text.Json;
+using System.Security.Claims;
+using Cashflowpoly.Api.Infrastructure;
 // Mengimpor namespace `Cashflowpoly.Api.Data` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using Cashflowpoly.Api.Data;
 // Mengimpor namespace `Cashflowpoly.Api.Contracts` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
@@ -60,6 +62,16 @@ public sealed class SecurityAuditController : ControllerBase
         // aplikasi berhenti; bila argumen tidak diberikan digunakan nilai literal `default`.
         CancellationToken ct = default)
     {
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        if (userId.HasValue && userId.Value != currentUserId)
+        {
+            return Forbid();
+        }
+
         var clampedLimit = Math.Clamp(limit, 1, 500);
         var normalizedEventType = string.IsNullOrWhiteSpace(eventType)
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: null dalam GetAuditLogs.
@@ -67,7 +79,7 @@ public sealed class SecurityAuditController : ControllerBase
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: eventType.Trim().ToUpperInvariant(); dalam GetAuditLogs.
             : eventType.Trim().ToUpperInvariant();
 
-        var logs = await _securityAudit.ListRecentAsync(clampedLimit, normalizedEventType, userId, ct);
+        var logs = await _securityAudit.ListRecentAsync(clampedLimit, normalizedEventType, currentUserId, ct);
         var items = logs
             .Select(log => new SecurityAuditLogItem(
                 log.SecurityAuditLogId,

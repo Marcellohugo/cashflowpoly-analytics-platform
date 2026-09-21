@@ -179,19 +179,87 @@ document.querySelectorAll('time[data-local-time]').forEach(time => {
   if (!quickstart || !toggle || !body) {
     return;
   }
-  const expandedLabel = toggle.getAttribute("data-expanded-label") || "";
-  const collapsedLabel = toggle.getAttribute("data-collapsed-label") || "";
+  const modal = quickstart.querySelector(".quickstart-shell") || quickstart;
+  const backdrop = quickstart.querySelector("[data-quickstart-backdrop]");
+  const closeBtn = quickstart.querySelector("[data-quickstart-close]");
+  const menuLinks = quickstart.querySelectorAll("[data-quickstart-menu-link]");
+
   const applyState = (collapsed) => {
     quickstart.classList.toggle("is-collapsed", collapsed);
+    modal.classList.toggle("is-collapsed", collapsed);
     body.hidden = collapsed;
+    if (backdrop) {
+      backdrop.hidden = collapsed;
+    }
     toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    toggle.textContent = collapsed ? collapsedLabel : expandedLabel;
+    if (!collapsed) {
+      closeBtn?.focus();
+    }
   };
+
   applyState(true);
-  toggle.addEventListener("click", () => {
-    const nextCollapsed = !quickstart.classList.contains("is-collapsed");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const nextCollapsed = !modal.classList.contains("is-collapsed");
     applyState(nextCollapsed);
   });
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      applyState(true);
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener("click", () => {
+      applyState(true);
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!modal.classList.contains("is-collapsed") && !modal.contains(e.target) && !toggle.contains(e.target)) {
+      applyState(true);
+    }
+  });
+
+  menuLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      applyState(true);
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("is-collapsed")) {
+      applyState(true);
+      toggle.focus();
+    }
+  });
+
+  const updateFabPosition = () => {
+    if (window.innerWidth <= 768) {
+      toggle.style.bottom = "";
+      return;
+    }
+    const footer = document.querySelector("body > footer");
+    if (!footer) {
+      toggle.style.bottom = "";
+      return;
+    }
+    const footerRect = footer.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    if (footerRect.top < viewportHeight) {
+      const overlap = viewportHeight - footerRect.top;
+      toggle.style.bottom = `${overlap + 20}px`;
+    } else {
+      toggle.style.bottom = "";
+    }
+  };
+
+  window.addEventListener("scroll", updateFabPosition, { passive: true });
+  window.addEventListener("resize", updateFabPosition, { passive: true });
+  updateFabPosition();
 })();
 (() => {
   const switches = Array.from(document.querySelectorAll(".js-auth-switch"));

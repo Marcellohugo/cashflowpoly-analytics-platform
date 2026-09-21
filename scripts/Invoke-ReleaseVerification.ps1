@@ -258,6 +258,12 @@ try {
                 --mount "type=bind,source=$repositoryRoot,target=/repo,readonly" `
                 cashflowpoly-api:release-gate /repo/tests/deployment/deploy-production.test.sh
         }
+        Invoke-Checked "Regresi alokasi IP ingress pada jaringan terisolasi" {
+            & (Join-Path $repositoryRoot 'tests/deployment/Test-IngressNetworking.ps1')
+        }
+        Invoke-Checked "Regresi header Nginx dan konfigurasi HTTPS produksi" {
+            & (Join-Path $repositoryRoot 'tests/deployment/Test-NginxClientIdentity.ps1')
+        }
     # Uraian baris: Menutup blok, daftar parameter, atau koleksi yang sedang dibentuk; batas sintaks ini mengembalikan eksekusi/struktur ke tingkat induknya atau membuka badan perulangan setelah daftar selesai.
     }
 

@@ -49,6 +49,97 @@ public sealed class EventAnalyticsIntegrationTests
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
+    public async Task RulesetNames_EnforceDatabaseLengthOnCreateAndUpdate()
+    {
+        var token = (await RegisterAsync($"name_{Guid.NewGuid():N}", "IntegrationNamePass!123", "INSTRUCTOR")).AccessToken;
+        var definition = BuildRulesetDefinition(startingCash: 50);
+        using var tooLong = await SendJsonAsync(HttpMethod.Post, "/api/v1/rulesets",
+            new CreateRulesetRequest(new string('a', 121), null, definition), token);
+        Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+        using var boundary = await SendJsonAsync(HttpMethod.Post, "/api/v1/rulesets",
+            new CreateRulesetRequest(new string('a', 120), null, definition), token);
+        Assert.True(boundary.StatusCode == HttpStatusCode.Created, await boundary.Content.ReadAsStringAsync());
+        using var body = await ReadJsonAsync(boundary);
+        var id = body.RootElement.GetProperty("ruleset_id").GetGuid();
+        using var update = await SendJsonAsync(HttpMethod.Put, $"/api/v1/rulesets/{id}",
+            new UpdateRulesetRequest(new string('b', 121), null, definition), token);
+        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
+        using var validUpdate = await SendJsonAsync(HttpMethod.Put, $"/api/v1/rulesets/{id}",
+            new UpdateRulesetRequest(new string('b', 120), null, BuildRulesetDefinition(startingCash: 51)), token);
+        Assert.True(validUpdate.StatusCode == HttpStatusCode.OK, await validUpdate.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task MalformedPayloads_ReturnValidationErrors_ForSingleAndBatch()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var token = (await RegisterAsync($"shape_{suffix}", "IntegrationShapePass!123", "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(token, suffix);
+        foreach (var shape in new[] { "null", "[]", "42", "\"text\"" })
+        {
+            var request = new
+            {
+                event_id = Guid.NewGuid(), session_id = setup.SessionId, user_id = setup.ActingUserId,
+                actor_type = "PLAYER", timestamp = DateTimeOffset.UtcNow, day_index = 1, weekday = "MON",
+                turn_number = 1, action_slot = 1, sequence_number = setup.NextSequenceNumber,
+                action_type = "JualMasakan", ruleset_version_id = setup.RulesetVersionId,
+                payload = JsonSerializer.Deserialize<JsonElement>(shape)
+            };
+            using var single = await SendJsonAsync(HttpMethod.Post, "/api/v1/events", request, token);
+            Assert.Equal(HttpStatusCode.BadRequest, single.StatusCode);
+            using var batch = await SendJsonAsync(HttpMethod.Post, "/api/v1/events/batch", new { events = new[] { request } }, token);
+            Assert.Equal(HttpStatusCode.OK, batch.StatusCode);
+            using var json = await ReadJsonAsync(batch);
+            Assert.Equal(0, json.RootElement.GetProperty("stored_count").GetInt32());
+            Assert.Single(json.RootElement.GetProperty("failed").EnumerateArray());
+        }
+    }
+
+    [Fact]
+    public async Task EndSession_RacingEvent_IsEitherIncludedInFinalScoreOrRejected()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var token = (await RegisterAsync($"endrace_{suffix}", "IntegrationEndRacePass!123", "INSTRUCTOR")).AccessToken;
+        var setup = await CreateReadySessionAsync(token, suffix);
+        var eventId = Guid.NewGuid();
+        var eventTask = SendJsonAsync(HttpMethod.Post, "/api/v1/events", new
+        {
+            event_id = eventId, session_id = setup.SessionId, user_id = setup.ActingUserId,
+            actor_type = "PLAYER", timestamp = DateTimeOffset.UtcNow, day_index = 1, weekday = "MON",
+            turn_number = 1, action_slot = 1, sequence_number = setup.NextSequenceNumber,
+            action_type = "KerjaLepas", ruleset_version_id = setup.RulesetVersionId, payload = new { amount = 1 }
+        }, token);
+        var endTask = SendJsonAsync(HttpMethod.Post, $"/api/v1/sessions/{setup.SessionId}/end", null, token);
+        await Task.WhenAll(eventTask, endTask);
+        using var stored = await eventTask;
+        using var ended = await endTask;
+        Assert.Equal(HttpStatusCode.OK, ended.StatusCode);
+        Assert.Contains(stored.StatusCode, new[] { HttpStatusCode.Created, HttpStatusCode.UnprocessableEntity, HttpStatusCode.NotFound });
+        var endedStatus = (await ended.Content.ReadFromJsonAsync<SessionStatusResponse>())!.Status;
+        if (endedStatus == "DELETED")
+        {
+            Assert.NotEqual(HttpStatusCode.Created, stored.StatusCode);
+            using var missing = await SendJsonAsync(HttpMethod.Get, $"/api/v1/sessions/{setup.SessionId}/state", null, token);
+            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+            return;
+        }
+        await using var conn = new Npgsql.NpgsqlConnection(Environment.GetEnvironmentVariable("ConnectionStrings__Default"));
+        await conn.OpenAsync();
+        await using var command = new Npgsql.NpgsqlCommand("""
+            select s.status = 'ENDED' and ss.is_game_over and ss.phase = 'GAME_END'
+                and exists (select 1 from session_final_scores f where f.session_id = s.session_id)
+                and not exists (select 1 from session_final_scores f where f.session_id = s.session_id
+                    and f.source_event_id is distinct from (select event_id from events e
+                        where e.session_id = s.session_id order by sequence_number desc limit 1))
+            from sessions s join session_states ss using (session_id) where s.session_id = @id
+            """, conn);
+        command.Parameters.AddWithValue("id", setup.SessionId);
+        Assert.Equal(true, await command.ExecuteScalarAsync());
+        using var afterEnd = await SendJsonAsync(HttpMethod.Post, "/api/v1/sessions/" + setup.SessionId + "/end", null, token);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, afterEnd.StatusCode);
+    }
+
+    [Fact]
     /// <summary>
     /// Memvalidasi alur lengkap: ingest dua event transaksi lalu memverifikasi hasil
     /// analitik sesi (cash in/out/net), data per pemain, riwayat transaksi, dan recompute.
@@ -2453,6 +2544,15 @@ public sealed class EventAnalyticsIntegrationTests
 
         // Memulai loop dengan inisialisasi `var index = 0`, berjalan selama `index < players.Count`, lalu memperbarui pencacah melalui `index++` dalam
         // FridayDonations_RemainSealedUntilEveryPlayerSubmits.
+        async Task<double> ReadCashOutAsync()
+        {
+            using var result = await SendJsonAsync(HttpMethod.Get, $"/api/v1/analytics/sessions/{setup.SessionId}", null, instructorToken);
+            Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+            using var json = await ReadJsonAsync(result);
+            return json.RootElement.GetProperty("summary").GetProperty("cash_out_total").GetDouble();
+        }
+        var beforeCashOut = await ReadCashOutAsync();
+
         for (var index = 0; index < players.Count; index++)
         // Membuka scope loop dengan syarat `index < players.Count`; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
         // FridayDonations_RemainSealedUntilEveryPlayerSubmits.
@@ -2532,6 +2632,27 @@ public sealed class EventAnalyticsIntegrationTests
             // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`index + 1`, `donationEvents.Count`); pengujian
             // gagal jika keduanya berbeda dalam FridayDonations_RemainSealedUntilEveryPlayerSubmits.
             Assert.Equal(index + 1, donationEvents.Count);
+            Assert.Equal(beforeCashOut + (index == players.Count - 1 ? 6 : 0), await ReadCashOutAsync());
+            using var refreshedResponse = await SendJsonAsync(HttpMethod.Get,
+                $"/api/v1/sessions/{setup.SessionId}/events?limit=1&refreshSequences={donationSequence}", null, instructorToken);
+            Assert.Equal(HttpStatusCode.OK, refreshedResponse.StatusCode);
+            using var refreshedJson = await ReadJsonAsync(refreshedResponse);
+            var refreshed = Assert.Single(refreshedJson.RootElement.GetProperty("refreshed_items").EnumerateArray());
+            Assert.Equal(donationSequence, refreshed.GetProperty("sequence_number").GetInt64());
+            Assert.Equal(index < players.Count - 1, refreshed.GetProperty("payload").TryGetProperty("status", out _));
+            using var transactions = await SendJsonAsync(HttpMethod.Get,
+                $"/api/v1/analytics/sessions/{setup.SessionId}/transactions?limit=100", null, instructorToken);
+            Assert.Equal(HttpStatusCode.OK, transactions.StatusCode);
+            using var transactionsJson = await ReadJsonAsync(transactions);
+            var donationCount = transactionsJson.RootElement.GetProperty("items").EnumerateArray()
+                .Count(item => item.GetProperty("category").GetString() == "DONATION");
+            Assert.Equal(index == players.Count - 1 ? 3 : 0, donationCount);
+            if (index < players.Count - 1)
+            {
+                using var end = await SendJsonAsync(HttpMethod.Post, $"/api/v1/sessions/{setup.SessionId}/end", null, instructorToken);
+                Assert.Equal(HttpStatusCode.UnprocessableEntity, end.StatusCode);
+            }
+
             // Memeriksa pemeriksaan lebih kecil antara `index` dan `players.Count - 1`; blok if hanya dijalankan ketika kondisi ini bernilai benar dalam
             // FridayDonations_RemainSealedUntilEveryPlayerSubmits.
             if (index < players.Count - 1)
@@ -2675,7 +2796,8 @@ public sealed class EventAnalyticsIntegrationTests
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`HttpStatusCode.UnprocessableEntity`,
         // `virtualMarketResponse.StatusCode`); pengujian gagal jika keduanya berbeda dalam
         // VirtualMarketActions_AreRejected_AndPhysicalCardActionHasNoRefillPayload.
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, virtualMarketResponse.StatusCode);
+        // An unsupported SYSTEM action fails the actor/action contract before ruleset lookup.
+        Assert.Equal(HttpStatusCode.BadRequest, virtualMarketResponse.StatusCode);
 
         // Menyiapkan variabel lokal `skippedOrderResponse` untuk nilai skipped urutan/pesanan respons dengan hasil operasi asinkron memanggil
         // `SendJsonAsync` dengan `HttpMethod.Post`, `”/api/v1/events”`, `new { event_id = Guid.NewGuid(), session_id = setup.SessionId, user_id =
@@ -3782,6 +3904,8 @@ public sealed class EventAnalyticsIntegrationTests
 
         // Menyiapkan variabel lokal `playerMissions` untuk nilai pemain misi dengan hasil operasi asinkron memanggil `ReadMissionsAsync` dengan
         // `playerToken`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
+        await SessionSetupTestHelper.PlayFirstActionAsync(_client, instructorToken,
+            setup.SessionId, setup.RulesetVersionId, TestContext.Current.CancellationToken);
         var playerMissions = await ReadMissionsAsync(playerToken);
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`3`, `playerMissions.Count`); pengujian gagal
         // jika keduanya berbeda dalam Player_SeesOnlyOwnMissionUntilSessionEnds.
@@ -5003,7 +5127,7 @@ public sealed class EventAnalyticsIntegrationTests
     // nilai literal `”PLAYER_ORDER”`; Parameter `mode` bertipe `string` membawa mode permainan yang menentukan kelompok aturan yang digunakan; bila
     // argumen tidak diberikan digunakan nilai literal `”PEMULA”`; Parameter `riskAmount` bertipe `int` membawa nilai risiko nominal; bila argumen tidak
     // diberikan digunakan nilai literal `4`.
-    private static RulesetDefinitionDto BuildRulesetDefinition(
+    internal static RulesetDefinitionDto BuildRulesetDefinition(
         // Parameter `startingCash` bertipe `int` membawa nilai starting uang tunai.
         int startingCash,
         // Parameter `playerOrdering` bertipe `string` membawa nilai pemain ordering; bila argumen tidak diberikan digunakan nilai literal `”PLAYER_ORDER”`.

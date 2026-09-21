@@ -179,7 +179,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
-<body class="@roleThemeClass">
+<body class="@roleThemeClass @(isLoggedIn && !isAuthPage ? "has-mobile-bottom-nav" : "")">
     <a class="skip-link" href="#content">@Context.T("layout.skip_to_content")</a>
     @if (!hideHeader)
     {
@@ -191,18 +191,7 @@
                         <span class="brand-title">@brandName</span>
                     </div>
                 </a>
-                @if (!isAuthPage)
-                {
-                    <button class="nav-mobile-toggle js-nav-toggle"
-                            type="button"
-                            aria-expanded="false"
-                            aria-controls="primary-nav-links"
-                            aria-label="@Context.T("layout.toggle_nav")">
-                        <span class="nav-mobile-toggle-line"></span>
-                        <span class="nav-mobile-toggle-line"></span>
-                        <span class="nav-mobile-toggle-line"></span>
-                    </button>
-                }
+
                 @if (isLoggedIn)
                 {
                     <div id="primary-nav-links" class="nav-pill nav-center">
@@ -291,55 +280,101 @@
     <div class="page-shell">
         @if (showQuickStartGuide)
         {
-            <aside class="section-shell quickstart-shell is-collapsed"
-                   data-quickstart
-                   aria-label="@Context.T("layout.quickstart.aria")">
-                <div class="quickstart-head">
-                    <div>
-                        <p class="eyebrow">@Context.T("layout.quickstart.kicker")</p>
-                        <h2 class="quickstart-title">@quickStartTitle</h2>
-                        <p class="subhead">@quickStartSubtitle</p>
+            <div class="quickstart-wrapper" data-quickstart>
+                <button class="quickstart-fab"
+                        type="button"
+                        data-quickstart-toggle
+                        aria-expanded="false"
+                        aria-controls="quickstart-guide-body"
+                        data-expanded-label="@Context.T("layout.quickstart.hide")"
+                        data-collapsed-label="@Context.T("layout.quickstart.show")"
+                        aria-label="@quickStartTitle">
+                    <svg class="quickstart-fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <span class="quickstart-fab-label">@quickStartTitle</span>
+                </button>
+
+                <div class="quickstart-backdrop" data-quickstart-backdrop hidden></div>
+
+                <aside class="quickstart-shell is-collapsed"
+                       id="quickstart-modal"
+                       role="dialog"
+                       aria-modal="true"
+                       aria-label="@Context.T("layout.quickstart.aria")">
+                    <div class="quickstart-head">
+                        <div class="quickstart-head-info">
+                            <p class="eyebrow">@Context.T("layout.quickstart.kicker")</p>
+                            <h2 class="quickstart-title">@quickStartTitle</h2>
+                            <p class="subhead">@quickStartSubtitle</p>
+                        </div>
+                        <button class="quickstart-close-btn"
+                                type="button"
+                                data-quickstart-close
+                                aria-label="@Context.T("common.close")">
+                            <svg class="quickstart-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
-                    <button class="btn-ghost btn-compact quickstart-toggle"
-                            type="button"
-                            data-quickstart-toggle
-                            aria-expanded="false"
-                            aria-controls="quickstart-guide-body"
-                            data-expanded-label="@Context.T("layout.quickstart.hide")"
-                            data-collapsed-label="@Context.T("layout.quickstart.show")">
-                        @Context.T("layout.quickstart.show")
-                    </button>
-                </div>
-                <div id="quickstart-guide-body" class="quickstart-body" data-quickstart-body hidden>
-                    <ol class="quickstart-steps">
-                        @foreach (var step in quickStartSteps)
-                        {
-                            <li class="quickstart-step @(step.IsCurrent ? "is-current" : string.Empty)">
-                                <span class="quickstart-step-index">@step.Number</span>
-                                <div class="quickstart-step-content">
-                                    <p class="quickstart-step-title">@step.Title</p>
-                                    <p class="quickstart-step-desc">@step.Description</p>
-                                    @if (step.IsCurrent)
-                                    {
-                                        <span class="quickstart-step-flag">@Context.T("layout.quickstart.current")</span>
-                                    }
-                                    else
-                                    {
-                                        <a class="quickstart-step-link"
-                                           asp-controller="@step.Controller"
-                                           asp-action="@step.Action">@Context.T("layout.quickstart.open_menu")</a>
-                                    }
-                                </div>
-                            </li>
-                        }
-                    </ol>
-                </div>
-            </aside>
+                    <div id="quickstart-guide-body" class="quickstart-body" data-quickstart-body hidden>
+                        <ol class="quickstart-steps">
+                            @foreach (var step in quickStartSteps)
+                            {
+                                <li class="quickstart-step @(step.IsCurrent ? "is-current" : string.Empty)">
+                                    <span class="quickstart-step-index">@step.Number</span>
+                                    <div class="quickstart-step-content">
+                                        <p class="quickstart-step-title">@step.Title</p>
+                                        <p class="quickstart-step-desc">@step.Description</p>
+                                        @if (step.IsCurrent)
+                                        {
+                                            <span class="quickstart-step-flag">@Context.T("layout.quickstart.current")</span>
+                                        }
+                                        else
+                                        {
+                                            <a class="quickstart-step-link"
+                                               data-quickstart-menu-link
+                                               asp-controller="@step.Controller"
+                                               asp-action="@step.Action">@Context.T("layout.quickstart.open_menu")</a>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ol>
+                    </div>
+                </aside>
+            </div>
         }
         <main id="content" role="main" class="space-y-6">
             @RenderBody()
         </main>
     </div>
+
+    @if (isLoggedIn && !isAuthPage)
+    {
+        <nav class="mobile-bottom-nav" aria-label="@Context.T("layout.mobile_nav")">
+            <a class="mobile-bottom-nav-item @(isHomeSection ? "is-active" : "")" aria-current="@(isHomeSection ? "page" : null)" asp-area="" asp-controller="Home" asp-action="Index" data-nav="home" title="@Context.T("nav.home")" aria-label="@Context.T("nav.home")">
+                <svg class="mobile-bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </a>
+            <a class="mobile-bottom-nav-item @(isSessionsSection ? "is-active" : "")" aria-current="@(isSessionsSection ? "page" : null)" asp-area="" asp-controller="Sessions" asp-action="Index" data-nav="sessions" title="@Context.T("nav.sessions")" aria-label="@Context.T("nav.sessions")">
+                <svg class="mobile-bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+            </a>
+            <a class="mobile-bottom-nav-item @(isStatisticsSection ? "is-active" : "")" aria-current="@(isStatisticsSection ? "page" : null)" asp-controller="PlayerStatistics" asp-action="Index" data-nav="statistics" title="@Context.T("statistics.title")" aria-label="@Context.T("statistics.title")">
+                <svg class="mobile-bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+            </a>
+            @if (isInstructor)
+            {
+                <a class="mobile-bottom-nav-item @(isRulesetsSection ? "is-active" : "")" aria-current="@(isRulesetsSection ? "page" : null)" asp-area="" asp-controller="Rulesets" asp-action="Index" data-nav="rulesets" title="@Context.T("nav.ruleset")" aria-label="@Context.T("nav.ruleset")">
+                    <svg class="mobile-bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                </a>
+            }
+            <a class="mobile-bottom-nav-item @(isRulebookSection ? "is-active" : "")" aria-current="@(isRulebookSection ? "page" : null)" href="/rulebook" data-nav="rulebook" title="@Context.T("nav.privacy")" aria-label="@Context.T("nav.privacy")">
+                <svg class="mobile-bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            </a>
+        </nav>
+    }
 
     @if (!hideFooter)
     {

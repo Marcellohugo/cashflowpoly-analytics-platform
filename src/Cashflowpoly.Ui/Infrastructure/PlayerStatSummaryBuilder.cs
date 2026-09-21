@@ -28,13 +28,9 @@ public static class PlayerStatSummaryBuilder
     {
         var insights = new List<PlayerInstructorInsightViewModel>();
 
-        double? netCashflow = analyticsSummary is not null
-            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: analyticsSummary.CashInTotal - analyticsSummary.CashOutTotal dalam
-            // Build.
-            ? analyticsSummary.CashInTotal - analyticsSummary.CashOutTotal
-            // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: gameplay?.Economy.CashflowNetTotal;
-            // dalam Build.
-            : gameplay?.Economy.CashflowNetTotal;
+        double? cashIn = analyticsSummary?.CashInTotal ?? gameplay?.Economy.CashInTotal;
+        double? cashOut = analyticsSummary?.CashOutTotal ?? gameplay?.Economy.CashOutTotal;
+        double? netCashflow = cashIn - cashOut;
         double? happiness = analyticsSummary?.HappinessPointsTotal ?? gameplay?.Score.HappinessPointsTotal;
         double? fulfillmentDiversity = analyticsSummary?.FulfillmentDiversity ?? gameplay?.Needs.FulfillmentDiversity;
         var needCardsOwned = ReadNeedCardsOwned(gameplay?.RawJson);
@@ -109,6 +105,12 @@ public static class PlayerStatSummaryBuilder
 
         return new PlayerStatSummaryViewModel
         {
+            CashInTotal = cashIn,
+            CashOutTotal = cashOut,
+            NetCashflow = netCashflow,
+            HappinessPoints = happiness,
+            FulfillmentDiversity = fulfillmentDiversity,
+            HasUnpaidLoan = hasUnpaidLoan,
             CollectionMissionComplete = ReadCollectionMissionComplete(gameplay?.RawJson),
             Insights = insights
                 .OrderBy(item => item.Tone == "danger" ? 0 : item.Tone == "warning" ? 1 : item.Tone == "neutral" ? 2 : 3)

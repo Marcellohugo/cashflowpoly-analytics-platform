@@ -16,6 +16,7 @@
             playerInput.setCustomValidity(match ? '' : playerInput.dataset.invalidPlayer);
         };
         playerInput.addEventListener('input', resolvePlayer);
+        playerInput.addEventListener('search', resolvePlayer);
         resolvePlayer();
     }
     const buttons = document.querySelectorAll('[data-statistics-panel]');

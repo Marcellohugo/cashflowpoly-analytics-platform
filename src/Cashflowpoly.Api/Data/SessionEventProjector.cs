@@ -53,7 +53,7 @@ public sealed class SessionEventProjector
 
         var participantId = storedEvent.SessionPlayerId.Value;
         await EnsureParticipantBalanceAsync(request, participantId, conn, tx, ct);
-        await ApplyCashflowAsync(participantId, storedEvent.EventId, cashflowProjections, conn, tx, ct);
+        await ApplyCashflowAsync(request.SessionId, storedEvent.EventId, cashflowProjections, conn, tx, ct);
         if (string.Equals(storedEvent.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase))
         {
             await IncrementActionCounterAsync(
@@ -845,8 +845,8 @@ public sealed class SessionEventProjector
     }
 
     private static async Task ApplyCashflowAsync(
-        // Parameter `participantId` bertipe `Guid` membawa nilai participant identitas.
-        Guid participantId,
+        // Parameter `sessionId` membatasi proyeksi dan saldo pada sesi event.
+        Guid sessionId,
         // Parameter `eventId` bertipe `Guid` membawa identitas unik event untuk pencatatan dan pemeriksaan duplikasi.
         Guid eventId,
         // Parameter `projections` bertipe `IReadOnlyCollection<CashflowProjectionDb>` membawa proyeksi transaksi arus kas yang diturunkan dari event
@@ -860,23 +860,29 @@ public sealed class SessionEventProjector
         // aplikasi berhenti.
         CancellationToken ct)
     {
-        var delta = projections.Sum(item => string.Equals(item.Direction, "IN", StringComparison.OrdinalIgnoreCase)
-            ? item.Amount
-            : -item.Amount);
-        if (delta == 0)
+        if (projections.Count == 0)
         {
             return;
         }
 
         await conn.ExecuteAsync(new CommandDefinition(
             """
-            update session_participant_balances
-            set coins = coins + @delta,
+            update session_participant_balances balance
+            set coins = balance.coins + cashflow.delta,
                 last_event_id = @eventId,
                 updated_at = now()
-            where session_participant_id = @participantId
+            from session_participants participant
+            join (
+                select user_id, sum(case when direction = 'IN' then amount else -amount end) as delta
+                from event_cashflow_projections
+                where session_id = @sessionId and event_id = @eventId
+                group by user_id
+            ) cashflow on cashflow.user_id = participant.user_id
+            where participant.session_id = @sessionId
+              and balance.session_participant_id = participant.session_participant_id
+              and cashflow.delta <> 0
             """,
-            new { participantId, delta, eventId },
+            new { sessionId, eventId },
             tx,
             cancellationToken: ct));
     }
@@ -1012,7 +1018,7 @@ public sealed class SessionEventProjector
                 rulesetActionId,
                 eventId,
                 eventTimestamp = request.Timestamp.ToUniversalTime(),
-                day = Math.Max(1, request.DayIndex + 1),
+                day = Math.Max(1, request.DayIndex),
                 actionSlot = Math.Max(1, request.ActionSlot)
             },
             tx,
@@ -1215,7 +1221,7 @@ public sealed class SessionEventProjector
                 cardId,
                 amount,
                 points,
-                day = Math.Max(1, request.DayIndex + 1),
+                day = Math.Max(1, request.DayIndex),
                 eventId = request.EventId
             },
             tx,
@@ -1397,7 +1403,7 @@ public sealed class SessionEventProjector
             return;
         }
 
-        var day = Math.Max(1, request.DayIndex + 1);
+        var day = Math.Max(1, request.DayIndex);
         var eventNumber = Math.Max(1, (day + 2) / 7);
         await conn.ExecuteAsync(new CommandDefinition(
             """
@@ -1618,62 +1624,10 @@ public sealed class SessionEventProjector
         // aplikasi berhenti.
         CancellationToken ct)
     {
-        if (!_payloadReader.TryReadSavingDeposit(request.Payload, out var goalId, out var amount))
+        if (!_payloadReader.TryReadSavingDeposit(request.Payload, out _, out var amount))
         {
             return;
         }
-
-        await conn.ExecuteAsync(new CommandDefinition(
-            """
-            insert into session_participant_financial_goals (
-                session_id,
-                session_participant_id,
-                ruleset_version_id,
-                ruleset_financial_goal_id,
-                current_amount,
-                target_amount,
-                status,
-                purchased_at_day,
-                last_event_id,
-                created_at,
-                updated_at
-            )
-            select
-                @sessionId,
-                @participantId,
-                rfg.ruleset_version_id,
-                rfg.ruleset_financial_goal_id,
-                least(@amount, rfg.purchase_price),
-                rfg.purchase_price,
-                'ONGOING',
-                null,
-                @eventId,
-                now(),
-                now()
-            from ruleset_financial_goals rfg
-            where rfg.ruleset_version_id = @rulesetVersionId
-              and lower(rfg.goal_code) = lower(@goalId)
-              and rfg.is_active
-            limit 1
-            on conflict (session_participant_id, ruleset_financial_goal_id) do update
-            set current_amount = least(
-                    session_participant_financial_goals.target_amount,
-                    session_participant_financial_goals.current_amount + @amount
-                ),
-                last_event_id = @eventId,
-                updated_at = now()
-            """,
-            new
-            {
-                sessionId = request.SessionId,
-                participantId,
-                rulesetVersionId = request.RulesetVersionId,
-                goalId,
-                amount,
-                eventId = request.EventId
-            },
-            tx,
-            cancellationToken: ct));
 
         await conn.ExecuteAsync(new CommandDefinition(
             """
@@ -1794,7 +1748,7 @@ public sealed class SessionEventProjector
                 rulesetVersionId = request.RulesetVersionId,
                 goalId,
                 eventId = request.EventId,
-                day = Math.Max(1, request.DayIndex + 1)
+                day = Math.Max(1, request.DayIndex)
             },
             tx,
             cancellationToken: ct));

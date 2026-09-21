@@ -124,6 +124,14 @@ public class HomeController : Controller
     // menerapkan metadata `ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)` pada deklarasi berikut agar
     // framework/compiler dapat mengenali pengaturannya.
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [Route("errors/{statusCode:int}")]
+    public IActionResult StatusPage(int statusCode)
+    {
+        Response.StatusCode = statusCode is >= 400 and <= 599 ? statusCode : 500;
+        return View("Error", new ErrorViewModel { StatusCode = Response.StatusCode, RequestId = HttpContext.TraceIdentifier });
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });

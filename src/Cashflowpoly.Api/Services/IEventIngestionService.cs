@@ -19,5 +19,5 @@ public interface IEventIngestionService
 
     Task<(EventsBySessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetEventsBySessionAsync(
         // Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini.
-        Guid sessionId, ClaimsPrincipal user, string? cursor, int limit, CancellationToken ct);
+        Guid sessionId, ClaimsPrincipal user, string? cursor, int limit, CancellationToken ct, string? refreshSequences = null);
 }

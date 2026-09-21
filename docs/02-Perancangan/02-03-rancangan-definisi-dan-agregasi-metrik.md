@@ -63,7 +63,7 @@ Dasbor menyajikan data tersebut dalam sepuluh kelompok antarmuka. Kelompok `turn
 | `gold` | jumlah emas, pembelian, penjualan, nilai/poin akhir | Setup serta event emas |
 | `pension` | tabungan, nilai bahan akhir, dana pensiun, peringkat, poin | Projection saldo/inventory dan skor akhir |
 | `life_risk` | risiko muncul, cara penyelesaian, penggunaan opsi darurat | Event risiko/asuransi/pinjaman; Mahir saja |
-| `financial_goals` | target dicoba/selesai dan koin yang dialokasikan | Event tabungan/tujuan; Mahir saja |
+| `financial_goals` | kartu tujuan yang dibeli, biaya pembelian, dan katalog tujuan | Event pembelian tujuan; Mahir saja |
 | `actions` | aksi utama, aksi penghasil uang, aksi jangka panjang | Event pemain dengan slot aksi utama |
 | `turns` | progres hari/giliran, perubahan kas, titik risiko/utang pertama | Event dan state; field Mahir dihilangkan pada Pemula |
 
@@ -81,25 +81,29 @@ Payload `derived_json` berisi tiga belas metrik analisis berikut serta rincian k
 | Margin Usaha Pesanan | `meal_order_profit_margin_percent` | `(meal_order_income_total - ingredient_cost_used) ÷ meal_order_income_total × 100%` |
 | Kesiapan Menghadapi Risiko | `risk_readiness_percent` | `risks_resolved_without_emergency ÷ life_risk_cards_drawn × 100%` (Mahir) |
 | Beban Pinjaman | `loan_burden_percent` | `outstanding_loan ÷ (outstanding_loan + liquid_assets) × 100%` (Mahir) |
-| Progres Target Finansial (API) | `financial_goal_progress_percent` | `coins_committed_to_goals ÷ attempted_goal_target_total × 100%` (Mahir); kartu analisis UI memakai jumlah pembelian selesai seperti dijelaskan di bawah |
+| Porsi Biaya Pembelian Tujuan (API) | `financial_goal_progress_percent` | Biaya pembelian tujuan ÷ total harga seluruh jenis tujuan dalam katalog × 100%; nama komponen lama `coins_committed_to_goals` dan `attempted_goal_target_total` dipertahankan. Saldo tabungan tidak dihitung sebagai pembelian. |
+| Persentase Target Berhasil Dibeli (API/statistik) | `financial_goal_completion_percent` | `financial_goals_completed ÷ financial_goals_available_total × 100%`; penyebut adalah jumlah jenis tujuan dalam katalog, bukan jumlah kartu fisik atau setoran. |
 | Fokus Aksi Penghasil Uang | `income_action_focus_percent` | `income_main_actions ÷ total_main_actions × 100%` |
 | Pemanfaatan Bahan | `ingredient_utilization_percent` | `ingredients_used_in_completed_orders ÷ ingredients_collected × 100%` |
 | Porsi Aksi Jangka Panjang | `long_term_action_share_percent` | `(saving_actions + financial_goal_actions + insurance_actions + loan_repayment_actions) ÷ total_main_actions × 100%` (Mahir) |
 | Keragaman Pemenuhan Kebutuhan | `need_fulfillment_diversity_percent` | indeks keragaman ternormalisasi kategori Primer/Sekunder/Tersier |
 | Komitmen Donasi | `donation_commitment_score` | `donation_stability_index × donated_resource_share × friday_participation_rate`, dibatasi 0-100 |
-| Pemerataan Sumber Poin Kebahagiaan | `happiness_source_diversity_percent` | `[1 − Σ(poin_sumber ÷ total_poin_positif)²] ÷ (1 − 1/N) × 100%`; lima sumber pada Pemula, enam pada Mahir |
+| Pemerataan Sumber Poin Kebahagiaan | `happiness_source_diversity_percent` | `[1 − Σ(poin_sumber ÷ total_poin_positif)²] ÷ (1 − 1/N) × 100%`; lima sumber dasar pada Pemula, enam pada Mahir, ditambah poin awal/hadiah misi bila positif |
 | Komposisi Poin Kebahagiaan | `happiness_points_composition` | jumlah aktual seluruh komponen poin dan penalti sesuai mode |
 
 Pemerataan sumber poin kebahagiaan memakai kartu kebutuhan, bonus set kebutuhan, donasi, emas, pensiun, serta target finansial pada Mahir. Sumber bernilai nol tetap termasuk dalam jumlah sumber `N`. Penalti misi dan pinjaman tidak menjadi sumber pemerataan; keduanya tetap mengurangi total poin kebahagiaan. Nilai 0% berarti hanya satu sumber yang menghasilkan poin kebahagiaan, sedangkan 100% berarti semua sumber terbagi sama rata. Jika tidak ada poin kebahagiaan positif, hasilnya `null`.
 
-Kartu analisis target finansial pada UI menampilkan **Target Finansial Berhasil Dibeli** dari `financial_goals_completed`. **Total Biaya Pembelian Target Finansial** (`financial_goals_purchase_cost_total`) menjumlahkan biaya pada catatan pembelian target; biaya ini tetap tercatat setelah tabungan dipakai membayar kartu. **Tabungan untuk Target Belum Dibeli** (`financial_goals_incomplete_coins_wasted`) ditampilkan terpisah dan hanya mencakup saldo target yang pembeliannya belum selesai. Contoh: satu target seharga 35 koin sudah dibeli dan 5 koin disimpan untuk target berikutnya menghasilkan 1 target, biaya pembelian 35 koin, dan tabungan target belum dibeli 5 koin. Metrik persentase pendanaan tetap tersedia di API untuk kompatibilitas.
+Poin kebahagiaan awal dan hadiah misi koleksi masing-masing menambah satu sumber dalam `N` jika nilainya positif; nilai nol pada kedua komponen tambahan ini tidak mengubah jumlah sumber dasar. Total skor menjumlahkan poin awal, hadiah misi, kartu kebutuhan, bonus set, donasi, emas, pensiun, dan target finansial yang memenuhi syarat, lalu mengurangi penalti misi serta pinjaman. Komposisi memakai `initial_happiness_points` dan `mission_reward_points`; ringkasan skor API memakai `initial_happiness_points` dan `mission_reward_total`. Komponen final database bernama `INITIAL_HAPPINESS` dan `MISSION_REWARD`.
 
-Pada rincian penggunaan aksi, `saving_and_goal_actions` menggabungkan `saving_actions` dan `financial_goal_actions` menjadi **Aksi untuk Tabungan dan Pembelian Target**. Pembelian otomatis oleh sistem tetap menambah jumlah target berhasil dibeli, tetapi tidak menambah aksi di luar kegiatan menabung. UI memakai rincian gabungan ini agar tidak menampilkan nol aksi target di samping target yang sudah dibeli. Contoh: empat kali menabung yang menghasilkan satu pembelian target, satu pembelian asuransi, dan satu pelunasan pinjaman menggunakan `(4 + 1 + 1) ÷ 32 × 100% = 18,75%` dari 32 aksi yang dipakai. Kedua komponen terpisah tetap tersedia di API untuk kompatibilitas.
+Kartu analisis target finansial pada UI menampilkan **Target Finansial Berhasil Dibeli** dari `financial_goals_completed`, **Total Biaya Pembelian Target Finansial** dari `financial_goals_purchase_cost_total`, dan **Koin dalam Tabungan** dari `coins_saved`. Contoh: satu kartu seharga 35 koin telah dibeli dan 5 koin tersisa berarti 1 kartu, biaya pembelian 35 koin, dan saldo tabungan pemain 5 koin. Tabungan dapat dipakai untuk kartu lain yang tersedia dan tidak memesan kartu tertentu. Kolom lama `financial_goals_attempted` hanya mencatat jenis tujuan yang dibeli, `financial_goals_balance_per_goal` kosong, dan `financial_goals_incomplete_coins_wasted` bernilai nol; tidak ada alokasi dana ke tujuan yang belum dibeli. `financial_goals_coins_total_invested` menghitung biaya pembelian aktual. Persentase menggunakan seluruh katalog dan tidak lagi menganggap setoran sebagai tujuan yang sedang dimiliki.
+
+Pada rincian penggunaan aksi, `saving_and_goal_actions` menggabungkan `saving_actions` dan `financial_goal_actions` menjadi **Aksi untuk Tabungan dan Pembelian Target**. Pembelian yang dicatat instruktur tetap menambah jumlah target berhasil dibeli, tetapi tidak menambah aksi di luar kegiatan menabung. UI memakai rincian gabungan ini agar tidak menampilkan nol aksi target di samping target yang sudah dibeli. Contoh: empat kali menabung yang menghasilkan satu pembelian target, satu pembelian asuransi, dan satu pelunasan pinjaman menggunakan `(4 + 1 + 1) ÷ 32 × 100% = 18,75%` dari 32 aksi yang dipakai. Kedua komponen terpisah tetap tersedia di API untuk kompatibilitas.
 
 Untuk mencegah angka yang berbeda konteks terlihat bertentangan:
 
 - `income_main_actions` hanya menghitung aksi kerja lepas dan penjualan masakan yang menghasilkan transaksi masuk. Pinjaman dan penarikan tabungan memakai aksi tetapi bukan pendapatan baru; penjualan emas menghasilkan pendapatan tanpa memakai aksi. Semuanya tetap masuk riwayat transaksi sesuai arus koin masing-masing.
 - `insurance_actions` adalah aksi untuk **mengaktifkan** asuransi melalui pembayaran premi. Perlindungan awal gratis dan klaim tidak menambah aksi, sehingga jumlah risiko yang ditanggung dapat lebih besar daripada aksi atau premi yang dibayar.
+- Jumlah klaim asuransi mencakup klaim atas kartu massal yang ditarik peserta lain. Rasio perlindungan dengan pembagi kartu yang ditarik sendiri hanya memasukkan klaim atas kartu sendiri, sehingga klaim massal tidak membuat rasio melebihi 100%.
 - Target yang sudah dibeli tetap tercatat sebagai pembelian. Poin kebahagiaannya tidak dihitung selama ada pinjaman belum lunas; UI menjelaskan kondisi ini pada kartu pembelian target.
 - `specific_tertiary_need` dan misi koleksi memakai riwayat pembelian. Kartu yang kemudian dijual tidak lagi masuk kepemilikan maupun pemerataan kartu saat ini, tetapi pembeliannya tetap memenuhi syarat misi.
 - Harga emas per transaksi pada daftar harga adalah **harga per kartu**, sedangkan arus kas pembelian/penjualan menjumlahkan harga dikali jumlah kartu.
@@ -152,3 +156,6 @@ Mode aplikasi `--recalculate-analytics` membangun ulang snapshot seluruh sesi da
 - menulis snapshot terbaru dengan hasil formula kanonis; snapshot lama tetap menjadi jejak historis dan tidak dipilih sebagai nilai terbaru.
 
 Nama variabel baru tidak boleh ditambahkan hanya di UI. Perubahan formula harus memperbarui builder backend, DTO/JSON, test, README API, dokumen ini, dan Postman pada commit yang sama.
+
+## Donasi Jumat yang belum dibuka
+Sebelum seluruh peserta menyetor, event donasi hari itu beserta proyeksi arus kasnya tidak disertakan pada analitika publik. Perhitungan hanya menggunakan proyeksi dari event yang sudah dibaca pada kumpulan yang sama; proyeksi lebih baru ditunda sampai pembacaan berikutnya. Respons sesi/gameplay menandai `has_sealed_donations` dan UI menjelaskan sifat sementara nilai tersebut. Setelah lengkap, seluruh nominal masuk perhitungan normal. Data sumber tidak dihapus atau diganti nol.

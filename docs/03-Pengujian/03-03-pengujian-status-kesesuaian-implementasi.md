@@ -7,6 +7,8 @@
 - Tanggal: 5 September 2026
 - Penyusun: Marco Marcello Hugo
 
+Hasil verifikasi lanjutan per 16 September 2026 berada pada [perbaikan audit menyeluruh](03-07-perbaikan-audit-menyeluruh.md). Angka dan penilaian baseline di dokumen ini merupakan arsip bertanggal, bukan jaminan bebas cacat atau bukti deployment perubahan terbaru.
+
 ---
 
 ## 1. Tujuan
@@ -28,16 +30,16 @@ Acuan utama:
 | API lifecycle sesi/ruleset/player | Sesuai | Endpoint operasional tersedia untuk Klien Game/IDN: session lifecycle, aktivasi versi ruleset, player assignment, state read/write-disabled guard, dan guard ruleset terpakai. |
 | UI dashboard (home/sessions/statistics/rulesets/rulebook/analytics) | Sesuai | Halaman inti tersedia dan terhubung API; Web Analitik bersifat baca-saja untuk gameplay event, tetapi Instruktur dapat mengelola ruleset dan aktivasi versi ruleset. Analitika utama ditampilkan pada detail sesi (`/sessions/{sessionId}`), sementara `/analytics` atau `/Analytics` dipertahankan sebagai route redirect. |
 | Kontrak auth Bearer + RBAC | Sesuai | API Bearer-only untuk endpoint terproteksi, role check `INSTRUCTOR/PLAYER` ditegakkan server-side, dan registrasi publik menerima `PLAYER` dan `INSTRUCTOR` sesuai konfigurasi server. Statistik instruktur hanya memuat peserta pada sesi miliknya. |
-| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia dan hasilnya ditampilkan pada halaman detail sesi (`/sessions/{sessionId}`). |
+| Analitika agregasi grouped-by-ruleset | Sesuai | Endpoint `GET /api/v1/analytics/rulesets/{rulesetId}/summary` tersedia melalui API. UI detail sesi menampilkan analitika satu sesi; belum ada tampilan agregasi lintas sesi per ruleset. |
 | NFR keamanan (rate limiting) | Sesuai | Rate limiting fixed-window diterapkan pada API dengan respons `429`; identitas klien tidak lagi mempercayai header spoofing secara langsung. |
-| Dokumen uji + smoke + Postman sinkron Bearer | Sesuai | Koleksi Postman mewajibkan login Instruktur berhasil, menguji penolakan registrasi publik Instruktur, dan tidak menganggap respons autentikasi gagal sebagai hasil lulus. |
+| Dokumen uji + smoke + Postman sinkron Bearer | Sesuai | Koleksi Postman mewajibkan login Instruktur berhasil, menguji registrasi publik Instruktur pada konfigurasi bawaan, dan tidak menganggap respons autentikasi gagal sebagai hasil lulus. |
 | Observability operasional | Sesuai | Endpoint ringkas `GET /api/v1/observability/metrics/summary` tersedia untuk role `INSTRUCTOR` dan menunjuk ke endpoint Prometheus `GET /metrics`; trace ID diseragamkan pada header/log. |
 | Hardening keamanan produksi (baseline) | Sesuai | Rotasi JWT multi-key berbasis `kid` + window aktivasi/retire, dukungan secret env/file untuk integrasi vault/secret manager, dan audit log keamanan persisten tersedia. |
 | Uji performa kebutuhan resmi | Sesuai pada beban terkontrol | `ReleasePerformanceIntegrationTests` menyiapkan 100 akun, 20 sesi × 2.000 event, dan 20 klien serentak. Setiap sesi memuat 64 aksi kerja lepas/pembelian bahan dan 1.936 transaksi sistem terkait dua pemain, disertai proyeksi arus kas. Dari 200 permintaan per endpoint, P95 `POST /api/v1/events` (CatatTransaksi) tercatat 251,9 ms (batas <= 500 ms) dan P95 `GET /api/v1/analytics/sessions/{sessionId}` tercatat 458,4 ms (batas <= 1.500 ms). Beban sintetis ini tidak mencakup seluruh variasi gameplay atau jaringan produksi. |
 
 ---
 
-## 3. Bukti Verifikasi Terakhir
+## 3. Bukti Verifikasi Baseline (Arsip)
 Verifikasi lokal pada 5 September 2026:
 
 | Pemeriksaan | Hasil |
@@ -53,16 +55,7 @@ Verifikasi lokal pada 5 September 2026:
 | Health API/UI (`/health/live` dan `/health/ready`) | Seluruh endpoint mengembalikan HTTP 200 |
 | Validasi JSON koleksi dan environment Postman | Lulus |
 
-Penilaian penutupan audit internal:
-
-| Area | Nilai |
-|---|---:|
-| Sistem action slot | 10/10 |
-| Mode Pemula | 10/10 |
-| Mode Mahir | 10/10 |
-| Integritas cashflow | 10/10 |
-| Kesesuaian rulebook digital | 10/10 |
-| Kesiapan produksi baseline aplikasi | 10/10 |
+Penutupan baseline didasarkan pada kasus uji yang tercantum di atas. Skor penilaian numerik internal tidak dipakai sebagai ukuran kelengkapan audit; kasus khusus yang ditemukan kemudian serta buktinya dilacak pada laporan audit lanjutan.
 
 ---
 

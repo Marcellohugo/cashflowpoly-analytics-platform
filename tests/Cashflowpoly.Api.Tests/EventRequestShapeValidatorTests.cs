@@ -18,6 +18,20 @@ public sealed class EventRequestShapeValidatorTests
 // Membuka scope tipe EventRequestShapeValidatorTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("\"text\"")]
+    public void Validate_RejectsNonObjectPayload(string json)
+    {
+        var request = CreateRequest() with { Payload = JsonSerializer.Deserialize<JsonElement>(json) };
+        var result = new EventRequestShapeValidator().Validate(request, null);
+        Assert.False(result.IsValid);
+        Assert.Equal(400, result.StatusCode);
+        Assert.Contains(result.Details, d => d.Field == "payload" && d.Issue == "INVALID_TYPE");
+    }
+
     [Fact]
     // Mendefinisikan metode `Validate_RejectsInvalidActorType` dengan hasil bertipe `void`; operasi ini menangani validate rejects invalid actor jenis.
     public void Validate_RejectsInvalidActorType()
@@ -171,6 +185,7 @@ public sealed class EventRequestShapeValidatorTests
         // Validate_AcceptsValidSystemEventWithZeroTurnAndActionSlot.
         {
             // Memperbarui `ActorType` menggunakan nilai literal `”SYSTEM”` dalam Validate_AcceptsValidSystemEventWithZeroTurnAndActionSlot.
+            ActionType = "AkhirGiliran",
             ActorType = "SYSTEM",
             // Memperbarui `UserId` menggunakan null, yaitu penanda tidak ada nilai dalam Validate_AcceptsValidSystemEventWithZeroTurnAndActionSlot.
             UserId = null,

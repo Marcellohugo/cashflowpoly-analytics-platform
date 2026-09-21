@@ -226,58 +226,21 @@ public sealed class StandaloneQuickFlowRemovalTests
 
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
-    // Mendefinisikan metode `HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel` dengan hasil bertipe `void`; operasi ini menangani home index
-    // view should render usage guide like collapsed tips panel.
-    public void HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel()
-    // Membuka scope metode HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel; pernyataan/deklarasi berikut berada di dalam batas blok ini
-    // dalam HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel.
+    public void HomeIndexView_ShouldNotRenderUsageGuide()
     {
-        // Menyiapkan variabel lokal `viewPath` untuk nilai view path dengan memanggil `Path.Combine` dengan `UiRoot`, `”Views”`, `”Home”`,
-        // `”Index.cshtml”`. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var viewPath = Path.Combine(UiRoot, "Views", "Home", "Index.cshtml");
-        // Menyiapkan variabel lokal `viewContent` untuk nilai view content dengan memanggil `File.ReadAllText` dengan `viewPath`. Tipe variabel disimpulkan
-        // dari ekspresi nilai awal.
         var viewContent = File.ReadAllText(viewPath);
 
-        // Menjalankan pemeriksaan hasil dengan `Assert.Matches` menggunakan `new Regex( @”<details\s+class=””mt-3
-        // data-toggle””\s*>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>”, RegexOptions.CultureInvariant)`, `viewContent`;
-        // ketidaksesuaian dengan ekspektasi membuat pengujian gagal dalam HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel.
-        Assert.Matches(
-            // Meneruskan objek baru bertipe `Regex` dengan argumen ( @”<details\s+class=””mt-3
-            // data-toggle””\s*>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>”, RegexOptions.CultureInvariant) sebagai argumen
-            // ke `Assert.Matches`.
-            new Regex(
-                // Meneruskan nilai literal `@”<details\s+class=””mt-3
-                // data-toggle””\s*>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>”` sebagai argumen ke konstruktor `Regex`.
-                @"<details\s+class=""mt-3 data-toggle""\s*>[\s\S]*home\.quick_flow\.title[\s\S]*home\.quick_flow\.step5[\s\S]*</details>",
-                // Meneruskan `RegexOptions.CultureInvariant` (nilai culture invariant) sebagai argumen ke konstruktor `Regex`.
-                RegexOptions.CultureInvariant),
-            // Meneruskan `viewContent` (nilai view content) sebagai argumen ke `Assert.Matches`.
-            viewContent);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”home.quick_flow.subtitle”`,
-        // `viewContent` dalam HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel.
+        Assert.DoesNotContain("home.quick_flow.title", viewContent);
         Assert.DoesNotContain("home.quick_flow.subtitle", viewContent);
-    // Menutup scope metode HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel; bagian berikut berada di luar batas blok tersebut dalam
-    // HomeIndexView_ShouldRenderUsageGuideLikeCollapsedTipsPanel.
+        Assert.DoesNotContain("home.guide.title", viewContent);
     }
 
-    // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
-    // Mendefinisikan metode `UsageTips_ShouldAlwaysStartCollapsed` dengan hasil bertipe `void`; operasi ini menangani usage tips should always start
-    // collapsed.
     public void UsageTips_ShouldAlwaysStartCollapsed()
-    // Membuka scope metode UsageTips_ShouldAlwaysStartCollapsed; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-    // UsageTips_ShouldAlwaysStartCollapsed.
     {
-        // Menyiapkan variabel lokal `viewPaths` untuk nilai view paths dengan array baru dengan tipe elemen disimpulkan dari nilai initializer. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
         var viewPaths = new[]
-        // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // UsageTips_ShouldAlwaysStartCollapsed.
         {
-            // Melanjutkan pengolahan dengan memanggil `Path.Combine` dengan `UiRoot`, `”Views”`, `”Home”`, `”Index.cshtml”` dalam
-            // UsageTips_ShouldAlwaysStartCollapsed.
-            Path.Combine(UiRoot, "Views", "Home", "Index.cshtml"),
             // Melanjutkan pengolahan dengan memanggil `Path.Combine` dengan `UiRoot`, `”Views”`, `”Sessions”`, `”Index.cshtml”` dalam
             // UsageTips_ShouldAlwaysStartCollapsed.
             Path.Combine(UiRoot, "Views", "Sessions", "Index.cshtml"),

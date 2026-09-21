@@ -47,7 +47,7 @@
           "  'eventIdOrder','eventIdRisk','eventIdInsuranceUsed','eventIdTurnEnd','eventIdMission','eventIdInsurance',",
           "  'eventIdSavingDeposit','eventIdSavingWithdraw','eventIdSavingGoal','eventIdLoanTaken','eventIdLoanRepaid',",
           "  'eventIdIngredientDiscarded','eventIdRiskEmergency','eventIdBatch1','eventIdBatch2',",
-          "  'eventIdDonation','eventIdGoldBuy','setupClientRequestId'",
+          "  'eventIdDonation','eventIdGoldBuy','setupClientRequestId','undoClientRequestId'",
           "];",
           "eventIdKeys.forEach(function(key) {",
           "  if (startsCollectionRun || !pm.collectionVariables.get(key)) {",
@@ -81,6 +81,12 @@
           "  'Delete Ruleset': [422],",
           "  'Create Session': [201],",
           "  'List Sessions': [200],",
+          "  'Session Heartbeat': [200],",
+          "  'State Before Undo': [200],",
+          "  'Undo Last Event': [201, 200],",
+          "  'Retry Undo Last Event': [200],",
+          "  'Get Undo Audit': [200],",
+          "  'State After Undo': [200],",
           "  'Start Session': [200],",
           "  'End Session': [200],",
           "  'Get Session State': [200],",
@@ -210,6 +216,7 @@
           "  if (first && first.session_player_id) setVar('playerSessionId', first.session_player_id);",
           "  if (second && second.session_player_id) setVar('secondPlayerSessionId', second.session_player_id);",
           "}",
+          "if (current === 'State Before Undo' && pm.response.code === 200) setVar('undoExpectedStateVersion', String(tryJson().state_version));",
           "if (current === 'Get Session State' && pm.response.code === 200) {",
           "  const data = tryJson();",
           "  const firstPlayer = data && Array.isArray(data.players) ? data.players.find(player => player.player_order_no === 1) : null;",
@@ -493,6 +500,17 @@
           }
         },
         {
+          "name": "Session Heartbeat",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/heartbeat",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "description": "IDN mengirim setiap 30 menit sejak sesi dibuat. Sesi CREATED/STARTED ditutup setelah 1 jam tanpa heartbeat atau aktivitas berhasil. Tidak menambah event."
+          }
+        },
+        {
           "name": "Validate Session Setup",
           "request": {
             "method": "POST",
@@ -715,6 +733,66 @@
             "header": [
               { "key": "Authorization", "value": "Bearer {{accessToken}}" }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Undo",
+      "item": [
+        {
+          "name": "State Before Undo",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/state",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "Undo Last Event",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/events/{{eventIdBatch2}}/undo",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_request_id\":\"{{undoClientRequestId}}\",\"expected_state_version\":{{undoExpectedStateVersion}},\"reason\":\"Koreksi aktivitas terakhir\"}"
+            },
+            "description": "Membatalkan event terakhir dari batch. Baca state terbaru setelah berhasil; event pengganti wajib memakai ID dan sequence baru."
+          }
+        },
+        {
+          "name": "Retry Undo Last Event",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/events/{{eventIdBatch2}}/undo",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"client_request_id\":\"{{undoClientRequestId}}\",\"expected_state_version\":{{undoExpectedStateVersion}},\"reason\":\"Koreksi aktivitas terakhir\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Undo Audit",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/event-undos?limit=50",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "State After Undo",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/state",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
           }
         }
       ]

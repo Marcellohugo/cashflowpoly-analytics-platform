@@ -13,6 +13,27 @@ namespace Cashflowpoly.Api.Tests.Infrastructure;
 internal static class SessionSetupTestHelper
 // Membuka scope tipe SessionSetupTestHelper; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    // Tests retaining an ended session need real gameplay; setup alone is intentionally discarded.
+    public static async Task PlayFirstActionAsync(HttpClient client, string token, Guid sessionId, Guid rulesetVersionId, CancellationToken ct)
+    {
+        using var stateRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/sessions/{sessionId}/state");
+        stateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var stateResponse = await client.SendAsync(stateRequest, ct);
+        stateResponse.EnsureSuccessStatusCode();
+        var state = (await stateResponse.Content.ReadFromJsonAsync<SessionStateResponse>(ct))!;
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/events");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new
+        {
+            event_id = Guid.NewGuid(), session_id = sessionId, user_id = state.Players.MinBy(player => player.PlayerIndex)!.UserId,
+            actor_type = "PLAYER", timestamp = DateTimeOffset.UtcNow, day_index = 1, weekday = "MON",
+            turn_number = 1, action_slot = 1, sequence_number = state.NextSequenceNumber,
+            action_type = "KerjaLepas", ruleset_version_id = rulesetVersionId, payload = new { amount = 1 }
+        });
+        using var stored = await client.SendAsync(request, ct);
+        stored.EnsureSuccessStatusCode();
+    }
+
     // Mendefinisikan metode `SaveAsync` dengan hasil bertipe `Task<HttpResponseMessage>`; operasi ini menangani save asinkron. async memungkinkan
     // metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task. Masukan: Parameter `client` bertipe `HttpClient` membawa
     // nilai client; Parameter `accessToken` bertipe `string` membawa nilai akses token; Parameter `sessionId` bertipe `Guid` membawa identitas unik

@@ -31,7 +31,7 @@
     </div>
 
     <div class="mt-6 ruleset-unified sessions-index-shell">
-        <section class="sessions-index-section">
+        <section class="sessions-index-section session-stats-section" hidden>
             <div class="ruleset-section-head">
                 <p class="ruleset-section-title">@Context.T("sessions.index.summary_title")</p>
                 <p class="ruleset-section-subtitle">@Context.T("sessions.index.summary_subtitle")</p>
@@ -99,7 +99,7 @@
                 @foreach (var session in Model.SessionGroups)
                 {
                     var statusClass = session.Status == "STARTED" ? "status-active" : session.Status == "CREATED" ? "status-draft" : "status-retired";
-                    <details class="data-toggle players-session-card" open>
+                    <details class="data-toggle players-session-card">
                         <summary class="players-session-summary">
                             <span class="players-session-summary-main">
                                 <span class="font-semibold text-slate-900">@session.SessionName</span>

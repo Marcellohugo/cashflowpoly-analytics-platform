@@ -181,36 +181,33 @@ internal sealed class EventIngestionService : IEventIngestionService
         // Parameter `request` bertipe `EventRequest` membawa data masukan permintaan yang akan divalidasi atau diteruskan ke layanan.
         EventRequest request, ClaimsPrincipal user, CancellationToken ct)
     {
-        var enrichedRequest = await EnrichEventRequestAsync(request, ct);
-        var validation = await ValidateEventAsync(enrichedRequest, user, ct);
-        if (!validation.IsValid)
-        {
-            await _events.InsertValidationLogAsync(
-                enrichedRequest.SessionId,
-                enrichedRequest.EventId,
-                enrichedRequest.RulesetVersionId,
-                validation.Error?.ErrorCode,
-                validation.Error?.Message,
-                validation.StatusCode,
-                validation.Error?.TraceId ?? "unknown",
-                ct);
-
-            return (null, validation.StatusCode, validation.Error);
-        }
-
         try
         {
-            await StoreEventAsync(enrichedRequest, ct);
-            return (new EventStoredResponse(true, enrichedRequest.EventId), StatusCodes.Status201Created, null);
+            var validation = await StoreEventAsync(request, user, ct);
+            if (!validation.IsValid)
+            {
+                await _events.InsertValidationLogAsync(
+                    request.SessionId,
+                    request.EventId,
+                    request.RulesetVersionId,
+                    validation.Error?.ErrorCode,
+                    validation.Error?.Message,
+                    validation.StatusCode,
+                    validation.Error?.TraceId ?? "unknown",
+                    ct);
+                return (null, validation.StatusCode, validation.Error);
+            }
+
+            return (new EventStoredResponse(true, request.EventId), StatusCodes.Status201Created, null);
         }
         // Menangani exception `PostgresException` melalui variabel ex hanya jika filter `ex.SqlState == ”23505”` terpenuhi dalam IngestEventAsync.
         catch (PostgresException ex) when (ex.SqlState == "23505")
         {
             var error = BuildError("DUPLICATE", "Event sudah ada");
             await _events.InsertValidationLogAsync(
-                enrichedRequest.SessionId,
-                enrichedRequest.EventId,
-                enrichedRequest.RulesetVersionId,
+                request.SessionId,
+                request.EventId,
+                request.RulesetVersionId,
                 error.ErrorCode,
                 error.Message,
                 StatusCodes.Status409Conflict,
@@ -221,12 +218,12 @@ internal sealed class EventIngestionService : IEventIngestionService
         // Menangani exception `PostgresException` melalui variabel ex hanya jika filter `ex.SqlState == ”23514”` terpenuhi dalam IngestEventAsync.
         catch (PostgresException ex) when (ex.SqlState == "23514")
         {
-            _logger.LogWarning(ex, "Database rejected gameplay event {EventId} for session {SessionId}", enrichedRequest.EventId, enrichedRequest.SessionId);
+            _logger.LogWarning(ex, "Database rejected gameplay event {EventId} for session {SessionId}", request.EventId, request.SessionId);
             var error = BuildError("DOMAIN_RULE_VIOLATION", "Aktivitas ditolak karena melanggar aturan permainan");
             await _events.InsertValidationLogAsync(
-                enrichedRequest.SessionId,
-                enrichedRequest.EventId,
-                enrichedRequest.RulesetVersionId,
+                request.SessionId,
+                request.EventId,
+                request.RulesetVersionId,
                 error.ErrorCode,
                 error.Message,
                 StatusCodes.Status422UnprocessableEntity,
@@ -264,6 +261,12 @@ internal sealed class EventIngestionService : IEventIngestionService
                 new ErrorDetail("events", "MAX_LENGTH")));
         }
 
+        if (request.Events.Any(evt => evt is null))
+        {
+            return (null, StatusCodes.Status400BadRequest, BuildError("VALIDATION_ERROR",
+                "Elemen event batch tidak boleh null", new ErrorDetail("events", "INVALID_ITEM")));
+        }
+
         var failed = new List<EventBatchFailed>();
         var storedCount = 0;
 
@@ -271,60 +274,11 @@ internal sealed class EventIngestionService : IEventIngestionService
         // IngestBatchAsync.
         foreach (var evt in request.Events)
         {
-            var enrichedRequest = await EnrichEventRequestAsync(evt, ct);
-            var validation = await ValidateEventAsync(enrichedRequest, user, ct);
-            if (!validation.IsValid)
-            {
-                failed.Add(new EventBatchFailed(enrichedRequest.EventId, validation.Error?.ErrorCode ?? "VALIDATION_ERROR"));
-                await _events.InsertValidationLogAsync(
-                    enrichedRequest.SessionId,
-                    enrichedRequest.EventId,
-                    enrichedRequest.RulesetVersionId,
-                    validation.Error?.ErrorCode,
-                    validation.Error?.Message,
-                    validation.StatusCode,
-                    validation.Error?.TraceId ?? "unknown",
-                    ct);
-                // Melewati sisa pernyataan pada iterasi saat ini dan melanjutkan ke elemen/iterasi berikutnya dalam IngestBatchAsync.
-                continue;
-            }
-
-            try
-            {
-                await StoreEventAsync(enrichedRequest, ct);
+            var (_, status, error) = await IngestEventAsync(evt, user, ct);
+            if (status == StatusCodes.Status201Created)
                 storedCount++;
-            }
-            // Menangani exception `PostgresException` melalui variabel ex hanya jika filter `ex.SqlState == ”23505”` terpenuhi dalam IngestBatchAsync.
-            catch (PostgresException ex) when (ex.SqlState == "23505")
-            {
-                failed.Add(new EventBatchFailed(enrichedRequest.EventId, "DUPLICATE"));
-                var dupError = BuildError("DUPLICATE", "Event sudah ada");
-                await _events.InsertValidationLogAsync(
-                    enrichedRequest.SessionId,
-                    enrichedRequest.EventId,
-                    enrichedRequest.RulesetVersionId,
-                    dupError.ErrorCode,
-                    dupError.Message,
-                    StatusCodes.Status409Conflict,
-                    dupError.TraceId,
-                    ct);
-            }
-            // Menangani exception `PostgresException` melalui variabel ex hanya jika filter `ex.SqlState == ”23514”` terpenuhi dalam IngestBatchAsync.
-            catch (PostgresException ex) when (ex.SqlState == "23514")
-            {
-                _logger.LogWarning(ex, "Database rejected gameplay event {EventId} from batch for session {SessionId}", enrichedRequest.EventId, enrichedRequest.SessionId);
-                failed.Add(new EventBatchFailed(enrichedRequest.EventId, "DOMAIN_RULE_VIOLATION"));
-                var domainError = BuildError("DOMAIN_RULE_VIOLATION", "Aktivitas ditolak karena melanggar aturan permainan");
-                await _events.InsertValidationLogAsync(
-                    enrichedRequest.SessionId,
-                    enrichedRequest.EventId,
-                    enrichedRequest.RulesetVersionId,
-                    domainError.ErrorCode,
-                    domainError.Message,
-                    StatusCodes.Status422UnprocessableEntity,
-                    domainError.TraceId,
-                    ct);
-            }
+            else
+                failed.Add(new EventBatchFailed(evt.EventId, error?.ErrorCode ?? "VALIDATION_ERROR"));
         }
 
         return (new EventBatchResponse(storedCount, failed), StatusCodes.Status200OK, null);
@@ -343,7 +297,7 @@ internal sealed class EventIngestionService : IEventIngestionService
     // aplikasi berhenti.
     public async Task<(EventsBySessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetEventsBySessionAsync(
         // Parameter `sessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini.
-        Guid sessionId, ClaimsPrincipal user, string? cursor, int limit, CancellationToken ct)
+        Guid sessionId, ClaimsPrincipal user, string? cursor, int limit, CancellationToken ct, string? refreshSequences = null)
     {
         var accessScopeCheck = await ValidateSessionAccessAsync(sessionId, user, ct);
         if (!accessScopeCheck.IsValid)
@@ -369,21 +323,24 @@ internal sealed class EventIngestionService : IEventIngestionService
                 new ErrorDetail("limit", "OUT_OF_RANGE")));
         }
 
+        var refreshIds = new HashSet<long>();
+        if (!string.IsNullOrWhiteSpace(refreshSequences))
+        {
+            var values = refreshSequences.Split(',');
+            if (values.Length > 100 || values.Any(v => !long.TryParse(v, out var id) || id < 0))
+                return (null, 400, BuildError("VALIDATION_ERROR", "refreshSequences harus berisi maksimal 100 nomor urutan",
+                    new ErrorDetail("refreshSequences", "INVALID_FORMAT")));
+            foreach (var value in values) refreshIds.Add(long.Parse(value));
+        }
+
         var events = await _events.GetEventsBySessionAsync(sessionId, afterSequence, limit + 1, ct);
         var hasMore = events.Count > limit;
         if (hasMore)
         {
             events.RemoveAt(events.Count - 1);
         }
-        var allEvents = await _events.GetAllEventsBySessionAsync(sessionId, ct);
-        var participantCount = await _players.CountPlayersInSessionAsync(sessionId, ct);
-        var sealedDonationDays = allEvents
-            .Where(item => IsEventAction(item, GameActionCatalog.JumatBerkah) && item.UserId.HasValue)
-            .GroupBy(item => item.DayIndex)
-            .Where(group => group.Select(item => item.UserId!.Value).Distinct().Count() < participantCount)
-            .Select(group => group.Key)
-            .ToHashSet();
-        var responseEvents = events.Select(item =>
+        var sealedDonationDays = await _events.GetSealedDonationDaysAsync(sessionId, ct);
+        EventRequest MapVisible(EventDb item)
         {
             var mapped = _recordMapper.ToEventRequest(item);
             if (IsEventAction(item, GameActionCatalog.JumatBerkah) && sealedDonationDays.Contains(item.DayIndex))
@@ -400,14 +357,19 @@ internal sealed class EventIngestionService : IEventIngestionService
             }
 
             return mapped;
-        }).ToList();
+        }
+        var responseEvents = events.Select(MapVisible).ToList();
+        var refreshed = await _events.GetEventsBySequencesAsync(sessionId, refreshIds.ToArray(), ct);
         var nextCursor = events.Count > 0
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: OpaqueCursor.EncodeEvent(events[^1].SequenceNumber) dalam
             // GetEventsBySessionAsync.
             ? OpaqueCursor.EncodeEvent(events[^1].SequenceNumber)
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: null; dalam GetEventsBySessionAsync.
             : null;
-        return (new EventsBySessionResponse(sessionId, responseEvents, nextCursor, hasMore), StatusCodes.Status200OK, null);
+        var undoneSequences = await _events.GetUndoneSequenceNumbersAsync(sessionId, ct);
+        responseEvents.RemoveAll(item => undoneSequences.Contains(item.SequenceNumber));
+        var refreshedEvents = refreshed.Where(item => !undoneSequences.Contains(item.SequenceNumber)).Select(MapVisible).ToList();
+        return (new EventsBySessionResponse(sessionId, responseEvents, nextCursor, hasMore, refreshedEvents, undoneSequences), StatusCodes.Status200OK, null);
     }
 
     /// <summary>
@@ -425,6 +387,29 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (!accessScopeCheck.IsValid)
         {
             return new ValidationOutcome(false, accessScopeCheck.StatusCode, accessScopeCheck.Error);
+        }
+
+        var shapeValidation = _shapeValidator.Validate(request, accessScopeCheck.ScopedPlayerId);
+        if (!shapeValidation.IsValid)
+        {
+            return BuildOutcome(shapeValidation);
+        }
+
+        if (await _events.EventIdExistsAsync(request.SessionId, request.EventId, ct))
+        {
+            return BuildOutcome(StatusCodes.Status409Conflict, "DUPLICATE", "Event sudah ada");
+        }
+
+        if (await _events.SequenceNumberExistsAsync(request.SessionId, request.SequenceNumber, ct))
+        {
+            return BuildOutcome(StatusCodes.Status409Conflict, "DUPLICATE", "Sequence number sudah ada");
+        }
+
+        if (IsAction(request, GameActionCatalog.SessionEnded))
+        {
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
+                "Gunakan endpoint akhir sesi /api/v1/sessions/{sessionId}/end untuk finalisasi sesi",
+                new ErrorDetail("action_type", "USE_SESSION_END"));
         }
 
         var session = await _sessions.GetSessionAsync(request.SessionId, ct);
@@ -448,12 +433,6 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (activeRulesetVersionId != request.RulesetVersionId)
         {
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Ruleset version tidak aktif");
-        }
-
-        var shapeValidation = _shapeValidator.Validate(request, accessScopeCheck.ScopedPlayerId);
-        if (!shapeValidation.IsValid)
-        {
-            return BuildOutcome(shapeValidation);
         }
 
         if (request.UserId is not null)
@@ -480,16 +459,6 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (maxSequence.HasValue && request.SequenceNumber > maxSequence.Value + 1)
         {
             return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Sequence number loncat dari event terakhir");
-        }
-
-        if (await _events.EventIdExistsAsync(request.SessionId, request.EventId, ct))
-        {
-            return BuildOutcome(StatusCodes.Status409Conflict, "DUPLICATE", "Event sudah ada");
-        }
-
-        if (await _events.SequenceNumberExistsAsync(request.SessionId, request.SequenceNumber, ct))
-        {
-            return BuildOutcome(StatusCodes.Status409Conflict, "DUPLICATE", "Sequence number sudah ada");
         }
 
         if (rulesetVersion.Definition is null ||
@@ -690,6 +659,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         var dayEvents = events
             .Where(e => e.DayIndex == request.DayIndex &&
+                        string.Equals(e.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&
                         e.SessionPlayerId.HasValue &&
                         GameActionCatalog.GetPlayerActionSlotPolicy(
                             e.ActionType,
@@ -767,13 +737,24 @@ internal sealed class EventIngestionService : IEventIngestionService
     /// <summary>
     /// Menyimpan event ke tabel events, membangun proyeksi arus kas, dan menangani offset asuransi jika berlaku.
     /// </summary>
-    // Mendefinisikan metode `StoreEventAsync` dengan hasil bertipe `Task<Guid>`. Menyimpan event ke tabel events, membangun proyeksi arus kas, dan
+    // Mendefinisikan metode `StoreEventAsync` dengan hasil bertipe `Task<ValidationOutcome>`. Memvalidasi dan menyimpan event dalam lock sesi yang sama, lalu
     // menangani offset asuransi jika berlaku. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task.
     // Masukan: Parameter `request` bertipe `EventRequest` membawa data masukan permintaan yang akan divalidasi atau diteruskan ke layanan; Parameter
     // `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau aplikasi
     // berhenti.
-    private async Task<Guid> StoreEventAsync(EventRequest request, CancellationToken ct)
+    private async Task<ValidationOutcome> StoreEventAsync(EventRequest request, ClaimsPrincipal user, CancellationToken ct)
     {
+        await using var conn = await _events.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(
+            "select pg_advisory_xact_lock(hashtextextended(@sessionId::text, 0))",
+            new { sessionId = request.SessionId }, tx, cancellationToken: ct));
+
+        // Enrichment reads owned assets and referenced events, so it shares the mutation lock with validation.
+        request = await EnrichEventRequestAsync(request, ct);
+        var validation = await ValidateEventAsync(request, user, ct);
+        if (!validation.IsValid) return validation;
+
         var eventPk = Guid.NewGuid();
         var timestamp = request.Timestamp.ToUniversalTime();
         var config = await GetRulesetConfigAsync(request.RulesetVersionId, ct);
@@ -797,13 +778,6 @@ internal sealed class EventIngestionService : IEventIngestionService
             ClientRequestId = request.ClientRequestId
         };
 
-        // Simpan event + seluruh proyeksi state dalam satu transaksi.
-        // Menyiapkan variabel lokal `conn` untuk koneksi PostgreSQL untuk mengirim perintah dan membaca hasil basis data dengan hasil operasi asinkron
-        // membuka koneksi PostgreSQL melalui `_events` menggunakan `ct`; await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal; using memastikan sumber daya dilepas otomatis saat scope berakhir.
-        await using var conn = await _events.OpenConnectionAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
-
         var projections = new List<CashflowProjectionDb>();
         var isLifeRisk = string.Equals(request.ActionType, GameActionCatalog.RisikoKehidupan, StringComparison.OrdinalIgnoreCase);
         RulesetLifeRiskDto? activeRisk = null;
@@ -811,13 +785,14 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (isLifeRisk && config is not null && TryResolveLifeRisk(config, request.Payload, out activeRisk))
         {
             if (request.UserId.HasValue &&
-                string.Equals(activeRisk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
+                (string.Equals(activeRisk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(activeRisk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase)) &&
                 string.Equals(activeRisk.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
             {
                 deferRiskCashflow = true;
             }
 
-            if (string.Equals(activeRisk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase))
+            if (!deferRiskCashflow && string.Equals(activeRisk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase))
             {
                 var participantUserIds = new List<Guid>();
                 const string sql = "select user_id from session_participants where session_id = @sessionId";
@@ -847,7 +822,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                         EventPk = eventPk,
                         EventId = request.EventId,
                         Timestamp = timestamp,
-                        Direction = "OUT",
+                        Direction = activeRisk.Direction.ToUpperInvariant(),
                         Amount = activeRisk.Amount,
                         Category = "RISK_LIFE",
                         Reference = activeRisk.RiskCode,
@@ -890,7 +865,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                             EventId = request.EventId,
                             Timestamp = timestamp,
                             Direction = "OUT",
-                            Amount = 1,
+                            Amount = activeRisk.Amount,
                             Category = "RISK_LIFE",
                             Reference = activeRisk.RiskCode,
                             Note = null
@@ -909,7 +884,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                         EventId = request.EventId,
                         Timestamp = timestamp,
                         Direction = "IN",
-                        Amount = otherPlayersCount,
+                        Amount = otherPlayersCount * activeRisk.Amount,
                         Category = "RISK_LIFE",
                         Reference = activeRisk.RiskCode,
                         Note = null
@@ -920,7 +895,7 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         if (projections.Count == 0 && !deferRiskCashflow)
         {
-            if (!TryBuildCatalogRiskProjection(request, timestamp, eventPk, config, out var projection))
+            if (!TryBuildCatalogRiskProjection(request, timestamp, eventPk, config, out var projection) && !isLifeRisk)
             {
                 _projectionBuilder.TryBuild(request, timestamp, eventPk, out projection);
             }
@@ -949,14 +924,15 @@ internal sealed class EventIngestionService : IEventIngestionService
         }
 
         if (config is not null &&
+            request.UserId.HasValue && IsRiskResolutionAction(request) &&
             TryGetRiskEventReference(request.Payload, out var linkedRiskEventId) &&
-            !await _events.IsRiskResolvedAsync(request.SessionId, linkedRiskEventId, ct))
+            !await _events.IsRiskResolvedAsync(request.SessionId, linkedRiskEventId, request.UserId.Value, ct))
         {
             var linkedRiskEvent = await _events.GetEventByIdAsync(request.SessionId, linkedRiskEventId, ct);
             if (linkedRiskEvent is not null &&
-                linkedRiskEvent.UserId == request.UserId &&
+                IsEventAction(linkedRiskEvent, GameActionCatalog.RisikoKehidupan) &&
                 TryResolveLifeRisk(config, _payloadReader.ReadPayload(linkedRiskEvent.Payload), out var linkedRisk) &&
-                string.Equals(linkedRisk.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
+                IsCoinOutRiskForPlayer(linkedRisk, linkedRiskEvent.UserId, request.UserId))
             {
                 var incoming = projections
                     .Where(item => item.UserId == request.UserId && string.Equals(item.Direction, "IN", StringComparison.OrdinalIgnoreCase))
@@ -993,6 +969,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 ct);
         }
 
+        await EventUndoRepository.CaptureBeforeEventAsync(request.SessionId, request.EventId, conn, tx, ct);
         await _events.InsertEventAsync(record, conn, tx, ct);
         await _events.InsertEventAssetReferencesAsync(
             record,
@@ -1010,9 +987,13 @@ internal sealed class EventIngestionService : IEventIngestionService
 
         await _projector.ProjectAsync(request, record, projections, conn, tx, ct);
 
+        await conn.ExecuteAsync(new CommandDefinition(
+            "update sessions set last_activity_at = clock_timestamp() where session_id = @sessionId",
+            new { sessionId = request.SessionId }, tx, cancellationToken: ct));
+
         await tx.CommitAsync(ct);
 
-        return eventPk;
+        return Valid;
     }
 
     private static bool ShouldRefillMarket(EventRequest request, RulesetConfig config)
@@ -1365,6 +1346,11 @@ internal sealed class EventIngestionService : IEventIngestionService
 
     private async Task<EventRequest> EnrichEventRequestAsync(EventRequest request, CancellationToken ct)
     {
+        request = request with
+        {
+            ActionType = GameActionCatalog.ResolveGameActionId(request.ActionType, request.Payload) ?? request.ActionType
+        };
+        if (request.Payload.ValueKind != JsonValueKind.Object) return request;
         if (string.Equals(request.ActionType, GameActionCatalog.JualMasakan, StringComparison.OrdinalIgnoreCase))
         {
             if (request.Payload.TryGetProperty("order_card_id", out var orderCardIdProp) &&
@@ -1403,6 +1389,18 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (IsAction(request, GameActionCatalog.RiskEmergencyUsed))
         {
             request = await EnrichEmergencyOptionAsync(request, ct);
+        }
+
+        if (IsAction(request, GameActionCatalog.RisikoKehidupan))
+        {
+            var config = await GetRulesetConfigAsync(request.RulesetVersionId, ct);
+            var node = JsonNode.Parse(request.Payload.GetRawText())!.AsObject();
+            node.Remove("resolution_mode");
+            if (TryResolveLifeRisk(config, request.Payload, out var risk) &&
+                string.Equals(risk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase))
+                node["resolution_mode"] = "PER_PLAYER";
+            request = request with { Payload = JsonSerializer.SerializeToElement(node) };
         }
 
         return request;
@@ -1510,6 +1508,7 @@ internal sealed class EventIngestionService : IEventIngestionService
         if (!IsAction(request, GameActionCatalog.RisikoKehidupan) ||
             request.UserId is null ||
             !TryResolveLifeRisk(config, request.Payload, out var risk) ||
+            !string.Equals(risk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) ||
             risk.Amount <= 0)
         {
             return false;
@@ -1552,16 +1551,14 @@ internal sealed class EventIngestionService : IEventIngestionService
         projection = null;
         if (request.UserId is null ||
             riskEvent is null ||
-            !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan) ||
-            riskEvent.UserId != request.UserId)
+            !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan))
         {
             return false;
         }
 
         var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
         if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
-            !string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ||
-            risk.Amount <= 0)
+            !IsCoinOutRiskForPlayer(risk, riskEvent.UserId, request.UserId))
         {
             return false;
         }
@@ -1610,11 +1607,14 @@ internal sealed class EventIngestionService : IEventIngestionService
         return true;
     }
 
-    private static bool IsPersonalCoinOutRisk(RulesetLifeRiskDto risk) =>
-        string.Equals(risk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
+    private static bool IsCoinOutRiskForPlayer(RulesetLifeRiskDto risk, Guid? sourceUserId, Guid? userId) =>
+        userId.HasValue &&
         string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) &&
-        string.Equals(risk.TargetScope, "SELF", StringComparison.OrdinalIgnoreCase) &&
-        risk.Amount > 0;
+        risk.Amount > 0 &&
+        ((string.Equals(risk.EffectType, "COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
+          string.Equals(risk.TargetScope, "SELF", StringComparison.OrdinalIgnoreCase) && sourceUserId == userId) ||
+         (string.Equals(risk.EffectType, "ALL_PLAYERS_COIN_EFFECT", StringComparison.OrdinalIgnoreCase) &&
+          string.Equals(risk.TargetScope, "ALL_PLAYERS", StringComparison.OrdinalIgnoreCase)));
 
     private async Task<double> GetCurrentCashBalanceAsync(
         // Parameter `request` bertipe `EventRequest` membawa data masukan permintaan yang akan divalidasi atau diteruskan ke layanan.
@@ -1883,16 +1883,15 @@ internal sealed class EventIngestionService : IEventIngestionService
             var events = await _events.GetAllEventsBySessionAsync(request.SessionId, ct);
             var riskEvent = events.FirstOrDefault(e => e.EventId == riskEventId);
             if (riskEvent is null ||
-                riskEvent.UserId != request.UserId ||
                 !IsEventAction(riskEvent, GameActionCatalog.RisikoKehidupan) ||
                 !TryResolveLifeRisk(config, _payloadReader.ReadPayload(riskEvent.Payload), out var risk) ||
-                !IsPersonalCoinOutRisk(risk))
+                !IsCoinOutRiskForPlayer(risk, riskEvent.UserId, request.UserId))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                     "BayarRisiko hanya dapat menyelesaikan risiko OUT milik pemain");
             }
 
-            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, ct))
+            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, request.UserId.Value, ct))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                     "Risk event sudah diselesaikan");
@@ -1940,19 +1939,15 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
             }
 
-            if (riskEvent.UserId != request.UserId)
-            {
-                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
-            }
-
             var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
             if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
-                !IsPersonalCoinOutRisk(risk))
+                !IsCoinOutRiskForPlayer(risk, riskEvent.UserId, request.UserId))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Asuransi hanya berlaku untuk risiko OUT");
             }
 
             var alreadyUsed = events.Any(e =>
+                e.UserId == request.UserId &&
                 IsEventAction(e, GameActionCatalog.Asuransi) &&
                 _payloadReader.TryReadInsuranceUsed(_payloadReader.ReadPayload(e.Payload), out var usedRiskEventId) &&
                 string.Equals(usedRiskEventId, riskEventIdText, StringComparison.OrdinalIgnoreCase));
@@ -1962,7 +1957,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event sudah ditangkal asuransi");
             }
 
-            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, ct))
+            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, request.UserId.Value, ct))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event sudah diselesaikan");
             }
@@ -2015,19 +2010,14 @@ internal sealed class EventIngestionService : IEventIngestionService
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event tidak ditemukan");
             }
 
-            if (riskEvent.UserId != request.UserId)
-            {
-                return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event bukan milik pemain");
-            }
-
             var riskPayload = _payloadReader.ReadPayload(riskEvent.Payload);
             if (!TryResolveLifeRisk(config, riskPayload, out var risk) ||
-                !IsPersonalCoinOutRisk(risk))
+                !IsCoinOutRiskForPlayer(risk, riskEvent.UserId, request.UserId))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Emergency option hanya berlaku untuk risiko OUT");
             }
 
-            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, ct))
+            if (await _events.IsRiskResolvedAsync(request.SessionId, riskEventId, request.UserId.Value, ct))
             {
                 return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Risk event sudah diselesaikan");
             }
@@ -2067,7 +2057,9 @@ internal sealed class EventIngestionService : IEventIngestionService
                                     e.DayIndex == request.DayIndex)
                         .OrderByDescending(e => e.SequenceNumber)
                         .FirstOrDefault();
+                    var latestGoldRisk = EventEconomyActionValidator.GetLatestActiveGoldRisk(request.DayIndex, config, events);
                     if (activePriceEvent?.EventId != priceEventId ||
+                        (latestGoldRisk is not null && activePriceEvent.SequenceNumber <= latestGoldRisk.SequenceNumber) ||
                         !_payloadReader.TryGetInt32(_payloadReader.ReadPayload(activePriceEvent.Payload), "gold_price", out var activePrice) ||
                         activePrice != unitPrice)
                     {
@@ -2090,6 +2082,7 @@ internal sealed class EventIngestionService : IEventIngestionService
                     }
 
                     if (events.Any(e =>
+                            e.UserId == request.UserId &&
                             IsEventAction(e, GameActionCatalog.RiskEmergencyUsed) &&
                             _payloadReader.TryGetString(_payloadReader.ReadPayload(e.Payload), "risk_event_id", out var usedRisk) &&
                             string.Equals(usedRisk, riskEventIdText, StringComparison.OrdinalIgnoreCase) &&
@@ -2166,11 +2159,10 @@ internal sealed class EventIngestionService : IEventIngestionService
 
                 var loanRiskEvent = events.FirstOrDefault(e => e.EventId == loanRiskEventId);
                 if (loanRiskEvent is null ||
-                    loanRiskEvent.UserId != request.UserId ||
                     !IsEventAction(loanRiskEvent, GameActionCatalog.RisikoKehidupan) ||
                     !TryResolveLifeRisk(config, _payloadReader.ReadPayload(loanRiskEvent.Payload), out var loanRisk) ||
-                    !IsPersonalCoinOutRisk(loanRisk) ||
-                    await _events.IsRiskResolvedAsync(request.SessionId, loanRiskEventId, ct))
+                    !IsCoinOutRiskForPlayer(loanRisk, loanRiskEvent.UserId, request.UserId) ||
+                    await _events.IsRiskResolvedAsync(request.SessionId, loanRiskEventId, request.UserId.Value, ct))
                 {
                     return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                         "Pinjaman slot 0 wajib merujuk risiko PENDING milik pemain");

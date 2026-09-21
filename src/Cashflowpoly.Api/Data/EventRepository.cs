@@ -48,6 +48,43 @@ public sealed class EventRepository
     /// </summary>
     // Mendefinisikan konstruktor EventRepository yang menyiapkan objek dan menerima dependency/nilai awal dari pemanggil; parameter: Parameter
     // `dataSource` bertipe `NpgsqlDataSource` membawa sumber koneksi PostgreSQL yang mengelola pembuatan dan penggunaan ulang koneksi.
+    // Counts only donation events; no full history or payload needs to cross the database boundary.
+    private const string SealedDonationDaysSql = """
+        select day_index from events
+        where session_id = @sessionId and action_type = 'JumatBerkah' and user_id is not null
+        group by day_index
+        having count(distinct user_id) < (select count(*) from session_participants where session_id = @sessionId)
+        """;
+
+    public async Task<HashSet<int>> GetSealedDonationDaysAsync(Guid sessionId, CancellationToken ct)
+    {
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return (await conn.QueryAsync<int>(new CommandDefinition(SealedDonationDaysSql,
+            new { sessionId }, cancellationToken: ct))).ToHashSet();
+    }
+
+    public async Task<List<EventDb>> GetEventsBySequencesAsync(Guid sessionId, long[] sequences, CancellationToken ct)
+    {
+        if (sequences.Length == 0) return [];
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return (await conn.QueryAsync<EventDb>(new CommandDefinition(EventSelectColumns +
+            " where e.session_id = @sessionId and e.sequence_number = any(@sequences) order by e.sequence_number",
+            new { sessionId, sequences }, cancellationToken: ct))).ToList();
+    }
+
+    public async Task<List<long>> GetUndoneSequenceNumbersAsync(Guid sessionId, CancellationToken ct)
+    {
+        const string sql = """
+            select (original_event->>'sequence_number')::bigint
+            from event_undos
+            where session_id = @sessionId
+            order by 1
+            """;
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return (await conn.QueryAsync<long>(new CommandDefinition(sql,
+            new { sessionId }, cancellationToken: ct))).ToList();
+    }
+
     public EventRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
@@ -67,6 +104,11 @@ public sealed class EventRepository
             select 1
             from events
             where session_id = @sessionId and event_id = @eventId
+            union all
+            select 1
+            from event_undos
+            where session_id = @sessionId and event_id = @eventId
+            limit 1
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -88,6 +130,11 @@ public sealed class EventRepository
             select 1
             from events
             where session_id = @sessionId and sequence_number = @sequenceNumber
+            union all
+            select 1
+            from event_undos
+            where session_id = @sessionId and (original_event->>'sequence_number')::bigint = @sequenceNumber
+            limit 1
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -106,8 +153,12 @@ public sealed class EventRepository
     {
         const string sql = """
             select max(sequence_number)
-            from events
-            where session_id = @sessionId
+            from (
+                select sequence_number from events where session_id = @sessionId
+                union all
+                select (original_event->>'sequence_number')::bigint
+                from event_undos where session_id = @sessionId
+            ) reserved_sequences
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -414,9 +465,9 @@ public sealed class EventRepository
                 details_json,
                 created_at
             )
-            values (
+            select
                 @validationLogId,
-                @sessionId,
+                existing_session.session_id,
                 @rulesetVersionId,
                 @eventId,
                 '{}'::jsonb,
@@ -426,7 +477,7 @@ public sealed class EventRepository
                 @traceId,
                 '{}'::jsonb,
                 @createdAt
-            )
+            from (select session_id from sessions where session_id = @sessionId for key share) existing_session
             on conflict (session_id, event_id) do nothing
             """;
 
@@ -670,7 +721,7 @@ public sealed class EventRepository
         // aplikasi berhenti.
         CancellationToken ct)
     {
-        const string sql = """
+        var sql = """
             select projection_id,
                    session_id,
                    user_id,
@@ -686,6 +737,12 @@ public sealed class EventRepository
                    note
             from event_cashflow_projections
             where session_id = @sessionId
+              and event_id not in (
+                  select event_id from events where session_id = @sessionId
+                    and action_type = 'JumatBerkah' and day_index in (
+            """ + SealedDonationDaysSql + """
+                    )
+              )
               and (@userId is null or user_id = @userId)
               and (@afterTimestamp is null or (timestamp, projection_id) > (@afterTimestamp, @afterTransactionId))
             order by timestamp, projection_id
@@ -742,46 +799,29 @@ public sealed class EventRepository
             new CommandDefinition(sql, new { sessionId, eventId }, cancellationToken: ct));
     }
 
-    internal async Task<bool> IsRiskResolvedAsync(Guid sessionId, Guid riskEventId, CancellationToken ct)
+    internal async Task<bool> IsRiskResolvedAsync(Guid sessionId, Guid riskEventId, Guid userId, CancellationToken ct)
     {
         const string sql = """
             select exists (
                 select 1
                 from event_cashflow_projections
                 where session_id = @sessionId
+                  and user_id = @userId
                   and category = 'RISK_LIFE'
+                  and direction = 'OUT'
                   and (event_id = @riskEventId or reference = @riskEventId::text)
             )
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         return await conn.ExecuteScalarAsync<bool>(
-            new CommandDefinition(sql, new { sessionId, riskEventId }, cancellationToken: ct));
+            new CommandDefinition(sql, new { sessionId, riskEventId, userId }, cancellationToken: ct));
     }
 
     internal async Task<bool> HasPendingLifeRiskAsync(Guid sessionId, Guid? userId, CancellationToken ct)
     {
         const string sql = """
-            select exists (
-                select 1
-                from events risk_event
-                join ruleset_life_risks risk
-                  on risk.ruleset_version_id = risk_event.ruleset_version_id
-                 and lower(risk.risk_code) = lower(risk_event.payload ->> 'risk_id')
-                where risk_event.session_id = @sessionId
-                  and (@userId is null or risk_event.user_id = @userId)
-                  and risk_event.action_type = 'RisikoKehidupan'
-                  and risk.effect_type = 'COIN_EFFECT'
-                  and risk.direction = 'OUT'
-                  and not exists (
-                      select 1
-                      from event_cashflow_projections projection
-                      where projection.session_id = risk_event.session_id
-                        and projection.category = 'RISK_LIFE'
-                        and projection.direction = 'OUT'
-                        and projection.reference = risk_event.event_id::text
-                  )
-            )
+            select has_pending_life_risk(@sessionId, @userId)
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);

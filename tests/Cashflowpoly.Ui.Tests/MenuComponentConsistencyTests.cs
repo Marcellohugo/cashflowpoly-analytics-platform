@@ -101,13 +101,13 @@ public sealed class MenuComponentConsistencyTests
     // menandai metode sebagai pengujian xUnit yang dijalankan untuk setiap kombinasi data.
     [Theory]
     // menyediakan satu kombinasi masukan pengujian (”Home”, ”Index.cshtml”, 2).
-    [InlineData("Home", "Index.cshtml", 2)]
+    [InlineData("Home", "Index.cshtml", 0)]
     // menyediakan satu kombinasi masukan pengujian (”Sessions”, ”Index.cshtml”, 2).
     [InlineData("Sessions", "Index.cshtml", 2)]
     // menyediakan satu kombinasi masukan pengujian (”Sessions”, ”Details.cshtml”, 3).
     [InlineData("Sessions", "Details.cshtml", 3)]
     // menyediakan satu kombinasi masukan pengujian (”Players”, ”Index.cshtml”, 3).
-    [InlineData("PlayerStatistics", "Index.cshtml", 3)]
+    [InlineData("PlayerStatistics", "Index.cshtml", 2)]
     // menyediakan satu kombinasi masukan pengujian (”Players”, ”Details.cshtml”, 2).
     [InlineData("Players", "Details.cshtml", 2)]
     // menyediakan satu kombinasi masukan pengujian (”Rulesets”, ”Index.cshtml”, 3).

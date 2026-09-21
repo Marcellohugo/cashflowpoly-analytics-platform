@@ -62,9 +62,7 @@ public sealed class RulebookPageLayoutTests
         // `”href=\”/rulebook#rulebook-copyright\””`, `layoutContent`, `StringComparison.Ordinal` dalam
         // ProgramAndLayout_ShouldExposeRulebookAsCanonicalRootRoute.
         Assert.Contains("href=\"/rulebook#rulebook-copyright\"", layoutContent, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”href=\”/rulebook\””`, `homeContent`,
-        // `StringComparison.Ordinal` dalam ProgramAndLayout_ShouldExposeRulebookAsCanonicalRootRoute.
-        Assert.Contains("href=\"/rulebook\"", homeContent, StringComparison.Ordinal);
+
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-controller=\”Home\”
         // asp-action=\”Rulebook\””`, `layoutContent`, `StringComparison.Ordinal` dalam ProgramAndLayout_ShouldExposeRulebookAsCanonicalRootRoute.
         Assert.DoesNotContain("asp-controller=\"Home\" asp-action=\"Rulebook\"", layoutContent, StringComparison.Ordinal);

@@ -39,6 +39,20 @@ public sealed class UserRepository
         _dataSource = dataSource;
     }
 
+    public async Task<bool> IsActiveUserInRoleAsync(Guid userId, string role, CancellationToken ct)
+    {
+        const string sql = """
+            select exists (
+                select 1 from app_users
+                where user_id = @userId and is_active = true and role = @role
+            )
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        return await conn.QuerySingleAsync<bool>(
+            new CommandDefinition(sql, new { userId, role }, cancellationToken: ct));
+    }
+
     public async Task<AuthenticatedUserDb?> AuthenticateAsync(string username, string password, CancellationToken ct)
     {
         const string sql = """

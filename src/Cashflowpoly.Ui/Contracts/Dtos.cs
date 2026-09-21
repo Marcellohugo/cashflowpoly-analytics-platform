@@ -261,7 +261,9 @@ public sealed record EventsBySessionResponse(
     // properti JSON menjadi (”next_cursor”).
     [property: JsonPropertyName("next_cursor")] string? NextCursor,
     // Parameter `HasMore` bertipe `bool` membawa nilai memiliki more; memetakan nama properti JSON menjadi (”has_more”).
-    [property: JsonPropertyName("has_more")] bool HasMore);
+    [property: JsonPropertyName("has_more")] bool HasMore,
+    [property: JsonPropertyName("refreshed_items")] List<EventRequest>? RefreshedItems = null,
+    [property: JsonPropertyName("undone_sequence_numbers")] List<long>? UndoneSequenceNumbers = null);
 
 public sealed record AnalyticsSessionSummary(
     // Parameter `EventCount` bertipe `int` membawa nilai event jumlah; memetakan nama properti JSON menjadi (”event_count”).
@@ -322,7 +324,9 @@ public sealed record AnalyticsByPlayerItem(
     // Parameter `LoanPenaltyTotal` bertipe `double` membawa nilai pinjaman penalti total; memetakan nama properti JSON menjadi (”loan_penalty_total”).
     [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman; memetakan nama properti JSON menjadi (”has_unpaid_loan”).
-    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
+    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan,
+    [property: JsonPropertyName("initial_happiness_points")] double InitialHappinessPoints = 0,
+    [property: JsonPropertyName("mission_reward_total")] double MissionRewardTotal = 0);
 
 public sealed record AnalyticsLeaderboardItem(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
@@ -353,7 +357,8 @@ public sealed record AnalyticsSessionResponse(
     // Parameter `Leaderboard` bertipe `List<AnalyticsLeaderboardItem>?` membawa nilai leaderboard; nilai null diizinkan ketika data opsional belum
     // tersedia; bila argumen tidak diberikan digunakan null, yaitu penanda tidak ada nilai; memetakan nama properti JSON menjadi (”leaderboard”).
     [property: JsonPropertyName("leaderboard")] List<AnalyticsLeaderboardItem>? Leaderboard = null,
-    [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null);
+    [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null,
+    [property: JsonPropertyName("has_sealed_donations")] bool HasSealedDonations = false);
 
 public sealed record GameplayMetricsResponse(
     // Parameter `SessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini; memetakan nama properti JSON
@@ -377,7 +382,8 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("raw_json")] JsonElement? RawJson = null,
     // Parameter `DerivedJson` bertipe `JsonElement?` membawa nilai derived JSON; nilai null diizinkan ketika data opsional belum tersedia; bila argumen
     // tidak diberikan digunakan null, yaitu penanda tidak ada nilai; memetakan nama properti JSON menjadi (”derived_json”).
-    [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null);
+    [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null,
+    [property: JsonPropertyName("has_sealed_donations")] bool HasSealedDonations = false);
 
 public sealed record GameplayEconomyMetrics(
     // Parameter `StartingCash` bertipe `double` membawa nilai starting uang tunai; memetakan nama properti JSON menjadi (”starting_cash”).
@@ -428,7 +434,9 @@ public sealed record GameplayScoreMetrics(
     // Parameter `LoanPenaltyTotal` bertipe `double` membawa nilai pinjaman penalti total; memetakan nama properti JSON menjadi (”loan_penalty_total”).
     [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman; memetakan nama properti JSON menjadi (”has_unpaid_loan”).
-    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
+    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan,
+    [property: JsonPropertyName("initial_happiness_points")] double InitialHappinessPoints = 0,
+    [property: JsonPropertyName("mission_reward_total")] double MissionRewardTotal = 0);
 
 public sealed record GameplayNeedMetrics(
     // Parameter `FulfillmentDiversity` bertipe `double` membawa tingkat keberagaman kategori kebutuhan yang telah dipenuhi; memetakan nama properti

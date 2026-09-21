@@ -168,7 +168,8 @@ Pemetaan digital:
 ### 3) Menabung pada kartu tabungan tujuan keuangan
 - Letakkan 1 token aksi di papan tabungan.
 - Setor maksimal **15 koin per aksi**.
-- Jika nominal tabungan mencapai harga kartu tujuan, bayar ke bank dan ambil kartu tujuan.
+- Tabungan merupakan satu saldo milik pemain dan dapat dipakai untuk kartu tujuan mana pun yang masih tersedia.
+- Pemain yang lebih dulu mampu membayar penuh ke bank memperoleh kartu tujuan. Menabung tidak memesan atau mengunci kartu untuk pemain tertentu.
 
 ### 4) Bayar atau pinjam 1x kartu pinjaman syariah
 - Letakkan 1 token aksi di papan asuransi dan bank syariah.

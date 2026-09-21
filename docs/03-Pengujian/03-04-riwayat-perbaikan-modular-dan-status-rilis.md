@@ -2,6 +2,8 @@
 
 Status: **seluruh modul utama diterapkan**, diperbarui 30 Agustus 2026.
 
+Status pengujian perubahan terbaru dicatat pada [perbaikan audit menyeluruh](03-07-perbaikan-audit-menyeluruh.md). Riwayat di bawah menjelaskan rilis pada tanggalnya dan tidak menggantikan hasil verifikasi tersebut.
+
 Dokumen ini menjelaskan masalah awal, perubahan yang diterapkan, bukti selesai, serta risiko yang masih diterima. Bagian `Commit` mencatat kelompok perubahan historis dan bukan perintah yang harus dijalankan ulang. Rencana yang belum diterapkan harus ditambahkan sebagai bagian baru dengan status dan kriteria selesai yang jelas.
 
 ## Ringkasan keputusan final
@@ -204,7 +206,7 @@ Metadata domain tersebar, tautan Privasi salah, Ketentuan belum ada, dan identit
 
 - JWT delapan jam, logout perangkat saat ini, dan rate limit login dipertahankan.
 - Tidak ada profil, ganti password, logout-all, admin akun, atau token demo khusus.
-- Registrasi publik hanya Player; Instruktur publik ditolak.
+- Pada baseline lama, registrasi publik hanya Player. Kebijakan aktif telah berubah: Instruktur dapat mendaftar jika `Auth:AllowPublicInstructorRegistration=true` (default).
 - Akun Seed 2 bertanda demo tetapi tetap mengikuti hak akses role.
 - Halaman Kebijakan Privasi dan Ketentuan Penggunaan menjelaskan proyek akademik, retensi selama proyek, serta tidak adanya fitur salinan/penghapusan mandiri.
 - Canonical, Open Graph, robots, dan sitemap berasal dari `DOMAIN`; production memakai `https://narafin.org`; halaman privat `noindex`.

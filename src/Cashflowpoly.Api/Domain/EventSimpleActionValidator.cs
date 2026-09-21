@@ -71,7 +71,7 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
             return playerCheck;
         }
 
-        if (!_payloadReader.TryReadAmount(payload, out var amount))
+        if (!_payloadReader.TryGetInt32(payload, "amount", out var amount))
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status400BadRequest,
@@ -89,8 +89,7 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
                 new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
         }
 
-        var rounded = (int)Math.Round(amount);
-        if (rounded != expectedIncome)
+        if (amount != expectedIncome)
         {
             return EventDomainValidationResult.Fail(
                 StatusCodes.Status422UnprocessableEntity,
@@ -179,8 +178,7 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
         foreach (var winner in winners.EnumerateArray())
         {
             if (winner.ValueKind != System.Text.Json.JsonValueKind.Object ||
-                !winner.TryGetProperty("rank", out var rankProperty) ||
-                !rankProperty.TryGetInt32(out var rank) ||
+                !_payloadReader.TryGetInt32(winner, "rank", out var rank) ||
                 rank != expectedRank)
             {
                 return EventDomainValidationResult.Fail(
@@ -201,8 +199,7 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
                     new ErrorDetail("payload.winners.player_name", "REQUIRED"));
             }
 
-            if (!winner.TryGetProperty("points", out var pointsProperty) ||
-                !pointsProperty.TryGetInt32(out var points) ||
+            if (!_payloadReader.TryGetInt32(winner, "points", out var points) ||
                 points < 0)
             {
                 return EventDomainValidationResult.Fail(
@@ -213,7 +210,8 @@ internal sealed class EventSimpleActionValidator : IEventSimpleActionValidator
             }
 
             if (winner.TryGetProperty("player_order_no", out var playerOrderProperty) &&
-                (!playerOrderProperty.TryGetInt32(out var playerOrderNo) || playerOrderNo <= 0))
+                (playerOrderProperty.ValueKind != System.Text.Json.JsonValueKind.Number ||
+                 !playerOrderProperty.TryGetInt32(out var playerOrderNo) || playerOrderNo <= 0))
             {
                 return EventDomainValidationResult.Fail(
                     StatusCodes.Status400BadRequest,

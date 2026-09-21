@@ -51,6 +51,8 @@ public static class SessionTimelineMapper
                 {
                     Timestamp = item.Timestamp,
                     SequenceNumber = item.SequenceNumber,
+                    IsSealed = item.Payload.ValueKind == JsonValueKind.Object
+                        && item.Payload.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.String && status.GetString() == "SEALED",
                     DayIndex = ResolveJourneyDayIndex(item),
                     Weekday = ResolveWeekdayLabel(item.Weekday, normalizedLanguage),
                     ActionSlot = actionSlot,
@@ -617,7 +619,7 @@ public static class SessionTimelineMapper
     // Parameter `language` bertipe `string` membawa nilai language; Parameter `isWithdrawn` bertipe `bool` membawa nilai berstatus withdrawn.
     private static string DescribeSavingDeposit(JsonElement payload, string language, bool isWithdrawn)
     {
-        if (!TryGetString(payload, "goal_id", out var goalId) || !TryGetNumber(payload, "amount", out var amount))
+        if (!TryGetNumber(payload, "amount", out var amount))
         {
             return BuildGenericDescription(isWithdrawn ? "TarikTabungan" : "Menabung", payload, language);
         }
@@ -626,13 +628,13 @@ public static class SessionTimelineMapper
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: L( dalam DescribeSavingDeposit.
             ? L(
                 language,
-                $"Menarik {FormatNumber(amount)} dari tabungan tujuan {goalId}.",
-                $"Withdrew {FormatNumber(amount)} from saving goal {goalId}.")
+                $"Menarik {FormatNumber(amount)} dari tabungan.",
+                $"Withdrew {FormatNumber(amount)} from savings.")
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: L( dalam DescribeSavingDeposit.
             : L(
                 language,
-                $"Menyetor {FormatNumber(amount)} ke tabungan tujuan {goalId}.",
-                $"Deposited {FormatNumber(amount)} to saving goal {goalId}.");
+                $"Menyetor {FormatNumber(amount)} ke tabungan.",
+                $"Deposited {FormatNumber(amount)} to savings.");
     }
 
     /// <summary>
@@ -667,8 +669,8 @@ public static class SessionTimelineMapper
 
         return L(
             language,
-            $"Target tabungan {goalId} tercapai (poin kebahagiaan {pointsText}, biaya {costText}).",
-            $"Saving goal {goalId} was achieved (happiness points {pointsText}, cost {costText}).");
+            $"Kartu tujuan finansial {goalId} dibeli (poin kebahagiaan {pointsText}, biaya {costText}).",
+            $"Financial goal card {goalId} purchased (happiness points {pointsText}, cost {costText}).");
     }
 
     /// <summary>

@@ -15,6 +15,25 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class AnalyticsRiskLoanCalculatorTests
 // Membuka scope tipe AnalyticsRiskLoanCalculatorTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    [Fact]
+    public void MitigationOfAnotherPlayersMassRiskDoesNotInflateDrawBasedCoverage()
+    {
+        var sessionId = Guid.NewGuid();
+        var playerId = Guid.NewGuid();
+        var ownRiskId = Guid.NewGuid();
+        var otherRiskId = Guid.NewGuid();
+        var events = new[]
+        {
+            CreateEvent(ownRiskId, sessionId, playerId, "RisikoKehidupan", """{"risk_id":"personal"}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "Asuransi", $$"""{"risk_event_id":"{{ownRiskId}}"}"""),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "Asuransi", $$"""{"risk_event_id":"{{otherRiskId}}"}""")
+        };
+        var metrics = new RiskLoanCalculator().Compute(events, [], 50, 50, 10);
+        Assert.Equal(1, metrics.RiskCardsDrawn);
+        Assert.Equal(2, metrics.RiskMitigated);
+        Assert.Equal(1, metrics.InsuranceCoverageRate);
+    }
+
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `Compute_IncludesSetupAndEmergencyLoanInstances` dengan hasil bertipe `void`; operasi ini menangani compute includes setup

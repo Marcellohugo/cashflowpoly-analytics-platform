@@ -14,15 +14,17 @@
 ## 1. Identitas Simulasi
 Dokumen ini menyatukan skenario permainan untuk Mode Pemula dan Mode Mahir. Tim pengembang dapat memakai skenario ini sebagai acuan input event, validasi alur permainan, pembuatan data simulasi, dan pengujian dashboard analitika. Penyesuaian dokumen ini menjaga urutan hari, urutan pemain, dan pola aksi utama agar alur permainan tetap utuh.
 
+Dua skenario rinci di bawah adalah contoh kanonis awal. Seed pengujian lengkap berada pada `database/02_seed_simulation_sessions_events.sql`: Hadziq dan Pratama masing-masing memiliki 4 sesi Pemula selesai dan 4 sesi Mahir selesai, ditambah 2 sesi persiapan dan 2 sesi berjalan. Total 24 sesi demo memakai 10 ruleset per instruktur; seluruh ruleset telah terikat pada sesi. Hadziq membimbing Marco, Marcello, Hugo, dan Manalu; Pratama membimbing Marco, Hugo, Nadia, dan Farhan. Akun dan sesi non-demo tidak menjadi sasaran penggantian seed.
+
 ### 1.1 Instruktur
-- Nama instruktur: Ibu Rina Kartika, S.Pd.
+- Nama instruktur: Hadziq
 - Peran sistem: `INSTRUCTOR`
 - Username contoh: `hadziq`
 
 ### 1.2 Sesi Mode Pemula
 - Nama sesi: Simulasi Cashflowpoly Kelas XI IPS 2 - Mode Pemula - Kelompok A
 - Mode: `PEMULA`
-- Instruktur: Ibu Rina Kartika, S.Pd.
+- Instruktur: Hadziq
 - Jumlah pemain: 4 pemain
 - Pemain: Marco, Marcello, Hugo, Manalu
 - Tujuan sesi: latihan dasar pencatatan event, pembelian bahan, klaim pesanan, kebutuhan, donasi, investasi emas, dan perhitungan poin akhir.
@@ -30,7 +32,7 @@ Dokumen ini menyatukan skenario permainan untuk Mode Pemula dan Mode Mahir. Tim 
 ### 1.3 Sesi Mode Mahir
 - Nama sesi: Simulasi Cashflowpoly Kelas XI IPS 2 - Mode Mahir - Kelompok B
 - Mode: `MAHIR`
-- Instruktur: Ibu Rina Kartika, S.Pd.
+- Instruktur: Hadziq
 - Jumlah pemain: 4 pemain
 - Pemain: Marco, Marcello, Hugo, Manalu
 - Tujuan sesi: pengujian lanjutan untuk event risiko kehidupan, asuransi multi risiko, pinjaman syariah, tujuan keuangan, donasi, investasi emas, dan perhitungan poin akhir mode mahir.
@@ -480,14 +482,14 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 
 ### Mode Mahir - Hari 17 - Rabu
 - Marco Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 15 koin
-- Sistem mencatat pencapaian `TujuanFinansial` jika saldo tabungan mencukupi
+- Jika saldo cukup dan kartu tujuan dibeli pada permainan fisik, Klien Game/IDN instruktur mencatat `TujuanFinansial` sebagai `SYSTEM`, `action_slot=0`, untuk pemain penerima. API tidak membuat event tersebut otomatis hanya karena saldo mencapai target.
 - Marco Hari 17 Aksi 2 -> Menabung untuk Tujuan Keuangan: 8 koin
 - Marcello Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
-- Marcello Hari 17 Aksi 2 -> Jika tabungan cukup, ambil 1 Kartu Tujuan Keuangan (`TujuanFinansial`)
+- Marcello Hari 17 Aksi 2 -> Kerja Lepas; jika tabungan cukup dan kartu tujuan tersedia, pembelian kartu dilaporkan terpisah sebagai `TujuanFinansial` tanpa memakai aksi kedua
 - Hugo Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
-- Hugo Hari 17 Aksi 2 -> Jika tabungan cukup, ambil 1 Kartu Tujuan Keuangan (`TujuanFinansial`)
+- Hugo Hari 17 Aksi 2 -> Kerja Lepas; jika tabungan cukup dan kartu tujuan tersedia, pembelian kartu dilaporkan terpisah sebagai `TujuanFinansial` tanpa memakai aksi kedua
 - Manalu Hari 17 Aksi 1 -> Menabung untuk Tujuan Keuangan: 10 koin
-- Manalu Hari 17 Aksi 2 -> Jika tabungan cukup, ambil 1 Kartu Tujuan Keuangan (`TujuanFinansial`)
+- Manalu Hari 17 Aksi 2 -> Kerja Lepas; jika tabungan cukup dan kartu tujuan tersedia, pembelian kartu dilaporkan terpisah sebagai `TujuanFinansial` tanpa memakai aksi kedua
 - Setelah semua pemain selesai -> Mr. Cashflowpoly maju ke Hari 18
 
 ### Mode Mahir - Hari 18 - Kamis
@@ -585,33 +587,36 @@ Bagian ini menjaga bahasa skenario tetap mudah dibaca, tetapi tetap cocok dengan
 ## 4. Ringkasan Pemetaan ke Event API
 Bagian ini membantu pengembang mengubah skenario naratif menjadi payload event tanpa mengubah alur hari dan urutan pemain.
 
-| Jenis aksi | `action_type` | Actor type | Payload minimum yang disarankan |
+| Jenis aksi | `action_type` | Actor type | Payload atau endpoint yang digunakan |
 |---|---|---|---|
-| Mulai sesi | `MulaiSesi` | `SYSTEM` | `mode`, `ruleset_version_id`, daftar pemain, urutan pemain. |
-| Beli bahan masakan | `BahanMasakan` | `PLAYER` | `ingredient_code`, `display_name`, `qty`, `coin_delta`. |
-| Buang bahan masakan | `BuangBahanMasakan` | `PLAYER` | `ingredient_code`, `qty`, alasan bila ada. |
-| Jual pesanan masakan | `JualMasakan` | `PLAYER` | `order_code`, `required_ingredients`, `sell_price`, `happiness_delta`. |
-| Beli kebutuhan | `Kebutuhan` | `PLAYER` | `need_code`, `need_tier`, `purchase_price`, `happiness_delta`. |
-| Kerja lepas | `KerjaLepas` | `PLAYER` | `coin_delta=+1`. |
-| Catat transaksi | `CatatTransaksi` | `PLAYER` | `transaction_type`, `amount`, `note`. |
-| Menabung | `Menabung` | `PLAYER` | `saving_delta`, `coin_delta`, `goal_code` bila ada. |
-| Tarik tabungan | `TarikTabungan` | `PLAYER` | `saving_delta`, `coin_delta`, `reason`. |
-| Tujuan finansial tercapai | `TujuanFinansial` | `PLAYER` | `goal_code`, `purchase_price`, `happiness_delta`. |
-| Donasi Jumat | `JumatBerkah` | `PLAYER` | `donation_amount`, `coin_delta`. |
-| Poin peringkat donasi | `PoinPeringkatDonasi` | `SYSTEM` | `rank`, `happiness_delta`. |
-| Pengumuman juara donasi | `UmumkanJuaraDonasi` | `SYSTEM` | daftar `user_id` atau `session_player_id`, `rank`, `donation_amount`. |
-| Beli emas | `InvestasiEmas` | `PLAYER` | `gold_price_code`, `qty`, `coin_delta`. |
-| Jual emas | `JualEmas` | `PLAYER` | `gold_price_code`, `qty`, `coin_delta`. |
-| Lewati transaksi emas | `LewatiTransaksiEmas` | `PLAYER` | `reason`. |
-| Hari Minggu libur | `HariMingguLibur` | `SYSTEM` | `day_number`, `weekday=SUN`. |
+| Mulai sesi | `MulaiSesi` | `SYSTEM` internal | Panggil `POST /api/v1/sessions/{sessionId}/start` setelah setup tersimpan; API membentuk event setup. |
+| Beli bahan masakan | `BahanMasakan` | `PLAYER` | `card_id`, `amount` berupa harga satu kartu; `ingredient_name` opsional. |
+| Buang bahan masakan | `BuangBahanMasakan` | `PLAYER` | `card_id`, `amount` berupa jumlah kartu yang dibuang; `reason` opsional. |
+| Jual pesanan masakan | `JualMasakan` | `PLAYER` | `order_card_id`, `required_ingredient_card_ids`, `income` sesuai katalog. |
+| Beli kebutuhan | `Kebutuhan` | `PLAYER` | `card_id`, `amount`, `points`; `need_tier` sesuai katalog bila dikirim. |
+| Kerja lepas | `KerjaLepas` | `PLAYER` | `amount` bilangan bulat sesuai `freelance_income` ruleset (contoh default: 1). |
+| Catat transaksi | `CatatTransaksi` | `SYSTEM` | `direction` (`IN`/`OUT`), `amount`, `category`; `counterparty` opsional (`BANK`/`PLAYER`). Tidak menggantikan aksi gameplay pemain. |
+| Menabung | `Menabung` | `PLAYER` | `amount` setoran (maksimal 15 koin per aksi); `goal_id` opsional sebagai metadata lama, tidak memesan kartu. |
+| Tarik tabungan | `TarikTabungan` | Tidak didukung | Ditolak `422`; bukan aksi resmi rulebook. Jangan mengirimnya untuk skenario baru. |
+| Tujuan finansial dibeli | `TujuanFinansial` | `SYSTEM` | `goal_id`, `cost`, `points`; `user_id` pemain penerima wajib dan `action_slot=0`. Klien instruktur melaporkan pembelian fisik, bukan aksi pemain terpisah. |
+| Donasi Jumat | `JumatBerkah` | `PLAYER` | `amount` donasi. |
+| Poin peringkat donasi | `PoinPeringkatDonasi` | `SYSTEM` | `rank`, `points`; envelope menargetkan `user_id` penerima. |
+| Pengumuman juara donasi | `UmumkanJuaraDonasi` | `SYSTEM` | `winners`: 1–3 objek berurutan berisi `rank`, `player_name`, `points`; `player_order_no` opsional. `user_id` envelope kosong. |
+| Buka harga emas | `BukaHargaEmas` | `SYSTEM` | `gold_price` dari katalog harga emas. |
+| Beli emas | `InvestasiEmas` | `PLAYER` | `trade_type=BUY`, `qty`, `unit_price`, `amount=qty*unit_price`; harga sesuai `BukaHargaEmas` hari itu. |
+| Jual emas | `JualEmas` | `PLAYER` | `trade_type=SELL`, `qty`, `unit_price`, `amount=qty*unit_price`; harga sesuai `BukaHargaEmas` hari itu. |
+| Lewati transaksi emas | `LewatiTransaksiEmas` | `PLAYER` | `{}`; `reason` opsional. |
+| Hari Minggu libur | `HariMingguLibur` | `SYSTEM` | `{}`; `day_index` dan `weekday=SUN` berada pada envelope event. |
 | Pinjaman syariah | `PinjamanSyariah` | `PLAYER` | `loan_code`, `loan_id`, `principal`, `repayment_amount`, `duration_days`, `penalty_points`. |
 | Bayar pinjaman | `BayarPinjaman` | `PLAYER` | `loan_id`, `amount` sebesar seluruh outstanding. |
-| Asuransi multi risiko | `Asuransi` | `PLAYER` | `product_code`, `premium`, `coverage_status`. |
+| Asuransi multi risiko | `Asuransi` | `PLAYER` | Pembelian: `premium` sesuai katalog; penggunaan polis aktif: `risk_event_id` risiko pending. |
 | Risiko kehidupan | `RisikoKehidupan` | `PLAYER` | `risk_id`, `source_order_event_id`; nilai efek diambil server dari katalog. |
 | Bayar risiko | `BayarRisiko` | `PLAYER` | `risk_event_id`. |
 | Opsi darurat | `GunakanOpsiDarurat` | `PLAYER` | `risk_event_id`, `option_type`, dan referensi aset sesuai opsi; `amount` dihitung server. |
-| Perpindahan hari | `AkhirGiliran` | `SYSTEM` | `from_day`, `to_day`, `completed_players`. |
-| Akhir sesi | `AkhiriSesi` | `SYSTEM` | `final_day`, `winner_player_id`, ringkasan skor. |
+| Perpindahan hari | `AkhirGiliran` | `SYSTEM` | `from_day`, `to_day`; jika `used`/`remaining` dikirim, keduanya harus cocok dengan riwayat aksi. |
+| Akhir sesi | `AkhiriSesi` | `SYSTEM` internal | Panggil `POST /api/v1/sessions/{sessionId}/end`; API membentuk event akhir dan skor final. Pengiriman langsung ke `/events` ditolak. |
+
+Nama pada tabel adalah field kontrak API, bukan label UI. ID kartu harus berasal dari versi ruleset sesi; jumlah koin, poin, resep, hari, giliran, dan kepemilikan tetap divalidasi. Envelope lengkap dan contoh dapat dilihat pada [kontrak REST API dan event](../02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md).
 
 ## 5. Kriteria Validasi Skenario
 1. Setiap sesi memiliki instruktur, mode permainan, `ruleset_version_id`, dan empat pemain.
@@ -673,19 +678,20 @@ Bagian ini menjelaskan skenario teknis daur hidup (*lifecycle*) sesi permainan d
 - **Langkah**:
   1. Klien Game/IDN memanggil `POST /api/v1/events` (atau `/events/batch`) setiap kali ada keputusan pemain. Dalam pengujian, permintaan tersebut ditiru oleh perangkat uji dan dataset simulasi.
   2. API memverifikasi token pengirim, urutan `sequence_number`, kecocokan `ruleset_version_id`, dan keunikan kombinasi `session_id + event_id` (idempotensi).
-  3. Event yang valid disimpan ke PostgreSQL dan memperbarui proyeksi state secara asinkron.
-- **Hasil**: Respons status sukses (`200 OK`) dan data state pemain ter-update.
+  3. Event yang valid disimpan bersama proyeksi arus kas dan pembaruan state dalam transaksi database sebelum respons sukses dikirim.
+- **Hasil**: Event tunggal mendapat `201 Created`; batch mendapat `200 OK` dengan hasil per item. Retry `event_id` yang sudah tersimpan mendapat `409 DUPLICATE`.
 
 ### 7.5 Skenario Mengakhiri Sesi (Membekukan Data)
 - **Tujuan**: Menyelesaikan sesi permainan dan mematikan penerimaan event baru.
 - **Langkah**:
   1. Game Client memanggil `POST /api/v1/sessions/{sessionId}/end`.
   2. API menghitung skor akhir secara final, menyimpan hasil ke `session_final_scores`, dan mengubah status sesi menjadi `ENDED`.
-- **Hasil**: Sesi berstatus `ENDED`. Semua upaya penulisan event baru atau modifikasi ruleset pada sesi ini akan ditolak (`403 Forbidden` / `410 Gone`).
+- **Hasil**: Sesi berstatus `ENDED`; state akhir dan skor tersimpan bersama. Event baru setelah akhir sesi ditolak. Ruleset tetap terkunci sejak terkait sesi, termasuk saat sesi masih `CREATED`.
 
 ### 7.6 Skenario Pemicuan Hitung Ulang Metrik (Recompute)
-- **Tujuan**: Membangun ulang seluruh data proyeksi dan snapshot metrik dari source of truth tabel `events` jika terjadi ketidaksesuaian.
+- **Tujuan**: Memperbarui snapshot metrik dari event dan proyeksi yang sudah tersimpan, misalnya setelah perbaikan perhitungan analitika.
 - **Langkah**:
-  1. Instruktur/Administrator memanggil `POST /api/v1/analytics/sessions/{sessionId}/recompute`.
-  2. API membaca ulang seluruh log event berurutan untuk sesi tersebut dari database, menghitung ulang proyeksi saldo, asuransi, pinjaman, dan metrik, kemudian menulis ulang baris `metric_snapshots` yang bersih.
-- **Hasil**: Data analitika sesi tersinkronisasi kembali dengan log event.
+  1. Instruktur pemilik sesi memanggil `POST /api/v1/analytics/sessions/{sessionId}/recompute`.
+  2. API membaca event, proyeksi arus kas, ruleset sesi, dan skor final yang tersedia; lalu menghitung dan memperbarui `metric_snapshots`.
+- **Hasil**: Snapshot memakai perhitungan analitika terbaru. Endpoint ini tidak membangun ulang saldo, inventory, asuransi, pinjaman, atau `event_cashflow_projections`.
+- **Jika proyeksi salah**: Uji perbaikan sumber masalah dan migrasi/pemulihan data pada salinan database terlebih dahulu, perbaiki proyeksi yang terdampak, lalu jalankan `recompute`. Mengulang endpoint ini tanpa memperbaiki proyeksi akan membaca nilai salah yang sama.

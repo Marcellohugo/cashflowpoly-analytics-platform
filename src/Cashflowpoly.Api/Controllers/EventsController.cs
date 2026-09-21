@@ -74,9 +74,9 @@ public sealed class EventsController : ControllerBase
     // menerapkan metadata `ProducesResponseType(typeof(EventsBySessionResponse), StatusCodes.Status200OK)` pada deklarasi berikut agar
     // framework/compiler dapat mengenali pengaturannya.
     [ProducesResponseType(typeof(EventsBySessionResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] string? cursor = null, [FromQuery] int limit = 50, CancellationToken ct = default)
+    public async Task<IActionResult> GetEventsBySession(Guid sessionId, [FromQuery] string? cursor = null, [FromQuery] int limit = 50, CancellationToken ct = default, [FromQuery] string? refreshSequences = null)
     {
-        var (result, status, error) = await _ingestion.GetEventsBySessionAsync(sessionId, User, cursor, limit, ct);
+        var (result, status, error) = await _ingestion.GetEventsBySessionAsync(sessionId, User, cursor, limit, ct, refreshSequences);
         return status == 200 ? Ok(result) : StatusCode(status, error);
     }
 }

@@ -70,6 +70,12 @@ public sealed class OpenApiContractIntegrationTests
         // Menyiapkan variabel lokal `paths` untuk nilai paths dengan memanggil `root.GetProperty` dengan `”paths”`. Tipe variabel disimpulkan dari ekspresi
         // nilai awal.
         var paths = root.GetProperty("paths");
+        Assert.True(paths.TryGetProperty("/api/v1/sessions/{sessionId}/heartbeat", out var heartbeatPath));
+        Assert.True(heartbeatPath.TryGetProperty("post", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/sessions/{sessionId}/events/{eventId}/undo", out var undoPath));
+        Assert.True(undoPath.TryGetProperty("post", out _));
+        Assert.True(paths.TryGetProperty("/api/v1/sessions/{sessionId}/event-undos", out var undoHistoryPath));
+        Assert.True(undoHistoryPath.TryGetProperty("get", out _));
         // Menjalankan pemeriksaan bahwa `paths.TryGetProperty(”/api/v1/sessions/{sessionId}/setup/validate”, out _)` bernilai benar; pengujian gagal jika
         // kondisi tidak terpenuhi dalam SwaggerJson_ContainsCurrentSetupPaginationAndErrorContracts.
         Assert.True(paths.TryGetProperty("/api/v1/sessions/{sessionId}/setup/validate", out _));

@@ -109,6 +109,19 @@ test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan k
     await expect(page.locator("#ruleset-detail-starting-cash")).toHaveValue("27");
     await page.goto(`/rulesets/${rulesetId}?version=1`);
     await expect(page.locator("#ruleset-detail-starting-cash")).toHaveValue("23");
+    if (mode === "PEMULA") {
+      await page.goto(`/rulesets/${rulesetId}/edit`);
+      await page.locator('input[name="cfg-mode"][value="MAHIR"]').check();
+      await page.locator("#cfg-cash").fill("37");
+      await page.locator("form[data-ruleset-create-form] button[type=submit]").click();
+      await expect(page).toHaveURL(new RegExp(`/rulesets/${rulesetId}$`));
+      await expect(page.locator("#ruleset-detail-starting-cash")).toHaveValue("37");
+      const advanced = await (await request.get(`${apiUrl}/api/v1/rulesets/${rulesetId}`, { headers })).json();
+      expect(advanced.definition.mode).toBe("MAHIR");
+      expect(advanced.definition.sharia_loans.length).toBeGreaterThan(0);
+      expect(advanced.definition.insurance_products.length).toBeGreaterThan(0);
+      expect(advanced.definition.ingredients).toEqual(original.definition.ingredients);
+    }
   } finally {
     if (rulesetId) {
       const cleanup = await request.delete(`${apiUrl}/api/v1/rulesets/${rulesetId}`, { headers });
@@ -140,11 +153,14 @@ test("analitika membedakan perubahan koin target dibeli dan jumlah aksi", async 
   await expect(page.locator(".player-analysis-scorecard > div").nth(2).locator("dd")).toHaveText("+20%");
   await page.locator("#player-analysis-atlas > summary").click();
   const goal = page.locator(".player-analysis-card--goal-ambition");
-  await expect(goal.locator(".player-analysis-card__takeaway")).toContainText("Persentase Target Berhasil Dibeli");
-  await expect(goal.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/100\s*%/);
-  await expect(goal).toContainText("1 dari 1 target yang mulai diusahakan sudah dibeli");
+  await expect(goal.locator(".player-analysis-card__takeaway")).toContainText("Target Finansial Berhasil Dibeli");
+  await expect(goal.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/1\s*target/);
+  await expect(goal).toContainText("Total biaya pembelian: 35 koin");
   await goal.locator("summary").click();
-  await expect(goal).toContainText("1 ÷ 1 × 100% = 100%");
+  await expect(goal.locator(".player-analysis-card__metrics dt")).toHaveText([
+    "Total Biaya Pembelian Target Finansial", "Koin dalam Tabungan"
+  ]);
+  await expect(goal.locator(".player-analysis-card__metrics dd strong")).toHaveText(["35", "0"]);
   const debt = page.locator(".player-analysis-card--debt-discipline");
   await expect(debt.locator(".player-analysis-card__takeaway > div > strong")).toHaveText(/1\s*pinjaman/);
   await expect(debt).toContainText("1 pinjaman sudah lunas dan 0 pinjaman belum lunas");
@@ -920,8 +936,8 @@ test("target finansial diringkas menjadi hasil target tabungan dan sisa pinjaman
   await expect(cards.locator(".player-metric-card__value strong")).toHaveText(["1", "0", "0"]);
   // Penjelasan: Melakukan operasi dengan menunggu operasi asinkron `expect(cards.locator(".player-metric-card__value small")).toHaveText(["target", "koin", "koin"])` selesai sebelum memakai hasilnya.
   await expect(cards.locator(".player-metric-card__value small")).toHaveText(["target", "koin", "koin"]);
-  // Penjelasan: Melakukan operasi dengan menunggu operasi asinkron `expect(cards.first().locator(".player-metric-card__explanation")).toHaveText("Dari 1 target yang mulai didanai.")` selesai sebelum memakai hasilnya.
-  await expect(cards.first().locator(".player-metric-card__explanation")).toHaveText("Dari 1 target yang mulai didanai.");
+  // Pembelian kartu menentukan kepemilikan target; saldo tabungan tidak mengunci kartu.
+  await expect(cards.first().locator(".player-metric-card__explanation")).toHaveText("Jumlah target finansial yang kartunya sudah diperoleh setelah biaya pembeliannya dibayarkan ke bank.");
   // Penjelasan: Melakukan operasi dengan menunggu operasi asinkron `expect(goals.locator("table, .player-evidence-domain__guide")).toHaveCount(0)` selesai sebelum memakai hasilnya.
   await expect(goals.locator("table, .player-evidence-domain__guide")).toHaveCount(0);
 

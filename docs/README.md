@@ -1,6 +1,6 @@
 # Indeks Dokumentasi Cashflowpoly Analytics Platform
 
-Status sinkronisasi terakhir: **30 Agustus 2026**, baseline schema **3.0.13**. Setiap topik di bawah memiliki satu dokumen kanonis; README root hanya menjadi pintu masuk. Source code/OpenAPI dan schema beserta migrasinya tetap menjadi acuan teknis terakhir bila ada perbedaan.
+Status sinkronisasi terakhir: **16 September 2026**, baseline schema **3.0.13** dengan migrasi lanjutan. Setiap topik di bawah memiliki satu dokumen kanonis; README root hanya menjadi pintu masuk. Source code/OpenAPI dan schema beserta migrasinya tetap menjadi acuan teknis terakhir bila ada perbedaan.
 
 Selamat datang di direktori dokumentasi proyek. Seluruh dokumen disusun berdasarkan kategori numerik terurut untuk mempermudah pemahaman arsitektur sistem informasi dari aspek panduan, spesifikasi, rancangan, hingga pengujian.
 
@@ -31,13 +31,19 @@ Selamat datang di direktori dokumentasi proyek. Seluruh dokumen disusun berdasar
 - [02-02-kontrak-rest-api-dan-event-permainan.md](02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md): Autentikasi, header, error, seluruh endpoint `/api/v1`, payload event, ruleset, analitika, OpenAPI, dan Postman.
 - [02-03-rancangan-definisi-dan-agregasi-metrik.md](02-Perancangan/02-03-rancangan-definisi-dan-agregasi-metrik.md): Formula metrik analitik dasar dashboard, variabel fisik permainan, dan rumus metrik turunan.
 - [02-04-rancangan-antarmuka-dan-viewmodel-mvc.md](02-Perancangan/02-04-rancangan-antarmuka-dan-viewmodel-mvc.md): Desain mockup layout UI MVC, ViewModel C#, dan mapping call API ke UI.
+- [02-05-rancangan-undo-event.md](02-Perancangan/02-05-rancangan-undo-event.md): Kontrak undo aksi terakhir, audit permanen, idempotensi, pemulihan state, dan integrasi IDN.
 
 ### 03. Pengujian & Progress (`03-Pengujian/`)
+Hasil perbaikan terbaru: [Perbaikan konsistensi skor dan operasional](03-Pengujian/03-08-perbaikan-konsistensi-skor-dan-operasional.md), melanjutkan [audit menyeluruh](03-Pengujian/03-07-perbaikan-audit-menyeluruh.md) dengan pengujian tambahan dan batas verifikasi produksi.
+
 *Rencana kasus uji, laporan pengujian baseline, checklist status, dan roadmap pengerjaan.*
 - [03-01-pengujian-rencana-dan-kasus-uji.md](03-Pengujian/03-01-pengujian-rencana-dan-kasus-uji.md): Rencana pengujian fungsional unit test, integrasi, dan RBAC.
 - [03-02-pengujian-laporan-hasil-baseline.md](03-Pengujian/03-02-pengujian-laporan-hasil-baseline.md): Laporan hasil pengujian baseline sistem.
 - [03-03-pengujian-status-kesesuaian-implementasi.md](03-Pengujian/03-03-pengujian-status-kesesuaian-implementasi.md): Checklist pelacakan implementasi terhadap target spesifikasi.
 - [03-04-riwayat-perbaikan-modular-dan-status-rilis.md](03-Pengujian/03-04-riwayat-perbaikan-modular-dan-status-rilis.md): Masalah awal, perbaikan per modul, bukti selesai, kontrak final, dan risiko yang diterima.
+
+- [03-05-kesiapan-produksi.md](03-Pengujian/03-05-kesiapan-produksi.md): Bukti verifikasi rilis produksi sebelumnya, dengan cakupan dan tanggalnya.
+- [03-06-perbaikan-audit-ui-data-dan-dokumentasi.md](03-Pengujian/03-06-perbaikan-audit-ui-data-dan-dokumentasi.md): Perbaikan audit lanjutan, alasan perubahan, dan bukti uji lokal.
 
 ---
 

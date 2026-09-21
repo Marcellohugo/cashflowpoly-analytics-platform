@@ -23,6 +23,7 @@ public sealed class PlayersController(IHttpClientFactory clientFactory) : Contro
         AnalyticsByPlayerItem? summary = null;
         GameplayMetricsResponse? gameplay = null;
         string? playerDisplayName = null;
+        int? playerOrder = null;
         string? errorMessage = null;
         string? gameplayError = null;
         try
@@ -36,6 +37,7 @@ public sealed class PlayersController(IHttpClientFactory clientFactory) : Contro
             var participant = roster?.Items?.FirstOrDefault(p => p.UserId == playerId);
             if (roster?.Items is not null && participant is null) return NotFound();
             playerDisplayName = participant?.DisplayName;
+            playerOrder = participant?.PlayerOrder is > 0 ? participant.PlayerOrder : null;
 
             using var analyticsResponse = await client.GetAsync($"api/v1/analytics/sessions/{sessionId}", ct);
             if (this.HandleUnauthorizedApiResponse(analyticsResponse) is { } unauthorized) return unauthorized;
@@ -68,7 +70,7 @@ public sealed class PlayersController(IHttpClientFactory clientFactory) : Contro
 
         return View(new PlayerDetailViewModel
         {
-            SessionId = sessionId, PlayerId = playerId, PlayerDisplayName = playerDisplayName,
+            SessionId = sessionId, PlayerId = playerId, PlayerDisplayName = playerDisplayName, PlayerOrder = playerOrder,
             Summary = summary, Gameplay = gameplay,
             StatSummary = PlayerStatSummaryBuilder.Build(gameplay, summary, HttpContext.T),
             GameplayRaw = gameplay?.RawJson, GameplayDerived = gameplay?.DerivedJson,

@@ -23,7 +23,7 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await page.goto("/statistics?mode=MAHIR&status=ENDED");
   await expect(page.locator("h1")).toHaveText("Statistik Pemain");
   await expect(page.locator(".statistics-chart")).toHaveCount(19);
-  await expect(page.locator(".statistics-session")).toHaveCount(8);
+  await expect(page.locator(".statistics-session")).toHaveCount(0);
   await expect(page.locator(".statistics-chart svg circle").first()).toBeVisible();
   await expect(page.getByText("Direktori Pemain", { exact: true })).toHaveCount(0);
   await expect(page.locator('.statistics-reading')).not.toHaveAttribute('open');
@@ -43,7 +43,7 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
     const target = await button.getAttribute('aria-controls');
     await expect(page.locator('#' + target)).toBeVisible();
     await expect(button).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#statistics-sessions')).toBeVisible();
+    await expect(page.locator('#statistics-sessions')).toHaveCount(0);
     const widths = await page.locator('#' + target + ' .statistics-chart').evaluateAll(cards => cards.map(card => ({ left: card.getBoundingClientRect().left, width: card.getBoundingClientRect().width })));
     expect(new Set(widths.map(card => Math.round(card.left))).size).toBe(1);
     for (const card of await page.locator('#' + target + ' .statistics-chart').all()) {
@@ -72,16 +72,17 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   const auth = await request.post(`${apiUrl}/api/v1/auth/login`, { data: { username: "marco", password } });
   expect(auth.ok()).toBeTruthy();
   const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
-  const sessionLinks = await page.locator('.statistics-session a[href*="/players/"]').evaluateAll(a => a.map(a => a.getAttribute("href")));
-  for (const link of sessionLinks) {
-    expect(link).toContain(`/players/${playerId}`);
-    const sessionId = link.split("/")[2];
+  const sessionPoints = await page.locator('[data-statistics-metric]').first().evaluate(card => {
+    const chart = JSON.parse(card.querySelector('svg').getAttribute('data-chart'));
+    return chart.pointDetails.map((p, index) => ({ sessionId: p.sessionId, index }));
+  });
+  for (const { sessionId, index } of sessionPoints) {
     const gameplay = await (await request.get(`${apiUrl}/api/v1/analytics/sessions/${sessionId}/players/${playerId}/gameplay`, { headers })).json();
-    const index = Number((await page.locator(`.statistics-session:has(a[href="${link}"]) h3`).innerText()).split(".")[0]) - 1;
     for (const [key, expected] of Object.entries({
       total_happiness_points: gameplay.score.happiness_points_total,
       coins_net_end_game: gameplay.economy.starting_cash + gameplay.economy.cashflow_net_total,
       cash_growth_percent: gameplay.derived_json.cash_growth_percent - 100,
+      financial_goal_completion_percent: gameplay.derived_json.financial_goal_completion_percent,
       income_action_focus_percent: gameplay.derived_json.income_action_focus_percent,
       happiness_source_diversity_percent: gameplay.derived_json.happiness_source_diversity_percent
     })) {
@@ -90,7 +91,7 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
     }
   }
   await expect(page.locator('.statistics-chart-latest')).toHaveCount(0);
-  for (const [key, value] of Object.entries({ cash_growth_percent: '+20', financial_goal_completion_percent: '100', sharia_loans_taken: '1', sharia_loans_repaid: '1', donation_commitment_score: '9.76' })) {
+  for (const [key, value] of Object.entries({ cash_growth_percent: '+20', financial_goal_completion_percent: '20', sharia_loans_taken: '1', sharia_loans_repaid: '1', donation_commitment_score: '9.76' })) {
     await expect(page.locator(`[data-statistics-metric="${key}"] tbody tr`).first().locator('td').first()).toContainText(value);
   }
   await page.screenshot({ path: testInfo.outputPath("statistics-top.png"), fullPage: false });
@@ -111,6 +112,9 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   expect(ownLinks).toHaveLength(20);
   expect(ownLinks.every(link => link.endsWith('/players/' + playerId))).toBeTruthy();
   await expect(page.locator('.session-stats-grid .stat-card').last()).toContainText('6');
+  for (const card of await page.locator('.players-session-card').all()) {
+    await card.locator('summary').click();
+  }
   for (const table of await page.locator('.players-session-card .table-wrap').all()) {
     await table.scrollIntoViewIfNeeded();
     await expect(table).toHaveCSS('opacity', '1');
@@ -119,29 +123,26 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
   const foreign = await page.goto('/statistics?playerId=90000000-0000-0000-0000-000000000012');
   expect(foreign.status()).toBe(403);
-  await page.goto(sessionLinks[0].split('/players/')[0]);
+  await page.goto('/sessions/' + sessionPoints[0].sessionId);
   const detailLinks = await page.locator('a[href*="/players/"]').evaluateAll(links => links.map(a => a.getAttribute('href')));
   expect(detailLinks.every(link => link.endsWith('/players/' + playerId))).toBeTruthy();
-  await page.goto(sessionLinks[0]);
+  await page.goto(`/sessions/${sessionPoints[0].sessionId}/players/${playerId}`);
   await expect(page.locator('.player-detail-statistics-link')).toBeVisible();
   await expect(page.locator('a[href="/players"]')).toHaveCount(0);
   await page.goto("/statistics?status=ENDED");
   await page.locator("#statistics-mode").selectOption("PEMULA");
   await page.getByRole("button", { name: "Tampilkan", exact: true }).click();
-  await expect(page.locator(".statistics-session")).toHaveCount(8);
+  await expect(page.locator(".statistics-session")).toHaveCount(0);
   await expect(page.locator(".statistics-chart")).toHaveCount(14);
   await expect(page.locator("#statistics-future")).toHaveCount(0);
   await expect(page.locator('.statistics-chart svg [tabindex="0"]').first()).toBeVisible();
   await page.locator("#statistics-status").selectOption("CREATED");
   await page.getByRole("button", { name: "Tampilkan", exact: true }).click();
-  await expect(page.locator('.statistics-session')).toHaveCount(2);
+  await expect(page.locator('.statistics-session')).toHaveCount(0);
   await expect(page.locator('.statistics-chart svg [tabindex="0"]')).toHaveCount(0);
-  await expect(page.locator('.statistics-session a[href*="/players/"]')).toHaveCount(0);
-  await expect(page.locator('.statistics-session a')).toHaveCount(2);
   await page.locator('#statistics-status').selectOption('STARTED');
   await page.getByRole('button', { name: 'Tampilkan', exact: true }).click();
-  await expect(page.locator('.statistics-session')).toHaveCount(2);
-  await expect(page.locator('.statistics-session a')).toHaveCount(2);
+  await expect(page.locator('.statistics-session')).toHaveCount(0);
   await expect(page.locator('[data-statistics-metric="total_happiness_points"] svg [tabindex="0"]')).toHaveCount(2);
   await page.goto("/statistics");
   await page.locator(".nav-dropdown-lang summary").click();
@@ -211,7 +212,7 @@ test(`instruktur ${instructor} memilih peserta sesinya dan dapat membuka statist
   await expect(page.locator('.player-statistics > .page-intro .page-intro-actions')).toHaveCount(0);
   await expect(page.locator('.statistics-selected-player-name > strong')).toHaveText('Marco');
   await expect(page.locator('.statistics-selected-player .hint-chip')).toContainText('Mahir');
-  await expect(page.locator('.statistics-session')).toHaveCount(4);
+  await expect(page.locator('.statistics-session')).toHaveCount(0);
   await expect(page.locator('#statistics-mode option')).toHaveCount(2);
   await page.screenshot({ path: testInfo.outputPath('instructor-statistics.png'), fullPage: false });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
@@ -221,12 +222,10 @@ test(`instruktur ${instructor} memilih peserta sesinya dan dapat membuka statist
   await page.locator('#statistics-player').fill(selectedName);
   await page.getByRole('button', { name: 'Tampilkan', exact: true }).click();
   await expect(page.locator('.statistics-selected-player-name > strong')).toHaveText(selectedName);
-  const links = await page.locator('.statistics-session a').evaluateAll(links => links.map(a => a.getAttribute('href')));
-  expect(links.every(link => link.endsWith('/players/' + selectedPlayer))).toBeTruthy();
   for (const mode of ['MAHIR', 'PEMULA']) {
     await page.locator('#statistics-mode').selectOption(mode);
     await page.getByRole('button', { name: 'Tampilkan', exact: true }).click();
-    await expect(page.locator('.statistics-session')).toHaveCount(4);
+    await expect(page.locator('.statistics-session')).toHaveCount(0);
     await expect(page.locator('.statistics-chart-latest')).toHaveCount(0);
     const card = page.locator('[data-statistics-metric="total_happiness_points"]');
     await card.locator('summary').click();

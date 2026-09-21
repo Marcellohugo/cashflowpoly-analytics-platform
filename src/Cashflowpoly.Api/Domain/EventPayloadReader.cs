@@ -359,7 +359,7 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     /// <summary>
     /// Membaca goal_id dan amount dari payload event Menabung/TarikTabungan.
     /// </summary>
-    // Mendefinisikan metode `TryReadSavingDeposit` dengan hasil bertipe `bool`. Membaca goal_id dan amount dari payload event Menabung/TarikTabungan.
+    // Membaca amount serta goal_id opsional sebagai label historis, tanpa pemesanan kartu tujuan.
     // Masukan: Parameter `payload` bertipe `JsonElement` membawa muatan detail event dalam format JSON; Parameter `goalId` bertipe `string` membawa
     // nilai target identitas; out mengembalikan nilai melalui parameter dan harus diisi oleh metode; Parameter `amount` bertipe `int` membawa nominal
     // uang atau nilai transaksi yang dipakai dalam operasi; out mengembalikan nilai melalui parameter dan harus diisi oleh metode.
@@ -367,12 +367,13 @@ internal sealed class EventPayloadReader : IEventPayloadReader
     {
         goalId = string.Empty;
         amount = 0;
-        if (!TryGetString(payload, "goal_id", out goalId) ||
-            !TryGetInt32(payload, "amount", out amount))
+        if (!TryGetInt32(payload, "amount", out amount))
         {
             return false;
         }
 
+        if (payload.TryGetProperty("goal_id", out _) && !TryGetString(payload, "goal_id", out goalId))
+            return false;
         return true;
     }
 

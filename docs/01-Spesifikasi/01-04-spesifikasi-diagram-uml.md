@@ -140,7 +140,7 @@ Diagram UML yang dibutuhkan: semuanya.
 - Mengakses Web Analitik.
 - Melihat sesi miliknya.
 - Melihat analitika sesi, Player, ruleset, timeline event, dan validation violations.
-- Melihat direktori Player.
+- Melihat peserta pada kartu Sesi Permainan dan membuka Statistik Pemain dalam sesi yang dikelola.
 - Melihat audit keamanan dan observability bila endpoint diizinkan.
    - Melalui Klien Game/IDN atau integrasi API:
   - membuat sesi,
@@ -227,7 +227,7 @@ Entitas utama:
 - LogRetentionPolicy
 
 Komponen aplikasi:
-- UI Controllers: AuthController, HomeController, SessionsController, PlayersController, PlayerDirectoryController, RulesetsController
+- UI Controllers: AuthController, HomeController, SessionsController, PlayersController, PlayerStatisticsController, RulesetsController
 - API Controllers: AuthController, SessionsController, PlayersController, RulesetsController, EventsController, AnalyticsController
 - Services: JwtTokenService, EventIngestionService, AnalyticsService, SecurityAuditService
 - Repositories: UserRepository, SessionRepository, PlayerRepository, RulesetRepository, EventRepository, MetricsRepository

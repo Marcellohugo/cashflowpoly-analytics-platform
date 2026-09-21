@@ -51,6 +51,8 @@ internal static partial class UiTextLexicon
         terms["sessions.detail.player_scores_subtitle"] = ("Lihat komponen yang menambah atau mengurangi Poin Kebahagiaan Anda pada sesi ini.", "See which components added to or reduced your Happiness Score in this session.");
         terms["sessions.score.elements_title"] = ("8 Elemen Poin Kebahagiaan", "8 Happiness Score Components");
         terms["sessions.score.need_points"] = ("Total Poin Kebahagiaan Kartu Aneka Kebutuhan", "Total Needs Card Happiness Points");
+        terms["sessions.score.initial_happiness"] = ("Poin Kebahagiaan Awal", "Starting Happiness Points");
+        terms["sessions.score.mission_reward"] = ("Hadiah Poin Kebahagiaan Misi Koleksi", "Collection Mission Reward Happiness Points");
         terms["sessions.score.need_bonus"] = ("Bonus Set Kartu Aneka Kebutuhan", "Needs Card Set Bonus");
         terms["sessions.score.mission_penalty"] = ("Pengurang karena Misi Koleksi Gagal", "Deduction for Failed Collection Mission");
         terms["sessions.score.donation_points"] = ("Poin Kebahagiaan Kartu Juara Peduli Donasi", "Donation Champion Card Happiness Points");

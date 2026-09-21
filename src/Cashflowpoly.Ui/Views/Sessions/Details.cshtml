@@ -159,6 +159,11 @@
 }
 
 <section class="section-shell session-detail-shell">
+    @if (Model.Analytics?.HasSealedDonations == true)
+    {
+        <p class="alert alert-info" role="status">@Context.T("analytics.sealed_donations")</p>
+    }
+
     <div class="action-toolbar mb-4">
         <a class="btn-ghost"
            asp-controller="Sessions"
@@ -311,7 +316,9 @@
             new { Number = 5, Label = Context.T("sessions.score.pension_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.PensionPointsTotal).ToList() },
             new { Number = 6, Label = Context.T("sessions.score.financial_goal"), IsDeduction = false, Values = orderedPlayers.Select(item => item.SavingGoalPointsTotal).ToList() },
             new { Number = 7, Label = Context.T("sessions.score.loan_penalty"), IsDeduction = true, Values = orderedPlayers.Select(item => -item.LoanPenaltyTotal).ToList() },
-            new { Number = 8, Label = Context.T("sessions.score.gold_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.GoldPointsTotal).ToList() }
+            new { Number = 8, Label = Context.T("sessions.score.gold_points"), IsDeduction = false, Values = orderedPlayers.Select(item => item.GoldPointsTotal).ToList() },
+            new { Number = 9, Label = Context.T("sessions.score.initial_happiness"), IsDeduction = false, Values = orderedPlayers.Select(item => item.InitialHappinessPoints).ToList() },
+            new { Number = 10, Label = Context.T("sessions.score.mission_reward"), IsDeduction = false, Values = orderedPlayers.Select(item => item.MissionRewardTotal).ToList() }
         };
         <section class="session-detail-section mt-5">
             <div class="ruleset-section-head">

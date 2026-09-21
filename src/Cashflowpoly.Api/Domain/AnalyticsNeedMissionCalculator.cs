@@ -49,23 +49,23 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
         // Parameter `playerEvents` bertipe `IEnumerable<EventDb>` membawa nilai pemain event.
         IEnumerable<EventDb> playerEvents,
         // Parameter `playerProjections` bertipe `IEnumerable<CashflowProjectionDb>` membawa nilai pemain projections.
-        IEnumerable<CashflowProjectionDb> playerProjections)
+        IEnumerable<CashflowProjectionDb> playerProjections,
+        RulesetConfig? config = null)
     {
         var activeNeeds = new List<NeedCard>();
-        var purchasedNeeds = new List<NeedCard>();
-        var missions = new List<MissionAssignment>();
+        var events = playerEvents.ToList();
+        var missions = AnalyticsCollectionMissions.Evaluate(events, config);
         var needCardsPurchased = 0;
 
         // Mengulangi setiap elemen `playerEvents.OrderBy(e => e.SequenceNumber)`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh
         // badan loop dalam Compute.
-        foreach (var evt in playerEvents.OrderBy(e => e.SequenceNumber))
+        foreach (var evt in events.OrderBy(e => e.SequenceNumber))
         {
             if (evt.ActionType == "Kebutuhan" &&
                 _payloadReader.TryReadNeedPurchase(evt.Payload, out _, out var cardId, out _))
             {
                 var purchasedNeed = new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload));
                 activeNeeds.Add(purchasedNeed);
-                purchasedNeeds.Add(purchasedNeed);
                 needCardsPurchased++;
             }
 
@@ -80,11 +80,6 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
                 }
             }
 
-            if (string.Equals(evt.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
-                _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
-            {
-                missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
-            }
         }
 
         var primaryNeeds = activeNeeds.Count(need => need.Tier == NeedTier.Primary);
@@ -94,14 +89,6 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             .Select(need => need.CardId)
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var purchasedPrimaryNeeds = purchasedNeeds.Count(need => need.Tier == NeedTier.Primary);
-        var purchasedSecondaryNeeds = purchasedNeeds.Count(need => need.Tier == NeedTier.Secondary);
-        var purchasedTertiaryCardIds = purchasedNeeds
-            .Where(need => need.Tier == NeedTier.Tertiary)
-            .Select(need => System.Text.RegularExpressions.Regex.Replace(need.CardId, "_[0-9]+$", ""))
-            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var needCardsOwnedCurrent = primaryNeeds + secondaryNeeds + tertiaryNeeds;
         var hasBasicNeedProfile = primaryNeeds > 0 && secondaryNeeds > 0 && tertiaryNeeds > 0;
         var isCollectorNeedProfile = distinctNeedCardIds.Count >= 4;
@@ -116,19 +103,8 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
         bool? collectionMissionComplete = null;
         if (missions.Count > 0)
         {
-            specificTertiaryAcquired = missions.Any(m => !string.IsNullOrWhiteSpace(m.TargetTertiaryCardId) &&
-                                                        purchasedTertiaryCardIds.Contains(m.TargetTertiaryCardId));
-
-            var hasPrimary = purchasedPrimaryNeeds > 0;
-            var hasSecondary = purchasedSecondaryNeeds > 0;
-            collectionMissionComplete = missions.All(m =>
-            {
-                var hasTarget = string.IsNullOrWhiteSpace(m.TargetTertiaryCardId) ||
-                                purchasedTertiaryCardIds.Contains(m.TargetTertiaryCardId);
-                var requirePrimary = !m.RequirePrimary || hasPrimary;
-                var requireSecondary = !m.RequireSecondary || hasSecondary;
-                return hasTarget && requirePrimary && requireSecondary;
-            });
+            specificTertiaryAcquired = missions.Any(mission => mission.SpecificTertiaryAcquired);
+            collectionMissionComplete = missions.All(mission => mission.Complete);
         }
 
         var pPrimary = SafeRatio(primaryNeeds, needCardsOwnedCurrent);
@@ -172,18 +148,6 @@ internal sealed class NeedMissionCalculator : INeedMissionCalculator
             fulfillmentDiversityDocumentFormula,
             missionAchievement);
     }
-
-    private sealed record MissionAssignment(
-        // Parameter `MissionId` bertipe `string` membawa identitas misi koleksi yang ditugaskan.
-        string MissionId,
-        // Parameter `TargetTertiaryCardId` bertipe `string` membawa nilai target tertiary kartu identitas.
-        string TargetTertiaryCardId,
-        // Parameter `PenaltyPoints` bertipe `int` membawa nilai penalti poin.
-        int PenaltyPoints,
-        // Parameter `RequirePrimary` bertipe `bool` membawa nilai require primary.
-        bool RequirePrimary,
-        // Parameter `RequireSecondary` bertipe `bool` membawa nilai require secondary.
-        bool RequireSecondary);
 
     private sealed record NeedCard(string CardId, NeedTier Tier);
 }

@@ -263,7 +263,8 @@ public static class PlayerMetricCollectionHelper
             "debt-discipline" =>
                 $"{Value("sharia_loans_repaid")} + {Value("sharia_loans_unpaid_end")}",
             "goal-ambition" =>
-                $"{Value("financial_goals_completed")} ÷ {Value("financial_goals_attempted")} × 100%",
+                $"{Value("financial_goals_completed")} ÷ {Value("financial_goals_available_total")} × 100%",
+            "goal-purchases" => Value("financial_goals_completed"),
             // Untuk pola `”goal-ambition”`, menghasilkan teks interpolasi `$”{Value(”coins_committed_to_goals”)} ÷ {Value(”attempted_goal_target_total”)} ×
             // 100%”`; nilai ekspresi di dalam kurung kurawal disisipkan saat program berjalan sebagai hasil switch.
             // Untuk pola `”action-efficiency”`, menghasilkan teks interpolasi `$”{Value(”income_main_actions”)} ÷ {Value(”total_main_actions”)} × 100%”`; nilai
@@ -305,6 +306,10 @@ public static class PlayerMetricCollectionHelper
             "need_card_points", "need_set_bonus_points", "donation_points", "gold_points", "pension_points"
         };
         if (advancedMode) paths.Add("financial_goal_points");
+        foreach (var path in new[] { "initial_happiness_points", "mission_reward_points" })
+            if (values.TryGetValue(path, out var additionalPoints) &&
+                double.TryParse(additionalPoints, NumberStyles.Float, CultureInfo.InvariantCulture, out var amount) && amount > 0)
+                paths.Add(path);
         var points = new List<double>();
         foreach (var path in paths)
         {

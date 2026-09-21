@@ -24,6 +24,10 @@ internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
 
     public EventDomainValidationResult Validate(EventRequest request, Guid? scopedPlayerId)
     {
+        if (request.Payload.ValueKind != System.Text.Json.JsonValueKind.Object)
+            return EventDomainValidationResult.Fail(StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR", "Payload harus berupa objek JSON", new ErrorDetail("payload", "INVALID_TYPE"));
+
         if (!AllowedActorTypes.Contains(request.ActorType))
         {
             return EventDomainValidationResult.Fail(
@@ -107,6 +111,16 @@ internal sealed class EventRequestShapeValidator : IEventRequestShapeValidator
                 "VALIDATION_ERROR",
                 "Action type ini harus dibuat oleh sistem",
                 new ErrorDetail("actor_type", "SYSTEM_REQUIRED"));
+        }
+
+        if (string.Equals(request.ActorType, "SYSTEM", StringComparison.OrdinalIgnoreCase) &&
+            !GameActionCatalog.AllowsSystemActor(request.ActionType, request.Payload))
+        {
+            return EventDomainValidationResult.Fail(
+                StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR",
+                "Action type ini harus dibuat oleh pemain",
+                new ErrorDetail("actor_type", "PLAYER_REQUIRED"));
         }
 
         if (string.Equals(request.ActorType, "PLAYER", StringComparison.OrdinalIgnoreCase) &&

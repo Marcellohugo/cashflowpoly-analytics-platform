@@ -89,10 +89,11 @@ Alur data satu keputusan pemain:
 ### Sumber kebenaran dan proyeksi
 
 - Revisi terakhir pada `session_setup_revisions` adalah sumber pembagian awal; setelah start, revisi tersebut dikunci.
-- Tabel `events` adalah sumber kebenaran untuk gameplay setelah setup.
+- Tabel `events` adalah sumber kebenaran untuk gameplay efektif setelah setup. [Undo event terakhir](docs/02-Perancangan/02-05-rancangan-undo-event.md) memulihkan snapshot seluruh state dan mempertahankan event asli dalam audit `event_undos`.
 - Tabel saldo, inventory, aset, risiko, pinjaman, asuransi, narrative, skor, dan metric snapshot adalah proyeksi yang memiliki provenance event.
 - Perubahan state tidak boleh dikirim langsung. `PUT /api/v1/sessions/{sessionId}/state` tetap ada sebagai guard kompatibilitas dan selalu mengembalikan `410 STATE_WRITE_DISABLED` setelah akses diverifikasi.
 - `ruleset_version_id` dikunci pada sesi sehingga hasil lama tidak berubah ketika Instruktur menerbitkan versi ruleset baru.
+- IDN mengirim heartbeat setiap 30 menit; sesi ditutup setelah 1 jam tanpa heartbeat atau aktivitas berhasil. Sesi tanpa gameplay dihapus saat ditutup. Detail integrasi dan konfigurasi ada pada [kontrak lifecycle sesi](docs/02-Perancangan/02-02-kontrak-rest-api-dan-event-permainan.md#651-sesi-kosong-dan-heartbeat-idn).
 
 ### Identitas yang sering tertukar
 
@@ -786,3 +787,5 @@ Checklist minimum:
    - `test(events): cover duplicate sequence rejection`
 4. Jalankan build/test/Compose validation sebelum push.
 5. Jangan memasukkan secret atau data pengguna nyata ke commit, fixture, screenshot, dan Postman environment.
+
+Perbaikan audit lanjutan dan hasil verifikasi lokal: [UI, data, dan dokumentasi](docs/03-Pengujian/03-06-perbaikan-audit-ui-data-dan-dokumentasi.md).

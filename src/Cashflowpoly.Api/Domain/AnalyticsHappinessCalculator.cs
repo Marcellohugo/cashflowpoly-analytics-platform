@@ -29,11 +29,17 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         List<CashflowProjectionDb> projections,
         // Parameter `config` bertipe `RulesetConfig?` membawa konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan; nilai null
         // diizinkan ketika data opsional belum tersedia.
-        RulesetConfig? config)
+        RulesetConfig? config,
+        IEnumerable<Guid>? participantIds = null)
     {
         var playerGroups = events.Where(e => e.UserId.HasValue)
             .GroupBy(e => e.UserId!.Value)
             .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var playerId in participantIds ?? [])
+        {
+            playerGroups.TryAdd(playerId, []);
+        }
 
         var donationPointsByPlayer = new Dictionary<Guid, double>();
         var goldPointsByPlayer = new Dictionary<Guid, double>();
@@ -67,7 +73,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
 
         if (hasScoring && config!.Scoring!.PensionRankPoints.Count > 0)
         {
-            pensionPointsByPlayer = ComputePensionPointsFromScoring(events, projections, config);
+            pensionPointsByPlayer = ComputePensionPointsFromScoring(events, projections, config, playerGroups.Keys);
         }
         else
         {
@@ -124,8 +130,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         RulesetConfig? config)
     {
         var activeNeeds = new List<NeedCard>();
-        var purchasedNeeds = new List<NeedCard>();
-        var missions = new List<MissionAssignment>();
         var loans = new Dictionary<string, LoanState>(StringComparer.OrdinalIgnoreCase);
         double savingGoalPoints = 0;
 
@@ -138,7 +142,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             {
                 var purchasedNeed = new NeedCard(cardId, NeedTierClassifier.FromPayloadJson(evt.Payload), points);
                 activeNeeds.Add(purchasedNeed);
-                purchasedNeeds.Add(purchasedNeed);
             }
 
             if (evt.ActionType == "GunakanOpsiDarurat" &&
@@ -152,11 +155,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 }
             }
 
-            if (string.Equals(evt.ActionType, GameActionCatalog.SetupMisiAwal, StringComparison.OrdinalIgnoreCase) &&
-                _payloadReader.TryReadMissionAssigned(evt.Payload, out var missionId, out var targetCardId, out var penaltyPoints, out var requirePrimary, out var requireSecondary))
-            {
-                missions.Add(new MissionAssignment(missionId, targetCardId, penaltyPoints, requirePrimary, requireSecondary));
-            }
 
             if (evt.ActionType == "TujuanFinansial" && _payloadReader.TryReadSavingGoalAchieved(evt.Payload, out var savingPoints))
             {
@@ -184,14 +182,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         var primaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Primary);
         var secondaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Secondary);
         var tertiaryCount = activeNeeds.Count(need => need.Tier == NeedTier.Tertiary);
-        var purchasedPrimaryCount = purchasedNeeds.Count(need => need.Tier == NeedTier.Primary);
-        var purchasedSecondaryCount = purchasedNeeds.Count(need => need.Tier == NeedTier.Secondary);
-        var purchasedTertiaryCardIds = purchasedNeeds
-            .Where(need => need.Tier == NeedTier.Tertiary)
-            .Select(need => System.Text.RegularExpressions.Regex.Replace(need.CardId, "_[0-9]+$", ""))
-            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var differentBonus = ResolveNeedSetBonus(config, "THREE_DIFFERENT", requiredCount: 3, points: 4);
         var sameBonus = ResolveNeedSetBonus(config, "THREE_SAME", requiredCount: 3, points: 2);
         var mixedSets = differentBonus.RequiredCount == 3
@@ -209,27 +199,10 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                        (tertiaryCount / sameBonus.RequiredCount);
         var needSetBonusPoints = mixedSets * differentBonus.Points + sameSets * sameBonus.Points;
 
-        var hasPrimary = purchasedPrimaryCount > 0;
-        var hasSecondary = purchasedSecondaryCount > 0;
-        var missionPenaltyPoints = 0d;
-        // Mengulangi setiap elemen `missions`; elemen saat ini disimpan sebagai `mission` bertipe `var` untuk diproses oleh badan loop dalam
-        // ComputeBreakdown.
-        foreach (var mission in missions)
-        {
-            var hasTargetTertiary = string.IsNullOrWhiteSpace(mission.TargetTertiaryCardId) ||
-                                    purchasedTertiaryCardIds.Contains(mission.TargetTertiaryCardId);
-            var requiresPrimary = mission.RequirePrimary;
-            var requiresSecondary = mission.RequireSecondary;
-
-            var satisfied = (!requiresPrimary || hasPrimary) &&
-                            (!requiresSecondary || hasSecondary) &&
-                            hasTargetTertiary;
-
-            if (!satisfied)
-            {
-                missionPenaltyPoints += mission.PenaltyPoints;
-            }
-        }
+        var missions = AnalyticsCollectionMissions.Evaluate(playerEvents, config);
+        var missionPenaltyPoints = missions.Where(mission => !mission.Complete).Sum(mission => (double)mission.PenaltyPoints);
+        var missionRewardPoints = missions.Where(mission => mission.Complete).Sum(mission => (double)mission.RewardPoints);
+        var initialHappinessPoints = config?.InitialHappiness ?? 0;
 
         var loanPenaltyPoints = 0d;
         var hasUnpaidLoan = false;
@@ -246,7 +219,7 @@ internal sealed class HappinessCalculator : IHappinessCalculator
 
         var savingGoalPointsEffective = hasUnpaidLoan ? 0 : savingGoalPoints;
 
-        var total = needPoints +
+        var total = initialHappinessPoints + missionRewardPoints + needPoints +
                     needSetBonusPoints +
                     donationPoints +
                     goldPoints +
@@ -265,7 +238,9 @@ internal sealed class HappinessCalculator : IHappinessCalculator
             savingGoalPointsEffective,
             missionPenaltyPoints,
             loanPenaltyPoints,
-            hasUnpaidLoan);
+            hasUnpaidLoan,
+            initialHappinessPoints,
+            missionRewardPoints);
     }
 
     private static NeedSetBonus ResolveNeedSetBonus(
@@ -417,14 +392,15 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         // Parameter `projections` bertipe `List<CashflowProjectionDb>` membawa proyeksi transaksi arus kas yang diturunkan dari event permainan.
         List<CashflowProjectionDb> projections,
         // Parameter `config` bertipe `RulesetConfig` membawa konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan.
-        RulesetConfig config)
+        RulesetConfig config,
+        IEnumerable<Guid> participantIds)
     {
         var pointsByRank = config.Scoring?.PensionRankPoints.ToDictionary(item => item.Rank, item => item.Points)
                            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: new Dictionary<int, int>(); dalam ComputePensionPointsFromScoring.
                            ?? new Dictionary<int, int>();
 
         var result = new Dictionary<Guid, double>();
-        foreach (var (playerId, rank) in ComputePensionRanks(events, projections, config))
+        foreach (var (playerId, rank) in ComputePensionRanks(events, projections, config, participantIds))
         {
             if (pointsByRank.TryGetValue(rank, out var points) && points > 0)
             {
@@ -441,7 +417,8 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         // Parameter `projections` bertipe `List<CashflowProjectionDb>` membawa proyeksi transaksi arus kas yang diturunkan dari event permainan.
         List<CashflowProjectionDb> projections,
         // Parameter `config` bertipe `RulesetConfig` membawa konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan.
-        RulesetConfig config)
+        RulesetConfig config,
+        IEnumerable<Guid>? participantIds = null)
     {
         var tieBreakers = BuildTieBreakerLookup(events);
 
@@ -451,18 +428,20 @@ internal sealed class HappinessCalculator : IHappinessCalculator
                 // Parameter `g` bertipe `` membawa nilai g.
                 g => g.Key,
                 // Parameter `g` bertipe `` membawa nilai g.
-                g => config.StartingCash + g.Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount));
+                g => g.Sum(p => p.Direction == "IN" ? p.Amount : -p.Amount));
 
-        var savingByPlayer = BuildSavingLookup(events);
+        var savingByPlayer = events.Where(evt => evt.UserId.HasValue).GroupBy(evt => evt.UserId!.Value)
+            .ToDictionary(group => group.Key, group => new SavingGoalCalculator().Compute(group, initialSaving: config.InitialSaving).CoinsSaved);
         var ingredientValueByPlayer = BuildIngredientValueLookup(events);
-        var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
+        var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value)
+            .Union(projections.Select(projection => projection.UserId)).Union(participantIds ?? []).ToList();
         var ranking = players.Select(playerId =>
             {
                 cashByPlayer.TryGetValue(playerId, out var cash);
-                savingByPlayer.TryGetValue(playerId, out var saving);
+                var saving = savingByPlayer.GetValueOrDefault(playerId, config.InitialSaving);
                 ingredientValueByPlayer.TryGetValue(playerId, out var ingredientValue);
                 tieBreakers.TryGetValue(playerId, out var tieNumber);
-                return new { UserId = playerId, PensionFund = cash + saving + ingredientValue, Tie = tieNumber };
+                return new { UserId = playerId, PensionFund = config.StartingCash + cash + saving + ingredientValue, Tie = tieNumber };
             })
             .OrderByDescending(item => item.PensionFund)
             .ThenByDescending(item => item.Tie)
@@ -472,40 +451,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         return ranking
             .Select((item, index) => new { item.UserId, Rank = index + 1 })
             .ToDictionary(item => item.UserId, item => item.Rank);
-    }
-
-    private Dictionary<Guid, int> BuildSavingLookup(IEnumerable<EventDb> events)
-    {
-        var result = new Dictionary<Guid, int>();
-        // Mengulangi setiap elemen `events.Where(e => e.UserId.HasValue)`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh badan
-        // loop dalam BuildSavingLookup.
-        foreach (var evt in events.Where(e => e.UserId.HasValue))
-        {
-            var delta = 0;
-            if (evt.ActionType == "Menabung" &&
-                _payloadReader.TryReadSavingDeposit(evt.Payload, out _, out var depositAmount))
-            {
-                delta = depositAmount;
-            }
-            else if (evt.ActionType == "TarikTabungan" &&
-                     TryReadInt32(evt.Payload, "amount", out var withdrawAmount))
-            {
-                delta = -withdrawAmount;
-            }
-            else if (evt.ActionType == "TujuanFinansial" &&
-                     _payloadReader.TryReadSavingGoalAchievedDetailed(evt.Payload, out _, out _, out var cost))
-            {
-                delta = -cost;
-            }
-
-            if (delta != 0)
-            {
-                var playerId = evt.UserId!.Value;
-                result[playerId] = result.TryGetValue(playerId, out var current) ? current + delta : delta;
-            }
-        }
-
-        return result;
     }
 
     private Dictionary<Guid, int> BuildIngredientValueLookup(IEnumerable<EventDb> events)
@@ -630,18 +575,6 @@ internal sealed class HappinessCalculator : IHappinessCalculator
         return events.Where(e => e.ActionType == actionType)
             .Sum(e => _payloadReader.TryReadPointsAwarded(e.Payload, out var points) ? points : 0);
     }
-
-    private sealed record MissionAssignment(
-        // Parameter `MissionId` bertipe `string` membawa identitas misi koleksi yang ditugaskan.
-        string MissionId,
-        // Parameter `TargetTertiaryCardId` bertipe `string` membawa nilai target tertiary kartu identitas.
-        string TargetTertiaryCardId,
-        // Parameter `PenaltyPoints` bertipe `int` membawa nilai penalti poin.
-        int PenaltyPoints,
-        // Parameter `RequirePrimary` bertipe `bool` membawa nilai require primary.
-        bool RequirePrimary,
-        // Parameter `RequireSecondary` bertipe `bool` membawa nilai require secondary.
-        bool RequireSecondary);
 
     private sealed record LoanState(
         // Parameter `LoanId` bertipe `string` membawa nilai pinjaman identitas.

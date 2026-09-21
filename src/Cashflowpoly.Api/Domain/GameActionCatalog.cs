@@ -107,6 +107,10 @@ internal static class GameActionCatalog
             SessionStarted or SessionEnded or AkhirGiliran;
     }
 
+    public static bool AllowsSystemActor(string? actionType, JsonElement payload)
+        => RequiresSystemActor(actionType, payload) ||
+           ResolveGameActionId(actionType, payload) is TujuanFinansial or RisikoKehidupan;
+
     private static bool HasRiskReference(JsonElement payload)
     {
         if (payload.ValueKind != JsonValueKind.Object)

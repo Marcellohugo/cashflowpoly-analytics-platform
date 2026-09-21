@@ -255,7 +255,7 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
     /// <summary>
     /// Mem-parsing payload setoran tabungan: goal_id dan amount.
     /// </summary>
-    // Mendefinisikan metode `TryReadSavingDeposit` dengan hasil bertipe `bool`. Mem-parsing payload setoran tabungan: goal_id dan amount. Masukan:
+    // Membaca setoran tabungan bersama: amount wajib dan goal_id opsional sebagai label historis. Masukan:
     // Parameter `payloadJson` bertipe `string` membawa nilai payload JSON; Parameter `goalId` bertipe `string` membawa nilai target identitas; out
     // mengembalikan nilai melalui parameter dan harus diisi oleh metode; Parameter `amount` bertipe `int` membawa nominal uang atau nilai transaksi
     // yang dipakai dalam operasi; out mengembalikan nilai melalui parameter dan harus diisi oleh metode.
@@ -268,15 +268,15 @@ internal sealed class AnalyticsPayloadReader : IAnalyticsPayloadReader
         {
             using var doc = JsonDocument.Parse(payloadJson);
             var root = doc.RootElement;
-            if (!root.TryGetProperty("goal_id", out var goalProp) ||
-                !root.TryGetProperty("amount", out var amountProp))
+            if (!root.TryGetProperty("amount", out var amountProp) ||
+                !amountProp.TryGetInt32(out amount))
             {
                 return false;
             }
 
-            goalId = goalProp.GetString() ?? string.Empty;
-            amount = amountProp.GetInt32();
-            return !string.IsNullOrWhiteSpace(goalId);
+            if (root.TryGetProperty("goal_id", out var goalProp) && goalProp.ValueKind == JsonValueKind.String)
+                goalId = goalProp.GetString() ?? string.Empty;
+            return true;
         }
         // Menangani exception `JsonException` melalui variabel dalam TryReadSavingDeposit.
         catch (JsonException)

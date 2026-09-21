@@ -3,8 +3,11 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Cashflowpoly.Ui.Contracts;
 using Cashflowpoly.Ui.Controllers;
+using Cashflowpoly.Ui.Infrastructure;
 using Cashflowpoly.Ui.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -214,6 +217,19 @@ public sealed class UiDataIntegrityTests
     }
 
     [Fact]
+    public async Task TimelinePolling_ForwardsUndoneSequencesEvenWithoutNewEvents()
+    {
+        var factory = new Factory(path => path.EndsWith("/players") ? Roster()
+            : Json(new EventsBySessionResponse(SessionId, [], null, false, [], [17, 19])));
+        var result = Assert.IsType<JsonResult>(await Context(new SessionsController(factory))
+            .Timeline(SessionId, "last-seen", 100, TestContext.Current.CancellationToken));
+        var payload = System.Text.Json.JsonSerializer.SerializeToElement(result.Value);
+        Assert.Empty(payload.GetProperty("timeline").EnumerateArray());
+        Assert.Equal(new long[] { 17, 19 }, payload.GetProperty("undoneSequenceNumbers").EnumerateArray().Select(item => item.GetInt64()));
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, payload.GetProperty("errorMessage").ValueKind);
+    }
+
+    [Fact]
     public async Task Session_RejectsAnalyticsBelongingToAnotherSession()
     {
         var factory = new Factory(path => path.Contains("/analytics/")
@@ -224,6 +240,289 @@ public sealed class UiDataIntegrityTests
         var model = Assert.IsType<SessionDetailViewModel>(Assert.IsType<ViewResult>(await Context(new SessionsController(factory)).Details(SessionId, TestContext.Current.CancellationToken)).Model);
         Assert.Null(model.Analytics);
         Assert.NotNull(model.ErrorMessage);
+    }
+
+    [Theory]
+    [InlineData("http")]
+    [InlineData("network")]
+    [InlineData("timeout")]
+    [InlineData("json")]
+    [InlineData("empty")]
+    public async Task RulesetList_DistinguishesUnavailableFromKnownEmpty(string failure)
+    {
+        var factory = new Factory(_ => failure switch
+        {
+            "network" => throw new HttpRequestException("offline"),
+            "timeout" => throw new TaskCanceledException("timed out"),
+            "json" => Json(new { items = (object?)null }),
+            "empty" => Json(new RulesetListResponse([])),
+            _ => new(HttpStatusCode.ServiceUnavailable)
+        });
+        var controller = Context(new RulesetsController(factory));
+        controller.TempData = new TempDataDictionary(controller.HttpContext, new EmptyTempData());
+        var model = Assert.IsType<RulesetListViewModel>(Assert.IsType<ViewResult>(await controller.Index(TestContext.Current.CancellationToken)).Model);
+        Assert.Empty(model.Items);
+        Assert.Equal(failure == "empty", model.RulesetsAvailable);
+        Assert.Equal(failure != "empty", model.ErrorMessage is not null);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public async Task RulesetSave_TransportFailurePreservesEnteredForm(bool edit, bool timeout, bool catalogFailure)
+    {
+        var factory = new Factory(path => path.Contains("components/defaults") && !catalogFailure
+            ? Json(new DefaultRulesetComponentsResponse([]))
+            : timeout ? throw new TaskCanceledException("timed out") : throw new HttpRequestException("offline"));
+        var controller = Context(new RulesetsController(factory));
+        var entered = new CreateRulesetViewModel
+        {
+            Name = "Percobaan tersimpan di formulir", Description = "Jangan hilangkan masukan",
+            DefinitionJson = """{"mode":"MAHIR","starting_cash":37,"freelance":{"income":3},"component_catalog":{"gameConfig":{}},"weekday_rules":{},"constraints":{},"donation":{},"gold_trade":{},"advanced":{}}"""
+        };
+        var definition = entered.DefinitionJson;
+        var result = edit
+            ? await controller.Edit(RulesetId, entered, TestContext.Current.CancellationToken)
+            : await controller.Create(entered, TestContext.Current.CancellationToken);
+        var model = Assert.IsType<CreateRulesetViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Same(entered, model);
+        Assert.Equal(definition, model.DefinitionJson);
+        Assert.Equal("Percobaan tersimpan di formulir", model.Name);
+        Assert.Equal("Jangan hilangkan masukan", model.Description);
+        Assert.Equal(edit, model.IsEditMode);
+        if (edit) Assert.Equal(RulesetId, model.RulesetId);
+        Assert.Equal("Layanan data belum dapat diakses. Silakan coba lagi.", model.ErrorMessage);
+        Assert.Equal(catalogFailure ? 1 : 2, factory.Paths.Count);
+    }
+
+    [Theory]
+    [InlineData(false, "{}")]
+    [InlineData(true, "{}")]
+    [InlineData(false, "[]")]
+    [InlineData(true, "[]")]
+    public async Task RulesetSave_MalformedConfigPreservesForm(bool edit, string definition)
+    {
+        var factory = new Factory(_ => Json(new DefaultRulesetComponentsResponse([])));
+        var controller = Context(new RulesetsController(factory));
+        var entered = new CreateRulesetViewModel { Name = "Masukan tetap ada", DefinitionJson = definition };
+        var result = edit
+            ? await controller.Edit(RulesetId, entered, TestContext.Current.CancellationToken)
+            : await controller.Create(entered, TestContext.Current.CancellationToken);
+        var model = Assert.IsType<CreateRulesetViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Same(entered, model);
+        Assert.Equal(definition, model.DefinitionJson);
+        Assert.False(string.IsNullOrWhiteSpace(model.ErrorMessage));
+        Assert.Empty(factory.Paths);
+    }
+
+    [Theory]
+    [InlineData("http")]
+    [InlineData("network")]
+    [InlineData("timeout")]
+    public async Task Session_OptionalRulesetFailureKeepsLoadedSessionData(string failure)
+    {
+        var item = new EventRequest(Guid.NewGuid(), SessionId, PlayerId, "PLAYER", Date, 1, "MON", 1, 1,
+            "KerjaLepas", FrozenVersionId, System.Text.Json.JsonSerializer.SerializeToElement(new { amount = 1 }), null);
+        var factory = new Factory(path => path.Contains("/rulesets/") ? failure switch
+        {
+            "network" => throw new HttpRequestException("offline"),
+            "timeout" => throw new TaskCanceledException("timed out"),
+            _ => new(HttpStatusCode.ServiceUnavailable)
+        } : path.EndsWith("/players") ? Roster()
+            : path == "/api/v1/sessions" ? Json(new SessionListResponse([new(SessionId, "Session", "MAHIR", "ENDED", Date, Date, Date)]))
+            : path.Contains("/events?") ? Json(new EventsBySessionResponse(SessionId, [item], "latest", false))
+            : Analytics());
+        var model = Assert.IsType<SessionDetailViewModel>(Assert.IsType<ViewResult>(await Context(new SessionsController(factory)).Details(SessionId, TestContext.Current.CancellationToken)).Model);
+        Assert.Null(model.ActiveRulesetDetail);
+        Assert.NotNull(model.Analytics);
+        Assert.Equal("ENDED", model.SessionStatus);
+        Assert.Equal("Participant", model.PlayerDisplayNames[PlayerId]);
+        Assert.Single(model.Timeline);
+        Assert.Equal("latest", model.TimelineCursor);
+        Assert.Null(model.ErrorMessage);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Player_SummaryFailureUsesVerifiedRosterAndSharedGameplayFallback(bool rosterAvailable)
+    {
+        var factory = new Factory(path => path.EndsWith("/players")
+            ? rosterAvailable ? Json(new SessionPlayerListResponse([new(PlayerId, "Third player", 3)])) : new(HttpStatusCode.ServiceUnavailable)
+            : path.EndsWith("/gameplay") ? Json(Gameplay()) : new(HttpStatusCode.ServiceUnavailable));
+        var model = Assert.IsType<PlayerDetailViewModel>(Assert.IsType<ViewResult>(await Context(new PlayersController(factory)).Details(SessionId, PlayerId, TestContext.Current.CancellationToken)).Model);
+        Assert.Equal(rosterAvailable ? 3 : (int?)null, model.PlayerOrder);
+        Assert.Equal(rosterAvailable ? "Third player" : null, model.PlayerDisplayName);
+        Assert.Null(model.Summary);
+        Assert.NotNull(model.Gameplay);
+        Assert.Equal(20, model.StatSummary!.CashInTotal);
+        Assert.Equal(12, model.StatSummary.CashOutTotal);
+        Assert.Equal(8, model.StatSummary.NetCashflow);
+        Assert.Equal(30, model.StatSummary.HappinessPoints);
+        Assert.Equal(0, model.StatSummary.FulfillmentDiversity);
+        Assert.False(model.StatSummary.HasUnpaidLoan);
+        Assert.DoesNotContain(model.StatSummary.Insights, insight => insight.Key == "data_unavailable");
+    }
+
+    [Theory]
+    [InlineData("status", false)]
+    [InlineData("status", true)]
+    [InlineData("roster", false)]
+    [InlineData("roster", true)]
+    [InlineData("timeline", false)]
+    [InlineData("timeline", true)]
+    public async Task Session_SecondaryTransportFailureKeepsAnalyticsAndOtherSources(string source, bool timeout)
+    {
+        var item = new EventRequest(Guid.NewGuid(), SessionId, PlayerId, "PLAYER", Date, 1, "MON", 1, 1,
+            "KerjaLepas", FrozenVersionId, JsonSerializer.SerializeToElement(new { amount = 1 }), null);
+        var factory = new Factory(path =>
+        {
+            if ((source == "status" && path == "/api/v1/sessions") ||
+                (source == "roster" && path.EndsWith("/players")) ||
+                (source == "timeline" && path.Contains("/events?")))
+                throw timeout ? new TaskCanceledException("timed out") : new HttpRequestException("offline");
+            return path == "/api/v1/sessions" ? Json(new SessionListResponse([new(SessionId, "Session", "MAHIR", "ENDED", Date, Date, Date)]))
+                : path.EndsWith("/players") ? Roster()
+                : path.Contains("/events?") ? Json(new EventsBySessionResponse(SessionId, [item], "latest", false))
+                : path.Contains("/rulesets/") ? new(HttpStatusCode.ServiceUnavailable) : Analytics();
+        });
+        var model = Assert.IsType<SessionDetailViewModel>(Assert.IsType<ViewResult>(await Context(new SessionsController(factory)).Details(SessionId, TestContext.Current.CancellationToken)).Model);
+        Assert.NotNull(model.Analytics);
+        Assert.Equal(30, Assert.Single(model.Analytics.ByPlayer).HappinessPointsTotal);
+        Assert.Equal(source == "status" ? null : "ENDED", model.SessionStatus);
+        Assert.Equal(source == "roster" ? 0 : 1, model.PlayerDisplayNames.Count);
+        Assert.Equal(source == "timeline" ? 0 : 1, model.Timeline.Count);
+        Assert.Equal(source == "timeline", model.TimelineErrorMessage is not null);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Ruleset_ComponentTransportFailurePreservesMainDetailWithoutInventingOlderDefinition(bool timeout, bool olderVersion)
+    {
+        var factory = new Factory(path => path.Contains("/components?")
+            ? throw (timeout ? new TaskCanceledException("timed out") : new HttpRequestException("offline"))
+            : Json(new RulesetDetailResponse(RulesetId, "Verified ruleset", null, [], LatestVersionId, 2, "MAHIR", new RulesetDefinitionDto())));
+        var controller = Context(new RulesetsController(factory));
+        controller.TempData = new TempDataDictionary(controller.HttpContext, new EmptyTempData());
+        var model = Assert.IsType<RulesetDetailViewModel>(Assert.IsType<ViewResult>(await controller.Details(RulesetId, olderVersion ? 1 : null, null, null, TestContext.Current.CancellationToken)).Model);
+        Assert.Equal("Verified ruleset", model.Ruleset!.Name);
+        Assert.Null(model.Components);
+        Assert.NotNull(model.ComponentsErrorMessage);
+        Assert.Equal(!olderVersion, model.CompatibilityDefinitionJson.HasValue);
+    }
+
+    [Theory]
+    [InlineData("PEMULA", false)]
+    [InlineData("MAHIR", false)]
+    [InlineData("MAHIR", true)]
+    public async Task RulesetEdit_FillsMissingTargetModeCatalogAndPreservesCommonEdits(string mode, bool existingAdvancedCatalog)
+    {
+        var config = JsonNode.Parse(RulesetFormHelper.BuildDefaultCreateViewModel().DefinitionJson)!.AsObject();
+        config["mode"] = mode;
+        config["starting_cash"] = 37;
+        config["freelance"]!["income"] = 3;
+        config["component_catalog"] = JsonNode.Parse("""{"gameConfig":{"initialCoins":37},"bahan":[{"id":"custom-ingredient","nama":"Custom","hargaBeli":8}],"tujuanFinansial":[]}""");
+        config["actions"] = JsonNode.Parse("""[{"action_id":"CustomAction"}]""");
+        config["sharia_loans"] = JsonNode.Parse(existingAdvancedCatalog ? """[{"loan_code":"custom-loan","principal":9}]""" : "[]");
+        config["insurance_products"] = JsonNode.Parse(existingAdvancedCatalog ? """[{"product_code":"custom-policy","premium":4}]""" : "[]");
+        config["life_risks"] = new JsonArray();
+        var paths = new List<string>();
+        RulesetDefinitionDto? saved = null;
+        var defaults = new RulesetDefinitionDto
+        {
+            Mode = "MAHIR", Actions = [new() { ActionId = "CustomAction" }, new() { ActionId = "Menabung" }],
+            ShariaLoans = [new() { LoanCode = "default-loan", Principal = 10 }],
+            InsuranceProducts = [new() { ProductCode = "default-policy", Premium = 1 }],
+            FinancialGoals = [new() { Id = "default-goal", HargaBeli = 20 }],
+            LifeRisks = [new() { RiskCode = "default-risk" }]
+        };
+        var factory = new RequestFactory(async request =>
+        {
+            paths.Add(request.RequestUri!.PathAndQuery);
+            if (request.Method == HttpMethod.Get)
+                return Json(new DefaultRulesetComponentsResponse([new(RulesetId, "Mahir", null, LatestVersionId, 1, "MAHIR", defaults)]));
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            saved = body.RootElement.GetProperty("definition").Deserialize<RulesetDefinitionDto>();
+            return new(HttpStatusCode.OK);
+        });
+        var model = new CreateRulesetViewModel { Name = "Retained name", Description = "Retained description", DefinitionJson = config.ToJsonString() };
+        Assert.IsType<RedirectToActionResult>(await Context(new RulesetsController(factory)).Edit(RulesetId, model, TestContext.Current.CancellationToken));
+        Assert.NotNull(saved);
+        Assert.Equal(37, saved.Settings.StartingCash);
+        Assert.Equal(3, saved.Settings.FreelanceIncome);
+        Assert.Equal("custom-ingredient", Assert.Single(saved.Ingredients).Id);
+        if (mode == "MAHIR" && !existingAdvancedCatalog)
+        {
+            Assert.Equal(2, paths.Count);
+            Assert.EndsWith("/defaults?mode=MAHIR", paths[0]);
+            Assert.Equal("default-loan", Assert.Single(saved.ShariaLoans).LoanCode);
+            Assert.Equal("default-policy", Assert.Single(saved.InsuranceProducts).ProductCode);
+            Assert.Equal("default-goal", Assert.Single(saved.FinancialGoals).Id);
+            Assert.Equal("default-risk", Assert.Single(saved.LifeRisks).RiskCode);
+            Assert.Equal(new[] { "CustomAction", "Menabung" }, saved.Actions.Select(a => a.ActionId));
+        }
+        else
+        {
+            Assert.Single(paths);
+            Assert.Single(saved.Actions);
+            Assert.Empty(saved.FinancialGoals);
+            if (existingAdvancedCatalog)
+            {
+                Assert.Equal("custom-loan", Assert.Single(saved.ShariaLoans).LoanCode);
+                Assert.Equal("custom-policy", Assert.Single(saved.InsuranceProducts).ProductCode);
+            }
+            else Assert.Empty(saved.ShariaLoans);
+        }
+    }
+
+    [Fact]
+    public void Scores_ReadOpeningAndMissionPointsFromApiWithoutDroppingThem()
+    {
+        const string json = """{"happiness_points_total":33,"need_points_total":3,"initial_happiness_points":20,"mission_reward_total":10}""";
+        var summary = JsonSerializer.Deserialize<AnalyticsByPlayerItem>(json)!;
+        var gameplay = JsonSerializer.Deserialize<GameplayScoreMetrics>(json)!;
+        Assert.Equal(20, summary.InitialHappinessPoints);
+        Assert.Equal(10, summary.MissionRewardTotal);
+        Assert.Equal(summary.HappinessPointsTotal,
+            summary.NeedPointsTotal + summary.InitialHappinessPoints + summary.MissionRewardTotal);
+        Assert.Equal(20, gameplay.InitialHappinessPoints);
+        Assert.Equal(10, gameplay.MissionRewardTotal);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 5)]
+    [InlineData(20, 0, 6)]
+    [InlineData(20, 10, 7)]
+    public void HappinessFormula_IncludesPositiveCustomSourcesOnly(int initial, int mission, int sourceCount)
+    {
+        var rows = new (string Path, string Value)[]
+        {
+            ("need_card_points", "5"), ("need_set_bonus_points", "0"), ("donation_points", "0"),
+            ("gold_points", "0"), ("pension_points", "0"),
+            ("initial_happiness_points", initial.ToString()), ("mission_reward_points", mission.ToString())
+        };
+        var formula = PlayerMetricCollectionHelper.BuildActualCalculation("happiness-portfolio-beginner", rows,
+            "0", "%", "N/A", System.Globalization.CultureInfo.InvariantCulture);
+        var total = 5 + initial + mission;
+        Assert.Contains($"(5 ÷ {total})²", formula);
+        Assert.Contains($"(1 − 1/{sourceCount})", formula);
+        if (initial > 0) Assert.Contains($"({initial} ÷ {total})²", formula);
+        if (mission > 0) Assert.Contains($"({mission} ÷ {total})²", formula);
+    }
+
+    private sealed class RequestFactory(Func<HttpRequestMessage, Task<HttpResponseMessage>> respond) : HttpMessageHandler, IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new(this) { BaseAddress = new Uri("http://localhost") };
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => respond(request);
     }
 
     private static GameplayMetricsResponse Gameplay() => new(SessionId, PlayerId, Date,

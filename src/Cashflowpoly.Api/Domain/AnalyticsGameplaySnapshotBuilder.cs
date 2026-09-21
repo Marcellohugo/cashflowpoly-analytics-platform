@@ -70,7 +70,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var donationMetrics = _donationCalc.Compute(playerEvents, allEvents, coinsNetEndGame);
         var donationTotal = donationMetrics.DonationTotalCoins;
 
-        var savingGoalMetrics = _savingGoalCalc.Compute(playerEvents, config?.FinancialGoals.Count);
+        var savingGoalMetrics = _savingGoalCalc.Compute(playerEvents, config?.FinancialGoals.Count, config?.InitialSaving ?? 0);
         var coinsSaved = savingGoalMetrics.CoinsSaved;
 
         var ingredientMealMetrics = _ingredientMealCalc.Compute(playerEvents, playerProjections);
@@ -88,7 +88,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         var essentialIngredientExpenses = ingredientMealMetrics.EssentialIngredientExpenses;
         var latestDayIndex = ingredientMealMetrics.LatestDayIndex;
 
-        var needMissionMetrics = _needMissionCalc.Compute(playerEvents, playerProjections);
+        var needMissionMetrics = _needMissionCalc.Compute(playerEvents, playerProjections, config);
 
         var goldMetrics = _goldCalc.Compute(playerEvents);
         var goldInvestmentEarned = goldMetrics.GoldInvestmentEarned;
@@ -243,6 +243,7 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             financial_goals = new
             {
                 financial_goals_attempted = savingGoalMetrics.FinancialGoalsAttempted,
+                financial_goals_available_total = savingGoalMetrics.FinancialGoalsAvailableTotal,
                 financial_goals_completed = savingGoalMetrics.FinancialGoalsCompleted,
                 financial_goals_purchase_cost_total = savingGoalMetrics.SavingGoalCostsByGoal.Values.Sum(),
                 financial_goals_coins_per_goal = savingGoalMetrics.SavingGoalCostsByGoal,
@@ -283,6 +284,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             outcomes = new
             {
                 total_happiness_points = happiness.Total,
+                initial_happiness_points = happiness.InitialHappinessPoints,
+                mission_reward_points = happiness.MissionRewardPoints,
                 final_rank = finalRank,
                 winner_flag = winnerFlag,
                 finish_line_reached = finishLineReached,
@@ -392,6 +395,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
             ["happiness_points_composition"] = new
             {
                 total_happiness_points = happiness.Total,
+                initial_happiness_points = happiness.InitialHappinessPoints,
+                mission_reward_points = happiness.MissionRewardPoints,
                 need_card_points = happiness.NeedPoints,
                 need_set_bonus_points = happiness.NeedSetBonusPoints,
                 donation_points = happiness.DonationPoints,
@@ -411,26 +416,8 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 playerProjections,
                 config!.LifeRisks);
             var liquidAssets = Math.Max(0, coinsHeldCurrent) + Math.Max(0, coinsSaved);
-            var attemptedGoalIds = savingGoalMetrics.SavingDepositsByGoal.Keys
-                .Concat(savingGoalMetrics.SavingGoalsAchieved)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var attemptedGoalTargetTotal = config!.FinancialGoals
-                .Where(goal => attemptedGoalIds.Contains(goal.Id))
-                .Sum(goal => goal.HargaBeli);
-            var coinsCommittedToGoals = config.FinancialGoals
-                .Where(goal => attemptedGoalIds.Contains(goal.Id))
-                .Sum(goal =>
-                {
-                    if (savingGoalMetrics.SavingGoalsAchieved.Contains(goal.Id))
-                    {
-                        return goal.HargaBeli;
-                    }
-
-                    var balance = savingGoalMetrics.SavingBalancesByGoal.TryGetValue(goal.Id, out var saved)
-                        ? saved
-                        : 0;
-                    return Math.Min(goal.HargaBeli, Math.Max(0, balance));
-                });
+            var availableGoalTargetTotal = config!.FinancialGoals.Sum(goal => goal.HargaBeli);
+            var purchasedGoalCosts = savingGoalMetrics.SavingGoalCostsByGoal.Values.Sum();
             var savingsActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.Menabung);
             var financialGoalActionCount = playerEvents.Count(e => e.ActorType == "PLAYER" && e.ActionType == GameActionCatalog.TujuanFinansial);
             var insuranceActionCount = playerEvents.Count(e =>
@@ -461,15 +448,16 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
                 liquid_assets = liquidAssets
             };
             derived["financial_goal_completion_percent"] = SafeRatio(
-                savingGoalMetrics.FinancialGoalsCompleted, savingGoalMetrics.FinancialGoalsAttempted, true);
+                savingGoalMetrics.FinancialGoalsCompleted, config.FinancialGoals.Count, true);
             derived["financial_goal_progress_percent"] = SafeRatio(
-                coinsCommittedToGoals,
-                attemptedGoalTargetTotal,
+                purchasedGoalCosts,
+                availableGoalTargetTotal,
                 true);
             derived["financial_goal_progress_components"] = new
             {
-                coins_committed_to_goals = coinsCommittedToGoals,
-                attempted_goal_target_total = attemptedGoalTargetTotal
+                // Nama lama dipertahankan; nilainya biaya pembelian dan seluruh katalog, bukan dana yang dipesan.
+                coins_committed_to_goals = purchasedGoalCosts,
+                attempted_goal_target_total = availableGoalTargetTotal
             };
             derived["long_term_action_share_percent"] = SafeRatio(
                 longTermActionCount,
@@ -566,6 +554,9 @@ internal sealed class GameplaySnapshotBuilder : IGameplaySnapshotBuilder
         {
             sources.Add(happiness.SavingGoalPointsEffective);
         }
+
+        if (happiness.InitialHappinessPoints > 0) sources.Add(happiness.InitialHappinessPoints);
+        if (happiness.MissionRewardPoints > 0) sources.Add(happiness.MissionRewardPoints);
 
         // Nol pada sumber yang tersedia tetap dihitung; penalti bukan sumber poin positif.
         var positivePoints = sources.Select(points => Math.Max(0, points)).ToArray();

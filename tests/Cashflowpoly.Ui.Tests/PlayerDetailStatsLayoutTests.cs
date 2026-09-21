@@ -844,8 +844,8 @@ public sealed class PlayerDetailStatsLayoutTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”FormulaKey =
         // \”players.support.formula.goal_ambition_index\””`, `view`, `StringComparison.Ordinal` dalam
         // PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents.
-        Assert.Contains("PrimaryKey = \"financial_goal_completion_percent\"", view, StringComparison.Ordinal);
-        Assert.Contains("FormulaKey = \"players.support.formula.goal_completion\"", view, StringComparison.Ordinal);
+        Assert.Contains("PrimaryKey = \"financial_goals_completed\"", view, StringComparison.Ordinal);
+        Assert.Contains("FormulaKey = \"players.support.formula.goal_purchases\"", view, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”PrimaryKey =
         // \”long_term_action_share_percent\””`, `view`, `StringComparison.Ordinal` dalam PlayerAnalysisMap_ShouldRenderThirteenMetricsAndTheirComponents.
         Assert.Contains("PrimaryKey = \"long_term_action_share_percent\"", view, StringComparison.Ordinal);
@@ -1311,11 +1311,11 @@ public sealed class PlayerDetailStatsLayoutTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
         // `”TryParseMetricNumber(attemptedFinancialGoals, out var attemptedCount)”`, `view`, `StringComparison.Ordinal` dalam
         // PlayerDetails_FinancialGoals_ShouldOnlyShowTheThreeEssentialValues.
-        Assert.Contains("TryParseMetricNumber(attemptedFinancialGoals, out var attemptedCount)", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParseMetricNumber(attemptedFinancialGoals, out var attemptedCount)", view, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan:
         // `”players.details.financial_goals.attempted_note”`, `view`, `StringComparison.Ordinal` dalam
         // PlayerDetails_FinancialGoals_ShouldOnlyShowTheThreeEssentialValues.
-        Assert.Contains("players.details.financial_goals.attempted_note", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("players.details.financial_goals.attempted_note", view, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”.Where(item => isAdvancedMode ||
         // !item.AdvancedOnly)”`, `view`, `StringComparison.Ordinal` dalam PlayerDetails_FinancialGoals_ShouldOnlyShowTheThreeEssentialValues.
         Assert.Contains(".Where(item => isAdvancedMode || !item.AdvancedOnly)", view, StringComparison.Ordinal);

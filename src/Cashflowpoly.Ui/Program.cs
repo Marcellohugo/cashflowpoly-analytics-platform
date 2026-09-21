@@ -118,6 +118,7 @@ if (useHttpsRedirection)
         branch => branch.UseHttpsRedirection());
 }
 
+app.UseStatusCodePagesWithReExecute("/errors/{0}");
 app.UseStaticFiles();
 app.UseRouting();
 
@@ -127,6 +128,7 @@ app.UseAuthentication();
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
+    var isErrorPath = path.StartsWithSegments("/errors") || path.Equals("/Home/Error", StringComparison.OrdinalIgnoreCase);
     var isLoginPath = path.StartsWithSegments("/auth/login", StringComparison.OrdinalIgnoreCase);
     var isRegisterPath = path.StartsWithSegments("/auth/register", StringComparison.OrdinalIgnoreCase);
     var isLanguagePath = path.StartsWithSegments("/language", StringComparison.OrdinalIgnoreCase);
@@ -155,7 +157,7 @@ app.Use(async (context, next) =>
             Cashflowpoly.Ui.Models.AuthConstants.LanguageId);
     }
 
-    if (!isLoginPath &&
+    if (!isErrorPath && !isLoginPath &&
         !isRegisterPath &&
         !isLanguagePath &&
         !isHealthPath &&

@@ -65,6 +65,7 @@ public sealed class SessionDb
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
+    public string? EndReason { get; set; }
     public Guid? InstructorUserId { get; set; }
     public Guid RulesetVersionId { get; set; }
     public bool IsArchived { get; set; }
@@ -114,6 +115,8 @@ public sealed class SessionFinalScoreDb
     public double PensionPoints { get; set; }
     public double SavingGoalPoints { get; set; }
     public double MissionPenaltyPoints { get; set; }
+    public double InitialHappinessPoints { get; set; }
+    public double MissionRewardPoints { get; set; }
     public double LoanPenaltyPoints { get; set; }
     public bool HasUnpaidLoan { get; set; }
 }

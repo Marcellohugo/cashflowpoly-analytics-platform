@@ -50,44 +50,57 @@ public sealed class RulesetsController : Controller
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        var flashError = TempData[RulesetErrorTempDataKey] as string;
-        ViewData[RulesetErrorTempDataKey] = flashError;
-        ViewData[RulesetInfoTempDataKey] = TempData[RulesetInfoTempDataKey] as string;
+        try
+        {
+            var flashError = TempData[RulesetErrorTempDataKey] as string;
+            ViewData[RulesetErrorTempDataKey] = flashError;
+            ViewData[RulesetInfoTempDataKey] = TempData[RulesetInfoTempDataKey] as string;
 
-        var client = _clientFactory.CreateClient("Api");
-        var response = await client.GetAsync("api/v1/rulesets", ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        var rulesetItems = new List<RulesetListItem>();
-        string? rulesetErrorMessage = null;
-        if (!response.IsSuccessStatusCode)
-        {
-            rulesetErrorMessage = HttpContext
-                .T("rulesets.error.load_list_failed")
-                .Replace("{status}", ((int)response.StatusCode).ToString());
-        }
-        else
-        {
-            var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(ct);
-            if (data is null)
+            var client = _clientFactory.CreateClient("Api");
+            var response = await client.GetAsync("api/v1/rulesets", ct);
+            var unauthorized = this.HandleUnauthorizedApiResponse(response);
+            if (unauthorized is not null)
             {
-                rulesetErrorMessage = HttpContext.T("rulesets.error.invalid_list_response");
+                return unauthorized;
+            }
+
+            var rulesetItems = new List<RulesetListItem>();
+            string? rulesetErrorMessage = null;
+            if (!response.IsSuccessStatusCode)
+            {
+                rulesetErrorMessage = HttpContext
+                    .T("rulesets.error.load_list_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString());
             }
             else
             {
-                rulesetItems = data.Items ?? new List<RulesetListItem>();
+                var data = await response.Content.TryReadFromJsonAsync<RulesetListResponse>(ct);
+                if (data?.Items is null)
+                {
+                    rulesetErrorMessage = HttpContext.T("rulesets.error.invalid_list_response");
+                }
+                else
+                {
+                    rulesetItems = data.Items ?? new List<RulesetListItem>();
+                }
             }
-        }
 
-        return View(new RulesetListViewModel
+            return View(new RulesetListViewModel
+            {
+                Items = rulesetItems,
+                RulesetsAvailable = rulesetErrorMessage is null,
+                ErrorMessage = rulesetErrorMessage
+            });
+
+        }
+        catch (HttpRequestException)
         {
-            Items = rulesetItems,
-            ErrorMessage = rulesetErrorMessage
-        });
+            return View(new RulesetListViewModel { ErrorMessage = HttpContext.T("auth.error.api_unavailable") });
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return View(new RulesetListViewModel { ErrorMessage = HttpContext.T("auth.error.api_unavailable") });
+        }
     }
 
     // mendaftarkan action untuk metode HTTP GET pada rute (”create”).
@@ -103,54 +116,82 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateRulesetViewModel model, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(model.Name))
-        {
-            model.IsEditMode = false;
-            model.ErrorMessage = HttpContext.T("rulesets.error.name_required");
-            return View(model);
-        }
-
-        JsonNode? configNode;
         try
         {
-            configNode = JsonNode.Parse(model.DefinitionJson);
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                model.IsEditMode = false;
+                model.ErrorMessage = HttpContext.T("rulesets.error.name_required");
+                return View(model);
+            }
+
+            if (model.Name.Length > 120)
+            {
+                model.ErrorMessage = HttpContext.T("rulesets.error.name_too_long");
+                return View("Create", model);
+            }
+
+            JsonNode? configNode;
+            try
+            {
+                configNode = JsonNode.Parse(model.DefinitionJson);
+            }
+            // Menangani exception `JsonException` melalui variabel dalam Create.
+            catch (JsonException)
+            {
+                model.IsEditMode = false;
+                model.ErrorMessage = HttpContext.T("rulesets.error.invalid_definition_json");
+                return View(model);
+            }
+
+            var client = _clientFactory.CreateClient("Api");
+            configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
+            var definition = RulesetDefinitionMapper.FromConfigJson(configNode?.ToJsonString() ?? "{}");
+            var payload = new
+            {
+                name = model.Name,
+                description = model.Description,
+                definition
+            };
+
+            var response = await client.PostAsJsonAsync("api/v1/rulesets", payload, ct);
+            var unauthorized = this.HandleUnauthorizedApiResponse(response);
+            if (unauthorized is not null)
+            {
+                return unauthorized;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
+                model.IsEditMode = false;
+                model.ErrorMessage = error?.Message ?? HttpContext
+                    .T("rulesets.error.create_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString());
+                return View(model);
+            }
+
+            return RedirectToAction(nameof(Index));
+
         }
-        // Menangani exception `JsonException` melalui variabel dalam Create.
-        catch (JsonException)
+        catch (HttpRequestException)
+        {
+            model.IsEditMode = false;
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
+            return View(model);
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or FormatException or OverflowException)
         {
             model.IsEditMode = false;
             model.ErrorMessage = HttpContext.T("rulesets.error.invalid_definition_json");
             return View(model);
         }
-
-        var client = _clientFactory.CreateClient("Api");
-        configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
-        var definition = RulesetDefinitionMapper.FromConfigJson(configNode?.ToJsonString() ?? "{}");
-        var payload = new
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            name = model.Name,
-            description = model.Description,
-            definition
-        };
-
-        var response = await client.PostAsJsonAsync("api/v1/rulesets", payload, ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
             model.IsEditMode = false;
-            model.ErrorMessage = error?.Message ?? HttpContext
-                .T("rulesets.error.create_failed")
-                .Replace("{status}", ((int)response.StatusCode).ToString());
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
             return View(model);
         }
-
-        return RedirectToAction(nameof(Index));
     }
 
     // mendaftarkan action untuk metode HTTP GET pada rute (”{rulesetId:guid}/edit”).
@@ -211,54 +252,79 @@ public sealed class RulesetsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid rulesetId, CreateRulesetViewModel model, CancellationToken ct)
     {
-        model.RulesetId = rulesetId;
-        model.IsEditMode = true;
-
-        if (string.IsNullOrWhiteSpace(model.Name))
-        {
-            model.ErrorMessage = HttpContext.T("rulesets.error.name_required");
-            return View("Create", model);
-        }
-
-        JsonNode? configNode;
         try
         {
-            configNode = JsonNode.Parse(model.DefinitionJson);
+            model.RulesetId = rulesetId;
+            model.IsEditMode = true;
+
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                model.ErrorMessage = HttpContext.T("rulesets.error.name_required");
+                return View("Create", model);
+            }
+
+            if (model.Name.Length > 120)
+            {
+                model.ErrorMessage = HttpContext.T("rulesets.error.name_too_long");
+                return View("Create", model);
+            }
+
+            JsonNode? configNode;
+            try
+            {
+                configNode = JsonNode.Parse(model.DefinitionJson);
+            }
+            // Menangani exception `JsonException` melalui variabel dalam Edit.
+            catch (JsonException)
+            {
+                model.ErrorMessage = HttpContext.T("rulesets.error.invalid_definition_json");
+                return View("Create", model);
+            }
+
+            var client = _clientFactory.CreateClient("Api");
+            configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
+            var definition = RulesetDefinitionMapper.FromConfigJson(configNode?.ToJsonString() ?? "{}");
+            var payload = new
+            {
+                name = model.Name,
+                description = model.Description,
+                definition
+            };
+
+            var response = await client.PutAsJsonAsync($"api/v1/rulesets/{rulesetId}", payload, ct);
+            var unauthorized = this.HandleUnauthorizedApiResponse(response);
+            if (unauthorized is not null)
+            {
+                return unauthorized;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
+                model.ErrorMessage = error?.Message ?? HttpContext
+                    .T("rulesets.error.update_failed")
+                    .Replace("{status}", ((int)response.StatusCode).ToString());
+                return View("Create", model);
+            }
+
+            return RedirectToAction(nameof(Details), new { rulesetId });
+
         }
-        // Menangani exception `JsonException` melalui variabel dalam Edit.
-        catch (JsonException)
+        catch (HttpRequestException)
+        {
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
+            return View("Create", model);
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or FormatException or OverflowException)
         {
             model.ErrorMessage = HttpContext.T("rulesets.error.invalid_definition_json");
             return View("Create", model);
         }
-
-        var client = _clientFactory.CreateClient("Api");
-        configNode = await EnsureComponentCatalogAsync(configNode, client, ct);
-        var definition = RulesetDefinitionMapper.FromConfigJson(configNode?.ToJsonString() ?? "{}");
-        var payload = new
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            name = model.Name,
-            description = model.Description,
-            definition
-        };
-
-        var response = await client.PutAsJsonAsync($"api/v1/rulesets/{rulesetId}", payload, ct);
-        var unauthorized = this.HandleUnauthorizedApiResponse(response);
-        if (unauthorized is not null)
-        {
-            return unauthorized;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
-            model.ErrorMessage = error?.Message ?? HttpContext
-                .T("rulesets.error.update_failed")
-                .Replace("{status}", ((int)response.StatusCode).ToString());
+            model.ErrorMessage = HttpContext.T("auth.error.api_unavailable");
             return View("Create", model);
         }
-
-        return RedirectToAction(nameof(Details), new { rulesetId });
     }
 
     // mendaftarkan action untuk metode HTTP GET pada rute (”{rulesetId:guid}”).
@@ -349,27 +415,28 @@ public sealed class RulesetsController : Controller
             ? $"api/v1/rulesets/{rulesetId}/components?version={displayedVersion.Value}"
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: $”api/v1/rulesets/{rulesetId}/components”; dalam Details.
             : $"api/v1/rulesets/{rulesetId}/components";
-        var componentsResponse = await client.GetAsync(componentsPath, ct);
-        unauthorized = this.HandleUnauthorizedApiResponse(componentsResponse);
-        if (unauthorized is not null)
+        try
         {
-            return unauthorized;
-        }
+            using var componentsResponse = await client.GetAsync(componentsPath, ct);
+            unauthorized = this.HandleUnauthorizedApiResponse(componentsResponse);
+            if (unauthorized is not null) return unauthorized;
 
-        if (!componentsResponse.IsSuccessStatusCode)
-        {
-            componentsErrorMessage = HttpContext
-                .T("rulesets.error.load_components_failed")
-                .Replace("{status}", ((int)componentsResponse.StatusCode).ToString());
-        }
-        else
-        {
-            components = await componentsResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponse>(ct);
-            if (components is null)
+            if (!componentsResponse.IsSuccessStatusCode)
             {
-                componentsErrorMessage = HttpContext.T("rulesets.error.invalid_components_response");
+                componentsErrorMessage = HttpContext
+                    .T("rulesets.error.load_components_failed")
+                    .Replace("{status}", ((int)componentsResponse.StatusCode).ToString());
+            }
+            else
+            {
+                components = await componentsResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponse>(ct);
+                if (components is null)
+                    componentsErrorMessage = HttpContext.T("rulesets.error.invalid_components_response");
             }
         }
+        catch (HttpRequestException) { componentsErrorMessage = HttpContext.T("auth.error.api_unavailable"); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { componentsErrorMessage = HttpContext.T("auth.error.api_unavailable"); }
 
         var displayedDefinition = components?.Definition
             ?? (requestedVersion is null || requestedVersion == data.Version ? data.Definition : null);
@@ -605,7 +672,11 @@ public sealed class RulesetsController : Controller
             return configNode;
         }
 
-        if (configObject["component_catalog"] is JsonObject && configObject["actions"] is JsonArray { Count: > 0 })
+        var needsAdvancedCatalog = mode == "MAHIR" &&
+            (configObject["sharia_loans"] is not JsonArray { Count: > 0 } ||
+             configObject["insurance_products"] is not JsonArray { Count: > 0 });
+        if (!needsAdvancedCatalog && configObject["component_catalog"] is JsonObject &&
+            configObject["actions"] is JsonArray { Count: > 0 })
         {
             return configNode;
         }
@@ -631,6 +702,24 @@ public sealed class RulesetsController : Controller
             if (!configObject.ContainsKey(key) || configObject[key] is null)
             {
                 configObject[key] = value?.DeepClone();
+            }
+        }
+        if (needsAdvancedCatalog)
+        {
+            // Switching from Pemula keeps the existing common catalog and custom settings.
+            // Only missing Mahir products and their action references come from the target mode.
+            foreach (var key in new[] { "sharia_loans", "insurance_products", "life_risks" })
+                if (configObject[key] is JsonArray { Count: 0 })
+                    configObject[key] = defaults[key]?.DeepClone();
+            if (configObject["component_catalog"] is JsonObject catalog &&
+                catalog["tujuanFinansial"] is null or JsonArray { Count: 0 })
+                catalog["tujuanFinansial"] = defaults["component_catalog"]?["tujuanFinansial"]?.DeepClone();
+            if (configObject["actions"] is JsonArray actions)
+            {
+                var actionIds = actions.Select(action => action?["action_id"]?.GetValue<string>())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var action in definition.Actions.Where(action => actionIds.Add(action.ActionId)))
+                    actions.Add(JsonSerializer.SerializeToNode(action));
             }
         }
         return configNode;

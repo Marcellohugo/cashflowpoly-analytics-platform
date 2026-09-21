@@ -382,7 +382,7 @@ Aturan:
 - `(session_id, event_id)` unik untuk idempotensi.
 - `(session_id, sequence_number)` unik untuk keterurutan.
 - Event Player wajib memiliki `user_id` dan peserta sesi yang valid.
-- Event sistem memakai `user_id = null` dan dapat memakai `session_player_id = null`.
+- Event SYSTEM tingkat sesi memakai `user_id = null` dan `session_player_id = null`. Event SYSTEM yang menargetkan pemain, seperti `TujuanFinansial`, memakai kedua identitas penerima sesuai kepesertaan.
 - `ruleset_version_id` harus cocok dengan session.
 
 ### 9.2 `event_asset_references`
@@ -408,6 +408,11 @@ Manfaat:
 Tabel ini dipertahankan agar data historis lama tetap dapat dibaca. Backend baru tidak membentuk, mengisi, atau memvalidasi deck/pasar virtual dari tabel ini. Kepemilikan pemain yang dapat divalidasi berasal dari setup fisik yang dikonfirmasi dan event gameplay sah. Event legacy deck/pasar tidak memengaruhi proyeksi atau analitik baru.
 
 Nomor Tie Breaker tetap unik per versi ruleset dan satu kartu Misi Koleksi tidak dapat diberikan kepada dua peserta dalam sesi yang sama.
+
+### 9.4 Undo event
+Migrasi `V013__event_undo.sql` menambahkan `event_undo_snapshots` untuk before-image 16 tabel proyeksi per event dan `event_undos` untuk audit pembatalan append-only. Undo memindahkan event terakhir dari himpunan event efektif ke audit beserta arus kas dan referensi aset, memulihkan snapshot, lalu menghapus snapshot metrik yang usang dalam satu transaksi sesi.
+
+Versi state selalu naik; ID event, sequence, dan request ID yang dibatalkan tetap dipesan dalam lingkup sesi. Snapshot mengikuti penghapusan sesi, sedangkan audit tanpa foreign key sesi tetap tersedia setelah sesi kosong terhapus. Event lama tanpa snapshot ditolak untuk undo. Lihat [kontrak undo](02-05-rancangan-undo-event.md).
 
 ---
 
@@ -674,7 +679,7 @@ Untuk merapikan model data dan meminimalkan permukaan validasi, beberapa konsep 
 ### 16.4 Aturan Integritas Tambahan
 - Seluruh tabel `ruleset_*` wajib memuat `ruleset_version_id` untuk mencegah percampuran definisi aturan antarversi.
 - Foreign Key (FK) event menggunakan gabungan scope komposit `(session_id, event_id)` karena nilai ID event unik per sesi permainan.
-- Seluruh data pemeringkatan (*ranking*) dashboard dihitung secara dinamis melalui query analitik, bukan disimpan dalam tabel status baru yang redundan.
+- Peringkat analitika dihitung dari metrik pemain. Saat finalisasi, hasil dan peringkat disimpan pada `session_final_scores`, sedangkan rincian pembentuknya berada pada `session_final_score_components`; recompute menyelaraskan hasil tersimpan dengan perhitungan terkini.
 
 ## 17. View, Function, dan Trigger
 
@@ -687,6 +692,8 @@ View yang disediakan schema kanonis:
 | `ruleset_collection_mission_requirement_items` | Menyajikan syarat misi beserta item referensinya |
 
 Function dan trigger menjaga `updated_at`, sinkronisasi jumlah peserta, role dan batas pemain, mode serta ruleset sesi, slot aksi, scope event, side effect projection, batas inventaris, konsistensi cashflow/saldo, tipe aset requirement, dan provenance. Trigger adalah lapisan integritas terakhir—integrasi tetap harus menulis melalui REST API agar authorization, rate limit, audit, kontrak error, dan transaksi domain tetap berjalan.
+
+Migrasi V006 menambahkan `trg_collection_mission_reward`: saat misi selesai, hadiah dari katalog versi ruleset sesi ditambahkan ke saldo kebahagiaan tepat sekali, dengan penanda `reward_applied`. Migrasi ini juga melengkapi komponen `INITIAL_HAPPINESS` dan `MISSION_REWARD` yang belum ada pada skor final lama, lalu menyesuaikan total serta peringkatnya. Snapshot analitika tetap diperbarui melalui `--recalculate-analytics` dalam urutan deployment.
 
 ## 18. Runbook Perubahan dan Pemulihan Development
 

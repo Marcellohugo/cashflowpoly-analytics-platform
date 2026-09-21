@@ -54,7 +54,7 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
                 result = Fail(
                     StatusCodes.Status422UnprocessableEntity,
                     "DOMAIN_RULE_VIOLATION",
-                    "TujuanFinansial bukan aksi pemain terpisah; kartu tujuan diperoleh otomatis saat Menabung mencapai target");
+                    "TujuanFinansial dicatat sebagai event SYSTEM untuk pemain penerima setelah pembelian kartu tujuan pada permainan fisik");
                 return true;
             }
 
@@ -89,31 +89,25 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
                 new ErrorDetail("payload.amount", "REQUIRED"));
         }
 
-        var payloadValidation = ValidateSavingDepositPayload(goalId, amount);
+        var payloadValidation = ValidateSavingDepositPayload(amount);
         if (!payloadValidation.IsValid)
         {
             return new EventSavingGoalValidation(payloadValidation, null);
         }
 
-        if (config.FinancialGoals.All(goal => !string.Equals(goal.Id, goalId, StringComparison.OrdinalIgnoreCase)))
+        if (!string.IsNullOrWhiteSpace(goalId) &&
+            config.FinancialGoals.All(goal => !string.Equals(goal.Id, goalId, StringComparison.OrdinalIgnoreCase)))
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                 "Kartu Tujuan Finansial tidak ditemukan pada ruleset");
         }
 
-        var isCreate = string.Equals(request.ActionType, "Menabung", StringComparison.OrdinalIgnoreCase);
-        if (isCreate && amount > RulebookSavingMaxDeposit)
+        if (amount > RulebookSavingMaxDeposit)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Maksimal tabungan per aksi adalah 15 koin");
         }
 
-        var balance = _derivedState.ComputeSavingBalance(history, request.UserId!.Value, goalId);
-        if (!isCreate && balance < amount)
-        {
-            return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi");
-        }
-
-        return new EventSavingGoalValidation(EventDomainValidationResult.Valid, isCreate ? amount : null);
+        return new EventSavingGoalValidation(EventDomainValidationResult.Valid, amount);
     }
 
     private EventSavingGoalValidation ValidateGoalAchieved(
@@ -181,7 +175,7 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
                 "Kartu Tujuan Finansial ini sudah dimiliki pemain lain");
         }
 
-        var balance = _derivedState.ComputeSavingBalance(history, request.UserId!.Value, goalId);
+        var balance = _derivedState.ComputeSavingBalance(history, request.UserId!.Value, config.InitialSaving);
         if (cost > 0 && balance < cost)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Saldo tabungan tidak mencukupi untuk goal");
@@ -212,17 +206,8 @@ internal sealed class EventSavingGoalValidator : IEventSavingGoalValidator
         return EventDomainValidationResult.Valid;
     }
 
-    private EventDomainValidationResult ValidateSavingDepositPayload(string goalId, int amount)
+    private EventDomainValidationResult ValidateSavingDepositPayload(int amount)
     {
-        if (string.IsNullOrWhiteSpace(goalId))
-        {
-            return EventDomainValidationResult.Fail(
-                StatusCodes.Status400BadRequest,
-                "VALIDATION_ERROR",
-                "Goal ID wajib diisi",
-                new ErrorDetail("payload.goal_id", "REQUIRED"));
-        }
-
         if (amount <= 0)
         {
             return EventDomainValidationResult.Fail(

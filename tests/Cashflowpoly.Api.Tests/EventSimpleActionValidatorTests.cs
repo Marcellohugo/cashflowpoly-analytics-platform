@@ -17,6 +17,30 @@ namespace Cashflowpoly.Api.Tests;
 public sealed class EventSimpleActionValidatorTests
 // Membuka scope tipe EventSimpleActionValidatorTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    [Theory]
+    [InlineData("rank")]
+    [InlineData("points")]
+    [InlineData("player_order_no")]
+    public void TryValidateDonationWinnersAnnouncement_RejectsNonNumericValues(string field)
+    {
+        foreach (var invalidJson in new[] { "\"1\"", "null", "true", "false", "[]", "{}" })
+        {
+            var payload = System.Text.Json.Nodes.JsonNode.Parse(
+                """{"winners":[{"rank":1,"player_name":"Player","player_order_no":1,"points":7}]}""")!;
+            payload["winners"]![0]![field] = System.Text.Json.Nodes.JsonNode.Parse(invalidJson);
+            var request = CreateRequest("UmumkanJuaraDonasi", payload.ToJsonString(), actorType: "SYSTEM");
+
+            var handled = new EventSimpleActionValidator().TryValidate(request, CreateConfig(), out var result);
+
+            Assert.True(handled);
+            Assert.False(result.IsValid);
+            Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
+            Assert.Equal("VALIDATION_ERROR", result.ErrorCode);
+            Assert.Contains(result.Details, detail => detail.Field ==
+                (field == "rank" ? "payload.winners" : $"payload.winners.{field}"));
+        }
+    }
+
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `TryValidate_ReturnsFalseForUnhandledAction` dengan hasil bertipe `void`; operasi ini menangani try validate returns false

@@ -465,7 +465,7 @@ public sealed class PlayerMetricCollectionHelperTests
             // Menggunakan tuple yang membawa bagian 1: ”attempted_goal_target_total”; bagian 2: ”10” sebagai bagian ekspresi yang sedang disusun dalam
             // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
             ("financial_goals_completed", "1"),
-            ("financial_goals_attempted", "2"),
+            ("financial_goals_available_total", "2"),
             // Menggunakan tuple yang membawa bagian 1: ”income_main_actions”; bagian 2: ”4” sebagai bagian ekspresi yang sedang disusun dalam
             // BuildActualCalculation_CoversEveryPlayerAnalysisCard.
             ("income_main_actions", "4"),

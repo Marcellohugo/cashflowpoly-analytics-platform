@@ -61,6 +61,7 @@ public static class PlayerStatisticsChartBuilder
                 chartType = "line", labels = points.Select((_, i) => $"{t("statistics.session")} {i + 1}"),
                 formulas = points.Select(p => $"{p.Label}: {p.Presentation.DisplayValue} {p.Presentation.Unit}. {p.Presentation.Guidance}"),
                 pointDetails = points.Select((p, i) => new {
+                    sessionId = sessions[i].Session.SessionId,
                     sessionName = sessions[i].Session.SessionName,
                     displayValue = p.Presentation.DisplayValue,
                     unit = p.Presentation.Unit,

@@ -94,6 +94,17 @@ public sealed class RulesetsController : ControllerBase
             ? userId
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: (Guid?)null; dalam GetRulesetSections.
             : (Guid?)null;
+        if (instructorUserId is null && rulesetId.HasValue)
+        {
+            var accessibleRuleset = await _rulesets.GetRulesetForPlayerAsync(rulesetId.Value, userId, ct)
+                ?? await _rulesets.GetDefaultSeedRulesetAsync(rulesetId.Value, ct);
+            if (accessibleRuleset is null)
+            {
+                return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan"));
+            }
+
+            instructorUserId = accessibleRuleset.InstructorUserId;
+        }
         var ruleset = await _state.GetRulesetSectionAsync(normalizedMode, rulesetId, instructorUserId, ct);
         if (ruleset is null)
         {
@@ -735,6 +746,12 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var definition = explicitDefinition;
+        var shapeErrors = RulesetDefinitionShapeValidator.Validate(definition);
+        if (shapeErrors.Count > 0)
+        {
+            return (null, BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR",
+                "Struktur definition ruleset tidak valid", shapeErrors.ToArray())));
+        }
 
         var actionIds = definition.Actions.Select(action => action.ActionId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (definition.Narratives.SelectMany(narrative => narrative.PrerequisiteAksi)

@@ -106,12 +106,12 @@ public sealed class EventDerivedStateCalculatorTests
         };
 
         // Menyiapkan variabel lokal `balance` untuk saldo uang pemain pada keadaan yang sedang diproses dengan memanggil `new
-        // EventDerivedStateCalculator().ComputeSavingBalance` dengan `events`, `playerId`, `”bike”`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var balance = new EventDerivedStateCalculator().ComputeSavingBalance(events, playerId, "bike");
+        // EventDerivedStateCalculator().ComputeSavingBalance` dengan `events`, `playerId`. Tipe variabel disimpulkan dari ekspresi nilai awal.
+        var balance = new EventDerivedStateCalculator().ComputeSavingBalance(events, playerId);
 
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`2`, `balance`); pengujian gagal jika keduanya
+        // Semua setoran pemain tersedia, meskipun label tujuan lama berbeda.
         // berbeda dalam ComputeSavingBalance_AppliesDepositsWithdrawalsAndGoalCost.
-        Assert.Equal(2, balance);
+        Assert.Equal(101, balance);
     // Menutup scope metode ComputeSavingBalance_AppliesDepositsWithdrawalsAndGoalCost; bagian berikut berada di luar batas blok tersebut dalam
     // ComputeSavingBalance_AppliesDepositsWithdrawalsAndGoalCost.
     }
@@ -119,6 +119,48 @@ public sealed class EventDerivedStateCalculatorTests
     // Mendefinisikan metode `BuildEvent` dengan hasil bertipe `EventDb`; operasi ini menangani build event. Masukan: Parameter `playerId` bertipe
     // `Guid` membawa nilai pemain identitas; Parameter `actionType` bertipe `string` membawa nilai aksi jenis; Parameter `payload` bertipe `string`
     // membawa muatan detail event dalam format JSON.
+    [Fact]
+    public void InitialSavingIsSharedOnceAndLaterDepositsCannotRestoreSpentInitialFunds()
+    {
+        var playerId = Guid.NewGuid();
+        var events = new[]
+        {
+            BuildEvent(playerId, "Menabung", """{"goal_id":"bike","amount":5}"""),
+            BuildEvent(playerId, "TujuanFinansial", """{"goal_id":"bike","points":4,"cost":12}"""),
+            BuildEvent(playerId, "Menabung", """{"goal_id":"bike","amount":3}"""),
+            BuildEvent(playerId, "TujuanFinansial", """{"goal_id":"book","points":2,"cost":10}"""),
+            BuildEvent(Guid.NewGuid(), "TujuanFinansial", """{"goal_id":"book","points":2,"cost":99}""")
+        };
+        for (var i = 0; i < events.Length; i++) events[i].SequenceNumber = i + 1;
+        var calculator = new EventDerivedStateCalculator();
+
+        Assert.Equal(6, calculator.ComputeSavingBalance(events.Reverse(), playerId, 20));
+
+        var metrics = new SavingGoalCalculator().Compute(events.Where(e => e.UserId == playerId).Reverse(), initialSaving: 20);
+        Assert.Empty(metrics.SavingBalancesByGoal);
+        Assert.Equal(6, metrics.CoinsSaved);
+    }
+
+    [Fact]
+    public void DepositLabelledForOneGoalCanFundAnotherGoal()
+    {
+        var playerId = Guid.NewGuid();
+        var events = new[]
+        {
+            BuildEvent(playerId, "Menabung", """{"goal_id":"bike","amount":12}"""),
+            BuildEvent(playerId, "Menabung", """{"amount":5}"""),
+            BuildEvent(playerId, "TujuanFinansial", """{"goal_id":"book","points":2,"cost":10}"""),
+            BuildEvent(playerId, "TarikTabungan", """{"amount":3}""")
+        };
+
+        Assert.Equal(4, new EventDerivedStateCalculator().ComputeSavingBalance(events, playerId));
+        var metrics = new SavingGoalCalculator().Compute(events);
+        Assert.Equal(4, metrics.CoinsSaved);
+        Assert.Equal(10, metrics.SavingGoalCostsByGoal["book"]);
+        Assert.Equal(1, metrics.FinancialGoalsAttempted);
+        Assert.Equal(0, metrics.FinancialGoalsIncompleteCoinsWasted);
+    }
+
     private static EventDb BuildEvent(Guid playerId, string actionType, string payload)
     // Membuka scope metode BuildEvent; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam BuildEvent.
     {

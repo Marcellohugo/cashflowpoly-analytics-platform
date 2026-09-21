@@ -26,10 +26,11 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
 
         // Mengulangi setiap elemen `events.Where(e => e.UserId == playerId)`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh
         // badan loop dalam BuildIngredientInventory.
-        foreach (var evt in events.Where(e => e.UserId == playerId))
+        foreach (var evt in events.Where(e => e.UserId == playerId).OrderBy(e => e.SequenceNumber))
         {
             var payload = _payloadReader.ReadPayload(evt.Payload);
-            if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.BahanMasakan) &&
+            if ((GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.BahanMasakan) ||
+                 GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.SetupBahanAwal)) &&
                 _payloadReader.TryReadIngredientPurchase(payload, out var cardId, out _))
             {
                 inventory.Total += 1;
@@ -65,43 +66,41 @@ internal sealed class EventDerivedStateCalculator : IEventDerivedStateCalculator
     }
 
     /// <summary>
-    /// Menghitung saldo tabungan pemain untuk goal tertentu dari deposit, penarikan, dan pencapaian goal.
+    /// Menghitung tabungan bersama milik pemain yang dapat dipakai membeli tujuan mana pun.
     /// </summary>
-    // Mendefinisikan metode `ComputeSavingBalance` dengan hasil bertipe `int`. Menghitung saldo tabungan pemain untuk goal tertentu dari deposit,
-    // penarikan, dan pencapaian goal. Masukan: Parameter `events` bertipe `IEnumerable<EventDb>` membawa kumpulan event permainan sebagai sumber
-    // riwayat untuk validasi atau perhitungan; Parameter `playerId` bertipe `Guid` membawa nilai pemain identitas; Parameter `goalId` bertipe `string`
-    // membawa nilai target identitas.
-    public int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, string goalId)
+    public int ComputeSavingBalance(IEnumerable<EventDb> events, Guid playerId, int initialSaving = 0)
     {
-        var balance = 0;
+        return ComputeTotalSavings(events.Where(e => e.UserId == playerId), initialSaving);
+    }
 
-        // Mengulangi setiap elemen `events.Where(e => e.UserId == playerId)`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh
-        // badan loop dalam ComputeSavingBalance.
-        foreach (var evt in events.Where(e => e.UserId == playerId))
+    internal static int ComputeTotalSavings(
+        IEnumerable<EventDb> playerEvents, int initialSaving)
+    {
+        var balance = Math.Max(0, initialSaving);
+
+        // goal_id pada setoran lama hanyalah label, bukan pemesanan atau alokasi dana.
+        foreach (var evt in playerEvents)
         {
             var payload = _payloadReader.ReadPayload(evt.Payload);
             if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.Menabung) &&
-                _payloadReader.TryReadSavingDeposit(payload, out var existingGoalId, out var amount) &&
-                string.Equals(existingGoalId, goalId, StringComparison.OrdinalIgnoreCase))
+                _payloadReader.TryReadSavingDeposit(payload, out _, out var amount))
             {
                 balance += amount;
             }
 
             if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.SavingDepositWithdrawn) &&
-                _payloadReader.TryReadSavingDeposit(payload, out var withdrawGoalId, out var amountWithdraw) &&
-                string.Equals(withdrawGoalId, goalId, StringComparison.OrdinalIgnoreCase))
+                _payloadReader.TryReadSavingDeposit(payload, out _, out var amountWithdraw))
             {
                 balance -= amountWithdraw;
             }
 
             if (GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.TujuanFinansial) &&
-                _payloadReader.TryReadSavingGoalAchieved(payload, out var achievedGoalId, out _, out var cost) &&
-                string.Equals(achievedGoalId, goalId, StringComparison.OrdinalIgnoreCase))
+                _payloadReader.TryReadSavingGoalAchieved(payload, out _, out _, out var cost))
             {
                 balance -= cost;
             }
         }
 
-        return balance;
+        return Math.Max(0, balance);
     }
 }

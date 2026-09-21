@@ -63,6 +63,7 @@ services:
       Networking__TrustedNetworks__0: 172.16.0.0/12
       # Penjelasan: Mengaktifkan kewajiban HTTPS pada UI walaupun hop proxy internal menggunakan HTTP; forwarded headers memberi informasi skema publik. Nilai/deklarasi: Security__RequireHttps: ”true”.
       Security__RequireHttps: "true"
+      ASPNETCORE_HTTPS_PORT: "443"
     # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports: !override [].
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:5203/health/ready > /dev/null || exit 1"]
@@ -128,8 +129,10 @@ services:
         condition: service_healthy
     # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
-      # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
-      - cashflowpoly-net
+      cashflowpoly-net: {}
+      # Nginx mulai sebelum tunnel; alamat tetap mencegahnya mengambil IP tunnel .2.
+      cashflowpoly-ingress:
+        ipv4_address: 172.30.254.3
     # Allow the non-root nginx process to bind the internal privileged port
     # required by the existing Cloudflare Tunnel ingress configuration.
     # Penjelasan: Menambahkan capability Linux secara terbatas kepada proses container sesuai kebutuhan bind port. Nilai/deklarasi: cap_add:.
@@ -185,7 +188,8 @@ services:
     # Penjelasan: Menghubungkan layanan ke jaringan yang disebut atau mendeklarasikan jaringan global, sesuai posisi indentasi. Nilai/deklarasi: networks:.
     networks:
       # Penjelasan: Menambahkan anggota daftar cashflowpoly-net. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.
-      - cashflowpoly-net
+      cashflowpoly-ingress:
+        ipv4_address: 172.30.254.2
     # Penjelasan: Membuka opsi keamanan container yang diterapkan Docker pada proses layanan. Nilai/deklarasi: security_opt:.
     security_opt:
       # Penjelasan: Menambahkan anggota daftar no-new-privileges:true. Opsi ini mencegah proses memperoleh privilege tambahan melalui eksekusi program.
@@ -208,3 +212,10 @@ services:
       options:
         # Penjelasan: Memberi label layanan pada entri log agar log dari API, UI, database, Nginx, dan tunnel dapat dibedakan. Nilai/deklarasi: tag: cashflowpoly-tunnel.
         tag: cashflowpoly-tunnel
+
+networks:
+  cashflowpoly-ingress:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.254.0/29

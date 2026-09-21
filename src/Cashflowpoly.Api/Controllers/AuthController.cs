@@ -133,7 +133,7 @@ public sealed class AuthController : ControllerBase
                 role = user.Role,
                 is_demo = user.IsDemo
             },
-            ct);
+            ct, subjectUserId: user.UserId);
         return Ok(new LoginResponse(user.UserId, user.Username, user.Role, displayName, issued.AccessToken, issued.ExpiresAt));
     }
 
@@ -255,7 +255,7 @@ public sealed class AuthController : ControllerBase
                 username = created.Username,
                 role = created.Role
             },
-            ct);
+            ct, subjectUserId: created.UserId);
         return StatusCode(
             StatusCodes.Status201Created,
             new RegisterResponse(created.UserId, created.Username, created.Role, displayName, issued.AccessToken, issued.ExpiresAt));

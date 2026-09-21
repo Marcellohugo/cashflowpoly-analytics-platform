@@ -29,7 +29,7 @@ public sealed class PlayerMetricNamingConsistencyTests
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
         { "debt-discipline", "sharia_loans_taken", "loan_counts", ["sharia_loans_repaid", "sharia_loans_unpaid_end"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-        { "goal-ambition", "financial_goal_completion_percent", "goal_completion", ["financial_goals_completed", "financial_goals_attempted"] },
+        { "goal-ambition", "financial_goals_completed", "goal_purchases", ["financial_goals_purchase_cost_total", "coins_saved"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
         { "action-efficiency", "income_action_focus_percent", "action_efficiency", ["income_main_actions", "total_main_actions"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
@@ -41,9 +41,9 @@ public sealed class PlayerMetricNamingConsistencyTests
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
         { "donation-commitment", "donation_commitment_score", "donation_commitment", ["donation_stability_index", "donated_resource_share", "friday_participation_rate"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-        { "happiness-portfolio", "happiness_source_diversity_percent", "happiness_portfolio", ["need_card_points", "need_set_bonus_points", "donation_points", "gold_points", "pension_points", "financial_goal_points"] },
+        { "happiness-portfolio", "happiness_source_diversity_percent", "happiness_portfolio", ["need_card_points", "need_set_bonus_points", "donation_points", "gold_points", "pension_points", "financial_goal_points", "initial_happiness_points", "mission_reward_points"] },
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini.
-        { "happiness-portfolio.beginner", "happiness_source_diversity_percent", "happiness_portfolio.beginner", ["need_card_points", "need_set_bonus_points", "donation_points", "gold_points", "pension_points"] }
+        { "happiness-portfolio.beginner", "happiness_source_diversity_percent", "happiness_portfolio.beginner", ["need_card_points", "need_set_bonus_points", "donation_points", "gold_points", "pension_points", "initial_happiness_points", "mission_reward_points"] }
     // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut.
     };
 

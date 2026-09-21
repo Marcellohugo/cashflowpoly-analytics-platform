@@ -47,21 +47,7 @@ public sealed class HomeCommandCenterLayoutTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”home-stat-grid”`, `viewContent` dalam
         // HomeIndexView_ShouldUseCommandCenterHeroStructure.
         Assert.Contains("home-stat-grid", viewContent);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”home-guide-shell”`, `viewContent` dalam
-        // HomeIndexView_ShouldUseCommandCenterHeroStructure.
-        Assert.Contains("home-guide-shell", viewContent);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”<details class=\”home-guide-shell mt-6
-        // data-toggle\”>”`, `viewContent` dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
-        Assert.Contains("<details class=\"home-guide-shell mt-6 data-toggle\">", viewContent);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”<details class=\”home-guide-shell mt-6
-        // player-guide data-toggle\”>”`, `viewContent` dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
-        Assert.Contains("<details class=\"home-guide-shell mt-6 player-guide data-toggle\">", viewContent);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”home.player_flow”`, `viewContent`
-        // dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
-        Assert.DoesNotContain("home.player_flow", viewContent);
-        // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”<details class=\”home-guide-shell
-        // mt-6 data-toggle\” open”`, `viewContent` dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
-        Assert.DoesNotContain("<details class=\"home-guide-shell mt-6 data-toggle\" open", viewContent);
+        Assert.DoesNotContain("home-guide-shell", viewContent);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”activeSessionPercent”`, `viewContent`
         // dalam HomeIndexView_ShouldUseCommandCenterHeroStructure.
         Assert.Contains("activeSessionPercent", viewContent);

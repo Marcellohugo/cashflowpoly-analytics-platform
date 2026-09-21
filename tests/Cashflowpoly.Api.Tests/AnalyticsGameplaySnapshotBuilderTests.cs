@@ -128,7 +128,8 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
         var goals = doc.RootElement.GetProperty("financial_goals");
         Assert.Equal(purchaseCost > 0 ? 1 : 0, goals.GetProperty("financial_goals_completed").GetInt32());
         Assert.Equal(purchaseCost, goals.GetProperty("financial_goals_purchase_cost_total").GetInt32());
-        Assert.Equal(pendingSavings, goals.GetProperty("financial_goals_incomplete_coins_wasted").GetInt32());
+        Assert.Equal(0, goals.GetProperty("financial_goals_incomplete_coins_wasted").GetInt32());
+        Assert.Equal(pendingSavings, doc.RootElement.GetProperty("coins").GetProperty("coins_saved").GetInt32());
     }
 
     [Theory]
@@ -553,141 +554,38 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
     // Build_BeginnerModeOmitsAdvancedOnlyDataAndMetrics.
     }
 
-    // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
-    // Mendefinisikan metode `Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost` dengan hasil bertipe `void`; operasi ini menangani build caps
-    // keuangan target funding at the attempted target biaya.
-    public void Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost()
-    // Membuka scope metode Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-    // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
+    public void Build_GoalPurchaseProgressUsesCatalogCostsAndExcludesUnspentSavings()
     {
-        // Menyiapkan variabel lokal `sessionId` untuk identitas unik sesi permainan yang menjadi batas data operasi ini dengan memanggil `Guid.NewGuid`
-        // dengan tanpa argumen. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var sessionId = Guid.NewGuid();
-        // Menyiapkan variabel lokal `playerId` untuk nilai pemain identitas dengan memanggil `Guid.NewGuid` dengan tanpa argumen. Tipe variabel disimpulkan
-        // dari ekspresi nilai awal.
         var playerId = Guid.NewGuid();
-        // Menyiapkan variabel lokal `events` untuk kumpulan event permainan sebagai sumber riwayat untuk validasi atau perhitungan dengan objek baru
-        // bertipe `List<EventDb>` dengan nilai awal sesuai konstruktornya. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var events = new List<EventDb>
-        // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
         {
-            // Melanjutkan pengolahan dengan memanggil `CreateEvent` dengan `Guid.NewGuid()`, `sessionId`, `playerId`, `”Menabung”`,
-            // `”””{”goal_id”:”goal-a”,”amount”:20}”””`, `1`, `1` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "Menabung", """{"goal_id":"goal-a","amount":20}""", turn: 1, sequence: 1),
-            // Melanjutkan pengolahan dengan memanggil `CreateEvent` dengan `Guid.NewGuid()`, `sessionId`, `playerId`, `”Menabung”`,
-            // `”””{”goal_id”:”goal-a”,”amount”:18}”””`, `2`, `2` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "Menabung", """{"goal_id":"goal-a","amount":18}""", turn: 2, sequence: 2),
-            // Melanjutkan pengolahan dengan memanggil `CreateEvent` dengan `Guid.NewGuid()`, `sessionId`, `playerId`, `”TujuanFinansial”`,
-            // `”””{”goal_id”:”goal-a”,”points”:10,”cost”:35}”””`, `2`, `3` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-            CreateEvent(Guid.NewGuid(), sessionId, playerId, "TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":35}""", turn: 2, sequence: 3)
-        // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam
-        // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "Menabung", """{"goal_id":"goal-b","amount":38}""", 1, 1),
+            CreateEvent(Guid.NewGuid(), sessionId, playerId, "TujuanFinansial", """{"goal_id":"goal-a","points":10,"cost":35}""", 2, 2)
         };
-        // Menyiapkan variabel lokal `config` untuk konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan dengan `BuildAdvancedConfig()
-        // with { FinancialGoals = [ new RulesetFinancialGoalDto { Id = ”goal-a”, Nama = ”Goal A”, HargaBeli = 35, PoinKebahagiaan = 10 } ] }`. Tipe
-        // variabel disimpulkan dari ekspresi nilai awal.
         var config = BuildAdvancedConfig() with
-        // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-        // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
         {
-            // Memperbarui `FinancialGoals` menggunakan koleksi berisi new RulesetFinancialGoalDto { Id = ”goal-a”, Nama ... dalam
-            // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
             FinancialGoals =
-            // Menggunakan koleksi berisi new RulesetFinancialGoalDto { Id = ”goal-a”, Nama ... sebagai bagian ekspresi yang sedang disusun dalam
-            // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
             [
-                // Menggunakan objek baru bertipe `RulesetFinancialGoalDto` dengan nilai awal sesuai konstruktornya sebagai bagian ekspresi yang sedang disusun
-                // dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                new RulesetFinancialGoalDto
-                // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam
-                // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                {
-                    // Memperbarui `Id` menggunakan nilai literal `”goal-a”` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                    Id = "goal-a",
-                    // Memperbarui `Nama` menggunakan nilai literal `”Goal A”` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                    Nama = "Goal A",
-                    // Memperbarui `HargaBeli` menggunakan nilai literal `35` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                    HargaBeli = 35,
-                    // Memperbarui `PoinKebahagiaan` menggunakan nilai literal `10` dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                    PoinKebahagiaan = 10
-                // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam
-                // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-                }
-            // Menandai akhir daftar elemen atau indeks koleksi dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost; pasangan kurung siku
-            // mengelompokkan nilai sebagai satu struktur.
+                new RulesetFinancialGoalDto { Id = "goal-a", Nama = "Goal A", HargaBeli = 35, PoinKebahagiaan = 10 },
+                new RulesetFinancialGoalDto { Id = "goal-b", Nama = "Goal B", HargaBeli = 15, PoinKebahagiaan = 5, CardQty = 3 }
             ]
-        // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam
-        // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
         };
-        // Menyiapkan variabel lokal `happiness` untuk nilai kebahagiaan dengan objek baru bertipe `AnalyticsHappinessBreakdown` dengan argumen (10, 0, 0,
-        // 0, 0, 0, 10, 0, 0, false). Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var happiness = new AnalyticsHappinessBreakdown(10, 0, 0, 0, 0, 0, 10, 0, 0, false);
-
-        // Menyiapkan variabel lokal `snapshot` untuk nilai snapshot keadaan dengan memanggil `new GameplaySnapshotBuilder().Build` dengan `events`, `[]`,
-        // `events`, `config`, `happiness`. Tipe variabel disimpulkan dari ekspresi nilai awal.
-        var snapshot = new GameplaySnapshotBuilder().Build(
-            // Meneruskan `events` (kumpulan event permainan sebagai sumber riwayat untuk validasi atau perhitungan) sebagai argumen ke `new
-            // GameplaySnapshotBuilder().Build`.
-            events,
-            // Meneruskan koleksi kosong dengan tipe mengikuti konteks tujuan sebagai argumen ke `new GameplaySnapshotBuilder().Build`.
-            [],
-            // Meneruskan `events` (kumpulan event permainan sebagai sumber riwayat untuk validasi atau perhitungan) sebagai argumen ke `new
-            // GameplaySnapshotBuilder().Build`.
-            events,
-            // Meneruskan `config` (konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan) sebagai argumen ke `new
-            // GameplaySnapshotBuilder().Build`.
-            config,
-            // Meneruskan `happiness` (nilai kebahagiaan) sebagai argumen ke `new GameplaySnapshotBuilder().Build`.
-            happiness);
-
-        // Menyiapkan variabel lokal `derivedDoc` untuk nilai derived doc dengan memanggil `JsonDocument.Parse` dengan `snapshot.DerivedJson`. Tipe variabel
-        // disimpulkan dari ekspresi nilai awal; using memastikan sumber daya dilepas otomatis saat scope berakhir.
+        var snapshot = new GameplaySnapshotBuilder().Build(events, [], events, config,
+            new AnalyticsHappinessBreakdown(10, 0, 0, 0, 0, 0, 10, 0, 0, false));
+        using var rawDoc = JsonDocument.Parse(snapshot.RawJson);
         using var derivedDoc = JsonDocument.Parse(snapshot.DerivedJson);
-        // Menyiapkan variabel lokal `derived` untuk nilai derived dengan `derivedDoc.RootElement` (nilai root element). Tipe variabel disimpulkan dari
-        // ekspresi nilai awal.
         var derived = derivedDoc.RootElement;
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`100`,
-        // `derived.GetProperty(”financial_goal_progress_percent”).GetDouble()`); pengujian gagal jika keduanya berbeda dalam
-        // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-        Assert.Equal(100, derived.GetProperty("financial_goal_progress_percent").GetDouble());
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`35`,
-        // `derived.GetProperty(”financial_goal_progress_components”) .GetProperty(”coins_committed_to_goals”) .GetInt32()`); pengujian gagal jika keduanya
-        // berbeda dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-        Assert.Equal(
-            // Meneruskan nilai literal `35` sebagai argumen ke `Assert.Equal`.
-            35,
-            // Meneruskan memanggil `derived.GetProperty(”financial_goal_progress_components”) .GetProperty(”coins_committed_to_goals”) .GetInt32` dengan tanpa
-            // argumen sebagai argumen ke `Assert.Equal`; Meneruskan nilai literal `”financial_goal_progress_components”` sebagai argumen ke
-            // `derived.GetProperty`.
-            derived.GetProperty("financial_goal_progress_components")
-                // Meneruskan nilai literal `”coins_committed_to_goals”` sebagai argumen ke `derived.GetProperty(”financial_goal_progress_components”)
-                // .GetProperty`.
-                .GetProperty("coins_committed_to_goals")
-                // Meneruskan memanggil `derived.GetProperty(”financial_goal_progress_components”) .GetProperty(”coins_committed_to_goals”) .GetInt32` dengan tanpa
-                // argumen sebagai argumen ke `Assert.Equal`.
-                .GetInt32());
-        // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`35`,
-        // `derived.GetProperty(”financial_goal_progress_components”) .GetProperty(”attempted_goal_target_total”) .GetInt32()`); pengujian gagal jika
-        // keduanya berbeda dalam Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-        Assert.Equal(
-            // Meneruskan nilai literal `35` sebagai argumen ke `Assert.Equal`.
-            35,
-            // Meneruskan memanggil `derived.GetProperty(”financial_goal_progress_components”) .GetProperty(”attempted_goal_target_total”) .GetInt32` dengan
-            // tanpa argumen sebagai argumen ke `Assert.Equal`; Meneruskan nilai literal `”financial_goal_progress_components”` sebagai argumen ke
-            // `derived.GetProperty`.
-            derived.GetProperty("financial_goal_progress_components")
-                // Meneruskan nilai literal `”attempted_goal_target_total”` sebagai argumen ke `derived.GetProperty(”financial_goal_progress_components”)
-                // .GetProperty`.
-                .GetProperty("attempted_goal_target_total")
-                // Meneruskan memanggil `derived.GetProperty(”financial_goal_progress_components”) .GetProperty(”attempted_goal_target_total”) .GetInt32` dengan
-                // tanpa argumen sebagai argumen ke `Assert.Equal`.
-                .GetInt32());
-    // Menutup scope metode Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost; bagian berikut berada di luar batas blok tersebut dalam
-    // Build_CapsFinancialGoalFundingAtTheAttemptedTargetCost.
-    }
 
+        Assert.Equal(3, rawDoc.RootElement.GetProperty("coins").GetProperty("coins_saved").GetInt32());
+        Assert.Equal(1, rawDoc.RootElement.GetProperty("financial_goals").GetProperty("financial_goals_attempted").GetInt32());
+        Assert.Equal(2, rawDoc.RootElement.GetProperty("financial_goals").GetProperty("financial_goals_available_total").GetInt32());
+        Assert.Equal(50, derived.GetProperty("financial_goal_completion_percent").GetDouble());
+        Assert.Equal(70, derived.GetProperty("financial_goal_progress_percent").GetDouble());
+        Assert.Equal(35, derived.GetProperty("financial_goal_progress_components").GetProperty("coins_committed_to_goals").GetInt32());
+        Assert.Equal(50, derived.GetProperty("financial_goal_progress_components").GetProperty("attempted_goal_target_total").GetInt32());
+    }
     // menandai metode sebagai pengujian xUnit yang dijalankan untuk setiap kombinasi data.
     [Theory]
     // menyediakan satu kombinasi masukan pengujian (”SetupPinjamanAwal”, ”{\”loan_id\”:\”setup-loan\”,\”principal\”:10,\”penalty_points\”:15}”, 0).
@@ -1089,14 +987,14 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
     [InlineData(0, 2, 0d)]
     [InlineData(1, 2, 50d)]
     [InlineData(2, 2, 100d)]
-    public void Build_GoalCompletionCountsDistinctPurchasedAndAttemptedGoals(int completed, int attempted, double? expected)
+    public void Build_GoalCompletionCountsPurchasedTypesAgainstCatalog(int completed, int available, double? expected)
     {
         var sessionId = Guid.NewGuid();
         var playerId = Guid.NewGuid();
         var events = new List<EventDb>();
-        for (var i = 0; i < attempted; i++)
+        for (var i = 0; i < available; i++)
         {
-            // Setoran berulang ke target yang sama tidak menambah penyebut.
+            // Label setoran lama tidak memesan tujuan atau mengubah penyebut katalog.
             for (var deposit = 0; deposit < 2; deposit++)
                 events.Add(CreateEvent(Guid.NewGuid(), sessionId, playerId, "Menabung",
                     JsonSerializer.Serialize(new { goal_id = $"goal-{i}", amount = 5 }), 1, events.Count));
@@ -1108,13 +1006,21 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
                 events.Add(purchase);
             }
         }
-        var snapshot = new GameplaySnapshotBuilder().Build(events, [], events, BuildAdvancedConfig(),
+        var config = BuildAdvancedConfig() with
+        {
+            FinancialGoals = Enumerable.Range(0, available).Select(i => new RulesetFinancialGoalDto
+            {
+                Id = $"goal-{i}", Nama = $"Goal {i}", HargaBeli = 10, PoinKebahagiaan = 10
+            }).ToList()
+        };
+        var snapshot = new GameplaySnapshotBuilder().Build(events, [], events, config,
             new AnalyticsHappinessBreakdown(0, 0, 0, 0, 0, 0, 0, 0, 0, false));
         using var raw = JsonDocument.Parse(snapshot.RawJson);
         using var derived = JsonDocument.Parse(snapshot.DerivedJson);
         var goals = raw.RootElement.GetProperty("financial_goals");
-        Assert.Equal(attempted, goals.GetProperty("financial_goals_attempted").GetInt32());
+        Assert.Equal(completed, goals.GetProperty("financial_goals_attempted").GetInt32());
         Assert.Equal(completed, goals.GetProperty("financial_goals_completed").GetInt32());
+        Assert.Equal(available, goals.GetProperty("financial_goals_available_total").GetInt32());
         var percentage = derived.RootElement.GetProperty("financial_goal_completion_percent");
         if (expected.HasValue) Assert.Equal(expected.Value, percentage.GetDouble(), 6);
         else Assert.Equal(JsonValueKind.Null, percentage.ValueKind);
@@ -1125,7 +1031,11 @@ public sealed class AnalyticsGameplaySnapshotBuilderTests
     {
         var purchase = CreateEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "TujuanFinansial",
             """{"goal_id":"direct","cost":35,"points":35}""", 1, 1);
-        var snapshot = new GameplaySnapshotBuilder().Build([purchase], [], [purchase], BuildAdvancedConfig(),
+        var config = BuildAdvancedConfig() with
+        {
+            FinancialGoals = [new RulesetFinancialGoalDto { Id = "direct", Nama = "Direct", HargaBeli = 35, PoinKebahagiaan = 35 }]
+        };
+        var snapshot = new GameplaySnapshotBuilder().Build([purchase], [], [purchase], config,
             new AnalyticsHappinessBreakdown(0, 0, 0, 0, 0, 0, 0, 0, 0, false));
         using var raw = JsonDocument.Parse(snapshot.RawJson);
         using var derived = JsonDocument.Parse(snapshot.DerivedJson);

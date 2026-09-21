@@ -172,6 +172,16 @@ internal sealed class IngredientMealCalculator : IIngredientMealCalculator
                 queue.Enqueue(Math.Max(0, purchaseAmount));
             }
 
+            if (string.Equals(evt.ActionType, "BuangBahanMasakan", StringComparison.OrdinalIgnoreCase) &&
+                _payloadReader.TryReadIngredientPurchase(evt.Payload, out var discardedCardId, out var discardedQuantity) &&
+                purchaseCostByCardId.TryGetValue(discardedCardId, out var discardedCosts))
+            {
+                for (var remaining = Math.Max(1, discardedQuantity); remaining > 0 && discardedCosts.Count > 0; remaining--)
+                {
+                    discardedCosts.Dequeue();
+                }
+            }
+
             if (evt.ActionType == "JualMasakan" &&
                 _payloadReader.TryReadOrderClaim(evt.Payload, out var requiredCards, out _))
             {

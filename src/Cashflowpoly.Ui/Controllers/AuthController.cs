@@ -152,9 +152,26 @@ public sealed class AuthController : Controller
             return View(model);
         }
 
+        if (model.Username.Trim().Length is < 3 or > 80 || model.DisplayName.Trim().Length > 80)
+        {
+            model.ErrorMessage = HttpContext.T(model.Username.Trim().Length is < 3 or > 80
+                ? "auth.username_hint" : "auth.display_name_hint");
+            model.Password = string.Empty;
+            model.ConfirmPassword = string.Empty;
+            return View(model);
+        }
+
         if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
         {
             model.ErrorMessage = HttpContext.T("auth.error.confirm_mismatch");
+            model.Password = string.Empty;
+            model.ConfirmPassword = string.Empty;
+            return View(model);
+        }
+
+        if (model.Password.Length < 12 || System.Text.Encoding.UTF8.GetByteCount(model.Password) > 72)
+        {
+            model.ErrorMessage = HttpContext.T("auth.password_hint");
             model.Password = string.Empty;
             model.ConfirmPassword = string.Empty;
             return View(model);

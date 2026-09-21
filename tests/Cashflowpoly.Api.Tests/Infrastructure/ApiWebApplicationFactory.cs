@@ -81,6 +81,7 @@ internal sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
                 ["AuthBootstrap:SeedDefaultUsers"] = "false",
                 // Memperbarui `[”Auth:AllowPublicInstructorRegistration”]` menggunakan nilai literal `”true”` dalam ConfigureWebHost.
                 ["Auth:AllowPublicInstructorRegistration"] = "true",
+                ["SessionLifecycle:Enabled"] = "false",
                 // Memperbarui `[”DatabaseMigrations:SeedSimulation”]` menggunakan mengubah `_seedSimulation` menjadi teks dalam ConfigureWebHost.
                 ["DatabaseMigrations:SeedSimulation"] = _seedSimulation.ToString()
             // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam ConfigureWebHost.

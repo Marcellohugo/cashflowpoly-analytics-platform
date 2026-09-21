@@ -1882,11 +1882,11 @@ body>footer .footer-shell {
 
 @media (max-width: 768px) {
     .section-shell {
-        padding: 1.05rem;
+        padding: 0.75rem;
     }
 
     .analytics-hero {
-        padding: 0.85rem;
+        padding: 0.65rem;
     }
 
     .analytics-subsection-head .headline {
@@ -1894,7 +1894,7 @@ body>footer .footer-shell {
     }
 
     .form-panel {
-        padding: 0.85rem;
+        padding: 0.65rem;
     }
 
     .page-intro-actions {
@@ -2119,8 +2119,8 @@ body>footer .footer-shell {
     }
 
     .page-shell {
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
+        padding-top: 0.75rem;
+        padding-bottom: 1rem;
     }
 
     .rulebook-grid {

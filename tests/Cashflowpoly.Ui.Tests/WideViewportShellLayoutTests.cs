@@ -101,6 +101,27 @@ public sealed class WideViewportShellLayoutTests
     // SiteCss_ShouldKeepCompactNavigationAndCalendarUsableOnMobile.
     }
 
+    [Fact]
+    public void Layout_And_SiteCss_ShouldIncludeMobileBottomNavigationBar()
+    {
+        var repoRoot = ResolveRepositoryRoot();
+        var layoutPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Shared", "_Layout.cshtml");
+        var layoutContent = File.ReadAllText(layoutPath);
+
+        Assert.Contains("class=\"mobile-bottom-nav\"", layoutContent);
+        Assert.Contains("data-nav=\"home\"", layoutContent);
+        Assert.Contains("data-nav=\"sessions\"", layoutContent);
+        Assert.Contains("data-nav=\"statistics\"", layoutContent);
+        Assert.DoesNotContain("js-nav-toggle", layoutContent);
+
+        var cssPath = Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "wwwroot", "css", "site.css");
+        var cssContent = File.ReadAllText(cssPath);
+
+        Assert.Contains(".mobile-bottom-nav {", cssContent);
+        Assert.Contains(".mobile-bottom-nav-item", cssContent);
+        Assert.Contains("body.has-mobile-bottom-nav", cssContent);
+    }
+
     // Mendefinisikan metode `ResolveRepositoryRoot` dengan hasil bertipe `string`; operasi ini menangani resolve repositori root.
     private static string ResolveRepositoryRoot()
     // Membuka scope metode ResolveRepositoryRoot; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam ResolveRepositoryRoot.

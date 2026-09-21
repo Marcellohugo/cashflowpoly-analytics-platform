@@ -34,7 +34,7 @@
     </div>
 
     <div class="mt-6 ruleset-unified ruleset-index-shell">
-        <section class="ruleset-index-section">
+        <section class="ruleset-index-section ruleset-summary-section" hidden>
             <div class="ruleset-section-head ruleset-section-head-row">
                 <div>
                     <p class="ruleset-section-title">@Context.T("rulesets.index.summary_title")</p>
@@ -42,7 +42,7 @@
                 </div>
                 <div class="ruleset-index-count-block">
                     <p class="text-xs uppercase text-slate-500">@Context.T("rulesets.total_rulesets")</p>
-                    <p class="ruleset-index-count">@Model.Items.Count</p>
+                    <p class="ruleset-index-count">@(Model.RulesetsAvailable ? Model.Items.Count.ToString() : Context.T("players.support.value.unavailable"))</p>
                 </div>
             </div>
         </section>
@@ -178,7 +178,7 @@
                 {
                     <tr data-empty-base-row>
                         <td class="px-4 py-4 text-slate-500 mobile-card-empty" colspan="@tableColumnCount">
-                            @Context.T("state.no_rulesets")
+                            @Context.T(Model.RulesetsAvailable ? "state.no_rulesets" : "auth.error.api_unavailable")
                         </td>
                     </tr>
                 }

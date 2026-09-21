@@ -95,7 +95,7 @@ public sealed class SecurityAuditService
         object? details,
         // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
         // aplikasi berhenti.
-        CancellationToken ct)
+        CancellationToken ct, Guid? subjectUserId = null)
     {
         var traceId = ResolveTraceId(context);
         var userIdText = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -104,7 +104,7 @@ public sealed class SecurityAuditService
         var ipAddress = context.Connection.RemoteIpAddress?.ToString();
         var userAgent = context.Request.Headers.UserAgent.ToString();
 
-        Guid? userId = null;
+        Guid? userId = subjectUserId;
         if (Guid.TryParse(userIdText, out var parsed))
         {
             userId = parsed;

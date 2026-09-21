@@ -74,7 +74,7 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
                 new ErrorDetail("payload.card_id", "REQUIRED"));
         }
 
-        var commonValidation = ValidatePositiveAmountAndPlayer(request, amount);
+        var commonValidation = ValidatePurchaseAmountAndPlayer(request, amount);
         if (!commonValidation.IsValid)
         {
             return new EventIngredientOrderValidation(commonValidation, null);
@@ -102,9 +102,17 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
                 {
                     var startDay = evt.DayIndex;
                     var endDay = startDay + (risk.DurationDays ?? 1) - 1;
-                    if (request.DayIndex >= startDay && request.DayIndex <= endDay)
+                    var appliesToPlayer = risk.TargetScope.ToUpperInvariant() switch
                     {
-                        modifier += string.Equals(risk.Direction, "IN", StringComparison.OrdinalIgnoreCase) ? risk.Amount : -risk.Amount;
+                        "ALL_PLAYERS" => true,
+                        "SELF" => evt.UserId == request.UserId,
+                        "OTHER_PLAYERS" => evt.UserId != request.UserId,
+                        _ => false
+                    };
+                    if (appliesToPlayer && request.DayIndex >= startDay && request.DayIndex <= endDay)
+                    {
+                        modifier += risk.ValueDelta ?? (string.Equals(risk.Direction, "IN", StringComparison.OrdinalIgnoreCase)
+                            ? risk.Amount : string.Equals(risk.Direction, "OUT", StringComparison.OrdinalIgnoreCase) ? -risk.Amount : 0);
                     }
                 }
             }
@@ -243,12 +251,12 @@ internal sealed class EventIngredientOrderValidator : IEventIngredientOrderValid
         return new EventIngredientOrderValidation(EventDomainValidationResult.Valid, null);
     }
 
-    private EventDomainValidationResult ValidatePositiveAmountAndPlayer(EventRequest request, int amount)
+    private EventDomainValidationResult ValidatePurchaseAmountAndPlayer(EventRequest request, int amount)
     {
-        var amountValidation = ValidatePositiveAmount(amount);
-        if (!amountValidation.IsValid)
+        if (amount < 0)
         {
-            return amountValidation;
+            return EventDomainValidationResult.Fail(StatusCodes.Status400BadRequest,
+                "VALIDATION_ERROR", "Amount minimal 0", new ErrorDetail("payload.amount", "OUT_OF_RANGE"));
         }
 
         if (request.UserId is null)

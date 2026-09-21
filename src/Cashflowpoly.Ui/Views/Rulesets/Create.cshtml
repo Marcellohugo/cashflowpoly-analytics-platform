@@ -61,7 +61,7 @@
                 <label class="form-label" for="ruleset-name">@Context.T("common.name")</label>
                 <input class="form-input"
                        id="ruleset-name"
-                       asp-for="Name"
+                       asp-for="Name" maxlength="120"
                        required />
             </div>
             <div class="form-field">
@@ -204,15 +204,18 @@
     <script>
         (() => {
             const getEl = (id) => document.getElementById(id);
-            const toInt = (id, fallback = 0) => {
-                const v = parseInt(getEl(id)?.value ?? "", 10);
-                return Number.isFinite(v) ? v : fallback;
-            };
+            const toInt = (id) => getEl(id).valueAsNumber;
 
             const configTextArea = getEl("DefinitionJson");
             let savedConfig = {};
             try { savedConfig = JSON.parse(configTextArea.value || "{}"); } catch (_) {}
             const formEl = document.querySelector("[data-ruleset-create-form]");
+            formEl.querySelectorAll('input[type="number"]').forEach(input => {
+                input.required = true;
+                input.step = "1";
+                input.min ||= "-2147483648";
+                input.max = "2147483647";
+            });
             const modeInputs = Array.from(document.querySelectorAll('input[name="cfg-mode"]'));
             const getMode = () => modeInputs.find((input) => input.checked)?.value ?? "PEMULA";
             const advancedFeaturePanel = document.querySelector("[data-ruleset-advanced-features]");
@@ -241,8 +244,8 @@
             const readForm = () => ({
                 ...savedConfig,
                 mode: getMode(),
-                actions_per_turn: toInt("cfg-actions", 2),
-                starting_cash: toInt("cfg-cash", 20),
+                actions_per_turn: toInt("cfg-actions"),
+                starting_cash: toInt("cfg-cash"),
                 player_ordering: "PLAYER_ORDER",
                 weekday_rules: {
                     friday: { feature: "DONATION", enabled: true },
@@ -250,15 +253,15 @@
                     sunday: { feature: "REST", enabled: true }
                 },
                 constraints: {
-                    cash_min: toInt("cfg-cash-min", 0),
-                    max_ingredient_total: toInt("cfg-max-ing-total", 6),
-                    max_same_ingredient: toInt("cfg-max-same-ing", 3),
+                    cash_min: toInt("cfg-cash-min"),
+                    max_ingredient_total: toInt("cfg-max-ing-total"),
+                    max_same_ingredient: toInt("cfg-max-same-ing"),
                     primary_need_max_per_day: savedConfig.constraints?.primary_need_max_per_day ?? null,
                     require_primary_before_others: savedConfig.constraints?.require_primary_before_others ?? true
                 },
                 donation: {
-                    min_amount: toInt("cfg-donation-min", 1),
-                    max_amount: toInt("cfg-donation-max", 999999)
+                    min_amount: toInt("cfg-donation-min"),
+                    max_amount: toInt("cfg-donation-max")
                 },
                 gold_trade: {
                     allow_buy: true,
@@ -269,7 +272,7 @@
                     insurance: { enabled: getMode() === "MAHIR" },
                     saving_goal: { enabled: getMode() === "MAHIR" }
                 },
-                freelance: { income: toInt("cfg-freelance-income", 1) },
+                freelance: { income: toInt("cfg-freelance-income") },
                 scoring: savedConfig.scoring ?? scoreDefaults
             });
 
@@ -322,6 +325,8 @@
             };
 
             const refreshConfig = () => {
+                if (Array.from(formEl.querySelectorAll('input[type="number"]')).some(input =>
+                    !Number.isInteger(input.valueAsNumber) || !input.validity.valid)) return;
                 const cfg = readForm();
                 if (formEl) formEl.dataset.rulesetMode = cfg.mode.toLowerCase();
                 const json = JSON.stringify(cfg, null, 2);
@@ -350,6 +355,10 @@
             });
 
             refreshConfig();
+            formEl.addEventListener("submit", (event) => {
+                refreshConfig();
+                if (!formEl.reportValidity()) event.preventDefault();
+            });
         })();
     </script>
 }

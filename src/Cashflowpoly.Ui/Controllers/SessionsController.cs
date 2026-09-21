@@ -110,12 +110,12 @@ public sealed class SessionsController : Controller
         [FromQuery] int limit = 100,
         // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
         // aplikasi berhenti; bila argumen tidak diberikan digunakan nilai literal `default`.
-        CancellationToken ct = default)
+        CancellationToken ct = default, [FromQuery] string? refreshSequences = null)
     {
         var normalizedLimit = Math.Clamp(limit, 1, 100);
         var client = _clientFactory.CreateClient("Api");
         var cursorQuery = string.IsNullOrWhiteSpace(cursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
-        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit={normalizedLimit}{cursorQuery}", ct);
+        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit={normalizedLimit}{cursorQuery}&refreshSequences={Uri.EscapeDataString(refreshSequences ?? string.Empty)}", ct);
         var unauthorized = this.HandleUnauthorizedApiResponse(response);
         if (unauthorized is not null)
         {
@@ -144,12 +144,16 @@ public sealed class SessionsController : Controller
             });
         var language = UiText.NormalizeLanguage(HttpContext.Session.GetString(AuthConstants.SessionLanguageKey));
         var timeline = SessionTimelineMapper.MapTimeline(data?.Items, language);
+        var refreshedTimeline = SessionTimelineMapper.MapTimeline(data?.RefreshedItems, language);
         var playerDisplayNames = await LoadPlayerDisplayNameMapAsync(client, sessionId, ct);
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
+        SessionTimelineMapper.ApplyPlayerDisplayNames(refreshedTimeline, playerDisplayNames);
 
         return Json(new
         {
             timeline,
+            refreshedTimeline,
+            undoneSequenceNumbers = data?.UndoneSequenceNumbers ?? [],
             nextCursor = data?.NextCursor,
             hasMore = data?.HasMore ?? false,
             errorMessage = (string?)null,
@@ -184,7 +188,7 @@ public sealed class SessionsController : Controller
         {
             var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(cancellationToken: ct);
             var fallbackPlayerDisplayNames = await playerDisplayNamesTask;
-            var (fallbackTimeline, fallbackTimelineError) = await timelineTask;
+            var (fallbackTimeline, fallbackTimelineError, fallbackCursor) = await timelineTask;
             SessionTimelineMapper.ApplyPlayerDisplayNames(fallbackTimeline, fallbackPlayerDisplayNames);
 
             return (new SessionDetailViewModel
@@ -192,6 +196,7 @@ public sealed class SessionsController : Controller
                 SessionId = sessionId,
                 SessionStatus = sessionStatus,
                 Timeline = fallbackTimeline,
+                TimelineCursor = fallbackCursor,
                 TimelineErrorMessage = fallbackTimelineError,
                 PlayerDisplayNames = fallbackPlayerDisplayNames,
                 ErrorMessage = error?.Message ?? HttpContext
@@ -204,14 +209,16 @@ public sealed class SessionsController : Controller
         if (analytics?.SessionId != sessionId || analytics.Summary is null || analytics.ByPlayer is null)
             analytics = null;
         var playerDisplayNames = await playerDisplayNamesTask;
-        var (timeline, timelineError) = await timelineTask;
+        var (timeline, timelineError, timelineCursor) = await timelineTask;
         SessionTimelineMapper.ApplyPlayerDisplayNames(timeline, playerDisplayNames);
-        var activeRulesetDetail = analytics?.RulesetId is Guid rulesetId
-            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: await LoadActiveRulesetDetailAsync(client, rulesetId, analytics.RulesetVersionId, ct) dalam
-            // BuildSessionDetailViewModel.
-            ? await LoadActiveRulesetDetailAsync(client, rulesetId, analytics.RulesetVersionId, ct)
-            // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: null; dalam BuildSessionDetailViewModel.
-            : null;
+        RulesetDetailResponse? activeRulesetDetail = null;
+        try
+        {
+            if (analytics?.RulesetId is Guid rulesetId)
+                activeRulesetDetail = await LoadActiveRulesetDetailAsync(client, rulesetId, analytics.RulesetVersionId, ct);
+        }
+        catch (HttpRequestException) { }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) { }
         var activeRulesetViewModel = activeRulesetDetail is null
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: null dalam BuildSessionDetailViewModel.
             ? null
@@ -231,6 +238,7 @@ public sealed class SessionsController : Controller
             Analytics = analytics,
             ActiveRulesetDetail = activeRulesetViewModel,
             Timeline = timeline,
+            TimelineCursor = timelineCursor,
             TimelineErrorMessage = timelineError,
             PlayerDisplayNames = playerDisplayNames,
             ErrorMessage = analytics is null ? HttpContext.T("sessions.error.invalid_analytics") : null
@@ -297,14 +305,15 @@ public sealed class SessionsController : Controller
 
     private static async Task<string?> GetSessionStatusAsync(HttpClient client, Guid sessionId, CancellationToken ct)
     {
-        var sessionResponse = await client.GetAsync("api/v1/sessions", ct);
-        if (!sessionResponse.IsSuccessStatusCode)
+        try
         {
-            return null;
+            using var sessionResponse = await client.GetAsync("api/v1/sessions", ct);
+            if (!sessionResponse.IsSuccessStatusCode) return null;
+            var data = await sessionResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
+            return data?.Items?.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
         }
-
-        var data = await sessionResponse.Content.TryReadFromJsonAsync<SessionListResponse>(cancellationToken: ct);
-        return data?.Items?.FirstOrDefault(x => x.SessionId == sessionId)?.Status;
+        catch (HttpRequestException) { return null; }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) { return null; }
     }
 
     private static async Task<Dictionary<Guid, string>> LoadPlayerDisplayNameMapAsync(
@@ -315,40 +324,49 @@ public sealed class SessionsController : Controller
         // aplikasi berhenti.
         CancellationToken ct)
     {
-        var response = await client.GetAsync($"api/v1/sessions/{sessionId}/players", ct);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            return new Dictionary<Guid, string>();
+            using var response = await client.GetAsync($"api/v1/sessions/{sessionId}/players", ct);
+            if (!response.IsSuccessStatusCode) return [];
+            var data = await response.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
+            return (data?.Items ?? new List<SessionPlayerResponse>())
+                .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
+                .GroupBy(item => item.UserId)
+                .ToDictionary(group => group.Key, group => group.First().DisplayName);
         }
-
-        var data = await response.Content.TryReadFromJsonAsync<SessionPlayerListResponse>(cancellationToken: ct);
-        return (data?.Items ?? new List<SessionPlayerResponse>())
-            .Where(item => !string.IsNullOrWhiteSpace(item.DisplayName))
-            .GroupBy(item => item.UserId)
-            .ToDictionary(group => group.Key, group => group.First().DisplayName);
+        catch (HttpRequestException) { return []; }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) { return []; }
     }
 
-    private async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage)> LoadTimelineAsync(
+    private async Task<(List<SessionTimelineEventViewModel> Timeline, string? ErrorMessage, string? Cursor)> LoadTimelineAsync(
         HttpClient client, Guid sessionId, string language, CancellationToken ct)
     {
-        var events = new List<EventRequest>();
-        var cursors = new HashSet<string>(StringComparer.Ordinal);
-        string? cursor = null;
-        do
+        try
         {
-            var cursorQuery = string.IsNullOrWhiteSpace(cursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
-            using var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit=100{cursorQuery}", ct);
-            if (!response.IsSuccessStatusCode)
-                return ([], HttpContext.T("sessions.error.load_timeline_failed")
-                    .Replace("{status}", ((int)response.StatusCode).ToString()));
+            var events = new List<EventRequest>();
+            var cursors = new HashSet<string>(StringComparer.Ordinal);
+            string? cursor = null;
+            string? latestCursor = null;
+            do
+            {
+                var cursorQuery = string.IsNullOrWhiteSpace(cursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
+                using var response = await client.GetAsync($"api/v1/sessions/{sessionId}/events?limit=100{cursorQuery}", ct);
+                if (!response.IsSuccessStatusCode)
+                    return ([], HttpContext.T("sessions.error.load_timeline_failed")
+                        .Replace("{status}", ((int)response.StatusCode).ToString()), null);
 
-            var page = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(ct);
-            if (page?.Items is null || (page.HasMore && (string.IsNullOrWhiteSpace(page.NextCursor) || !cursors.Add(page.NextCursor))))
-                return ([], HttpContext.T("sessions.error.timeline_incomplete"));
-            events.AddRange(page.Items);
-            cursor = page.HasMore ? page.NextCursor : null;
+                var page = await response.Content.TryReadFromJsonAsync<EventsBySessionResponse>(ct);
+                if (page?.Items is null || (page.HasMore && (string.IsNullOrWhiteSpace(page.NextCursor) || !cursors.Add(page.NextCursor))))
+                    return ([], HttpContext.T("sessions.error.timeline_incomplete"), null);
+                events.AddRange(page.Items);
+                latestCursor = page.NextCursor ?? latestCursor;
+                cursor = page.HasMore ? page.NextCursor : null;
+            }
+            while (!string.IsNullOrWhiteSpace(cursor));
+            return (SessionTimelineMapper.MapTimeline(events, language), null, latestCursor);
         }
-        while (!string.IsNullOrWhiteSpace(cursor));
-        return (SessionTimelineMapper.MapTimeline(events, language), null);
+        catch (HttpRequestException) { return ([], HttpContext.T("auth.error.api_unavailable"), null); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        { return ([], HttpContext.T("auth.error.api_unavailable"), null); }
     }
 }

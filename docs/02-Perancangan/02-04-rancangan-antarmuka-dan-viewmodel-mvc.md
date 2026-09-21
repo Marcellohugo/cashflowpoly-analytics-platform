@@ -3,8 +3,8 @@
 
 ### Informasi Dokumen
 - **Nama Dokumen**: Rancangan Antarmuka dan ViewModel MVC
-- **Versi**: 1.4
-- **Tanggal**: 11 Juli 2026
+- **Versi**: 1.5
+- **Tanggal**: 13 September 2026
 - **Penyusun**: Marco Marcello Hugo
 
 ---
@@ -24,7 +24,7 @@ Web Analitika MVC difokuskan sebagai **Dasbor Analitik Pemantauan Pembelajaran**
 - Halaman performa individual pemain beserta histori transaksi lengkapnya.
 - Halaman katalog ruleset, detail aturan komponen ruleset, dan form create/edit ruleset (khusus Instruktur).
 - Halaman panduan buku aturan (*rulebook*) bilingual.
-- Grafik tren kas, fluktuasi aset, dan pencapaian skor yang real-time.
+- Statistik lintas sesi satu pemain dalam satu mode, memakai grafik SVG dan tabel sumber. Timeline memeriksa event baru berkala; halaman analitika memperoleh angka terbaru saat dimuat ulang.
 
 ### 2.2 Fitur yang Diluar Scope UI Web:
 - Antarmuka permainan seluler Klien Game/IDN.
@@ -42,17 +42,19 @@ Cashflowpoly.Ui/
     HomeController.cs          -> Kontrol halaman utama, privasi, dan rulebook
     SessionsController.cs      -> Kontrol daftar sesi dan detail analitika sesi
     PlayersController.cs       -> Kontrol detail analitika individual pemain
-    PlayerDirectoryController.cs -> Direktori data pemain global
+    PlayerStatisticsController.cs -> Statistik peserta sesuai scope akun dan mode
     RulesetsController.cs      -> CRUD, aktivasi, dan detail ruleset
     LanguageController.cs      -> Preferensi bahasa (bilingual)
     AnalyticsController.cs     -> Redirect rute analytics
   Infrastructure/
     ApiAuthHelper.cs           -> Helper auth API backend
-    AuthSessionExtensions.cs    -> Extension session server-side
+    AuthSessionExtensions.cs   -> AuthContextExtensions membaca role principal cookie
     BearerTokenHandler.cs      -> Handler JWT Bearer HttpClient
     HttpContentExtensions.cs   -> Ekstraksi respons HTTP
     RulebookContent.cs         -> Penyimpan statis teks buku aturan
     UiText.cs                  -> Lexicon terjemahan bilingual
+    PlayerStatisticsChartBuilder.cs -> Pemetaan metrik antarsesi untuk grafik
+    SessionRosterLoader.cs     -> Pembacaan roster sesi melalui endpoint gabungan
   Contracts/
     Dtos.cs                    -> Data Transfer Object API backend
     RulesetDefinitionDtos.cs   -> DTO definition ter-normalisasi
@@ -60,10 +62,11 @@ Cashflowpoly.Ui/
   Models/
     AuthViewModels.cs          -> Model data login & register
     AnalyticsViewModels.cs     -> Model data visualisasi analitik & transaksi
+    PlayerStatisticsViewModels.cs -> Pilihan pemain, sesi, mode, dan grafik statistik
     RulesetViewModels.cs       -> Model data form/view ruleset
     RulebookViewModels.cs      -> Model data render buku aturan
   Views/                       -> Razor Views (.cshtml) per modul
-  wwwroot/                     -> Aset statis (Tailwind CSS output, Chart.js, images)
+  wwwroot/                     -> Tailwind CSS, renderer SVG JavaScript, gambar
 ```
 
 ---
@@ -80,8 +83,8 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 | Performa Detil Pemain | `/sessions/{id}/players/{userId}` | `PlayersController` | `Details` | `INSTRUCTOR` / `PLAYER` |
 | Statistik Pemain | `/statistics` | `PlayerStatisticsController` | `Index` | Player sendiri / Instruktur pemilik sesi |
 | Buku Aturan (Rulebook) | `/rulebook` | `HomeController` | `Rulebook` | Publik |
-| Daftar Ruleset | `/rulesets` | `RulesetsController` | `Index` | `INSTRUCTOR` / `PLAYER` |
-| Detail Versi Ruleset | `/rulesets/{id}` | `RulesetsController` | `Details` | `INSTRUCTOR` / `PLAYER` |
+| Daftar Ruleset | `/rulesets` | `RulesetsController` | `Index` | `INSTRUCTOR`; Player diarahkan ke `/sessions` |
+| Detail Versi Ruleset | `/rulesets/{id}` | `RulesetsController` | `Details` | `INSTRUCTOR`; Player diarahkan ke `/sessions` |
 | Formulir Buat Ruleset | `/rulesets/create` | `RulesetsController` | `Create` | `INSTRUCTOR` |
 | Formulir Edit Ruleset | `/rulesets/{id}/edit` | `RulesetsController` | `Edit` | `INSTRUCTOR` |
 | Rute Analytics (Redirect) | `/analytics` | `AnalyticsController` | `Index` | Redirect ke `/sessions` |
@@ -91,7 +94,7 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 ## 5. Prinsip Desain & Presentasi Data
 
 ### 5.1 Konsistensi Grafik Visual
-- Semua elemen grafik visual (tren arus kas, pertumbuhan aset) dibungkus dalam container dengan tinggi tetap (*fixed height*) untuk mencegah layout melar tanpa batas (*infinite horizontal stretch*).
+- Grafik memakai renderer SVG `player-detail-charts.js` dalam container responsif. Rincian titik tampil sementara di bawah grafik saat hover atau fokus keyboard yang terlihat (`:focus-visible`), lalu menutup pada pointer keluar, blur, atau Escape. Klik/ketukan tidak mengunci rincian; tabel nilai dan sumber menyediakan akses data untuk layar sentuh.
 - Grafik memuat data teragregasi yang dipanggil dari API, bukan melakukan kalkulasi raw event secara langsung di browser client.
 
 ### 5.2 Standar Format Data
@@ -111,6 +114,13 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 - Hari permainan memakai indeks `1..25`; formatter tidak menambah atau memaksa indeks 0 menjadi Hari 1.
 - `action_slot=0` dipertahankan untuk event sistem dan aksi gratis.
 
+### 5.5 Statistik lintas sesi
+- Instruktur mencari nama peserta dari sesi miliknya; nama ambigu dibedakan dengan UUID. Player hanya dapat melihat dirinya sendiri.
+- Filter selalu memilih satu mode (`PEMULA`/`MAHIR`) dan status sesi. Sesi `CREATED` memiliki gameplay `null` dan tidak digambar sebagai nol.
+- Tombol kelompok metrik menampilkan satu kelompok grafik. Tabel nilai dan sumber di bawah setiap grafik memakai paginasi **5 baris per halaman**.
+- Data sesi, roster, dan gameplay diambil dari endpoint gabungan; jumlah permintaan API maksimal dua untuk Player dan tiga untuk Instruktur.
+- Agregasi lintas sesi per ruleset tersedia melalui API; belum ada tampilan UI yang memanggil endpoint tersebut.
+
 ---
 
 ## 6. Kontrak Data (DTO & ViewModel)
@@ -121,7 +131,7 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 
 ### 6.2 ViewModel Tampilan (`Cashflowpoly.Ui/Models/`)
 - Menyimpan properti hasil konversi tipe data mentah API ke bentuk siap tampil (seperti format tanggal lokal dan status string berwarna).
-- DTO API tidak pernah diumpankan langsung ke Razor View; pemetaan dilakukan di controller menggunakan ViewModel perantara.
+- Controller membentuk ViewModel per halaman; beberapa ViewModel menyertakan DTO sesi atau gameplay sebagai bagian dari data tampilan.
 
 ---
 
@@ -130,27 +140,31 @@ Dasbor memetakan rute URL antarmuka pengguna sebagai berikut:
 | Layanan Tampilan | Endpoint API Backend | Opsi Parameter / Keterangan |
 |---|---|---|
 | Autentikasi Masuk | `POST /api/v1/auth/login` | Memperoleh JWT token & data user role |
-| Registrasi Akun | `POST /api/v1/auth/register` | Registrasi publik hanya untuk akun Player; akun Instruktur dibuat lewat bootstrap/admin |
+| Registrasi Akun | `POST /api/v1/auth/register` | Player atau Instruktur; `Auth:AllowPublicInstructorRegistration=true` secara default |
 | Halaman Daftar Sesi | `GET /api/v1/sessions` | Membaca daftar sesi sesuai peran pengguna |
 | Daftar Player Sesi | `GET /api/v1/sessions/{id}/players` | Membaca peserta sesi sesuai scope pengguna |
 | Dasbor Detail Sesi | `GET /api/v1/analytics/sessions/{id}` | Ringkasan analitika lifetime sesi |
 | Linimasa Event Sesi | `GET /api/v1/sessions/{id}/events` | Riwayat kronologi event permainan |
-| Histori Transaksi Pemain| `GET /api/v1/analytics/sessions/{id}/transactions?userId=...` | Transaksi koin per pemain |
+| Histori Transaksi Pemain| `GET /api/v1/analytics/sessions/{id}/players/{userId}/gameplay` | Tabel transaksi dibentuk dari histori koin pada snapshot gameplay yang sama dengan ringkasan pemain; endpoint `/transactions` tersedia untuk integrasi API, tetapi tidak dipanggil halaman ini. |
 | Gameplay Snapshot | `GET /api/v1/analytics/sessions/{id}/players/{userId}/gameplay` | Kategori metrik detail pemain |
+| Peserta Sesi dan Pilihan Pemain | `GET /api/v1/analytics/session-rosters` | Roster seluruh sesi sesuai scope dalam satu permintaan |
+| Statistik Pemain | `GET /api/v1/analytics/players/{playerId}/gameplay?mode=...&status=...` | Riwayat gameplay pemain dalam satu mode |
 | Manajemen Ruleset | `GET /api/v1/rulesets` | Daftar dan detail aturan ruleset |
-| Ringkasan Per Ruleset | `GET /api/v1/analytics/rulesets/{id}/summary` | Agregasi performa lintas sesi |
 
 ---
 
 ## 8. Otorisasi & Penanganan Error di UI
 
-### 8.1 Manajemen Session Token
-1. Token JWT (`access_token`) disimpan di session server-side Web MVC setelah login berhasil.
+### 8.1 Tiket cookie autentikasi
+1. Token JWT (`access_token`) disimpan sebagai claim dalam tiket cookie autentikasi yang dilindungi ASP.NET Core Data Protection (terenkripsi), dengan `HttpOnly`, `SameSite=Lax`, dan `Secure` pada production. Penyimpanan ini tidak menggunakan session server-side.
 2. Setiap request yang dipicu oleh `HttpClient` UI akan dilekatkan token Bearer tersebut melalui delegating handler `BearerTokenHandler`.
-3. Jika backend API mengembalikan status `401 Unauthorized`, UI otomatis membersihkan session lokal dan mengarahkan pengguna ke halaman login.
+3. Jika backend API mengembalikan status `401 Unauthorized`, UI menghapus cookie autentikasi dan mengarahkan pengguna ke halaman login.
 
 ### 8.2 Response Handling State
 -   **`403 Forbidden`**: UI menyembunyikan tombol mutasi ruleset untuk Player dan merender halaman error ramah pengguna "Akses Ditolak".
 -   **`404 Not Found`**: Merender visualisasi *Empty State* atau keterangan data tidak tersedia.
 -   **`429 Too Many Requests`**: Menampilkan dialog peringatan rate limit terlampaui.
--   **`500 Internal Server Error`**: Menampilkan pesan kesalahan umum beserta `trace_id` yang didapat dari respons API agar dapat dilaporkan ke tim administrasi.
+-   **`500 Internal Server Error`**: Menampilkan pesan API atau pesan kesalahan umum. `trace_id` API belum diteruskan ke tampilan; ID permintaan pada halaman galat UI adalah ID milik permintaan UI tersebut.
+
+### 8.3 Pembaruan timeline dan analitika sementara
+Cursor opaque terakhir dari pemuatan awal disimpan dalam ViewModel. Polling melanjutkan dari cursor itu; entri SEALED diminta ulang melalui `refreshSequences` (maksimal 100 per permintaan) dan diganti berdasarkan sequence number. Respons `refreshed_items` tidak mengubah cursor halaman. Permintaan polling tidak tumpang tindih. Analitika publik mengecualikan donasi yang belum lengkap dan menyertakan `has_sealed_donations`; UI menampilkan keterangan sampai seluruh pemain menyetor.

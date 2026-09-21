@@ -3,6 +3,8 @@
 using Dapper;
 // Mengimpor namespace `Npgsql` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using Npgsql;
+using Cashflowpoly.Api.Contracts;
+using Cashflowpoly.Api.Infrastructure;
 
 // Menempatkan deklarasi pada namespace `Cashflowpoly.Api.Data` untuk mengelompokkan komponen dan mencegah benturan nama tipe.
 namespace Cashflowpoly.Api.Data;
@@ -25,6 +27,26 @@ public sealed class SessionRepository
         _dataSource = dataSource;
     }
 
+    public async Task<SessionHeartbeatResponse?> RecordHeartbeatAsync(Guid sessionId, Guid instructorUserId,
+        SessionLifecycleOptions options, CancellationToken ct)
+    {
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var heartbeat = await conn.QuerySingleOrDefaultAsync<(string Status, DateTime LastActivityAt, DateTime ExpiresAt)>(new CommandDefinition("""
+            update sessions set last_activity_at = clock_timestamp()
+            where session_id = @sessionId and instructor_user_id = @instructorUserId
+              and status in ('CREATED', 'STARTED')
+            returning status as Status, last_activity_at as LastActivityAt,
+                last_activity_at + case when status = 'CREATED' then @createdTimeout else @startedTimeout end as ExpiresAt
+            """, new
+            {
+                sessionId, instructorUserId,
+                createdTimeout = TimeSpan.FromSeconds(options.CreatedTimeoutSeconds),
+                startedTimeout = TimeSpan.FromSeconds(options.StartedTimeoutSeconds)
+            }, cancellationToken: ct));
+        return heartbeat.Status is null ? null : new SessionHeartbeatResponse(
+            heartbeat.Status, heartbeat.LastActivityAt, heartbeat.ExpiresAt, options.HeartbeatIntervalSeconds);
+    }
+
     /// <summary>
     /// Mengambil data sesi berdasarkan session_id.
     /// </summary>
@@ -35,7 +57,7 @@ public sealed class SessionRepository
     public async Task<SessionDb?> GetSessionAsync(Guid sessionId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, end_reason, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where session_id = @sessionId
             """;
@@ -55,7 +77,7 @@ public sealed class SessionRepository
     public async Task<SessionDb?> GetSessionForInstructorAsync(Guid sessionId, Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, end_reason, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where session_id = @sessionId
               and instructor_user_id = @instructorUserId
@@ -258,6 +280,8 @@ public sealed class SessionRepository
                 sp.player_order_no as PlayerOrder,
                 fs.rank_no as Rank,
                 fs.total_points as TotalPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'INITIAL_HAPPINESS'), 0) as InitialHappinessPoints,
+                coalesce(sum(fsc.points) filter (where fsc.component_code = 'MISSION_REWARD'), 0) as MissionRewardPoints,
                 coalesce(sum(fsc.points) filter (where fsc.component_code = 'NEED_POINTS'), 0) as NeedPoints,
                 coalesce(sum(fsc.points) filter (where fsc.component_code = 'NEED_SET_BONUS'), 0) as NeedSetBonusPoints,
                 coalesce(sum(fsc.points) filter (where fsc.component_code = 'DONATION'), 0) as DonationPoints,
@@ -299,7 +323,7 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsAsync(CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, end_reason, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where not is_archived
             order by created_at desc
@@ -320,7 +344,7 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListAllSessionsForMaintenanceAsync(CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, end_reason, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             order by created_at
             """;
@@ -340,7 +364,7 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsByInstructorAsync(Guid instructorUserId, CancellationToken ct)
     {
         const string sql = """
-            select session_id, session_name, mode, status, started_at, ended_at, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
+            select session_id, session_name, mode, status, started_at, ended_at, end_reason, instructor_user_id, ruleset_version_id, is_archived, archived_at, created_at
             from sessions
             where instructor_user_id = @instructorUserId
               and not is_archived
@@ -362,7 +386,7 @@ public sealed class SessionRepository
     public async Task<List<SessionDb>> ListSessionsByPlayerAsync(Guid userId, CancellationToken ct)
     {
         const string sql = """
-            select distinct s.session_id, s.session_name, s.mode, s.status, s.started_at, s.ended_at, s.instructor_user_id, s.ruleset_version_id, s.is_archived, s.archived_at, s.created_at
+            select distinct s.session_id, s.session_name, s.mode, s.status, s.started_at, s.ended_at, s.end_reason, s.instructor_user_id, s.ruleset_version_id, s.is_archived, s.archived_at, s.created_at
             from sessions s
             join session_participants sp on sp.session_id = s.session_id
             where sp.user_id = @userId

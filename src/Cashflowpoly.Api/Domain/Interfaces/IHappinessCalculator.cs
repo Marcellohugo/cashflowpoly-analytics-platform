@@ -14,7 +14,8 @@ public interface IHappinessCalculator
         List<CashflowProjectionDb> projections,
         // Parameter `config` bertipe `RulesetConfig?` membawa konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan; nilai null
         // diizinkan ketika data opsional belum tersedia.
-        RulesetConfig? config);
+        RulesetConfig? config,
+        IEnumerable<Guid>? participantIds = null);
 
     Dictionary<Guid, int> ComputePensionRanks(
         // Parameter `events` bertipe `List<EventDb>` membawa kumpulan event permainan sebagai sumber riwayat untuk validasi atau perhitungan.
@@ -22,7 +23,8 @@ public interface IHappinessCalculator
         // Parameter `projections` bertipe `List<CashflowProjectionDb>` membawa proyeksi transaksi arus kas yang diturunkan dari event permainan.
         List<CashflowProjectionDb> projections,
         // Parameter `config` bertipe `RulesetConfig` membawa konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan.
-        RulesetConfig config);
+        RulesetConfig config,
+        IEnumerable<Guid>? participantIds = null);
 
     AnalyticsHappinessBreakdown ComputeBreakdown(
         // Parameter `playerEvents` bertipe `List<EventDb>` membawa nilai pemain event.

@@ -1,6 +1,6 @@
 # Manifest Fungsi File Repositori
 
-Baseline manifest: 30 Agustus 2026 (setelah audit source code dan konsolidasi dokumentasi).
+Manifest diperbarui: 16 September 2026 (sinkronisasi audit UI, akses data, dan dokumentasi).
 
 Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususnya setelah dilakukan penyederhanaan struktur berkas dokumentasi di bawah folder `docs/`.
 
@@ -25,6 +25,15 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `scripts/deploy-production.sh` | Otomasi | Deployment production ber-lock, migrasi, health/smoke test, dan rollback image aplikasi. |
 
 ## Database dan Integrasi
+
+Migrasi `database/migrations/V005__event_consistency.sql` memperbaiki kontrak aktor dan efek harga tanpa menulis ulang migrasi yang telah dirilis. `RulesetDefinitionShapeValidator.cs` menjaga bentuk koleksi ruleset sebelum dipakai; `AnalyticsCollectionMissions.cs` mengevaluasi persyaratan misi dari katalog.
+
+Migrasi `database/migrations/V006__initial_and_mission_happiness.sql` memasukkan poin awal dan hadiah misi ke komponen skor final historis serta menjaga pemberian hadiah misi tepat sekali pada proyeksi state. `ScoringConsistencyIntegrationTests.cs` menguji skor sebelum/sesudah finalisasi, recompute, dan koreksi data lama. `InitialSavingIntegrationTests.cs` menguji penggunaan tabungan awal lintas tujuan; `Test-IngressNetworking.ps1` memeriksa alokasi alamat Nginx dan tunnel pada jaringan baru.
+
+Migrasi `database/migrations/V007__narrative_action_slot_guard.sql` memisahkan akses kolom pada trigger bersama berdasarkan tabel pemanggil. `MealSaleIntegrationTests.cs` menguji penjualan masakan beserta narasi dengan katalog bawaan Pemula dan Mahir.
+
+Migrasi `database/migrations/V008__life_risk_player_resolution.sql` menambahkan penyelesaian biaya risiko massal per pemain, menjaga kompatibilitas proyeksi draw lama, dan menyelaraskan saldo sesi berjalan dengan ledger. `V009__gold_risk_price_refresh.sql` menambahkan pembaruan harga setiap kartu emas. `V010__active_risk_and_gold_guards.sql` memasang validasi risiko dan emas pada trigger aktif tanpa mengubah checksum V008/V009 yang sudah terpasang. `LifeRiskMassIntegrationTests.cs`, `LifeRiskTransferIntegrationTests.cs`, `LifeRiskSqlProjectionIntegrationTests.cs`, dan `GoldRiskPriceRefreshIntegrationTests.cs` menguji pilihan asuransi/bayar, transfer ulang tahun, kompatibilitas/proyeksi ulang SQL, serta pembaruan harga dan transaksi seluruh pemain.
+
 | Path | Kategori | Fungsi |
 |---|---|---|
 | `database/00_create_schema.sql` | Database | DDL kanonis schema PostgreSQL event-first. |
@@ -34,6 +43,8 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `postman/Cashflowpoly.local.postman_environment.json` | Integrasi | Environment lokal Postman. |
 
 ## Pengujian Otomatis
+
+Regresi audit menyeluruh berada pada `RulesetRosterAuditTests`, `EventContractRegressionTests`, `AnalyticsAuditRegressionTests`, dan `AnalyticsAuditIntegrationTests`. Regresi browser ada di `tests/e2e/specs/audit-fixes.spec.js`; identitas proxy diuji oleh `tests/deployment/Test-NginxClientIdentity.ps1`. Status dan alasan perubahan tercatat pada [laporan perbaikan audit](03-Pengujian/03-07-perbaikan-audit-menyeluruh.md).
 
 | Path | Kategori | Fungsi |
 |---|---|---|
@@ -72,3 +83,22 @@ Dokumen ini merangkum fungsi file dan family file aktif pada repository, khususn
 | `docs/Img/RuleBook/*.png` | Aset dokumen | Scan/gambar halaman rulebook untuk lampiran dokumen. |
 
 *(Bagian file src/ dan tests/ tidak berubah, silakan lihat rincian lengkapnya pada repositori kode).*
+
+## Tambahan audit September 2026
+| Path | Fungsi |
+|---|---|
+| `src/Cashflowpoly.Api/Domain/DonationVisibility.cs` | Menyaring donasi rahasia serta proyeksi yang mendahului pembacaan event dari analitika publik. |
+| `tests/Cashflowpoly.Api.Tests/DonationVisibilityTests.cs` | Regresi kerahasiaan jumlah donasi saat pembacaan event dan proyeksi bersamaan. |
+| `docs/03-Pengujian/03-05-kesiapan-produksi.md` | Bukti kesiapan dan deployment baseline terdahulu. |
+| `docs/03-Pengujian/03-06-perbaikan-audit-ui-data-dan-dokumentasi.md` | Perubahan audit lanjutan, alasan, dan verifikasi lokal. |
+| `database/migrations/V011__shared_savings_first_purchase.sql` | Menggabungkan setoran sebagai saldo tabungan per pemain tanpa reservasi kartu; kepemilikan tujuan dibuat saat pembelian penuh dan stok diperiksa dalam transaksi sesi. |
+| `database/migrations/V012__session_lifecycle.sql` | Mencatat aktivitas terakhir dan alasan penutupan, serta mengenali sesi tanpa gameplay. |
+| `database/migrations/V013__event_undo.sql` | Menyimpan snapshot sebelum event, memulihkan 16 proyeksi secara atomik, dan menjaga audit pembatalan serta reservasi identitas event. |
+| `src/Cashflowpoly.Api/Contracts/EventUndoDtos.cs` | Kontrak request, receipt idempoten, dan pagination audit undo. |
+| `src/Cashflowpoly.Api/Controllers/EventUndoController.cs` | Endpoint undo event terakhir dan audit khusus instruktur pemilik sesi. |
+| `src/Cashflowpoly.Api/Data/EventUndoRepository.cs` | Menjalankan transaksi undo, validasi versi/urutan, pemulihan snapshot, dan invalidasi metrik. |
+| `src/Cashflowpoly.Api/Infrastructure/SessionLifecycleOptions.cs` | Default heartbeat 30 menit dan timeout sesi 1 jam. |
+| `src/Cashflowpoly.Api/Infrastructure/SessionLifecycleWorker.cs` | Memeriksa timeout, mengakhiri sesi berisi gameplay, dan membersihkan sesi kosong. |
+| `tests/Cashflowpoly.Api.Tests/EventUndoIntegrationTests.cs` | Menguji pemulihan seluruh tabel, retry, audit, reservasi identitas, akses, dan rollback. |
+| `tests/Cashflowpoly.Api.Tests/EventUndoConcurrencyIntegrationTests.cs` | Memastikan event tunggal/batch yang mengantre setelah undo divalidasi ulang pada state hasil pemulihan. |
+| `tests/Cashflowpoly.Api.Tests/SessionLifecycleIntegrationTests.cs` | Menguji heartbeat, timeout, pembersihan sesi kosong, dan perlombaan penutupan. |

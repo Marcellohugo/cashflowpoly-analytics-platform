@@ -6,6 +6,7 @@ using Cashflowpoly.Api.Data;
 using Cashflowpoly.Api.Domain;
 using Cashflowpoly.Api.Contracts;
 using Microsoft.AspNetCore.Http;
+using Dapper;
 
 namespace Cashflowpoly.Api.Services;
 
@@ -157,6 +158,11 @@ internal sealed class AnalyticsService : IAnalyticsService
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> RecomputeAsync(
         Guid sessionId, ClaimsPrincipal user, CancellationToken ct)
     {
+        // Keep event reads and persisted metrics on the same side of any ingest, undo, or session end.
+        await using var conn = await _events.OpenConnectionAsync(ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(
+            "select pg_advisory_xact_lock(hashtextextended(@sessionId::text, 0))", new { sessionId }, tx, cancellationToken: ct));
         var access = await ResolveSessionAccessAsync(sessionId, user, ct);
         if (access.Error is not null)
         {
@@ -165,13 +171,16 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        var participantCount = await _players.CountPlayersInSessionAsync(sessionId, ct);
+        var hasSealedDonations = DonationVisibility.RemoveSealed(events, projections, participantCount);
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
-        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
+        var playerRoster = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
+        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config, playerRoster.Keys);
         var finalScores = await ResolveFinalScoresAsync(sessionId, access.Session?.Status, ct);
         happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
         var summary = _scoreCalc.BuildSummary(events, projections);
-        var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerPlayerOrders, ct);
+
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerRoster, ct);
         var leaderboard = string.Equals(access.Session?.Status, "ENDED", StringComparison.OrdinalIgnoreCase)
             ? BuildFinalLeaderboard(byPlayer, finalScores)
             : [];
@@ -190,7 +199,7 @@ internal sealed class AnalyticsService : IAnalyticsService
                 ct);
         }
 
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard, activeRuleset.VersionId), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard, activeRuleset.VersionId, hasSealedDonations), 200, null);
     }
 
     public async Task<(AnalyticsSessionResponse? Result, int StatusCode, ErrorResponse? Error)> GetSessionAnalyticsAsync(
@@ -210,13 +219,16 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
         var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
+        var participantCount = await _players.CountPlayersInSessionAsync(sessionId, ct);
+        var hasSealedDonations = DonationVisibility.RemoveSealed(events, projections, participantCount);
         var activeRuleset = await GetActiveRulesetContextAsync(sessionId, ct);
-        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
+        var playerRoster = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
+        var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config, playerRoster.Keys);
         var finalScores = await ResolveFinalScoresAsync(sessionId, access.Session?.Status, ct);
         happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
         var summary = _scoreCalc.BuildSummary(events, projections);
-        var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
-        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerPlayerOrders, ct);
+
+        var byPlayer = await BuildByPlayerAsync(sessionId, events, projections, happinessByPlayer, activeRuleset.Config, playerRoster, ct);
         var leaderboard = string.Equals(access.Session?.Status, "ENDED", StringComparison.OrdinalIgnoreCase)
             ? BuildFinalLeaderboard(byPlayer, finalScores)
             : [];
@@ -225,7 +237,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             byPlayer = byPlayer.Where(item => item.UserId == scope.UserId.Value).ToList();
         }
 
-        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard, activeRuleset.VersionId), 200, null);
+        return (new AnalyticsSessionResponse(sessionId, summary, byPlayer, activeRuleset.RulesetId, activeRuleset.Name, leaderboard, activeRuleset.VersionId, hasSealedDonations), 200, null);
     }
 
     public async Task<(TransactionHistoryResponse? Result, int StatusCode, ErrorResponse? Error)> GetTransactionsAsync(
@@ -311,6 +323,7 @@ internal sealed class AnalyticsService : IAnalyticsService
     {
         var sessionId = session.SessionId;
         var startingCash = activeRuleset.Config?.StartingCash ?? 0;
+        var hasSealedDonations = false;
         Dictionary<string, double> values;
         DateTimeOffset? computedAt;
         string? rawJsonText;
@@ -320,7 +333,10 @@ internal sealed class AnalyticsService : IAnalyticsService
         {
             var events = await _events.GetAllEventsBySessionAsync(sessionId, ct);
             var projections = await _events.GetCashflowProjectionsAsync(sessionId, ct);
-            var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config);
+            var participantCount = await _players.CountPlayersInSessionAsync(sessionId, ct);
+            hasSealedDonations = DonationVisibility.RemoveSealed(events, projections, participantCount);
+            var playerRoster = await _players.GetSessionPlayerPlayerOrderMapAsync(sessionId, ct);
+            var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, activeRuleset.Config, playerRoster.Keys);
             var finalScores = await ResolveFinalScoresAsync(sessionId, session.Status, ct);
             happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
             var liveMetrics = ComputePlayerMetrics(
@@ -331,7 +347,8 @@ internal sealed class AnalyticsService : IAnalyticsService
                 activeRuleset.Config,
                 finalScores.FirstOrDefault(score => score.UserId == userId),
                 playerAlias,
-                string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase));
+                string.Equals(session.Status, "ENDED", StringComparison.OrdinalIgnoreCase),
+                playerRoster.Keys);
             values = liveMetrics.ToDictionary(
                 item => item.Key,
                 item => item.Value.Numeric ?? 0d,
@@ -352,6 +369,7 @@ internal sealed class AnalyticsService : IAnalyticsService
                 "happiness.points.total", "happiness.need.points", "happiness.need.bonus", "happiness.donation.points",
                 "happiness.gold.points", "happiness.pension.points", "happiness.saving_goal.points",
                 "happiness.mission.penalty", "happiness.loan.penalty", "loan.unpaid.flag",
+                "happiness.initial", "happiness.mission.reward",
                 "needs.fulfillment_diversity"
             };
             var snapshots = await _metrics.GetLatestMetricValuesAsync(sessionId, userId, metricNames, ct);
@@ -414,11 +432,13 @@ internal sealed class AnalyticsService : IAnalyticsService
                 ReadMetric(values, "happiness.saving_goal.points"),
                 ReadMetric(values, "happiness.mission.penalty"),
                 ReadMetric(values, "happiness.loan.penalty"),
-                ReadMetric(values, "loan.unpaid.flag") > 0.5d),
+                ReadMetric(values, "loan.unpaid.flag") > 0.5d,
+                ReadMetric(values, "happiness.initial"),
+                ReadMetric(values, "happiness.mission.reward")),
             new GameplayNeedMetrics(
                 ReadMetric(values, "needs.fulfillment_diversity")),
             rawJson,
-            derivedJson);
+            derivedJson, hasSealedDonations);
     }
 
     public async Task<(RulesetAnalyticsSummaryResponse? Result, int StatusCode, ErrorResponse? Error)> GetRulesetAnalyticsSummaryAsync(
@@ -489,14 +509,17 @@ internal sealed class AnalyticsService : IAnalyticsService
 
             var events = await _events.GetAllEventsBySessionAsync(session.SessionId, ct);
             var projections = await _events.GetCashflowProjectionsAsync(session.SessionId, ct);
+            var participantCount = await _players.CountPlayersInSessionAsync(session.SessionId, ct);
+            DonationVisibility.RemoveSealed(events, projections, participantCount);
             RulesetConfig? config = null;
             TryBuildRuntimeConfig(activeVersion, out config);
 
-            var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config);
+            var playerRoster = await _players.GetSessionPlayerPlayerOrderMapAsync(session.SessionId, ct);
+            var happinessByPlayer = _happinessCalc.ComputeByPlayer(events, projections, config, playerRoster.Keys);
             var finalScores = await ResolveFinalScoresAsync(session.SessionId, session.Status, ct);
             happinessByPlayer = ApplyFinalScores(happinessByPlayer, finalScores);
-            var playerPlayerOrders = await _players.GetSessionPlayerPlayerOrderMapAsync(session.SessionId, ct);
-            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerPlayerOrders, ct);
+
+            var byPlayer = await BuildByPlayerAsync(session.SessionId, events, projections, happinessByPlayer, config, playerRoster, ct);
             var allPlayerItems = new List<RulesetAnalyticsPlayerItem>();
 
             foreach (var player in byPlayer)
@@ -730,7 +753,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             var inventoryIngredientTotal = _inventoryCalc.BuildIngredientInventory(playerEvents).Total;
             var actionsUsedTotal = SumActionsUsed(playerEvents);
             var playerProjections = projections.Where(p => p.UserId == playerId).ToList();
-            var fulfillmentDiversity = _needMissionCalculator.Compute(playerEvents, playerProjections).FulfillmentDiversity ?? 0d;
+            var fulfillmentDiversity = _needMissionCalculator.Compute(playerEvents, playerProjections, config).FulfillmentDiversity ?? 0d;
             var happiness = happinessByPlayer.TryGetValue(playerId, out var breakdown)
                 ? breakdown
                 : _happinessCalc.ComputeBreakdown(playerEvents, 0, 0, 0);
@@ -755,7 +778,9 @@ internal sealed class AnalyticsService : IAnalyticsService
                 happiness.SavingGoalPointsEffective,
                 happiness.MissionPenaltyPoints,
                 happiness.LoanPenaltyPoints,
-                happiness.HasUnpaidLoan));
+                happiness.HasUnpaidLoan,
+                happiness.InitialHappinessPoints,
+                happiness.MissionRewardPoints));
         }
 
         return _playerOrdering.OrderPlayers(
@@ -818,7 +843,9 @@ internal sealed class AnalyticsService : IAnalyticsService
                 score.SavingGoalPoints,
                 score.MissionPenaltyPoints,
                 score.LoanPenaltyPoints,
-                score.HasUnpaidLoan);
+                score.HasUnpaidLoan,
+                score.InitialHappinessPoints,
+                score.MissionRewardPoints);
         }
 
         return authoritative;
@@ -858,10 +885,9 @@ internal sealed class AnalyticsService : IAnalyticsService
             TryBuildRuntimeConfig(rulesetVersion, out playerConfig);
         }
 
-        var players = events.Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).Distinct().ToList();
         var sessionPlayersByUser = (await _players.ListSessionPlayersAsync(sessionId, ct))
             .ToDictionary(player => player.UserId);
-        foreach (var playerId in players)
+        foreach (var playerId in sessionPlayersByUser.Keys)
         {
             var hasHappiness = happinessByPlayer.TryGetValue(playerId, out var breakdown);
             var playerMetrics = ComputePlayerMetrics(playerId, events, projections,
@@ -869,7 +895,8 @@ internal sealed class AnalyticsService : IAnalyticsService
                 playerConfig,
                 finalScores.FirstOrDefault(score => score.UserId == playerId),
                 sessionPlayersByUser.GetValueOrDefault(playerId)?.DisplayName,
-                sessionEnded);
+                sessionEnded,
+                sessionPlayersByUser.Keys);
             var playerSnapshots = _metricSnapshotBuilder.BuildMetricSnapshots(
                 sessionId,
                 playerId,
@@ -908,7 +935,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         RulesetConfig? config,
         SessionFinalScoreDb? finalScore,
         string? playerAlias,
-        bool sessionEnded)
+        bool sessionEnded,
+        IEnumerable<Guid> participantIds)
     {
         var metrics = new Dictionary<string, (double? Numeric, string? Json)>();
         var playerEvents = events.Where(e => e.UserId == playerId).ToList();
@@ -935,7 +963,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         var actionsUsed = SumActionsUsed(playerEvents);
         metrics["actions.used.total"] = (actionsUsed, null);
 
-        var fulfillmentDiversity = _needMissionCalculator.Compute(playerEvents, playerProjections).FulfillmentDiversity;
+        var fulfillmentDiversity = _needMissionCalculator.Compute(playerEvents, playerProjections, config).FulfillmentDiversity;
         metrics["needs.fulfillment_diversity"] = (fulfillmentDiversity, null);
 
         var resolvedHappiness = happiness ?? _happinessCalc.ComputeBreakdown(
@@ -944,7 +972,7 @@ internal sealed class AnalyticsService : IAnalyticsService
             _happinessCalc.SumPointsAwarded(playerEvents, "PoinEmas"),
             _happinessCalc.SumRankAwarded(playerEvents, "PoinPeringkatPensiun"));
         var pensionRank = config is not null && sessionEnded
-            ? _happinessCalc.ComputePensionRanks(events, projections, config).GetValueOrDefault(playerId)
+            ? _happinessCalc.ComputePensionRanks(events, projections, config, participantIds).GetValueOrDefault(playerId)
             : (int?)null;
 
         metrics["happiness.points.total"] = (resolvedHappiness.Total, null);
@@ -955,6 +983,8 @@ internal sealed class AnalyticsService : IAnalyticsService
         metrics["happiness.pension.points"] = (resolvedHappiness.PensionPoints, null);
         metrics["happiness.saving_goal.points"] = (resolvedHappiness.SavingGoalPointsEffective, null);
         metrics["happiness.mission.penalty"] = (resolvedHappiness.MissionPenaltyPoints, null);
+        metrics["happiness.initial"] = (resolvedHappiness.InitialHappinessPoints, null);
+        metrics["happiness.mission.reward"] = (resolvedHappiness.MissionRewardPoints, null);
         metrics["happiness.loan.penalty"] = (resolvedHappiness.LoanPenaltyPoints, null);
         metrics["loan.unpaid.flag"] = (resolvedHappiness.HasUnpaidLoan ? 1 : 0, null);
 

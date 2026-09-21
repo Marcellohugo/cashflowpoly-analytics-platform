@@ -9,6 +9,7 @@ namespace Cashflowpoly.Ui.Models;
 // Mendefinisikan tipe class `ErrorViewModel`.
 public class ErrorViewModel
 {
+    public int StatusCode { get; init; } = 500;
     public string? RequestId { get; set; }
 
     /// <summary>

@@ -163,6 +163,44 @@ public sealed class ObservabilitySecurityIntegrationTests
     // data registrasi. async memungkinkan metode menunggu operasi I/O dengan await dan mengembalikan penyelesaian melalui Task. Masukan: Parameter
     // `username` bertipe `string` membawa nama akun yang dipakai saat autentikasi; Parameter `password` bertipe `string` membawa kata sandi masukan
     // yang diperiksa sesuai kebijakan autentikasi; Parameter `role` bertipe `string` membawa peran pengguna yang menentukan hak akses.
+    [Fact]
+    public async Task SecurityAudit_RestrictsBothUnfilteredAndExplicitQueriesToCaller()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        const string password = "IntegrationScopePass!123";
+        var owner = await RegisterAsync($"audit_owner_{suffix}", password, "INSTRUCTOR");
+        var other = await RegisterAsync($"audit_other_{suffix}", password, "INSTRUCTOR");
+        using var own = await SendAsync(HttpMethod.Get, "/api/v1/security/audit-logs?limit=100", owner.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, own.StatusCode);
+        using var json = JsonDocument.Parse(await own.Content.ReadAsStringAsync());
+        var items = json.RootElement.GetProperty("items").EnumerateArray().ToList();
+        Assert.NotEmpty(items);
+        Assert.All(items, item => Assert.Equal(owner.UserId, item.GetProperty("user_id").GetGuid()));
+        using var denied = await SendAsync(HttpMethod.Get, $"/api/v1/security/audit-logs?userId={other.UserId}", owner.AccessToken);
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("INSTRUCTOR", false, "INSTRUCTOR")]
+    [InlineData("PLAYER", false, "PLAYER")]
+    [InlineData("INSTRUCTOR", true, "PLAYER")]
+    [InlineData("PLAYER", true, "INSTRUCTOR")]
+    public async Task IssuedToken_RejectsInactiveOrChangedRole(string originalRole, bool active, string currentRole)
+    {
+        var account = await RegisterAsync($"revoke_{Guid.NewGuid():N}", "IntegrationRevokePass!123", originalRole);
+        using var before = await SendAsync(HttpMethod.Get, "/api/v1/sessions", account.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
+        await using var conn = new Npgsql.NpgsqlConnection(Environment.GetEnvironmentVariable("ConnectionStrings__Default"));
+        await conn.OpenAsync();
+        await using var command = new Npgsql.NpgsqlCommand("update app_users set is_active = @active, role = @role where user_id = @id", conn);
+        command.Parameters.AddWithValue("active", active);
+        command.Parameters.AddWithValue("role", currentRole);
+        command.Parameters.AddWithValue("id", account.UserId);
+        await command.ExecuteNonQueryAsync();
+        using var after = await SendAsync(HttpMethod.Get, "/api/v1/sessions", account.AccessToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, after.StatusCode);
+    }
+
     private async Task<RegisterResponse> RegisterAsync(string username, string password, string role)
     // Membuka scope metode RegisterAsync; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam RegisterAsync.
     {

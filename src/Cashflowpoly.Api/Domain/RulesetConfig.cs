@@ -58,6 +58,12 @@ public sealed record RulesetConfig(
 {
     public int FinishDay { get; init; } = 25;
 
+    public int InitialSaving { get; init; }
+
+    public int InitialHappiness { get; init; }
+
+    public IReadOnlyList<RulesetCollectionMissionDto> CollectionMissions { get; init; } = [];
+
     public IReadOnlyList<RulesetNeedSetBonusDto> NeedSetBonuses { get; init; } = [];
 
     public IReadOnlyList<RulesetGoldPriceDto> GoldPrices { get; init; } = [];
@@ -150,6 +156,11 @@ internal static class RulesetRuntimeMapper
             errors.Add(new ErrorDetail("definition.settings.starting_cash", "OUT_OF_RANGE"));
         }
 
+        if (settings.InitialHappiness < 0)
+        {
+            errors.Add(new ErrorDetail("definition.settings.initial_happiness", "OUT_OF_RANGE"));
+        }
+
         if (settings.CashMin < 0)
         {
             errors.Add(new ErrorDetail("definition.settings.cash_min", "OUT_OF_RANGE"));
@@ -236,6 +247,9 @@ internal static class RulesetRuntimeMapper
                 definition.PensionRankPoints.Select(item => new RankPoint(item.Rank, item.Points)).ToList()))
         {
             FinishDay = settings.FinishDay,
+            InitialSaving = settings.InitialSaving,
+            InitialHappiness = settings.InitialHappiness,
+            CollectionMissions = definition.CollectionMissions.ToList(),
             NeedSetBonuses = definition.NeedSetBonuses.ToList(),
             GoldPrices = definition.GoldPrices.ToList(),
             ShariaLoans = definition.ShariaLoans.ToList(),

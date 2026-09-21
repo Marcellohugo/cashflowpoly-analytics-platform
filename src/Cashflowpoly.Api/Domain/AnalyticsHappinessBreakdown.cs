@@ -27,4 +27,6 @@ public sealed record AnalyticsHappinessBreakdown(
     // Parameter `LoanPenaltyPoints` bertipe `double` membawa nilai pinjaman penalti poin.
     double LoanPenaltyPoints,
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman.
-    bool HasUnpaidLoan);
+    bool HasUnpaidLoan,
+    double InitialHappinessPoints = 0,
+    double MissionRewardPoints = 0);

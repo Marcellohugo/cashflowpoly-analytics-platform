@@ -369,9 +369,9 @@ public sealed class SessionJourneyPlayerFeedTests
         // disimpulkan dari ekspresi nilai awal.
         var scriptContent = File.ReadAllText(scriptPath);
 
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”let timelineCursor = null;”`,
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”let timelineCursor = @Html.Raw(JsonSerializer.Serialize(Model.TimelineCursor));”`,
         // `scriptContent` dalam SessionJourneyScript_ShouldRequestOnlyEventsAfterTheLastSequence.
-        Assert.Contains("let timelineCursor = null;", scriptContent);
+        Assert.Contains("let timelineCursor = @Html.Raw(JsonSerializer.Serialize(Model.TimelineCursor));", scriptContent);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”encodeURIComponent(timelineCursor)”`,
         // `scriptContent` dalam SessionJourneyScript_ShouldRequestOnlyEventsAfterTheLastSequence.
         Assert.Contains("encodeURIComponent(timelineCursor)", scriptContent);

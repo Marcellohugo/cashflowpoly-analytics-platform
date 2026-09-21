@@ -54,7 +54,9 @@
             Object.entries(playerLookupRaw ?? {}).map(([key, value]) => [String(key).toLowerCase(), value])
         );
         let timeline = [];
-        let timelineCursor = null;
+        let timelineCursor = @Html.Raw(JsonSerializer.Serialize(Model.TimelineCursor));
+        let syncInProgress = false;
+        let refreshOffset = 0;
         let pollingTimerId = null;
         let lastSequence = 0;
         let selectedTimelineFilter = "all";
@@ -205,6 +207,7 @@
                     return {
                         timestamp: readValue(item, "timestamp", "Timestamp"),
                         sequenceNumber,
+                        isSealed: Boolean(readValue(item, "isSealed", "IsSealed")),
                         dayIndex: toNumber(readValue(item, "dayIndex", "DayIndex"), 0),
                         weekday: String(readValue(item, "weekday", "Weekday") ?? ""),
                         actionSlot: Math.max(0, toNumber(readValue(item, "actionSlot", "ActionSlot"), 0)),
@@ -245,6 +248,7 @@
             [
                 "umumkanjuaradonasi",
                 "hariminggulibur",
+                "tujuanfinansial",
                 "mulaisesi",
                 "akhirisesi"
             ].includes(String(item.actionType ?? "").toLowerCase());
@@ -286,7 +290,7 @@
 
             if (selectedTimelineFilter.startsWith("player:")) {
                 const selectedPlayerKey = selectedTimelineFilter.substring("player:".length);
-                return baseTimeline.filter((item) => isVisiblePlayerEvent(item) && resolvePlayerKey(item) === selectedPlayerKey);
+                return baseTimeline.filter((item) => resolvePlayerKey(item) === selectedPlayerKey);
             }
 
             return baseTimeline;
@@ -316,14 +320,18 @@
         };
         const mergeTimeline = (incoming) => {
             if (!Array.isArray(incoming) || incoming.length === 0) {
-                return;
+                return false;
             }
 
             const map = new Map(timeline.map((item) => [item.sequenceNumber, item]));
+            let changed = false;
             incoming.forEach((item) => {
+                if (JSON.stringify(map.get(item.sequenceNumber)) !== JSON.stringify(item)) changed = true;
                 map.set(item.sequenceNumber, item);
             });
+            if (!changed) return false;
             timeline = Array.from(map.values()).sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+            return true;
         };
         const renderFilters = (playerOptions) => {
             if (selectedTimelineFilter.startsWith("player:") &&
@@ -357,7 +365,16 @@
                 `);
             });
 
-            filterEl.innerHTML = buttons.join("");
+            const markup = buttons.join("");
+            if (filterEl.dataset.renderedMarkup === markup) return;
+            const focusedFilter = filterEl.contains(document.activeElement)
+                ? document.activeElement.getAttribute("data-timeline-filter") : null;
+            filterEl.innerHTML = markup;
+            filterEl.dataset.renderedMarkup = markup;
+            if (focusedFilter) {
+                Array.from(filterEl.querySelectorAll("[data-timeline-filter]"))
+                    .find(button => button.getAttribute("data-timeline-filter") === focusedFilter)?.focus({ preventScroll: true });
+            }
             bindFilterInteractions();
         };
         const renderRelatedEvents = (item) => {
@@ -536,13 +553,21 @@
                 </div>
             `);
 
-            calendarGridEl.innerHTML = cellsHtml.join("");
+            const markup = cellsHtml.join("");
+            if (calendarGridEl.dataset.renderedMarkup === markup) return;
+            const focusedDay = calendarGridEl.contains(document.activeElement)
+                ? document.activeElement.getAttribute("data-day") : null;
+            calendarGridEl.innerHTML = markup;
+            calendarGridEl.dataset.renderedMarkup = markup;
+            if (focusedDay !== null) {
+                calendarGridEl.querySelector(`[data-day="${focusedDay}"]`)?.focus({ preventScroll: true });
+            }
 
             // Click listener
             calendarGridEl.querySelectorAll(".work-calendar-cell").forEach(cell => {
                 cell.addEventListener("click", () => {
                     const clickedDay = parseInt(cell.getAttribute("data-day"), 10);
-                    if (cell.classList.contains("is-active-day")) {
+                    if (cell.classList.contains("is-active-day") && clickedDay !== selectedDay) {
                         selectedDay = clickedDay;
                         renderAll();
                     }
@@ -663,9 +688,17 @@
                 : 0;
         };
         const syncTimeline = async () => {
+            if (syncInProgress) return;
+            syncInProgress = true;
             try {
                 const cursorQuery = timelineCursor ? `&cursor=${encodeURIComponent(timelineCursor)}` : "";
-                const response = await fetch(`${timelineUrl}?limit=100${cursorQuery}`, {
+                // Undoing the last donation can seal the other donations again.
+                const sealed = timeline.filter(item => item.isSealed || item.actionType === "JumatBerkah");
+                if (refreshOffset >= sealed.length) refreshOffset = 0;
+                const refreshIds = sealed.slice(refreshOffset, refreshOffset + 100).map(item => item.sequenceNumber);
+                refreshOffset += 100;
+                const refreshQuery = refreshIds.length ? `&refreshSequences=${refreshIds.join(",")}` : "";
+                const response = await fetch(`${timelineUrl}?limit=100${cursorQuery}${refreshQuery}`, {
                     method: "GET",
                     headers: { "Accept": "application/json" }
                 });
@@ -683,13 +716,20 @@
                 const data = await response.json();
                 const incomingTimeline = normalizeTimeline(data?.timeline);
                 timelineCursor = data?.nextCursor || timelineCursor;
-                mergeTimeline(incomingTimeline);
-                renderAll();
+                const timelineChanged = mergeTimeline(incomingTimeline);
+                const refreshedChanged = mergeTimeline(normalizeTimeline(data?.refreshedTimeline));
+                const undoneSequences = new Set((data?.undoneSequenceNumbers ?? []).map(Number));
+                const effectiveTimeline = timeline.filter(item => !undoneSequences.has(item.sequenceNumber));
+                const undoChanged = effectiveTimeline.length !== timeline.length;
+                timeline = effectiveTimeline;
+                if (timelineChanged || refreshedChanged || undoChanged) renderAll();
                 setError(data?.errorMessage || "");
                 syncedEl.dateTime = data?.lastSyncedAt ?? new Date().toISOString();
                 syncedEl.textContent = formatDateTime(syncedEl.dateTime);
             } catch {
                 setError(realtimeNetworkMessage);
+            } finally {
+                syncInProgress = false;
             }
         };
         const startPolling = () => {

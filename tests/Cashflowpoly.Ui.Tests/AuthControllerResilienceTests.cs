@@ -32,7 +32,7 @@ public sealed class AuthControllerResilienceTests
     {
         // Menyiapkan variabel lokal `controller` untuk nilai controller dengan memanggil `CreateController` dengan tanpa argumen. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
-        var controller = CreateController();
+        var controller = CreateController(out var factory);
 
         // Menyiapkan variabel lokal `result` untuk nilai hasil pemrosesan yang akan dipakai pada tahap berikutnya dengan hasil operasi asinkron memanggil
         // `controller.Login` dengan `new LoginViewModel { Username = ”instructor”, Password = ”password123” }`; await menunggu hasil tanpa memblokir thread
@@ -61,6 +61,7 @@ public sealed class AuthControllerResilienceTests
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`string.Empty`, `model.Password`); pengujian
         // gagal jika keduanya berbeda dalam Login_WhenApiIsUnavailable_ShouldReturnLoginViewWithError.
         Assert.Equal(string.Empty, model.Password);
+        Assert.Equal(1, factory.RequestCount);
         // Menjalankan pemeriksaan bahwa `string.IsNullOrWhiteSpace(model.ErrorMessage)` bernilai salah; pengujian gagal jika kondisi justru terpenuhi dalam
         // Login_WhenApiIsUnavailable_ShouldReturnLoginViewWithError.
         Assert.False(string.IsNullOrWhiteSpace(model.ErrorMessage));
@@ -79,7 +80,7 @@ public sealed class AuthControllerResilienceTests
     {
         // Menyiapkan variabel lokal `controller` untuk nilai controller dengan memanggil `CreateController` dengan tanpa argumen. Tipe variabel disimpulkan
         // dari ekspresi nilai awal.
-        var controller = CreateController();
+        var controller = CreateController(out var factory);
 
         // Menyiapkan variabel lokal `result` untuk nilai hasil pemrosesan yang akan dipakai pada tahap berikutnya dengan hasil operasi asinkron memanggil
         // `controller.Register` dengan `new RegisterViewModel { DisplayName = ”Instructor”, Username = ”instructor”, Password = ”password123”,
@@ -94,9 +95,9 @@ public sealed class AuthControllerResilienceTests
             // Memperbarui `Username` menggunakan nilai literal `”instructor”` dalam Register_WhenApiIsUnavailable_ShouldReturnRegisterViewWithError.
             Username = "instructor",
             // Memperbarui `Password` menggunakan nilai literal `”password123”` dalam Register_WhenApiIsUnavailable_ShouldReturnRegisterViewWithError.
-            Password = "password123",
+            Password = "ValidPassword123!",
             // Memperbarui `ConfirmPassword` menggunakan nilai literal `”password123”` dalam Register_WhenApiIsUnavailable_ShouldReturnRegisterViewWithError.
-            ConfirmPassword = "password123"
+            ConfirmPassword = "ValidPassword123!"
         // Menutup scope initializer yang mengisi objek atau koleksi; bagian berikut berada di luar batas blok tersebut dalam
         // Register_WhenApiIsUnavailable_ShouldReturnRegisterViewWithError.
         });
@@ -116,6 +117,8 @@ public sealed class AuthControllerResilienceTests
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`string.Empty`, `model.ConfirmPassword`);
         // pengujian gagal jika keduanya berbeda dalam Register_WhenApiIsUnavailable_ShouldReturnRegisterViewWithError.
         Assert.Equal(string.Empty, model.ConfirmPassword);
+        Assert.Equal(1, factory.RequestCount);
+        Assert.Equal("Layanan data belum dapat diakses. Silakan coba lagi.", model.ErrorMessage);
         // Menjalankan pemeriksaan bahwa `string.IsNullOrWhiteSpace(model.ErrorMessage)` bernilai salah; pengujian gagal jika kondisi justru terpenuhi dalam
         // Register_WhenApiIsUnavailable_ShouldReturnRegisterViewWithError.
         Assert.False(string.IsNullOrWhiteSpace(model.ErrorMessage));
@@ -124,7 +127,7 @@ public sealed class AuthControllerResilienceTests
     }
 
     // Mendefinisikan metode `CreateController` dengan hasil bertipe `AuthController`; operasi ini menangani create controller.
-    private static AuthController CreateController()
+    private static AuthController CreateController(out ThrowingHttpClientFactory factory)
     // Membuka scope metode CreateController; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateController.
     {
         // Menyiapkan variabel lokal `httpContext` untuk konteks operasi yang menyediakan data lingkungan pemrosesan saat ini dengan objek baru bertipe
@@ -135,7 +138,8 @@ public sealed class AuthControllerResilienceTests
 
         // Mengembalikan objek baru bertipe `AuthController` dengan argumen (new ThrowingHttpClientFactory()) kepada pemanggil dalam CreateController;
         // eksekusi jalur ini selesai setelah nilai hasil ditentukan.
-        return new AuthController(new ThrowingHttpClientFactory())
+        factory = new ThrowingHttpClientFactory();
+        return new AuthController(factory)
         // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateController.
         {
             // Memperbarui `ControllerContext` menggunakan objek baru bertipe `ControllerContext` dengan nilai awal sesuai konstruktornya dalam
@@ -158,6 +162,7 @@ public sealed class AuthControllerResilienceTests
     private sealed class ThrowingHttpClientFactory : IHttpClientFactory
     // Membuka scope tipe ThrowingHttpClientFactory; pernyataan/deklarasi berikut berada di dalam batas blok ini.
     {
+        public int RequestCount { get; private set; }
         // Mendefinisikan metode `CreateClient` dengan hasil bertipe `HttpClient`; operasi ini menangani create client. Masukan: Parameter `name` bertipe
         // `string` membawa nilai nama.
         public HttpClient CreateClient(string name)
@@ -165,7 +170,7 @@ public sealed class AuthControllerResilienceTests
         {
             // Mengembalikan objek baru bertipe `HttpClient` dengan argumen (new ThrowingHandler()) kepada pemanggil dalam CreateClient; eksekusi jalur ini
             // selesai setelah nilai hasil ditentukan.
-            return new HttpClient(new ThrowingHandler())
+            return new HttpClient(new ThrowingHandler(() => RequestCount++))
             // Membuka scope initializer yang mengisi objek atau koleksi; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateClient.
             {
                 // Memperbarui `BaseAddress` menggunakan objek baru bertipe `Uri` dengan argumen (”http://localhost:5041”) dalam CreateClient.
@@ -178,7 +183,7 @@ public sealed class AuthControllerResilienceTests
     }
 
     // Mendefinisikan tipe class `ThrowingHandler` yang mewarisi atau menerapkan `HttpMessageHandler`; sealed mencegah tipe ini diturunkan lagi.
-    private sealed class ThrowingHandler : HttpMessageHandler
+    private sealed class ThrowingHandler(Action onRequest) : HttpMessageHandler
     // Membuka scope tipe ThrowingHandler; pernyataan/deklarasi berikut berada di dalam batas blok ini.
     {
         // Mendefinisikan metode `SendAsync` dengan hasil bertipe `Task<HttpResponseMessage>`; operasi ini menangani send asinkron. Masukan: Parameter
@@ -190,6 +195,7 @@ public sealed class AuthControllerResilienceTests
         {
             // Menghentikan alur dengan melempar objek baru bertipe `HttpRequestException` dengan argumen (”API unavailable”) dalam SendAsync; pemanggil atau
             // middleware penanganan error menerima kegagalan ini.
+            onRequest();
             throw new HttpRequestException("API unavailable");
         // Menutup scope metode SendAsync; bagian berikut berada di luar batas blok tersebut dalam SendAsync.
         }

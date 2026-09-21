@@ -177,8 +177,8 @@ public static class RulebookContent
                             "Aktifkan asuransi multi risiko: letakkan 1 token aksi di papan asuransi dan bank syariah, bayar premi 1 koin, lalu balik kartu tie breaker ke sisi asuransi.",
                             "Activate multi-risk insurance: place 1 action token on insurance & sharia-bank board, pay 1-coin premium, then flip tie-breaker card to insurance side."),
                         L(
-                            "Menabung tujuan keuangan: letakkan token aksi di papan tabungan, setor maksimum 15 koin per aksi, dan ambil kartu tujuan jika nominal terpenuhi.",
-                            "Save toward financial goals: place action token on saving board, deposit up to 15 coins per action, and claim goal card when amount is met."),
+                            "Menabung tujuan keuangan: letakkan token aksi di papan tabungan dan setor maksimum 15 koin per aksi. Tabungan dapat dipakai untuk kartu tujuan yang masih tersedia. Kartu diperoleh pemain yang lebih dulu membayar penuh; setoran tidak memesan kartu.",
+                            "Save for financial goals: place an action token on the savings board and deposit up to 15 coins per action. Savings can buy any available goal card. The first player to pay in full gets the card; a deposit does not reserve it."),
                         L("Bayar atau pinjam syariah: gunakan 1 token aksi untuk melunasi atau mengambil pinjaman.", "Repay or borrow sharia loan: use 1 action token to repay or take a loan."),
                         L(
                             "Pinjaman belum lunas di akhir permainan membuat kartu tujuan keuangan hangus dan terkena penalti poin kebahagiaan.",

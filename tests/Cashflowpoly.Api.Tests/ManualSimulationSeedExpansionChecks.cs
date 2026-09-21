@@ -92,6 +92,19 @@ public sealed partial class ManualSimulationSeedIntegrationTests
         Assert.Equal(24, seen.Count);
         Assert.Equal(0, await connection.QuerySingleAsync<int>("""
             select count(*)::int from sessions s
+            left join session_states state using(session_id)
+            where s.session_id=any(@ids) and s.status='ENDED' and (
+                state.is_game_over is distinct from true or state.phase is distinct from 'GAME_END'
+                or not exists(select 1 from events e where e.session_id=s.session_id and e.action_type='AkhiriSesi'))
+            """, new { ids = seen.ToArray() }));
+        Assert.Equal(0, await connection.QuerySingleAsync<int>("""
+            select count(*)::int from session_participant_collection_missions m
+            join sessions s using(session_id)
+            where s.session_id=any(@ids) and s.status='ENDED'
+              and m.is_failed is distinct from (not m.is_completed)
+            """, new { ids = seen.ToArray() }));
+        Assert.Equal(0, await connection.QuerySingleAsync<int>("""
+            select count(*)::int from sessions s
             where s.session_id=any(@ids) and (
                 (s.status='ENDED' and s.ended_at is distinct from (select max(e.timestamp) from events e where e.session_id=s.session_id))
                 or (s.status<>'ENDED' and (s.ended_at is not null or exists(select 1 from session_final_scores f where f.session_id=s.session_id)))

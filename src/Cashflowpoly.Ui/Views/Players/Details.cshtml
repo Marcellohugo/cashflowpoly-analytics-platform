@@ -93,15 +93,13 @@
             or "action_type" or "actions" or "action_pattern" or "series" or "rank" or "cashflow_category";
 
     var economy = Model.Gameplay?.Economy;
-    var statSummary = Model.StatSummary ?? new PlayerStatSummaryViewModel();
+    var statSummary = Model.StatSummary ?? PlayerStatSummaryBuilder.Build(Model.Gameplay, Model.Summary, Context.T);
     var nullText = Context.T("players.support.value.unavailable");
-    double? totalCashIn = Model.Summary?.CashInTotal ?? economy?.CashInTotal;
-    double? totalCashOut = Model.Summary?.CashOutTotal ?? economy?.CashOutTotal;
-    double? netCashflow = totalCashIn.HasValue && totalCashOut.HasValue
-        ? totalCashIn.Value - totalCashOut.Value
-        : null;
+    double? totalCashIn = statSummary.CashInTotal;
+    double? totalCashOut = statSummary.CashOutTotal;
+    double? netCashflow = statSummary.NetCashflow;
     double? endingCash = economy?.StartingCash + economy?.CashflowNetTotal;
-    double? fulfillmentDiversity = Model.Summary?.FulfillmentDiversity;
+    double? fulfillmentDiversity = statSummary.FulfillmentDiversity;
     var needCardsOwned = Model.GameplayRaw.HasValue
         && Model.GameplayRaw.Value.ValueKind == JsonValueKind.Object
         && Model.GameplayRaw.Value.TryGetProperty("needs", out var gameplayNeeds)
@@ -110,8 +108,8 @@
         && ownedNeedCards.TryGetInt32(out var ownedNeedCardCount)
             ? ownedNeedCardCount
             : (int?)null;
-    double? happinessPoints = Model.Summary?.HappinessPointsTotal;
-    bool? hasUnpaidLoan = Model.Summary?.HasUnpaidLoan;
+    double? happinessPoints = statSummary.HappinessPoints;
+    bool? hasUnpaidLoan = statSummary.HasUnpaidLoan;
     var hasCompleteEvaluationData = endingCash.HasValue && netCashflow.HasValue && fulfillmentDiversity.HasValue
         && happinessPoints.HasValue && hasUnpaidLoan.HasValue;
     var overallTone = hasUnpaidLoan == true
@@ -240,7 +238,6 @@
     var ingredientRows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "ingredients");
     var discardedIngredients = ingredientRows.FirstOrDefault(row => row.Path == "ingredients_wasted").Value;
     var financialGoalRows = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals");
-    var attemptedFinancialGoals = financialGoalRows.FirstOrDefault(row => row.Path == "financial_goals_attempted").Value;
     var financialGoalSources = PlayerMetricCollectionHelper.GetGroupRows(rawGroupMap, "financial_goals", "coins");
     var financialGoalSummaryRows = new[] { "financial_goals_completed", "coins_saved", "sharia_loans_outstanding_coins" }
         .Select(path => (Path: path, Value: financialGoalSources.FirstOrDefault(row => row.Path == path).Value ?? nullText))
@@ -267,7 +264,7 @@
         new { Chapter = "money", Key = "business-margin", PrimaryKey = "meal_order_profit_margin_percent", TitleKey = "players.analysis.business_margin.title", DescriptionKey = "players.analysis.business_margin.desc", FormulaKey = "players.support.formula.business_margin", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("meal_order_profit_margin_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "meal_order_profit_margin_components")) },
         new { Chapter = "future", Key = "risk-appetite", PrimaryKey = "risk_readiness_percent", TitleKey = "players.analysis.risk_appetite.title", DescriptionKey = "players.analysis.risk_appetite.desc", FormulaKey = "players.support.formula.risk_appetite", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("risk_readiness_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "risk_readiness_components")) },
         new { Chapter = "future", Key = "debt-discipline", PrimaryKey = "sharia_loans_taken", TitleKey = "players.analysis.debt_discipline.title", DescriptionKey = "players.analysis.debt_discipline.desc", FormulaKey = "players.support.formula.loan_counts", AdvancedOnly = true, Rows = financialGoalRows.Where(row => row.Path is "sharia_loans_taken" or "sharia_loans_repaid" or "sharia_loans_unpaid_end" or "sharia_loans_outstanding_coins").ToList() },
-        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "financial_goal_completion_percent", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_completion", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("financial_goal_completion_percent"), financialGoalRows.Where(row => row.Path is "financial_goals_completed" or "financial_goals_attempted" or "financial_goals_purchase_cost_total" or "financial_goals_incomplete_coins_wasted").ToList()) },
+        new { Chapter = "future", Key = "goal-ambition", PrimaryKey = "financial_goals_completed", TitleKey = "players.analysis.goal_ambition.title", DescriptionKey = "players.analysis.goal_ambition.desc", FormulaKey = "players.support.formula.goal_purchases", AdvancedOnly = true, Rows = financialGoalSources.Where(row => row.Path is "financial_goals_completed" or "financial_goals_purchase_cost_total" or "coins_saved").ToList() },
         new { Chapter = "play", Key = "action-efficiency", PrimaryKey = "income_action_focus_percent", TitleKey = "players.analysis.action_efficiency.title", DescriptionKey = "players.analysis.action_efficiency.desc", FormulaKey = "players.support.formula.action_efficiency", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("income_action_focus_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "income_action_focus_components")) },
         new { Chapter = "play", Key = "meal-success", PrimaryKey = "ingredient_utilization_percent", TitleKey = "players.analysis.meal_success.title", DescriptionKey = "players.analysis.meal_success.desc", FormulaKey = "players.support.formula.order_success", AdvancedOnly = false, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("ingredient_utilization_percent"), PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "ingredient_utilization_components")) },
         new { Chapter = "play", Key = "planning-horizon", PrimaryKey = "long_term_action_share_percent", TitleKey = "players.analysis.planning_horizon.title", DescriptionKey = "players.analysis.planning_horizon.desc", FormulaKey = "players.support.formula.planning", AdvancedOnly = true, Rows = PlayerMetricCollectionHelper.MergeUniqueRows(SelectDerived("long_term_action_share_percent"), ExcludeRows(PlayerMetricCollectionHelper.GetGroupRows(derivedGroupMap, "long_term_action_share_components"), "saving_actions", "financial_goal_actions")) },
@@ -289,11 +286,17 @@
         ?? nullText;
     var netWorthMetric = PlayerMetricLabelFormatter.DescribeMetric("cash_growth_percent", ReadDerivedValue("cash_growth_percent"), true, isAdvancedMode, nullText, Context.T);
 
-    var playerTurnOrder = Model.Summary?.PlayerOrder ?? 1;
-    var playerAvatarPath = $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder)}.png";
+    var playerTurnOrder = Model.PlayerOrder;
+    var playerAvatarPath = playerTurnOrder.HasValue
+        ? $"/images/players/{ResolvePlayerAvatarIndex(playerTurnOrder.Value)}.png" : null;
 }
 
 <section class="section-shell player-detail-overhaul">
+    @if (Model.Gameplay?.HasSealedDonations == true)
+    {
+        <p class="alert alert-info" role="status">@Context.T("analytics.sealed_donations")</p>
+    }
+
     <div class="action-toolbar mb-4 player-detail-toolbar">
         <a class="btn-ghost"
                asp-controller="Sessions"
@@ -311,13 +314,16 @@
             <p class="subhead">@Context.T("players.detail.subtitle")</p>
         </div>
         <div class="player-profile-identity">
+            @if (playerAvatarPath is not null)
+            {
             <span class="player-profile-avatar-shell">
                 <img class="player-profile-avatar"
                      src="@playerAvatarPath"
                      alt="@($"{Context.T("common.turn_order")} {playerTurnOrder}")" />
             </span>
+            }
             <div class="player-profile-copy">
-                <span class="player-profile-turn">@Context.T("common.turn_order") @playerTurnOrder</span>
+                <span class="player-profile-turn">@Context.T("common.turn_order") @(playerTurnOrder?.ToString() ?? nullText)</span>
                 <p class="player-detail-name">@(string.IsNullOrWhiteSpace(Model.PlayerDisplayName) ? Context.T("common.player") : Model.PlayerDisplayName)</p>
             </div>
         </div>
@@ -451,9 +457,10 @@
                                                 isAdvancedMode,
                                                 nullText,
                                                 Context.T);
-                                            var calculationKey = analysis.Key == "happiness-portfolio" && !isAdvancedMode
-                                                ? "happiness-portfolio-beginner"
-                                                : analysis.Key;
+                                            var calculationKey = analysis.Key == "goal-ambition" ? "goal-purchases"
+                                                : analysis.Key == "happiness-portfolio" && !isAdvancedMode
+                                                    ? "happiness-portfolio-beginner"
+                                                    : analysis.Key;
                                             var sourceKey = analysis.Key == "happiness-portfolio" && !isAdvancedMode
                                                 ? "players.analysis.source.happiness-portfolio.beginner"
                                                 : $"players.analysis.source.{analysis.Key}";
@@ -471,23 +478,25 @@
                                                 </div>
                                                 <p>
                                                     <strong>@Context.T("players.analysis.reading")</strong>
-                                                    @if (analysis.Key is "goal-ambition" or "debt-discipline" && primaryMetric.State is "recorded" or "zero")
+                                                    @if (analysis.Key == "goal-ambition" && primaryMetric.State is "recorded" or "zero")
+                                                    {
+                                                        @string.Format(CultureInfo.CurrentCulture,
+                                                            Context.T("players.analysis.goal_purchases.result"),
+                                                            analysis.Rows.FirstOrDefault(row => row.Path == "financial_goals_purchase_cost_total").Value ?? nullText)
+                                                    }
+                                                    else if (analysis.Key == "debt-discipline" && primaryMetric.State is "recorded" or "zero")
                                                     {
                                                         var firstCount = PlayerMetricLabelFormatter.DescribeMetric(
-                                                            analysis.Key == "goal-ambition" ? "financial_goals_completed" : "sharia_loans_repaid",
-                                                            analysis.Rows.FirstOrDefault(row => row.Path == (analysis.Key == "goal-ambition" ? "financial_goals_completed" : "sharia_loans_repaid")).Value ?? nullText,
+                                                            "sharia_loans_repaid",
+                                                            analysis.Rows.FirstOrDefault(row => row.Path == "sharia_loans_repaid").Value ?? nullText,
                                                             false, isAdvancedMode, nullText, Context.T);
                                                         var secondCount = PlayerMetricLabelFormatter.DescribeMetric(
-                                                            analysis.Key == "goal-ambition" ? "financial_goals_attempted" : "sharia_loans_unpaid_end",
-                                                            analysis.Rows.FirstOrDefault(row => row.Path == (analysis.Key == "goal-ambition" ? "financial_goals_attempted" : "sharia_loans_unpaid_end")).Value ?? nullText,
+                                                            "sharia_loans_unpaid_end",
+                                                            analysis.Rows.FirstOrDefault(row => row.Path == "sharia_loans_unpaid_end").Value ?? nullText,
                                                             false, isAdvancedMode, nullText, Context.T);
                                                         @string.Format(CultureInfo.CurrentCulture,
-                                                            Context.T(analysis.Key == "goal-ambition" ? "players.analysis.goal_completion.result" : "players.analysis.loan_counts.result"),
+                                                            Context.T("players.analysis.loan_counts.result"),
                                                             firstCount.DisplayValue, secondCount.DisplayValue)
-                                                        @if (analysis.Key == "goal-ambition")
-                                                        {
-                                                            @: @primaryMetric.Guidance
-                                                        }
                                                     }
                                                     else
                                                     {
@@ -775,16 +784,7 @@
                                             </p>
                                         }
                                         <p class="player-metric-card__explanation">
-                                            @if (domain.Key == "financial-goals" && row.Path == "financial_goals_completed"
-                                                && PlayerMetricLabelFormatter.TryParseMetricNumber(attemptedFinancialGoals, out var attemptedCount)
-                                                && attemptedCount >= 0)
-                                            {
-                                                @string.Format(CultureInfo.CurrentCulture, Context.T("players.details.financial_goals.attempted_note"), FormatNumber(attemptedCount))
-                                            }
-                                            else
-                                            {
-                                                @metric.Explanation
-                                            }
+                                            @metric.Explanation
                                             @if (domain.Key == "ingredients" && row.Path == "ingredients_held_current"
                                                 && PlayerMetricLabelFormatter.TryParseMetricNumber(discardedIngredients, out var discardedCount)
                                                 && discardedCount > 0)

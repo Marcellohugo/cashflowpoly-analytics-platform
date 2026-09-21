@@ -48,7 +48,9 @@ Header yang perlu dipahami klien:
 | `X-Client-Request-Id` | request | Korelasi request dari klien |
 | `X-Trace-Id` | response | ID penelusuran server untuk diagnosis |
 
-Batas request default adalah 10 request/menit untuk autentikasi, 240 request/menit untuk event, dan 300 request/menit untuk endpoint lain. Respons `429` harus ditangani dengan *backoff*; jangan mengirim ulang batch identik secara paralel.
+Batas API adalah 30 request/menit untuk kelompok autentikasi (`/api/v1/auth/*`), 340 request/menit untuk kelompok ingest (`/api/v1/events` dan `/api/v1/events/batch`), serta 400 request/menit untuk kelompok endpoint API lainnya. Kuota dibagikan antar-endpoint dalam kelompok yang sama, per ID akun dari JWT atau per IP bila tidak ada identitas akun. API memakai *fixed window* satu menit tanpa antrean; satu batch dihitung sebagai satu request. Kelebihan kuota menghasilkan `429 RATE_LIMITED`.
+
+Jika diakses melalui Nginx, ada lapisan tambahan per IP: API umum `50r/s` dengan `burst=100`, khusus `/api/v1/auth/login` `20r/m` dengan `burst=10`. Keduanya memakai `nodelay` dan menolak kelebihan batas dengan `429`; respons dari Nginx tidak dijamin berupa JSON API. Kuota Nginx dan API independen. Tangani `429` dengan *backoff*; jangan mengirim ulang batch identik secara paralel.
 
 Respons sukses dikembalikan langsung sebagai DTO tanpa envelope `data`. Daftar umum memakai `items`; histori event dan transaksi memakai `items`, `next_cursor`, serta `has_more`. UUID harus berbentuk string kanonis dan timestamp harus ISO-8601 dengan offset, idealnya UTC (`Z`).
 
@@ -98,7 +100,7 @@ Setiap event dikirim sebagai JSON dengan skema umum berikut:
 |---|---|---:|---|
 | event_id | string (UUID) | Ya | ID unik event. |
 | session_id | string (UUID) | Ya | ID sesi permainan. |
-| user_id | string (UUID) | Ya* | ID akun Player (`app_users.user_id`). Wajib untuk event aksi Player. Kosong untuk event sistem. |
+| user_id | string (UUID) | Ya* | ID akun Player (`app_users.user_id`). Wajib untuk aksi PLAYER dan event SYSTEM yang menargetkan pemain, termasuk `TujuanFinansial`. Null hanya untuk event seluruh sesi. |
 | actor_type | string | Ya | Nilai: `PLAYER` atau `SYSTEM`. |
 | timestamp | string (ISO 8601) | Ya | Waktu event terjadi. |
 | day_index | int | Ya | Indeks hari dalam sesi. |
@@ -114,7 +116,7 @@ Setiap event dikirim sebagai JSON dengan skema umum berikut:
 Catatan:
 - `user_id` wajib saat `actor_type=PLAYER`.
 - API me-resolve `user_id` ke `session_participant_id`/`session_player_id`
-  pada sesi sebelum event disimpan. Event sistem memakai `user_id = null`.
+  pada sesi sebelum event disimpan. Event SYSTEM tingkat sesi memakai `user_id = null`; event SYSTEM untuk pemain tertentu memakai ID akun penerima yang terdaftar pada sesi.
 - `timestamp` harus format UTC atau menyertakan offset zona waktu.
 - `day_index` minimal `0`.
 - `turn_number` minimal `0`.
@@ -164,6 +166,8 @@ Efek data:
 ---
 
 #### 4.1.2 `AkhiriSesi`
+Gunakan `POST /api/v1/sessions/{sessionId}/end` untuk mengakhiri sesi. Klien tidak mengirim aksi ini melalui endpoint events atau batch; percobaan baru ditolak 422 `DOMAIN_RULE_VIOLATION` dengan detail `action_type: USE_SESSION_END`. Endpoint penutupan membekukan state `GAME_END`, skor final, status `ENDED`, dan alasan penutupan secara atomik tanpa mewajibkan event akhir dari IDN. Sesi tanpa gameplay dihapus sebagaimana bagian 6.5.1.
+
 Payload:
 ```json
 { "end_note": "Selesai sesi" }
@@ -422,8 +426,8 @@ Payload:
 Validasi:
 - Detail principal, nilai pelunasan, durasi, dan penalti wajib sama dengan produk pada katalog ruleset aktif.
 - Setiap kartu memakai `loan_id`/`loan_instance_id` unik. Beberapa instance produk yang sama dapat `ACTIVE` selama total kartu aktif pada sesi tidak melewati `card_qty` katalog.
-- Jika memakai slot 0, payload wajib membawa `risk_event_id` yang menunjuk risiko `OUT` berstatus pending milik pemain dan saldo pemain memang tidak cukup.
-- Satu risiko tidak dapat dipakai untuk mengambil pinjaman berulang.
+- Jika memakai slot 0, payload wajib membawa `risk_event_id` yang menunjuk risiko `OUT` berstatus pending yang berlaku bagi pemain (pribadi atau massal) dan saldo pemain memang tidak cukup.
+- Pemain yang sama tidak dapat memakai satu risiko untuk mengambil pinjaman berulang.
 
 Efek data:
 - Menambah saldo.
@@ -578,6 +582,10 @@ Efek data:
 ---
 
 #### 4.7.6 `TujuanFinansial`
+Klien instruktur mencatat pembelian kartu tujuan yang benar-benar terjadi pada permainan fisik sebagai `actor_type=SYSTEM`, `user_id` pemain penerima, `turn_number=0`, dan `action_slot=0`. API memvalidasi saldo, harga, poin, dan ketersediaan kartu; API tidak membuat event tujuan hanya karena saldo tabungan melewati harga kartu.
+
+Tabungan awal (`initial_saving`) dan seluruh setoran membentuk satu saldo tabungan per pemain. Saldo ini dapat membeli kartu tujuan mana pun yang masih tersedia; `goal_id` pada setoran lama hanya metadata dan tidak mengalokasikan dana atau memesan kartu. Pembelian mengurangi saldo tabungan sebesar harga penuh, sehingga dana yang sudah dibayar tidak dapat digunakan lagi. Kartu menjadi milik pemain yang lebih dulu berhasil membeli; validasi saldo dan stok dilakukan di dalam transaksi dengan kunci sesi agar pembelian bersamaan tidak mengambil kartu yang sama. `session_participant_financial_goals` mencatat pembelian, bukan tujuan `ONGOING` dari setoran.
+
 Payload:
 ```json
 {
@@ -618,20 +626,19 @@ Efek data:
 Payload:
 ```json
 {
-  "goal_id": "GOAL-001",
   "amount": 5
 }
 ```
 
 Validasi:
-- `goal_id` wajib.
+- `goal_id` opsional untuk kompatibilitas klien lama; nilainya tidak menentukan alokasi atau kepemilikan kartu.
 - `amount > 0`.
 - `amount` maksimal **15** koin per aksi (sesuai rulebook).
 - Fitur tabungan tujuan aktif.
 
 Efek data:
 - Mengurangi saldo.
-- Menambah saldo tabungan tujuan.
+- Menambah saldo tabungan pemain tanpa mengurangi stok atau membuat kepemilikan kartu tujuan.
 
 ---
 
@@ -673,8 +680,12 @@ Validasi:
 - Satu event pesanan hanya boleh dipasangkan dengan satu event risiko.
 
 Efek data:
-- Risiko `OUT` pemain disimpan sebagai pending tanpa langsung mengurangi saldo.
-- Risiko `OUT` menjadi selesai saat ada `BayarRisiko`, penggunaan asuransi, atau opsi darurat yang menyediakan dana cukup.
+- Risiko koin `OUT` pribadi disimpan sebagai pending untuk penarik kartu. Kartu Bencana Banjir dan Pemadaman Listrik (`ALL_PLAYERS_COIN_EFFECT`) menjadi pending bagi setiap peserta, tanpa langsung mengurangi saldo.
+- Setiap pemain terdampak memilih `BayarRisiko`, penggunaan asuransi, atau opsi darurat yang menyediakan dana cukup. Penyelesaian dicatat per pasangan `risk_event_id` dan pemain; pilihan satu pemain tidak menyelesaikan kewajiban pemain lain.
+- Selama masih pending, pemain harus menyelesaikannya sebelum aksi lain. Giliran dan sesi belum dapat diakhiri sampai seluruh pemain selesai.
+- Server menambahkan `resolution_mode=PER_PLAYER` pada draw massal baru. Draw lama tanpa marker tetap memakai debit langsung saat diproyeksikan ulang dan tidak ditagih dua kali.
+- Kartu Ulang Tahun memindahkan nominal katalog dari setiap pemain lain ke penarik kartu; saldo seluruh peserta diperbarui dan total koin tetap.
+- Setiap kartu Investasi Emas mengharuskan satu `BukaHargaEmas` baru, termasuk jika kartu kedua muncul pada hari yang sama. Semua pemain boleh bertransaksi setelah harga diperbarui; harga sebelum kartu terbaru ditolak walaupun referensi transaksi menunjuk kartu terdahulu.
 - Risiko bonus/non-pembayaran tetap diproyeksikan sesuai efek katalog.
 
 ---
@@ -689,11 +700,11 @@ Payload:
 
 Validasi:
 - `risk_event_id` wajib.
-- Referensi harus menunjuk risiko `OUT` pending milik pemain pada sesi yang sama.
+- Referensi harus menunjuk risiko `OUT` pending pada sesi yang sama: risiko pribadi pemain tersebut atau risiko massal yang berlaku bagi semua peserta.
 - Saldo pemain harus cukup untuk membayar nilai risiko dari katalog.
 
 Efek data:
-- Membuat proyeksi `RISK_LIFE OUT` dan menandai risiko selesai.
+- Membuat proyeksi `RISK_LIFE OUT` dan menandai risiko selesai bagi pemain yang membayar.
 
 ---
 
@@ -707,7 +718,7 @@ Payload:
 
 Validasi:
 - Polis pemain wajib berstatus `ACTIVE` dan `remaining_uses > 0`.
-- `risk_event_id` harus menunjuk risiko `OUT` pending milik pemain yang sama.
+- `risk_event_id` harus menunjuk risiko `OUT` pending yang berlaku bagi pemain, termasuk kartu massal yang ditarik peserta lain.
 - Asuransi dapat dipilih walaupun saldo pemain cukup.
 
 Efek data:
@@ -727,7 +738,7 @@ Payload dasar:
 ```
 
 Validasi:
-- `risk_event_id` wajib dan harus merujuk ke event `RisikoKehidupan` bertipe OUT milik pemain yang sama.
+- `risk_event_id` wajib dan harus merujuk ke event `RisikoKehidupan` koin OUT pending yang berlaku bagi pemain (pribadi atau massal).
 - `option_type` hanya bernilai `SELL_NEED`, `SELL_GOLD`, atau `TAKE_SHARIA_LOAN`.
 - Klien tidak menentukan `direction` atau `amount`; server menghapus nilai tersebut dari request dan menghitung ulang berdasarkan katalog/state.
 - `SELL_NEED` membutuhkan `need_card_id`/`card_id` yang dimiliki pemain; nilai jual adalah pembulatan ke bawah dari setengah harga beli dan kartu ditandai terjual.
@@ -767,7 +778,7 @@ Kontrak berikut menjadi acuan Swagger dan pengujian.
   "user_id": "uuid",
   "username": "instructor",
   "role": "INSTRUCTOR",
-  "display_name": "Ibu Rina",
+  "display_name": "Hadziq",
   "access_token": "jwt",
   "expires_at": "2026-02-08T12:00:00Z"
 }
@@ -916,6 +927,37 @@ Status code:
 ```
 
 ---
+
+### 6.5.1 Sesi kosong dan heartbeat IDN
+
+`POST /api/v1/sessions/{sessionId}/end` juga menerima sesi `CREATED`. Jika belum ada aktivitas bermain, responsnya `200 { "status": "DELETED" }` dan sesi beserta data turunannya dihapus. Ini berlaku untuk sesi `CREATED`, `STARTED` yang hanya berisi setup, serta `ENDED` lama yang kosong. Akun pemain dan ruleset tetap tersimpan. Event setup SYSTEM hari 0 (`MulaiSesi`, `BagikanTieBreaker`, dan lima `Setup…Awal`) tidak dihitung sebagai aktivitas bermain. Event SYSTEM selain setup tetap dihitung. Akses berikutnya ke sesi yang dihapus menghasilkan `404`.
+
+**Heartbeat:** `POST /api/v1/sessions/{sessionId}/heartbeat`, tanpa body, JWT instruktur pemilik sesi. Berlaku pada `CREATED` dan `STARTED`. Sesi selesai menghasilkan `409`, sesi tidak ditemukan/bukan milik instruktur `404`, role PLAYER `403`. Respons `200`:
+
+```json
+{
+  "status": "STARTED",
+  "last_activity_at": "2026-09-20T10:00:00Z",
+  "expires_at": "2026-09-20T11:00:00Z",
+  "heartbeat_interval_seconds": 1800
+}
+```
+
+IDN mengirim heartbeat setelah membuat sesi, kemudian setiap 30 menit (1.800 detik) selama persiapan dan permainan, termasuk ketika pemain tidak sedang melakukan aksi. `/start` dan event berhasil juga menyegarkan aktivitas. Waktu berasal dari server; polling dashboard, event gagal, dan jam perangkat tidak memperpanjang sesi. Heartbeat tidak menambah event, sequence, atau state version.
+
+Worker memeriksa setiap 15 detik. Sesi `STARTED` tanpa aktivitas selama 1 jam (3.600 detik) otomatis ditutup; sesi `CREATED` yang ditinggalkan dibersihkan setelah 1 jam. Batas waktu dihitung dari aktivitas terakhir yang diterima server, bukan dari waktu sesi dibuat. Timeout menunjukkan dugaan koneksi putus, bukan bukti aplikasi crash. Sesi berisi gameplay dibekukan pada state terakhir yang committed, termasuk jika donasi/risiko belum lengkap, dengan `end_reason=HEARTBEAT_TIMEOUT`. Sesi kosong dihapus. Worker juga membersihkan sesi `ENDED` lama tanpa gameplay. Penutupan manual dengan data tetap memvalidasi donasi/risiko dan memakai `end_reason=MANUAL`.
+
+`GET /api/v1/sessions` menyertakan `end_reason`; nilainya dapat `null` untuk sesi lama atau yang belum berakhir. Sesi timeout dapat merupakan permainan terputus, sehingga hasil hanya mencakup data yang sudah diterima backend.
+
+Penutupan memeriksa ulang aktivitas setelah memperoleh lock yang sama dengan ingest, lalu menyimpan perubahan secara atomik. Heartbeat/event yang menang lebih dahulu dapat menyelamatkan sesi sebelum worker menutupnya. Sesi yang sudah selesai tidak dibuka kembali. Retry `/end` untuk sesi berisi data yang sudah selesai tetap `422`. Maksimal 100 kandidat diperiksa per putaran; antrean besar atau backend mati menambah waktu deteksi.
+
+Konfigurasi API: `SessionLifecycle:Enabled`, `HeartbeatIntervalSeconds`, `StartedTimeoutSeconds`, `CreatedTimeoutSeconds`, `SweepIntervalSeconds`. Environment .NET memakai `__`, misalnya `SessionLifecycle__StartedTimeoutSeconds=3600`; untuk Docker, teruskan variabel ke environment kontainer API. Migrasi V012 memberi sesi lama awal masa tenggang pada waktu migrasi.
+
+Docker Compose meneruskan pengaturan dari `.env`: `SESSION_LIFECYCLE_ENABLED`, `SESSION_HEARTBEAT_INTERVAL_SECONDS`, `SESSION_STARTED_TIMEOUT_SECONDS`, `SESSION_CREATED_TIMEOUT_SECONDS`, dan `SESSION_SWEEP_INTERVAL_SECONDS`. Nilai default tercantum dalam template `config/env/.env*.example`.
+
+**Integrasi IDN diperlukan:** kode aplikasi IDN berada di luar repositori ini. Setelah koneksi pulih, kirim heartbeat dan baca `/state` sebelum melanjutkan antrean. Pada `404`/`409`, hentikan sesi lokal dan tampilkan status berakhir; event yang belum terkirim tidak masuk hasil backend. Deploy dukungan heartbeat IDN bersama backend, atau gunakan `SessionLifecycle__Enabled=false` sampai IDN siap.
+
+Undo tersedia melalui `POST /api/v1/sessions/{sessionId}/events/{eventId}/undo` untuk event efektif terakhir saat sesi `STARTED`. Seluruh state gameplay dipulihkan secara atomik dari snapshot sebelum event; audit asli dapat dibaca melalui `GET /api/v1/sessions/{sessionId}/event-undos`. Event sebelum fitur snapshot aktif tidak dapat di-undo. Lihat [kontrak undo dan panduan integrasi IDN](02-05-rancangan-undo-event.md).
 
 ### 6.6 Ambil state sesi
 - Method: `GET`
@@ -1092,6 +1134,8 @@ Status code:
 ---
 
 ### 8.2 Kirim event batch
+Koleksi `events` dan seluruh elemennya diperiksa sebelum penyimpanan. Elemen null menghasilkan 400 tanpa menyimpan bagian awal batch. Untuk elemen berbentuk event yang lengkap, kegagalan validasi domain dilaporkan per item; hasil sukses tetap dihitung dalam `stored_count`.
+
 - Method: `POST`
 - Path: `/api/v1/events/batch`
 - Request:
@@ -1130,6 +1174,8 @@ Urutan stabil memakai `sequence_number`. `limit` default 50 dan maksimum 100; cu
 Catatan akses:
 - Endpoint mutasi ruleset dan aktivasi ruleset mensyaratkan role `INSTRUCTOR` melalui token Bearer. Endpoint ini dapat dipakai oleh Web Analitik MVC, Klien Game/IDN, atau integrasi API untuk kebutuhan manajemen ruleset Instruktur.
 
+Konfigurasi skor misi pada `definition.collection_missions[]` memakai `success_points >= 0` sebagai hadiah ketika syarat misi terpenuhi. Penalti memiliki dua representasi kompatibel: `penaltyPoints >= 0` dan `failure_points <= 0`. Salah satunya boleh nol/tidak diisi; nilai yang tersedia menentukan besarnya penalti. Jika keduanya bukan nol, nilainya wajib berlawanan tanda dengan besar yang sama, misalnya `penaltyPoints=10` dan `failure_points=-10`; konflik ditolak dengan `MUST_MATCH_NEGATIVE_PENALTY`. Penyimpanan menormalisasi kedua representasi. Hadiah misi diberikan tepat sekali, termasuk ketika evaluasi diulang.
+
 ### 9.1 Buat ruleset
 - Method: `POST`
 - Path: `/api/v1/rulesets`
@@ -1143,6 +1189,8 @@ Catatan akses:
 ```
 
 Isi field `definition` mengikuti struktur JSON pada `docs/01-Spesifikasi/01-02-spesifikasi-ruleset-dan-validasi.md` bagian 4.1. Saat disimpan, API menormalisasi definisi tersebut ke tabel `ruleset_*`. Contoh lengkap mode pemula dan mahir tersedia pada bagian 9 dokumen yang sama.
+
+Objek settings/player ordering, koleksi, dan elemen koleksi tidak boleh null, termasuk bahan pesanan, target misi, dan prasyarat narasi. Bentuk yang tidak lengkap menghasilkan 400 dengan lokasi field sebelum definisi ditulis.
 
 - Response 201:
 ```json
@@ -1376,6 +1424,8 @@ Urutan stabil memakai `timestamp, transaction_id`. `limit` default 50 dan maksim
 ---
 
 ### 10.3 Ambil snapshot metrik gameplay
+
+Skor gameplay dan item `by_player` pada analitika sesi menyertakan field tambahan `initial_happiness_points` serta `mission_reward_total`. Keduanya sudah termasuk di dalam `happiness_points_total`, sehingga klien tidak menjumlahkannya lagi ke total tersebut. Rincian `happiness_points_composition` pada snapshot memakai key `initial_happiness_points` dan `mission_reward_points`. Poin awal berasal dari `definition.settings.initial_happiness`; hadiah berasal dari misi yang dipenuhi sesuai ruleset sesi. Finalisasi dan recompute memakai komponen yang sama.
 - Method: `GET`
 - Path: `/api/v1/analytics/sessions/{sessionId}/players/{userId}/gameplay`
 - Response 200:
@@ -1544,5 +1594,16 @@ Sebelum merilis perubahan kontrak:
 
 - `GET /api/v1/analytics/session-rosters?includeResults=true` mengembalikan peserta seluruh sesi yang dapat diakses akun dalam satu respons. Instruktur dibatasi pada sesi miliknya; pemain pada sesi yang diikutinya. Hasil akhir hanya disertakan untuk sesi selesai, dengan `results_available` sebagai penanda kelengkapan.
 - `GET /api/v1/analytics/players/{playerId}/gameplay?mode=MAHIR&status=ENDED` mengembalikan gameplay pemain per sesi. `mode` wajib `PEMULA` atau `MAHIR`; `status` menerima `ALL`, `CREATED`, `STARTED`, atau `ENDED`. Instruktur hanya dapat membaca peserta sesinya sendiri; pemain hanya dapat membaca dirinya sendiri. `gameplay: null` berarti sesi persiapan atau hasil yang belum tersedia, bukan nilai nol.
-- Halaman sesi menggunakan dua permintaan API, dan statistik menggunakan dua permintaan untuk pemain atau tiga untuk instruktur. Jumlah HTTP tidak bertambah per sesi; kalkulasi tetap memakai aturan dan sumber yang sama dengan detail analitika.
+- Halaman daftar sesi menggunakan dua permintaan API. Detail satu sesi mengambil empat respons utama (analitika, status, peserta, dan halaman awal timeline), ditambah detail ruleset serta components bila versi sesi berbeda dari versi terbaru. Statistik menggunakan dua permintaan untuk pemain atau tiga untuk instruktur; jumlahnya tidak bertambah per sesi. Halaman timeline berikutnya dimuat sesuai kebutuhan.
 - Nilai waktu API tetap ISO 8601 dengan offset. UI memformat waktu menurut zona browser dan menampilkan label zona; bila JavaScript belum berjalan, waktu ditampilkan eksplisit sebagai UTC.
+
+## Koreksi kontrak audit 13 September 2026
+
+- JWT yang masih dalam masa berlaku tetap diperiksa terhadap akun aktif dan peran terkini. Akun nonaktif, hilang, atau berubah peran menghasilkan 401 pada permintaan berikutnya.
+- `GET /api/v1/security/audit-logs` hanya mengembalikan log akun instruktur pemanggil, termasuk bila `userId` tidak diberikan. Filter akun lain menghasilkan 403. Tidak ada hak baca log global bagi instruktur biasa.
+- Nama ruleset pada POST/PUT maksimal 120 karakter; melebihi batas menghasilkan 400 sebelum penulisan database. PUT boleh tidak mengirim nama untuk mempertahankan nama sebelumnya.
+- Payload event harus objek JSON; null, array, string, dan angka ditolak sebagai `VALIDATION_ERROR`, termasuk pada batch. Pengayaan pesanan/opsi darurat tidak berjalan sebelum bentuk objek dipastikan.
+- `GET /api/v1/sessions/{id}/events` menerima `refreshSequences`, daftar angka sequence nonnegatif dipisahkan koma, maksimal 100 entri. Respons tambahan `refreshed_items` memuat event yang diminta dalam sesi tersebut dengan aturan masking yang sama. Cursor dan `has_more` hanya merujuk `items`; event yang tidak ditemukan tidak ditambahkan.
+- Respons event juga memuat `undone_sequence_numbers` untuk seluruh pembatalan pada sesi. Klien menghapus nomor tersebut dari timeline tersimpan setelah menggabungkan `items`/`refreshed_items`. Donasi yang sempat terbuka perlu disegarkan kembali karena undo donasi terakhir dapat membuat ronde kembali rahasia.
+- Donasi Jumat sebelum seluruh peserta menyetor belum masuk perhitungan analitika publik maupun halaman transaksi. Respons analitika sesi dan gameplay memiliki `has_sealed_donations=true` selama penundaan ini. Data asli tetap disimpan; hasil lengkap tampil setelah seluruh peserta menyetor. Snapshot hitung ulang yang diambil selama tahap ini juga bersifat sementara.
+- Penutupan sesi mengambil transaction advisory lock yang sama dengan ingest event. Skor akhir, status ENDED, dan state GAME_END disimpan dalam satu transaksi. Event yang menang lebih dahulu disertakan; event yang datang setelah penutupan ditolak. Penutupan manual ditolak jika donasi Jumat belum lengkap; timeout membekukan state terakhir dengan alasan `HEARTBEAT_TIMEOUT`.

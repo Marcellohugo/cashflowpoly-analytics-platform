@@ -193,7 +193,7 @@ public sealed class EventEconomyActionValidatorTests
         {
             // Melanjutkan pengolahan dengan memanggil `CreateEvent` dengan `request.UserId!.Value`, `”BukaHargaEmas”`, `”””{”gold_price”:5}”””`,
             // `request.SessionId` dalam TryValidate_GoldTradeAllowsNonSaturdayWhenTriggeredByLifeRisk.
-            CreateEvent(request.UserId!.Value, "BukaHargaEmas", """{"gold_price":5}""", sessionId: request.SessionId),
+            CreateEvent(request.UserId!.Value, "BukaHargaEmas", """{"gold_price":5}""", sessionId: request.SessionId, sequenceNumber: 2),
             // Melanjutkan pengolahan dengan memanggil `CreateEvent` dengan `request.UserId!.Value`, `”RisikoKehidupan”`, `”””{”risk_id”:”risk_gold”}”””`,
             // `riskEventId`, `request.SessionId` dalam TryValidate_GoldTradeAllowsNonSaturdayWhenTriggeredByLifeRisk.
             CreateEvent(
@@ -398,6 +398,83 @@ public sealed class EventEconomyActionValidatorTests
     // bertipe `Guid?` membawa nilai pemain identitas; nilai null diizinkan ketika data opsional belum tersedia; bila argumen tidak diberikan digunakan
     // null, yaitu penanda tidak ada nilai; Parameter `weekday` bertipe `string` membawa nilai weekday; bila argumen tidak diberikan digunakan nilai
     // literal `”MON”`; Parameter `dayIndex` bertipe `int` membawa nilai hari index; bila argumen tidak diberikan digunakan nilai literal `0`.
+    [Theory]
+    [InlineData("MON")]
+    [InlineData("SAT")]
+    public void GoldPriceAllowsExactlyOneRefreshAfterEachNewGoldRisk(string weekday)
+    {
+        var request = CreateRequest("BukaHargaEmas", """{"gold_price":6}""", weekday: weekday);
+        var history = new List<EventDb>
+        {
+            CreateEvent(request.UserId!.Value, "RisikoKehidupan", """{"risk_id":"risk_gold"}""",
+                sessionId: request.SessionId, sequenceNumber: 1)
+        };
+        var validator = new EventEconomyActionValidator();
+        validator.TryValidate(request, CreateConfig(), history, out var first);
+        Assert.True(first.Validation.IsValid);
+
+        history.Add(CreateEvent(request.UserId.Value, "BukaHargaEmas", """{"gold_price":5}""",
+            sessionId: request.SessionId, sequenceNumber: 2));
+        validator.TryValidate(request, CreateConfig(), history, out var duplicate);
+        Assert.False(duplicate.Validation.IsValid);
+
+        history.Add(CreateEvent(request.UserId.Value, "RisikoKehidupan", """{"risk_id":"risk_gold"}""",
+            sessionId: request.SessionId, sequenceNumber: 3));
+        validator.TryValidate(request, CreateConfig(), history, out var refresh);
+        Assert.True(refresh.Validation.IsValid);
+
+        history.Add(CreateEvent(request.UserId.Value, "BukaHargaEmas", """{"gold_price":6}""",
+            sessionId: request.SessionId, sequenceNumber: 4));
+        validator.TryValidate(request, CreateConfig(), history, out var secondDuplicate);
+        Assert.False(secondDuplicate.Validation.IsValid);
+    }
+
+    [Theory]
+    [InlineData("InvestasiEmas", "BUY")]
+    [InlineData("JualEmas", "SELL")]
+    public void GoldTradeRequiresPriceAfterLatestRiskEvenWhenReferencingEarlierRisk(string action, string tradeType)
+    {
+        var firstRiskId = Guid.NewGuid();
+        var request = CreateRequest(action,
+            $$"""{"trade_type":"{{tradeType}}","qty":1,"unit_price":5,"amount":5,"risk_event_id":"{{firstRiskId}}"}""");
+        var drawingPlayer = Guid.NewGuid();
+        var history = new List<EventDb>
+        {
+            CreateEvent(drawingPlayer, "RisikoKehidupan", """{"risk_id":"risk_gold"}""",
+                eventId: firstRiskId, sessionId: request.SessionId, sequenceNumber: 1),
+            CreateEvent(drawingPlayer, "BukaHargaEmas", """{"gold_price":5}""",
+                sessionId: request.SessionId, sequenceNumber: 2),
+            CreateEvent(drawingPlayer, "RisikoKehidupan", """{"risk_id":"risk_gold"}""",
+                sessionId: request.SessionId, sequenceNumber: 3)
+        };
+        var validator = new EventEconomyActionValidator();
+        validator.TryValidate(request, CreateConfig(), history, out var stale);
+        Assert.False(stale.Validation.IsValid);
+
+        // Drawing the same numeric price again still counts as the required refresh.
+        history.Add(CreateEvent(drawingPlayer, "BukaHargaEmas", """{"gold_price":5}""",
+            sessionId: request.SessionId, sequenceNumber: 4));
+        validator.TryValidate(request, CreateConfig(), history, out var refreshed);
+        Assert.True(refreshed.Validation.IsValid);
+    }
+
+    [Fact]
+    public void GoldPriceCannotRefreshBecauseOfExpiredOrUnrelatedRisk()
+    {
+        var request = CreateRequest("BukaHargaEmas", """{"gold_price":6}""", weekday: "SAT", dayIndex: 6);
+        var history = new[]
+        {
+            CreateEvent(request.UserId!.Value, "BukaHargaEmas", """{"gold_price":5}""",
+                sessionId: request.SessionId, dayIndex: 6, sequenceNumber: 1),
+            CreateEvent(request.UserId.Value, "RisikoKehidupan", """{"risk_id":"risk_gold"}""",
+                sessionId: request.SessionId, dayIndex: 5, sequenceNumber: 2),
+            CreateEvent(request.UserId.Value, "RisikoKehidupan", """{"risk_id":"unrelated"}""",
+                sessionId: request.SessionId, dayIndex: 6, sequenceNumber: 3)
+        };
+        new EventEconomyActionValidator().TryValidate(request, CreateConfig(), history, out var result);
+        Assert.False(result.Validation.IsValid);
+    }
+
     private static EventRequest CreateRequest(
         // Parameter `actionType` bertipe `string` membawa nilai aksi jenis.
         string actionType,
@@ -474,7 +551,8 @@ public sealed class EventEconomyActionValidatorTests
         // opsional belum tersedia; bila argumen tidak diberikan digunakan null, yaitu penanda tidak ada nilai.
         Guid? sessionId = null,
         // Parameter `dayIndex` bertipe `int` membawa nilai hari index; bila argumen tidak diberikan digunakan nilai literal `0`.
-        int dayIndex = 0)
+        int dayIndex = 0,
+        long sequenceNumber = 1)
     // Membuka scope metode CreateEvent; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateEvent.
     {
         // Mengembalikan objek baru bertipe `EventDb` dengan nilai awal sesuai konstruktornya kepada pemanggil dalam CreateEvent; eksekusi jalur ini selesai
@@ -499,7 +577,7 @@ public sealed class EventEconomyActionValidatorTests
             // Memperbarui `ActionSlot` menggunakan nilai literal `1` dalam CreateEvent.
             ActionSlot = 1,
             // Memperbarui `SequenceNumber` menggunakan nilai literal `1` dalam CreateEvent.
-            SequenceNumber = 1,
+            SequenceNumber = sequenceNumber,
             // Memperbarui `ActionType` menggunakan `actionType` (nilai aksi jenis) dalam CreateEvent.
             ActionType = actionType,
             // Memperbarui `RulesetVersionId` menggunakan memanggil `Guid.NewGuid` dengan tanpa argumen dalam CreateEvent.

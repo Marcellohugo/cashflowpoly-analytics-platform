@@ -137,7 +137,7 @@ Data permainan lengkap, variabel nol yang sah, status belum ada data, jejak akti
 ## 7. Keputusan akun, legal, dan metadata
 
 - JWT delapan jam, logout perangkat saat ini, dan rate limit login dipertahankan.
-- Registrasi publik hanya untuk Player; pendaftaran Instructor publik tetap ditolak.
+- Registrasi publik menerima Player dan Instructor; pendaftaran Instructor mengikuti `Auth:AllowPublicInstructorRegistration` (default `true`). Akses data tetap dibatasi berdasarkan kepemilikan atau partisipasi.
 - Akun Seed 2 ditandai sebagai akun demo dan tetap mengikuti hak akses role-nya.
 - Ditambahkan halaman Kebijakan Privasi dan Ketentuan Penggunaan sebagai proyek akademik, bukan badan usaha.
 - Halaman privat diberi kebijakan `noindex`; canonical, Open Graph, robots, dan sitemap berasal dari `DOMAIN`.

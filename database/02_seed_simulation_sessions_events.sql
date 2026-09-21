@@ -631,6 +631,22 @@ where
     '91000000-0000-0000-0000-000000000002' :: uuid
   );
 
+-- Harga contoh mengikuti katalog dan risiko yang benar-benar sudah terjadi pada sesi tersebut.
+create or replace function pg_temp.seed_ingredient_price(sid uuid, version_id uuid, participant_id uuid, day_no int, card_id text)
+returns integer language sql as $fn$
+  select greatest(0, ingredient.purchase_price + coalesce((
+    select sum(effect.value_delta) from session_rule_effects effect
+    join events source on source.session_id = effect.session_id and source.event_id = effect.source_event_id
+    where effect.session_id = sid and effect.effect_type = 'INGREDIENT_PRICE_MODIFIER'
+      and effect.is_active and day_no between effect.starts_day and effect.ends_day
+      and (effect.target_scope = 'ALL_PLAYERS'
+        or (effect.target_scope = 'SELF' and source.session_player_id = participant_id)
+        or (effect.target_scope = 'OTHER_PLAYERS' and source.session_player_id is distinct from participant_id))
+  ), 0))::integer
+  from ruleset_ingredients ingredient
+  where ingredient.ruleset_version_id = version_id and ingredient.ingredient_code = card_id
+$fn$;
+
 do $$ declare v_event record;
 
 begin
@@ -6333,7 +6349,12 @@ from
   and ra.is_active
 order by
   re.session_id,
-  re.sequence_number loop perform apply_game_event(
+  re.sequence_number loop
+  if v_event.action_type = 'BahanMasakan' then
+    v_event.payload := jsonb_set(v_event.payload, '{amount}', to_jsonb(pg_temp.seed_ingredient_price(
+      v_event.session_id, v_event.ruleset_version_id, v_event.session_player_id, v_event.day_index, v_event.payload->>'card_id')));
+  end if;
+  perform apply_game_event(
     v_event.event_id,
     v_event.session_id,
     v_event.session_player_id,
@@ -6368,7 +6389,7 @@ select n, ('98100000-0000-0000-0000-'||lpad((case when n<=8 then n else n+2 end)
        timestamptz '2026-01-05 01:00:00+00' +
          (case when n<=8 then (n-1)*28 else (n-9)*28+7 end)*interval '1 day' +
          (case when n<=8 then 0 else 150 end)*interval '1 minute' as starts,
-       'ENDED'::text as status,24 as last_day
+       'ENDED'::text as status,25 as last_day
 from generate_series(3,16) n;
 
 -- Tambahan tetap mempertahankan empat sesi selesai per mode dan instruktur.
@@ -6441,7 +6462,10 @@ begin
       select * into p from seed_variant_players where session_id=v.session_id and template_user_id=e.user_id;
       target_player:=p.participant_id; target_user:=p.user_id;
       body:=e.payload;
-      if e.action_type='KerjaLepas' then
+      if e.action_type='BahanMasakan' then
+        body:=jsonb_set(body,'{amount}',to_jsonb(pg_temp.seed_ingredient_price(
+          v.session_id,v.version_id,target_player,e.day_index,body->>'card_id')));
+      elsif e.action_type='KerjaLepas' then
         body:=jsonb_set(body,'{amount}',to_jsonb(v.freelance_income));
       elsif e.action_type='SetupModalAwal' then
         body:=jsonb_set(body,'{amount}',to_jsonb(v.starting_cash));

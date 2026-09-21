@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 // Mengimpor namespace `Npgsql` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using Npgsql;
+using Microsoft.Extensions.Options;
 
 // Menempatkan deklarasi pada namespace `Cashflowpoly.Api.Controllers` untuk mengelompokkan komponen dan mencegah benturan nama tipe.
 namespace Cashflowpoly.Api.Controllers;
@@ -58,6 +59,7 @@ public sealed class SessionsController : ControllerBase
     private readonly SessionStateRepository _state;
     private readonly PlayerRepository _players;
     private readonly UserRepository _users;
+    private readonly SessionLifecycleOptions _lifecycleOptions;
 
     public SessionsController(
         // Parameter `rulesets` bertipe `RulesetRepository` membawa nilai aturan.
@@ -69,13 +71,15 @@ public sealed class SessionsController : ControllerBase
         // Parameter `players` bertipe `PlayerRepository` membawa nilai pemain.
         PlayerRepository players,
         // Parameter `users` bertipe `UserRepository` membawa nilai pengguna.
-        UserRepository users)
+        UserRepository users,
+        IOptions<SessionLifecycleOptions> lifecycleOptions)
     {
         _rulesets = rulesets;
         _sessions = sessions;
         _state = state;
         _players = players;
         _users = users;
+        _lifecycleOptions = lifecycleOptions.Value;
     }
 
     // mendaftarkan action untuk metode HTTP GET pada rute controller saat ini.
@@ -121,7 +125,8 @@ public sealed class SessionsController : ControllerBase
             s.Status,
             s.CreatedAt,
             s.StartedAt,
-            s.EndedAt)).ToList();
+            s.EndedAt,
+            s.EndReason)).ToList();
 
         return Ok(new SessionListResponse(items));
     }
@@ -138,6 +143,12 @@ public sealed class SessionsController : ControllerBase
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        }
+
+        if (request.SessionName?.Trim().Length > 120)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Nama sesi maksimal 120 karakter",
+                new ErrorDetail("session_name", "OUT_OF_RANGE")));
         }
 
         if (string.IsNullOrWhiteSpace(request.SessionName))
@@ -571,37 +582,28 @@ public sealed class SessionsController : ControllerBase
             return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
         }
 
-        if (!string.Equals(session.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Status sesi tidak valid"));
-        }
+        var result = await _state.EndSessionAsync(sessionId, ct);
+        if (result is null)
+            return UnprocessableEntity(ApiErrorHelper.BuildError(HttpContext,
+                "DOMAIN_RULE_VIOLATION", "Sesi belum dapat diakhiri: periksa status, kelengkapan donasi, dan penyelesaian risiko kehidupan"));
 
-        var playersInSession = await _players.CountPlayersInSessionAsync(sessionId, ct);
-        var activeRuleset = await GetActiveRulesetAsync(session, ct);
-        if (activeRuleset is null)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                "Session belum memiliki ruleset ACTIVE yang valid"));
-        }
+        return Ok(new SessionStatusResponse(result));
+    }
 
-        var settings = activeRuleset.Value.Version.Definition!.Settings;
-        if (playersInSession < settings.MinPlayers || playersInSession > settings.MaxPlayers)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                $"Session membutuhkan {settings.MinPlayers} sampai {settings.MaxPlayers} pemain",
-                new ErrorDetail("player_count", "COUNT_OUT_OF_RANGE")));
-        }
+    [HttpPost("{sessionId:guid}/heartbeat")]
+    [Authorize(Roles = "INSTRUCTOR")]
+    [ProducesResponseType(typeof(SessionHeartbeatResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Heartbeat(Guid sessionId, CancellationToken ct)
+    {
+        if (!TryGetCurrentUserId(out var instructorUserId))
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+        if (await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct) is null)
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
 
-        await _state.ComputeFinalScoresAsync(sessionId, ct);
-
-        var endedAt = DateTimeOffset.UtcNow;
-        await _sessions.UpdateStatusAsync(sessionId, "ENDED", session.StartedAt, endedAt, ct);
-
-        return Ok(new SessionStatusResponse("ENDED"));
+        var heartbeat = await _sessions.RecordHeartbeatAsync(sessionId, instructorUserId, _lifecycleOptions, ct);
+        return heartbeat is null
+            ? Conflict(ApiErrorHelper.BuildError(HttpContext, "DOMAIN_RULE_VIOLATION", "Sesi sudah berakhir atau dihapus"))
+            : Ok(heartbeat);
     }
 
     // mendaftarkan action untuk metode HTTP GET pada rute (”{sessionId:guid}/state”).

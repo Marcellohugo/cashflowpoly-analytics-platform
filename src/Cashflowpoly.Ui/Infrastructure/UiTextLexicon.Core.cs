@@ -6,6 +6,17 @@ internal static partial class UiTextLexicon
 {
     private static partial void AddCore(Dictionary<string, (string Id, string En)> terms)
     {
+        terms["error.403.title"] = ("Halaman tidak dapat diakses", "Access denied");
+        terms["error.403.description"] = ("Akun Anda tidak memiliki akses ke data ini. Buka sesi yang Anda ikuti atau kelola.", "Your account cannot access this data. Open a session you joined or manage.");
+        terms["error.404.title"] = ("Halaman tidak ditemukan", "Page not found");
+        terms["error.404.description"] = ("Halaman atau data yang Anda cari tidak tersedia. Periksa kembali melalui daftar sesi.", "The page or data is unavailable. Check the session list to continue.");
+        terms["error.503.title"] = ("Data belum dapat dimuat", "Data is temporarily unavailable");
+        terms["error.503.description"] = ("Layanan sedang tidak tersedia. Coba muat ulang beberapa saat lagi.", "The service is temporarily unavailable. Please reload in a moment.");
+        terms["error.500.title"] = ("Terjadi kendala saat membuka halaman", "We could not open this page");
+        terms["error.500.description"] = ("Coba lagi beberapa saat lagi. Gunakan nomor permintaan berikut saat melaporkan kendala.", "Please try again shortly. Include the request ID below when reporting the issue.");
+        terms["auth.password_hint"] = ("Gunakan minimal 12 karakter dan maksimal 72 byte UTF-8. Huruf beraksen dan emoji dapat memakai lebih dari satu byte.", "Use at least 12 characters and at most 72 UTF-8 bytes. Accented letters and emoji may use more than one byte.");
+        terms["rulesets.error.name_too_long"] = ("Nama ruleset maksimal 120 karakter.", "Ruleset names must be at most 120 characters.");
+        terms["analytics.sealed_donations"] = ("Donasi Jumat masih dirahasiakan sampai seluruh pemain menyetor. Angka analitika sementara belum memasukkan donasi tersebut.", "Friday donations remain private until every player has submitted. These provisional analytics exclude those donations.");
         terms["nav.home"] = ("Beranda", "Home");
         terms["nav.sessions"] = ("Sesi Permainan", "Game Sessions");
         terms["nav.ruleset"] = ("Set Aturan", "Rulesets");
@@ -17,6 +28,8 @@ internal static partial class UiTextLexicon
         terms["auth.subtitle"] = ("Masuk dengan akun instruktur atau pemain untuk melanjutkan.", "Sign in with an instructor or player account to continue.");
         terms["auth.display_name"] = ("Nama Tampilan", "Display Name");
         terms["auth.username"] = ("Nama Pengguna", "Username");
+        terms["auth.username_hint"] = ("Gunakan 3–80 karakter.", "Use 3–80 characters.");
+        terms["auth.display_name_hint"] = ("Maksimal 80 karakter.", "At most 80 characters.");
         terms["auth.password"] = ("Kata Sandi", "Password");
         terms["auth.show_password"] = ("Lihat", "Show");
         terms["auth.hide_password"] = ("Sembunyikan", "Hide");
@@ -59,6 +72,7 @@ internal static partial class UiTextLexicon
         terms["profile.role"] = ("Peran", "Role");
         terms["layout.skip_to_content"] = ("Lewati ke konten", "Skip to content");
         terms["layout.toggle_nav"] = ("Buka/tutup menu navigasi", "Toggle navigation menu");
+        terms["layout.mobile_nav"] = ("Navigasi utama", "Main navigation");
         terms["layout.logo_alt"] = ("Logo Cashflowpoly", "Cashflowpoly logo");
         terms["layout.profile_alt"] = ("Profil", "Profile");
         terms["layout.brand_name"] = ("Cashflowpoly", "Cashflowpoly");

@@ -45,6 +45,7 @@ public sealed class SessionDetailViewModel
     // Mendefinisikan properti `Timeline` bertipe `List<SessionTimelineEventViewModel>` untuk nilai timeline; get menyediakan pembacaan nilai, init
     // membatasi pengisian saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
     public List<SessionTimelineEventViewModel> Timeline { get; init; } = new();
+    public string? TimelineCursor { get; init; }
     public string? TimelineErrorMessage { get; init; }
     public string? SessionStatus { get; init; }
     public RulesetDetailViewModel? ActiveRulesetDetail { get; init; }
@@ -58,6 +59,7 @@ public sealed class SessionDetailViewModel
 public sealed class SessionTimelineEventViewModel
 {
     public DateTimeOffset Timestamp { get; init; }
+    public bool IsSealed { get; init; }
     public long SequenceNumber { get; init; }
     public int DayIndex { get; init; }
     public string Weekday { get; init; } = string.Empty;
@@ -81,6 +83,7 @@ public sealed class PlayerDetailViewModel
     public Guid SessionId { get; init; }
     public Guid PlayerId { get; init; }
     public string? PlayerDisplayName { get; init; }
+    public int? PlayerOrder { get; init; }
     public AnalyticsByPlayerItem? Summary { get; init; }
     public PlayerStatSummaryViewModel? StatSummary { get; init; }
     public JsonElement? GameplayRaw { get; init; }
@@ -97,6 +100,12 @@ public sealed class PlayerDetailViewModel
 // Mendefinisikan tipe class `PlayerStatSummaryViewModel`; sealed mencegah tipe ini diturunkan lagi.
 public sealed class PlayerStatSummaryViewModel
 {
+    public double? CashInTotal { get; init; }
+    public double? CashOutTotal { get; init; }
+    public double? NetCashflow { get; init; }
+    public double? HappinessPoints { get; init; }
+    public double? FulfillmentDiversity { get; init; }
+    public bool? HasUnpaidLoan { get; init; }
     public bool? CollectionMissionComplete { get; init; }
     public List<PlayerInstructorInsightViewModel> Insights { get; init; } = new();
 }

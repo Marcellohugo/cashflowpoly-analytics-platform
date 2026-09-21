@@ -356,13 +356,13 @@
                 const legendRows = estimateLegendRows();
                 const margin = {
                     top: 16 + legendRows * legendLineHeight + 12,
-                    right: chartType === "bar" ? 52 : 24,
+                    right: chartType === "bar" ? 36 : 10,
                     bottom: chartType === "bar"
                         ? 80 + Math.max(0, (
                             wrappedAxisLabels.reduce((max, lines) => Math.max(max, lines.length), 1) - 1
                         ) * 13)
                         : 58,
-                    left: 62
+                    left: chartType === "bar" ? 34 : 28
                 };
                 const plotWidth = Math.max(80, width - margin.left - margin.right);
                 const plotHeight = Math.max(80, height - margin.top - margin.bottom);
@@ -412,11 +412,11 @@
                         "stroke-width": "1"
                     }));
                     const label = makeNode("text", {
-                        x: margin.left - 8,
+                        x: margin.left - 4,
                         y: y + 4,
                         "text-anchor": "end",
                         fill: "#5f7f92",
-                        "font-size": "12",
+                        "font-size": "10.5",
                         "font-family": "Nunito, Segoe UI, sans-serif"
                     });
                     label.textContent = value.toFixed(1).replace(/\.0$/, "");
@@ -479,12 +479,13 @@
                         svg.appendChild(text);
                         return;
                     }
+                    const isFirst = index === 0;
                     const text = makeNode("text", {
-                        x: xForIndex(index),
+                        x: isFirst ? margin.left : (isLast ? margin.left + plotWidth : xForIndex(index)),
                         y: margin.top + plotHeight + 18,
-                        "text-anchor": "middle",
+                        "text-anchor": isFirst ? "start" : (isLast ? "end" : "middle"),
                         fill: "#5f7f92",
-                        "font-size": "11",
+                        "font-size": "10.5",
                         "font-family": "Nunito, Segoe UI, sans-serif"
                     });
                     text.textContent = label;

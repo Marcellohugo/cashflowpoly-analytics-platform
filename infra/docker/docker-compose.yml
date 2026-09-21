@@ -87,6 +87,11 @@ services:
       AuthBootstrap__PlayerPassword: ${AUTH_BOOTSTRAP_PLAYER_PASSWORD:-}
       # Penjelasan: Menentukan pemuatan data simulasi oleh initializer; nilai environment diwariskan ke konfigurasi DatabaseMigrations:SeedSimulation. Nilai/deklarasi: DatabaseMigrations__SeedSimulation: ${DATABASE_MIGRATIONS_SEED_SIMULATION:-false}.
       DatabaseMigrations__SeedSimulation: ${DATABASE_MIGRATIONS_SEED_SIMULATION:-false}
+      SessionLifecycle__Enabled: ${SESSION_LIFECYCLE_ENABLED:-true}
+      SessionLifecycle__HeartbeatIntervalSeconds: ${SESSION_HEARTBEAT_INTERVAL_SECONDS:-1800}
+      SessionLifecycle__StartedTimeoutSeconds: ${SESSION_STARTED_TIMEOUT_SECONDS:-3600}
+      SessionLifecycle__CreatedTimeoutSeconds: ${SESSION_CREATED_TIMEOUT_SECONDS:-3600}
+      SessionLifecycle__SweepIntervalSeconds: ${SESSION_SWEEP_INTERVAL_SECONDS:-15}
     # Penjelasan: Mengatur publikasi port container ke host. !override [] mengosongkan pemetaan dari Compose dasar pada produksi sehingga layanan hanya dapat dicapai di jaringan internal. Nilai/deklarasi: ports:.
     ports:
       # Penjelasan: Menambahkan anggota daftar ”${API_HTTP_PORT:-5041}:${API_HTTP_PORT:-5041}”. Urutan dan blok induk menentukan apakah nilai menjadi argumen command, nama jaringan, environment, atau pemetaan port.

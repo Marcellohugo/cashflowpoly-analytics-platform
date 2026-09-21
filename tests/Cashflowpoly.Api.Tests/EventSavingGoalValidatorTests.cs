@@ -240,7 +240,7 @@ public sealed class EventSavingGoalValidatorTests
         // Menjalankan pemeriksaan bahwa nilai aktual sama dengan nilai yang diharapkan melalui Assert.Equal(`”TujuanFinansial bukan aksi pemain terpisah;
         // kartu tujuan diperoleh otomatis saat Menabung mencapai target”`, `result.Validation.Message`); pengujian gagal jika keduanya berbeda dalam
         // TryValidateGoalAchieved_RejectsSeparatePlayerAction.
-        Assert.Equal("TujuanFinansial bukan aksi pemain terpisah; kartu tujuan diperoleh otomatis saat Menabung mencapai target", result.Validation.Message);
+        Assert.Equal("TujuanFinansial dicatat sebagai event SYSTEM untuk pemain penerima setelah pembelian kartu tujuan pada permainan fisik", result.Validation.Message);
     // Menutup scope metode TryValidateGoalAchieved_RejectsSeparatePlayerAction; bagian berikut berada di luar batas blok tersebut dalam
     // TryValidateGoalAchieved_RejectsSeparatePlayerAction.
     }

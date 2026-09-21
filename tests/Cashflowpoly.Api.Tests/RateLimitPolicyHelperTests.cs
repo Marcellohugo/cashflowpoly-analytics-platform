@@ -23,14 +23,14 @@ public sealed class RateLimitPolicyHelperTests
 {
     // menandai metode sebagai pengujian xUnit yang dijalankan untuk setiap kombinasi data.
     [Theory]
-    // menyediakan satu kombinasi masukan pengujian (”/api/v1/events”, 240).
-    [InlineData("/api/v1/events", 240)]
-    // menyediakan satu kombinasi masukan pengujian (”/api/v1/sessions”, 300).
-    [InlineData("/api/v1/sessions", 300)]
-    // menyediakan satu kombinasi masukan pengujian (”/api/events”, 300).
-    [InlineData("/api/events", 300)]
-    // menyediakan satu kombinasi masukan pengujian (”/api/v1/auth/login”, 10).
-    [InlineData("/api/v1/auth/login", 10)]
+    // Memverifikasi batas setiap kelompok, termasuk batch, registrasi, dan undo di jalur sesi.
+    [InlineData("/api/v1/events", 340)]
+    [InlineData("/api/v1/events/batch", 340)]
+    [InlineData("/api/v1/sessions", 400)]
+    [InlineData("/api/events", 400)]
+    [InlineData("/api/v1/sessions/session/events/event/undo", 400)]
+    [InlineData("/api/v1/auth/login", 30)]
+    [InlineData("/api/v1/auth/register", 30)]
     /// <summary>
     /// Memvalidasi bahwa ResolvePermitLimit mengembalikan batas request yang sesuai
     /// untuk setiap path endpoint API (events, sessions, auth, dll).

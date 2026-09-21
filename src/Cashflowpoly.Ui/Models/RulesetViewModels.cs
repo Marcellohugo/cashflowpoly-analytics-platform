@@ -19,6 +19,7 @@ public sealed class RulesetListViewModel
     // Mendefinisikan properti `Items` bertipe `List<RulesetListItem>` untuk nilai elemen; get menyediakan pembacaan nilai, init membatasi pengisian
     // saat inisialisasi objek; nilai awalnya objek baru dengan tipe mengikuti konteks tujuan dan argumen ().
     public List<RulesetListItem> Items { get; init; } = new();
+    public bool RulesetsAvailable { get; init; }
     public string? ErrorMessage { get; init; }
 }
 
@@ -30,6 +31,7 @@ public sealed class CreateRulesetViewModel
 {
     public Guid? RulesetId { get; set; }
     public bool IsEditMode { get; set; }
+    [System.ComponentModel.DataAnnotations.MaxLength(120)]
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string DefinitionJson { get; set; } = "{}";

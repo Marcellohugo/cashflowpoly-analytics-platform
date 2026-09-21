@@ -54,7 +54,8 @@ for (const username of ['pratama', 'marco']) {
         await expect(panel.locator('.js-chart-bar-insight-formula')).toHaveText(expected.guidance);
         // A click must not pin the panel open after leaving the point.
         await points.nth(lastIndex).click();
-        await card.locator('h3').hover();
+        // Leave the point without scrolling toward a heading above the mobile viewport.
+        await page.mouse.move(0, 0);
         await expect(panel).toBeHidden();
         // Keyboard users get the same temporary detail, dismissed by Escape or blur.
         await point.focus();
@@ -72,8 +73,15 @@ for (const username of ['pratama', 'marco']) {
     }
     await page.locator('.statistics-jump button').first().click();
     const first = page.locator('[data-statistics-section]:visible .chart-card').first();
+    // Finish scrolling before hover: smooth scrolling dismisses the panel mid-capture.
+    await first.evaluate(card => window.scrollTo({
+      top: card.getBoundingClientRect().top + window.scrollY - 110, behavior: 'instant'
+    }));
     await first.locator('svg [tabindex="0"]').first().hover();
-    await first.locator('.statistics-point-detail').screenshot({ path: testInfo.outputPath(`${username}-point-detail.png`) });
+    const detail = first.locator('.statistics-point-detail');
+    await expect(detail).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`${username}-point-detail.png`), fullPage: false });
+    await expect(detail).toBeVisible();
     await page.goto('/sessions/91000000-0000-0000-0000-000000000016/players/90000000-0000-0000-0000-000000000011');
     const toolbar = page.locator('.player-detail-toolbar');
     await expect(toolbar.locator('a[href="/sessions"]')).toContainText('Kembali ke daftar sesi');

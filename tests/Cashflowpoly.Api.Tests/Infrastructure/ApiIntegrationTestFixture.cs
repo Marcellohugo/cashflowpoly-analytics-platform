@@ -71,6 +71,7 @@ public sealed class ApiIntegrationTestFixture : IAsyncLifetime
     // Mendefinisikan properti `Client` bertipe `HttpClient` untuk nilai client; nilainya dihitung dari `_client` bila tidak null; jika null gunakan
     // `throw new InvalidOperationException(”HTTP client belum terinisialisasi.”)` sebagai nilai pengganti.
     public HttpClient Client => _client ?? throw new InvalidOperationException("HTTP client belum terinisialisasi.");
+    public IServiceProvider Services => _factory?.Services ?? throw new InvalidOperationException("API belum terinisialisasi.");
 
     /// <summary>
     /// Menjalankan container PostgreSQL kosong, mengatur environment variable,

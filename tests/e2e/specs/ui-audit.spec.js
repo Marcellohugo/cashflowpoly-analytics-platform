@@ -86,9 +86,10 @@ for (const [role, username] of [['instructor', 'hadziq'], ['player', 'marco']]) 
           await page.goto(`/statistics?mode=${session.mode}&status=ENDED&playerId=${participant.user_id}`);
           await inspectStructure(page);
           await expect(page.locator('.player-statistics > [role="alert"]')).toHaveCount(0);
-          const indexes = await page.locator('.statistics-session').evaluateAll(cards => Object.fromEntries(cards.map(card => [
-            card.querySelector('a').getAttribute('href').split('/')[2], Number(card.querySelector('h3').textContent.trim().split('.')[0]) - 1
-          ])));
+          const indexes = await page.locator('[data-statistics-metric]').first().evaluate(card => {
+            const chart = JSON.parse(card.querySelector('svg').getAttribute('data-chart'));
+            return Object.fromEntries(chart.pointDetails.map((p, idx) => [p.sessionId, idx]));
+          });
           const charts = await page.locator('[data-statistics-metric]').evaluateAll(cards => cards.map(card => ({
             key: card.dataset.statisticsMetric, values: JSON.parse(card.querySelector('svg').getAttribute('data-chart')).series[0].values
           })));

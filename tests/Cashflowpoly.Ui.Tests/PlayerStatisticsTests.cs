@@ -179,6 +179,25 @@ public sealed class PlayerStatisticsTests
     }
 
     [Fact]
+    public async Task Instructor_WithoutSelectedPlayer_StartsEmpty()
+    {
+        var shared = Session("MAHIR");
+        var other = Guid.NewGuid();
+        var handler = new ResponseHandler(path => path == "/api/v1/sessions" ? Json(new SessionListResponse([shared]))
+            : path.Contains("/session-rosters") ? Json(new SessionRostersResponse([
+                new(shared.SessionId, [new(Player, "Selected Player", 1, null, null), new(other, "Other Player", 1, null, null)], false)]))
+            : Json(new PlayerGameplayHistoryResponse([new(shared.SessionId, Gameplay(shared))])));
+        var result = await Controller(handler, "INSTRUCTOR").Index("MAHIR", null, TestContext.Current.CancellationToken, null);
+        var model = Assert.IsType<PlayerStatisticsViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Equal(Guid.Empty, model.PlayerId);
+        Assert.Equal("", model.PlayerName);
+        Assert.Equal(2, model.AvailablePlayers.Count);
+        Assert.Empty(model.Sessions);
+        Assert.Null(model.TotalSessions);
+        Assert.DoesNotContain(handler.Paths, p => p.Contains("/gameplay"));
+    }
+
+    [Fact]
     public async Task Roster_ResultFailureDoesNotRemoveParticipantsOrEmptySessions()
     {
         var ended = Session("MAHIR");

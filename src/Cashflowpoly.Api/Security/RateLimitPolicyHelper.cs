@@ -11,9 +11,9 @@ namespace Cashflowpoly.Api.Security;
 // Mendefinisikan tipe class `RateLimitPolicyHelper`.
 internal static class RateLimitPolicyHelper
 {
-    private const int AuthPermitLimit = 10;
-    private const int IngestPermitLimit = 240;
-    private const int DefaultPermitLimit = 300;
+    private const int AuthPermitLimit = 30;
+    private const int IngestPermitLimit = 340;
+    private const int DefaultPermitLimit = 400;
 
     /// <summary>
     /// Mengembalikan batas permit per kelompok endpoint agar autentikasi tetap ketat tanpa

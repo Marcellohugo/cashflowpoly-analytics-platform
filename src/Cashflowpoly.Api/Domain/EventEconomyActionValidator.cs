@@ -83,14 +83,20 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         }
 
         var events = history.ToList();
-        if (events.Any(e => e.DayIndex == request.DayIndex &&
-            GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.GoldPriceOpened)))
+        var latestGoldRisk = GetLatestActiveGoldRisk(request.DayIndex, config, events);
+        var latestPrice = events
+            .Where(e => e.DayIndex == request.DayIndex &&
+                GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.GoldPriceOpened))
+            .OrderByDescending(e => e.SequenceNumber)
+            .FirstOrDefault();
+        if (latestPrice is not null &&
+            (latestGoldRisk is null || latestGoldRisk.SequenceNumber <= latestPrice.SequenceNumber))
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Harga emas hari ini sudah dibuka");
         }
 
         if (!request.Weekday.Equals("SAT", StringComparison.OrdinalIgnoreCase) &&
-            !HasActiveGoldRiskOnDay(request.DayIndex, config, events))
+            latestGoldRisk is null)
         {
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION",
                 "Harga emas hanya dibuka pada Sabtu atau saat efek Risiko Kehidupan emas aktif");
@@ -179,7 +185,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                 new ErrorDetail("weekday", "INVALID_VALUE"));
         }
 
-        if (!_payloadReader.TryReadAmount(request.Payload, out var amount))
+        if (!_payloadReader.TryGetInt32(request.Payload, "amount", out var amount))
         {
             return Fail(
                 StatusCodes.Status400BadRequest,
@@ -294,12 +300,14 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
             return Fail(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Amount tidak sesuai unit_price * qty");
         }
 
+        var latestGoldRisk = GetLatestActiveGoldRisk(request.DayIndex, config, history);
         var activePriceEvent = history
             .Where(e => GameActionCatalog.Is(e.ActionType, _payloadReader.ReadPayload(e.Payload), GameActionCatalog.GoldPriceOpened) &&
                         e.DayIndex == request.DayIndex)
             .OrderByDescending(e => e.SequenceNumber)
             .FirstOrDefault();
         if (activePriceEvent is null ||
+            (latestGoldRisk is not null && activePriceEvent.SequenceNumber <= latestGoldRisk.SequenceNumber) ||
             !_payloadReader.TryGetInt32(_payloadReader.ReadPayload(activePriceEvent.Payload), "gold_price", out var activePrice) ||
             activePrice != unitPrice)
         {
@@ -309,27 +317,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                 "Harga emas harus berasal dari BukaHargaEmas pada hari transaksi");
         }
 
-        var goldTradeOpened = false;
-        // Mengulangi setiap elemen `history`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh badan loop dalam ValidateGoldTrade.
-        foreach (var evt in history)
-        {
-            var eventPayload = _payloadReader.ReadPayload(evt.Payload);
-            if (GameActionCatalog.Is(evt.ActionType, eventPayload, GameActionCatalog.RisikoKehidupan) &&
-                _payloadReader.TryGetString(eventPayload, "risk_id", out var riskId))
-            {
-                var risk = config.LifeRisks.FirstOrDefault(r => string.Equals(r.RiskCode, riskId, StringComparison.OrdinalIgnoreCase));
-                if (risk is not null && string.Equals(risk.EffectType, "GOLD_TRADE", StringComparison.OrdinalIgnoreCase))
-                {
-                    var startDay = evt.DayIndex;
-                    var endDay = startDay + (risk.DurationDays ?? 1) - 1;
-                    if (request.DayIndex >= startDay && request.DayIndex <= endDay)
-                    {
-                        goldTradeOpened = true;
-                        break;
-                    }
-                }
-            }
-        }
+        var goldTradeOpened = latestGoldRisk is not null;
 
         if (string.Equals(tradeType, "BUY", StringComparison.OrdinalIgnoreCase) && !config.GoldAllowBuy && !goldTradeOpened)
         {
@@ -410,7 +398,7 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                request.DayIndex <= endDay;
     }
 
-    private static bool HasActiveGoldRiskOnDay(
+    internal static EventDb? GetLatestActiveGoldRisk(
         // Parameter `dayIndex` bertipe `int` membawa nilai hari index.
         int dayIndex,
         // Parameter `config` bertipe `RulesetConfig` membawa konfigurasi aturan permainan yang dipakai untuk validasi dan perhitungan.
@@ -418,15 +406,12 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
         // Parameter `history` bertipe `IEnumerable<EventDb>` membawa nilai history.
         IEnumerable<EventDb> history)
     {
-        // Mengulangi setiap elemen `history`; elemen saat ini disimpan sebagai `evt` bertipe `var` untuk diproses oleh badan loop dalam
-        // HasActiveGoldRiskOnDay.
-        foreach (var evt in history)
+        foreach (var evt in history.OrderByDescending(e => e.SequenceNumber))
         {
             var payload = _payloadReader.ReadPayload(evt.Payload);
             if (!GameActionCatalog.Is(evt.ActionType, payload, GameActionCatalog.RisikoKehidupan) ||
                 !_payloadReader.TryGetString(payload, "risk_id", out var riskId))
             {
-                // Melewati sisa pernyataan pada iterasi saat ini dan melanjutkan ke elemen/iterasi berikutnya dalam HasActiveGoldRiskOnDay.
                 continue;
             }
 
@@ -437,10 +422,10 @@ internal sealed class EventEconomyActionValidator : IEventEconomyActionValidator
                 string.Equals(risk.EffectType, "GOLD_TRADE", StringComparison.OrdinalIgnoreCase) &&
                 dayIndex >= evt.DayIndex && dayIndex <= endDay)
             {
-                return true;
+                return evt;
             }
         }
 
-        return false;
+        return null;
     }
 }

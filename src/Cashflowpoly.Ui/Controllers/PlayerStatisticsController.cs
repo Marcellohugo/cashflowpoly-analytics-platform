@@ -59,13 +59,21 @@ public sealed class PlayerStatisticsController(IHttpClientFactory clientFactory)
                         .OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase).ThenBy(p => p.UserId).ToList();
                     if (playerId.HasValue && !players.Any(p => p.UserId == playerId))
                         return complete ? NotFound() : StatusCode(StatusCodes.Status503ServiceUnavailable);
-                    selectedPlayer = playerId ?? players.FirstOrDefault()?.UserId ?? Guid.Empty;
-                    var joined = rosters.Where(r => r.Players.Any(p => p.PlayerId == selectedPlayer))
-                        .Select(r => r.SessionId).ToHashSet();
-                    eligible = data.Items.Where(s => joined.Contains(s.SessionId)).ToList();
-                    if (!complete) error = HttpContext.T("statistics.error.participants");
+                    if (playerId.HasValue)
+                    {
+                        selectedPlayer = playerId.Value;
+                        var joined = rosters.Where(r => r.Players.Any(p => p.PlayerId == selectedPlayer))
+                            .Select(r => r.SessionId).ToHashSet();
+                        eligible = data.Items.Where(s => joined.Contains(s.SessionId)).ToList();
+                        if (!complete) error = HttpContext.T("statistics.error.participants");
+                    }
+                    else
+                    {
+                        selectedPlayer = Guid.Empty;
+                        eligible = [];
+                    }
                 }
-                total = participantsComplete ? eligible.Count : null;
+                total = isInstructor && !playerId.HasValue ? null : (participantsComplete ? eligible.Count : null);
                 selectedMode ??= eligible.OrderByDescending(s => s.StartedAt ?? s.CreatedAt)
                     .FirstOrDefault(s => s.Mode is "PEMULA" or "MAHIR")?.Mode ?? "PEMULA";
                 var selected = eligible.Where(s =>
@@ -107,7 +115,7 @@ public sealed class PlayerStatisticsController(IHttpClientFactory clientFactory)
         {
             PlayerId = selectedPlayer, Mode = selectedMode ?? "PEMULA", Status = selectedStatus,
             AvailablePlayers = players,
-            PlayerName = isInstructor ? players.FirstOrDefault(p => p.UserId == selectedPlayer)?.DisplayName
+            PlayerName = isInstructor ? (selectedPlayer == Guid.Empty ? "" : players.FirstOrDefault(p => p.UserId == selectedPlayer)?.DisplayName)
                 : User.FindFirst(AuthConstants.DisplayNameClaim)?.Value ?? User.Identity?.Name,
             TotalSessions = total, Sessions = sessions, ErrorMessage = error,
             Charts = PlayerStatisticsChartBuilder.Build(sessions, HttpContext.T)

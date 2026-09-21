@@ -1,6 +1,7 @@
 // Fungsi file: Mendefinisikan kontrak data Dtos untuk request dan response API.
 // Mengimpor namespace `System.Text.Json` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
 // Mengimpor namespace `System.Text.Json.Serialization` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using System.Text.Json.Serialization;
 
@@ -87,6 +88,12 @@ public sealed class CreateSessionResponse
 }
 
 public sealed record SessionStatusResponse([property: JsonPropertyName("status")] string Status);
+
+public sealed record SessionHeartbeatResponse(
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("last_activity_at")] DateTimeOffset LastActivityAt,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt,
+    [property: JsonPropertyName("heartbeat_interval_seconds")] int HeartbeatIntervalSeconds);
 
 public sealed record SessionPlayerSetupRequest(
     // Parameter `SessionPlayerId` bertipe `Guid` membawa identitas keikutsertaan pemain pada sesi tertentu; memetakan nama properti JSON menjadi
@@ -213,13 +220,14 @@ public sealed record SessionListItem(
     [property: JsonPropertyName("started_at")] DateTimeOffset? StartedAt,
     // Parameter `EndedAt` bertipe `DateTimeOffset?` membawa nilai ended at; nilai null diizinkan ketika data opsional belum tersedia; memetakan nama
     // properti JSON menjadi (”ended_at”).
-    [property: JsonPropertyName("ended_at")] DateTimeOffset? EndedAt);
+    [property: JsonPropertyName("ended_at")] DateTimeOffset? EndedAt,
+    [property: JsonPropertyName("end_reason")] string? EndReason = null);
 
 public sealed record SessionListResponse([property: JsonPropertyName("items")] List<SessionListItem> Items);
 
 public sealed record CreateRulesetRequest(
     // Parameter `Name` bertipe `string` membawa nilai nama; memetakan nama properti JSON menjadi (”name”).
-    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("name")] [MaxLength(120)] string Name,
     // Parameter `Description` bertipe `string?` membawa nilai description; nilai null diizinkan ketika data opsional belum tersedia; memetakan nama
     // properti JSON menjadi (”description”).
     [property: JsonPropertyName("description")] string? Description,
@@ -230,7 +238,7 @@ public sealed record CreateRulesetRequest(
 public sealed record UpdateRulesetRequest(
     // Parameter `Name` bertipe `string?` membawa nilai nama; nilai null diizinkan ketika data opsional belum tersedia; memetakan nama properti JSON
     // menjadi (”name”).
-    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("name")] [MaxLength(120)] string? Name,
     // Parameter `Description` bertipe `string?` membawa nilai description; nilai null diizinkan ketika data opsional belum tersedia; memetakan nama
     // properti JSON menjadi (”description”).
     [property: JsonPropertyName("description")] string? Description,
@@ -428,7 +436,9 @@ public sealed record EventsBySessionResponse(
     // properti JSON menjadi (”next_cursor”).
     [property: JsonPropertyName("next_cursor")] string? NextCursor,
     // Parameter `HasMore` bertipe `bool` membawa nilai memiliki more; memetakan nama properti JSON menjadi (”has_more”).
-    [property: JsonPropertyName("has_more")] bool HasMore);
+    [property: JsonPropertyName("has_more")] bool HasMore,
+    [property: JsonPropertyName("refreshed_items")] List<EventRequest>? RefreshedItems = null,
+    [property: JsonPropertyName("undone_sequence_numbers")] List<long>? UndoneSequenceNumbers = null);
 
 public sealed record AnalyticsSessionSummary(
     // Parameter `EventCount` bertipe `int` membawa nilai event jumlah; memetakan nama properti JSON menjadi (”event_count”).
@@ -489,7 +499,9 @@ public sealed record AnalyticsByPlayerItem(
     // Parameter `LoanPenaltyTotal` bertipe `double` membawa nilai pinjaman penalti total; memetakan nama properti JSON menjadi (”loan_penalty_total”).
     [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman; memetakan nama properti JSON menjadi (”has_unpaid_loan”).
-    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
+    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan,
+    [property: JsonPropertyName("initial_happiness_points")] double InitialHappinessPoints = 0,
+    [property: JsonPropertyName("mission_reward_total")] double MissionRewardTotal = 0);
 
 public sealed record AnalyticsLeaderboardItem(
     // Parameter `UserId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses; memetakan nama properti JSON menjadi (”user_id”).
@@ -520,7 +532,8 @@ public sealed record AnalyticsSessionResponse(
     // Parameter `Leaderboard` bertipe `List<AnalyticsLeaderboardItem>?` membawa nilai leaderboard; nilai null diizinkan ketika data opsional belum
     // tersedia; bila argumen tidak diberikan digunakan null, yaitu penanda tidak ada nilai; memetakan nama properti JSON menjadi (”leaderboard”).
     [property: JsonPropertyName("leaderboard")] List<AnalyticsLeaderboardItem>? Leaderboard = null,
-    [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null);
+    [property: JsonPropertyName("ruleset_version_id")] Guid? RulesetVersionId = null,
+    [property: JsonPropertyName("has_sealed_donations")] bool HasSealedDonations = false);
 
 public sealed record GameplayMetricsResponse(
     // Parameter `SessionId` bertipe `Guid` membawa identitas unik sesi permainan yang menjadi batas data operasi ini; memetakan nama properti JSON
@@ -544,7 +557,8 @@ public sealed record GameplayMetricsResponse(
     [property: JsonPropertyName("raw_json")] JsonElement? RawJson = null,
     // Parameter `DerivedJson` bertipe `JsonElement?` membawa nilai derived JSON; nilai null diizinkan ketika data opsional belum tersedia; bila argumen
     // tidak diberikan digunakan null, yaitu penanda tidak ada nilai; memetakan nama properti JSON menjadi (”derived_json”).
-    [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null);
+    [property: JsonPropertyName("derived_json")] JsonElement? DerivedJson = null,
+    [property: JsonPropertyName("has_sealed_donations")] bool HasSealedDonations = false);
 
 public sealed record GameplayEconomyMetrics(
     // Parameter `StartingCash` bertipe `double` membawa nilai starting uang tunai; memetakan nama properti JSON menjadi (”starting_cash”).
@@ -595,7 +609,9 @@ public sealed record GameplayScoreMetrics(
     // Parameter `LoanPenaltyTotal` bertipe `double` membawa nilai pinjaman penalti total; memetakan nama properti JSON menjadi (”loan_penalty_total”).
     [property: JsonPropertyName("loan_penalty_total")] double LoanPenaltyTotal,
     // Parameter `HasUnpaidLoan` bertipe `bool` membawa nilai memiliki unpaid pinjaman; memetakan nama properti JSON menjadi (”has_unpaid_loan”).
-    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan);
+    [property: JsonPropertyName("has_unpaid_loan")] bool HasUnpaidLoan,
+    [property: JsonPropertyName("initial_happiness_points")] double InitialHappinessPoints = 0,
+    [property: JsonPropertyName("mission_reward_total")] double MissionRewardTotal = 0);
 
 public sealed record GameplayNeedMetrics(
     // Parameter `FulfillmentDiversity` bertipe `double` membawa tingkat keberagaman kategori kebutuhan yang telah dipenuhi; memetakan nama properti

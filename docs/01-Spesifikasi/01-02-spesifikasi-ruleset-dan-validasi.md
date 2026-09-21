@@ -257,7 +257,7 @@ Sistem menerapkan aturan berikut:
 1. Klien mengirim `ruleset_version_id` pada setiap event.
 2. Sistem memeriksa kecocokan `ruleset_version_id` dengan ruleset aktif sesi.
 3. Sistem menolak event jika `ruleset_version_id` tidak cocok.
-4. Event valid masuk ke `events`. Event invalid tidak masuk event stream utama dan dicatat ke `validation_logs` dengan `raw_payload_json`.
+4. Event valid masuk ke `events`. Event invalid tidak masuk event stream utama. `validation_logs` hanya menyimpan metadata penolakan, kode galat, dan pelacakan permintaan; payload gameplay tidak disalin ke log.
 
 Sistem memetakan aturan *ruleset* ke validasi event:
 - `actions_per_turn` memvalidasi `AkhirGiliran`.
@@ -266,13 +266,13 @@ Sistem memetakan aturan *ruleset* ke validasi event:
 - aturan kebutuhan primer memvalidasi `Kebutuhan`.
 - `freelance.income` memvalidasi `KerjaLepas`.
 - fitur mode mahir memvalidasi event `PinjamanSyariah`, `BayarPinjaman`, `Asuransi`, `BayarRisiko`, dan `GunakanOpsiDarurat`.
-- `advanced.saving_goal.enabled` memvalidasi `Menabung` dan event sistem otomatis `TujuanFinansial`. `TarikTabungan` selalu ditolak karena tidak terdapat pada rulebook.
+- `advanced.saving_goal.enabled` memvalidasi `Menabung` dan event SYSTEM `TujuanFinansial` yang dikirim klien instruktur setelah pembelian fisik. `TarikTabungan` selalu ditolak karena tidak terdapat pada rulebook.
 - mode `MAHIR` memvalidasi pasangan `JualMasakan`/`RisikoKehidupan`, status penyelesaian risiko, polis aktif, aset darurat, dan pinjaman aktif.
 - `scoring.*` mengatur perhitungan poin donasi/emas/pensiun pada modul analitika.
 
 Catatan implementasi logging:
 - `validation_logs` dipakai untuk event invalid atau duplikat yang ditolak.
-- `validation_logs` menyimpan `session_id`, `ruleset_version_id`, `event_id`, `error_code`, `error_message`, `raw_payload_json`, dan `details_json`.
+- `validation_logs` menyimpan metadata `session_id`, `ruleset_version_id`, `event_id`, `error_code`, `error_message`, dan pelacakan permintaan. Kolom legacy `raw_payload_json` dan `details_json` selalu diisi objek kosong `{}` untuk menjaga privasi; keduanya bukan arsip payload yang ditolak.
 
 ---
 
