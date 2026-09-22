@@ -17,6 +17,25 @@ namespace Cashflowpoly.Ui.Tests;
 public sealed class PlayerStatSummaryBuilderTests
 // Membuka scope tipe PlayerStatSummaryBuilderTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    [Theory]
+    [InlineData("id", "saat ini", "belum terpenuhi")]
+    [InlineData("en", "currently", "is incomplete")]
+    public void Build_SellingAllNeedCardsDoesNotUndoACompletedMission(string language, string currentHoldings, string incomplete)
+    {
+        var gameplay = BuildGameplay(8, 30, 0, false, 0) with
+        {
+            RawJson = JsonSerializer.SerializeToElement(new
+            {
+                needs = new { need_cards_owned_current = 0, collection_mission_complete = true }
+            })
+        };
+        var summary = PlayerStatSummaryBuilder.Build(gameplay, null, key => UiText.Translate(language, key));
+        Assert.True(summary.CollectionMissionComplete);
+        var insight = Assert.Single(summary.Insights, item => item.Key == "need_cards_missing");
+        Assert.Contains(currentHoldings, insight.Description);
+        Assert.DoesNotContain(incomplete, insight.Description);
+    }
+
     // menandai metode sebagai pengujian xUnit yang dijalankan untuk setiap kombinasi data.
     [Theory]
     // menyediakan satu kombinasi masukan pengujian (”{\”needs\”:{\”collection_mission_complete\”:true}}”, true).

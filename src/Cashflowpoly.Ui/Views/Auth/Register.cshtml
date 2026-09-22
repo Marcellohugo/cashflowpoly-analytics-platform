@@ -55,11 +55,41 @@
                 <input type="hidden" asp-for="ReturnUrl" />
 
                 <div class="form-field">
-                    <label class="auth-label" for="register-role">@Context.T("auth.register_role")</label>
-                    <select class="auth-input" id="register-role" asp-for="Role" aria-describedby="register-role-hint" required>
-                        <option value="PLAYER">@Context.T("auth.role_player")</option>
-                        <option value="INSTRUCTOR">@Context.T("auth.role_instructor")</option>
+                    <label class="auth-label">@Context.T("auth.register_role")</label>
+                    <select id="register-role" name="Role" class="sr-only" tabindex="-1" aria-hidden="true">
+                        <option value="PLAYER" selected="@(!string.Equals(Model.Role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))">@Context.T("auth.role_player")</option>
+                        <option value="INSTRUCTOR" selected="@(string.Equals(Model.Role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))">@Context.T("auth.role_instructor")</option>
                     </select>
+                    <div class="auth-role-picker" role="radiogroup" aria-label="@Context.T("auth.register_role")">
+                        <label class="auth-role-card @(string.Equals(Model.Role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? "is-selected" : "")" for="role-instructor">
+                            <input type="radio"
+                                   id="role-instructor"
+                                   name="RoleOption"
+                                   value="INSTRUCTOR"
+                                   class="auth-role-radio sr-only"
+                                   @(string.Equals(Model.Role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? "checked" : "") />
+                            <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="7" r="4.5"></circle>
+                                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                                <path d="m9.5 12 2.5 2 2.5-2"></path>
+                                <path d="m11 14 1 6 1-6"></path>
+                            </svg>
+                            <span class="auth-role-name">@Context.T("auth.role_instructor")</span>
+                        </label>
+                        <label class="auth-role-card @(!string.Equals(Model.Role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? "is-selected" : "")" for="role-player">
+                            <input type="radio"
+                                   id="role-player"
+                                   name="RoleOption"
+                                   value="PLAYER"
+                                   class="auth-role-radio sr-only"
+                                   @(!string.Equals(Model.Role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase) ? "checked" : "") />
+                            <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="8" r="5"></circle>
+                                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                            </svg>
+                            <span class="auth-role-name">@Context.T("auth.role_player")</span>
+                        </label>
+                    </div>
                     <p id="register-role-hint" class="auth-copy">@Context.T("auth.register_role_hint")</p>
                 </div>
 
@@ -100,31 +130,61 @@
                 <div class="auth-form-grid auth-form-grid-2">
                     <div class="form-field">
                         <label class="auth-label" for="register-password">@Context.T("auth.password")</label>
-                        <input class="auth-input"
-                               id="register-password"
-                               asp-for="Password"
-                               minlength="12"
-                               aria-describedby="register-password-hint"
-                               type="password"
-                               autocomplete="new-password"
-                               enterkeyhint="next"
-                               required
-                               placeholder="********" />
-                        <p id="register-password-hint" class="subhead">@Context.T("auth.password_hint")</p>
+                        <div class="auth-password-control">
+                            <input class="auth-input"
+                                   id="register-password"
+                                   asp-for="Password"
+                                   minlength="12"
+                                   aria-describedby="register-password-hint register-password-error"
+                                   type="password"
+                                   autocomplete="new-password"
+                                   enterkeyhint="next"
+                                   required
+                                   placeholder="********" />
+                            <button class="auth-password-toggle"
+                                    type="button"
+                                    aria-controls="register-password"
+                                    aria-pressed="false"
+                                    aria-label="@Context.T("auth.show_password")"
+                                    title="@Context.T("auth.show_password")"
+                                    data-password-toggle
+                                    data-show-label="@Context.T("auth.show_password")"
+                                    data-hide-label="@Context.T("auth.hide_password")">
+                                <span class="auth-password-eye" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="form-field">
                         <label class="auth-label" for="register-confirm-password">@Context.T("auth.confirm_password")</label>
-                        <input class="auth-input"
-                               id="register-confirm-password"
-                               asp-for="ConfirmPassword"
-                               type="password"
-                               autocomplete="new-password"
-                               enterkeyhint="done"
-                               required
-                               placeholder="********" />
+                        <div class="auth-password-control">
+                            <input class="auth-input"
+                                   id="register-confirm-password"
+                                   asp-for="ConfirmPassword"
+                                   type="password"
+                                   minlength="12"
+                                   autocomplete="new-password"
+                                   enterkeyhint="done"
+                                   required
+                                   placeholder="********" />
+                            <button class="auth-password-toggle"
+                                    type="button"
+                                    aria-controls="register-confirm-password"
+                                    aria-pressed="false"
+                                    aria-label="@Context.T("auth.show_password")"
+                                    title="@Context.T("auth.show_password")"
+                                    data-password-toggle
+                                    data-show-label="@Context.T("auth.show_password")"
+                                    data-hide-label="@Context.T("auth.hide_password")">
+                                <span class="auth-password-eye" aria-hidden="true"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <p id="register-confirm-error" class="auth-confirm-error" hidden>@Context.T("auth.error.confirm_mismatch")</p>
+                <p id="register-password-error" class="auth-confirm-error" aria-live="polite" hidden>@Context.T("auth.error.password_too_long")</p>
+                <p id="register-password-hint" class="subhead auth-password-hint">@Context.T("auth.password_hint")</p>
 
                 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
                 {
@@ -142,3 +202,58 @@
         </div>
     </section>
 </div>
+<script>
+(() => {
+    // Role selection synchronization
+    const roleSelect = document.getElementById('register-role');
+    const roleRadios = document.querySelectorAll('.auth-role-radio');
+
+    const selectRole = (val) => {
+        const upper = (val || '').toUpperCase();
+        roleRadios.forEach(r => {
+            const isMatch = r.value.toUpperCase() === upper;
+            r.checked = isMatch;
+            r.closest('.auth-role-card')?.classList.toggle('is-selected', isMatch);
+        });
+        if (roleSelect && roleSelect.value.toUpperCase() !== upper) {
+            roleSelect.value = upper;
+        }
+    };
+
+    roleRadios.forEach(r => {
+        r.addEventListener('change', () => {
+            if (r.checked) selectRole(r.value);
+        });
+    });
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', () => {
+            selectRole(roleSelect.value);
+        });
+    }
+
+    // Password validation
+    const pw = document.getElementById('register-password');
+    const cpw = document.getElementById('register-confirm-password');
+    const err = document.getElementById('register-confirm-error');
+    const lengthError = document.getElementById('register-password-error');
+    if (!pw || !cpw || !err || !lengthError) return;
+
+    const check = () => {
+        const tooLong = new TextEncoder().encode(pw.value).length > 72;
+        pw.setCustomValidity(tooLong ? lengthError.textContent.trim() : '');
+        pw.setAttribute('aria-invalid', String(tooLong));
+        lengthError.hidden = !tooLong;
+        if (cpw.value.length > 0 && pw.value !== cpw.value) {
+            cpw.setCustomValidity(err.textContent.trim());
+            err.hidden = false;
+        } else {
+            cpw.setCustomValidity('');
+            err.hidden = true;
+        }
+    };
+    pw.addEventListener('input', check);
+    cpw.addEventListener('input', check);
+    check();
+})();
+</script>

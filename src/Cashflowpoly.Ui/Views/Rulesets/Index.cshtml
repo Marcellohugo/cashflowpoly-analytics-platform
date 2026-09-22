@@ -90,12 +90,18 @@
                 <div class="ruleset-quick-tools-controls">
                 <div class="form-field">
                     <label class="form-label" for="ruleset-search">@Context.T("rulesets.search")</label>
-                    <input id="ruleset-search"
-                           class="form-input"
-                           type="search"
-                           placeholder="@Context.T("rulesets.search_placeholder")"
-                           autocomplete="off"
-                           data-ruleset-search />
+                    <div class="statistics-search-wrap">
+                        <svg class="statistics-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input id="ruleset-search"
+                               class="form-input statistics-search-input"
+                               type="search"
+                               placeholder="@Context.T("rulesets.search_placeholder")"
+                               autocomplete="off"
+                               data-ruleset-search />
+                    </div>
                 </div>
                 <div class="form-field">
                     <label class="form-label" for="ruleset-sort">@Context.T("rulesets.sort")</label>

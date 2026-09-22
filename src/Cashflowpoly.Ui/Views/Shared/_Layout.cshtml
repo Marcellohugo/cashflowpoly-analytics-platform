@@ -179,7 +179,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
-<body class="@roleThemeClass @(isLoggedIn && !isAuthPage ? "has-mobile-bottom-nav" : "")">
+<body class="@roleThemeClass @(isLoggedIn && !isAuthPage ? "has-mobile-bottom-nav" : "") @(isAuthPage ? "is-auth-page auth-layout-page" : "")">
     <a class="skip-link" href="#content">@Context.T("layout.skip_to_content")</a>
     @if (!hideHeader)
     {
@@ -277,7 +277,7 @@
             </nav>
         </header>
     }
-    <div class="page-shell">
+    <div class="page-shell @(isAuthPage ? "page-shell-auth" : "")">
         @if (showQuickStartGuide)
         {
             <div class="quickstart-wrapper" data-quickstart>
@@ -347,7 +347,7 @@
                 </aside>
             </div>
         }
-        <main id="content" role="main" class="space-y-6">
+        <main id="content" role="main" class="@(isAuthPage ? "content-auth" : "space-y-6")">
             @RenderBody()
         </main>
     </div>
@@ -374,6 +374,11 @@
                 <svg class="mobile-bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
             </a>
         </nav>
+    }
+
+    @if (showQuickStartGuide)
+    {
+        <div class="quickstart-clearance" aria-hidden="true"></div>
     }
 
     @if (!hideFooter)

@@ -3,7 +3,30 @@ const { test, expect } = require('@playwright/test');
 const path = require('node:path');
 const scripts = path.resolve(__dirname, '../../../src/Cashflowpoly.Ui/wwwroot/js');
 
-test('titik berdekatan pada histori panjang tetap dapat dihover sendiri', async ({ page }) => {
+test('filter dan paginasi set aturan tidak menyisakan kartu tersembunyi', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/auth/login');
+  await page.getByLabel(/nama pengguna|username/i).fill('hadziq');
+  await page.getByLabel(/kata sandi|password/i).fill(process.env.E2E_PASSWORD || 'SeedLocal!2026');
+  await page.getByRole('button', { name: /masuk|login/i }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto('/rulesets');
+  await page.locator('[data-ruleset-page-size]').selectOption('5');
+  const visibleRows = page.locator('[data-ruleset-row]:visible');
+  await expect(visibleRows).toHaveCount(5);
+  const firstPage = await visibleRows.first().getAttribute('data-ruleset-id');
+  await page.locator('[data-ruleset-next]').click();
+  await expect(visibleRows).toHaveCount(5);
+  await expect(visibleRows.first()).not.toHaveAttribute('data-ruleset-id', firstPage);
+  await page.locator('[data-ruleset-search]').fill('tidak-ada-set-aturan-ini');
+  await expect(visibleRows).toHaveCount(0);
+  await expect(page.locator('[data-ruleset-tbody] > tr:visible')).toHaveCount(1);
+  expect(await page.locator('[data-ruleset-tbody]').evaluate(body => body.getBoundingClientRect().height)).toBeLessThan(120);
+  await page.locator('[data-ruleset-reset]').click();
+  await expect(visibleRows).toHaveCount(10);
+});
+
+test('titik berdekatan pada histori panjang membuka popup masing-masing', async ({ page }) => {
   const labels = Array.from({ length: 40 }, (_, i) => `Sesi ${i + 1}`);
   const payload = { labels, series: [{ name: 'Nilai', values: labels.map(() => 10) }] };
   await page.setContent('<article class="chart-card"><svg class="js-metric-line-chart" viewBox="0 0 300 240" style="width:300px;height:240px"></svg></article>');
@@ -12,8 +35,9 @@ test('titik berdekatan pada histori panjang tetap dapat dihover sendiri', async 
   const points = page.locator('svg [tabindex="0"]');
   await expect(points).toHaveCount(40);
   for (let i = 0; i < 40; i++) {
-    await points.nth(i).hover();
+    await points.nth(i).click();
     await expect(page.locator('.js-chart-bar-insight-metric')).toHaveText(`Sesi ${i + 1}`);
+    await page.locator(".chart-detail-close").click();
   }
   await page.mouse.move(310, 10);
   await expect(page.locator('.js-chart-bar-insight')).toBeHidden();

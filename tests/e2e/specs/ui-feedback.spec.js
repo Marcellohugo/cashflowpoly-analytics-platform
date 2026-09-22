@@ -18,7 +18,7 @@ for (const username of ['pratama', 'marco']) {
     expect(await contentGap()).toBeCloseTo(sessionsGap, 0);
     expect(await page.locator('#statistics-status').evaluate(select => getComputedStyle(select).backgroundPosition)).toContain('16px');
     expect(await page.locator('.statistics-jump').evaluate(nav => getComputedStyle(nav).justifyContent)).toBe('center');
-    await expect(page.locator('.statistics-reading')).not.toHaveAttribute('open');
+    await expect(page.locator('.statistics-tips-section .data-toggle')).not.toHaveAttribute('open');
     await expect(page.locator('.statistics-chart-meaning')).toHaveCount(0);
     if (username === 'pratama') {
       await page.locator('#statistics-player').fill('Hugo');
@@ -35,49 +35,43 @@ for (const username of ['pratama', 'marco']) {
         const panel = card.locator('.js-chart-bar-insight');
         await expect(panel).toBeHidden();
         await point.hover();
-        await expect(panel).toBeVisible();
-        expect(await card.evaluate(card => card.querySelector('.statistics-chart-plot').nextElementSibling.classList.contains('js-chart-bar-insight'))).toBe(true);
-        const [plotBox, panelBox] = await card.evaluate(card => ['.statistics-chart-plot', '.js-chart-bar-insight'].map(selector => card.querySelector(selector).getBoundingClientRect().toJSON()));
-        expect(panelBox.y).toBeGreaterThanOrEqual(plotBox.y + plotBox.height);
-        expect(panelBox.width).toBeCloseTo(plotBox.width, 0);
-        expect(await panel.evaluate(panel => getComputedStyle(panel).borderTopStyle)).toBe('solid');
+        await expect(panel).toBeHidden();
+        await point.click();
+        const dialog = card.locator('.chart-detail-dialog');
+        await expect(dialog).toBeVisible();
         await expect(panel.locator('.js-chart-bar-insight-formula')).not.toHaveText('-');
+        await dialog.locator('.chart-detail-close').click();
+        await expect(dialog).toBeHidden();
         const payload = JSON.parse(await card.locator('svg').getAttribute('data-chart'));
-        // Select a different session and verify every field follows that point.
         const points = card.locator('svg [tabindex="0"]');
-        const lastIndex = await points.count() - 1;
-        await points.nth(lastIndex).hover();
+        await points.last().click();
         const expected = payload.pointDetails[payload.series[0].values.findLastIndex(value => value !== null)];
         await expect(panel.locator('.js-chart-bar-insight-session')).toHaveText(expected.sessionName);
         await expect(panel.locator('.js-chart-bar-insight-points')).toHaveText(expected.displayValue);
         await expect(panel.locator('.js-chart-bar-insight-unit')).toHaveText(expected.unit);
         await expect(panel.locator('.js-chart-bar-insight-formula')).toHaveText(expected.guidance);
-        // A click must not pin the panel open after leaving the point.
-        await points.nth(lastIndex).click();
-        // Leave the point without scrolling toward a heading above the mobile viewport.
-        await page.mouse.move(0, 0);
-        await expect(panel).toBeHidden();
-        // Keyboard users get the same temporary detail, dismissed by Escape or blur.
+        await page.mouse.click(2, 2);
+        await expect(dialog).toBeHidden();
         await point.focus();
-        await point.press('Tab');
-        await page.keyboard.press('Shift+Tab');
-        await expect(panel).toBeVisible();
-        await point.press('Escape');
-        await expect(panel).toBeHidden();
-        await point.evaluate(node => node.blur());
+        await point.press('Enter');
+        await expect(dialog).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
         if (testInfo.project.use.isMobile) {
           await point.tap();
-          await expect(panel).toBeHidden();
+          await expect(dialog).toBeVisible();
+          await dialog.locator('.chart-detail-close').click();
         }
+
       }
     }
     await page.locator('.statistics-jump button').first().click();
     const first = page.locator('[data-statistics-section]:visible .chart-card').first();
-    // Finish scrolling before hover: smooth scrolling dismisses the panel mid-capture.
+    // Bring the chart into view before opening its modal.
     await first.evaluate(card => window.scrollTo({
       top: card.getBoundingClientRect().top + window.scrollY - 110, behavior: 'instant'
     }));
-    await first.locator('svg [tabindex="0"]').first().hover();
+    await first.locator('svg [tabindex="0"]').first().click();
     const detail = first.locator('.statistics-point-detail');
     await expect(detail).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath(`${username}-point-detail.png`), fullPage: false });

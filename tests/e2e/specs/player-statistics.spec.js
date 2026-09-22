@@ -17,6 +17,14 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await login(page);
+  const auth = await request.post(`${apiUrl}/api/v1/auth/login`, { data: { username: "marco", password } });
+  expect(auth.ok()).toBeTruthy();
+  const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
+  const sessionsResponse = await request.get(`${apiUrl}/api/v1/sessions`, { headers });
+  expect(sessionsResponse.ok()).toBeTruthy();
+  const ownSessions = (await sessionsResponse.json()).items;
+  const completedAdvancedCount = ownSessions.filter(item => item.mode === 'MAHIR' && item.status === 'ENDED').length;
+  expect(completedAdvancedCount).toBeGreaterThan(5);
   await expect(page.locator('a[href="/players"]')).toHaveCount(0);
   const removed = await page.goto("/players");
   expect(removed.status()).toBe(404);
@@ -26,17 +34,17 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await expect(page.locator(".statistics-session")).toHaveCount(0);
   await expect(page.locator(".statistics-chart svg circle").first()).toBeVisible();
   await expect(page.getByText("Direktori Pemain", { exact: true })).toHaveCount(0);
-  await expect(page.locator('.statistics-reading')).not.toHaveAttribute('open');
+  await expect(page.locator('.statistics-tips-section .data-toggle')).not.toHaveAttribute('open');
   await expect(page.locator('#statistics-mode option')).toHaveCount(2);
   await expect(page.locator('#statistics-player')).toHaveCount(0);
   await expect(page.locator('.player-statistics > .page-intro .page-intro-actions')).toHaveCount(0);
   await expect(page.locator('.statistics-selected-player')).toHaveCount(0);
   await expect(page.locator('.statistics-jump a')).toHaveCount(0);
   await expect(page.locator('.statistics-jump button')).toHaveCount(5);
-  await page.locator('.statistics-reading summary').click();
-  await expect(page.locator('.statistics-reading')).toHaveAttribute('open');
+  await page.locator('.statistics-tips-section .data-toggle summary').click();
+  await expect(page.locator('.statistics-tips-section .data-toggle')).toHaveAttribute('open');
   await page.reload();
-  await expect(page.locator('.statistics-reading')).not.toHaveAttribute('open');
+  await expect(page.locator('.statistics-tips-section .data-toggle')).not.toHaveAttribute('open');
   for (const button of await page.locator('.statistics-jump button').all()) {
     await button.click();
     await expect(page.locator('[data-statistics-section]:visible')).toHaveCount(1);
@@ -58,9 +66,9 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
       await expect(card.locator('tbody tr:visible')).toHaveCount(5);
       await expect(card.locator('[data-page-back]')).toBeDisabled();
       await card.locator('[data-page-next]').click();
-      await expect(card.locator('tbody tr:visible')).toHaveCount(3);
-      await expect(card.locator('[data-page-status-text]')).toHaveText('Baris 6–8 dari 8');
-      await expect(card.locator('[data-page-next]')).toBeDisabled();
+      await expect(card.locator('tbody tr:visible')).toHaveCount(Math.min(5, completedAdvancedCount - 5));
+      await expect(card.locator('[data-page-status-text]')).toHaveText(`Baris 6–${Math.min(10, completedAdvancedCount)} dari ${completedAdvancedCount}`);
+      await expect(card.locator('[data-page-next]')).toBeDisabled({ disabled: completedAdvancedCount <= 10 });
       await card.locator('[data-page-back]').click();
       await expect(card.locator('tbody tr:visible')).toHaveCount(5);
       await expect(card.locator('tbody tr:visible').first().locator('th')).toContainText('1.');
@@ -69,9 +77,6 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
   }
   await page.locator('[data-statistics-panel="statistics-overview"]').click();
-  const auth = await request.post(`${apiUrl}/api/v1/auth/login`, { data: { username: "marco", password } });
-  expect(auth.ok()).toBeTruthy();
-  const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
   const sessionPoints = await page.locator('[data-statistics-metric]').first().evaluate(card => {
     const chart = JSON.parse(card.querySelector('svg').getAttribute('data-chart'));
     return chart.pointDetails.map((p, index) => ({ sessionId: p.sessionId, index }));
@@ -101,15 +106,16 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   expect(overflow).toBeFalsy();
   await page.locator('[data-statistics-panel="statistics-money"]').click();
   await page.locator('[data-statistics-metric="cash_growth_percent"] summary').click();
-  await expect(page.locator('[data-statistics-metric="cash_growth_percent"] table tbody tr')).toHaveCount(8);
-  await page.locator('[data-statistics-metric="cash_growth_percent"] svg [tabindex="0"]').first().hover();
+  await expect(page.locator('[data-statistics-metric="cash_growth_percent"] table tbody tr')).toHaveCount(completedAdvancedCount);
+  await page.locator('[data-statistics-metric="cash_growth_percent"] svg [tabindex="0"]').first().click();
   await expect(page.locator('[data-statistics-metric="cash_growth_percent"] .js-chart-bar-insight')).toContainText("+20");
+  await page.keyboard.press("Escape");
   await page.goto('/sessions');
-  await expect(page.locator('.players-session-card')).toHaveCount(24);
+  await expect(page.locator('.players-session-card')).toHaveCount(ownSessions.length);
   await expect(page.locator('.session-stats-grid .stat-card')).toHaveCount(4);
-  await expect(page.locator('.players-session-detail')).toHaveCount(24);
+  await expect(page.locator('.players-session-detail')).toHaveCount(ownSessions.length);
   const ownLinks = await page.locator('.players-session-table a').evaluateAll(links => links.map(a => a.getAttribute('href')));
-  expect(ownLinks).toHaveLength(20);
+  expect(ownLinks).toHaveLength(ownSessions.filter(item => item.status !== 'CREATED').length);
   expect(ownLinks.every(link => link.endsWith('/players/' + playerId))).toBeTruthy();
   await expect(page.locator('.session-stats-grid .stat-card').last()).toContainText('6');
   for (const card of await page.locator('.players-session-card').all()) {
@@ -143,7 +149,7 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await page.locator('#statistics-status').selectOption('STARTED');
   await page.getByRole('button', { name: 'Tampilkan', exact: true }).click();
   await expect(page.locator('.statistics-session')).toHaveCount(0);
-  await expect(page.locator('[data-statistics-metric="total_happiness_points"] svg [tabindex="0"]')).toHaveCount(2);
+  await expect(page.locator('[data-statistics-metric="total_happiness_points"] svg [tabindex="0"]')).toHaveCount(ownSessions.filter(item => item.mode === 'PEMULA' && item.status === 'STARTED').length);
   await page.goto("/statistics");
   await page.locator(".nav-dropdown-lang summary").click();
   await page.getByRole("button", { name: "Bahasa Inggris (EN)", exact: true }).click();
@@ -200,10 +206,16 @@ for (const [instructor, selectedPlayer] of [
   ['hadziq', '90000000-0000-0000-0000-000000000012'],
   ['pratama', '90000000-0000-0000-0000-000000000021']
 ]) {
-test(`instruktur ${instructor} memilih peserta sesinya dan dapat membuka statistik per mode`, async ({ page }, testInfo) => {
+test(`instruktur ${instructor} memilih peserta sesinya dan dapat membuka statistik per mode`, async ({ page, request }, testInfo) => {
   await login(page, instructor);
   await page.goto('/sessions');
-  await expect(page.locator('.players-session-card')).toHaveCount(12);
+  const auth = await request.post(`${apiUrl}/api/v1/auth/login`, { data: { username: instructor, password } });
+  expect(auth.ok()).toBeTruthy();
+  const sessions = await request.get(`${apiUrl}/api/v1/sessions`, { headers: { Authorization: `Bearer ${(await auth.json()).access_token}` } });
+  expect(sessions.ok()).toBeTruthy();
+  const items = (await sessions.json()).items;
+  expect(items.length).toBeGreaterThan(0);
+  await expect(page.locator('.players-session-card')).toHaveCount(items.length);
   await expect(page.locator('.players-session-table a')).toHaveCount(40);
   await expect(page.locator('a[href="/players"]')).toHaveCount(0);
   await page.goto('/statistics?mode=MAHIR&status=ENDED&playerId=' + playerId);
@@ -229,10 +241,13 @@ test(`instruktur ${instructor} memilih peserta sesinya dan dapat membuka statist
     await expect(page.locator('.statistics-chart-latest')).toHaveCount(0);
     const card = page.locator('[data-statistics-metric="total_happiness_points"]');
     await card.locator('summary').click();
-    await expect(card.locator('tbody tr:visible')).toHaveCount(4);
+    const count = items.filter(item => item.mode === mode && item.status === 'ENDED').length;
+    expect(count).toBeGreaterThan(0);
+    await expect(card.locator('tbody tr')).toHaveCount(count);
+    await expect(card.locator('tbody tr:visible')).toHaveCount(Math.min(5, count));
     await expect(card.locator('[data-page-back]')).toBeDisabled();
-    await expect(card.locator('[data-page-next]')).toBeDisabled();
-    await expect(card.locator('[data-page-status-text]')).toHaveText('Baris 1–4 dari 4');
+    await expect(card.locator('[data-page-next]')).toBeDisabled({ disabled: count <= 5 });
+    await expect(card.locator('[data-page-status-text]')).toHaveText(`Baris 1–${Math.min(5, count)} dari ${count}`);
   }
   const foreignPlayer = instructor === 'hadziq' ? '90000000-0000-0000-0000-000000000021' : '90000000-0000-0000-0000-000000000012';
   expect((await page.goto('/statistics?playerId=' + foreignPlayer)).status()).toBe(404);

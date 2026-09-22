@@ -56,7 +56,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.select_one"] = ("Pilih set aturan", "Select ruleset");
         terms["rulesets.quick_guide_title"] = ("Panduan cepat mengisi Set Aturan", "Quick guide to filling a ruleset");
         terms["rulesets.quick_guide_subtitle"] = ("Pilih mode lebih dulu; form hanya menampilkan pengaturan yang berlaku untuk mode tersebut.", "Choose the mode first; the form only shows settings that apply to that mode.");
-        terms["rulesets.quick_guide_beginner"] = ("Gunakan Pemula untuk latihan kebutuhan, pemasukan, pengeluaran, dan tabungan tanpa fitur risiko lanjutan.", "Use Beginner to practice needs, income, spending, and saving without advanced risk features.");
+        terms["rulesets.quick_guide_beginner"] = ("Gunakan Pemula untuk latihan kebutuhan, pemasukan, pengeluaran, dan investasi emas tanpa fitur risiko lanjutan.", "Use Beginner to practice needs, income, spending, and gold investment without advanced risk features.");
         terms["rulesets.quick_guide_advanced"] = ("Gunakan Mahir saat sesi membutuhkan pinjaman, asuransi, risiko, dan target jangka panjang.", "Use Advanced when the session needs loans, insurance, risks, and long-term goals.");
         terms["rulesets.quick_guide_activation"] = ("Setelah menyimpan, pastikan versi yang dipilih sesi berstatus aktif sebelum permainan dimulai.", "After saving, confirm that the version selected by the session is active before gameplay starts.");
         terms["rulesets.quick_tools"] = ("Pencarian dan Filter", "Search and Filters");
@@ -116,7 +116,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.form.mode_advanced"] = ("MAHIR", "ADVANCED");
         terms["rulesets.form.mode_choice_hint"] = ("Pilih profil aturan utama. Nilai rekomendasi akan diterapkan otomatis dan masih dapat disesuaikan.", "Choose the main rule profile. Recommended values are applied automatically and remain editable.");
         terms["rulesets.form.actions_per_turn"] = ("Jumlah Aksi per Giliran Pemain", "Actions per Player Turn");
-        terms["rulesets.default_description_beginner"] = ("Aturan sederhana untuk berlatih memenuhi kebutuhan, mengatur pemasukan dan pengeluaran, serta membangun tabungan.", "A simpler ruleset for practicing need fulfillment, managing income and spending, and building savings.");
+        terms["rulesets.default_description_beginner"] = ("Aturan sederhana untuk berlatih memenuhi kebutuhan, mengatur pemasukan dan pengeluaran, serta berinvestasi emas.", "A simpler ruleset for practicing need fulfillment, managing income and spending, and investing in gold.");
         terms["rulesets.default_description_advanced"] = ("Aturan lengkap dengan pinjaman, asuransi, risiko, dan tujuan jangka panjang untuk melatih keputusan finansial yang lebih mendalam.", "A complete ruleset with loans, insurance, risk, and long-term goals for deeper financial decision-making.");
         terms["rulesets.form.starting_cash"] = ("Kas Awal per Pemain", "Starting Cash per Player");
         terms["rulesets.form.player_ordering"] = ("Urutan Pemain", "Player Ordering");
@@ -146,10 +146,10 @@ internal static partial class UiTextLexicon
         terms["rulesets.form.description_placeholder"] = ("Contoh: Simulasi panjang dengan fokus misi dan kepatuhan aturan.", "Example: Long simulation focused on mission and rules compliance.");
         terms["rulesets.form.description_hint"] = ("Deskripsi menjelaskan tujuan/karakter aturan. Nomor versi dibuat otomatis oleh sistem.", "Description should explain the rule intent/character. Version numbers are generated automatically.");
         terms["rulesets.form.help.core_setup"] = ("Atur mode permainan, jumlah aksi harian pemain, kas awal, dan hasil kerja lepas.", "Set the game mode, daily player actions, starting cash, and freelance reward.");
-        terms["rulesets.form.help.weekday_features"] = ("Tentukan apakah event khusus Jumat/Sabtu/Minggu berjalan di sesi ini.", "Decide whether Friday/Saturday/Sunday special events are enabled in this session.");
+        terms["rulesets.form.help.weekday_features"] = ("Fitur hari khusus Jumat, Sabtu, dan Minggu selalu aktif. Pengubahannya belum tersedia.", "Friday, Saturday, and Sunday special features are always enabled. Customization is not available yet.");
         terms["rulesets.form.help.constraints"] = ("Batasan ini menjaga permainan tetap sesuai aturan stok bahan, kas, dan urutan kebutuhan.", "These constraints keep gameplay aligned with inventory, cash floor, and need-order rules.");
-        terms["rulesets.form.help.economy_and_donation"] = ("Atur rentang donasi dan izin transaksi emas. Pinjaman, asuransi, serta target tabungan hanya muncul pada mode Mahir.", "Set donation limits and gold-trade permissions. Loans, insurance, and saving goals appear only in Advanced mode.");
-        terms["rulesets.config_read_guide"] = ("Gunakan ringkasan ini untuk cek apakah setup sesi, alur aksi harian, dan aturan ekonomi sudah sesuai yang Anda inginkan.", "Use this summary to verify that session setup, daily action flow, and economy rules match your intent.");
+        terms["rulesets.form.help.economy_and_donation"] = ("Atur rentang donasi. Transaksi emas tetap aktif. Pinjaman, asuransi, serta target tabungan hanya tersedia pada mode Mahir.", "Set donation limits. Gold trading remains enabled. Loans, insurance, and saving goals are only available in Advanced mode.");
+        terms["rulesets.config_read_guide"] = ("Gunakan ringkasan ini untuk memeriksa persiapan sesi, alur aksi harian, dan aturan ekonomi.", "Use this summary to review session setup, daily action flow, and economy rules.");
         terms["rulesets.error.load_list_failed"] = ("Gagal mengambil set aturan. Status: {status}", "Failed to fetch rulesets. Status: {status}");
         terms["rulesets.error.invalid_list_response"] = ("Respons daftar set aturan tidak valid.", "Invalid ruleset list response.");
         terms["rulesets.error.load_detail_failed"] = ("Gagal memuat rincian set aturan. Status: {status}", "Failed to load ruleset details. Status: {status}");

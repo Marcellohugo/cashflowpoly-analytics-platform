@@ -11,6 +11,64 @@ async function login(page, username) {
 }
 test.beforeEach(async ({ page }) => page.emulateMedia({ reducedMotion: 'reduce' }));
 
+test('petunjuk UI sesuai interaksi dan aturan dalam kedua bahasa', async ({ page }) => {
+  test.setTimeout(90000);
+  await login(page, 'pratama');
+  for (const language of ['id', 'en']) {
+    await page.goto('/statistics');
+    if (language === 'en') {
+      await page.locator('.nav-dropdown-lang summary').click();
+      await page.getByRole('button', { name: 'Bahasa Inggris (EN)', exact: true }).click();
+    }
+    await page.locator('.statistics-tips-section summary').click();
+    await expect(page.locator('.statistics-tips-section')).toContainText(language === 'id' ? 'Klik atau ketuk titik' : 'Click or tap a point');
+    await expect(page.locator('.statistics-tips-section')).not.toContainText(/arahkan kursor|hover over/i);
+    await expect(page.locator('#statistics-status option[value="CREATED"]')).toHaveText(language === 'id' ? 'Belum dimulai' : 'Not started');
+    await page.goto('/sessions');
+    await expect(page.getByText(language === 'id' ? 'Daftar Sesi' : 'Session List', { exact: true })).toBeVisible();
+    await page.goto(`/sessions/${sessionId}`);
+    await expect(page.locator('main')).toContainText(language === 'id' ? 'Komponen Poin Kebahagiaan' : 'Happiness Score Components');
+    await expect(page.locator('main')).not.toContainText(/delapan komponen|eight components|8 Elemen Poin|8 Happiness Score Components/);
+    await page.goto('/rulesets/create');
+    await expect(page.locator('main')).toContainText(language === 'id' ? 'investasi emas tanpa fitur risiko' : 'gold investment without advanced risk');
+    await expect(page.locator('main')).toContainText(language === 'id' ? 'Fitur hari khusus Jumat, Sabtu, dan Minggu selalu aktif.' : 'Friday, Saturday, and Sunday special features are always enabled.');
+    await expect(page.locator('.ruleset-coming-soon').first()).toHaveText(language === 'id' ? 'Belum dapat diubah' : 'Not editable yet');
+  }
+});
+
+test('panduan tetap floating tanpa menutupi konten footer atau navigasi pada ponsel dan landscape', async ({ page }, testInfo) => {
+  await login(page, 'pratama');
+  for (const viewport of [{ width: 320, height: 667 }, { width: 375, height: 667 }, { width: 956, height: 440 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/sessions');
+    await expect(page.locator('[data-quickstart-toggle]')).toHaveCSS('position', 'fixed');
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+    const guide = page.locator('[data-quickstart-toggle]');
+    await expect.poll(async () => guide.evaluate(button => {
+      const footer = document.querySelector('body > footer').getBoundingClientRect();
+      const guide = button.getBoundingClientRect();
+      const content = document.querySelector('.page-shell').getBoundingClientRect();
+      const nav = document.querySelector('.mobile-bottom-nav').getBoundingClientRect();
+      return getComputedStyle(button).position === 'fixed'
+        && guide.bottom <= footer.top - 12 && guide.top >= content.bottom
+        && guide.bottom <= nav.top - 12;
+    })).toBe(true);
+    await expect(page.locator('.mobile-bottom-nav')).toBeVisible();
+    for (const link of await page.locator('body > footer a').all()) {
+      expect(await link.evaluate(anchor => {
+        const box = anchor.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return hit === anchor || anchor.contains(hit);
+      })).toBe(true);
+    }
+    await page.screenshot({ path: testInfo.outputPath(`footer-${viewport.width}.png`) });
+    await guide.click();
+    await expect(page.locator('[data-quickstart-body]')).toBeVisible();
+    await page.locator('[data-quickstart-close]').click();
+    await expect(page.locator('[data-quickstart-body]')).toBeHidden();
+  }
+});
+
 for (const [username, status] of [['pratama', 404], ['marco', 403]]) {
   test(`galat statistik ${username}: penjelasan dan navigasi tetap tersedia`, async ({ page }) => {
     await login(page, username);
@@ -28,8 +86,22 @@ for (const [username, status] of [['pratama', 404], ['marco', 403]]) {
 test('batas formulir sesuai database dan petunjuk kata sandi terbaca', async ({ page }) => {
   await page.goto('/auth/register');
   await expect(page.locator('#register-password')).toHaveAttribute('minlength', '12');
-  await expect(page.locator('#register-password')).toHaveAttribute('aria-describedby', 'register-password-hint');
-  await expect(page.locator('#register-password-hint')).toContainText('72');
+  await expect(page.locator('#register-password')).toHaveAttribute('aria-describedby', 'register-password-hint register-password-error');
+  await expect(page.locator('#register-password-hint')).toContainText('12');
+  await expect(page.locator('#register-password-error')).toHaveText('Kata sandi terlalu panjang. Gunakan kata sandi yang lebih pendek.');
+  const pw = page.locator('#register-password');
+  const confirmation = page.locator('#register-confirm-password');
+  for (const [value, valid] of [['a'.repeat(72), true], ['a'.repeat(73), false], ['😀'.repeat(19), false], ['😀'.repeat(18), true]]) {
+    await pw.fill(value);
+    expect(await pw.evaluate(input => input.checkValidity())).toBe(valid);
+    await expect(page.locator('#register-password-error')).toBeVisible({ visible: !valid });
+    await confirmation.fill(value);
+    expect(await confirmation.evaluate(input => input.checkValidity())).toBe(true);
+  }
+  await confirmation.fill('different-password');
+  expect(await confirmation.evaluate(input => input.checkValidity())).toBe(false);
+  await pw.fill('different-password');
+  expect(await confirmation.evaluate(input => input.checkValidity())).toBe(true);
   await expect(page.locator('#register-display-name')).toHaveAttribute('maxlength', '80');
   await expect(page.locator('#register-username')).toHaveAttribute('minlength', '3');
   await expect(page.locator('#register-username')).toHaveAttribute('maxlength', '80');

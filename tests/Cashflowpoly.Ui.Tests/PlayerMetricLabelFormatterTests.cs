@@ -14,6 +14,17 @@ public sealed class PlayerMetricLabelFormatterTests
 // Membuka scope tipe PlayerMetricLabelFormatterTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
     [Theory]
+    [InlineData("id", "kurang dari 60%", "sebagian besar")]
+    [InlineData("en", "less than 60%", "most collected")]
+    public void DescribeMetric_UtilizationOf55PercentDoesNotClaimMostIngredientsAreUnused(string language, string threshold, string majority)
+    {
+        var metric = PlayerMetricLabelFormatter.DescribeMetric(
+            "ingredient_utilization_percent", "55", true, true, "N/A", key => UiText.Translate(language, key));
+        Assert.Contains(threshold, metric.Guidance);
+        Assert.DoesNotContain(majority, metric.Guidance);
+    }
+
+    [Theory]
     [InlineData("99.5", "risk_readiness_most")]
     [InlineData("100", "risk_readiness_complete")]
     public void DescribeMetric_RiskResolutionIsCompleteOnlyWhenEveryRiskWasResolved(string value, string guidance)

@@ -48,9 +48,10 @@ public sealed class SessionRosterViewTests
         Assert.Contains("players-session-detail", html);
         Assert.Contains("Monitored Players", html);
         var expectedLinks = status == "CREATED" ? 0 : instructor ? 2 : 1;
-        Assert.Equal(expectedLinks, System.Text.RegularExpressions.Regex.Matches(html, "class=\"table-link\"").Count);
+        const string analyticsLink = "class=\"[^\"]*\\btable-link\\b[^\"]*\"";
+        Assert.Equal(expectedLinks, System.Text.RegularExpressions.Regex.Matches(html, analyticsLink).Count);
         var otherRow = html[html.IndexOf("Other Player", StringComparison.Ordinal)..];
-        Assert.Equal(instructor && status != "CREATED", otherRow.Contains("class=\"table-link\"", StringComparison.Ordinal));
+        Assert.Equal(instructor && status != "CREATED", System.Text.RegularExpressions.Regex.IsMatch(otherRow, analyticsLink));
         Assert.DoesNotContain("players-session-score\">0", html);
     }
 

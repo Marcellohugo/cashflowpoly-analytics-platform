@@ -104,7 +104,7 @@
                             <span class="players-session-summary-main">
                                 <span class="font-semibold text-slate-900">@session.SessionName</span>
                                 <span class="text-xs text-slate-500">(@(session.ParticipantsAvailable ? session.Players.Count.ToString() : "—") @Context.T("players.count_suffix"))</span>
-                                <span class="hint-chip">@Context.TRulesetMode(session.Mode)</span>
+                                <span class="ruleset-mode-badge ruleset-mode-badge--@(string.Equals(session.Mode, "MAHIR", StringComparison.OrdinalIgnoreCase) ? "advanced" : "beginner")">@Context.TRulesetMode(session.Mode)</span>
                                 <span class="status-pill @statusClass">@Context.TSessionStatus(session.Status)</span>
                             </span>
                         </summary>
@@ -148,7 +148,7 @@
                                     @foreach (var player in session.Players)
                                     {
                                         <tr class="border-t border-slate-200 @(player.FinalRank == 1 ? "winner-row" : "")">
-                                            <td class="px-4 py-3 players-session-number" data-label="@Context.T("common.turn_order")">@(player.PlayerOrder > 0 ? player.PlayerOrder.ToString() : "—")</td>
+                                            <td class="px-4 py-3 players-session-number" data-label="@Context.T("common.turn_order")"><span class="players-session-order">@(player.PlayerOrder > 0 ? player.PlayerOrder.ToString() : "—")</span></td>
                                             <td class="px-4 py-3 players-session-number" data-label="@Context.T("common.rank")"><span class="players-session-rank rank-@player.FinalRank">@(player.FinalRank > 0 ? player.FinalRank.ToString() : "—")</span></td>
                                             <td class="px-4 py-3 players-session-player" data-label="@Context.T("common.name")">
                                                 <div class="flex items-center gap-3">
@@ -160,7 +160,7 @@
                                             <td class="px-4 py-3 players-session-action" data-label="@Context.T("players.index.analytics_column")">
                                                 @if (session.Status != "CREATED" && (isInstructor || player.PlayerId.ToString() == currentPlayerId))
                                                 {
-                                                    <a class="table-link" asp-controller="Players" asp-action="Details" asp-route-sessionId="@session.SessionId" asp-route-playerId="@player.PlayerId">@Context.T("players.index.view_detail")</a>
+                                                    <a class="table-link btn-ghost" asp-controller="Players" asp-action="Details" asp-route-sessionId="@session.SessionId" asp-route-playerId="@player.PlayerId">@Context.T("players.index.view_detail")</a>
                                                 }
                                                 else
                                                 {

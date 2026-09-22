@@ -21,6 +21,26 @@ namespace Cashflowpoly.Ui.Tests;
 public sealed class AuthControllerResilienceTests
 // Membuka scope tipe AuthControllerResilienceTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
+    [Theory]
+    [InlineData("a", 72, true)]
+    [InlineData("a", 73, false)]
+    [InlineData("😀", 18, true)]
+    [InlineData("😀", 19, false)]
+    public async Task Register_ValidatesUtf8PasswordLimitBeforeCallingApi(string character, int count, bool withinLimit)
+    {
+        var controller = CreateController(out var factory);
+        var password = string.Concat(Enumerable.Repeat(character, count));
+        var result = await controller.Register(new RegisterViewModel
+        {
+            DisplayName = "Player", Username = "player", Password = password, ConfirmPassword = password
+        });
+        var model = Assert.IsType<RegisterViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Equal(withinLimit ? 1 : 0, factory.RequestCount);
+        if (!withinLimit) Assert.Equal("Kata sandi terlalu panjang. Gunakan kata sandi yang lebih pendek.", model.ErrorMessage);
+        Assert.Empty(model.Password);
+        Assert.Empty(model.ConfirmPassword);
+    }
+
     // menandai metode sebagai satu kasus uji xUnit tanpa parameter data.
     [Fact]
     // Mendefinisikan metode `Login_WhenApiIsUnavailable_ShouldReturnLoginViewWithError` dengan hasil bertipe `Task`; operasi ini menangani login when

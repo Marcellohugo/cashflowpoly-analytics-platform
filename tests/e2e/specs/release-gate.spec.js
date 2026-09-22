@@ -132,9 +132,16 @@ test(`edit ruleset ${mode} menyimpan nama tanpa versi duplikat dan menampilkan k
 }
 
 // Penjelasan: Melakukan operasi dengan memanggil `async function expectNoHorizontalOverflow(page) {` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-test("pemain dipantau sama dengan jumlah peserta unik sesi instruktur", async ({ page }) => {
+test("pemain dipantau sama dengan jumlah peserta unik sesi instruktur", async ({ page, request }) => {
   await page.goto("/sessions");
-  await expect(page.locator(".players-session-card")).toHaveCount(12);
+  const apiUrl = process.env.E2E_API_URL || "http://localhost:5041";
+  const auth = await request.post(`${apiUrl}/api/v1/auth/login`, { data: { username, password } });
+  expect(auth.ok()).toBeTruthy();
+  const response = await request.get(`${apiUrl}/api/v1/sessions`, { headers: { Authorization: `Bearer ${(await auth.json()).access_token}` } });
+  expect(response.ok()).toBeTruthy();
+  const items = (await response.json()).items;
+  expect(items.length).toBeGreaterThan(0);
+  await expect(page.locator(".players-session-card")).toHaveCount(items.length);
   await expect(page.getByText("Pemain di Luar Sesi Anda", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Daftar Pemain Umum", { exact: true })).toHaveCount(0);
   const participantIds = await page.locator('.players-session-card a[href*="/players/"]').evaluateAll(
@@ -470,11 +477,9 @@ test("koin dan keuangan menampilkan satu tabel transaksi komprehensif", async ({
     expect(layout[3].y).toBe(layout[4].y);
   // Penjelasan: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
   } else {
-    // Penjelasan: Melakukan operasi dengan memanggil `expect(layout[1].y).toBeGreaterThan(layout[0].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-    expect(layout[1].y).toBeGreaterThan(layout[0].y);
-    // Penjelasan: Mendefinisikan fungsi atau pemetaan `expect(layout.every(item => item.width > gridWidth * 0.9)).toBeTruthy();`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-    expect(layout.every(item => item.width > gridWidth * 0.9)).toBeTruthy();
-  // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+    expect(layout[0].y).toBe(layout[1].y);
+    expect(layout.slice(0, 2).every(item => item.width > gridWidth * 0.4 && item.width < gridWidth * 0.55)).toBeTruthy();
+    expect(layout[2].width).toBeGreaterThan(gridWidth * 0.9);
   }
   // Penjelasan: Melakukan operasi dengan memanggil `expect(layout[2].y).toBeGreaterThan(layout[1].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
   expect(layout[2].y).toBeGreaterThan(layout[1].y);
@@ -720,15 +725,11 @@ test("rincian emas tersusun menjadi empat ringkasan dua harga dan tiga hasil", a
     expect(layout.slice(0, 6).every(item => item.width > gridContentWidth * 0.45)).toBeTruthy();
   // Penjelasan: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
   } else {
-    // Penjelasan: Melakukan operasi dengan memanggil `expect(` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-    expect(
-      // Penjelasan: Mendefinisikan fungsi atau pemetaan `layout.every(item => item.width > gridContentWidth * 0.98),`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-      layout.every(item => item.width > gridContentWidth * 0.98),
-      // Penjelasan: Mendefinisikan fungsi atau pemetaan `JSON.stringify({ gridContentWidth, widths: layout.map(item => item.width) })`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-      JSON.stringify({ gridContentWidth, widths: layout.map(item => item.width) })
-    // Penjelasan: Melakukan operasi dengan memanggil `).toBeTruthy()` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-    ).toBeTruthy();
-  // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+    expect(layout[0].y).toBe(layout[1].y);
+    expect(layout[2].y).toBe(layout[3].y);
+    expect(layout.slice(0, 4).every(item => item.width > gridContentWidth * 0.45 && item.width < gridContentWidth * 0.55)).toBeTruthy();
+    expect(layout.slice(4, 6).every(item => item.width > gridContentWidth * 0.98)).toBeTruthy();
+    expect(layout[5].y).toBeGreaterThan(layout[4].y);
   }
   // Penjelasan: Melakukan operasi dengan memanggil `expect(layout[4].y).toBeGreaterThan(layout[3].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
   expect(layout[4].y).toBeGreaterThan(layout[3].y);
@@ -826,9 +827,10 @@ test("rincian donasi menggabungkan jumlah dan peringkat dalam satu tabel", async
     expect(layout.slice(1).every(item => item.width > gridContentWidth * 0.3)).toBeTruthy();
   // Penjelasan: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
   } else {
-    // Penjelasan: Mendefinisikan fungsi atau pemetaan `expect(layout.every(item => item.width > gridContentWidth * 0.98)).toBeTruthy();`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-    expect(layout.every(item => item.width > gridContentWidth * 0.98)).toBeTruthy();
-  // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+    expect(layout[1].y).toBe(layout[2].y);
+    expect(layout.slice(1, 3).every(item => item.width > gridContentWidth * 0.45 && item.width < gridContentWidth * 0.55)).toBeTruthy();
+    expect(layout[3].y).toBeGreaterThan(layout[2].y);
+    expect(layout[3].width).toBeGreaterThan(gridContentWidth * 0.98);
   }
   // Penjelasan: Melakukan operasi dengan memanggil `expect(layout[1].y).toBeGreaterThan(layout[0].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
   expect(layout[1].y).toBeGreaterThan(layout[0].y);
@@ -963,13 +965,10 @@ test("target finansial diringkas menjadi hasil target tabungan dan sisa pinjaman
     expect(boxes.every(box => box.y === boxes[0].y && box.width > width * 0.3)).toBeTruthy();
   // Penjelasan: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
   } else {
-    // Penjelasan: Mendefinisikan fungsi atau pemetaan `expect(boxes.every(box => box.width > width * 0.98)).toBeTruthy();`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-    expect(boxes.every(box => box.width > width * 0.98)).toBeTruthy();
-    // Penjelasan: Melakukan operasi dengan memanggil `expect(boxes[1].y).toBeGreaterThan(boxes[0].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-    expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
-    // Penjelasan: Melakukan operasi dengan memanggil `expect(boxes[2].y).toBeGreaterThan(boxes[1].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
+    expect(boxes[0].y).toBe(boxes[1].y);
+    expect(boxes.slice(0, 2).every(box => box.width > width * 0.45 && box.width < width * 0.55)).toBeTruthy();
     expect(boxes[2].y).toBeGreaterThan(boxes[1].y);
-  // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+    expect(boxes[2].width).toBeGreaterThan(width * 0.98);
   }
   // Penjelasan: Melakukan operasi dengan menunggu operasi asinkron `expectNoHorizontalOverflow(page)` selesai sebelum memakai hasilnya.
   await expectNoHorizontalOverflow(page);
@@ -1173,11 +1172,9 @@ test("rincian pesanan tersusun menjadi hasil tabel dan dua ringkasan", async ({ 
     expect(layout.slice(2).every(item => item.width > gridContentWidth * 0.45)).toBeTruthy();
   // Penjelasan: Memulai cabang alternatif yang hanya diproses apabila kondisi if sebelumnya tidak terpenuhi.
   } else {
-    // Penjelasan: Mendefinisikan fungsi atau pemetaan `expect(layout.every(item => item.width > gridContentWidth * 0.98)).toBeTruthy();`; parameter di sisi kiri => dipakai badan di sisi kanan ketika fungsi dipanggil atau pola cocok.
-    expect(layout.every(item => item.width > gridContentWidth * 0.98)).toBeTruthy();
-    // Penjelasan: Melakukan operasi dengan memanggil `expect(layout[3].y).toBeGreaterThan(layout[2].y)` dan menggunakan hasilnya pada operasi ini; argumen memasok data yang dibutuhkan fungsi.
-    expect(layout[3].y).toBeGreaterThan(layout[2].y);
-  // Penjelasan: Menutup blok atau objek yang sedang disusun sehingga ekspresi atau struktur induk dapat dilanjutkan.
+    expect(layout.slice(0, 2).every(item => item.width > gridContentWidth * 0.98)).toBeTruthy();
+    expect(layout[2].y).toBe(layout[3].y);
+    expect(layout.slice(2).every(item => item.width > gridContentWidth * 0.45 && item.width < gridContentWidth * 0.55)).toBeTruthy();
   }
   // Penjelasan: Melakukan operasi dengan menunggu operasi asinkron `expectNoHorizontalOverflow(page)` selesai sebelum memakai hasilnya.
   await expectNoHorizontalOverflow(page);

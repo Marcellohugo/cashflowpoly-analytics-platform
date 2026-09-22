@@ -16,9 +16,20 @@ public sealed class SessionTimelineMapperTests
 // Membuka scope tipe SessionTimelineMapperTests; pernyataan/deklarasi berikut berada di dalam batas blok ini.
 {
     [Theory]
-    [InlineData("id", "{\"amount\":5}", "Menyetor 5 ke tabungan.")]
-    [InlineData("en", "{\"amount\":5}", "Deposited 5 to savings.")]
-    [InlineData("id", "{\"goal_id\":\"old-goal\",\"amount\":5}", "Menyetor 5 ke tabungan.")]
+    [InlineData("id", "MulaiSesi", "{}", "Sesi dimulai.")]
+    [InlineData("en", "AkhiriSesi", "{}", "Session ended.")]
+    [InlineData("id", "BahanMasakan", "{\"card_id\":\"nasi_putih\",\"amount\":1}", "Membeli bahan Nasi Putih dengan biaya 1 koin.")]
+    [InlineData("en", "BahanMasakan", "{\"card_id\":\"nasi_putih\",\"amount\":1}", "Purchased ingredient White Rice for 1 coin.")]
+    public void MapTimeline_UsesReadableActivitiesAndIngredientLabels(string language, string action, string payload, string expected)
+    {
+        var item = Assert.Single(SessionTimelineMapper.MapTimeline([CreateEvent(action, payload, "MON")], language));
+        Assert.Equal(expected, item.FlowDescription);
+    }
+
+    [Theory]
+    [InlineData("id", "{\"amount\":5}", "Menyetor 5 koin ke tabungan.")]
+    [InlineData("en", "{\"amount\":5}", "Deposited 5 coins to savings.")]
+    [InlineData("id", "{\"goal_id\":\"old-goal\",\"amount\":5}", "Menyetor 5 koin ke tabungan.")]
     public void MapTimeline_SavingsDoNotReserveAGoal(string language, string payload, string expected)
     {
         var item = Assert.Single(SessionTimelineMapper.MapTimeline(

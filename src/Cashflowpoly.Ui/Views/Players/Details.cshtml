@@ -654,6 +654,30 @@
                             "gold" => "player-metric-card-grid--gold",
                             _ => string.Empty
                         };
+                        var mobileFullWidthPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        var pendingScalarChunk = new List<string>();
+                        foreach (var r in orderedDomainRows)
+                        {
+                            var isColl = IsCollectionValue(r.Value);
+                            var isPrimary = domain.Key == "meal-orders" && r.Path == "meal_orders_claimed";
+                            if (isColl || isPrimary)
+                            {
+                                if (pendingScalarChunk.Count % 2 != 0)
+                                {
+                                    mobileFullWidthPaths.Add(pendingScalarChunk.Last());
+                                }
+                                pendingScalarChunk.Clear();
+                                mobileFullWidthPaths.Add(r.Path);
+                            }
+                            else
+                            {
+                                pendingScalarChunk.Add(r.Path);
+                            }
+                        }
+                        if (pendingScalarChunk.Count % 2 != 0)
+                        {
+                            mobileFullWidthPaths.Add(pendingScalarChunk.Last());
+                        }
                         <details class="player-evidence-domain" @(domainIndex == 0 ? "open" : null)>
                             <summary>
                                 <span class="player-evidence-domain__copy">
@@ -704,10 +728,11 @@
                                         && row.Path is "gold_cards_initial" or "gold_cards_purchased" or "gold_cards_sold" or "gold_cards_held_end";
                                     var isCoinOverview = domain.Key == "coin-finance"
                                         && row.Path is "starting_coins" or "coins_held_current";
+                                    var isMobileFullWidth = mobileFullWidthPaths.Contains(row.Path);
                                     var collectionTable = isCollectionValue
                                         ? PlayerMetricJsonMapper.BuildCollectionTable(row.Value, trueText, falseText, nullText)
                                         : null;
-                                    <article class="player-metric-card player-metric-card--@metric.State @(isCollectionValue ? "player-metric-card--series" : null) @(isLifeRiskFeatured ? "player-metric-card--featured" : null) @(isMealOrderPrimary ? "player-metric-card--meal-orders-primary" : null) @(isMealOrderSummary ? "player-metric-card--meal-orders-summary" : null) @(isGoldOverview ? "player-metric-card--gold-overview" : null) @(isCoinOverview ? "player-metric-card--coin-overview" : null)">
+                                    <article class="player-metric-card player-metric-card--@metric.State @(isCollectionValue ? "player-metric-card--series" : null) @(isLifeRiskFeatured ? "player-metric-card--featured" : null) @(isMealOrderPrimary ? "player-metric-card--meal-orders-primary" : null) @(isMealOrderSummary ? "player-metric-card--meal-orders-summary" : null) @(isGoldOverview ? "player-metric-card--gold-overview" : null) @(isCoinOverview ? "player-metric-card--coin-overview" : null) @(isMobileFullWidth ? "player-metric-card--full-width" : null)">
                                         <div class="player-metric-card__heading">
                                             <h5>@metric.Label</h5>
                                             @if (metric.State != "recorded" && !(domain.Key == "financial-goals" && metric.State == "zero"))

@@ -25,20 +25,22 @@
         </div>
     </header>
 
-    <details class="data-toggle statistics-reading">
-        <summary>@Context.T("statistics.reading_title")</summary>
-        <div class="mt-3 metric-panel">
-            <div class="metric-list">
-                @for (var step = 1; step <= 3; step++)
-                {
-                    <div class="metric-row">
-                        <span class="metric-key">@Context.T("sessions.step") @step</span>
-                        <span class="metric-value">@Context.T("statistics.tips.step" + step)</span>
-                    </div>
-                }
+    <section class="statistics-tips-section mt-4">
+        <details class="mt-3 data-toggle">
+            <summary>@Context.T("statistics.reading_title")</summary>
+            <div class="mt-3 metric-panel">
+                <div class="metric-list">
+                    @for (var step = 1; step <= 3; step++)
+                    {
+                        <div class="metric-row">
+                            <span class="metric-key">@Context.T("sessions.step") @step</span>
+                            <span class="metric-value">@Context.T("statistics.tips.step" + step)</span>
+                        </div>
+                    }
+                </div>
             </div>
-        </div>
-    </details>
+        </details>
+    </section>
     <form class="ruleset-quick-tools statistics-filters" method="get" asp-controller="PlayerStatistics" asp-action="Index">
         <div class="ruleset-section-head">
             <h2 class="ruleset-section-title">@Context.T("statistics.filters")</h2>

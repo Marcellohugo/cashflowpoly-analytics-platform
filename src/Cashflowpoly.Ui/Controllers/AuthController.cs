@@ -171,7 +171,8 @@ public sealed class AuthController : Controller
 
         if (model.Password.Length < 12 || System.Text.Encoding.UTF8.GetByteCount(model.Password) > 72)
         {
-            model.ErrorMessage = HttpContext.T("auth.password_hint");
+            model.ErrorMessage = HttpContext.T(model.Password.Length < 12
+                ? "auth.password_hint" : "auth.error.password_too_long");
             model.Password = string.Empty;
             model.ConfirmPassword = string.Empty;
             return View(model);

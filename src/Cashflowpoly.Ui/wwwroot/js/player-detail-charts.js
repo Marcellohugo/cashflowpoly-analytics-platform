@@ -118,7 +118,26 @@
                 if (detailKey) {
                     detailKey.textContent = resolvedDetailLabel;
                 }
+                let dialog = panel.closest(".chart-detail-dialog");
+                if (!dialog) {
+                dialog = makeHtmlNode("dialog", "chart-detail-dialog");
+                dialog.setAttribute("aria-label", hostCard.querySelector("h3, h4, h5")?.textContent || tooltipText.selectedDetail);
+                const close = makeHtmlNode("button", "chart-detail-close");
+                close.type = "button";
+                close.textContent = "✕";
+                close.setAttribute("aria-label", document.documentElement.lang.startsWith("en") ? "Close details" : "Tutup rincian");
+                close.addEventListener("click", () => dialog.close());
+                dialog.addEventListener("click", event => {
+                    const bounds = dialog.getBoundingClientRect();
+                    if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right ||
+                        event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
+                });
+                dialog.addEventListener("close", () => { panel.hidden = true; });
+                panel.before(dialog);
+                dialog.append(close, panel);
+                }
                 return {
+                    dialog,
                     panel,
                     session: panel.querySelector(".js-chart-bar-insight-session"),
                     unit: panel.querySelector(".js-chart-bar-insight-unit"),
@@ -144,6 +163,7 @@
                 if (insight.formula) {
                     insight.formula.textContent = detail.formula;
                 }
+                if (!insight.dialog.open) insight.dialog.showModal();
             };
             const makeNode = (name, attrs = {}) => {
                 const node = document.createElementNS(ns, name);
@@ -310,7 +330,7 @@
                     : 0;
                 const hostCard = svg.closest(".chart-card");
                 const chartInsight = ensureBarInsightPanel(hostCard, svg, detailLabel);
-                if (chartInsight) {
+                if (chartInsight && !chartInsight.dialog.open) {
                     chartInsight.panel.hidden = true;
                 }
                 let width = baseWidth;
@@ -614,40 +634,36 @@
                                 unit: selectedPoint?.unit,
                                 formula: selectedPoint?.guidance ?? (formulaHints[index] || detailFallback)
                             };
-                            // Keep adjacent hover targets separate when many sessions share a narrow plot.
+                            // Keep adjacent targets separate when many sessions share a narrow plot.
                             const pointRadius = plotWidth / Math.max(1, labels.length - 1) / 2;
                             const hitTarget = makeNode("circle", {
                                 cx: point.x,
                                 cy: point.y,
-                                r: Math.min(10, pointRadius),
+                                r: Math.min(16, pointRadius),
                                 fill: "transparent"
                             });
                             const pointNode = makeNode("circle", {
                                 cx: point.x,
                                 cy: point.y,
-                                r: Math.min(3, pointRadius),
+                                r: Math.min(6, pointRadius),
                                 fill: color,
                                 stroke: "#ffffff",
-                                "stroke-width": "1"
+                                "stroke-width": "2"
                             });
                             pointNode.setAttribute("tabindex", "0");
-                            pointNode.setAttribute("role", "img");
+                            pointNode.setAttribute("role", "button");
+                            pointNode.setAttribute("aria-haspopup", "dialog");
                             pointNode.setAttribute("aria-label", tooltipLines.join(". "));
-                            // One hover target prevents flicker between the visible dot and its hit area.
                             const pointGroup = makeNode("g", { class: "js-chart-point" });
+                            pointGroup.style.cursor = "pointer";
                             pointGroup.append(hitTarget, pointNode);
                             const showDetail = () => revealBarInsight(chartInsight, insightDetail);
-                            const hideDetail = () => { if (chartInsight) chartInsight.panel.hidden = true; };
-                            pointGroup.addEventListener("pointerenter", event => {
-                                if (event.pointerType !== "touch") showDetail();
-                            });
-                            pointGroup.addEventListener("pointerleave", hideDetail);
-                            pointNode.addEventListener("focus", () => {
-                                if (pointNode.matches(":focus-visible")) showDetail();
-                            });
-                            pointNode.addEventListener("blur", hideDetail);
+                            pointGroup.addEventListener("click", showDetail);
                             pointNode.addEventListener("keydown", event => {
-                                if (event.key === "Escape") hideDetail();
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    showDetail();
+                                }
                             });
                             svg.appendChild(pointGroup);
                         });

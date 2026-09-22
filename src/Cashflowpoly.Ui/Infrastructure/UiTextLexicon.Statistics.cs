@@ -33,7 +33,7 @@ internal static partial class UiTextLexicon
         terms["statistics.mode.mahir"] = ("Mahir", "Advanced");
         terms["statistics.status"] = ("Status sesi", "Session status");
         terms["statistics.all_statuses"] = ("Semua status", "All statuses");
-        terms["statistics.status.created"] = ("Persiapan", "Preparing");
+        terms["statistics.status.created"] = ("Belum dimulai", "Not started");
         terms["statistics.status.started"] = ("Sedang berlangsung", "In progress");
         terms["statistics.status.ended"] = ("Selesai", "Finished");
         terms["statistics.apply"] = ("Tampilkan", "Apply filters");
@@ -43,7 +43,7 @@ internal static partial class UiTextLexicon
         terms["statistics.filter_hint"] = ("Pilih mode atau status lain untuk melihat sesi Anda.", "Choose another mode or status to see your sessions.");
         terms["statistics.reading_title"] = ("Tips membaca statistik pemain", "Tips for reading player statistics");
         terms["statistics.tips.step1"] = ("Pilih mode dan status sesi. Periksa modal, set aturan, dan lama permainan sebelum membandingkan hasil antarsesi.", "Choose the mode and session status. Check starting cash, rulesets, and game duration before comparing session results.");
-        terms["statistics.tips.step2"] = ("Baca grafik dari sesi paling awal ke paling baru. Setiap titik mewakili satu sesi; arahkan kursor ke titik atau buka rincian grafik untuk melihat nilai, arti, dan sumber data.", "Read charts from the earliest to the latest session. Each point represents one session; hover over a point or open the chart details to see values, meanings, and data sources.");
+        terms["statistics.tips.step2"] = ("Baca grafik dari sesi paling awal ke paling baru. Setiap titik mewakili satu sesi. Klik atau ketuk titik untuk membuka rincian; tutup melalui tombol × atau area di luar popup.", "Read charts from the earliest to the latest session. Each point represents one session. Click or tap a point to open its details; close with × or by clicking outside the popup.");
         terms["statistics.tips.step3"] = ("Hasil sesi berjalan dapat berubah. Celah pada grafik berarti data belum tersedia atau metrik tidak berlaku, bukan nol. Grafik ini tidak menyatakan tingkat kemampuan finansial Anda.", "In-progress results can change. A gap means data is unavailable or a metric does not apply, not zero. These charts do not rate your financial ability.");
         terms["statistics.sections"] = ("Bagian statistik", "Statistics sections");
         terms["statistics.group.overview"] = ("Hasil permainan", "Game results");
@@ -71,13 +71,13 @@ internal static partial class UiTextLexicon
         terms["statistics.open_analytics"] = ("Buka Analitika Pemain pada Sesi", "Open Player Analytics in Session");
         terms["statistics.open_session"] = ("Buka sesi", "Open session");
         terms["statistics.no_numeric"] = ("Belum ada nilai yang dapat digambarkan untuk pilihan sesi ini.", "No chartable values are available for these sessions yet.");
-        terms["statistics.tap_hint"] = ("Arahkan kursor ke titik untuk melihat nilai dan artinya.", "Hover over a point to inspect its value and meaning.");
+        terms["statistics.tap_hint"] = ("Klik atau ketuk titik untuk membuka rincian. Tutup melalui tombol × atau area di luar popup.", "Click or tap a point to open its details. Close with × or by clicking outside the popup.");
         terms["statistics.error.load"] = ("Statistik belum dapat dimuat. Silakan coba lagi.", "Statistics could not be loaded. Please try again.");
         terms["statistics.error.partial"] = ("Sebagian analitika sesi belum dapat dimuat. Sesi tetap ditampilkan, sedangkan nilai yang belum tersedia dibiarkan kosong. Silakan coba lagi.", "Some session analytics could not be loaded. Sessions remain listed with unavailable values left blank. Please try again.");
         terms["auth.register_role"] = ("Daftar sebagai", "Register as");
         terms["auth.register_role_hint"] = ("Pemain mengikuti sesi dan membaca statistik pribadi. Instruktur membuat sesi, mengelola set aturan, dan membimbing pemain.", "Players join sessions and read their own statistics. Instructors create sessions, manage rulesets, and guide players.");
         terms["auth.error.invalid_role"] = ("Pilih peran Pemain atau Instruktur.", "Choose Player or Instructor.");
-        terms["rulesets.coming_soon"] = ("Coming soon", "Coming soon");
-        terms["rulesets.mechanics_held_hint"] = ("Pengubahan mekanik permainan — Coming soon. Pilihan bertanda ini tetap tercentang dan belum dapat diubah. Fitur Mahir mengikuti mode permainan; angka dan batas yang tersedia tetap dapat disesuaikan.", "Game mechanic customization — Coming soon. Marked options remain checked and cannot be changed yet. Advanced features follow the game mode; available amounts and limits can still be adjusted.");
+        terms["rulesets.coming_soon"] = ("Belum dapat diubah", "Not editable yet");
+        terms["rulesets.mechanics_held_hint"] = ("Pilihan yang dikunci tetap aktif dan belum dapat diubah. Fitur Mahir mengikuti mode permainan. Angka dan batas pada kolom yang tersedia dapat disesuaikan.", "Locked options remain enabled and cannot be changed yet. Advanced features follow the game mode. Amounts and limits in available fields can be adjusted.");
     }
 }

@@ -229,6 +229,8 @@ public static class SessionTimelineMapper
         var text = actionType switch
         {
             // Untuk pola `”CatatTransaksi”`, menghasilkan memanggil `DescribeTransaction` dengan `payload`, `language` sebagai hasil switch.
+            "MulaiSesi" => L(language, "Sesi dimulai.", "Session started."),
+            "AkhiriSesi" => L(language, "Sesi diakhiri.", "Session ended."),
             "CatatTransaksi" => DescribeTransaction(payload, language),
             // Untuk pola `”JumatBerkah”`, menghasilkan memanggil `DescribeFridayDonation` dengan `payload`, `language` sebagai hasil switch.
             "JumatBerkah" => DescribeFridayDonation(payload, language),
@@ -418,17 +420,16 @@ public static class SessionTimelineMapper
             return BuildGenericDescription("BahanMasakan", payload, language);
         }
 
-        var amountText = TryGetNumber(payload, "amount", out var amount)
-            // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: FormatNumber(amount) dalam DescribeIngredientPurchase.
-            ? FormatNumber(amount)
-            // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: L(language, ”nominal tidak diketahui”, ”unknown amount”); dalam
-            // DescribeIngredientPurchase.
-            : L(language, "nominal tidak diketahui", "unknown amount");
+        var label = PlayerMetricLabelFormatter.HumanizeMetricKey(cardId, key => UiText.Translate(language, key));
+        if (!TryGetNumber(payload, "amount", out var amount))
+        {
+            return L(language, $"Membeli bahan {label}. Biaya belum tercatat.", $"Purchased ingredient {label}. Cost not recorded.");
+        }
 
         return L(
             language,
-            $"Membeli bahan {cardId} dengan biaya {amountText}.",
-            $"Purchased ingredient {cardId} with cost {amountText}.");
+            $"Membeli bahan {label} dengan biaya {FormatNumber(amount)} koin.",
+            $"Purchased ingredient {label} for {FormatNumber(amount)} {(amount == 1 ? "coin" : "coins")}.");
     }
 
     /// <summary>
@@ -628,13 +629,13 @@ public static class SessionTimelineMapper
             // Menentukan hasil yang dipakai saat kondisi operator ternary bernilai benar: L( dalam DescribeSavingDeposit.
             ? L(
                 language,
-                $"Menarik {FormatNumber(amount)} dari tabungan.",
-                $"Withdrew {FormatNumber(amount)} from savings.")
+                $"Menarik {FormatNumber(amount)} koin dari tabungan.",
+                $"Withdrew {FormatNumber(amount)} {(amount == 1 ? "coin" : "coins")} from savings.")
             // Menentukan hasil alternatif saat kondisi operator ternary bernilai salah: L( dalam DescribeSavingDeposit.
             : L(
                 language,
-                $"Menyetor {FormatNumber(amount)} ke tabungan.",
-                $"Deposited {FormatNumber(amount)} to savings.");
+                $"Menyetor {FormatNumber(amount)} koin ke tabungan.",
+                $"Deposited {FormatNumber(amount)} {(amount == 1 ? "coin" : "coins")} to savings.");
     }
 
     /// <summary>
