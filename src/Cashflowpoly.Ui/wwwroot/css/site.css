@@ -517,7 +517,19 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.45rem;
+    border: 1px solid #9ad7cf;
+    background: linear-gradient(145deg, #f0fdfa, #e6fffa);
+    color: #0f766e !important;
+    font-weight: 800;
+    box-shadow: 0 1px 3px rgba(18, 168, 154, 0.08);
+}
+
+.profile-menu .profile-change-pwd-btn:hover {
+    border-color: #5ec6bb;
+    background: linear-gradient(145deg, #e0fcf7, #ccfbf1);
+    color: #0d6058 !important;
+    box-shadow: 0 2px 6px rgba(18, 168, 154, 0.14);
 }
 
 .profile-menu .nav-menu-item.nav-danger {
