@@ -58,3 +58,15 @@ public sealed class RegisterViewModel
     public string? ReturnUrl { get; set; }
     public string? ErrorMessage { get; set; }
 }
+
+/// <summary>
+/// Model formulir ubah kata sandi yang menampung kata sandi saat ini,
+/// kata sandi baru, dan konfirmasi kata sandi baru.
+/// </summary>
+// Mendefinisikan tipe class `ChangePasswordFormModel`; sealed mencegah tipe ini diturunkan lagi.
+public sealed class ChangePasswordFormModel
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}

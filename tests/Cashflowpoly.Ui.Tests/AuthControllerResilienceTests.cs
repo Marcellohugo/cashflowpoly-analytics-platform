@@ -147,6 +147,89 @@ public sealed class AuthControllerResilienceTests
     }
 
     // Mendefinisikan metode `CreateController` dengan hasil bertipe `AuthController`; operasi ini menangani create controller.
+    [Fact]
+    public async Task ChangePassword_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        var controller = CreateController(out var factory);
+        var result = await controller.ChangePassword(new ChangePasswordFormModel
+        {
+            CurrentPassword = "old_password123",
+            NewPassword = "new_password123",
+            ConfirmPassword = "new_password123"
+        }, CancellationToken.None);
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+        Assert.Equal(0, factory.RequestCount);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenFieldsEmpty_ReturnsBadRequest()
+    {
+        var controller = CreateController(out var factory);
+        controller.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+            new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "TestAuth"));
+
+        var result = await controller.ChangePassword(new ChangePasswordFormModel(), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, factory.RequestCount);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenConfirmMismatch_ReturnsBadRequest()
+    {
+        var controller = CreateController(out var factory);
+        controller.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+            new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "TestAuth"));
+
+        var result = await controller.ChangePassword(new ChangePasswordFormModel
+        {
+            CurrentPassword = "old_password123",
+            NewPassword = "new_password123",
+            ConfirmPassword = "different_password"
+        }, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, factory.RequestCount);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenSameAsCurrent_ReturnsBadRequest()
+    {
+        var controller = CreateController(out var factory);
+        controller.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+            new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "TestAuth"));
+
+        var result = await controller.ChangePassword(new ChangePasswordFormModel
+        {
+            CurrentPassword = "same_password123",
+            NewPassword = "same_password123",
+            ConfirmPassword = "same_password123"
+        }, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(0, factory.RequestCount);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenApiIsUnavailable_ReturnsServiceUnavailable()
+    {
+        var controller = CreateController(out var factory);
+        controller.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+            new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()) }, "TestAuth"));
+
+        var result = await controller.ChangePassword(new ChangePasswordFormModel
+        {
+            CurrentPassword = "old_password123",
+            NewPassword = "new_password123",
+            ConfirmPassword = "new_password123"
+        }, CancellationToken.None);
+
+        var statusResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, statusResult.StatusCode);
+        Assert.Equal(1, factory.RequestCount);
+    }
+
     private static AuthController CreateController(out ThrowingHttpClientFactory factory)
     // Membuka scope metode CreateController; pernyataan/deklarasi berikut berada di dalam batas blok ini dalam CreateController.
     {

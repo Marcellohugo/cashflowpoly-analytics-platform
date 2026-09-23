@@ -1119,6 +1119,12 @@ button:disabled {
     color: #9a6b00;
 }
 
+.alert-success {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
+}
+
 .alert-info {
     border-color: #9ad7cf;
     background: rgba(255, 255, 255, 0.86);

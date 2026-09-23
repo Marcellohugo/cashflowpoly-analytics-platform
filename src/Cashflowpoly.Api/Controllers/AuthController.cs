@@ -15,16 +15,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 // Mengimpor namespace `Npgsql` agar tipe/ekstensi dari pustaka tersebut dapat dirujuk tanpa menulis nama lengkapnya.
 using Npgsql;
+using System.Security.Claims;
 
-// Menempatkan deklarasi pada namespace `Cashflowpoly.Api.Controllers` untuk mengelompokkan komponen dan mencegah benturan nama tipe.
 namespace Cashflowpoly.Api.Controllers;
 
 // mengaktifkan perilaku API controller, termasuk inferensi binding dan respons otomatis atas model tidak valid.
 [ApiController]
-// menetapkan pola rute (”api/v1/auth”) untuk pencocokan URL permintaan.
+// menetapkan pola rute ("api/v1/auth") untuk pencocokan URL permintaan.
 [Route("api/v1/auth")]
-// mengizinkan endpoint diakses tanpa identitas pengguna yang telah diautentikasi.
-[AllowAnonymous]
 // menerapkan metadata `ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)` pada deklarasi berikut agar framework/compiler
 // dapat mengenali pengaturannya.
 [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -63,8 +61,9 @@ public sealed class AuthController : ControllerBase
         _registrationOptions = registrationOptions.Value;
     }
 
-    // mendaftarkan action untuk metode HTTP POST pada rute (”login”).
+    // mendaftarkan action untuk metode HTTP POST pada rute ("login").
     [HttpPost("login")]
+    [AllowAnonymous]
     // menerapkan metadata `ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)` pada deklarasi berikut agar framework/compiler dapat
     // mengenali pengaturannya.
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
@@ -137,8 +136,9 @@ public sealed class AuthController : ControllerBase
         return Ok(new LoginResponse(user.UserId, user.Username, user.Role, displayName, issued.AccessToken, issued.ExpiresAt));
     }
 
-    // mendaftarkan action untuk metode HTTP POST pada rute (”register”).
+    // mendaftarkan action untuk metode HTTP POST pada rute ("register").
     [HttpPost("register")]
+    [AllowAnonymous]
     // menerapkan metadata `ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)` pada deklarasi berikut agar framework/compiler
     // dapat mengenali pengaturannya.
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
@@ -259,5 +259,82 @@ public sealed class AuthController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             new RegisterResponse(created.UserId, created.Username, created.Role, displayName, issued.AccessToken, issued.ExpiresAt));
+    }
+
+    // mendaftarkan action untuk metode HTTP POST pada rute ("change-password").
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(typeof(ChangePasswordResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct)
+    {
+        var userIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdRaw, out var userId))
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Sesi tidak valid"));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+            string.IsNullOrWhiteSpace(request.NewPassword) ||
+            string.IsNullOrWhiteSpace(request.ConfirmPassword))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Semua isian kata sandi wajib diisi"));
+        }
+
+        if (!string.Equals(request.NewPassword, request.ConfirmPassword, StringComparison.Ordinal))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Konfirmasi kata sandi baru tidak sama"));
+        }
+
+        if (request.NewPassword.Length < PasswordPolicy.MinPasswordLength)
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Kata sandi baru minimal {PasswordPolicy.MinPasswordLength} karakter"));
+        }
+
+        if (!PasswordPolicy.IsWithinBcryptLimit(request.NewPassword) || !PasswordPolicy.IsWithinBcryptLimit(request.CurrentPassword))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                $"Kata sandi maksimal {PasswordPolicy.MaxPasswordUtf8Bytes} byte UTF-8"));
+        }
+
+        if (string.Equals(request.CurrentPassword, request.NewPassword, StringComparison.Ordinal))
+        {
+            return BadRequest(ApiErrorHelper.BuildError(
+                HttpContext,
+                "VALIDATION_ERROR",
+                "Kata sandi baru tidak boleh sama dengan kata sandi saat ini"));
+        }
+
+        var result = await _users.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword, ct);
+        if (result == ChangePasswordResult.IncorrectCurrentPassword)
+        {
+            await _securityAudit.LogAsync(
+                HttpContext,
+                SecurityAuditEventTypes.PasswordChangeFailed,
+                SecurityAuditOutcomes.Failure,
+                StatusCodes.Status400BadRequest,
+                new { reason = "INCORRECT_CURRENT_PASSWORD", user_id = userId },
+                ct, subjectUserId: userId);
+            return BadRequest(ApiErrorHelper.BuildError(HttpContext, "INVALID_CREDENTIALS", "Kata sandi saat ini salah"));
+        }
+
+        if (result == ChangePasswordResult.UserNotFound)
+        {
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Pengguna tidak ditemukan atau tidak aktif"));
+        }
+
+        await _securityAudit.LogAsync(
+            HttpContext,
+            SecurityAuditEventTypes.PasswordChanged,
+            SecurityAuditOutcomes.Success,
+            StatusCodes.Status200OK,
+            new { user_id = userId },
+            ct, subjectUserId: userId);
+
+        return Ok(new ChangePasswordResponse("Kata sandi berhasil diperbarui"));
     }
 }

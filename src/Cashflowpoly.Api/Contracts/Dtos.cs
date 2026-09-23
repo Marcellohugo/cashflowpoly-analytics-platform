@@ -1038,7 +1038,19 @@ public sealed class DonationRankingDto
     [JsonPropertyName("player_order_no")]
     public int? PlayerIndex { get; init; }
 
-    // memetakan nama properti JSON menjadi (”total_donasi”).
+    // memetakan nama properti JSON menjadi ("total_donasi").
     [JsonPropertyName("total_donasi")]
     public int TotalDonasi { get; init; }
 }
+
+public sealed record ChangePasswordRequest(
+    // Parameter `CurrentPassword` bertipe `string` membawa kata sandi saat ini untuk diverifikasi; memetakan nama properti JSON menjadi ("current_password").
+    [property: JsonPropertyName("current_password")] string CurrentPassword,
+    // Parameter `NewPassword` bertipe `string` membawa kata sandi baru; memetakan nama properti JSON menjadi ("new_password").
+    [property: JsonPropertyName("new_password")] string NewPassword,
+    // Parameter `ConfirmPassword` bertipe `string` membawa konfirmasi kata sandi baru; memetakan nama properti JSON menjadi ("confirm_password").
+    [property: JsonPropertyName("confirm_password")] string ConfirmPassword);
+
+public sealed record ChangePasswordResponse(
+    // Parameter `Message` bertipe `string` membawa pesan status operasi perubahan kata sandi; memetakan nama properti JSON menjadi ("message").
+    [property: JsonPropertyName("message")] string Message);

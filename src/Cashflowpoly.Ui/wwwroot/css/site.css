@@ -513,6 +513,13 @@ a:hover {
     color: #d93d44 !important;
 }
 
+.profile-menu .profile-change-pwd-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
 .profile-menu .nav-menu-item.nav-danger {
     border: 1px solid #f5b8bd;
     background: linear-gradient(145deg, #fff4f4, #ffeef0);
@@ -796,6 +803,12 @@ a:hover {
     border-color: #9ad7cf;
     background: rgba(255, 255, 255, 0.86);
     color: #3d6277;
+}
+
+.alert-success {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
 }
 
 .form-panel {

@@ -514,5 +514,17 @@ public sealed record RegisterResponse(
     [property: JsonPropertyName("display_name")] string? DisplayName,
     // Parameter `AccessToken` bertipe `string` membawa nilai akses token; memetakan nama properti JSON menjadi (”access_token”).
     [property: JsonPropertyName("access_token")] string AccessToken,
-    // Parameter `ExpiresAt` bertipe `DateTimeOffset` membawa nilai expires at; memetakan nama properti JSON menjadi (”expires_at”).
+    // Parameter `ExpiresAt` bertipe `DateTimeOffset` membawa nilai expires at; memetakan nama properti JSON menjadi ("expires_at").
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
+
+public sealed record ChangePasswordRequest(
+    // Parameter `CurrentPassword` bertipe `string` membawa kata sandi saat ini untuk diverifikasi; memetakan nama properti JSON menjadi ("current_password").
+    [property: JsonPropertyName("current_password")] string CurrentPassword,
+    // Parameter `NewPassword` bertipe `string` membawa kata sandi baru; memetakan nama properti JSON menjadi ("new_password").
+    [property: JsonPropertyName("new_password")] string NewPassword,
+    // Parameter `ConfirmPassword` bertipe `string` membawa konfirmasi kata sandi baru; memetakan nama properti JSON menjadi ("confirm_password").
+    [property: JsonPropertyName("confirm_password")] string ConfirmPassword);
+
+public sealed record ChangePasswordResponse(
+    // Parameter `Message` bertipe `string` membawa pesan status operasi perubahan kata sandi; memetakan nama properti JSON menjadi ("message").
+    [property: JsonPropertyName("message")] string Message);

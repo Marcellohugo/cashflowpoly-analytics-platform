@@ -164,9 +164,65 @@ public sealed class UserRepository
             .ToDictionary(group => group.Key, group => group.First().Username.Trim());
     }
 
+    /// <summary>
+    /// Mengubah kata sandi pengguna setelah memverifikasi kata sandi saat ini.
+    /// </summary>
+    public async Task<ChangePasswordResult> ChangePasswordAsync(
+        // Parameter `userId` bertipe `Guid` membawa identitas akun pengguna yang datanya sedang diproses.
+        Guid userId,
+        // Parameter `currentPassword` bertipe `string` membawa kata sandi saat ini untuk diverifikasi.
+        string currentPassword,
+        // Parameter `newPassword` bertipe `string` membawa kata sandi baru yang akan disimpan setelah di-hash.
+        string newPassword,
+        // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan.
+        CancellationToken ct)
+    {
+        const string verifySql = """
+            select password_hash = crypt(@currentPassword, password_hash) as is_match
+            from app_users
+            where user_id = @userId and is_active = true
+            limit 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var isMatch = await conn.QuerySingleOrDefaultAsync<bool?>(
+            new CommandDefinition(verifySql, new { userId, currentPassword }, cancellationToken: ct));
+
+        if (isMatch is null)
+        {
+            return ChangePasswordResult.UserNotFound;
+        }
+
+        if (!isMatch.Value)
+        {
+            return ChangePasswordResult.IncorrectCurrentPassword;
+        }
+
+        const string updateSql = """
+            update app_users
+            set password_hash = crypt(@newPassword, gen_salt('bf', 10))
+            where user_id = @userId and is_active = true
+            """;
+
+        await conn.ExecuteAsync(
+            new CommandDefinition(updateSql, new { userId, newPassword }, cancellationToken: ct));
+
+        return ChangePasswordResult.Success;
+    }
+
     private sealed class UserNameRow
     {
         public Guid UserId { get; init; }
         public string Username { get; init; } = string.Empty;
     }
+}
+
+/// <summary>
+/// Status hasil operasi perubahan kata sandi user.
+/// </summary>
+public enum ChangePasswordResult
+{
+    Success,
+    IncorrectCurrentPassword,
+    UserNotFound
 }

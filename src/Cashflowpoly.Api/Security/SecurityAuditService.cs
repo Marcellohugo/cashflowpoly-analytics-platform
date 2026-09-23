@@ -30,6 +30,8 @@ public static class SecurityAuditEventTypes
     public const string SessionEnded = "SESSION_ENDED";
     public const string RulesetChanged = "RULESET_CHANGED";
     public const string DemoActivity = "DEMO_ACTIVITY";
+    public const string PasswordChanged = "PASSWORD_CHANGED";
+    public const string PasswordChangeFailed = "PASSWORD_CHANGE_FAILED";
 }
 
 /// <summary>

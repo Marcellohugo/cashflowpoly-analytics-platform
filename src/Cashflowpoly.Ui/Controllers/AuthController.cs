@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 // Menempatkan deklarasi pada namespace `Cashflowpoly.Ui.Controllers` untuk mengelompokkan komponen dan mencegah benturan nama tipe.
 namespace Cashflowpoly.Ui.Controllers;
 
-// menetapkan pola rute (”auth”) untuk pencocokan URL permintaan.
+// menetapkan pola rute ("auth") untuk pencocokan URL permintaan.
 [Route("auth")]
 public sealed class AuthController : Controller
 {
@@ -33,7 +33,7 @@ public sealed class AuthController : Controller
         _clientFactory = clientFactory;
     }
 
-    // mendaftarkan action untuk metode HTTP GET pada rute (”login”).
+    // mendaftarkan action untuk metode HTTP GET pada rute ("login").
     [HttpGet("login")]
     public IActionResult Login([FromQuery] string? returnUrl = null)
     {
@@ -48,7 +48,7 @@ public sealed class AuthController : Controller
         });
     }
 
-    // mendaftarkan action untuk metode HTTP POST pada rute (”login”).
+    // mendaftarkan action untuk metode HTTP POST pada rute ("login").
     [HttpPost("login")]
     // memvalidasi token antiforgery untuk memastikan permintaan formulir membawa token yang sesuai.
     [ValidateAntiForgeryToken]
@@ -117,7 +117,7 @@ public sealed class AuthController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    // mendaftarkan action untuk metode HTTP GET pada rute (”register”).
+    // mendaftarkan action untuk metode HTTP GET pada rute ("register").
     [HttpGet("register")]
     public IActionResult Register([FromQuery] string? returnUrl = null)
     {
@@ -127,7 +127,7 @@ public sealed class AuthController : Controller
         });
     }
 
-    // mendaftarkan action untuk metode HTTP POST pada rute (”register”).
+    // mendaftarkan action untuk metode HTTP POST pada rute ("register").
     [HttpPost("register")]
     // memvalidasi token antiforgery untuk memastikan permintaan formulir membawa token yang sesuai.
     [ValidateAntiForgeryToken]
@@ -241,7 +241,7 @@ public sealed class AuthController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    // mendaftarkan action untuk metode HTTP POST pada rute (”logout”).
+    // mendaftarkan action untuk metode HTTP POST pada rute ("logout").
     [HttpPost("logout")]
     // memvalidasi token antiforgery untuk memastikan permintaan formulir membawa token yang sesuai.
     [ValidateAntiForgeryToken]
@@ -249,6 +249,91 @@ public sealed class AuthController : Controller
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction(nameof(Login));
+    }
+
+    // mendaftarkan action untuk metode HTTP POST pada rute ("change-password").
+    [HttpPost("change-password")]
+    // memvalidasi token antiforgery untuk memastikan permintaan formulir membawa token yang sesuai.
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword([FromForm] ChangePasswordFormModel model, CancellationToken ct)
+    {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized(new { success = false, message = HttpContext.T("auth.error.login_required") });
+        }
+
+        if (string.IsNullOrWhiteSpace(model.CurrentPassword) ||
+            string.IsNullOrWhiteSpace(model.NewPassword) ||
+            string.IsNullOrWhiteSpace(model.ConfirmPassword))
+        {
+            return BadRequest(new { success = false, message = HttpContext.T("auth.error.change_password_required") });
+        }
+
+        if (!string.Equals(model.NewPassword, model.ConfirmPassword, StringComparison.Ordinal))
+        {
+            return BadRequest(new { success = false, message = HttpContext.T("auth.error.confirm_mismatch") });
+        }
+
+        if (model.NewPassword.Length < 12)
+        {
+            return BadRequest(new { success = false, message = HttpContext.T("auth.password_hint") });
+        }
+
+        if (System.Text.Encoding.UTF8.GetByteCount(model.NewPassword) > 72)
+        {
+            return BadRequest(new { success = false, message = HttpContext.T("auth.error.password_too_long") });
+        }
+
+        if (string.Equals(model.CurrentPassword, model.NewPassword, StringComparison.Ordinal))
+        {
+            return BadRequest(new { success = false, message = HttpContext.T("auth.error.password_same_as_current") });
+        }
+
+        var client = _clientFactory.CreateClient("Api");
+        var payload = new ChangePasswordRequest(
+            model.CurrentPassword,
+            model.NewPassword,
+            model.ConfirmPassword);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PostAsJsonAsync("api/v1/auth/change-password", payload, ct);
+        }
+        // Menangani exception `HttpRequestException` melalui variabel dalam ChangePassword.
+        catch (HttpRequestException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                success = false,
+                message = HttpContext.T("auth.error.api_unavailable")
+            });
+        }
+        // Menangani exception `TaskCanceledException` melalui variabel dalam ChangePassword.
+        catch (TaskCanceledException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                success = false,
+                message = HttpContext.T("auth.error.api_unavailable")
+            });
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.TryReadFromJsonAsync<ErrorResponse>(ct);
+            return StatusCode((int)response.StatusCode, new
+            {
+                success = false,
+                message = error?.Message ?? HttpContext.T("auth.error.api_unavailable")
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            message = HttpContext.T("auth.success.password_changed")
+        });
     }
 
     private Task SignInAsync(
