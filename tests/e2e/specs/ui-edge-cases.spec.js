@@ -139,6 +139,37 @@ test('grafik ponsel membatasi lima sesi dengan sumbu tetap saat digeser dan diub
   expect(errors).toEqual([]);
 });
 
+test('label sesi ke-11 mempertahankan tanda hubung dan tidak terpotong saat digulir ke ujung kanan', async ({ page }) => {
+  const labels = Array.from({ length: 11 }, (_, i) => `Sesi ke-${i + 1}`);
+  const values = [10, 20, 15, 30, 25, 35, 40, 30, 45, 50, 55];
+  const payload = { labels, series: [{ name: 'Nilai', values }] };
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.setContent(`<div class="statistics-chart-frame">
+    <div class="statistics-chart-plot"><svg class="js-metric-line-chart" data-chart-responsive viewBox="0 0 840 340"></svg></div>
+    <div class="statistics-chart-axis"></div>
+  </div>`);
+  await page.addStyleTag({ path: path.join(scripts, '../css/player-statistics.css') });
+  await page.locator('svg').evaluate((svg, payload) => { svg.dataset.chart = JSON.stringify(payload); }, payload);
+  await page.addScriptTag({ path: path.join(scripts, 'player-detail-charts.js') });
+
+  const plot = page.locator('.statistics-chart-plot');
+  await plot.evaluate(el => { el.scrollLeft = el.scrollWidth - el.clientWidth; });
+
+  const labelTexts = await page.locator('svg text').allTextContents();
+  expect(labelTexts).toContain('Sesi ke-11');
+  expect(labelTexts).not.toContain('Sesi ke 11');
+
+  const isClipped = await page.evaluate(() => {
+    const texts = Array.from(document.querySelectorAll('svg text'));
+    const lastText = texts.find(t => t.textContent === 'Sesi ke-11');
+    if (!lastText) return true;
+    const textRect = lastText.getBoundingClientRect();
+    const plotRect = document.querySelector('.statistics-chart-plot').getBoundingClientRect();
+    return textRect.right > plotRect.right + 1;
+  });
+  expect(isClipped).toBe(false);
+});
+
 test('nama yang mirip tidak diam-diam memilih identitas pertama', async ({ page }) => {
   await page.setContent(`<form>
     <input id="statistics-player" list="statistics-players" data-invalid-player="Pilih pemain yang sesuai">

@@ -210,7 +210,7 @@
             };
             const normalizeLabel = (value, index) => {
                 const text = String(value ?? "")
-                    .replace(/[_-]+/g, " ")
+                    .replace(/_+/g, " ")
                     .replace(/\s+/g, " ")
                     .trim();
                 if (text.length > 0) {
@@ -469,7 +469,7 @@
                     tickText(maxY - (maxY - minY) * tick / 4).length * 6.3 + 8));
                 const margin = {
                     top: 16 + legendRows * legendLineHeight + 12,
-                    right: chartType === "bar" ? 36 : visibleSessions ? 20 : 10,
+                    right: chartType === "bar" ? 36 : visibleSessions ? 38 : 24,
                     bottom: chartType === "bar"
                         ? 80 + Math.max(0, (
                             wrappedAxisLabels.reduce((max, lines) => Math.max(max, lines.length), 1) - 1
@@ -611,7 +611,7 @@
                     }
                     const isFirst = index === 0;
                     const text = makeNode("text", {
-                        x: visibleSessions ? xForIndex(index) : (isFirst ? margin.left : (isLast ? margin.left + plotWidth : xForIndex(index))),
+                        x: visibleSessions ? (isLast ? Math.min(xForIndex(index), width - Math.ceil(label.length * 3.2) - 4) : xForIndex(index)) : (isFirst ? margin.left : (isLast ? margin.left + plotWidth : xForIndex(index))),
                         y: margin.top + plotHeight + 18,
                         "text-anchor": visibleSessions ? "middle" : isFirst ? "start" : (isLast ? "end" : "middle"),
                         fill: "#5f7f92",
