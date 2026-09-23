@@ -507,7 +507,7 @@
                     if (labels.length === 1) {
                         return margin.left + plotWidth / 2;
                     }
-                    if (visibleSessions > 1 && !scrollable && labels.length < visibleSessions) {
+                    if (visibleSessions > 1 && visibleSessions <= 6 && !scrollable && labels.length < visibleSessions) {
                         return margin.left + index * mobileSlotPitch;
                     }
                     return margin.left + (index * plotWidth) / (labels.length - 1);
@@ -745,9 +745,9 @@
                                 formula: selectedPoint?.guidance ?? (formulaHints[index] || detailFallback)
                             };
                             // Keep adjacent targets separate when many sessions share a narrow plot.
-                            const actualPitch = (visibleSessions > 1 && !scrollable && labels.length < visibleSessions)
+                            const actualPitch = (visibleSessions > 1 && visibleSessions <= 6 && !scrollable && labels.length < visibleSessions)
                                 ? mobileSlotPitch
-                                : plotWidth / Math.max(1, labels.length - 1);
+                                : (scrollable ? Math.max(64, (baseWidth - margin.left - margin.right) / (visibleSessions - 1)) : plotWidth / Math.max(1, labels.length - 1));
                             const pointRadius = actualPitch / 2;
                             const hitTarget = makeNode("circle", {
                                 cx: point.x,
