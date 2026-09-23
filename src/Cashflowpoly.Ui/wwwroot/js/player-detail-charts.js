@@ -414,9 +414,11 @@
                         : 58,
                     left: chartType === "bar" ? 34 : visibleSessions ? axisWidth + 20 : 28
                 };
+                const basePlotWidth = Math.max(80, baseWidth - margin.left - margin.right);
+                const mobileSlotPitch = visibleSessions > 1 ? basePlotWidth / (visibleSessions - 1) : 0;
                 if (scrollable) {
                     // One horizontal interval per session; only spacing changes, never the data.
-                    const pitch = Math.max(48, (baseWidth - margin.left - margin.right) / (visibleSessions - 1));
+                    const pitch = Math.max(64, (baseWidth - margin.left - margin.right) / (visibleSessions - 1));
                     width = margin.left + pitch * (labels.length - 1) + margin.right;
                     svg.style.width = `${width}px`;
                     svg.style.maxWidth = 'none';
@@ -438,6 +440,9 @@
                     if (labels.length === 1) {
                         return margin.left + plotWidth / 2;
                     }
+                    if (visibleSessions > 1 && !scrollable && labels.length < visibleSessions) {
+                        return margin.left + index * mobileSlotPitch;
+                    }
                     return margin.left + (index * plotWidth) / (labels.length - 1);
                 };
                 const yForValue = (value) => (
@@ -450,7 +455,7 @@
                     const y = margin.top + ratio * plotHeight;
                     const value = maxY - (maxY - minY) * ratio;
                     svg.appendChild(makeNode("line", {
-                        x1: scrollable ? axisWidth : margin.left,
+                        x1: visibleSessions ? axisWidth : margin.left,
                         y1: y,
                         x2: margin.left + plotWidth,
                         y2: y,
@@ -482,15 +487,15 @@
                     fixedAxis.appendChild(axisLine);
                 }
                 svg.appendChild(makeNode("line", {
-                    x1: scrollable ? axisWidth : margin.left,
+                    x1: visibleSessions ? axisWidth : margin.left,
                     y1: margin.top,
-                    x2: scrollable ? axisWidth : margin.left,
+                    x2: visibleSessions ? axisWidth : margin.left,
                     y2: margin.top + plotHeight,
                     stroke: "#9ccfd2",
                     "stroke-width": "1.4"
                 }));
                 svg.appendChild(makeNode("line", {
-                    x1: margin.left,
+                    x1: visibleSessions ? axisWidth : margin.left,
                     y1: chartType === "bar" ? zeroY : margin.top + plotHeight,
                     x2: margin.left + plotWidth,
                     y2: chartType === "bar" ? zeroY : margin.top + plotHeight,
@@ -539,7 +544,7 @@
                     }
                     const isFirst = index === 0;
                     const text = makeNode("text", {
-                        x: isFirst ? margin.left : (isLast ? margin.left + plotWidth : xForIndex(index)),
+                        x: visibleSessions ? xForIndex(index) : (isFirst ? margin.left : (isLast ? margin.left + plotWidth : xForIndex(index))),
                         y: margin.top + plotHeight + 18,
                         "text-anchor": visibleSessions ? "middle" : isFirst ? "start" : (isLast ? "end" : "middle"),
                         fill: "#5f7f92",
@@ -673,11 +678,14 @@
                                 formula: selectedPoint?.guidance ?? (formulaHints[index] || detailFallback)
                             };
                             // Keep adjacent targets separate when many sessions share a narrow plot.
-                            const pointRadius = plotWidth / Math.max(1, labels.length - 1) / 2;
+                            const actualPitch = (visibleSessions > 1 && !scrollable && labels.length < visibleSessions)
+                                ? mobileSlotPitch
+                                : plotWidth / Math.max(1, labels.length - 1);
+                            const pointRadius = actualPitch / 2;
                             const hitTarget = makeNode("circle", {
                                 cx: point.x,
                                 cy: point.y,
-                                r: Math.min(16, pointRadius),
+                                r: Math.min(20, pointRadius),
                                 fill: "transparent"
                             });
                             const pointNode = makeNode("circle", {
