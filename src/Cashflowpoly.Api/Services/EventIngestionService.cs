@@ -308,7 +308,7 @@ internal sealed class EventIngestionService : IEventIngestionService
         var session = await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
-            return (null, StatusCodes.Status404NotFound, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, StatusCodes.Status404NotFound, BuildError("NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         if (!OpaqueCursor.TryDecodeEvent(cursor, out var afterSequence))
@@ -415,12 +415,12 @@ internal sealed class EventIngestionService : IEventIngestionService
         var session = await _sessions.GetSessionAsync(request.SessionId, ct);
         if (session is null)
         {
-            return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Session tidak ditemukan");
+            return BuildOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Sesi tidak ditemukan");
         }
 
         if (!string.Equals(session.Status, "STARTED", StringComparison.OrdinalIgnoreCase))
         {
-            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Session harus berstatus STARTED untuk menerima event");
+            return BuildOutcome(StatusCodes.Status422UnprocessableEntity, "DOMAIN_RULE_VIOLATION", "Sesi harus berstatus STARTED untuk menerima event");
         }
 
         var rulesetVersion = await _rulesets.GetRulesetVersionByIdAsync(request.RulesetVersionId, ct);
@@ -2356,7 +2356,7 @@ internal sealed class EventIngestionService : IEventIngestionService
         var userIdRaw = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdRaw, out var userId))
         {
-            return BuildAccessOutcome(StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Token user tidak valid");
+            return BuildAccessOutcome(StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Token pengguna tidak valid");
         }
 
         if (string.Equals(role, "INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
@@ -2364,7 +2364,7 @@ internal sealed class EventIngestionService : IEventIngestionService
             var ownedSession = await _sessions.GetSessionForInstructorAsync(sessionId, userId, ct);
             if (ownedSession is null)
             {
-                return BuildAccessOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Session tidak ditemukan");
+                return BuildAccessOutcome(StatusCodes.Status404NotFound, "NOT_FOUND", "Sesi tidak ditemukan");
             }
 
             return AccessValid;

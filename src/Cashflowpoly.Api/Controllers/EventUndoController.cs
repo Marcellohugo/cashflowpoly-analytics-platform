@@ -25,7 +25,7 @@ public sealed class EventUndoController(EventUndoRepository repository) : Contro
     public async Task<IActionResult> Undo(Guid sessionId, Guid eventId, UndoEventRequest request, CancellationToken ct)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         var result = await repository.UndoAsync(sessionId, eventId, userId, request, ct);
         return result.Response is not null ? StatusCode(result.StatusCode, result.Response)
             : StatusCode(result.StatusCode, ApiErrorHelper.BuildError(HttpContext, result.ErrorCode!, result.Message!));
@@ -40,10 +40,10 @@ public sealed class EventUndoController(EventUndoRepository repository) : Contro
     public async Task<IActionResult> List(Guid sessionId, string? cursor = null, int limit = 50, CancellationToken ct = default)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         if (limit is < 1 or > 100 || !OpaqueCursor.TryDecodeTransaction(cursor, out var timestamp, out var afterId))
             return BadRequest(ApiErrorHelper.BuildError(HttpContext, "VALIDATION_ERROR", "Cursor atau batas riwayat undo tidak valid"));
         var result = await repository.ListAsync(sessionId, userId, string.IsNullOrWhiteSpace(cursor) ? null : timestamp, afterId, limit, ct);
-        return result is null ? NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan")) : Ok(result);
+        return result is null ? NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan")) : Ok(result);
     }
 }

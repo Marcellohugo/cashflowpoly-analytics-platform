@@ -8,7 +8,7 @@ Dokumen ini menjelaskan masalah awal, perubahan yang diterapkan, bukti selesai, 
 
 ## Ringkasan keputusan final
 
-Cashflowpoly adalah platform analitik permainan fisik. IDN mencatat pembagian dan keputusan yang terjadi di meja; backend memvalidasi ruleset, saldo, peserta, giliran, proyeksi, serta analitik. Backend tidak mensimulasikan pasar atau deck.
+Cashflowpoly adalah platform analitika permainan fisik. IDN mencatat pembagian dan keputusan yang terjadi di meja; backend memvalidasi ruleset, saldo, peserta, giliran, proyeksi, serta analitika. Backend tidak menyimulasikan pasar atau deck.
 
 Keputusan lintas modul:
 

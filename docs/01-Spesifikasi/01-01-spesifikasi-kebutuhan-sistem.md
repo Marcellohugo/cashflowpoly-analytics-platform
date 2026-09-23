@@ -50,7 +50,7 @@ Targetnya, metrik dan tampilan dasbor diperbarui setelah sistem menerima event p
 
 ---
 
-## 4. Aturan Domain yang Mempengaruhi Sistem
+## 4. Aturan Domain yang Memengaruhi Sistem
 Dalam rancangan ini, aturan permainan yang berdampak pada pencatatan dan validasi meliputi:
 1. Pada Senin-Kamis, pemain wajib menjalankan tepat dua aksi utama menggunakan token aksi; aksi yang sama boleh diulang.
 2. Hari Jumat hanya menjalankan mekanik donasi, hari Sabtu hanya menjalankan mekanik investasi emas, dan hari Minggu libur. Hari khusus menggantikan dua aksi normal.

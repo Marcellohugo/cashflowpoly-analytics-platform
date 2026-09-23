@@ -274,6 +274,16 @@
                     : [];
                 const labels = makeUniqueLabels(normalizedLabels);
                 const chartType = String(payload?.chartType ?? "line").toLowerCase();
+                const responsiveLine = svg.hasAttribute('data-chart-responsive') && chartType === 'line';
+                const frame = svg.closest('.statistics-chart-frame');
+                const fixedAxis = frame?.querySelector('.statistics-chart-axis');
+                const visibleSessions = responsiveLine && frame
+                    ? Number(getComputedStyle(frame).getPropertyValue('--chart-visible-sessions'))
+                    : 0;
+                const scrollable = visibleSessions > 0 && labels.length > visibleSessions;
+                frame?.classList.remove('is-scrollable');
+                if (fixedAxis) clearNode(fixedAxis);
+                frame?.querySelector('.statistics-chart-plot')?.removeAttribute('tabindex');
                 const metricKeys = Array.isArray(payload?.keys)
                     ? payload.keys.map((value) => String(value ?? ""))
                     : [];
@@ -374,18 +384,7 @@
                     return rows;
                 };
                 const legendRows = estimateLegendRows();
-                const margin = {
-                    top: 16 + legendRows * legendLineHeight + 12,
-                    right: chartType === "bar" ? 36 : 10,
-                    bottom: chartType === "bar"
-                        ? 80 + Math.max(0, (
-                            wrappedAxisLabels.reduce((max, lines) => Math.max(max, lines.length), 1) - 1
-                        ) * 13)
-                        : 58,
-                    left: chartType === "bar" ? 34 : 28
-                };
-                const plotWidth = Math.max(80, width - margin.left - margin.right);
-                const plotHeight = Math.max(80, height - margin.top - margin.bottom);
+                // Use every session, including those outside the viewport, for one stable Y scale.
                 let minY = Math.min(...numericValues);
                 let maxY = Math.max(...numericValues);
                 const hasNegativeValues = numericValues.some((value) => value < 0);
@@ -395,15 +394,42 @@
                     const range = Math.max(0.000001, maxY - minY);
                     const topPad = Math.max(0.5, range * 0.09);
                     maxY += topPad;
-                    if (hasNegativeValues) {
-                        minY -= topPad * 0.35;
-                    }
+                    if (hasNegativeValues) minY -= topPad * 0.35;
                 }
                 if (Math.abs(maxY - minY) < 0.000001) {
                     const pad = Math.abs(maxY) < 1 ? 1 : Math.abs(maxY) * 0.1;
                     minY -= pad;
                     maxY += pad;
                 }
+                const tickText = value => value.toFixed(1).replace(/\.0$/, "");
+                const axisWidth = Math.max(28, ...Array.from({ length: 5 }, (_, tick) =>
+                    tickText(maxY - (maxY - minY) * tick / 4).length * 6.3 + 8));
+                const margin = {
+                    top: 16 + legendRows * legendLineHeight + 12,
+                    right: chartType === "bar" ? 36 : visibleSessions ? 20 : 10,
+                    bottom: chartType === "bar"
+                        ? 80 + Math.max(0, (
+                            wrappedAxisLabels.reduce((max, lines) => Math.max(max, lines.length), 1) - 1
+                        ) * 13)
+                        : 58,
+                    left: chartType === "bar" ? 34 : visibleSessions ? axisWidth + 20 : 28
+                };
+                if (scrollable) {
+                    // One horizontal interval per session; only spacing changes, never the data.
+                    const pitch = Math.max(48, (baseWidth - margin.left - margin.right) / (visibleSessions - 1));
+                    width = margin.left + pitch * (labels.length - 1) + margin.right;
+                    svg.style.width = `${width}px`;
+                    svg.style.maxWidth = 'none';
+                    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+                    frame.classList.add('is-scrollable');
+                    frame.querySelector('.statistics-chart-plot').setAttribute('tabindex', '0');
+                    if (fixedAxis) {
+                        fixedAxis.style.width = `${axisWidth}px`;
+                        fixedAxis.style.height = `${height}px`;
+                    }
+                }
+                const plotWidth = Math.max(80, width - margin.left - margin.right);
+                const plotHeight = Math.max(80, height - margin.top - margin.bottom);
                 const clusterWidth = plotWidth / Math.max(1, labels.length);
                 const xForIndex = (index) => {
                     if (chartType === "bar") {
@@ -424,7 +450,7 @@
                     const y = margin.top + ratio * plotHeight;
                     const value = maxY - (maxY - minY) * ratio;
                     svg.appendChild(makeNode("line", {
-                        x1: margin.left,
+                        x1: scrollable ? axisWidth : margin.left,
                         y1: y,
                         x2: margin.left + plotWidth,
                         y2: y,
@@ -432,20 +458,33 @@
                         "stroke-width": "1"
                     }));
                     const label = makeNode("text", {
-                        x: margin.left - 4,
+                        x: (visibleSessions ? axisWidth : margin.left) - 4,
                         y: y + 4,
                         "text-anchor": "end",
                         fill: "#5f7f92",
                         "font-size": "10.5",
                         "font-family": "Nunito, Segoe UI, sans-serif"
                     });
-                    label.textContent = value.toFixed(1).replace(/\.0$/, "");
-                    svg.appendChild(label);
+                    label.textContent = tickText(value);
+                    if (scrollable && fixedAxis) {
+                        const fixedLabel = document.createElement('span');
+                        fixedLabel.textContent = label.textContent;
+                        fixedLabel.style.top = `${y}px`;
+                        fixedAxis.appendChild(fixedLabel);
+                    } else {
+                        svg.appendChild(label);
+                    }
+                }
+                if (scrollable && fixedAxis) {
+                    const axisLine = document.createElement('i');
+                    axisLine.style.top = `${margin.top}px`;
+                    axisLine.style.height = `${plotHeight}px`;
+                    fixedAxis.appendChild(axisLine);
                 }
                 svg.appendChild(makeNode("line", {
-                    x1: margin.left,
+                    x1: scrollable ? axisWidth : margin.left,
                     y1: margin.top,
-                    x2: margin.left,
+                    x2: scrollable ? axisWidth : margin.left,
                     y2: margin.top + plotHeight,
                     stroke: "#9ccfd2",
                     "stroke-width": "1.4"
@@ -458,16 +497,15 @@
                     stroke: "#9ccfd2",
                     "stroke-width": "1.4"
                 }));
-                const responsiveLine = svg.hasAttribute('data-chart-responsive') && chartType === 'line';
                 const labelGap = Math.max(60, ...labels.map(label => label.length * 6 + 12));
-                const xLabelStep = responsiveLine
+                const xLabelStep = visibleSessions ? 1 : responsiveLine
                     ? Math.max(1, Math.ceil((labels.length - 1) / Math.max(1, Math.floor(plotWidth / labelGap))))
                     : chartType === "bar"
                     ? 1
                     : Math.max(1, Math.ceil(labels.length / 6));
                 labels.forEach((label, index) => {
                     const isLast = index === labels.length - 1;
-                    if (responsiveLine && index > 0 && !isLast && xForIndex(labels.length - 1) - xForIndex(index) < labelGap) return;
+                    if (responsiveLine && !visibleSessions && index > 0 && !isLast && xForIndex(labels.length - 1) - xForIndex(index) < labelGap) return;
                     if (!isLast && index % xLabelStep !== 0) {
                         return;
                     }
@@ -503,7 +541,7 @@
                     const text = makeNode("text", {
                         x: isFirst ? margin.left : (isLast ? margin.left + plotWidth : xForIndex(index)),
                         y: margin.top + plotHeight + 18,
-                        "text-anchor": isFirst ? "start" : (isLast ? "end" : "middle"),
+                        "text-anchor": visibleSessions ? "middle" : isFirst ? "start" : (isLast ? "end" : "middle"),
                         fill: "#5f7f92",
                         "font-size": "10.5",
                         "font-family": "Nunito, Segoe UI, sans-serif"
@@ -675,7 +713,7 @@
                     let legendX = legendStartX;
                     let legendRow = 0;
                     const legendYBase = 16;
-                    const legendMaxX = margin.left + plotWidth;
+                    const legendMaxX = scrollable ? baseWidth - margin.right : margin.left + plotWidth;
                     series.forEach((item, index) => {
                         const color = colorForSeries(index);
                         const itemWidth = Math.max(110, item.name.length * 8 + 36);
@@ -721,16 +759,20 @@
                 try {
                     const payload = JSON.parse(node.dataset.chart || "{}");
                     if (node.hasAttribute('data-chart-responsive')) {
+                        const viewport = node.closest('.statistics-chart-plot') || node;
                         let previousSize = '';
                         const resize = () => {
-                            const width = Math.round(node.getBoundingClientRect().width);
+                            // Observe the viewport, not the expanded SVG, to avoid resize feedback.
+                            const width = Math.round(viewport.getBoundingClientRect().width);
                             const height = Math.round(node.getBoundingClientRect().height);
-                            if (!width || !height || previousSize === `${width}:${height}`) return;
-                            previousSize = `${width}:${height}`;
+                            const limit = getComputedStyle(viewport).getPropertyValue('--chart-visible-sessions');
+                            if (!width || !height || previousSize === `${width}:${height}:${limit}`) return;
+                            previousSize = `${width}:${height}:${limit}`;
                             node.setAttribute('viewBox', `0 0 ${width} ${height}`);
                             drawChart(node, payload);
                         };
-                        new ResizeObserver(resize).observe(node);
+                        new ResizeObserver(resize).observe(viewport);
+                        window.addEventListener('resize', resize);
                         resize();
                         return;
                     }

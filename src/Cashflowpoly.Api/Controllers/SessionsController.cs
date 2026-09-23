@@ -91,7 +91,7 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var role = User.FindFirstValue(ClaimTypes.Role);
@@ -142,7 +142,7 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         if (request.SessionName?.Trim().Length > 120)
@@ -256,13 +256,13 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         if (!string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase))
@@ -322,13 +322,13 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         if (!string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase))
@@ -424,13 +424,13 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         var stored = await _state.GetSessionSetupAsync(sessionId, ct);
@@ -456,13 +456,13 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         if (!string.Equals(session.Status, "CREATED", StringComparison.OrdinalIgnoreCase))
@@ -573,13 +573,13 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         var result = await _state.EndSessionAsync(sessionId, ct);
@@ -596,9 +596,9 @@ public sealed class SessionsController : ControllerBase
     public async Task<IActionResult> Heartbeat(Guid sessionId, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         if (await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct) is null)
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
 
         var heartbeat = await _sessions.RecordHeartbeatAsync(sessionId, instructorUserId, _lifecycleOptions, ct);
         return heartbeat is null
@@ -617,19 +617,19 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         var state = await _state.GetStateAsync(sessionId, ct);
         if (state is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "State sesi tidak ditemukan"));
         }
 
         return Ok(state);
@@ -646,13 +646,13 @@ public sealed class SessionsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Session tidak ditemukan"));
+            return NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         return StatusCode(

@@ -74,7 +74,7 @@ internal static partial class UiTextLexicon
         terms["players.stats.status.neutral"] = ("Kondisi cukup stabil", "Fairly stable condition");
         terms["players.stats.status.neutral.desc"] = ("Tidak ada masalah mendesak, tetapi hasil pemain masih bisa ditingkatkan.", "There is no urgent problem, but the player's result can still improve.");
         terms["players.stats.status.unavailable"] = ("Data belum tersedia", "Data unavailable");
-        terms["players.stats.status.unavailable.desc"] = ("Ringkasan belum dapat dinilai karena data analitik pemain belum tersedia.", "The summary cannot be evaluated because the player's analytics data is unavailable.");
+        terms["players.stats.status.unavailable.desc"] = ("Ringkasan belum dapat dinilai karena data analitika pemain belum tersedia.", "The summary cannot be evaluated because the player's analytics data is unavailable.");
         terms["players.stats.pillars.title"] = ("Tiga pilar hasil pemain", "Three player-result pillars");
         terms["players.stats.pillars.desc"] = ("Keuangan, disiplin bermain, dan Poin Kebahagiaan ditampilkan sekali tanpa pengulangan.", "Finances, play discipline, and the Happiness Score are each shown once without repetition.");
         terms["players.stats.pillar.main_result"] = ("Hasil utama", "Main result");
@@ -440,7 +440,7 @@ internal static partial class UiTextLexicon
         terms["players.stats.insight.need_cards_missing.title"] = ("Belum ada kartu kebutuhan", "No need cards yet");
         terms["players.stats.insight.need_cards_missing.desc"] = ("Pemain saat ini tidak memiliki kartu kebutuhan, sehingga pemerataan kebutuhan belum dapat dihitung. Status misi koleksi ditampilkan terpisah berdasarkan riwayat permainan.", "The player currently owns no need cards, so need balance cannot be calculated. Collection mission status is shown separately based on game history.");
         terms["players.stats.need_balance.none"] = ("Belum dapat dihitung", "Cannot be calculated yet");
-        terms["players.stats.insight.data_unavailable.title"] = ("Data analitik belum tersedia", "Analytics data unavailable");
+        terms["players.stats.insight.data_unavailable.title"] = ("Data analitika belum tersedia", "Analytics data unavailable");
         terms["players.stats.insight.data_unavailable.desc"] = ("Belum ada data yang cukup untuk menentukan prioritas pembahasan pemain.", "There is not enough data yet to determine the player's discussion priorities.");
         terms["players.stats.insight.stable_profile.title"] = ("Tidak ada masalah utama", "No major issue found");
         terms["players.stats.insight.stable_profile.desc"] = ("Tidak ada risiko besar. Pertahankan keputusan yang sudah efektif dan pilih satu area untuk ditingkatkan.", "There is no major risk. Keep the decisions that worked and choose one area to improve.");

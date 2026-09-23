@@ -100,7 +100,7 @@ Catatan: kalimat “Temuan uji dominan di modul mana?” berarti **modul mana ya
 ---
 
 ## 7. Uji RESTful API (Black-box)
-Bagian ini merinci skenario uji wajib per endpoint.
+Bagian ini memerinci skenario uji wajib per endpoint.
 
 ### 7.1 Konvensi penulisan skenario
 Setiap skenario memuat:

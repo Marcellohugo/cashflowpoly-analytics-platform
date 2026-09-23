@@ -236,7 +236,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
                 var error = ApiErrorHelper.BuildError(
                     context.HttpContext,
                     "UNAUTHORIZED",
-                    "Token user tidak valid");
+                    "Token pengguna tidak valid");
                 await context.Response.WriteAsJsonAsync(error, cancellationToken: context.HttpContext.RequestAborted);
             },
             OnForbidden = async context =>

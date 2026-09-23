@@ -147,7 +147,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         ClaimsPrincipal user, CancellationToken ct)
     {
         if (!TryGetCurrentUserId(user, out var userId))
-            return ([], 401, BuildError("UNAUTHORIZED", "Token user tidak valid"));
+            return ([], 401, BuildError("UNAUTHORIZED", "Token pengguna tidak valid"));
         if (user.IsInRole("INSTRUCTOR"))
             return (await _sessions.ListSessionsByInstructorAsync(userId, ct), 200, null);
         var scope = await ResolvePlayerScopeAsync(null, user, ct);
@@ -455,7 +455,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         {
             if (!TryGetCurrentUserId(user, out var instructorUserId))
             {
-                return (null, 401, BuildError("UNAUTHORIZED", "Token user tidak valid"));
+                return (null, 401, BuildError("UNAUTHORIZED", "Token pengguna tidak valid"));
             }
 
             ruleset = await _rulesets.GetRulesetForInstructorAsync(rulesetId, instructorUserId, ct);
@@ -599,7 +599,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         session ??= await _sessions.GetSessionAsync(sessionId, ct);
         if (session is null)
         {
-            return (null, isInstructor, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, isInstructor, 404, BuildError("NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         return (session, isInstructor, 200, null);
@@ -642,7 +642,7 @@ internal sealed class AnalyticsService : IAnalyticsService
         var userIdRaw = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdRaw, out var userId))
         {
-            return (null, (401, BuildError("UNAUTHORIZED", "Token user tidak valid")));
+            return (null, (401, BuildError("UNAUTHORIZED", "Token pengguna tidak valid")));
         }
 
         var playerUserId = await _users.GetPlayerUserIdAsync(userId, ct);
@@ -673,13 +673,13 @@ internal sealed class AnalyticsService : IAnalyticsService
 
         if (!TryGetCurrentUserId(user, out var instructorUserId))
         {
-            return (null, 401, BuildError("UNAUTHORIZED", "Token user tidak valid"));
+            return (null, 401, BuildError("UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var session = await _sessions.GetSessionForInstructorAsync(sessionId, instructorUserId, ct);
         if (session is null)
         {
-            return (null, 404, BuildError("NOT_FOUND", "Session tidak ditemukan"));
+            return (null, 404, BuildError("NOT_FOUND", "Sesi tidak ditemukan"));
         }
 
         return (session, 0, null);

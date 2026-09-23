@@ -69,11 +69,11 @@ Evaluasi sistem mencakup uji fungsional endpoint API, uji integrasi alur pemrose
 
 ### 1.5 Manfaat
 
-#### 1.5.1 Manfaat Teoritis
+#### 1.5.1 Manfaat Teoretis
 
 - Menambah literatur mengenai arsitektur sistem informasi untuk hybrid board game dengan dukungan analitika.  
 - Menyajikan studi kasus penerapan metagaming dan meta‑metagaming pada permainan literasi finansial.  
-- Menjadi dasar penelitian lanjutan terkait hubungan ketersediaan data analitik dengan keberlanjutan media pembelajaran berbasis permainan.
+- Menjadi dasar penelitian lanjutan terkait hubungan ketersediaan data analitika dengan keberlanjutan media pembelajaran berbasis permainan.
 
 #### 1.5.2 Manfaat Praktis
 

@@ -73,7 +73,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         if (!TryNormalizeMode(mode, out var normalizedMode, out var modeError))
@@ -141,7 +141,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -180,7 +180,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
@@ -232,7 +232,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
@@ -281,7 +281,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         if (version < 1)
@@ -349,7 +349,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var role = User.FindFirstValue(ClaimTypes.Role);
@@ -397,7 +397,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out _))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var role = User.FindFirstValue(ClaimTypes.Role);
@@ -474,7 +474,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var role = User.FindFirstValue(ClaimTypes.Role);
@@ -561,7 +561,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         if (version.HasValue && version.Value < 1)
@@ -661,7 +661,7 @@ public sealed class RulesetsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var instructorUserId))
         {
-            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token user tidak valid"));
+            return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
         var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);

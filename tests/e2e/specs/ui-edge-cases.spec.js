@@ -43,6 +43,102 @@ test('titik berdekatan pada histori panjang membuka popup masing-masing', async 
   await expect(page.locator('.js-chart-bar-insight')).toBeHidden();
 });
 
+test('grafik ponsel membatasi lima sesi dengan sumbu tetap saat digeser dan diubah ukuran', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.setViewportSize({ width: 412, height: 915 });
+  const chart = id => `<article id="${id}" class="chart-card statistics-chart">
+    <h3>${id}</h3><div class="statistics-chart-frame">
+      <div class="statistics-chart-plot"><svg class="js-metric-line-chart" data-chart-responsive viewBox="0 0 840 340"></svg></div>
+      <div class="statistics-chart-axis" aria-hidden="true"></div>
+      <p class="statistics-chart-scroll-hint">Geser untuk melihat sesi lain.</p>
+    </div></article>`;
+  await page.setContent(`<meta name="viewport" content="width=device-width, initial-scale=1">
+    <button data-statistics-panel="history">Histori</button><button data-statistics-panel="other">Lainnya</button>
+    <section id="history" class="statistics-chapter" data-statistics-section>${chart('long')}${chart('single')}${chart('five')}</section>
+    <section id="other" class="statistics-chapter" data-statistics-section hidden>${chart('hidden-chart')}</section>`);
+  await page.addStyleTag({ path: path.join(scripts, '../css/player-statistics.css') });
+  await page.locator('svg').evaluateAll(nodes => nodes.forEach(svg => {
+    const id = svg.closest('article').id;
+    const values = id === 'single' ? [10] : id === 'five' ? [10, 20, 30, 40, 50] : [10, 20, 30, 40, 50, -100, 1000, 60];
+    svg.dataset.chart = JSON.stringify({ labels: values.map((_, index) => `Sesi ${index + 1}`), series: [{ name: 'Nilai', values }] });
+  }));
+  await page.addScriptTag({ path: path.join(scripts, 'player-detail-charts.js') });
+  await page.addScriptTag({ path: path.join(scripts, 'player-statistics.js') });
+  const state = id => page.locator('#' + id).evaluate(card => {
+    const plot = card.querySelector('.statistics-chart-plot');
+    const svg = card.querySelector('svg');
+    const axis = card.querySelector('.statistics-chart-axis');
+    const bounds = plot.getBoundingClientRect();
+    const axisBounds = axis.getBoundingClientRect();
+    const points = [...svg.querySelectorAll('[tabindex="0"]')];
+    return {
+      visible: points.filter(point => {
+        const box = point.getBoundingClientRect();
+        const center = box.x + box.width / 2;
+        return center >= Math.max(bounds.left, axisBounds.right) && center <= bounds.right;
+      }).length,
+      pointY: points.map(point => point.getAttribute('cy')),
+      ticks: [...axis.querySelectorAll('span')].map(label => label.textContent),
+      axisLeft: axisBounds.left,
+      scrollWidth: plot.scrollWidth,
+      viewportWidth: plot.clientWidth,
+      svgWidth: svg.getBoundingClientRect().width,
+      viewBoxWidth: svg.viewBox.baseVal.width,
+      bodyOverflow: document.documentElement.scrollWidth > innerWidth + 1
+    };
+  });
+  const checkScrollable = async id => {
+    const card = page.locator('#' + id);
+    const plot = card.locator('.statistics-chart-plot');
+    await expect(card.locator('.statistics-chart-axis')).toBeVisible();
+    await expect(card.locator('.statistics-chart-scroll-hint')).toBeVisible();
+    await expect.poll(async () => Math.abs((await state(id)).viewBoxWidth - (await state(id)).svgWidth)).toBeLessThan(2);
+    const before = await state(id);
+    expect(before.scrollWidth).toBeGreaterThan(before.viewportWidth);
+    expect(before.ticks).toEqual(['1000', '725', '450', '175', '-100']);
+    for (const fraction of [0, .25, .5, .75, 1]) {
+      await plot.evaluate((element, fraction) => { element.scrollLeft = (element.scrollWidth - element.clientWidth) * fraction; }, fraction);
+      const after = await state(id);
+      expect(after.visible).toBeGreaterThan(0);
+      expect(after.visible).toBeLessThanOrEqual(5);
+      expect(after.pointY).toEqual(before.pointY);
+      expect(after.ticks).toEqual(before.ticks);
+      expect(after.axisLeft).toBe(before.axisLeft);
+      expect(after.bodyOverflow).toBe(false);
+    }
+    await card.locator('svg [tabindex="0"]').last().click();
+    await expect(card.locator('.chart-detail-dialog')).toBeVisible();
+    await expect(card.locator('.js-chart-bar-insight-metric')).toHaveText('Sesi 8');
+    await expect(card.locator('.js-chart-bar-insight-points')).toHaveText('60');
+    await card.locator('.chart-detail-close').click();
+  };
+  await checkScrollable('long');
+  for (const [id, count] of [['single', 1], ['five', 5]]) {
+    await expect(page.locator('#' + id + ' svg [tabindex="0"]')).toHaveCount(count);
+    await expect(page.locator('#' + id + ' .statistics-chart-axis')).toBeHidden();
+    await expect(page.locator('#' + id + ' .statistics-chart-scroll-hint')).toBeHidden();
+    const actual = await state(id);
+    expect(actual.visible).toBe(count);
+    expect(actual.scrollWidth).toBeLessThanOrEqual(actual.viewportWidth + 1);
+  }
+  // A never-opened panel must draw at its current width; a hidden old panel must redraw too.
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.locator('[data-statistics-panel="other"]').click();
+  await checkScrollable('hidden-chart');
+  await page.setViewportSize({ width: 956, height: 440 });
+  await page.locator('[data-statistics-panel="history"]').click();
+  await checkScrollable('long');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.locator('#long .statistics-chart-axis')).toBeHidden();
+  await expect(page.locator('#long .statistics-chart-scroll-hint')).toBeHidden();
+  await expect.poll(async () => (await state('long')).visible).toBe(8);
+  const desktop = await state('long');
+  expect(desktop.scrollWidth).toBeLessThanOrEqual(desktop.viewportWidth + 1);
+  expect(desktop.bodyOverflow).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('nama yang mirip tidak diam-diam memilih identitas pertama', async ({ page }) => {
   await page.setContent(`<form>
     <input id="statistics-player" list="statistics-players" data-invalid-player="Pilih pemain yang sesuai">

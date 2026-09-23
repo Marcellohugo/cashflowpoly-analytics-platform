@@ -48,7 +48,7 @@ public static class RulebookContent
                             "Komponen penunjang: buku panduan, lembar skor poin kebahagiaan, lembar catatan arus kas.",
                             "Supporting components: guidebook, happiness score sheet, and cashflow note sheet."),
                         L(
-                            "Mode pemula: token Mr.Cashflowpoly, token aksi pemain, tent card tujuan permainan, layar pemain, papan donasi, papan investasi emas, papan kalender kerja, papan pesanan, papan kebutuhan, papan bahan.",
+                            "Mode pemula: token Mr. Cashflowpoly, token aksi pemain, tent card tujuan permainan, layar pemain, papan donasi, papan investasi emas, papan kalender kerja, papan pesanan, papan kebutuhan, papan bahan.",
                             "Beginner mode: Mr. Cashflowpoly token, player action tokens, game-goal tent card, player screen, donation board, gold investment board, work-calendar board, order board, needs board, and ingredient board."),
                         L(
                             "Kartu mode pemula: juara dana pensiun, tie breaker, misi koleksi, harga emas, juara donasi, emas, kebutuhan, pesanan, bahan.",
@@ -76,7 +76,7 @@ public static class RulebookContent
                             "Letakkan kartu juara donasi dan juara dana pensiun pada papan donasi.",
                             "Place donation champion and pension champion cards on the donation board."),
                         L("Letakkan kartu emas dan dek harga emas pada papan investasi.", "Place gold cards and gold-price deck on the investment board."),
-                        L("Letakkan token Mr.Cashflowpoly pada kotak GO.", "Place Mr. Cashflowpoly token on GO."),
+                        L("Letakkan token Mr. Cashflowpoly pada kotak GO.", "Place Mr. Cashflowpoly token on GO."),
                         L("Buka 5 kartu pesanan, 5 kartu kebutuhan primer, dan 5 kartu bahan.", "Open 5 order cards, 5 primary-needs cards, and 5 ingredient cards."),
                         L(
                             "Aturan slot bahan: maksimum 2 kartu sejenis di slot terbuka; kartu sejenis ke-3 dibuang dan diganti.",
@@ -135,7 +135,7 @@ public static class RulebookContent
                     Points = new List<string>
                     {
                         L("Setiap pemain menjalankan tepat 2 aksi per hari saat gilirannya; kedua aksi boleh sama atau berbeda.", "Each player performs exactly 2 actions per day on their turn; both actions may be the same or different."),
-                        L("Setelah semua pemain selesai, token Mr.Cashflowpoly maju 1 tanggal.", "After all players finish, Mr. Cashflowpoly token moves forward by 1 date."),
+                        L("Setelah semua pemain selesai, token Mr. Cashflowpoly maju 1 tanggal.", "After all players finish, Mr. Cashflowpoly token moves forward by 1 date."),
                         L("Semua pemain mengambil kembali 2 token aksi di akhir putaran.", "All players take back 2 action tokens at end of round."),
                         L("Hari khusus: Jumat = peduli donasi, Sabtu = investasi emas, Minggu = libur.", "Special days: Friday = donation care, Saturday = gold investment, Sunday = rest."),
                         L("Permainan selesai saat token melewati garis finish, lalu hitung poin kebahagiaan.", "Game ends when token passes finish line, then calculate happiness points.")

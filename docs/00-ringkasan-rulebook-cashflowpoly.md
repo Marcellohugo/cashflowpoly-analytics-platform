@@ -20,7 +20,7 @@ Struktur tetap mengikuti bagian **A-M** agar konsisten dengan tampilan web.
 - Koin nominal 1, 5, dan 10.
 
 ### Komponen mode pemula
-- Token Mr.Cashflowpoly.
+- Token Mr. Cashflowpoly.
 - Token aksi pemain (2 token per pemain).
 - Tent card tujuan permainan.
 - Papan kalender kerja.
@@ -59,7 +59,7 @@ Checklist host:
    - Baris pengeluaran: aneka kebutuhan, bahan masakan.
 3. Letakkan kartu juara donasi dan juara dana pensiun pada papan donasi.
 4. Letakkan kartu emas dan dek harga emas pada papan investasi.
-5. Letakkan token Mr.Cashflowpoly pada kotak **GO**.
+5. Letakkan token Mr. Cashflowpoly pada kotak **GO**.
 6. Buka kartu awal:
    - 5 kartu pesanan masakan.
    - 5 kartu kebutuhan primer.
@@ -103,7 +103,7 @@ Urutan satu putaran:
 
 1. Setiap pemain menjalankan **2 aksi**.
 2. Aksi boleh sama atau berbeda.
-3. Setelah semua pemain selesai, token Mr.Cashflowpoly maju ke tanggal berikutnya.
+3. Setelah semua pemain selesai, token Mr. Cashflowpoly maju ke tanggal berikutnya.
 4. Semua pemain mengambil kembali 2 token aksi.
 5. Lanjut ke putaran berikutnya sampai permainan selesai.
 

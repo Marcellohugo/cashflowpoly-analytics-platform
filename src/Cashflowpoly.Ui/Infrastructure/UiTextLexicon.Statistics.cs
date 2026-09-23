@@ -72,6 +72,7 @@ internal static partial class UiTextLexicon
         terms["statistics.open_session"] = ("Buka sesi", "Open session");
         terms["statistics.no_numeric"] = ("Belum ada nilai yang dapat digambarkan untuk pilihan sesi ini.", "No chartable values are available for these sessions yet.");
         terms["statistics.tap_hint"] = ("Klik atau ketuk titik untuk membuka rincian. Tutup melalui tombol × atau area di luar popup.", "Click or tap a point to open its details. Close with × or by clicking outside the popup.");
+        terms["statistics.scroll_hint"] = ("Geser ke samping untuk melihat sesi lainnya. Skala nilai tetap sama.", "Scroll sideways to see more sessions. The value scale stays the same.");
         terms["statistics.error.load"] = ("Statistik belum dapat dimuat. Silakan coba lagi.", "Statistics could not be loaded. Please try again.");
         terms["statistics.error.partial"] = ("Sebagian analitika sesi belum dapat dimuat. Sesi tetap ditampilkan, sedangkan nilai yang belum tersedia dibiarkan kosong. Silakan coba lagi.", "Some session analytics could not be loaded. Sessions remain listed with unavailable values left blank. Please try again.");
         terms["auth.register_role"] = ("Daftar sebagai", "Register as");

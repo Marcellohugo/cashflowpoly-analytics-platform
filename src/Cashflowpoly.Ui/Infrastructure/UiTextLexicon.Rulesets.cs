@@ -29,10 +29,10 @@ internal static partial class UiTextLexicon
         terms["rulesets.index.quick_tools_help"] = ("Gunakan filter ini untuk menemukan ruleset berdasarkan nama, mode, atau versi.", "Use these filters to find rulesets by name, mode, or version.");
         terms["rulesets.index.list_title"] = ("Daftar set aturan di workspace Anda", "Rulesets in your workspace");
         terms["rulesets.index.list_subtitle"] = ("Buka rincian untuk melihat riwayat versi, komponen, dan ringkasan konfigurasi.", "Open details to review version history, components, and configuration summary.");
-        terms["rulesets.index.default_help"] = ("Katalog ini berisi susunan komponen bawaan sebagai acuan pembacaan mode Pemula dan Mahir.", "This catalog provides built-in component layouts as references for reading Beginner and Advanced modes.");
+        terms["rulesets.index.default_help"] = ("Katalog ini berisi susunan komponen default sebagai acuan pembacaan mode Pemula dan Mahir.", "This catalog provides built-in component layouts as references for reading Beginner and Advanced modes.");
         terms["rulesets.index.bulk_hint"] = ("Perubahan Set Aturan hanya tersedia bagi instruktur yang berwenang.", "Ruleset changes are available only to authorized instructors.");
         terms["rulesets.create"] = ("Buat Set Aturan Baru", "Create New Ruleset");
-        terms["rulesets.default_badge"] = ("Bawaan", "Built-in");
+        terms["rulesets.default_badge"] = ("Default", "Built-in");
         terms["rulesets.create_title"] = ("Buat Set Aturan baru", "Create new ruleset");
         terms["rulesets.create_subtitle"] = ("Pilih mode permainan, lalu sesuaikan nilai aturan yang tersedia untuk sesi Anda.", "Choose a game mode, then adjust the available rule values for your session.");
         terms["rulesets.edit"] = ("Edit aturan", "Edit rules");
@@ -97,7 +97,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.version_history"] = ("Riwayat Versi Aturan", "Ruleset Version History");
         terms["rulesets.version_history_subtitle"] = ("Daftar versi membantu Anda menelusuri versi mana yang dipakai sesi permainan.", "Version history helps you trace which version is used by gameplay sessions.");
         terms["rulesets.default_components.title"] = ("Komponen Default (Pemula + Mahir)", "Default Components (Beginner + Advanced)");
-        terms["rulesets.default_components.subtitle"] = ("Daftar ruleset bawaan berisi susunan komponen permainan.", "List of built-in rulesets containing gameplay component setup.");
+        terms["rulesets.default_components.subtitle"] = ("Daftar ruleset default berisi susunan komponen permainan.", "List of built-in rulesets containing gameplay component setup.");
         terms["rulesets.default_components.empty"] = ("Belum ada ruleset default komponen yang tersedia.", "No default component rulesets are available yet.");
         terms["rulesets.default_components.open_detail"] = ("Lihat komponen", "View components");
         terms["rulesets.components.title"] = ("Katalog Komponen Ruleset", "Ruleset Component Catalog");
@@ -155,7 +155,7 @@ internal static partial class UiTextLexicon
         terms["rulesets.error.load_detail_failed"] = ("Gagal memuat rincian set aturan. Status: {status}", "Failed to load ruleset details. Status: {status}");
         terms["rulesets.error.invalid_detail_response"] = ("Respons rincian set aturan tidak valid.", "Invalid ruleset detail response.");
         terms["rulesets.error.load_for_edit_failed"] = ("Gagal memuat set aturan untuk diedit. Status: {status}", "Failed to load ruleset for editing. Status: {status}");
-        terms["rulesets.error.name_required"] = ("Nama set aturan wajib diisi.", "Ruleset name is required.");
+        terms["rulesets.error.name_required"] = ("Nama ruleset wajib diisi.", "Ruleset name is required.");
         terms["rulesets.error.invalid_definition_json"] = ("Definition JSON tidak valid.", "Definition JSON is invalid.");
         terms["rulesets.error.create_failed"] = ("Gagal membuat set aturan. Status: {status}", "Failed to create ruleset. Status: {status}");
         terms["rulesets.error.update_failed"] = ("Gagal memperbarui set aturan. Status: {status}", "Failed to update ruleset. Status: {status}");

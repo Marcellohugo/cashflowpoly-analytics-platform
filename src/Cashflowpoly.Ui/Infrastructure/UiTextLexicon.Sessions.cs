@@ -70,7 +70,7 @@ internal static partial class UiTextLexicon
         terms["sessions.winner.cash_in"] = ("Kas Masuk", "Cash in");
         terms["sessions.active_ruleset.title"] = ("Set Aturan Aktif Sesi", "Session Active Ruleset");
         terms["sessions.active_ruleset.subtitle"] = ("Set Aturan ini menjadi acuan validasi aturan dan penilaian pada sesi ini.", "This ruleset is the source of rule validation and scoring in this session.");
-        terms["sessions.active_ruleset.empty"] = ("Belum ada Set Aturan aktif pada sesi ini. Instruktur dapat memilih ruleset aktif dari halaman ini.", "No active ruleset for this session yet. Instructors can choose the active ruleset from this page.");
+        terms["sessions.active_ruleset.empty"] = ("Belum ada ruleset aktif pada sesi ini. Instruktur dapat memilih ruleset aktif dari halaman ini.", "No active ruleset for this session yet. Instructors can choose the active ruleset from this page.");
         terms["sessions.ruleset_modal.title"] = ("Rincian Set Aturan", "Ruleset Details");
         terms["sessions.activate_ruleset"] = ("Ganti/Atur Set Aturan Aktif", "Set or Change Active Ruleset");
         terms["sessions.ruleset_title"] = ("Pilih Set Aturan untuk Sesi Ini", "Select Ruleset for This Session");

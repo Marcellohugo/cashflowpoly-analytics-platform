@@ -38,7 +38,7 @@ public sealed class EventUndoRepository(NpgsqlDataSource dataSource)
         var status = await conn.QuerySingleOrDefaultAsync<string>(new CommandDefinition("""
             select status from sessions where session_id = @sessionId and instructor_user_id = @instructorUserId for update
             """, new { sessionId, instructorUserId }, tx, cancellationToken: ct));
-        if (status is null) return new(null, 404, "NOT_FOUND", "Session tidak ditemukan");
+        if (status is null) return new(null, 404, "NOT_FOUND", "Sesi tidak ditemukan");
         if (status != "STARTED") return new(null, 422, "SESSION_NOT_STARTED", "Undo hanya tersedia saat sesi sedang berjalan");
         if (await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
             "select exists (select 1 from event_undos where session_id = @sessionId and event_id = @eventId)",

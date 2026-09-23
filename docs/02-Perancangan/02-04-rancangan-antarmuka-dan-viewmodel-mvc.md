@@ -26,7 +26,7 @@ Web Analitika MVC difokuskan sebagai **Dasbor Analitik Pemantauan Pembelajaran**
 - Halaman panduan buku aturan (*rulebook*) bilingual.
 - Statistik lintas sesi satu pemain dalam satu mode, memakai grafik SVG dan tabel sumber. Timeline memeriksa event baru berkala; halaman analitika memperoleh angka terbaru saat dimuat ulang.
 
-### 2.2 Fitur yang Diluar Scope UI Web:
+### 2.2 Fitur di Luar Scope UI Web:
 - Antarmuka permainan seluler Klien Game/IDN.
 - Fitur operasional gameplay (membuat sesi baru, menambahkan pemain ke sesi, memulai/mengakhiri sesi, pengiriman event permainan). Operasi ini dilakukan eksklusif oleh Game Client/IDN atau melalui integrasi API eksternal.
 

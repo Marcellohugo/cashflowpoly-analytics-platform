@@ -141,8 +141,12 @@
                         var last = chart.Points.LastOrDefault(p => p.Value.HasValue);
                         <article class="chart-card statistics-chart" data-statistics-metric="@chart.Key">
                             <h3 id="chart-@chart.Key">@chart.Title</h3>
-                            <div class="statistics-chart-plot">
-                                <svg class="js-metric-line-chart" viewBox="0 0 840 340" data-chart-responsive data-chart="@chart.Json" role="img" aria-labelledby="chart-@chart.Key"></svg>
+                            <div class="statistics-chart-frame">
+                                <div class="statistics-chart-plot" role="region" aria-labelledby="chart-@chart.Key">
+                                    <svg class="js-metric-line-chart" viewBox="0 0 840 340" data-chart-responsive data-chart="@chart.Json" role="img" aria-labelledby="chart-@chart.Key"></svg>
+                                </div>
+                                <div class="statistics-chart-axis" aria-hidden="true"></div>
+                                <p class="statistics-chart-scroll-hint">@Context.T("statistics.scroll_hint")</p>
                             </div>
                             <div class="chart-bar-insight js-chart-bar-insight statistics-point-detail" hidden aria-live="polite" aria-atomic="true">
                                 <div class="statistics-point-heading">
