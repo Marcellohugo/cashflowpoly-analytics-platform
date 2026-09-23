@@ -200,7 +200,7 @@
 @section Scripts {
     <script>
         window.cashflowpolyPlayerDetailCharts = @Html.Raw(JsonSerializer.Serialize(new {
-            tooltipText = new { metric = Context.T("statistics.session"), series = Context.T("statistics.session"), points = Context.T("common.value"), formula = Context.T("statistics.meaning"), defaultFormula = Context.T("statistics.source"), selectedDetail = Context.T("statistics.selected_point"), tapHint = Context.T("statistics.tap_hint"), itemPrefix = Context.T("statistics.session") },
+            tooltipText = new { metric = Context.T("statistics.session_ordinal_prefix"), series = Context.T("statistics.session_ordinal_prefix"), points = Context.T("common.value"), formula = Context.T("statistics.meaning"), defaultFormula = Context.T("statistics.source"), selectedDetail = Context.T("statistics.selected_point"), tapHint = Context.T("statistics.tap_hint"), itemPrefix = Context.T("statistics.session_ordinal_prefix") },
             chartStatusText = new { noSeries = Context.T("statistics.no_numeric"), noPoints = Context.T("statistics.no_numeric"), invalidPayload = Context.T("statistics.error.partial") }
         }));
     </script>

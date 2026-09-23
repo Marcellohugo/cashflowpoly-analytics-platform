@@ -39,6 +39,7 @@ public sealed class PlayerStatisticsTests
         Assert.Equal(display, point.Presentation.DisplayValue);
         using var json = JsonDocument.Parse(growth.Json);
         Assert.Equal(plotted, json.RootElement.GetProperty("series")[0].GetProperty("values")[0].GetDouble());
+        Assert.Equal("Sesi ke-1", json.RootElement.GetProperty("labels")[0].GetString());
         var detail = json.RootElement.GetProperty("pointDetails")[0];
         Assert.Equal(session.SessionName, detail.GetProperty("sessionName").GetString());
         Assert.Equal(display, detail.GetProperty("displayValue").GetString());

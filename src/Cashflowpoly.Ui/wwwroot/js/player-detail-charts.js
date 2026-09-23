@@ -204,6 +204,10 @@
                 }
                 return path;
             };
+            const formatItemLabel = (index) => {
+                const prefix = String(tooltipText.itemPrefix || "Item").trim();
+                return prefix.endsWith("-") ? `${prefix}${index + 1}` : `${prefix} ${index + 1}`;
+            };
             const normalizeLabel = (value, index) => {
                 const text = String(value ?? "")
                     .replace(/[_-]+/g, " ")
@@ -212,7 +216,7 @@
                 if (text.length > 0) {
                     return text;
                 }
-                return `${tooltipText.itemPrefix} ${index + 1}`;
+                return formatItemLabel(index);
             };
             const makeUniqueLabels = (labels) => {
                 const usageMap = new Map();
@@ -267,6 +271,65 @@
                     trimmedLines[lastIndex] = `${lastLine}...`;
                 }
                 return trimmedLines;
+            };
+            const enableDragToScroll = (plot) => {
+                if (!plot || plot._hasDragToScroll) return;
+                plot._hasDragToScroll = true;
+
+                let isDown = false;
+                let startX = 0;
+                let scrollLeft = 0;
+                let hasDragged = false;
+
+                plot.addEventListener("pointerdown", (event) => {
+                    if (event.pointerType === "mouse" && event.button !== 0) return;
+                    if (event.pointerType === "touch") return;
+                    const frame = plot.closest(".statistics-chart-frame");
+                    if (!frame || !frame.classList.contains("is-scrollable")) return;
+                    isDown = true;
+                    hasDragged = false;
+                    startX = event.clientX;
+                    scrollLeft = plot.scrollLeft;
+                });
+
+                plot.addEventListener("pointermove", (event) => {
+                    if (!isDown) return;
+                    const deltaX = event.clientX - startX;
+                    if (!hasDragged && Math.abs(deltaX) > 4) {
+                        hasDragged = true;
+                        plot.classList.add("is-dragging");
+                        try {
+                            plot.setPointerCapture(event.pointerId);
+                        } catch {}
+                    }
+                    if (hasDragged) {
+                        plot.scrollLeft = scrollLeft - deltaX;
+                    }
+                });
+
+                const stopDragging = (event) => {
+                    if (!isDown) return;
+                    isDown = false;
+                    if (hasDragged) {
+                        try {
+                            plot.releasePointerCapture(event.pointerId);
+                        } catch {}
+                        setTimeout(() => {
+                            hasDragged = false;
+                            plot.classList.remove("is-dragging");
+                        }, 60);
+                    }
+                };
+
+                plot.addEventListener("pointerup", stopDragging);
+                plot.addEventListener("pointercancel", stopDragging);
+
+                plot.addEventListener("click", (event) => {
+                    if (hasDragged) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                    }
+                }, true);
             };
             const drawChart = (svg, payload) => {
                 const normalizedLabels = Array.isArray(payload?.labels)
@@ -424,7 +487,11 @@
                     svg.style.maxWidth = 'none';
                     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
                     frame.classList.add('is-scrollable');
-                    frame.querySelector('.statistics-chart-plot').setAttribute('tabindex', '0');
+                    const plot = frame.querySelector('.statistics-chart-plot');
+                    if (plot) {
+                        plot.setAttribute('tabindex', '0');
+                        enableDragToScroll(plot);
+                    }
                     if (fixedAxis) {
                         fixedAxis.style.width = `${axisWidth}px`;
                         fixedAxis.style.height = `${height}px`;
@@ -594,7 +661,7 @@
                             const variableLabel =
                                 labels[index] ||
                                 metricKeys[index] ||
-                                `${tooltipText.itemPrefix} ${index + 1}`;
+                                formatItemLabel(index);
                             const tooltipLines = [
                                 `${tooltipText.metric}: ${variableLabel}`,
                                 ...(series.length > 1 ? [`${tooltipText.series}: ${item.name}`] : []),
@@ -659,7 +726,7 @@
                             const pointLabel =
                                 labels[index] ||
                                 metricKeys[index] ||
-                                `${tooltipText.itemPrefix} ${index + 1}`;
+                                formatItemLabel(index);
                             const metricLabel = series.length > 1
                                 ? `${item.name} - ${pointLabel}`
                                 : pointLabel;

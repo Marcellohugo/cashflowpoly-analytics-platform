@@ -62,6 +62,7 @@ internal static partial class UiTextLexicon
         terms["statistics.values_and_source"] = ("Lihat nilai tiap sesi, arti, dan sumber data", "View session values, meanings, and data source");
         terms["statistics.values_per_session"] = ("Nilai tiap sesi", "Values by session");
         terms["statistics.session"] = ("Sesi", "Session");
+        terms["statistics.session_ordinal_prefix"] = ("Sesi ke-", "Session ");
         terms["statistics.meaning"] = ("Arti", "Meaning");
         terms["statistics.source"] = ("Sumber: Analitika Pemain pada Sesi yang sama. Nilai dan arti mengikuti perhitungan analitika sesi tersebut.", "Source: Player Analytics in the same session. Values and meanings follow that session's analytics calculations.");
         terms["statistics.session_details"] = ("Rincian seluruh sesi", "All session details");

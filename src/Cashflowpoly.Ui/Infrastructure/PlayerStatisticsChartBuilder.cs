@@ -58,7 +58,7 @@ public static class PlayerStatisticsChartBuilder
             var source = t("statistics.source") + " " + exemplar.Explanation;
             var json = JsonSerializer.Serialize(new
             {
-                chartType = "line", labels = points.Select((_, i) => $"{t("statistics.session")} {i + 1}"),
+                chartType = "line", labels = points.Select((_, i) => $"{t("statistics.session_ordinal_prefix")}{i + 1}"),
                 formulas = points.Select(p => $"{p.Label}: {p.Presentation.DisplayValue} {p.Presentation.Unit}. {p.Presentation.Guidance}"),
                 pointDetails = points.Select((p, i) => new {
                     sessionId = sessions[i].Session.SessionId,
