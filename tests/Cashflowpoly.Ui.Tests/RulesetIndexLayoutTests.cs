@@ -102,13 +102,12 @@ public sealed class RulesetIndexLayoutTests
         Assert.Contains("item.IsDefault", viewContent, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”item.IsLockedBySession”`,
         // `viewContent`, `StringComparison.Ordinal` dalam RulesetIndexView_ShouldRenderDefaultRowsAsReadonlyInMainTable.
-        Assert.Contains("item.IsLockedBySession", viewContent, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”source = item.IsDefault ?
         // DefaultCatalogSource : null”`, `viewContent`, `StringComparison.Ordinal` dalam RulesetIndexView_ShouldRenderDefaultRowsAsReadonlyInMainTable.
         Assert.Contains("source = item.IsDefault ? DefaultCatalogSource : null", viewContent, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”!item.IsDefault &&
         // !item.IsLockedBySession”`, `viewContent`, `StringComparison.Ordinal` dalam RulesetIndexView_ShouldRenderDefaultRowsAsReadonlyInMainTable.
-        Assert.Contains("!item.IsDefault && !item.IsLockedBySession", viewContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ruleset-row-checkbox", viewContent, StringComparison.Ordinal);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-route-rulesetVersionId”`,
         // `viewContent`, `StringComparison.Ordinal` dalam RulesetIndexView_ShouldRenderDefaultRowsAsReadonlyInMainTable.
         Assert.DoesNotContain("asp-route-rulesetVersionId", viewContent, StringComparison.Ordinal);
@@ -133,7 +132,7 @@ public sealed class RulesetIndexLayoutTests
 
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”showMutationActions ? 6 : 5”`,
         // `viewContent`, `StringComparison.Ordinal` dalam RulesetIndexView_ShouldHideTechnicalRulesetIdColumn.
-        Assert.Contains("showMutationActions ? 6 : 5", viewContent, StringComparison.Ordinal);
+        Assert.Contains("const int tableColumnCount = 5", viewContent, StringComparison.Ordinal);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”<th class=\”px-4
         // py-3\”>@Context.T(\”common.ruleset_id\”)</th>”`, `viewContent`, `StringComparison.Ordinal` dalam
         // RulesetIndexView_ShouldHideTechnicalRulesetIdColumn.

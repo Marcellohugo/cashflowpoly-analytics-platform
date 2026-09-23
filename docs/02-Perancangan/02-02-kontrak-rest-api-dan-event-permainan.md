@@ -1237,8 +1237,8 @@ Catatan: session tidak memiliki endpoint aktivasi ruleset. Sesi memilih
 - Response: `204 No Content`
 
 Aturan:
-- Versi `ACTIVE` tidak boleh dihapus.
-- Versi terakhir tidak boleh dihapus via delete version.
+- Versi `ACTIVE` tidak boleh dihapus jika masih ada versi lain; aktifkan versi lain terlebih dahulu.
+- Menghapus versi terakhir yang belum dipakai sekaligus mengarsipkan set aturan dalam transaksi yang sama. Set aturan tidak lagi muncul pada daftar maupun rincian.
 - Versi yang sudah dipakai sesi/event tidak boleh dihapus.
 
 ---

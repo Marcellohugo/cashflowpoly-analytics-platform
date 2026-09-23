@@ -41,15 +41,12 @@ public sealed class RulesetManagementActionTests
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-action=\”Create\””`, `indexView`,
         // `StringComparison.Ordinal` dalam RulesetViews_ShouldRenderInstructorMutationActions.
         Assert.Contains("asp-action=\"Create\"", indexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-action=\”BulkDelete\””`,
-        // `indexView`, `StringComparison.Ordinal` dalam RulesetViews_ShouldRenderInstructorMutationActions.
-        Assert.Contains("asp-action=\"BulkDelete\"", indexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-action=\”Edit\””`, `indexView`,
-        // `StringComparison.Ordinal` dalam RulesetViews_ShouldRenderInstructorMutationActions.
-        Assert.Contains("asp-action=\"Edit\"", indexView, StringComparison.Ordinal);
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-action=\”Delete\””`, `indexView`,
-        // `StringComparison.Ordinal` dalam RulesetViews_ShouldRenderInstructorMutationActions.
-        Assert.Contains("asp-action=\"Delete\"", indexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-action=\"BulkDelete\"", indexView, StringComparison.Ordinal);
+        Assert.DoesNotContain("type=\"checkbox\"", indexView, StringComparison.Ordinal);
+        Assert.Contains("asp-action=\"Edit\"", detailView, StringComparison.Ordinal);
+        Assert.Contains("asp-route-version=\"@version.Version\"", detailView, StringComparison.Ordinal);
+        Assert.DoesNotContain("detailRulesetEditBtn", detailView, StringComparison.Ordinal);
+        Assert.DoesNotContain("asp-action=\"Delete\"", detailView, StringComparison.Ordinal);
         // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”asp-action=\”ActivateVersion\””`,
         // `detailView`, `StringComparison.Ordinal` dalam RulesetViews_ShouldRenderInstructorMutationActions.
         Assert.Contains("asp-action=\"ActivateVersion\"", detailView, StringComparison.Ordinal);
@@ -142,6 +139,18 @@ public sealed class RulesetManagementActionTests
         Assert.Contains("home-stat-grid-player", home, StringComparison.Ordinal);
     // Menutup scope metode PlayerRulesetAccess_ShouldBeRestrictedToSessionDetails; bagian berikut berada di luar batas blok tersebut dalam
     // PlayerRulesetAccess_ShouldBeRestrictedToSessionDetails.
+    }
+
+    [Fact]
+    public void RulesetDeletionLogic_ShouldAllowUnusedLastVersionDeletion()
+    {
+        var detailView = File.ReadAllText(Path.Combine(UiRoot, "Views", "Shared", "_RulesetDetailContent.cshtml"));
+        var controller = File.ReadAllText(Path.Combine(UiRoot, "Controllers", "RulesetsController.cs"));
+
+        Assert.Contains("!version.IsUsed && (Model.Ruleset.Versions.Count == 1", detailView, StringComparison.Ordinal);
+        Assert.Contains("rulesets.delete_last_version_confirm", detailView, StringComparison.Ordinal);
+        Assert.Contains("remainingRuleset.StatusCode == System.Net.HttpStatusCode.NotFound", controller, StringComparison.Ordinal);
+        Assert.Contains("TempData[RulesetInfoTempDataKey] = HttpContext.T(\"rulesets.delete_success\");", controller, StringComparison.Ordinal);
     }
 
     // Mendefinisikan metode `ResolveRepositoryRoot` dengan hasil bertipe `string`; operasi ini menangani resolve repositori root.

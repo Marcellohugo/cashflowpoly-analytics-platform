@@ -1485,7 +1485,7 @@ button:disabled {
     overflow-wrap: break-word;
     word-break: normal;
     line-height: 1.35;
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 .table-wrap table {

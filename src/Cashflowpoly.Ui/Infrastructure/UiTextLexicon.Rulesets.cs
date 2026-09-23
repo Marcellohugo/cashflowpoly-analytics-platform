@@ -39,12 +39,14 @@ internal static partial class UiTextLexicon
         terms["rulesets.edit_title"] = ("Edit aturan Set Aturan", "Edit ruleset rules");
         terms["rulesets.edit_subtitle"] = ("Perbarui aturan untuk membuat versi baru tanpa mengubah riwayat versi lama.", "Update rules to create a new version without changing previous version statistics.");
         terms["rulesets.delete"] = ("Hapus", "Delete");
+        terms["rulesets.delete_success"] = ("Set aturan berhasil dihapus.", "Ruleset deleted successfully.");
         terms["rulesets.save"] = ("Simpan Set Aturan", "Save Ruleset");
         terms["rulesets.update"] = ("Simpan Versi Baru", "Save New Version");
         terms["rulesets.set_active"] = ("Aktifkan", "Set Active");
         terms["rulesets.delete_version"] = ("Hapus Versi", "Delete Version");
         terms["rulesets.delete_confirm"] = ("Hapus set aturan ini?", "Delete this ruleset?");
         terms["rulesets.delete_version_confirm"] = ("Hapus versi ini dari riwayat?", "Delete this version from history?");
+        terms["rulesets.delete_last_version_confirm"] = ("Ini versi terakhir. Hapus versi ini sekaligus set aturannya?", "This is the last version. Delete it and its ruleset?");
         terms["rulesets.delete_version_success"] = ("Versi {version} berhasil dihapus.", "Version {version} was deleted successfully.");
         terms["rulesets.bulk_delete"] = ("Hapus Terpilih", "Delete Selected");
         terms["rulesets.bulk_delete_confirm"] = ("Hapus semua set aturan terpilih?", "Delete all selected rulesets?");

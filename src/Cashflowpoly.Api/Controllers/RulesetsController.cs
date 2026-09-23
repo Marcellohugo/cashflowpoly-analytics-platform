@@ -306,15 +306,7 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var totalVersions = await _rulesets.CountRulesetVersionsAsync(rulesetId, ct);
-        if (totalVersions <= 1)
-        {
-            return UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                "Versi terakhir tidak dapat dihapus. Hapus ruleset jika tidak lagi diperlukan."));
-        }
-
-        if (string.Equals(selectedVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        if (totalVersions > 1 && string.Equals(selectedVersion.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
         {
             return UnprocessableEntity(ApiErrorHelper.BuildError(
                 HttpContext,

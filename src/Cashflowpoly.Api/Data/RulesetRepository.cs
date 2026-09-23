@@ -515,11 +515,19 @@ public sealed class RulesetRepository
     // aplikasi berhenti.
     public async Task<bool> DeleteRulesetVersionAsync(Guid rulesetId, int version, CancellationToken ct)
     {
+        const string lockRulesetSql = """
+            select ruleset_id from rulesets
+            where ruleset_id = @rulesetId and not is_archived
+            for update
+            """;
+
         const string selectVersionSql = """
             select ruleset_version_id
             from ruleset_versions
             where ruleset_id = @rulesetId
               and version = @version
+              and (status <> 'ACTIVE' or
+                   (select count(*) from ruleset_versions where ruleset_id = @rulesetId) = 1)
             for update
             """;
 
@@ -532,8 +540,22 @@ public sealed class RulesetRepository
             where ruleset_version_id = @rulesetVersionId
             """;
 
+        const string archiveEmptyRulesetSql = """
+            update rulesets set is_archived = true, archived_at = now()
+            where ruleset_id = @rulesetId
+              and not exists (select 1 from ruleset_versions where ruleset_id = @rulesetId)
+            """;
+
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
+
+        var existingRuleset = await conn.ExecuteScalarAsync<Guid?>(
+            new CommandDefinition(lockRulesetSql, new { rulesetId }, tx, cancellationToken: ct));
+        if (!existingRuleset.HasValue)
+        {
+            await tx.RollbackAsync(ct);
+            return false;
+        }
 
         var rulesetVersionId = await conn.QuerySingleOrDefaultAsync<Guid?>(
             new CommandDefinition(selectVersionSql, new { rulesetId, version }, tx, cancellationToken: ct));
@@ -548,6 +570,9 @@ public sealed class RulesetRepository
 
         var affected = await conn.ExecuteAsync(
             new CommandDefinition(deleteVersionSql, new { rulesetVersionId = rulesetVersionId.Value }, tx, cancellationToken: ct));
+
+        await conn.ExecuteAsync(
+            new CommandDefinition(archiveEmptyRulesetSql, new { rulesetId }, tx, cancellationToken: ct));
 
         await tx.CommitAsync(ct);
         return affected > 0;

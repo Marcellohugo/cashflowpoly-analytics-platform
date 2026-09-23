@@ -629,6 +629,13 @@ public sealed class RulesetsController : Controller
         }
         else
         {
+            using var remainingRuleset = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
+            if (remainingRuleset.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                TempData[RulesetInfoTempDataKey] = HttpContext.T("rulesets.delete_success");
+                return RedirectToAction(nameof(Index));
+            }
+
             TempData[RulesetInfoTempDataKey] = HttpContext
                 .T("rulesets.delete_version_success")
                 .Replace("{version}", $"v{version}");
@@ -660,6 +667,7 @@ public sealed class RulesetsController : Controller
             return RedirectToAction(nameof(Details), new { rulesetId });
         }
 
+        TempData[RulesetInfoTempDataKey] = HttpContext.T("rulesets.delete_success");
         return RedirectToAction(nameof(Index));
     }
 
@@ -679,6 +687,7 @@ public sealed class RulesetsController : Controller
         var client = _clientFactory.CreateClient("Api");
         var deletedCount = 0;
         var failedCount = 0;
+        var lastErrorMessage = string.Empty;
 
         // Mengulangi setiap elemen `selectedRulesetIds`; elemen saat ini disimpan sebagai `rulesetId` bertipe `var` untuk diproses oleh badan loop dalam
         // BulkDelete.
@@ -699,6 +708,13 @@ public sealed class RulesetsController : Controller
             }
 
             failedCount++;
+            if (string.IsNullOrWhiteSpace(lastErrorMessage))
+            {
+                lastErrorMessage = await RulesetFormHelper.BuildRulesetApiErrorMessage(
+                    response,
+                    HttpContext.T("rulesets.error.delete_failed"),
+                    ct);
+            }
         }
 
         if (deletedCount > 0 && failedCount == 0)
@@ -709,16 +725,26 @@ public sealed class RulesetsController : Controller
         }
         else if (deletedCount > 0)
         {
-            TempData[RulesetErrorTempDataKey] = HttpContext
+            var msg = HttpContext
                 .T("rulesets.bulk_delete_partial")
                 .Replace("{success}", deletedCount.ToString())
                 .Replace("{failed}", failedCount.ToString());
+            if (!string.IsNullOrWhiteSpace(lastErrorMessage))
+            {
+                msg += $" ({lastErrorMessage})";
+            }
+            TempData[RulesetErrorTempDataKey] = msg;
         }
         else
         {
-            TempData[RulesetErrorTempDataKey] = HttpContext
+            var msg = HttpContext
                 .T("rulesets.bulk_delete_failed")
                 .Replace("{failed}", failedCount.ToString());
+            if (!string.IsNullOrWhiteSpace(lastErrorMessage))
+            {
+                msg += $" ({lastErrorMessage})";
+            }
+            TempData[RulesetErrorTempDataKey] = msg;
         }
 
         return RedirectToAction(nameof(Index));

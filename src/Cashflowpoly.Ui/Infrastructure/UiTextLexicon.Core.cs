@@ -154,7 +154,8 @@ internal static partial class UiTextLexicon
         terms["home.cta.sessions"] = ("Buka Sesi", "Open Sessions");
         terms["home.cta.my_progress"] = ("Lihat progres saya", "View my progress");
         terms["home.cta.open_ruleset"] = ("Buka Set Aturan", "Open rulesets");
-        terms["home.cta.session_ruleset"] = ("Lihat Aturan di Sesi", "View ruleset in sessions");
+        terms["home.cta.my_statistics"] = ("Lihat statistik saya", "View my statistics");
+        terms["home.cta.session_ruleset"] = ("Lihat statistik saya", "View my statistics");
         terms["home.total_sessions"] = ("Total Sesi", "Total Sessions");
         terms["home.my_sessions"] = ("Sesi saya", "My sessions");
         terms["home.players_in_my_sessions"] = ("Pemain dalam sesi saya", "Players in my sessions");

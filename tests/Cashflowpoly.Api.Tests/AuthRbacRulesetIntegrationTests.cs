@@ -34,6 +34,38 @@ public sealed class AuthRbacRulesetIntegrationTests
     private readonly HttpClient _client;
 
     [Fact]
+    public async Task Ruleset_DeleteLastUnusedVersion_RemovesRulesetFromDetailsAndList()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var owner = await RegisterAsync($"last_version_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+        var other = await RegisterAsync($"last_other_{suffix}", "IntegrationInstructorPass!123", "INSTRUCTOR");
+        var created = await CreateRulesetAsync(owner.AccessToken, suffix, 20);
+        var path = $"/api/v1/rulesets/{created.RulesetId}";
+
+        using var forbidden = await SendJsonAsync(HttpMethod.Delete, $"{path}/versions/1", null, other.AccessToken);
+        Assert.Equal(HttpStatusCode.NotFound, forbidden.StatusCode);
+
+        using var update = await SendJsonAsync(HttpMethod.Put, path,
+            new { name = $"Last version {suffix}", definition = BuildRulesetDefinition(startingCash: 22) }, owner.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var second = (await update.Content.ReadFromJsonAsync<CreateRulesetResponse>())!;
+        using var deleteSecond = await SendJsonAsync(HttpMethod.Delete, $"{path}/versions/{second.Version}", null, owner.AccessToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteSecond.StatusCode);
+        using var remaining = await SendJsonAsync(HttpMethod.Get, path, null, owner.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, remaining.StatusCode);
+        Assert.Single((await remaining.Content.ReadFromJsonAsync<RulesetDetailResponse>())!.Versions);
+
+        // The sole active version may be removed when it has never been used.
+        using var deleteLast = await SendJsonAsync(HttpMethod.Delete, $"{path}/versions/1", null, owner.AccessToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteLast.StatusCode);
+        using var detail = await SendJsonAsync(HttpMethod.Get, path, null, owner.AccessToken);
+        Assert.Equal(HttpStatusCode.NotFound, detail.StatusCode);
+        using var list = await SendJsonAsync(HttpMethod.Get, "/api/v1/rulesets", null, owner.AccessToken);
+        Assert.DoesNotContain((await list.Content.ReadFromJsonAsync<RulesetListResponse>())!.Items,
+            item => item.RulesetId == created.RulesetId);
+    }
+
+    [Fact]
     public async Task Ruleset_CreateAndEdit_RejectDisabledMechanicsForBothModes()
     {
         var instructor = await RegisterAsync($"held_mechanics_{Guid.NewGuid():N}", "IntegrationInstructorPass!123", "INSTRUCTOR");

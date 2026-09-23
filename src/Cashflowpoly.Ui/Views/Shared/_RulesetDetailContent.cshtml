@@ -114,39 +114,7 @@ else
             </div>
         </div>
 
-        @if (!isEmbedded)
-        {
-            <div class="action-toolbar mt-4 ruleset-detail-toolbar">
-                @if (isInstructor && !Model.Ruleset.IsDefault && !Model.IsDefaultCatalogSource)
-                {
-                    <button type="button"
-                            class="btn-ghost"
-                            id="detailRulesetEditBtn"
-                            data-ruleset-id="@Model.Ruleset.RulesetId"
-                            data-ruleset-name="@Model.Ruleset.Name">@Context.T("rulesets.edit")</button>
-                    @if (!Model.Ruleset.IsLockedBySession)
-                    {
-                        <form method="post"
-                              asp-controller="Rulesets"
-                              asp-action="Delete"
-                              asp-route-rulesetId="@Model.Ruleset.RulesetId"
-                              onsubmit="return confirm('@Context.T("rulesets.delete_confirm")');">
-                            @Html.AntiForgeryToken()
-                            <button class="btn-primary" type="submit">@Context.T("rulesets.delete")</button>
-                        </form>
-                    }
-                    else
-                    {
-                        <span class="hint-chip">@Context.T("rulesets.locked_by_session_hint")</span>
-                    }
-                }
-                else
-                {
-                    <span class="hint-chip">@Context.T("rulesets.readonly_hint")</span>
-                }
-            </div>
-        }
-        else if (isInstructor && !Model.Ruleset.IsDefault && !Model.IsDefaultCatalogSource)
+        @if (isEmbedded && isInstructor && !Model.Ruleset.IsDefault && !Model.IsDefaultCatalogSource)
         {
             <div class="action-toolbar mt-4 ruleset-detail-toolbar">
                 <button type="button"
@@ -171,7 +139,7 @@ else
                             <th class="px-4 py-3">@Context.T("common.created")</th>
                             @if (showVersionActions)
                             {
-                                <th class="px-4 py-3 text-right">@Context.T("common.action")</th>
+                                <th class="px-4 py-3 text-center">@Context.T("common.action")</th>
                             }
                         </tr>
                     </thead>
@@ -193,30 +161,44 @@ else
                                     : "status-retired";
                             <tr class="border-t border-slate-200">
                                 <td class="px-4 py-3 font-medium text-slate-900">@($"v{version.Version}")</td>
-                                <td class="px-4 py-3 text-slate-600"><span class="status-pill @statusClass">@Context.TRulesetStatus(version.Status)</span></td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    <span class="status-pill @statusClass">@Context.TRulesetStatus(version.Status)</span>
+                                    @if (version.IsUsed)
+                                    {
+                                        <span class="hint-chip ml-1">@Context.T("rulesets.locked_by_session")</span>
+                                    }
+                                </td>
                                 <td class="px-4 py-3 text-slate-600"><time data-local-time datetime="@version.CreatedAt.ToString("O")">@version.CreatedAt.UtcDateTime.ToString("dd/MM/yyyy HH:mm") UTC</time></td>
                                 @if (showVersionActions)
                                 {
-                                    <td class="px-4 py-3 text-right">
-                                        <div class="inline-flex items-center gap-2">
-                                            <form method="post"
-                                                  asp-controller="Rulesets"
-                                                  asp-action="ActivateVersion"
-                                                  asp-route-rulesetId="@Model.Ruleset.RulesetId"
-                                                  asp-route-version="@version.Version">
-                                                @Html.AntiForgeryToken()
-                                                <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.set_active")</button>
-                                            </form>
-                                            @if (!version.IsUsed && !Model.Ruleset.IsLockedBySession)
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="inline-flex items-center justify-center gap-2">
+                                            <a class="btn-ghost btn-compact ruleset-action-edit"
+                                               asp-controller="Rulesets"
+                                               asp-action="Edit"
+                                               asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                               asp-route-version="@version.Version">@Context.T("rulesets.edit")</a>
+                                            @if (!string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <form method="post"
+                                                      asp-controller="Rulesets"
+                                                      asp-action="ActivateVersion"
+                                                      asp-route-rulesetId="@Model.Ruleset.RulesetId"
+                                                      asp-route-version="@version.Version">
+                                                    @Html.AntiForgeryToken()
+                                                    <button class="btn-ghost btn-compact ruleset-action-activate" type="submit">@Context.T("rulesets.set_active")</button>
+                                                </form>
+                                            }
+                                            @if (!version.IsUsed && (Model.Ruleset.Versions.Count == 1 || !string.Equals(version.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)))
                                             {
                                                 <form method="post"
                                                       asp-controller="Rulesets"
                                                       asp-action="DeleteVersion"
                                                       asp-route-rulesetId="@Model.Ruleset.RulesetId"
                                                       asp-route-version="@version.Version"
-                                                      onsubmit="return confirm('@Context.T("rulesets.delete_version_confirm")');">
+                                                      onsubmit="return confirm('@Context.T(Model.Ruleset.Versions.Count == 1 ? "rulesets.delete_last_version_confirm" : "rulesets.delete_version_confirm")');">
                                                     @Html.AntiForgeryToken()
-                                                    <button class="btn-ghost btn-compact" type="submit">@Context.T("rulesets.delete_version")</button>
+                                                    <button class="btn-ghost btn-compact ruleset-action-delete" type="submit">@Context.T("rulesets.delete_version")</button>
                                                 </form>
                                             }
                                         </div>

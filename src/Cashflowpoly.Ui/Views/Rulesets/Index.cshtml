@@ -4,9 +4,7 @@
 @{
     ViewData["Title"] = Context.T("nav.ruleset");
     var isInstructor = Context.IsInstructor();
-    var hasMutableRulesets = Model.Items.Any(item => !item.IsDefault);
-    var showMutationActions = isInstructor && hasMutableRulesets;
-    var tableColumnCount = showMutationActions ? 6 : 5;
+    const int tableColumnCount = 5;
     var flashError = ViewData["ruleset_error"] as string;
     var flashInfo = ViewData["ruleset_info"] as string;
     const string DefaultCatalogSource = "default-catalog";
@@ -134,52 +132,15 @@
                 <p class="ruleset-section-subtitle">@Context.T("rulesets.index.list_subtitle")</p>
             </div>
 
-        @if (showMutationActions)
-        {
-            <form id="ruleset-bulk-form"
-                  method="post"
-                  asp-controller="Rulesets"
-                  asp-action="BulkDelete"
-                  onsubmit="return confirm('@Context.T("rulesets.bulk_delete_confirm")');">
-                @Html.AntiForgeryToken()
-                <div data-ruleset-bulk-hidden-inputs></div>
-            </form>
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <span class="hint-chip">
-                    @Context.T("rulesets.selected_count"): <span data-ruleset-selected-count>0</span>
-                    <span data-ruleset-locked-warning class="text-amber-600 font-medium ml-2" hidden>(@Context.T("rulesets.locked_by_session"))</span>
-                </span>
-                <div class="flex items-center gap-2">
-                    <button class="btn-ghost btn-compact"
-                            type="button"
-                            data-ruleset-edit-selected
-                            disabled>@Context.T("rulesets.edit")</button>
-                    <button class="btn-ghost btn-compact"
-                            type="submit"
-                            form="ruleset-bulk-form"
-                            data-ruleset-bulk-delete
-                            disabled>@Context.T("rulesets.bulk_delete")</button>
-                </div>
-            </div>
-        }
-
         <div class="mt-4 table-wrap">
             <table class="w-full text-left text-sm mobile-card-table">
                 <thead class="table-head">
                     <tr>
-                        @if (showMutationActions)
-                        {
-                            <th class="px-4 py-3">
-                                <input type="checkbox"
-                                       data-ruleset-select-all
-                                       aria-label="@Context.T("rulesets.select_all")" />
-                            </th>
-                        }
-                        <th class="px-4 py-3">@Context.T("common.name")</th>
-                        <th class="px-4 py-3">@Context.T("rulesets.form.mode")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.latest_version")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.status")</th>
-                        <th class="px-4 py-3 text-right">@Context.T("common.detail")</th>
+                        <th class="px-4 py-3 text-center">@Context.T("common.name")</th>
+                        <th class="px-4 py-3 text-center">@Context.T("rulesets.form.mode")</th>
+                        <th class="px-4 py-3 text-center">@Context.T("common.latest_version")</th>
+                        <th class="px-4 py-3 text-center">@Context.T("common.status")</th>
+                        <th class="px-4 py-3 text-center">@Context.T("common.detail")</th>
                     </tr>
                 </thead>
                 <tbody data-ruleset-tbody>
@@ -206,22 +167,6 @@
                             data-ruleset-id="@item.RulesetId.ToString().ToLowerInvariant()"
                             data-status="@((item.Status ?? "UNKNOWN").ToLowerInvariant())"
                             data-latest-version="@item.LatestVersion">
-                            @if (showMutationActions)
-                            {
-                                var canDelete = !item.IsDefault && !item.IsLockedBySession;
-                                <td class="px-4 py-3" data-label="@Context.T("rulesets.select_one")">
-                                    @if (!item.IsDefault)
-                                    {
-                                        <input type="checkbox"
-                                               value="@item.RulesetId"
-                                               data-ruleset-row-checkbox
-                                               data-locked-by-session="@item.IsLockedBySession.ToString().ToLowerInvariant()"
-                                               data-ruleset-name="@item.Name"
-                                               data-ruleset-version="@item.LatestVersion"
-                                               aria-label="@($"{Context.T("rulesets.select_one")} {item.Name}")" />
-                                    }
-                                </td>
-                            }
                             <td class="px-4 py-3 font-medium text-slate-900" data-label="@Context.T("common.name")">
                                 <span class="ruleset-name-cell">
                                     <span>@item.Name</span>
@@ -234,8 +179,8 @@
                             <td class="px-4 py-3" data-label="@Context.T("rulesets.form.mode")">
                                 <span class="ruleset-mode-badge ruleset-mode-badge--@modeCss">@Context.TRulesetMode(modeCode)</span>
                             </td>
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">@($"v{item.LatestVersion}")</span></td>
-                            <td class="px-4 py-3 text-right text-slate-700" data-label="@Context.T("common.status")">
+                            <td class="px-4 py-3 text-center text-slate-700" data-label="@Context.T("common.latest_version")"><span class="version-pill">@($"v{item.LatestVersion}")</span></td>
+                            <td class="px-4 py-3 text-center text-slate-700" data-label="@Context.T("common.status")">
                                 @{
                                     var statusClass = string.Equals(item.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
                                         ? "status-active"
@@ -250,7 +195,7 @@
                                 }
                                 <span class="status-pill @statusClass">@statusLabel</span>
                             </td>
-                            <td class="px-4 py-3 text-right" data-label="@Context.T("common.detail")">
+                            <td class="px-4 py-3 text-center" data-label="@Context.T("common.detail")">
                                 @{
                                     var source = item.IsDefault ? DefaultCatalogSource : null;
                                 }
@@ -285,20 +230,9 @@
                         data-ruleset-next>@Context.T("rulesets.pagination_next")</button>
             </div>
         }
-        @if (showMutationActions)
-        {
-            <div hidden aria-hidden="true">
-                <a asp-controller="Rulesets" asp-action="Edit" asp-route-rulesetId="@Guid.Empty"></a>
-                <form method="post" asp-controller="Rulesets" asp-action="Delete" asp-route-rulesetId="@Guid.Empty">
-                    @Html.AntiForgeryToken()
-                </form>
-            </div>
-        }
         </section>
     </div>
 </section>
-
-@await Html.PartialAsync("_RulesetVersionModal")
 
 @section Scripts {
     <script>
@@ -311,22 +245,12 @@
             const nextButton = document.querySelector("[data-ruleset-next]");
             const pageInfo = document.querySelector("[data-ruleset-page-info]");
             const tbody = document.querySelector("[data-ruleset-tbody]");
-            const selectAllCheckbox = document.querySelector("[data-ruleset-select-all]");
-            const selectedCount = document.querySelector("[data-ruleset-selected-count]");
-            const bulkDeleteButton = document.querySelector("[data-ruleset-bulk-delete]");
-            const editSelectedButton = document.querySelector("[data-ruleset-edit-selected]");
-            const lockedWarning = document.querySelector("[data-ruleset-locked-warning]");
-            const bulkInputsHost = document.querySelector("[data-ruleset-bulk-hidden-inputs]");
-
-
             if (!searchInput || !sortSelect || !pageSizeSelect || !resetButton || !tbody) {
                 return;
             }
 
             const rows = Array.from(tbody.querySelectorAll("[data-ruleset-row]"));
             const emptyFilterRow = tbody.querySelector("[data-empty-filter-row]");
-            const selectedRulesetIds = new Set();
-            let currentPageRows = [];
             let currentPage = 1;
 
             if (rows.length === 0) {
@@ -367,59 +291,6 @@
                 });
             };
 
-            const refreshBulkSelectionState = () => {
-                const visibleCheckboxes = currentPageRows
-                    .map((row) => row.querySelector("[data-ruleset-row-checkbox]"))
-                    .filter(Boolean);
-
-                visibleCheckboxes.forEach((checkbox) => {
-                    checkbox.checked = selectedRulesetIds.has(checkbox.value);
-                });
-
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = visibleCheckboxes.length > 0 &&
-                        visibleCheckboxes.every((checkbox) => checkbox.checked);
-                    selectAllCheckbox.indeterminate = visibleCheckboxes.some((checkbox) => checkbox.checked) &&
-                        !selectAllCheckbox.checked;
-                }
-
-                if (selectedCount) {
-                    selectedCount.textContent = `${selectedRulesetIds.size}`;
-                }
-
-                if (editSelectedButton) {
-                    editSelectedButton.disabled = selectedRulesetIds.size !== 1;
-                }
-
-                const allRowCheckboxes = Array.from(tbody.querySelectorAll("[data-ruleset-row-checkbox]"));
-                const selectedRowCheckboxes = allRowCheckboxes.filter(cb => selectedRulesetIds.has(cb.value));
-                const hasLockedSelected = selectedRowCheckboxes.some(cb => cb.dataset.lockedBySession === "true");
-
-                if (lockedWarning) {
-                    lockedWarning.hidden = !hasLockedSelected;
-                }
-
-                if (bulkDeleteButton) {
-                    bulkDeleteButton.disabled = selectedRulesetIds.size === 0 || hasLockedSelected;
-                    if (hasLockedSelected) {
-                        bulkDeleteButton.title = "@Context.T("rulesets.cannot_delete_locked")";
-                    } else {
-                        bulkDeleteButton.removeAttribute("title");
-                    }
-                }
-
-                if (bulkInputsHost) {
-                    bulkInputsHost.innerHTML = "";
-                    Array.from(selectedRulesetIds).forEach((rulesetId) => {
-                        const input = document.createElement("input");
-                        input.type = "hidden";
-                        input.name = "rulesetIds";
-                        input.value = rulesetId;
-                        bulkInputsHost.appendChild(input);
-                    });
-                }
-            };
-
             const refreshRows = () => {
                 const query = searchInput.value.trim().toLowerCase();
                 const mode = sortSelect.value;
@@ -437,7 +308,6 @@
 
                 const startIndex = (currentPage - 1) * resolvedPageSize;
                 const endIndex = startIndex + resolvedPageSize;
-                currentPageRows = filteredRows.slice(startIndex, endIndex);
 
                 rows.forEach((row) => {
                     row.hidden = true;
@@ -472,7 +342,6 @@
                     nextButton.disabled = filteredRows.length === 0 || currentPage >= totalPages;
                 }
 
-                refreshBulkSelectionState();
             };
 
             searchInput.addEventListener("input", () => {
@@ -510,55 +379,6 @@
                 nextButton.addEventListener("click", () => {
                     currentPage += 1;
                     refreshRows();
-                });
-            }
-
-            if (selectAllCheckbox) {
-                selectAllCheckbox.addEventListener("change", () => {
-                    const isChecked = selectAllCheckbox.checked;
-                    currentPageRows.forEach((row) => {
-                        const checkbox = row.querySelector("[data-ruleset-row-checkbox]");
-                        if (!checkbox) {
-                            return;
-                        }
-
-                        if (isChecked) {
-                            selectedRulesetIds.add(checkbox.value);
-                        } else {
-                            selectedRulesetIds.delete(checkbox.value);
-                        }
-                    });
-                    refreshBulkSelectionState();
-                });
-            }
-
-            rows.forEach((row) => {
-                const checkbox = row.querySelector("[data-ruleset-row-checkbox]");
-                if (!checkbox) {
-                    return;
-                }
-
-                checkbox.addEventListener("change", (event) => {
-                    const target = event.target;
-                    if (target.checked) {
-                        selectedRulesetIds.add(target.value);
-                    } else {
-                        selectedRulesetIds.delete(target.value);
-                    }
-                    refreshBulkSelectionState();
-                });
-            });
-
-            if (editSelectedButton) {
-                editSelectedButton.addEventListener("click", () => {
-                    if (selectedRulesetIds.size === 1) {
-                        const rulesetId = Array.from(selectedRulesetIds)[0];
-                        const targetRow = rows.find(r => (r.dataset.rulesetId || "").toLowerCase() === (rulesetId || "").toLowerCase());
-                        const rulesetName = targetRow ? (targetRow.querySelector(".ruleset-name-cell span")?.textContent?.trim() || "") : "";
-                        if (window.openRulesetVersionModal) {
-                            window.openRulesetVersionModal(rulesetId, rulesetName);
-                        }
-                    }
                 });
             }
 
