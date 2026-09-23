@@ -1239,13 +1239,15 @@ public sealed class AuthRbacRulesetIntegrationTests
 
         using var updateResponse = await SendJsonAsync(HttpMethod.Put,
             $"/api/v1/rulesets/{createdRuleset.RulesetId}",
-            new { name = "Should not change", definition = BuildRulesetDefinition(startingCash: 42) },
+            new { name = "Should advance version", definition = BuildRulesetDefinition(startingCash: 42) },
             instructor.AccessToken);
-        await AssertDomainRuleViolationAsync(updateResponse);
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(updated);
+        Assert.Equal(2, updated.Version);
 
         foreach (var (method, path) in new[]
         {
-            (HttpMethod.Post, $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/1/activate"),
             (HttpMethod.Delete, $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/1"),
             (HttpMethod.Delete, $"/api/v1/rulesets/{createdRuleset.RulesetId}")
         })
@@ -1254,12 +1256,12 @@ public sealed class AuthRbacRulesetIntegrationTests
             await AssertDomainRuleViolationAsync(response);
         }
 
-        using var unchangedResponse = await SendJsonAsync(HttpMethod.Get,
+        using var changedResponse = await SendJsonAsync(HttpMethod.Get,
             $"/api/v1/rulesets/{createdRuleset.RulesetId}", null, instructor.AccessToken);
-        var unchanged = await unchangedResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
-        Assert.NotNull(unchanged);
-        Assert.Equal(detail.Name, unchanged.Name);
-        Assert.Single(unchanged.Versions);
+        var changed = await changedResponse.Content.ReadFromJsonAsync<RulesetDetailResponse>();
+        Assert.NotNull(changed);
+        Assert.Equal(2, changed.Versions.Count);
+        Assert.True(changed.IsLockedBySession);
     }
 
     [Fact]
@@ -1428,26 +1430,17 @@ public sealed class AuthRbacRulesetIntegrationTests
             },
             // Meneruskan `instructor.AccessToken` (nilai akses token) sebagai argumen ke `SendJsonAsync`.
             instructor.AccessToken);
-        // Menjalankan hasil operasi asinkron memanggil `AssertDomainRuleViolationAsync` dengan `updateResponse`; await menunggu hasil tanpa memblokir
-        // thread selama operasi belum selesai dalam CustomRuleset_UsedByStartedOrEndedSession_IsReadonly.
-        await AssertDomainRuleViolationAsync(updateResponse);
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updatedV2 = await updateResponse.Content.ReadFromJsonAsync<CreateRulesetResponse>();
+        Assert.NotNull(updatedV2);
+        Assert.Equal(2, updatedV2.Version);
 
-        // Menyiapkan variabel lokal `activateResponse` untuk nilai activate respons dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
-        // `HttpMethod.Post`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{createdRuleset.Version}/activate”`, `null`, `instructor.AccessToken`;
-        // await menunggu hasil tanpa memblokir thread selama operasi belum selesai. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var activateResponse = await SendJsonAsync(
-            // Meneruskan `HttpMethod.Post` (nilai post) sebagai argumen ke `SendJsonAsync`.
             HttpMethod.Post,
-            // Meneruskan teks interpolasi `$”/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{createdRuleset.Version}/activate”`; nilai ekspresi di dalam
-            // kurung kurawal disisipkan saat program berjalan sebagai argumen ke `SendJsonAsync`.
             $"/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{createdRuleset.Version}/activate",
-            // Meneruskan null, yaitu penanda tidak ada nilai sebagai argumen bernama `body`.
             body: null,
-            // Meneruskan `instructor.AccessToken` (nilai akses token) sebagai argumen ke `SendJsonAsync`.
             instructor.AccessToken);
-        // Menjalankan hasil operasi asinkron memanggil `AssertDomainRuleViolationAsync` dengan `activateResponse`; await menunggu hasil tanpa memblokir
-        // thread selama operasi belum selesai dalam CustomRuleset_UsedByStartedOrEndedSession_IsReadonly.
-        await AssertDomainRuleViolationAsync(activateResponse);
+        Assert.Equal(HttpStatusCode.OK, activateResponse.StatusCode);
 
         // Menyiapkan variabel lokal `deleteVersionResponse` untuk nilai delete versi respons dengan hasil operasi asinkron memanggil `SendJsonAsync` dengan
         // `HttpMethod.Delete`, `$”/api/v1/rulesets/{createdRuleset.RulesetId}/versions/{createdRuleset.Version}”`, `null`, `instructor.AccessToken`; await

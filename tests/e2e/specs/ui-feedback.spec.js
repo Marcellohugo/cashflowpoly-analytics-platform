@@ -16,7 +16,7 @@ for (const username of ['pratama', 'marco']) {
     const sessionsGap = await contentGap();
     await page.goto('/statistics?mode=MAHIR&playerId=90000000-0000-0000-0000-000000000011');
     expect(await contentGap()).toBeCloseTo(sessionsGap, 0);
-    expect(await page.locator('#statistics-status').evaluate(select => getComputedStyle(select).backgroundPosition)).toContain('16px');
+    expect(await page.locator('#statistics-mode').evaluate(select => getComputedStyle(select).backgroundPosition)).toContain('16px');
     expect(await page.locator('.statistics-jump').evaluate(nav => getComputedStyle(nav).justifyContent)).toBe('center');
     await expect(page.locator('.statistics-tips-section .data-toggle')).not.toHaveAttribute('open');
     await expect(page.locator('.statistics-chart-meaning')).toHaveCount(0);

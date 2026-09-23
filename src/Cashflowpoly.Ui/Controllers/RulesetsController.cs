@@ -196,7 +196,7 @@ public sealed class RulesetsController : Controller
 
     // mendaftarkan action untuk metode HTTP GET pada rute (”{rulesetId:guid}/edit”).
     [HttpGet("{rulesetId:guid}/edit")]
-    public async Task<IActionResult> Edit(Guid rulesetId, CancellationToken ct)
+    public async Task<IActionResult> Edit(Guid rulesetId, [FromQuery] int? version, CancellationToken ct)
     {
         var client = _clientFactory.CreateClient("Api");
         var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
@@ -230,10 +230,24 @@ public sealed class RulesetsController : Controller
             });
         }
 
-        if (data.IsDefault || data.IsLockedBySession)
+        if (data.IsDefault)
         {
             TempData[RulesetInfoTempDataKey] = HttpContext.T("rulesets.readonly_hint");
             return RedirectToAction(nameof(Details), new { rulesetId });
+        }
+
+        string definitionJson = SerializeDefinitionConfig(data.Definition);
+        if (version.HasValue && version.Value > 0)
+        {
+            var compResponse = await client.GetAsync($"api/v1/rulesets/{rulesetId}/components?version={version.Value}", ct);
+            if (compResponse.IsSuccessStatusCode)
+            {
+                var compData = await compResponse.Content.TryReadFromJsonAsync<RulesetComponentsResponse>(ct);
+                if (compData?.Definition is not null)
+                {
+                    definitionJson = SerializeDefinitionConfig(compData.Definition);
+                }
+            }
         }
 
         return View("Create", new CreateRulesetViewModel
@@ -242,7 +256,47 @@ public sealed class RulesetsController : Controller
             IsEditMode = true,
             Name = data.Name,
             Description = data.Description,
-            DefinitionJson = SerializeDefinitionConfig(data.Definition)
+            DefinitionJson = definitionJson
+        });
+    }
+
+    // mendaftarkan action untuk metode HTTP GET pada rute (”{rulesetId:guid}/version-options”).
+    [HttpGet("{rulesetId:guid}/version-options")]
+    public async Task<IActionResult> GetVersionOptions(Guid rulesetId, CancellationToken ct)
+    {
+        var client = _clientFactory.CreateClient("Api");
+        var response = await client.GetAsync($"api/v1/rulesets/{rulesetId}", ct);
+        var unauthorized = this.HandleUnauthorizedApiResponse(response);
+        if (unauthorized is not null)
+        {
+            return unauthorized;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return StatusCode((int)response.StatusCode);
+        }
+
+        var data = await response.Content.TryReadFromJsonAsync<RulesetDetailResponse>(ct);
+        if (data is null)
+        {
+            return NotFound();
+        }
+
+        return Json(new
+        {
+            rulesetId = data.RulesetId,
+            name = data.Name,
+            isDefault = data.IsDefault,
+            isLockedBySession = data.IsLockedBySession,
+            latestVersion = data.Version ?? data.Versions.FirstOrDefault()?.Version ?? 1,
+            versions = data.Versions.Select(v => new
+            {
+                version = v.Version,
+                status = v.Status,
+                createdAt = v.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                isUsed = v.IsUsed
+            }).OrderByDescending(v => v.version)
         });
     }
 
@@ -305,6 +359,12 @@ public sealed class RulesetsController : Controller
                     .T("rulesets.error.update_failed")
                     .Replace("{status}", ((int)response.StatusCode).ToString());
                 return View("Create", model);
+            }
+
+            var created = await response.Content.TryReadFromJsonAsync<CreateRulesetResponse>(ct);
+            if (created is not null && created.Version > 0)
+            {
+                await client.PostAsync($"api/v1/rulesets/{rulesetId}/versions/{created.Version}/activate", null, ct);
             }
 
             return RedirectToAction(nameof(Details), new { rulesetId });

@@ -483,6 +483,29 @@ public sealed class RulesetRepository
     }
 
     /// <summary>
+    /// Mengambil sekumpulan ID versi ruleset yang sudah pernah digunakan oleh sesi, event, atau snapshot.
+    /// </summary>
+    public async Task<HashSet<Guid>> GetUsedRulesetVersionIdsAsync(Guid rulesetId, CancellationToken ct)
+    {
+        const string sql = """
+            select distinct rv.ruleset_version_id
+            from ruleset_versions rv
+            where rv.ruleset_id = @rulesetId
+              and exists (
+                  select 1 from sessions s where s.ruleset_version_id = rv.ruleset_version_id
+                  union all
+                  select 1 from events e where e.ruleset_version_id = rv.ruleset_version_id
+                  union all
+                  select 1 from metric_snapshots ms where ms.ruleset_version_id = rv.ruleset_version_id
+              )
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        var ids = await conn.QueryAsync<Guid>(new CommandDefinition(sql, new { rulesetId }, cancellationToken: ct));
+        return ids.ToHashSet();
+    }
+
+    /// <summary>
     /// Menghapus versi spesifik dari ruleset.
     /// </summary>
     // Mendefinisikan metode `DeleteRulesetVersionAsync` dengan hasil bertipe `Task<bool>`. Menghapus versi spesifik dari ruleset. async memungkinkan

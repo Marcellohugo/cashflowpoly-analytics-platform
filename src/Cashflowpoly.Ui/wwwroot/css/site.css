@@ -8298,7 +8298,9 @@ table thead th, table th[scope="col"] { text-align: center !important; vertical-
     }
 
     .ruleset-index-section > .data-toggle,
-    .statistics-tips-section > .data-toggle {
+    .statistics-tips-section > .data-toggle,
+    .session-detail-section > .data-toggle,
+    .session-tips-section > .data-toggle {
         margin-top: 0;
         border: 1px solid rgba(22, 101, 89, 0.16);
         border-radius: 0.75rem;
@@ -8308,7 +8310,9 @@ table thead th, table th[scope="col"] { text-align: center !important; vertical-
     }
 
     .ruleset-index-section > .data-toggle > summary,
-    .statistics-tips-section > .data-toggle > summary {
+    .statistics-tips-section > .data-toggle > summary,
+    .session-detail-section > .data-toggle > summary,
+    .session-tips-section > .data-toggle > summary {
         padding: 0.75rem 1rem;
         min-height: 44px;
         align-content: center;
@@ -8317,13 +8321,17 @@ table thead th, table th[scope="col"] { text-align: center !important; vertical-
     }
 
     .ruleset-index-section > .data-toggle[open] > summary,
-    .statistics-tips-section > .data-toggle[open] > summary {
+    .statistics-tips-section > .data-toggle[open] > summary,
+    .session-detail-section > .data-toggle[open] > summary,
+    .session-tips-section > .data-toggle[open] > summary {
         background: rgba(238, 248, 245, 0.85);
         border-bottom: 1px solid rgba(22, 101, 89, 0.1);
     }
 
     .ruleset-index-section > .data-toggle .metric-panel,
-    .statistics-tips-section > .data-toggle .metric-panel {
+    .statistics-tips-section > .data-toggle .metric-panel,
+    .session-detail-section > .data-toggle .metric-panel,
+    .session-tips-section > .data-toggle .metric-panel {
         border: none !important;
         background: transparent !important;
         box-shadow: none !important;
@@ -8451,7 +8459,9 @@ table thead th, table th[scope="col"] { text-align: center !important; vertical-
 /* Card enclosure for data-toggle accordions */
 .sessions-index-section > .data-toggle,
 .ruleset-index-section > .data-toggle,
-.statistics-tips-section > .data-toggle {
+.statistics-tips-section > .data-toggle,
+.session-detail-section > .data-toggle,
+.session-tips-section > .data-toggle {
     margin-top: 0;
     border: 1px solid rgba(22, 101, 89, 0.16);
     border-radius: 0.75rem;
@@ -8462,7 +8472,9 @@ table thead th, table th[scope="col"] { text-align: center !important; vertical-
 
 .sessions-index-section > .data-toggle > summary,
 .ruleset-index-section > .data-toggle > summary,
-.statistics-tips-section > .data-toggle > summary {
+.statistics-tips-section > .data-toggle > summary,
+.session-detail-section > .data-toggle > summary,
+.session-tips-section > .data-toggle > summary {
     padding: 0.75rem 1rem;
     min-height: 44px;
     align-content: center;
@@ -8472,14 +8484,18 @@ table thead th, table th[scope="col"] { text-align: center !important; vertical-
 
 .sessions-index-section > .data-toggle[open] > summary,
 .ruleset-index-section > .data-toggle[open] > summary,
-.statistics-tips-section > .data-toggle[open] > summary {
+.statistics-tips-section > .data-toggle[open] > summary,
+.session-detail-section > .data-toggle[open] > summary,
+.session-tips-section > .data-toggle[open] > summary {
     background: rgba(238, 248, 245, 0.85);
     border-bottom: 1px solid rgba(22, 101, 89, 0.1);
 }
 
 .sessions-index-section > .data-toggle .metric-panel,
 .ruleset-index-section > .data-toggle .metric-panel,
-.statistics-tips-section > .data-toggle .metric-panel {
+.statistics-tips-section > .data-toggle .metric-panel,
+.session-detail-section > .data-toggle .metric-panel,
+.session-tips-section > .data-toggle .metric-panel {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;

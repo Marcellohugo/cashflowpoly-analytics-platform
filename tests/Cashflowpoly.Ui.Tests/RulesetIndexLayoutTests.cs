@@ -131,9 +131,9 @@ public sealed class RulesetIndexLayoutTests
         // ”Cashflowpoly.Ui”, ”Views”, ”Rulesets”, ”Index.cshtml”)`. Tipe variabel disimpulkan dari ekspresi nilai awal.
         var viewContent = File.ReadAllText(Path.Combine(repoRoot, "src", "Cashflowpoly.Ui", "Views", "Rulesets", "Index.cshtml"));
 
-        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”showMutationActions ? 7 : 5”`,
+        // Menjalankan pemeriksaan Contains untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”showMutationActions ? 6 : 5”`,
         // `viewContent`, `StringComparison.Ordinal` dalam RulesetIndexView_ShouldHideTechnicalRulesetIdColumn.
-        Assert.Contains("showMutationActions ? 7 : 5", viewContent, StringComparison.Ordinal);
+        Assert.Contains("showMutationActions ? 6 : 5", viewContent, StringComparison.Ordinal);
         // Menjalankan pemeriksaan DoesNotContain untuk memastikan keanggotaan elemen atau potongan teks sesuai harapan: `”<th class=\”px-4
         // py-3\”>@Context.T(\”common.ruleset_id\”)</th>”`, `viewContent`, `StringComparison.Ordinal` dalam
         // RulesetIndexView_ShouldHideTechnicalRulesetIdColumn.

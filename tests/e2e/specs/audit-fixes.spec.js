@@ -23,7 +23,7 @@ test('petunjuk UI sesuai interaksi dan aturan dalam kedua bahasa', async ({ page
     await page.locator('.statistics-tips-section summary').click();
     await expect(page.locator('.statistics-tips-section')).toContainText(language === 'id' ? 'Klik atau ketuk titik' : 'Click or tap a point');
     await expect(page.locator('.statistics-tips-section')).not.toContainText(/arahkan kursor|hover over/i);
-    await expect(page.locator('#statistics-status option[value="CREATED"]')).toHaveText(language === 'id' ? 'Belum dimulai' : 'Not started');
+    await expect(page.locator('#statistics-status')).toHaveCount(0);
     await page.goto('/sessions');
     await expect(page.getByText(language === 'id' ? 'Daftar Sesi' : 'Session List', { exact: true })).toBeVisible();
     await page.goto(`/sessions/${sessionId}`);

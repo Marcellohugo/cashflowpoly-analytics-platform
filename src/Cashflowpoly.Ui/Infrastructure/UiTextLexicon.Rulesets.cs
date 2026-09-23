@@ -172,5 +172,13 @@ internal static partial class UiTextLexicon
         terms["status.ruleset.draft"] = ("Draf", "Draft");
         terms["status.ruleset.retired"] = ("Pensiun", "Retired");
         terms["status.ruleset.unknown"] = ("Tidak Diketahui", "Unknown");
+        terms["rulesets.version_modal_title"] = ("Pilih Versi Set Aturan", "Select Ruleset Version");
+        terms["rulesets.version_modal_subtitle"] = ("Set aturan ini akan diedit menjadi versi lanjutan. Pilih versi yang ingin dijadikan dasar awal pengeditan:", "This ruleset will be edited into a next version. Choose which version to use as the base for editing:");
+        terms["rulesets.continue_edit"] = ("Lanjut Edit", "Proceed to Edit");
+        terms["rulesets.locked_by_session"] = ("Terkunci pada Sesi", "Locked by Session");
+        terms["rulesets.cannot_delete_locked"] = ("Set aturan yang sudah terhubung ke sesi tidak dapat dihapus.", "Rulesets linked to sessions cannot be deleted.");
+        terms["rulesets.failed_load_versions"] = ("Gagal memuat opsi versi ruleset.", "Failed to load ruleset versions.");
+        terms["rulesets.no_versions_available"] = ("Tidak ada versi tersedia.", "No versions available.");
+        terms["rulesets.locked_by_session_hint"] = ("Set aturan ini sudah terhubung ke sesi sehingga editan akan disimpan sebagai versi lanjutan baru, dan set aturan tidak dapat dihapus.", "This ruleset is connected to a session; edits will be saved as a new version, and the ruleset cannot be deleted.");
     }
 }

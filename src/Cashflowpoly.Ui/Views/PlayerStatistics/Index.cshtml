@@ -6,7 +6,6 @@
     var available = Model.Sessions.Count(s => s.Gameplay is not null);
     var groupKeys = new[] { "overview", "money", "play", "future", "happiness" };
     var sessionsLoaded = Model.TotalSessions.HasValue || Model.Sessions.Count > 0;
-    string StateLabel(string state) => Context.T("statistics.status." + state.ToLowerInvariant());
 }
 @section Head {
     <link rel="stylesheet" href="~/css/player-statistics.css" asp-append-version="true" />
@@ -75,16 +74,6 @@
             <select class="form-input" id="statistics-mode" name="mode">
                 <option value="PEMULA" selected="@(Model.Mode == "PEMULA")">@Context.T("statistics.mode.pemula")</option>
                 <option value="MAHIR" selected="@(Model.Mode == "MAHIR")">@Context.T("statistics.mode.mahir")</option>
-            </select>
-        </div>
-        <div class="form-field">
-            <label class="form-label" for="statistics-status">@Context.T("statistics.status")</label>
-            <select class="form-input" id="statistics-status" name="status">
-                <option value="ALL" selected="@(Model.Status == "ALL")">@Context.T("statistics.all_statuses")</option>
-                @foreach (var state in new[] { "CREATED", "STARTED", "ENDED" })
-                {
-                    <option value="@state" selected="@(Model.Status == state)">@StateLabel(state)</option>
-                }
             </select>
         </div>
         <button class="btn-primary" type="submit">@Context.T("statistics.apply")</button>

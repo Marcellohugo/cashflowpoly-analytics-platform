@@ -141,15 +141,11 @@ test("statistik satu mode memakai angka analitika, kategori tunggal, dan akses s
   await expect(page.locator(".statistics-session")).toHaveCount(0);
   await expect(page.locator(".statistics-chart")).toHaveCount(14);
   await expect(page.locator("#statistics-future")).toHaveCount(0);
-  await expect(page.locator('.statistics-chart svg [tabindex="0"]').first()).toBeVisible();
-  await page.locator("#statistics-status").selectOption("CREATED");
-  await page.getByRole("button", { name: "Tampilkan", exact: true }).click();
-  await expect(page.locator('.statistics-session')).toHaveCount(0);
-  await expect(page.locator('.statistics-chart svg [tabindex="0"]')).toHaveCount(0);
-  await page.locator('#statistics-status').selectOption('STARTED');
+  await expect(page.locator('#statistics-status')).toHaveCount(0);
+  await page.locator('#statistics-mode').selectOption('MAHIR');
   await page.getByRole('button', { name: 'Tampilkan', exact: true }).click();
   await expect(page.locator('.statistics-session')).toHaveCount(0);
-  await expect(page.locator('[data-statistics-metric="total_happiness_points"] svg [tabindex="0"]')).toHaveCount(ownSessions.filter(item => item.mode === 'PEMULA' && item.status === 'STARTED').length);
+  await expect(page.locator('.statistics-chart')).toHaveCount(19);
   await page.goto("/statistics");
   await page.locator(".nav-dropdown-lang summary").click();
   await page.getByRole("button", { name: "Bahasa Inggris (EN)", exact: true }).click();

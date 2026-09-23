@@ -288,7 +288,9 @@ public sealed record RulesetVersionItem(
     // Parameter `Status` bertipe `string` membawa nilai status; memetakan nama properti JSON menjadi (”status”).
     [property: JsonPropertyName("status")] string Status,
     // Parameter `CreatedAt` bertipe `DateTimeOffset` membawa nilai created at; memetakan nama properti JSON menjadi (”created_at”).
-    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt);
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    // Parameter `IsUsed` bertipe `bool` membawa nilai apakah versi ini sudah digunakan oleh sesi/event; memetakan nama properti JSON menjadi (”is_used”).
+    [property: JsonPropertyName("is_used")] bool IsUsed = false);
 
 public sealed record RulesetDetailResponse(
     // Parameter `RulesetId` bertipe `Guid` membawa identitas kumpulan aturan permainan; memetakan nama properti JSON menjadi (”ruleset_id”).

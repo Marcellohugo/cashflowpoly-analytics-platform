@@ -183,7 +183,7 @@ public sealed class RulesetsController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
-        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct, allowSessionLocked: true);
         if (mutableRuleset.Error is not null)
         {
             return mutableRuleset.Error;
@@ -235,7 +235,7 @@ public sealed class RulesetsController : ControllerBase
             return Unauthorized(ApiErrorHelper.BuildError(HttpContext, "UNAUTHORIZED", "Token pengguna tidak valid"));
         }
 
-        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct, allowSessionLocked: true);
         if (mutableRuleset.Error is not null)
         {
             return mutableRuleset.Error;
@@ -293,7 +293,7 @@ public sealed class RulesetsController : ControllerBase
                 new ErrorDetail("version", "OUT_OF_RANGE")));
         }
 
-        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct);
+        var mutableRuleset = await GetMutableInstructorRulesetAsync(rulesetId, instructorUserId, ct, allowSessionLocked: true);
         if (mutableRuleset.Error is not null)
         {
             return mutableRuleset.Error;
@@ -514,11 +514,13 @@ public sealed class RulesetsController : ControllerBase
         }
 
         var versions = await _rulesets.ListRulesetVersionsAsync(rulesetId, ct);
+        var usedVersionIds = await _rulesets.GetUsedRulesetVersionIdsAsync(rulesetId, ct);
         var versionItems = versions.Select(v => new RulesetVersionItem(
             v.RulesetVersionId,
             v.Version,
             v.Status,
-            v.CreatedAt)).ToList();
+            v.CreatedAt,
+            usedVersionIds.Contains(v.RulesetVersionId))).ToList();
 
         Guid? selectedRulesetVersionId = null;
         int? selectedVersionNumber = null;
@@ -681,7 +683,8 @@ public sealed class RulesetsController : ControllerBase
         Guid instructorUserId,
         // Parameter `ct` bertipe `CancellationToken` membawa sinyal pembatalan agar operasi dapat dihentikan ketika pemanggil membatalkan permintaan atau
         // aplikasi berhenti.
-        CancellationToken ct)
+        CancellationToken ct,
+        bool allowSessionLocked = false)
     {
         var ruleset = await _rulesets.GetRulesetAsync(rulesetId, ct);
         if (ruleset is null)
@@ -702,13 +705,16 @@ public sealed class RulesetsController : ControllerBase
             return (null, NotFound(ApiErrorHelper.BuildError(HttpContext, "NOT_FOUND", "Ruleset tidak ditemukan")));
         }
 
-        var lockedBySession = await _rulesets.IsRulesetLockedBySessionAsync(rulesetId, ct);
-        if (lockedBySession)
+        if (!allowSessionLocked)
         {
-            return (null, UnprocessableEntity(ApiErrorHelper.BuildError(
-                HttpContext,
-                "DOMAIN_RULE_VIOLATION",
-                "Ruleset sudah terhubung ke sesi sehingga hanya dapat dilihat, termasuk saat sesi belum dimulai. Buat ruleset baru untuk perubahan aturan.")));
+            var lockedBySession = await _rulesets.IsRulesetLockedBySessionAsync(rulesetId, ct);
+            if (lockedBySession)
+            {
+                return (null, UnprocessableEntity(ApiErrorHelper.BuildError(
+                    HttpContext,
+                    "DOMAIN_RULE_VIOLATION",
+                    "Ruleset sudah terhubung ke sesi sehingga hanya dapat dilihat, termasuk saat sesi belum dimulai. Buat ruleset baru untuk perubahan aturan.")));
+            }
         }
 
         return (ruleset, null);
