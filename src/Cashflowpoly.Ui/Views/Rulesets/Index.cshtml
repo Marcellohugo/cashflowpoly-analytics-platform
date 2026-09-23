@@ -298,51 +298,7 @@
     </div>
 </section>
 
-<div id="rulesetVersionModal"
-     class="ruleset-modal-backdrop"
-     role="dialog"
-     aria-modal="true"
-     aria-labelledby="rulesetVersionModalTitle"
-     aria-hidden="true"
-     style="display: none;">
-    <div class="ruleset-modal-overlay" id="rulesetVersionModalOverlay"></div>
-    <div class="ruleset-modal-container max-w-lg" role="document">
-        <div class="ruleset-modal-header">
-            <div>
-                <p class="eyebrow">@Context.T("rulesets.management")</p>
-                <h2 id="rulesetVersionModalTitle" class="text-xl font-bold text-slate-900 mt-1">@Context.T("rulesets.version_modal_title")</h2>
-            </div>
-            <button type="button"
-                    class="ruleset-modal-close"
-                    id="closeRulesetVersionModalBtn"
-                    aria-label="@Context.T("common.close")">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-        <div class="ruleset-modal-body p-6">
-            <div id="rulesetVersionModalLoading" class="text-center py-6 text-slate-500">
-                <span class="inline-block animate-pulse">@Context.T("common.loading")</span>
-            </div>
-            <div id="rulesetVersionModalContent" style="display: none;">
-                <p class="text-sm text-slate-600 mb-3" id="rulesetVersionModalSubtitle">
-                    @Context.T("rulesets.version_modal_subtitle")
-                </p>
-                <div class="ruleset-version-list space-y-2 max-h-64 overflow-y-auto mb-4" id="rulesetVersionListContainer">
-                </div>
-                <div class="alert alert-info text-xs mt-3">
-                    @Context.T("rulesets.locked_by_session_hint")
-                </div>
-            </div>
-        </div>
-        <div class="ruleset-modal-footer px-6 py-4 bg-slate-50 flex items-center justify-end gap-3 border-t border-slate-200">
-            <button type="button" class="btn-ghost btn-compact" id="cancelRulesetVersionModalBtn">@Context.T("common.cancel")</button>
-            <button type="button" class="btn-primary btn-compact" id="confirmRulesetVersionEditBtn" disabled>@Context.T("rulesets.continue_edit")</button>
-        </div>
-    </div>
-</div>
+@await Html.PartialAsync("_RulesetVersionModal")
 
 @section Scripts {
     <script>
@@ -362,17 +318,7 @@
             const lockedWarning = document.querySelector("[data-ruleset-locked-warning]");
             const bulkInputsHost = document.querySelector("[data-ruleset-bulk-hidden-inputs]");
 
-            const versionModal = document.getElementById("rulesetVersionModal");
-            const versionModalOverlay = document.getElementById("rulesetVersionModalOverlay");
-            const closeVersionModalBtn = document.getElementById("closeRulesetVersionModalBtn");
-            const cancelVersionModalBtn = document.getElementById("cancelRulesetVersionModalBtn");
-            const confirmVersionEditBtn = document.getElementById("confirmRulesetVersionEditBtn");
-            const versionModalLoading = document.getElementById("rulesetVersionModalLoading");
-            const versionModalContent = document.getElementById("rulesetVersionModalContent");
-            const versionModalTitle = document.getElementById("rulesetVersionModalTitle");
-            const versionListContainer = document.getElementById("rulesetVersionListContainer");
-            let activeEditingRulesetId = null;
-            let activeSelectedVersion = null;
+
             if (!searchInput || !sortSelect || !pageSizeSelect || !resetButton || !tbody) {
                 return;
             }
@@ -603,119 +549,15 @@
                 });
             });
 
-            function openVersionModal(rulesetId) {
-                activeEditingRulesetId = rulesetId;
-                activeSelectedVersion = null;
-                if (confirmVersionEditBtn) confirmVersionEditBtn.disabled = true;
-                if (versionModal) {
-                    versionModal.style.display = "flex";
-                    versionModal.classList.add("is-open");
-                }
-                if (versionModalLoading) versionModalLoading.style.display = "block";
-                if (versionModalContent) versionModalContent.style.display = "none";
-
-                const targetRow = rows.find(r => (r.dataset.rulesetId || "").toLowerCase() === (rulesetId || "").toLowerCase());
-                const rulesetName = targetRow ? (targetRow.querySelector(".ruleset-name-cell span")?.textContent?.trim() || "") : "";
-                if (versionModalTitle) {
-                    versionModalTitle.textContent = `@Context.T("rulesets.version_modal_title"): ${rulesetName}`;
-                }
-
-                fetch(`@Url.Action("GetVersionOptions", "Rulesets", new { rulesetId = Guid.Empty })`.replace("@Guid.Empty", rulesetId))
-                    .then(res => {
-                        if (!res.ok) throw new Error("Fetch failed");
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (versionModalLoading) versionModalLoading.style.display = "none";
-                        if (versionModalContent) versionModalContent.style.display = "block";
-                        renderVersionList(data.versions || [], data.latestVersion);
-                    })
-                    .catch(() => {
-                        if (versionModalLoading) {
-                            versionModalLoading.innerHTML = `<span class="text-rose-600 font-medium">@Context.T("rulesets.failed_load_versions")</span>`;
-                        }
-                    });
-            }
-
-            function renderVersionList(versions, latestVersion) {
-                if (!versionListContainer) return;
-                versionListContainer.innerHTML = "";
-                if (versions.length === 0) {
-                    versionListContainer.innerHTML = `<p class="text-sm text-slate-500">@Context.T("rulesets.no_versions_available")</p>`;
-                    return;
-                }
-
-                activeSelectedVersion = latestVersion || versions[0].version;
-                if (confirmVersionEditBtn) confirmVersionEditBtn.disabled = false;
-
-                versions.forEach(v => {
-                    const item = document.createElement("label");
-                    const isSelected = v.version === activeSelectedVersion;
-                    item.className = "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors " +
-                        (isSelected ? "border-emerald-500 bg-emerald-50" : "border-slate-200 hover:bg-slate-50");
-
-                    const isChecked = isSelected ? "checked" : "";
-                    const lockedBadge = v.isUsed
-                        ? `<span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">@Context.T("rulesets.locked_by_session")</span>`
-                        : "";
-                    const statusBadge = v.status === "ACTIVE"
-                        ? `<span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium">@Context.T("status.ruleset.active")</span>`
-                        : `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">${v.status}</span>`;
-
-                    item.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <input type="radio" name="selectedRulesetVersion" value="${v.version}" ${isChecked} class="text-emerald-600 focus:ring-emerald-500" />
-                            <div>
-                                <span class="font-semibold text-slate-900">v${v.version}</span>
-                                <span class="text-xs text-slate-500 ml-2">${v.createdAt || ""}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            ${lockedBadge}
-                            ${statusBadge}
-                        </div>
-                    `;
-
-                    item.querySelector("input").addEventListener("change", (e) => {
-                        activeSelectedVersion = Number.parseInt(e.target.value, 10);
-                        if (confirmVersionEditBtn) confirmVersionEditBtn.disabled = false;
-                        versionListContainer.querySelectorAll("label").forEach(l => {
-                            l.className = "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors border-slate-200 hover:bg-slate-50";
-                        });
-                        item.className = "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors border-emerald-500 bg-emerald-50";
-                    });
-
-                    versionListContainer.appendChild(item);
-                });
-            }
-
-            function closeVersionModal() {
-                if (versionModal) {
-                    versionModal.style.display = "none";
-                    versionModal.classList.remove("is-open");
-                }
-                activeEditingRulesetId = null;
-                activeSelectedVersion = null;
-            }
-
             if (editSelectedButton) {
                 editSelectedButton.addEventListener("click", () => {
                     if (selectedRulesetIds.size === 1) {
                         const rulesetId = Array.from(selectedRulesetIds)[0];
-                        openVersionModal(rulesetId);
-                    }
-                });
-            }
-
-            if (closeVersionModalBtn) closeVersionModalBtn.addEventListener("click", closeVersionModal);
-            if (cancelVersionModalBtn) cancelVersionModalBtn.addEventListener("click", closeVersionModal);
-            if (versionModalOverlay) versionModalOverlay.addEventListener("click", closeVersionModal);
-
-            if (confirmVersionEditBtn) {
-                confirmVersionEditBtn.addEventListener("click", () => {
-                    if (activeEditingRulesetId && activeSelectedVersion) {
-                        const baseUrl = `@Url.Action("Edit", "Rulesets", new { rulesetId = Guid.Empty })`.replace("@Guid.Empty", activeEditingRulesetId);
-                        window.location.href = `${baseUrl}?version=${activeSelectedVersion}`;
+                        const targetRow = rows.find(r => (r.dataset.rulesetId || "").toLowerCase() === (rulesetId || "").toLowerCase());
+                        const rulesetName = targetRow ? (targetRow.querySelector(".ruleset-name-cell span")?.textContent?.trim() || "") : "";
+                        if (window.openRulesetVersionModal) {
+                            window.openRulesetVersionModal(rulesetId, rulesetName);
+                        }
                     }
                 });
             }

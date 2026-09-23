@@ -119,10 +119,11 @@ else
             <div class="action-toolbar mt-4 ruleset-detail-toolbar">
                 @if (isInstructor && !Model.Ruleset.IsDefault && !Model.IsDefaultCatalogSource)
                 {
-                    <a class="btn-ghost"
-                       asp-controller="Rulesets"
-                       asp-action="Edit"
-                       asp-route-rulesetId="@Model.Ruleset.RulesetId">@Context.T("rulesets.edit")</a>
+                    <button type="button"
+                            class="btn-ghost"
+                            id="detailRulesetEditBtn"
+                            data-ruleset-id="@Model.Ruleset.RulesetId"
+                            data-ruleset-name="@Model.Ruleset.Name">@Context.T("rulesets.edit")</button>
                     @if (!Model.Ruleset.IsLockedBySession)
                     {
                         <form method="post"
@@ -148,10 +149,11 @@ else
         else if (isInstructor && !Model.Ruleset.IsDefault && !Model.IsDefaultCatalogSource)
         {
             <div class="action-toolbar mt-4 ruleset-detail-toolbar">
-                <a class="btn-ghost"
-                   asp-controller="Rulesets"
-                   asp-action="Edit"
-                   asp-route-rulesetId="@Model.Ruleset.RulesetId">@Context.T("rulesets.edit") (@Context.T("rulesets.continue_edit"))</a>
+                <button type="button"
+                        class="btn-ghost"
+                        id="embeddedRulesetEditBtn"
+                        data-ruleset-id="@Model.Ruleset.RulesetId"
+                        data-ruleset-name="@Model.Ruleset.Name">@Context.T("rulesets.edit") (@Context.T("rulesets.continue_edit"))</button>
             </div>
         }
 

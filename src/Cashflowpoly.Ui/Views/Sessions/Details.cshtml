@@ -237,6 +237,14 @@
                             id="openRulesetModalBtn"
                             aria-haspopup="dialog"
                             aria-controls="rulesetModal">@Context.T("sessions.view_ruleset")</button>
+                    @if (isInstructor && Model.ActiveRulesetDetail?.Ruleset?.IsDefault != true && Model.ActiveRulesetDetail?.IsDefaultCatalogSource != true)
+                    {
+                        <button type="button"
+                                class="btn-primary"
+                                id="openSessionRulesetVersionModalBtn"
+                                data-ruleset-id="@Model.Analytics.RulesetId"
+                                data-ruleset-name="@(Model.Analytics.RulesetName ?? "")">@Context.T("rulesets.edit")</button>
+                    }
                 </div>
             }
             else
@@ -289,6 +297,7 @@
                 </div>
             </div>
         </div>
+        @await Html.PartialAsync("_RulesetVersionModal")
     }
 
     @if (Model.Analytics is not null)
@@ -561,6 +570,31 @@
 
             if (overlay) {
                 overlay.addEventListener('click', closeModal);
+            }
+
+            const editSessionRulesetBtn = document.getElementById('openSessionRulesetVersionModalBtn');
+            if (editSessionRulesetBtn) {
+                editSessionRulesetBtn.addEventListener('click', () => {
+                    if (window.openRulesetVersionModal) {
+                        window.openRulesetVersionModal(
+                            editSessionRulesetBtn.dataset.rulesetId,
+                            editSessionRulesetBtn.dataset.rulesetName
+                        );
+                    }
+                });
+            }
+
+            const embeddedEditBtn = document.getElementById('embeddedRulesetEditBtn');
+            if (embeddedEditBtn) {
+                embeddedEditBtn.addEventListener('click', () => {
+                    closeModal();
+                    if (window.openRulesetVersionModal) {
+                        window.openRulesetVersionModal(
+                            embeddedEditBtn.dataset.rulesetId,
+                            embeddedEditBtn.dataset.rulesetName
+                        );
+                    }
+                });
             }
 
             document.addEventListener('keydown', (e) => {

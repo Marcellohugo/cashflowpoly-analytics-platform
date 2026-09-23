@@ -29,4 +29,24 @@
     <div class="mt-4">
         @await Html.PartialAsync("_RulesetDetailContent", Model)
     </div>
+    @await Html.PartialAsync("_RulesetVersionModal")
 </section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const detailEditBtn = document.getElementById("detailRulesetEditBtn");
+            if (detailEditBtn) {
+                detailEditBtn.addEventListener("click", () => {
+                    if (window.openRulesetVersionModal) {
+                        window.openRulesetVersionModal(
+                            detailEditBtn.dataset.rulesetId,
+                            detailEditBtn.dataset.rulesetName
+                        );
+                    }
+                });
+            }
+        })();
+    </script>
+}
+
