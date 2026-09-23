@@ -723,9 +723,6 @@ a:hover {
 }
 
 .profile-menu .profile-change-pwd-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
     margin-bottom: 0.45rem;
     border: 1px solid #9ad7cf;
     background: linear-gradient(145deg, #f0fdfa, #e6fffa);
